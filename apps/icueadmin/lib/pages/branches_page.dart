@@ -3,7 +3,9 @@ import 'package:flutter/scheduler.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
+import '../services/api_client.dart';
 import '../services/hive_service.dart';
+import '../services/injectable.dart';
 
 class BranchesPage extends StatefulWidget {
   const BranchesPage({super.key});
@@ -40,6 +42,7 @@ class _BranchesPageState extends State<BranchesPage> {
                   trailing: const Icon(Icons.arrow_forward_ios_sharp),
                   onTap: () async {
                     await HiveService.zonalBranch.put('selected', item);
+                    getIt<ApiClient>().invalidateSessionCache();
                     await provider.getRoleActions(context);
                   },
                 );

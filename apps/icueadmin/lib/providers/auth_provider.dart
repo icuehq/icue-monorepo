@@ -67,6 +67,7 @@ class AuthProvider extends ChangeNotifier {
       if (user != null) {
         resetOtpSent();
         await HiveService.userInfoBox.add(user!);
+        _apiClient.invalidateSessionCache();
         // If the user is zonal admin, navigate to branches page
         if (user?.roles.firstOrNull?.name.toLowerCase() ==
             'Fleet_ZonalAdmin'.toLowerCase()) {
@@ -160,6 +161,7 @@ class AuthProvider extends ChangeNotifier {
       }
     } finally {
       await HiveService.clearAll();
+      _apiClient.invalidateSessionCache();
       await getIt<NotificationService>().dispose();
 
       // Use safe navigation - appRouter.go doesn't require a context

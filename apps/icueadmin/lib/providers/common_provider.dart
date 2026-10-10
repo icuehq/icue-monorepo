@@ -67,7 +67,7 @@ class CommonProvider extends ChangeNotifier {
     try {
       final response = await _apiClient.post(
         '/v1.0/getAdminAppSettings',
-        data: {'BranchId': userInfo.branchId},
+        data: {'BranchId': userInfo.branchId, 'ZoneId': userInfo.zoneId},
       );
       appSettings = AppSettings.fromJson(response.data as Map<String, dynamic>);
     } catch (error, stack) {
