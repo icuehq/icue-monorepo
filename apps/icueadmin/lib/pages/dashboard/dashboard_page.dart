@@ -7,6 +7,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 
 import '../../dialogs/logout_dialog.dart';
+import '../../models/role_actions.dart';
 import '../../providers/common_provider.dart';
 import '../../services/hive_service.dart';
 import '../../services/injectable.dart';
@@ -26,6 +27,14 @@ const Map<String, String> _iconsMap = {
   'layout.vehicles': 'assets/dashboard/reports.png',
   'layout.logbook': 'assets/dashboard/log-book.png',
   'layout.dropboarding': 'assets/dashboard/student-drop.png',
+};
+
+const Map<String, IconData> _fallbackIconsMap = {
+  'layout.exams': Icons.quiz_outlined,
+  'layout.markscorrectionrequests': Icons.fact_check_outlined,
+  'layout.leaves': Icons.event_note_outlined,
+  'layout.homeassignments': Icons.assignment_outlined,
+  'layout.attendance': Icons.how_to_reg_outlined,
 };
 
 class DashboardPage extends StatefulWidget {
@@ -77,6 +86,34 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildLeadingIcon(BuildContext context, RoleActions item) {
+    final iconPath = _iconsMap[item.routeState];
+    if (iconPath != null) {
+      return Image.asset(
+        iconPath,
+        errorBuilder: (_, _, _) => _buildFallbackLeading(context, item),
+      );
+    }
+    return _buildFallbackLeading(context, item);
+  }
+
+  Widget _buildFallbackLeading(BuildContext context, RoleActions item) {
+    if (item.icon.isNotEmpty) {
+      return CacheImage(url: item.icon, size: 56);
+    }
+    final icon = _fallbackIconsMap[item.routeState] ?? Icons.widgets_outlined;
+    final theme = Theme.of(context);
+    return Container(
+      width: 56,
+      height: 56,
+      decoration: BoxDecoration(
+        color: theme.primaryColor.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Icon(icon, color: theme.primaryColor, size: 28),
     );
   }
 
@@ -142,7 +179,8 @@ class _DashboardPageState extends State<DashboardPage> {
         child: ValueListenableBuilder(
           valueListenable: HiveService.getActionsByRoleBox.listenable(),
           builder: (context, box, _) {
-            final actions = box.values.toList();
+            final actions = box.values.toList()
+              ..sort((a, b) => a.tabOrder.compareTo(b.tabOrder));
             if (actions.isEmpty) {
               return const NoDataWidget(
                 size: 250,
@@ -156,24 +194,22 @@ class _DashboardPageState extends State<DashboardPage> {
               itemCount: actions.length,
               itemBuilder: (context, index) {
                 final item = actions[index];
-                final iconPath = _iconsMap[item.routeState];
                 return Card(
                   elevation: 1,
                   margin: const EdgeInsets.only(bottom: 10),
                   child: ListTile(
-                    onTap: () => context.go('/${item.routeState}'),
+                    onTap: () {
+                      final route = item.routeState.startsWith('/')
+                          ? item.routeState
+                          : '/${item.routeState}';
+                      context.go(route);
+                    },
                     leading: Padding(
                       padding: const EdgeInsets.only(top: 5, bottom: 5),
                       child: SizedBox(
                         width: 56,
                         height: 56,
-                        child: iconPath != null
-                            ? Image.asset(
-                                iconPath,
-                                errorBuilder: (_, _, _) =>
-                                    CacheImage(url: item.icon, size: 56),
-                              )
-                            : CacheImage(url: item.icon, size: 56),
+                        child: _buildLeadingIcon(context, item),
                       ),
                     ),
                     title: Text(

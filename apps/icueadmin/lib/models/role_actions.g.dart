@@ -23,6 +23,7 @@ class RoleActionsAdapter extends TypeAdapter<RoleActions> {
       icon: fields[1] as String,
       tabOrder: fields[6] as int,
       displayName: fields[0] as String,
+      subActions: fields[7] as bool?,
       subActionItems: (fields[5] as List?)?.cast<RoleActions>(),
     );
   }
@@ -30,7 +31,7 @@ class RoleActionsAdapter extends TypeAdapter<RoleActions> {
   @override
   void write(BinaryWriter writer, RoleActions obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(8)
       ..writeByte(0)
       ..write(obj.displayName)
       ..writeByte(1)
@@ -44,7 +45,9 @@ class RoleActionsAdapter extends TypeAdapter<RoleActions> {
       ..writeByte(5)
       ..write(obj.subActionItems)
       ..writeByte(6)
-      ..write(obj.tabOrder);
+      ..write(obj.tabOrder)
+      ..writeByte(7)
+      ..write(obj.subActions);
   }
 
   @override

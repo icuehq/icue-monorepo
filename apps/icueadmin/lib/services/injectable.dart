@@ -6,6 +6,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:get_it/get_it.dart';
 import 'package:injectable/injectable.dart';
 
+import 'base_api_client.dart';
 import 'injectable.config.dart';
 
 final getIt = GetIt.instance;
@@ -18,17 +19,7 @@ void configureDependencies() => getIt.init();
 @module
 abstract class ServiceModules {
   @singleton
-  Dio get dio => Dio(
-    BaseOptions(
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      },
-      connectTimeout: const Duration(seconds: 30),
-      receiveTimeout: const Duration(seconds: 30),
-      sendTimeout: const Duration(seconds: 30),
-    ),
-  );
+  Dio get dio => BaseApiClient.createDio();
 
   @lazySingleton
   FirebaseAnalytics get firebaseAnalytics => FirebaseAnalytics.instance;

@@ -15,10 +15,10 @@ void main() {
                 'Standard': 'Grade 10',
                 'StandardType': 'STUDENT',
                 'Sections': ['A', 'B'],
-              }
-            ]
-          }
-        ]
+              },
+            ],
+          },
+        ],
       };
 
       final result = AssignedEntities.fromJson(json);
@@ -39,10 +39,8 @@ void main() {
         'err': false,
         'message': 'Success',
         'data': [
-          {
-            'Classes': '',
-          }
-        ]
+          {'Classes': ''},
+        ],
       };
 
       final result = AssignedEntities.fromJson(json);
@@ -55,9 +53,7 @@ void main() {
         'err': null,
         'message': null,
         'data': [
-          {
-            'Classes': null,
-          },
+          {'Classes': null},
           {
             'Classes': [
               {
@@ -65,10 +61,10 @@ void main() {
                 'Standard': null,
                 'StandardType': null,
                 'Sections': '',
-              }
-            ]
-          }
-        ]
+              },
+            ],
+          },
+        ],
       };
 
       final result = AssignedEntities.fromJson(json);

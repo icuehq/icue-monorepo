@@ -18,8 +18,32 @@ melos:
       exec: flutter clean
       description: Clean build folders and artifacts across all packages and apps.
     format:
-      exec: dart format .
-      description: Run dart format on all packages and apps in the workspace.
+      exec: >-
+        find .
+        \( -path '*/.*' -o -path './build' -o -path './ios' -o -path './android' -o -path './windows' -o -path './macos' -o -path './linux' \) -prune
+        -o -name "*.dart"
+        ! -name "*.g.dart"
+        ! -name "*.freezed.dart"
+        ! -name "*.config.dart"
+        ! -name "*.mocks.dart"
+        ! -name "*.gr.dart"
+        ! -name "*.gen.dart"
+        ! -name "firebase_options*.dart"
+        ! -name "*generated_plugin_registrant.dart"
+        -exec dart format {} +
+      description: Run dart format on all packages and apps in the workspace, excluding auto-generated files.
     format:check:
-      exec: dart format --set-exit-if-changed .
-      description: Check dart format on all packages and apps in the workspace.
+      exec: >-
+        find .
+        \( -path '*/.*' -o -path './build' -o -path './ios' -o -path './android' -o -path './windows' -o -path './macos' -o -path './linux' \) -prune
+        -o -name "*.dart"
+        ! -name "*.g.dart"
+        ! -name "*.freezed.dart"
+        ! -name "*.config.dart"
+        ! -name "*.mocks.dart"
+        ! -name "*.gr.dart"
+        ! -name "*.gen.dart"
+        ! -name "firebase_options*.dart"
+        ! -name "*generated_plugin_registrant.dart"
+        -exec dart format --set-exit-if-changed {} +
+      description: Check dart format on all packages and apps in the workspace, excluding auto-generated files.

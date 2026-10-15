@@ -39,6 +39,20 @@ class HiveService {
   static Box<String> get fuelPriceBox => Hive.box<String>('fuelPriceBox-v2');
   static Box<Branch> get zonalBranch => Hive.box<Branch>('zonalBranch-v2');
 
+  static UserInfo? get currentUser {
+    if (Hive.isBoxOpen('userInfo-v2') && userInfoBox.values.isNotEmpty) {
+      return userInfoBox.values.firstOrNull;
+    }
+    return null;
+  }
+
+  static Branch? get currentZonalBranch {
+    if (Hive.isBoxOpen('zonalBranch-v2')) {
+      return zonalBranch.get('selected');
+    }
+    return null;
+  }
+
   static Box<ExpenseType> get expenseTypesBox =>
       Hive.box<ExpenseType>('expenseTypes-v2');
 
@@ -59,6 +73,8 @@ class HiveService {
     Hive.registerAdapter(RoleActionsAdapter());
     Hive.registerAdapter(UserInfoAdapter());
     Hive.registerAdapter(UserClassAdapter());
+    Hive.registerAdapter(SubjectInfoAdapter());
+    Hive.registerAdapter(SubjectAdapter());
     Hive.registerAdapter(RoleAdapter());
     Hive.registerAdapter(StandardsAdapter());
     Hive.registerAdapter(SectionAdapter());

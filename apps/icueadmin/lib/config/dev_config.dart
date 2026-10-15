@@ -5,5 +5,8 @@ class DevConfig extends BaseConfig {
   String get baseUrl => 'https://itraxpro.com';
 
   @override
+  String get hrmsBaseUrl => 'https://hrmscore.itraxpro.com';
+
+  @override
   String get env => 'DEV';
 }

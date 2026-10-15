@@ -40,10 +40,7 @@ class AppSettings {
 }
 
 class AttendCnfg {
-  AttendCnfg({
-    required this.attendanceMode,
-    required this.uploadAttendImages,
-  });
+  AttendCnfg({required this.attendanceMode, required this.uploadAttendImages});
 
   factory AttendCnfg.fromJson(Map<String, dynamic> json) => AttendCnfg(
     attendanceMode: json['AttendanceMode']?.toString(),

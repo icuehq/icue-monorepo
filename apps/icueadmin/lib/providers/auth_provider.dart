@@ -66,6 +66,7 @@ class AuthProvider extends ChangeNotifier {
       user = UserInfo.fromJson(response.data as Map<String, dynamic>);
       if (user != null) {
         resetOtpSent();
+        await HiveService.userInfoBox.clear();
         await HiveService.userInfoBox.add(user!);
         // If the user is zonal admin, navigate to branches page
         if (user?.roles.firstOrNull?.name.toLowerCase() ==
@@ -161,6 +162,14 @@ class AuthProvider extends ChangeNotifier {
     } finally {
       await HiveService.clearAll();
       await getIt<NotificationService>().dispose();
+      _apiClient.invalidateSessionCache();
+
+      user = null;
+      roleActions = [];
+      branches = [];
+      assignedEntityClasses = [];
+      personTypes = [];
+      otpSent = false;
 
       // Use safe navigation - appRouter.go doesn't require a context
       appRouter.go('/login');

@@ -15,10 +15,20 @@ import '../../pages/drivers/driver_docs_page.dart';
 import '../../pages/drivers/driver_info_page.dart';
 import '../../pages/drivers/drivers_page.dart';
 import '../../pages/drop_boarding/drop_boarding_page.dart';
+import '../../pages/exams/exam_mgmt_page.dart';
+import '../../pages/exams/exam_results_page.dart';
+import '../../pages/exams/marks_correction_requests_page.dart';
+import '../../pages/exams/marks_entry_page.dart';
 import '../../pages/fuel/fuel_page.dart';
 import '../../pages/gatepass/gatepass_page.dart';
 import '../../pages/gatepass/generate_gatepass_page.dart';
 import '../../pages/gatepass/pending_gatepass_page.dart';
+import '../../pages/home_assignments/create_home_assignment_page.dart';
+import '../../pages/home_assignments/home_assignments_page.dart';
+import '../../pages/leaves/leave_balance_page.dart';
+import '../../pages/leaves/leave_request_page.dart';
+import '../../pages/leaves/leaves_applied_page.dart';
+import '../../pages/leaves/leaves_page.dart';
 import '../../pages/log_book/add_complaint_page.dart';
 import '../../pages/log_book/alcohol_test/alcohol_test_report_page.dart';
 import '../../pages/log_book/alcohol_test_form_page.dart';
@@ -434,6 +444,152 @@ final GoRouter appRouter = GoRouter(
                 screenName: 'branches-page',
                 child: DropBoardingPage(),
               ),
+            ),
+
+            /// Exam Management Route
+            GoRoute(
+              parentNavigatorKey: navigatorKey,
+              path: 'layout.exams',
+              builder: (context, state) => const ScreenTracker(
+                screenName: 'exam-mgmt-page',
+                child: ExamMgmtPage(),
+              ),
+              routes: [
+                GoRoute(
+                  parentNavigatorKey: navigatorKey,
+                  path: 'layout.marksentry',
+                  builder: (context, state) => const ScreenTracker(
+                    screenName: 'marks-entry-page',
+                    child: MarksEntryPage(),
+                  ),
+                ),
+                GoRoute(
+                  parentNavigatorKey: navigatorKey,
+                  path: 'layout.exam_results',
+                  builder: (context, state) => const ScreenTracker(
+                    screenName: 'exam-results-page',
+                    child: ExamResultsPage(),
+                  ),
+                ),
+                GoRoute(
+                  parentNavigatorKey: navigatorKey,
+                  path: 'layout.markscorrectionrequests',
+                  builder: (context, state) => const ScreenTracker(
+                    screenName: 'marks-correction-requests-page',
+                    child: MarksCorrectionRequestsPage(),
+                  ),
+                ),
+              ],
+            ),
+            GoRoute(
+              parentNavigatorKey: navigatorKey,
+              path: 'layout.marksentry',
+              builder: (context, state) => const ScreenTracker(
+                screenName: 'marks-entry-page',
+                child: MarksEntryPage(),
+              ),
+            ),
+            GoRoute(
+              parentNavigatorKey: navigatorKey,
+              path: 'layout.exam_results',
+              builder: (context, state) => const ScreenTracker(
+                screenName: 'exam-results-page',
+                child: ExamResultsPage(),
+              ),
+            ),
+            GoRoute(
+              parentNavigatorKey: navigatorKey,
+              path: 'layout.markscorrectionrequests',
+              builder: (context, state) => const ScreenTracker(
+                screenName: 'marks-correction-requests-page',
+                child: MarksCorrectionRequestsPage(),
+              ),
+            ),
+
+            /// Leaves Route
+            GoRoute(
+              parentNavigatorKey: navigatorKey,
+              path: 'layout.leaves',
+              builder: (context, state) => const ScreenTracker(
+                screenName: 'leaves-page',
+                child: LeavesPage(),
+              ),
+              routes: [
+                GoRoute(
+                  parentNavigatorKey: navigatorKey,
+                  path: 'layout.leavebalance',
+                  builder: (context, state) => const ScreenTracker(
+                    screenName: 'leave-balance-page',
+                    child: LeaveBalancePage(),
+                  ),
+                ),
+                GoRoute(
+                  parentNavigatorKey: navigatorKey,
+                  path: 'layout.leaverequest',
+                  builder: (context, state) => const ScreenTracker(
+                    screenName: 'leave-request-page',
+                    child: LeaveRequestPage(),
+                  ),
+                ),
+                GoRoute(
+                  parentNavigatorKey: navigatorKey,
+                  path: 'layout.leavesapplied',
+                  builder: (context, state) => const ScreenTracker(
+                    screenName: 'leaves-applied-page',
+                    child: LeavesAppliedPage(),
+                  ),
+                ),
+              ],
+            ),
+
+            /// Direct Leave Balance Route
+            GoRoute(
+              parentNavigatorKey: navigatorKey,
+              path: 'layout.leavebalance',
+              builder: (context, state) => const ScreenTracker(
+                screenName: 'leave-balance-page',
+                child: LeaveBalancePage(),
+              ),
+            ),
+
+            /// Direct Leave Request Route
+            GoRoute(
+              parentNavigatorKey: navigatorKey,
+              path: 'layout.leaverequest',
+              builder: (context, state) => const ScreenTracker(
+                screenName: 'leave-request-page',
+                child: LeaveRequestPage(),
+              ),
+            ),
+
+            /// Direct Leaves Applied Route
+            GoRoute(
+              parentNavigatorKey: navigatorKey,
+              path: 'layout.leavesapplied',
+              builder: (context, state) => const ScreenTracker(
+                screenName: 'leaves-applied-page',
+                child: LeavesAppliedPage(),
+              ),
+            ),
+
+            /// Home Assignments Route
+            GoRoute(
+              parentNavigatorKey: navigatorKey,
+              path: 'layout.homeassignments',
+              builder: (context, state) => const ScreenTracker(
+                screenName: 'home-assignments-page',
+                child: HomeAssignmentsPage(),
+              ),
+              routes: [
+                GoRoute(
+                  parentNavigatorKey: navigatorKey,
+                  path: 'create',
+                  builder: (context, state) => const ScreenTracker(
+                    screenName: 'create-home-assignment-page',
+                    child: CreateHomeAssignmentPage(),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

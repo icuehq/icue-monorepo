@@ -24,20 +24,30 @@ class RoleActions {
     required this.icon,
     required this.tabOrder,
     required this.displayName,
+    this.subActions,
     this.subActionItems,
   });
 
   factory RoleActions.fromJson(Map<String, dynamic> json) => RoleActions(
-    id: json['Id'],
-    name: json['Name'],
-    routeState: json['RouteState'],
-    icon: json['Icon'],
-    tabOrder: json['TabOrder'],
-    displayName: json['DisplayName'],
+    id: json['Id'] is int
+        ? json['Id']
+        : int.tryParse(json['Id']?.toString() ?? '') ?? 0,
+    name: json['Name']?.toString() ?? '',
+    routeState: json['RouteState']?.toString() ?? '',
+    icon: json['Icon']?.toString() ?? '',
+    tabOrder: json['TabOrder'] is int
+        ? json['TabOrder']
+        : int.tryParse(json['TabOrder']?.toString() ?? '') ?? 0,
+    displayName: json['DisplayName']?.toString() ?? '',
+    subActions: json['SubActions'] as bool?,
     subActionItems: json['SubActionItems'] == null
         ? []
         : List<RoleActions>.from(
-            json['SubActionItems']!.map((x) => RoleActions.fromJson(x)),
+            (json['SubActionItems'] as List).map(
+              (x) => x is RoleActions
+                  ? x
+                  : RoleActions.fromJson(x as Map<String, dynamic>),
+            ),
           ),
   );
 
@@ -62,6 +72,9 @@ class RoleActions {
   @HiveField(6)
   final int tabOrder;
 
+  @HiveField(7)
+  final bool? subActions;
+
   Map<String, dynamic> toJson() => {
     'Id': id,
     'Name': name,
@@ -69,6 +82,7 @@ class RoleActions {
     'Icon': icon,
     'TabOrder': tabOrder,
     'DisplayName': displayName,
+    if (subActions != null) 'SubActions': subActions,
     'SubActionItems': subActionItems == null
         ? []
         : List<dynamic>.from(subActionItems!.map((x) => x.toJson())),

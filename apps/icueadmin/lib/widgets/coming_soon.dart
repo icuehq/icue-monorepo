@@ -3,13 +3,15 @@ import 'package:go_router/go_router.dart';
 import 'package:lottie/lottie.dart';
 
 class ComingSoon extends StatelessWidget {
-  const ComingSoon({super.key});
+  const ComingSoon({super.key, this.title = 'Coming Soon'});
+
+  final String title;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(title: const Text('Coming Soon')),
+      appBar: AppBar(title: Text(title)),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -20,9 +22,13 @@ class ComingSoon extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 30),
               child: ElevatedButton(
                 onPressed: () {
-                  context.go('/');
+                  if (context.canPop()) {
+                    context.pop();
+                  } else {
+                    context.go('/');
+                  }
                 },
-                child: const Text('Go To Home'),
+                child: Text(context.canPop() ? 'Go Back' : 'Go To Home'),
               ),
             ),
           ],

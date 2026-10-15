@@ -5,5 +5,8 @@ class ProdConfig extends BaseConfig {
   String get baseUrl => 'https://icuepro.com';
 
   @override
+  String get hrmsBaseUrl => 'https://hrmscore.icuepro.com';
+
+  @override
   String get env => 'PROD';
 }

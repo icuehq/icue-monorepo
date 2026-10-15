@@ -45,7 +45,9 @@ class AssignedEntity {
   factory AssignedEntity.fromJson(Map<String, dynamic> json) => AssignedEntity(
     classes: json['Classes'] is List
         ? List<AssignedEntityClass>.from(
-            (json['Classes'] as List).map((x) => AssignedEntityClass.fromJson(x)),
+            (json['Classes'] as List).map(
+              (x) => AssignedEntityClass.fromJson(x),
+            ),
           )
         : [],
   );
@@ -71,7 +73,9 @@ class AssignedEntityClass {
         classId: json['ClassId'] ?? 0,
         standardType: json['StandardType'],
         sections: json['Sections'] is List
-            ? List<String>.from((json['Sections'] as List).map((x) => x.toString()))
+            ? List<String>.from(
+                (json['Sections'] as List).map((x) => x.toString()),
+              )
             : [],
       );
 
