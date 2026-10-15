@@ -8,6 +8,7 @@ import java.lang.ref.WeakReference
 import java.util.UUID
 import school.icue.face.core.FaceSdkDefaults
 import school.icue.face.core.IcueFaceSdk
+import school.icue.face.core.model.AttendanceType
 import school.icue.face.core.model.IcueFaceProfile
 
 object IcueFaceCamera {
@@ -33,6 +34,9 @@ object IcueFaceCamera {
         showUnrecognizedLabel: Boolean = true,
         unrecognizedLabel: String = "UNREGISTERED STUDENT",
         defaultZoom: Float = 1.0f,
+        type: AttendanceType = AttendanceType.TRANSPORT,
+        fontSize: Float = FaceSdkDefaults.DEFAULT_LABEL_FONT_SIZE,
+        detectedLabelField: String = "ID",
         listener: TrackingListener,
     ) {
         val sessionId = CameraSessionRegistry.registerTracking(
@@ -45,6 +49,9 @@ object IcueFaceCamera {
             showUnrecognizedLabel,
             unrecognizedLabel,
             defaultZoom,
+            type,
+            fontSize,
+            detectedLabelField,
             listener,
         )
         activity.startActivity(cameraIntent(activity, sessionId, MODE_TRACKING, lens))
@@ -63,7 +70,11 @@ object IcueFaceCamera {
         showUnrecognizedLabel: Boolean = true,
         unrecognizedLabel: String = "UNREGISTERED STUDENT",
         defaultZoom: Float = 1.0f,
+        type: AttendanceType = AttendanceType.TRANSPORT,
+        fontSize: Float = FaceSdkDefaults.DEFAULT_LABEL_FONT_SIZE,
+        detectedLabelField: String = "ID",
         callback: AttendanceCallback,
+        listener: TrackingListener? = null,
     ) {
         val sessionId = CameraSessionRegistry.registerLiveAttendance(
             sdk,
@@ -76,7 +87,11 @@ object IcueFaceCamera {
             showUnrecognizedLabel,
             unrecognizedLabel,
             defaultZoom,
+            type,
+            fontSize,
+            detectedLabelField,
             callback,
+            listener,
         )
         activity.startActivity(cameraIntent(activity, sessionId, MODE_LIVE_ATTENDANCE, lens))
     }
@@ -94,6 +109,9 @@ object IcueFaceCamera {
         showUnrecognizedLabel: Boolean = true,
         unrecognizedLabel: String = "UNREGISTERED STUDENT",
         defaultZoom: Float = 1.0f,
+        type: AttendanceType = AttendanceType.TRANSPORT,
+        fontSize: Float = FaceSdkDefaults.DEFAULT_LABEL_FONT_SIZE,
+        detectedLabelField: String = "ID",
         callback: AttendanceCallback,
     ) {
         val sessionId = CameraSessionRegistry.registerMultiPhotoAttendance(
@@ -107,6 +125,9 @@ object IcueFaceCamera {
             showUnrecognizedLabel,
             unrecognizedLabel,
             defaultZoom,
+            type,
+            fontSize,
+            detectedLabelField,
             callback,
         )
         activity.startActivity(cameraIntent(activity, sessionId, MODE_MULTI_PHOTO_ATTENDANCE, lens))
@@ -172,6 +193,9 @@ internal sealed interface CameraSession {
         val showUnrecognizedLabel: Boolean,
         val unrecognizedLabel: String,
         val defaultZoom: Float = 1.0f,
+        val type: AttendanceType = AttendanceType.TRANSPORT,
+        val fontSize: Float = FaceSdkDefaults.DEFAULT_LABEL_FONT_SIZE,
+        val detectedLabelField: String = "ID",
         val listener: IcueFaceCamera.TrackingListener,
     ) : CameraSession
 
@@ -186,7 +210,11 @@ internal sealed interface CameraSession {
         val showUnrecognizedLabel: Boolean,
         val unrecognizedLabel: String,
         val defaultZoom: Float = 1.0f,
+        val type: AttendanceType = AttendanceType.TRANSPORT,
+        val fontSize: Float = FaceSdkDefaults.DEFAULT_LABEL_FONT_SIZE,
+        val detectedLabelField: String = "ID",
         val callback: IcueFaceCamera.AttendanceCallback,
+        val listener: IcueFaceCamera.TrackingListener? = null,
     ) : CameraSession
 
     data class MultiPhotoAttendance(
@@ -200,6 +228,9 @@ internal sealed interface CameraSession {
         val showUnrecognizedLabel: Boolean,
         val unrecognizedLabel: String,
         val defaultZoom: Float = 1.0f,
+        val type: AttendanceType = AttendanceType.TRANSPORT,
+        val fontSize: Float = FaceSdkDefaults.DEFAULT_LABEL_FONT_SIZE,
+        val detectedLabelField: String = "ID",
         val callback: IcueFaceCamera.AttendanceCallback,
     ) : CameraSession
 }
@@ -225,6 +256,9 @@ internal object CameraSessionRegistry {
         showUnrecognizedLabel: Boolean,
         unrecognizedLabel: String,
         defaultZoom: Float,
+        type: AttendanceType = AttendanceType.TRANSPORT,
+        fontSize: Float = FaceSdkDefaults.DEFAULT_LABEL_FONT_SIZE,
+        detectedLabelField: String = "ID",
         listener: IcueFaceCamera.TrackingListener,
     ): String = register(
         CameraSession.Tracking(
@@ -237,6 +271,9 @@ internal object CameraSessionRegistry {
             showUnrecognizedLabel,
             unrecognizedLabel,
             defaultZoom,
+            type,
+            fontSize,
+            detectedLabelField,
             listener
         ),
     )
@@ -252,7 +289,11 @@ internal object CameraSessionRegistry {
         showUnrecognizedLabel: Boolean,
         unrecognizedLabel: String,
         defaultZoom: Float,
+        type: AttendanceType = AttendanceType.TRANSPORT,
+        fontSize: Float = FaceSdkDefaults.DEFAULT_LABEL_FONT_SIZE,
+        detectedLabelField: String = "ID",
         callback: IcueFaceCamera.AttendanceCallback,
+        listener: IcueFaceCamera.TrackingListener? = null,
     ): String = register(
         CameraSession.LiveAttendance(
             sdk,
@@ -265,7 +306,11 @@ internal object CameraSessionRegistry {
             showUnrecognizedLabel,
             unrecognizedLabel,
             defaultZoom,
-            callback
+            type,
+            fontSize,
+            detectedLabelField,
+            callback,
+            listener,
         ),
     )
 
@@ -280,6 +325,9 @@ internal object CameraSessionRegistry {
         showUnrecognizedLabel: Boolean,
         unrecognizedLabel: String,
         defaultZoom: Float,
+        type: AttendanceType = AttendanceType.TRANSPORT,
+        fontSize: Float = FaceSdkDefaults.DEFAULT_LABEL_FONT_SIZE,
+        detectedLabelField: String = "ID",
         callback: IcueFaceCamera.AttendanceCallback,
     ): String = register(
         CameraSession.MultiPhotoAttendance(
@@ -293,6 +341,9 @@ internal object CameraSessionRegistry {
             showUnrecognizedLabel,
             unrecognizedLabel,
             defaultZoom,
+            type,
+            fontSize,
+            detectedLabelField,
             callback
         ),
     )

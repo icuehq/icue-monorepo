@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'icue_face_sdk_platform_interface.dart';
@@ -164,6 +165,13 @@ class IcueFaceSdk {
   Stream<FaceTrackingResult> get faceTrackingResults =>
       _platform.faceTrackingResults;
 
+  /// Real-time stream of unrecognized/unknown student detections emitted whenever the camera
+  /// (in tracking or live attendance mode) sees a face not present in the enrolled roster.
+  Stream<List<FaceRecognitionResult>> get unrecognizedFaceStream =>
+      faceTrackingResults
+          .where((result) => result.hasUnrecognizedFaces)
+          .map((result) => result.unrecognizedFaces);
+
   /// Opens the SDK-owned camera UI and begins live face tracking.
   ///
   /// When [profiles] is non-empty, every tracking update also contains face
@@ -177,6 +185,12 @@ class IcueFaceSdk {
     bool showDetectedLabel = true,
     bool showUnrecognizedLabel = true,
     String unrecognizedLabel = 'UNREGISTERED STUDENT',
+    AttendanceType type = AttendanceType.TRANSPORT,
+    double? fontSize,
+    double? nameFontSize,
+    DetectedLabelField detectedLabelField = DetectedLabelField.ID,
+    DetectedLabelField? labelField,
+    DetectedLabelField? labelType,
   }) => _platform.startFaceTracking(
     profiles: profiles,
     lens: lens,
@@ -186,6 +200,12 @@ class IcueFaceSdk {
     showDetectedLabel: showDetectedLabel,
     showUnrecognizedLabel: showUnrecognizedLabel,
     unrecognizedLabel: unrecognizedLabel,
+    type: type,
+    fontSize: fontSize,
+    nameFontSize: nameFontSize,
+    detectedLabelField: detectedLabelField,
+    labelField: labelField,
+    labelType: labelType,
   );
 
   /// Closes the SDK-owned live tracking camera, if it is open.
@@ -193,12 +213,53 @@ class IcueFaceSdk {
 
   /// Opens the SDK-owned camera in Live Attendance Mode.
   ///
-  /// Sweeps the camera across the classroom while real-time deduplicated
+  /// Sweeps the camera across the classroom or bus while real-time deduplicated
   /// attendance records are updated on screen.
+  ///
+  /// If [onUnrecognizedFace] is provided, it is invoked in real-time with the details
+  /// of unknown/unregistered faces whenever one is detected during the session.
   Future<AttendanceResult?> startLiveAttendance({
     required List<FaceProfile> roster,
     AttendanceConfig config = const AttendanceConfig(),
-  }) => _platform.startLiveAttendance(roster: roster, config: config);
+    AttendanceType? type,
+    double? fontSize,
+    double? nameFontSize,
+    DetectedLabelField? detectedLabelField,
+    DetectedLabelField? labelField,
+    DetectedLabelField? labelType,
+    void Function(List<FaceRecognitionResult> unrecognizedFaces)?
+        onUnrecognizedFace,
+  }) async {
+    final effectiveLabelField = labelField ?? labelType ?? detectedLabelField;
+    final callback = onUnrecognizedFace ?? config.onUnrecognizedFace;
+    final effectiveConfig =
+        (type != null ||
+                fontSize != null ||
+                nameFontSize != null ||
+                effectiveLabelField != null ||
+                callback != null)
+            ? config.copyWith(
+              type: type,
+              fontSize: fontSize,
+              nameFontSize: nameFontSize,
+              detectedLabelField: effectiveLabelField,
+              onUnrecognizedFace: callback,
+            )
+            : config;
+
+    StreamSubscription<List<FaceRecognitionResult>>? sub;
+    if (callback != null) {
+      sub = unrecognizedFaceStream.listen(callback);
+    }
+    try {
+      return await _platform.startLiveAttendance(
+        roster: roster,
+        config: effectiveConfig,
+      );
+    } finally {
+      await sub?.cancel();
+    }
+  }
 
   /// Opens the SDK-owned camera in Multi-Group Photo Capture Attendance Mode.
   ///
@@ -207,7 +268,31 @@ class IcueFaceSdk {
   Future<AttendanceResult?> startMultiPhotoAttendance({
     required List<FaceProfile> roster,
     AttendanceConfig config = const AttendanceConfig(),
-  }) => _platform.startMultiPhotoAttendance(roster: roster, config: config);
+    AttendanceType? type,
+    double? fontSize,
+    double? nameFontSize,
+    DetectedLabelField? detectedLabelField,
+    DetectedLabelField? labelField,
+    DetectedLabelField? labelType,
+  }) {
+    final effectiveLabelField = labelField ?? labelType ?? detectedLabelField;
+    final effectiveConfig =
+        (type != null ||
+                fontSize != null ||
+                nameFontSize != null ||
+                effectiveLabelField != null)
+            ? config.copyWith(
+              type: type,
+              fontSize: fontSize,
+              nameFontSize: nameFontSize,
+              detectedLabelField: effectiveLabelField,
+            )
+            : config;
+    return _platform.startMultiPhotoAttendance(
+      roster: roster,
+      config: effectiveConfig,
+    );
+  }
 
   /// Runs programmatic attendance recognition across multiple image files [imagePaths]
   /// against a given class [roster].

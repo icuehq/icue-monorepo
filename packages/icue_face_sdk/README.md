@@ -2,6 +2,8 @@
 
 On-device face detection and MobileFaceNet recognition for iOS, Android, and Flutter applications. Images, embeddings, and matching remain strictly on the device.
 
+> 📘 **Attendance & Transport Integration Guide**: For complete step-by-step instructions on implementing school bus transport and classroom attendance scanning, temporal face tracking, `AttendanceConfig`, and handling unknown student alerts, see [ATTENDANCE_INTEGRATION_GUIDE.md](ATTENDANCE_INTEGRATION_GUIDE.md).
+
 ## Platform support
 
 | Platform        | Support                        |
@@ -156,7 +158,16 @@ CPU is the default accelerator, and its thread count can be omitted. GPU and
 NPU can be selected explicitly with `FaceSdkAccelerator.gpu` or
 `FaceSdkAccelerator.npu`. Initialization fails if the selected accelerator
 cannot compile the model; the SDK never silently changes accelerator or falls
-back to the Interpreter API.
+## Attendance & Transport Scanning
+
+The SDK provides ready-to-use live camera sweep and multi-photo attendance scanning tailored for school transport (buses) and classroom check-ins:
+
+- **Temporal Face Tracking**: 2.2-second stabilization with live scanning feedback (`"SCANNING... HOLD STILL"`).
+- **Match Confirmation**: Instant green reticle lock with customizable font size (`fontSize`) and label field (`detectedLabelField`: `NAME`, `ID`, `LABEL`, or `NAME_AND_ID`).
+- **Unknown Student Detection**: Automatically captures a snapshot JPEG and returns to the consumer app to display an alert dialog if an unrecognized face is detected (`AttendanceType.TRANSPORT` or `ATTENDANCE`).
+- **Success Handling**: Success students silently update roster without dialog interruption.
+
+👉 **Complete Integration Guide**: For end-to-end integration instructions, copy-pasteable widgets, and API references, see [ATTENDANCE_INTEGRATION_GUIDE.md](ATTENDANCE_INTEGRATION_GUIDE.md).
 
 ## Camera frames
 

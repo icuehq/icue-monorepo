@@ -396,6 +396,12 @@ public class IcueFaceSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
         let showDetectedLabel = (args["showDetectedLabel"] as? Bool) ?? true
         let showUnrecognizedLabel = (args["showUnrecognizedLabel"] as? Bool) ?? true
         let unrecognizedLabel = (args["unrecognizedLabel"] as? String) ?? "UNREGISTERED STUDENT"
+        let type = (args["type"] as? String) ?? "TRANSPORT"
+        let fontSize = (args["fontSize"] as? NSNumber)?.floatValue ?? (args["nameFontSize"] as? NSNumber)?.floatValue ?? 12.0
+        let detectedLabelField = (args["detectedLabelField"] as? String)
+            ?? (args["labelField"] as? String)
+            ?? (args["labelType"] as? String)
+            ?? "ID"
 
         DispatchQueue.main.async {
             guard let rootVc = self.getRootViewController() else {
@@ -413,6 +419,9 @@ public class IcueFaceSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
             cameraVc.showDetectedLabel = showDetectedLabel
             cameraVc.showUnrecognizedLabel = showUnrecognizedLabel
             cameraVc.unrecognizedLabel = unrecognizedLabel
+            cameraVc.type = type
+            cameraVc.fontSize = fontSize
+            cameraVc.detectedLabelField = detectedLabelField
             cameraVc.modalPresentationStyle = .fullScreen
 
             cameraVc.onTrackingFrame = { frameMap in
@@ -449,6 +458,12 @@ public class IcueFaceSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
         let showDetectedLabel = (args["showDetectedLabel"] as? Bool) ?? true
         let showUnrecognizedLabel = (args["showUnrecognizedLabel"] as? Bool) ?? true
         let unrecognizedLabel = (args["unrecognizedLabel"] as? String) ?? "UNREGISTERED STUDENT"
+        let type = (args["type"] as? String) ?? "TRANSPORT"
+        let fontSize = (args["fontSize"] as? NSNumber)?.floatValue ?? (args["nameFontSize"] as? NSNumber)?.floatValue ?? 12.0
+        let detectedLabelField = (args["detectedLabelField"] as? String)
+            ?? (args["labelField"] as? String)
+            ?? (args["labelType"] as? String)
+            ?? "ID"
 
         DispatchQueue.main.async {
             guard let rootVc = self.getRootViewController() else {
@@ -467,10 +482,17 @@ public class IcueFaceSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
             cameraVc.showDetectedLabel = showDetectedLabel
             cameraVc.showUnrecognizedLabel = showUnrecognizedLabel
             cameraVc.unrecognizedLabel = unrecognizedLabel
+            cameraVc.type = type
+            cameraVc.fontSize = fontSize
+            cameraVc.detectedLabelField = detectedLabelField
             cameraVc.modalPresentationStyle = .fullScreen
 
             cameraVc.onAttendanceComplete = { attendanceResult in
                 result(attendanceResult)
+            }
+
+            cameraVc.onTrackingFrame = { frameMap in
+                self.trackingEventSink?(frameMap)
             }
 
             rootVc.present(cameraVc, animated: true)
@@ -491,6 +513,12 @@ public class IcueFaceSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
         let showDetectedLabel = (args["showDetectedLabel"] as? Bool) ?? true
         let showUnrecognizedLabel = (args["showUnrecognizedLabel"] as? Bool) ?? true
         let unrecognizedLabel = (args["unrecognizedLabel"] as? String) ?? "UNREGISTERED STUDENT"
+        let type = (args["type"] as? String) ?? "TRANSPORT"
+        let fontSize = (args["fontSize"] as? NSNumber)?.floatValue ?? (args["nameFontSize"] as? NSNumber)?.floatValue ?? 12.0
+        let detectedLabelField = (args["detectedLabelField"] as? String)
+            ?? (args["labelField"] as? String)
+            ?? (args["labelType"] as? String)
+            ?? "ID"
 
         DispatchQueue.main.async {
             guard let rootVc = self.getRootViewController() else {
@@ -509,6 +537,9 @@ public class IcueFaceSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
             cameraVc.showDetectedLabel = showDetectedLabel
             cameraVc.showUnrecognizedLabel = showUnrecognizedLabel
             cameraVc.unrecognizedLabel = unrecognizedLabel
+            cameraVc.type = type
+            cameraVc.fontSize = fontSize
+            cameraVc.detectedLabelField = detectedLabelField
             cameraVc.modalPresentationStyle = .fullScreen
 
             cameraVc.onAttendanceComplete = { attendanceResult in
@@ -531,6 +562,7 @@ public class IcueFaceSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
 
         DispatchQueue.global(qos: .userInitiated).async {
             var presentRecords: [String: [String: Any]] = [:]
+            var unrecognizedRecords: [[String: Any]] = []
             var unrecognizedCount = 0
 
             for path in imagePaths {
@@ -542,16 +574,29 @@ public class IcueFaceSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
                     for rec in recognitions {
                         if rec.matched, let personId = rec.personId {
                             if presentRecords[personId] == nil {
-                                presentRecords[personId] = [
+                                var record: [String: Any] = [
                                     "personId": personId,
                                     "score": Double(rec.score),
                                     "confidenceScore": Double(rec.score),
                                     "timestampMillis": nowMs,
                                     "sourceImagePath": path
                                 ]
+                                if let name = rec.name { record["name"] = name }
+                                if let label = rec.label { record["label"] = label }
+                                presentRecords[personId] = record
                             }
                         } else {
                             unrecognizedCount += 1
+                            if unrecognizedRecords.count < 100 {
+                                let record: [String: Any] = [
+                                    "score": Double(rec.score),
+                                    "confidenceScore": Double(rec.score),
+                                    "boundingBox": rec.boundingBox.toMap(),
+                                    "timestampMillis": nowMs,
+                                    "sourceImagePath": path
+                                ]
+                                unrecognizedRecords.append(record)
+                            }
                         }
                     }
                 } catch {}
@@ -565,7 +610,8 @@ public class IcueFaceSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
             let attendanceResult: [String: Any] = [
                 "present": presentList,
                 "absentPersonIds": absentIds,
-                "unrecognizedFaceCount": unrecognizedCount,
+                "unrecognizedFaceCount": max(unrecognizedCount, unrecognizedRecords.count),
+                "unrecognizedFaces": unrecognizedRecords,
                 "totalRosterCount": roster.count,
                 "sessionStartTimeMs": startTimeMs,
                 "sessionEndTimeMs": endTimeMs,
@@ -599,7 +645,9 @@ public class IcueFaceSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
             guard let personId = dict["personId"] as? String else { return nil }
             let embedding = parseFloatArray(dict["embedding"])
             guard embedding.count == 192 else { return nil }
-            return IcueFaceProfile(personId: personId, embedding: embedding)
+            let name = dict["name"] as? String
+            let label = dict["label"] as? String
+            return IcueFaceProfile(personId: personId, embedding: embedding, name: name, label: label)
         }
     }
 

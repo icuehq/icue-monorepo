@@ -6,6 +6,8 @@ import '../../models/drivers.dart';
 import '../../pages/announcements/announcements_page.dart';
 import '../../pages/announcements/post_announcements_page.dart';
 import '../../pages/attendance/attendance_page.dart';
+import '../../pages/attendance/class_attendance_details_page.dart';
+import '../../pages/attendance/class_attendance_stats_page.dart';
 import '../../pages/auth/login_page.dart';
 import '../../pages/branches_page.dart';
 import '../../pages/dashboard/dashboard_page.dart';
@@ -40,6 +42,7 @@ import '../../pages/students/student_route_change_page.dart';
 import '../../pages/track_bus/track_bus_page.dart';
 import '../../pages/vehicle_management/reports/cleaning_report_page.dart';
 import '../../services/screen_tracker.dart';
+import '../../utils/constants.dart';
 import '../../widgets/coming_soon.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>(
@@ -375,6 +378,22 @@ final GoRouter appRouter = GoRouter(
                     child: AlcoholTestReportPage(),
                   ),
                 ),
+                GoRoute(
+                  parentNavigatorKey: navigatorKey,
+                  path: 'layout.classattendance',
+                  builder: (context, state) => const ScreenTracker(
+                    screenName: 'class-attendance-stats-page',
+                    child: ClassAttendanceStatsPage(),
+                  ),
+                ),
+                GoRoute(
+                  parentNavigatorKey: navigatorKey,
+                  path: 'layout.classattendancestats',
+                  builder: (context, state) => const ScreenTracker(
+                    screenName: 'class-attendance-stats-page',
+                    child: ClassAttendanceStatsPage(),
+                  ),
+                ),
               ],
             ),
 
@@ -414,6 +433,55 @@ final GoRouter appRouter = GoRouter(
                 screenName: 'attendance-page',
                 child: AttendancePage(),
               ),
+              routes: [
+                GoRoute(
+                  parentNavigatorKey: navigatorKey,
+                  path: 'stats',
+                  builder: (context, state) => const ScreenTracker(
+                    screenName: 'class-attendance-stats-page',
+                    child: ClassAttendanceStatsPage(),
+                  ),
+                ),
+              ],
+            ),
+
+            /// Class Attendance Stats Direct Routes
+            GoRoute(
+              parentNavigatorKey: navigatorKey,
+              path: 'layout.classattendance',
+              builder: (context, state) => const ScreenTracker(
+                screenName: 'class-attendance-stats-page',
+                child: ClassAttendanceStatsPage(),
+              ),
+            ),
+            GoRoute(
+              parentNavigatorKey: navigatorKey,
+              path: 'layout.classattendancestats',
+              builder: (context, state) => const ScreenTracker(
+                screenName: 'class-attendance-stats-page',
+                child: ClassAttendanceStatsPage(),
+              ),
+            ),
+            GoRoute(
+              parentNavigatorKey: navigatorKey,
+              path: 'class-attendance-details',
+              builder: (context, state) {
+                final extra = state.extra as Map<String, dynamic>? ?? {};
+                return ScreenTracker(
+                  screenName: 'class-attendance-details-page',
+                  child: ClassAttendanceDetailsPage(
+                    classId: extra['classId'] as int? ?? 0,
+                    standard: extra['standard'] as String? ?? '',
+                    section: extra['section'] as String? ?? '',
+                    reportMode:
+                        extra['reportMode'] as FilterMode? ?? FilterMode.bydate,
+                    fromDate: extra['fromDate'] as DateTime?,
+                    toDate: extra['toDate'] as DateTime?,
+                    month: extra['month'] as String?,
+                    year: extra['year'] as String?,
+                  ),
+                );
+              },
             ),
 
             /// Branches Route

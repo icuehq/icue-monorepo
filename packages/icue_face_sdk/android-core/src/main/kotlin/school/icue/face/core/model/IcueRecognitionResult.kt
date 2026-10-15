@@ -5,4 +5,6 @@ data class IcueRecognitionResult(
     val score: Float,
     val matched: Boolean,
     val boundingBox: IcueBoundingBox,
+    val name: String? = null,
+    val label: String? = null,
 )

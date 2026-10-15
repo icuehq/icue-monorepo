@@ -5,6 +5,8 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
+import android.os.Handler
+import android.os.Looper
 import androidx.exifinterface.media.ExifInterface
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
@@ -29,6 +31,7 @@ import school.icue.face.core.IcueFaceSdk
 import school.icue.face.core.camera.IcueCameraLens
 import school.icue.face.core.camera.IcueFaceCamera
 import school.icue.face.core.camera.IcueFaceTrackingResult
+import school.icue.face.core.model.AttendanceType
 import school.icue.face.core.model.FaceSdkAccelerator
 import school.icue.face.core.model.IcueBoundingBox
 import school.icue.face.core.model.IcueFaceProfile
@@ -50,6 +53,15 @@ class IcueFaceSdkPlugin :
     private var sdk: IcueFaceSdk? = null
     private val lifecycleMutex = Mutex()
     private val frameInFlight = AtomicBoolean(false)
+    private val mainHandler = Handler(Looper.getMainLooper())
+
+    private fun runOnMainThread(block: () -> Unit) {
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            block()
+        } else {
+            mainHandler.post(block)
+        }
+    }
 
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         applicationContext = binding.applicationContext
@@ -294,15 +306,15 @@ class IcueFaceSdkPlugin :
                 call.cameraLens(),
                 object : IcueFaceCamera.CaptureCallback {
                     override fun onCaptured(embedding: FloatArray) {
-                        result.success(embedding)
+                        runOnMainThread { result.success(embedding) }
                     }
 
                     override fun onCancelled() {
-                        result.success(null)
+                        runOnMainThread { result.success(null) }
                     }
 
                     override fun onError(code: String, message: String) {
-                        result.error(code, message, null)
+                        runOnMainThread { result.error(code, message, null) }
                     }
                 },
             )
@@ -326,6 +338,12 @@ class IcueFaceSdkPlugin :
         val showUnrecognizedLabel = call.argument<Boolean>("showUnrecognizedLabel") ?: true
         val unrecognizedLabel = call.argument<String>("unrecognizedLabel") ?: "UNREGISTERED STUDENT"
         val defaultZoom = (call.argument<Number>("defaultZoom") ?: 1.0).toFloat()
+        val type = AttendanceType.fromString(call.argument<String>("type"))
+        val fontSize = (call.argument<Number>("fontSize") ?: call.argument<Number>("nameFontSize") ?: FaceSdkDefaults.DEFAULT_LABEL_FONT_SIZE).toFloat()
+        val detectedLabelField = call.argument<String>("detectedLabelField")
+            ?: call.argument<String>("labelField")
+            ?: call.argument<String>("labelType")
+            ?: "ID"
         try {
             IcueFaceCamera.startTracking(
                 hostActivity,
@@ -339,17 +357,21 @@ class IcueFaceSdkPlugin :
                 showUnrecognizedLabel,
                 unrecognizedLabel,
                 defaultZoom,
+                type,
+                fontSize,
+                detectedLabelField,
                 object : IcueFaceCamera.TrackingListener {
                     override fun onFaces(result: IcueFaceTrackingResult) {
-                        trackingEventSink?.success(result.toTrackingChannelValue())
+                        val value = result.toTrackingChannelValue()
+                        runOnMainThread { trackingEventSink?.success(value) }
                     }
 
                     override fun onStopped() {
-                        trackingEventSink?.success(mapOf("type" to "stopped"))
+                        runOnMainThread { trackingEventSink?.success(mapOf("type" to "stopped")) }
                     }
 
                     override fun onError(code: String, message: String) {
-                        trackingEventSink?.error(code, message, null)
+                        runOnMainThread { trackingEventSink?.error(code, message, null) }
                     }
                 },
             )
@@ -380,6 +402,12 @@ class IcueFaceSdkPlugin :
         val showUnrecognizedLabel = call.argument<Boolean>("showUnrecognizedLabel") ?: true
         val unrecognizedLabel = call.argument<String>("unrecognizedLabel") ?: "UNREGISTERED STUDENT"
         val defaultZoom = (call.argument<Number>("defaultZoom") ?: 1.0).toFloat()
+        val type = AttendanceType.fromString(call.argument<String>("type"))
+        val fontSize = (call.argument<Number>("fontSize") ?: call.argument<Number>("nameFontSize") ?: FaceSdkDefaults.DEFAULT_LABEL_FONT_SIZE).toFloat()
+        val detectedLabelField = call.argument<String>("detectedLabelField")
+            ?: call.argument<String>("labelField")
+            ?: call.argument<String>("labelType")
+            ?: "ID"
         try {
             IcueFaceCamera.openLiveAttendance(
                 hostActivity,
@@ -394,17 +422,32 @@ class IcueFaceSdkPlugin :
                 showUnrecognizedLabel,
                 unrecognizedLabel,
                 defaultZoom,
-                object : IcueFaceCamera.AttendanceCallback {
+                type,
+                fontSize,
+                detectedLabelField,
+                callback = object : IcueFaceCamera.AttendanceCallback {
                     override fun onCompleted(resultMap: Map<String, Any?>) {
-                        result.success(resultMap)
+                        runOnMainThread { result.success(resultMap) }
                     }
 
                     override fun onCancelled() {
-                        result.success(null)
+                        runOnMainThread { result.success(null) }
                     }
 
                     override fun onError(code: String, message: String) {
-                        result.error(code, message, null)
+                        runOnMainThread { result.error(code, message, null) }
+                    }
+                },
+                listener = object : IcueFaceCamera.TrackingListener {
+                    override fun onFaces(result: IcueFaceTrackingResult) {
+                        val value = result.toTrackingChannelValue()
+                        runOnMainThread { trackingEventSink?.success(value) }
+                    }
+
+                    override fun onStopped() {}
+
+                    override fun onError(code: String, message: String) {
+                        runOnMainThread { trackingEventSink?.error(code, message, null) }
                     }
                 },
             )
@@ -429,6 +472,12 @@ class IcueFaceSdkPlugin :
         val showUnrecognizedLabel = call.argument<Boolean>("showUnrecognizedLabel") ?: true
         val unrecognizedLabel = call.argument<String>("unrecognizedLabel") ?: "UNREGISTERED STUDENT"
         val defaultZoom = (call.argument<Number>("defaultZoom") ?: 1.0).toFloat()
+        val type = AttendanceType.fromString(call.argument<String>("type"))
+        val fontSize = (call.argument<Number>("fontSize") ?: call.argument<Number>("nameFontSize") ?: FaceSdkDefaults.DEFAULT_LABEL_FONT_SIZE).toFloat()
+        val detectedLabelField = call.argument<String>("detectedLabelField")
+            ?: call.argument<String>("labelField")
+            ?: call.argument<String>("labelType")
+            ?: "ID"
         try {
             IcueFaceCamera.openMultiPhotoAttendance(
                 hostActivity,
@@ -443,17 +492,20 @@ class IcueFaceSdkPlugin :
                 showUnrecognizedLabel,
                 unrecognizedLabel,
                 defaultZoom,
+                type,
+                fontSize,
+                detectedLabelField,
                 object : IcueFaceCamera.AttendanceCallback {
                     override fun onCompleted(resultMap: Map<String, Any?>) {
-                        result.success(resultMap)
+                        runOnMainThread { result.success(resultMap) }
                     }
 
                     override fun onCancelled() {
-                        result.success(null)
+                        runOnMainThread { result.success(null) }
                     }
 
                     override fun onError(code: String, message: String) {
-                        result.error(code, message, null)
+                        runOnMainThread { result.error(code, message, null) }
                     }
                 },
             )
@@ -469,6 +521,7 @@ class IcueFaceSdkPlugin :
         launchSdkCall(result) { currentSdk ->
             val startTimeMs = System.currentTimeMillis()
             val markedPresentMap = mutableMapOf<String, Map<String, Any?>>()
+            val unrecognizedRecords = mutableListOf<Map<String, Any?>>()
             var unrecognizedFaceCount = 0
 
             for (imagePath in imagePaths) {
@@ -500,6 +553,17 @@ class IcueFaceSdkPlugin :
                             }
                         } else {
                             frameUnrecognized++
+                            if (unrecognizedRecords.size < 100) {
+                                unrecognizedRecords.add(
+                                    mapOf(
+                                        "score" to recognition.score.toDouble(),
+                                        "confidenceScore" to recognition.score.toDouble(),
+                                        "boundingBox" to listOf(recognition.boundingBox).toBoundingBoxChannelValue().first(),
+                                        "timestampMillis" to System.currentTimeMillis(),
+                                        "sourceImagePath" to imagePath,
+                                    )
+                                )
+                            }
                         }
                     }
                     unrecognizedFaceCount += frameUnrecognized
@@ -516,7 +580,8 @@ class IcueFaceSdkPlugin :
             mapOf(
                 "present" to presentList,
                 "absentPersonIds" to absentIds,
-                "unrecognizedFaceCount" to unrecognizedFaceCount,
+                "unrecognizedFaceCount" to maxOf(unrecognizedFaceCount, unrecognizedRecords.size),
+                "unrecognizedFaces" to unrecognizedRecords,
                 "totalRosterCount" to roster.size,
                 "sessionStartTimeMs" to startTimeMs,
                 "sessionEndTimeMs" to endTimeMs,
@@ -609,7 +674,12 @@ class IcueFaceSdkPlugin :
                 ?: throw IllegalArgumentException("profiles[$index] must be a map")
             val personId = map["personId"] as? String
                 ?: throw IllegalArgumentException("profiles[$index].personId is required")
-            IcueFaceProfile(personId, map["embedding"].toFloatArray("profiles[$index].embedding"))
+            IcueFaceProfile(
+                personId = personId,
+                embedding = map["embedding"].toFloatArray("profiles[$index].embedding"),
+                name = map["name"] as? String,
+                label = map["label"] as? String,
+            )
         }
     }
 
@@ -620,7 +690,12 @@ class IcueFaceSdkPlugin :
                 ?: throw IllegalArgumentException("roster[$index] must be a map")
             val personId = map["personId"] as? String
                 ?: throw IllegalArgumentException("roster[$index].personId is required")
-            IcueFaceProfile(personId, map["embedding"].toFloatArray("roster[$index].embedding"))
+            IcueFaceProfile(
+                personId = personId,
+                embedding = map["embedding"].toFloatArray("roster[$index].embedding"),
+                name = map["name"] as? String,
+                label = map["label"] as? String,
+            )
         }
     }
 
@@ -697,6 +772,8 @@ class IcueFaceSdkPlugin :
     private fun List<IcueRecognitionResult>.toRecognitionChannelValue() = map { recognition ->
         mapOf<String, Any?>(
             "personId" to recognition.personId,
+            "name" to recognition.name,
+            "label" to recognition.label,
             "score" to recognition.score,
             "matched" to recognition.matched,
             "boundingBox" to listOf(recognition.boundingBox).toBoundingBoxChannelValue().first(),

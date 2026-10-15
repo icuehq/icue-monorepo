@@ -21,7 +21,7 @@ public struct IcueBoundingBox {
     public let bottom: Float
     public let trackingId: Int?
 
-    public toMap() -> [String: Any?] {
+    public func toMap() -> [String: Any?] {
         return [
             "left": Double(left),
             "top": Double(top),
@@ -35,8 +35,10 @@ public struct IcueBoundingBox {
 public struct IcueFaceProfile {
     public let personId: String
     public let embedding: [Float]
+    public let name: String?
+    public let label: String?
 
-    public init?(personId: String, embedding: [Float]) {
+    public init?(personId: String, embedding: [Float], name: String? = nil, label: String? = nil) {
         guard !personId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               embedding.count == 192,
               embedding.allSatisfy({ $0.isFinite }) else {
@@ -44,6 +46,8 @@ public struct IcueFaceProfile {
         }
         self.personId = personId
         self.embedding = IcueFaceEngine.l2Normalize(embedding)
+        self.name = name
+        self.label = label
     }
 }
 
@@ -52,10 +56,30 @@ public struct IcueRecognitionResult {
     public let score: Float
     public let matched: Bool
     public let boundingBox: IcueBoundingBox
+    public let name: String?
+    public let label: String?
 
-    public toMap() -> [String: Any?] {
+    public init(
+        personId: String?,
+        score: Float,
+        matched: Bool,
+        boundingBox: IcueBoundingBox,
+        name: String? = nil,
+        label: String? = nil
+    ) {
+        self.personId = personId
+        self.score = score
+        self.matched = matched
+        self.boundingBox = boundingBox
+        self.name = name
+        self.label = label
+    }
+
+    public func toMap() -> [String: Any?] {
         return [
             "personId": personId,
+            "name": name,
+            "label": label,
             "score": Double(score),
             "matched": matched,
             "boundingBox": boundingBox.toMap()
@@ -214,7 +238,9 @@ internal class IcueFaceEngine {
                         personId: matchedProfile.personId,
                         score: candidate.score,
                         matched: true,
-                        boundingBox: faceToBoundingBox(processFaces[candidate.faceIdx])
+                        boundingBox: faceToBoundingBox(processFaces[candidate.faceIdx]),
+                        name: matchedProfile.name,
+                        label: matchedProfile.label
                     )
                 }
             }
@@ -230,7 +256,9 @@ internal class IcueFaceEngine {
                         personId: nil,
                         score: bestScore,
                         matched: false,
-                        boundingBox: faceToBoundingBox(processFaces[fIdx])
+                        boundingBox: faceToBoundingBox(processFaces[fIdx]),
+                        name: nil,
+                        label: nil
                     )
                 }
             }

@@ -24,6 +24,16 @@ internal class IcueFaceCameraViewController: UIViewController, AVCaptureVideoDat
     var showDetectedLabel: Bool = true
     var showUnrecognizedLabel: Bool = true
     var unrecognizedLabel: String = "UNREGISTERED STUDENT"
+    var type: String = "TRANSPORT"
+    var fontSize: Float = 12.0 {
+        didSet {
+            overlayView.fontSize = CGFloat(fontSize > 0 ? fontSize : 12.0)
+        }
+    }
+    var detectedLabelField: String = "ID"
+
+    private var unrecognizedRecords: [[String: Any]] = []
+    private var unrecognizedCount: Int = 0
 
     var onCaptured: (([Float]?) -> Void)?
     var onTrackingFrame: (([String: Any]) -> Void)?
@@ -53,11 +63,46 @@ internal class IcueFaceCameraViewController: UIViewController, AVCaptureVideoDat
     private static let COLOR_BG_DARK = UIColor(red: 11/255.0, green: 20/255.0, blue: 34/255.0, alpha: 0.8)
     private static let COLOR_ACCENT_CYAN = UIColor(red: 0/255.0, green: 229/255.0, blue: 255/255.0, alpha: 1.0)
     private static let COLOR_ACCENT_GREEN = UIColor(red: 0/255.0, green: 230/255.0, blue: 118/255.0, alpha: 1.0)
+    private static let UNRECOGNIZED_STABILIZATION_MS: Int = 2200
+    private static let UNRECOGNIZED_MIN_FRAMES: Int = 12
+
+    private class UnrecognizedFaceTracker {
+        var trackerId: String
+        var trackingId: Int?
+        var firstSeenMs: Int
+        var lastSeenMs: Int
+        var frameCount: Int
+        var bestScore: Float
+        var lastBox: IcueBoundingBox
+
+        init(trackerId: String, trackingId: Int?, firstSeenMs: Int, lastSeenMs: Int, frameCount: Int, bestScore: Float, lastBox: IcueBoundingBox) {
+            self.trackerId = trackerId
+            self.trackingId = trackingId
+            self.firstSeenMs = firstSeenMs
+            self.lastSeenMs = lastSeenMs
+            self.frameCount = frameCount
+            self.bestScore = bestScore
+            self.lastBox = lastBox
+        }
+    }
+
+    private var unrecognizedTrackers: [UnrecognizedFaceTracker] = []
+
+    private func centerDistance(_ b1: IcueBoundingBox, _ b2: IcueBoundingBox) -> Float {
+        let cx1 = Float(b1.left + b1.right) / 2.0
+        let cy1 = Float(b1.top + b1.bottom) / 2.0
+        let cx2 = Float(b2.left + b2.right) / 2.0
+        let cy2 = Float(b2.top + b2.bottom) / 2.0
+        let dx = cx1 - cx2
+        let dy = cy1 - cy2
+        return sqrt(dx * dx + dy * dy)
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .black
 
+        overlayView.fontSize = CGFloat(fontSize > 0 ? fontSize : 12.0)
         setupCamera()
         setupUI()
     }
@@ -264,9 +309,12 @@ internal class IcueFaceCameraViewController: UIViewController, AVCaptureVideoDat
     private func getHeaderTitle() -> String {
         switch mode {
         case .capture: return "STUDENT ENROLLMENT"
-        case .liveAttendance: return "LIVE CLASS ATTENDANCE"
-        case .multiPhotoAttendance: return "MULTI-GROUP ATTENDANCE"
-        case .tracking: return "STUDENT ATTENDANCE SCAN"
+        case .liveAttendance:
+            return (type == "TRANSPORT") ? "BUS TRANSPORT ATTENDANCE" : "LIVE CLASS ATTENDANCE"
+        case .multiPhotoAttendance:
+            return (type == "TRANSPORT") ? "BUS TRANSPORT ATTENDANCE" : "MULTI-GROUP ATTENDANCE"
+        case .tracking:
+            return (type == "TRANSPORT") ? "BUS TRANSPORT ATTENDANCE" : "STUDENT ATTENDANCE SCAN"
         }
     }
 
@@ -275,11 +323,58 @@ internal class IcueFaceCameraViewController: UIViewController, AVCaptureVideoDat
         case .capture:
             return " ⚠️ Position student face in frame "
         case .liveAttendance:
-            return " LIVE ATTENDANCE • 0/\(profiles.count) PRESENT (0%) "
+            let prefix = (type == "TRANSPORT") ? "BUS TRANSPORT" : "LIVE ATTENDANCE"
+            return " \(prefix) • 0/\(profiles.count) PRESENT (0%) "
         case .multiPhotoAttendance:
-            return " MULTI-PHOTO • 0 PHOTO(S) • 0/\(profiles.count) PRESENT "
+            let prefix = (type == "TRANSPORT") ? "BUS TRANSPORT" : "MULTI-PHOTO"
+            return " \(prefix) • 0 PHOTO(S) • 0/\(profiles.count) PRESENT "
         case .tracking:
-            return " ATTENDANCE • SCANNING CLASSROOM "
+            let prefix = (type == "TRANSPORT") ? "BUS TRANSPORT" : "ATTENDANCE"
+            return " \(prefix) • SCANNING CLASSROOM "
+        }
+    }
+
+    private func formatFaceLabel(
+        matched: Bool,
+        personId: String?,
+        name: String? = nil,
+        label: String? = nil,
+        score: Float
+    ) -> String {
+        if matched {
+            var parts: [String] = []
+            if showDetectedLabel {
+                let cleanName = (name?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false) ? name : nil
+                let cleanLabel = (label?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false) ? label : nil
+                let cleanPersonId = (personId?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false) ? personId : nil
+
+                let labelText: String?
+                switch detectedLabelField.trimmingCharacters(in: .whitespacesAndNewlines).uppercased() {
+                case "NAME":
+                    labelText = cleanName ?? cleanLabel ?? cleanPersonId
+                case "LABEL":
+                    labelText = cleanLabel ?? cleanName ?? cleanPersonId
+                case "NAME_AND_ID", "BOTH":
+                    let displayName = cleanName ?? cleanLabel
+                    if let dName = displayName, let pId = cleanPersonId {
+                        labelText = "\(dName) (\(pId))"
+                    } else {
+                        labelText = displayName ?? cleanPersonId
+                    }
+                default:
+                    labelText = cleanPersonId
+                }
+
+                if let text = labelText, !text.isEmpty {
+                    parts.append(text)
+                }
+            }
+            if showMatchingPercentage {
+                parts.append("\(Int(score * 100))%")
+            }
+            return parts.joined(separator: " • ")
+        } else {
+            return showUnrecognizedLabel ? unrecognizedLabel : ""
         }
     }
 
@@ -354,8 +449,28 @@ internal class IcueFaceCameraViewController: UIViewController, AVCaptureVideoDat
                         "timestampMillis": Int(Date().timeIntervalSince1970 * 1000)
                     ]
 
+                    let labels = results.map { res -> String in
+                        self.formatFaceLabel(
+                            matched: res.matched && res.personId != nil,
+                            personId: res.personId,
+                            name: res.name,
+                            label: res.label,
+                            score: res.score
+                        )
+                    }
+                    let matchedList = results.map { $0.matched && $0.personId != nil }
+
                     DispatchQueue.main.async {
-                        self.overlayView.update(boxes: boxes, frameSize: image.size)
+                        self.overlayView.update(boxes: boxes, labels: labels, matchedList: matchedList, frameSize: image.size)
+                        let matchCount = results.filter { $0.matched }.count
+                        let prefix = (self.type == "TRANSPORT") ? "BUS TRANSPORT" : "ATTENDANCE"
+                        if self.profiles.isEmpty {
+                            self.statusPill.text = " \(prefix) • TRACKING \(boxes.count) STUDENT(S) "
+                        } else if boxes.isEmpty {
+                            self.statusPill.text = " \(prefix) • SCANNING CLASSROOM "
+                        } else {
+                            self.statusPill.text = " \(prefix) • \(boxes.count) STUDENT(S) (\(matchCount) RECOGNIZED) "
+                        }
                         self.onTrackingFrame?(frameMap)
                     }
                 } catch {}
@@ -372,31 +487,150 @@ internal class IcueFaceCameraViewController: UIViewController, AVCaptureVideoDat
                     let boxes = try engine.detectFaces(image: image)
 
                     let nowMs = Int(Date().timeIntervalSince1970 * 1000)
+                    var confirmedUnrecognized: IcueRecognitionResult?
+                    var anyFaceScanning = false
+                    var labels: [String] = []
+                    var matchedList: [Bool] = []
 
                     for res in results {
                         if res.matched, let personId = res.personId {
                             let hits = (self.presentHitsMap[personId] ?? 0) + 1
                             self.presentHitsMap[personId] = hits
                             if res.score >= 0.75 || hits >= 2 {
-                                if self.presentRecords[personId] == nil {
-                                    self.presentRecords[personId] = [
+                                let existing = self.presentRecords[personId]
+                                let existingScore = (existing?["score"] as? Double) ?? 0.0
+                                if existing == nil || Double(res.score) > existingScore {
+                                    var record: [String: Any] = [
                                         "personId": personId,
                                         "score": Double(res.score),
                                         "confidenceScore": Double(res.score),
                                         "sessionStartTimeMs": nowMs,
-                                        "timestampMillis": nowMs
+                                        "timestampMillis": nowMs,
+                                        "boundingBox": res.boundingBox.toMap()
                                     ]
+                                    if let name = res.name { record["name"] = name }
+                                    if let label = res.label { record["label"] = label }
+                                    self.presentRecords[personId] = record
                                 }
+                            }
+
+                            // Remove active unrecognized tracker near this face
+                            self.unrecognizedTrackers.removeAll { t in
+                                if let tid = res.boundingBox.trackingId, let tTid = t.trackingId, tid == tTid {
+                                    return true
+                                }
+                                return self.centerDistance(t.lastBox, res.boundingBox) < 140.0
+                            }
+
+                            labels.append(
+                                self.formatFaceLabel(
+                                    matched: true,
+                                    personId: personId,
+                                    name: res.name,
+                                    label: res.label,
+                                    score: res.score
+                                )
+                            )
+                            matchedList.append(true)
+                        } else {
+                            // Find or create tracker
+                            var tracker: UnrecognizedFaceTracker? = self.unrecognizedTrackers.first { t in
+                                if let tid = res.boundingBox.trackingId, let tTid = t.trackingId, tid == tTid {
+                                    return true
+                                }
+                                return self.centerDistance(t.lastBox, res.boundingBox) < 140.0
+                            }
+
+                            if let existingTracker = tracker {
+                                existingTracker.lastSeenMs = nowMs
+                                existingTracker.frameCount += 1
+                                existingTracker.bestScore = max(existingTracker.bestScore, res.score)
+                                existingTracker.lastBox = res.boundingBox
+                            } else {
+                                let newTracker = UnrecognizedFaceTracker(
+                                    trackerId: UUID().uuidString,
+                                    trackingId: res.boundingBox.trackingId,
+                                    firstSeenMs: nowMs,
+                                    lastSeenMs: nowMs,
+                                    frameCount: 1,
+                                    bestScore: res.score,
+                                    lastBox: res.boundingBox
+                                )
+                                self.unrecognizedTrackers.append(newTracker)
+                                tracker = newTracker
+                            }
+
+                            let trackedDuration = nowMs - tracker!.firstSeenMs
+                            if trackedDuration >= IcueFaceCameraViewController.UNRECOGNIZED_STABILIZATION_MS && tracker!.frameCount >= IcueFaceCameraViewController.UNRECOGNIZED_MIN_FRAMES {
+                                confirmedUnrecognized = res
+                                labels.append(self.unrecognizedLabel.isEmpty ? "NOT IN THIS BUS" : self.unrecognizedLabel)
+                                matchedList.append(false)
+                            } else {
+                                anyFaceScanning = true
+                                let scanText = (trackedDuration < 1200) ? "SCANNING... HOLD STILL" : "VERIFYING... HOLD STILL"
+                                labels.append(scanText)
+                                matchedList.append(false)
                             }
                         }
                     }
 
+                    // Remove stale trackers for faces that left the frame
+                    self.unrecognizedTrackers.removeAll { nowMs - $0.lastSeenMs > 1500 }
+                    let frameUnrecognized = results.filter { !$0.matched || $0.personId == nil }.count
+                    self.unrecognizedCount = max(self.unrecognizedCount, frameUnrecognized)
+
+                    let recognitionsMap = results.map { $0.toMap() }
+                    let facesMap = boxes.map { $0.toMap() }
+
+                    let frameMap: [String: Any] = [
+                        "type": "faces",
+                        "faces": facesMap,
+                        "recognitions": recognitionsMap,
+                        "frameWidth": Int(image.size.width),
+                        "frameHeight": Int(image.size.height),
+                        "timestampMillis": nowMs
+                    ]
+
                     DispatchQueue.main.async {
-                        self.overlayView.update(boxes: boxes, frameSize: image.size)
+                        self.overlayView.update(boxes: boxes, labels: labels, matchedList: matchedList, frameSize: image.size)
                         let count = self.presentRecords.count
                         let total = self.profiles.count
                         let pct = total > 0 ? Int((Double(count) / Double(total)) * 100) : 0
-                        self.statusPill.text = " LIVE ATTENDANCE • \(count)/\(total) PRESENT (\(pct)%) "
+                        let prefix = (self.type == "TRANSPORT") ? "BUS TRANSPORT" : "LIVE ATTENDANCE"
+
+                        if confirmedUnrecognized != nil {
+                            let alertText = (self.type == "TRANSPORT") ? "NOT IN THIS BUS" : "UNREGISTERED STUDENT"
+                            self.statusPill.text = " ⚠️ \(alertText) "
+                        } else if anyFaceScanning && count == 0 {
+                            self.statusPill.text = " 🔍 SCANNING FACE • HOLD STILL... "
+                        } else {
+                            self.statusPill.text = " \(prefix) • \(count)/\(total) PRESENT (\(pct)%) "
+                        }
+
+                        self.onTrackingFrame?(frameMap)
+
+                        if let unrec = confirmedUnrecognized {
+                            let photoPath = self.saveJpeg(image: image)
+                            if let path = photoPath {
+                                self.capturedPhotos.append(path)
+                            }
+                            var record: [String: Any] = [
+                                "score": Double(unrec.score),
+                                "confidenceScore": Double(unrec.score),
+                                "boundingBox": unrec.boundingBox.toMap(),
+                                "timestampMillis": nowMs
+                            ]
+                            if let path = photoPath {
+                                record["sourceImagePath"] = path
+                            }
+                            if self.unrecognizedRecords.count < 100 {
+                                self.unrecognizedRecords.append(record)
+                            }
+                            self.unrecognizedCount = max(self.unrecognizedCount, self.unrecognizedRecords.count)
+
+                            self.finishAttendance()
+                            return
+                        }
 
                         if self.autoFinish && count >= total && total > 0 {
                             self.finishAttendance()
@@ -412,7 +646,8 @@ internal class IcueFaceCameraViewController: UIViewController, AVCaptureVideoDat
                         let count = self.presentRecords.count
                         let total = self.profiles.count
                         let photos = self.capturedPhotos.count
-                        self.statusPill.text = " MULTI-PHOTO • \(photos) PHOTO(S) • \(count)/\(total) PRESENT "
+                        let prefix = (self.type == "TRANSPORT") ? "BUS TRANSPORT" : "MULTI-PHOTO"
+                        self.statusPill.text = " \(prefix) • \(photos) PHOTO(S) • \(count)/\(total) PRESENT "
                     }
                 } catch {}
             }
@@ -463,7 +698,8 @@ internal class IcueFaceCameraViewController: UIViewController, AVCaptureVideoDat
         let result: [String: Any] = [
             "present": presentList,
             "absentPersonIds": absentIds,
-            "unrecognizedFaceCount": 0,
+            "unrecognizedFaceCount": max(unrecognizedCount, unrecognizedRecords.count),
+            "unrecognizedFaces": unrecognizedRecords,
             "totalRosterCount": profiles.count,
             "sessionStartTimeMs": startMs,
             "sessionEndTimeMs": endMs,
@@ -478,6 +714,19 @@ internal class IcueFaceCameraViewController: UIViewController, AVCaptureVideoDat
         dismiss(animated: true)
     }
 
+    private func saveJpeg(image: UIImage) -> String? {
+        guard let data = image.jpegData(compressionQuality: 0.65) else { return nil }
+        let filename = "icue_attendance_\(Int(Date().timeIntervalSince1970 * 1000)).jpg"
+        let tempDir = FileManager.default.temporaryDirectory
+        let fileURL = tempDir.appendingPathComponent(filename)
+        do {
+            try data.write(to: fileURL)
+            return fileURL.path
+        } catch {
+            return nil
+        }
+    }
+
     private func stopCamera() {
         captureSession?.stopRunning()
         captureSession = nil
@@ -486,10 +735,15 @@ internal class IcueFaceCameraViewController: UIViewController, AVCaptureVideoDat
 
 internal class BoundingBoxOverlayView: UIView {
     private var boundingBoxes: [IcueBoundingBox] = []
+    private var labels: [String] = []
+    private var matchedList: [Bool] = []
     private var frameSize: CGSize = .zero
+    var fontSize: CGFloat = 12.0
 
-    func update(boxes: [IcueBoundingBox], frameSize: CGSize) {
+    func update(boxes: [IcueBoundingBox], labels: [String] = [], matchedList: [Bool] = [], frameSize: CGSize) {
         self.boundingBoxes = boxes
+        self.labels = labels
+        self.matchedList = matchedList
         self.frameSize = frameSize
         setNeedsDisplay()
     }
@@ -500,17 +754,63 @@ internal class BoundingBoxOverlayView: UIView {
         let scaleX = rect.width / frameSize.width
         let scaleY = rect.height / frameSize.height
 
-        for box in boundingBoxes {
+        for (index, box) in boundingBoxes.enumerated() {
             let boxRect = CGRect(
                 x: CGFloat(box.left) * scaleX,
                 y: CGFloat(box.top) * scaleY,
                 width: CGFloat(box.right - box.left) * scaleX,
                 height: CGFloat(box.bottom - box.top) * scaleY
             )
+            let isMatched = (index < matchedList.count) ? matchedList[index] : true
+            let strokeColor = isMatched ? UIColor(red: 0/255.0, green: 230/255.0, blue: 118/255.0, alpha: 1.0) : UIColor(red: 0/255.0, green: 229/255.0, blue: 255/255.0, alpha: 1.0)
+
             let path = UIBezierPath(roundedRect: boxRect, cornerRadius: 8.0)
             path.lineWidth = 3.0
-            UIColor.systemGreen.setStroke()
+            strokeColor.setStroke()
             path.stroke()
+
+            // Draw label badge if present
+            if index < labels.count {
+                let label = labels[index]
+                if !label.isEmpty {
+                    drawLabel(context: context, text: label, rect: boxRect, strokeColor: strokeColor)
+                }
+            }
         }
+    }
+
+    private func drawLabel(context: CGContext, text: String, rect: CGRect, strokeColor: UIColor) {
+        let font = UIFont.boldSystemFont(ofSize: fontSize)
+        let textAttributes: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .foregroundColor: UIColor.white
+        ]
+
+        let textSize = (text as NSString).size(withAttributes: textAttributes)
+        let horizontalPadding: CGFloat = max(8.0, fontSize * 0.8)
+        let verticalPadding: CGFloat = max(4.0, fontSize * 0.4)
+        let badgeWidth = textSize.width + horizontalPadding * 2
+        let badgeHeight = textSize.height + verticalPadding * 2
+
+        let badgeX = min(max(rect.origin.x, 8), bounds.width - badgeWidth - 8)
+        let preferredY = rect.origin.y - badgeHeight - 8
+        let badgeY = preferredY >= 8 ? preferredY : rect.maxY + 8
+
+        let badgeRect = CGRect(x: badgeX, y: badgeY, width: badgeWidth, height: badgeHeight)
+        let badgePath = UIBezierPath(roundedRect: badgeRect, cornerRadius: 6.0)
+
+        // Dark background
+        let bgColor = UIColor(red: 11/255.0, green: 20/255.0, blue: 34/255.0, alpha: 0.9)
+        bgColor.setFill()
+        badgePath.fill()
+
+        // Border stroke
+        strokeColor.withAlphaComponent(0.6).setStroke()
+        badgePath.lineWidth = 1.0
+        badgePath.stroke()
+
+        // Text drawing
+        let textPoint = CGPoint(x: badgeX + horizontalPadding, y: badgeY + verticalPadding)
+        (text as NSString).draw(at: textPoint, withAttributes: textAttributes)
     }
 }

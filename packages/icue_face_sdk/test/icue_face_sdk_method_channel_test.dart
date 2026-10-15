@@ -49,7 +49,21 @@ void main() {
                 },
               ],
               'absentPersonIds': <String>['Student2'],
-              'unrecognizedFaceCount': 0,
+              'unrecognizedFaceCount': 1,
+              'unrecognizedFaces': <Object>[
+                <String, Object?>{
+                  'score': 0.42,
+                  'confidenceScore': 0.42,
+                  'boundingBox': <String, double>{
+                    'left': 20,
+                    'top': 20,
+                    'right': 60,
+                    'bottom': 60,
+                  },
+                  'timestampMillis': 1500,
+                  'sourceImagePath': '/unrecognized.jpg',
+                },
+              ],
               'totalRosterCount': 2,
               'sessionStartTimeMs': 1000,
               'sessionEndTimeMs': 2000,
@@ -77,6 +91,8 @@ void main() {
     expect(calls.first.arguments, <String, Object>{
       'accelerator': 'gpu',
       'numThreads': 3,
+      'type': 'TRANSPORT',
+      'detectedLabelField': 'ID',
     });
     expect(info.sdkVersion, '0.1.0');
     expect(info.embeddingSize, faceEmbeddingSize);
@@ -145,6 +161,11 @@ void main() {
       'showDetectedLabel': true,
       'showUnrecognizedLabel': true,
       'unrecognizedLabel': 'UNREGISTERED STUDENT',
+      'type': 'TRANSPORT',
+      'fontSize': 12.0,
+      'nameFontSize': 12.0,
+      'detectedLabelField': 'ID',
+      'labelField': 'ID',
     });
     expect(calls[2].method, 'stopFaceTracking');
   });
@@ -168,7 +189,74 @@ void main() {
       expect(liveRes, isNotNull);
       expect(liveRes!.present.single.personId, 'Student1');
       expect(liveRes.mode, AttendanceMode.liveStream);
+      expect(liveRes.unrecognizedFaces, hasLength(1));
+      expect(liveRes.unrecognized.single.score, 0.42);
+      expect(liveRes.unrecognizedStudents.single.sourceImagePath, '/unrecognized.jpg');
+      expect(liveRes.hasUnrecognizedFaces, isTrue);
+      expect(liveRes.unrecognizedFaceCount, 1);
       expect(multiRes!.mode, AttendanceMode.multiPhoto);
+
+      final liveCall = calls.firstWhere((c) => c.method == 'startLiveAttendance');
+      expect(liveCall.arguments['type'], 'TRANSPORT');
+      expect(liveCall.arguments['fontSize'], 12.0);
+      expect(liveCall.arguments['nameFontSize'], 12.0);
+    },
+  );
+
+  test(
+    'supports custom type and font size in AttendanceConfig and live attendance',
+    () async {
+      final profile = FaceProfile(
+        personId: 'Student2',
+        embedding: List<double>.filled(faceEmbeddingSize, 0),
+      );
+      await platform.startLiveAttendance(
+        roster: [profile],
+        config: const AttendanceConfig(
+          type: AttendanceType.ATTENDANCE,
+          fontSize: 18.0,
+        ),
+      );
+      final customCall = calls.lastWhere((c) => c.method == 'startLiveAttendance');
+      expect(customCall.arguments['type'], 'ATTENDANCE');
+      expect(customCall.arguments['fontSize'], 18.0);
+      expect(customCall.arguments['nameFontSize'], 18.0);
+    },
+  );
+
+  test(
+    'supports custom detectedLabelField in AttendanceConfig and startFaceTracking',
+    () async {
+      final profile = FaceProfile(
+        personId: 'Student3',
+        name: 'Jane Smith',
+        label: 'VIP',
+        embedding: List<double>.filled(faceEmbeddingSize, 0),
+      );
+      await platform.startLiveAttendance(
+        roster: [profile],
+        config: const AttendanceConfig(
+          detectedLabelField: DetectedLabelField.NAME,
+        ),
+      );
+      final liveCall = calls.lastWhere((c) => c.method == 'startLiveAttendance');
+      expect(liveCall.arguments['detectedLabelField'], 'NAME');
+      expect(liveCall.arguments['labelField'], 'NAME');
+
+      await platform.startFaceTracking(
+        profiles: [profile],
+        lens: CameraLens.front,
+        maxFaces: 5,
+        threshold: 0.68,
+        showMatchingPercentage: true,
+        showDetectedLabel: true,
+        showUnrecognizedLabel: true,
+        unrecognizedLabel: 'UNREGISTERED STUDENT',
+        detectedLabelField: DetectedLabelField.LABEL,
+      );
+      final trackingCall = calls.lastWhere((c) => c.method == 'startFaceTracking');
+      expect(trackingCall.arguments['detectedLabelField'], 'LABEL');
+      expect(trackingCall.arguments['labelField'], 'LABEL');
     },
   );
 }
