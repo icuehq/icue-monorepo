@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
@@ -22,7 +21,6 @@ class _SplashPageState extends State<SplashPage> {
     SchedulerBinding.instance.addPostFrameCallback((_) async {
       await AppUpdateChecker().checkForUpdate();
       await HiveService.initialize();
-      await initializeDateFormatting('en_IN');
       final userInfo = HiveService.userInfoBox.values.toList();
       if (userInfo.isEmpty) {
         await HiveService.clearAll();

@@ -33,6 +33,13 @@ class UserInfo {
     required this.typeOfBusiness,
     required this.loginType,
     required this.wardId,
+    this.enableVirtualClassRoom,
+    this.enableVroomMeeting,
+    this.enableVroomItAdminApproval,
+    this.enableVoice,
+    this.isWebRtcEnabled,
+    this.isTextChatEnabled,
+    this.isAudioBridgeEnabled,
     required this.token,
     required this.isFirstLogin,
     this.schoolName,
@@ -62,6 +69,13 @@ class UserInfo {
     typeOfBusiness: json['TypeOfBusiness'],
     loginType: json['LoginType'],
     wardId: json['WardId'],
+    enableVirtualClassRoom: json['EnableVirtualClassRoom'],
+    enableVroomMeeting: json['EnableVroomMeeting'],
+    enableVroomItAdminApproval: json['EnableVroomITAdminApproval'],
+    enableVoice: json['EnableVoice'],
+    isWebRtcEnabled: json['isWebRTCEnabled'],
+    isTextChatEnabled: json['isTextChatEnabled'],
+    isAudioBridgeEnabled: json['isAudioBridgeEnabled'],
     token: json['Token'],
     isFirstLogin: json['IsFirstLogin'],
     schoolName: json['SchoolName'],
@@ -74,8 +88,23 @@ class UserInfo {
   @HiveField(1)
   final dynamic classes;
 
+  @HiveField(20)
+  final bool? enableVirtualClassRoom;
+
+  @HiveField(21)
+  final bool? enableVoice;
+
+  @HiveField(22)
+  final bool? enableVroomItAdminApproval;
+
+  @HiveField(23)
+  final bool? enableVroomMeeting;
+
   @HiveField(2)
   final int id;
+
+  @HiveField(24)
+  final bool? isAudioBridgeEnabled;
 
   @HiveField(3)
   final bool isCorporate;
@@ -85,6 +114,12 @@ class UserInfo {
 
   @HiveField(5)
   final bool isLogistics;
+
+  @HiveField(25)
+  final bool? isTextChatEnabled;
+
+  @HiveField(26)
+  final bool? isWebRtcEnabled;
 
   @HiveField(6)
   final String loginType;
@@ -104,6 +139,12 @@ class UserInfo {
   @HiveField(11)
   final List<Role> roles;
 
+  @HiveField(18)
+  final String? schoolName;
+
+  @HiveField(19)
+  final String? schoolShortName;
+
   @HiveField(12)
   final String sesid;
 
@@ -121,12 +162,6 @@ class UserInfo {
 
   @HiveField(17)
   final int zoneId;
-
-  @HiveField(18)
-  final String? schoolName;
-
-  @HiveField(19)
-  final String? schoolShortName;
 
   Map<String, dynamic> toJson() => {
     'Id': id,
@@ -147,6 +182,13 @@ class UserInfo {
     'TypeOfBusiness': typeOfBusiness,
     'LoginType': loginType,
     'WardId': wardId,
+    'EnableVirtualClassRoom': enableVirtualClassRoom,
+    'EnableVroomMeeting': enableVroomMeeting,
+    'EnableVroomITAdminApproval': enableVroomItAdminApproval,
+    'EnableVoice': enableVoice,
+    'isWebRTCEnabled': isWebRtcEnabled,
+    'isTextChatEnabled': isTextChatEnabled,
+    'isAudioBridgeEnabled': isAudioBridgeEnabled,
     'Token': token,
     'IsFirstLogin': isFirstLogin,
     'SchoolName': schoolName,

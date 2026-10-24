@@ -6,6 +6,8 @@ import '../../models/drivers.dart';
 import '../../pages/announcements/announcements_page.dart';
 import '../../pages/announcements/post_announcements_page.dart';
 import '../../pages/attendance/attendance_page.dart';
+import '../../pages/attendance/class_attendance_details_page.dart';
+import '../../pages/attendance/class_attendance_stats_page.dart';
 import '../../pages/auth/login_page.dart';
 import '../../pages/branches_page.dart';
 import '../../pages/dashboard/dashboard_page.dart';
@@ -15,6 +17,11 @@ import '../../pages/drivers/driver_docs_page.dart';
 import '../../pages/drivers/driver_info_page.dart';
 import '../../pages/drivers/drivers_page.dart';
 import '../../pages/drop_boarding/drop_boarding_page.dart';
+import '../../pages/facility_management/basic_facility_task_detail_page.dart';
+import '../../pages/facility_management/facility_qr_scanner_page.dart';
+import '../../pages/facility_management/facility_qr_tasks_page.dart';
+import '../../pages/facility_management/facility_task_detail_page.dart';
+import '../../pages/facility_management/facility_tasks_page.dart';
 import '../../pages/fuel/fuel_page.dart';
 import '../../pages/gatepass/gatepass_page.dart';
 import '../../pages/gatepass/generate_gatepass_page.dart';
@@ -40,6 +47,7 @@ import '../../pages/students/student_route_change_page.dart';
 import '../../pages/track_bus/track_bus_page.dart';
 import '../../pages/vehicle_management/reports/cleaning_report_page.dart';
 import '../../services/screen_tracker.dart';
+import '../../utils/constants.dart';
 import '../../widgets/coming_soon.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>(
@@ -375,6 +383,22 @@ final GoRouter appRouter = GoRouter(
                     child: AlcoholTestReportPage(),
                   ),
                 ),
+                GoRoute(
+                  parentNavigatorKey: navigatorKey,
+                  path: 'layout.classattendance',
+                  builder: (context, state) => const ScreenTracker(
+                    screenName: 'class-attendance-stats-page',
+                    child: ClassAttendanceStatsPage(),
+                  ),
+                ),
+                GoRoute(
+                  parentNavigatorKey: navigatorKey,
+                  path: 'layout.classattendancestats',
+                  builder: (context, state) => const ScreenTracker(
+                    screenName: 'class-attendance-stats-page',
+                    child: ClassAttendanceStatsPage(),
+                  ),
+                ),
               ],
             ),
 
@@ -414,6 +438,55 @@ final GoRouter appRouter = GoRouter(
                 screenName: 'attendance-page',
                 child: AttendancePage(),
               ),
+              routes: [
+                GoRoute(
+                  parentNavigatorKey: navigatorKey,
+                  path: 'stats',
+                  builder: (context, state) => const ScreenTracker(
+                    screenName: 'class-attendance-stats-page',
+                    child: ClassAttendanceStatsPage(),
+                  ),
+                ),
+              ],
+            ),
+
+            /// Class Attendance Stats Direct Routes
+            GoRoute(
+              parentNavigatorKey: navigatorKey,
+              path: 'layout.classattendance',
+              builder: (context, state) => const ScreenTracker(
+                screenName: 'class-attendance-stats-page',
+                child: ClassAttendanceStatsPage(),
+              ),
+            ),
+            GoRoute(
+              parentNavigatorKey: navigatorKey,
+              path: 'layout.classattendancestats',
+              builder: (context, state) => const ScreenTracker(
+                screenName: 'class-attendance-stats-page',
+                child: ClassAttendanceStatsPage(),
+              ),
+            ),
+            GoRoute(
+              parentNavigatorKey: navigatorKey,
+              path: 'class-attendance-details',
+              builder: (context, state) {
+                final extra = state.extra as Map<String, dynamic>? ?? {};
+                return ScreenTracker(
+                  screenName: 'class-attendance-details-page',
+                  child: ClassAttendanceDetailsPage(
+                    classId: extra['classId'] as int? ?? 0,
+                    standard: extra['standard'] as String? ?? '',
+                    section: extra['section'] as String? ?? '',
+                    reportMode:
+                        extra['reportMode'] as FilterMode? ?? FilterMode.bydate,
+                    fromDate: extra['fromDate'] as DateTime?,
+                    toDate: extra['toDate'] as DateTime?,
+                    month: extra['month'] as String?,
+                    year: extra['year'] as String?,
+                  ),
+                );
+              },
             ),
 
             /// Branches Route
@@ -433,6 +506,72 @@ final GoRouter appRouter = GoRouter(
               builder: (context, state) => const ScreenTracker(
                 screenName: 'branches-page',
                 child: DropBoardingPage(),
+              ),
+            ),
+
+            /// Facility Management / Cleaner Tasks
+            GoRoute(
+              parentNavigatorKey: navigatorKey,
+              path: 'layout.fm_mycleaningtasks',
+              builder: (context, state) => const ScreenTracker(
+                screenName: 'my-cleaning-tasks-page',
+                child: MyCleaningTasksPage(),
+              ),
+            ),
+            GoRoute(
+              parentNavigatorKey: navigatorKey,
+              path: 'facility-task-detail',
+              builder: (context, state) => ScreenTracker(
+                screenName: 'facility-task-detail-page',
+                parameters: {
+                  'taskId': state.uri.queryParameters['taskId'] ?? '',
+                },
+                child: FacilityTaskDetailPage(
+                  taskId:
+                      int.tryParse(state.uri.queryParameters['taskId'] ?? '') ??
+                      (state.extra is int ? state.extra as int : 0),
+                ),
+              ),
+            ),
+            GoRoute(
+              parentNavigatorKey: navigatorKey,
+              path: 'facility-qr-tasks',
+              builder: (context, state) => ScreenTracker(
+                screenName: 'facility-qr-tasks-page',
+                parameters: {
+                  'qrCode': state.uri.queryParameters['qrCode'] ?? '',
+                },
+                child: FacilityQrTasksPage(
+                  qrCode:
+                      state.uri.queryParameters['qrCode'] ??
+                      (state.extra is String ? state.extra as String : ''),
+                ),
+              ),
+            ),
+            GoRoute(
+              parentNavigatorKey: navigatorKey,
+              path: 'facility-qr-scanner',
+              builder: (context, state) => ScreenTracker(
+                screenName: 'facility-qr-scanner-page',
+                child: FacilityQrScannerPage(
+                  isBasic: state.uri.queryParameters['mode'] == 'basic',
+                ),
+              ),
+            ),
+            GoRoute(
+              parentNavigatorKey: navigatorKey,
+              path: 'basic-facility-task-detail',
+              builder: (context, state) => ScreenTracker(
+                screenName: 'basic-facility-task-detail-page',
+                parameters: {
+                  'qrCode': state.uri.queryParameters['qrCode'] ?? '',
+                  'taskId': state.uri.queryParameters['taskId'] ?? '',
+                },
+                child: BasicFacilityTaskDetailPage(
+                  qrCode: state.uri.queryParameters['qrCode'],
+                  taskId: int.tryParse(state.uri.queryParameters['taskId'] ?? '') ??
+                      (state.extra is int ? state.extra as int : null),
+                ),
               ),
             ),
           ],

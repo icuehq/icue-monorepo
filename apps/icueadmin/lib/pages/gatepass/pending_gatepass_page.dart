@@ -105,7 +105,9 @@ class _PendingGatePassPageState extends State<PendingGatePassPage> {
                             const SizedBox(height: 10),
                             Text(item.gatePassType),
                             const SizedBox(height: 10),
-                            Text('${item.requestDt} ${item.requestTime}'),
+                            Text(
+                              '${item.requestDt.formatAsIndianDate(fallback: '')} ${item.requestTime.formatAsIndianTime(fallback: '')}',
+                            ),
                           ],
                         ),
                       ),

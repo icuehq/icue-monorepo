@@ -53,12 +53,15 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
+import school.icue.face.core.FaceSdkDefaults
 import school.icue.face.core.FaceSdkErrorCode
 import school.icue.face.core.FaceSdkException
 import school.icue.face.core.image.YuvFrameConverter
+import school.icue.face.core.model.AttendanceType
 import school.icue.face.core.model.IcueBoundingBox
 import school.icue.face.core.model.IcueFaceProfile
 import school.icue.face.core.model.IcueYuv420Frame
+import school.icue.face.core.model.IcueRecognitionResult
 import school.icue.face.core.model.RecognitionMode
 
 class IcueFaceCameraActivity : ComponentActivity() {
@@ -88,6 +91,18 @@ class IcueFaceCameraActivity : ComponentActivity() {
     private var photosCapturedCount = 0
     private var sessionStartTimeMs = 0L
     private var frontCamera = true
+    private val unrecognizedRecords = java.util.concurrent.CopyOnWriteArrayList<Map<String, Any?>>()
+    private data class UnrecognizedFaceTracker(
+        val trackerId: String,
+        val trackingId: Int?,
+        val firstSeenMs: Long,
+        var lastSeenMs: Long,
+        var frameCount: Int,
+        var bestScore: Float,
+        var lastBox: IcueBoundingBox,
+        var embedding: FloatArray? = null,
+    )
+    private val unrecognizedTrackers = java.util.concurrent.CopyOnWriteArrayList<UnrecognizedFaceTracker>()
     private val cameraPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted ->
@@ -150,7 +165,17 @@ class IcueFaceCameraActivity : ComponentActivity() {
             )
             scaleType = PreviewView.ScaleType.FILL_CENTER
         }
-        overlay = FaceOverlayView(this)
+
+        val sessionFontSize = when (val s = session) {
+            is CameraSession.LiveAttendance -> s.fontSize
+            is CameraSession.MultiPhotoAttendance -> s.fontSize
+            is CameraSession.Tracking -> s.fontSize
+            else -> FaceSdkDefaults.DEFAULT_LABEL_FONT_SIZE
+        }
+
+        overlay = FaceOverlayView(this).apply {
+            labelFontSize = sessionFontSize
+        }
 
         flashOverlay = View(this).apply {
             setBackgroundColor(Color.WHITE)
@@ -167,8 +192,18 @@ class IcueFaceCameraActivity : ComponentActivity() {
             background = roundedPill(0xCC0B1422.toInt(), 0x4400E5FF.toInt())
             text = when (val activeSession = session) {
                 is CameraSession.Capture -> "⚠️ Position student face in frame"
-                is CameraSession.LiveAttendance -> "LIVE ATTENDANCE • 0/${activeSession.roster.size} PRESENT (0%)"
-                is CameraSession.MultiPhotoAttendance -> "MULTI-PHOTO • 0 PHOTO(S) • 0/${activeSession.roster.size} PRESENT"
+                is CameraSession.LiveAttendance -> {
+                    val prefix = if (activeSession.type == AttendanceType.TRANSPORT) "BUS TRANSPORT" else "LIVE ATTENDANCE"
+                    "$prefix • 0/${activeSession.roster.size} PRESENT (0%)"
+                }
+                is CameraSession.MultiPhotoAttendance -> {
+                    val prefix = if (activeSession.type == AttendanceType.TRANSPORT) "BUS TRANSPORT" else "MULTI-PHOTO"
+                    "$prefix • 0 PHOTO(S) • 0/${activeSession.roster.size} PRESENT"
+                }
+                is CameraSession.Tracking -> {
+                    val prefix = if (activeSession.type == AttendanceType.TRANSPORT) "BUS TRANSPORT" else "ATTENDANCE"
+                    "$prefix • SCANNING CLASSROOM"
+                }
                 else -> "ATTENDANCE • SCANNING CLASSROOM"
             }
         }
@@ -189,10 +224,11 @@ class IcueFaceCameraActivity : ComponentActivity() {
         val titleStack = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             addView(TextView(this@IcueFaceCameraActivity).apply {
-                text = when (session) {
+                text = when (val s = session) {
                     is CameraSession.Capture -> "STUDENT ENROLLMENT"
-                    is CameraSession.LiveAttendance -> "LIVE CLASS ATTENDANCE"
-                    is CameraSession.MultiPhotoAttendance -> "MULTI-GROUP ATTENDANCE"
+                    is CameraSession.LiveAttendance -> if (s.type == AttendanceType.TRANSPORT) "BUS TRANSPORT ATTENDANCE" else "LIVE CLASS ATTENDANCE"
+                    is CameraSession.MultiPhotoAttendance -> if (s.type == AttendanceType.TRANSPORT) "BUS TRANSPORT ATTENDANCE" else "MULTI-GROUP ATTENDANCE"
+                    is CameraSession.Tracking -> if (s.type == AttendanceType.TRANSPORT) "BUS TRANSPORT ATTENDANCE" else "STUDENT ATTENDANCE SCAN"
                     else -> "STUDENT ATTENDANCE SCAN"
                 }
                 setTextColor(COLOR_ACCENT_CYAN)
@@ -225,7 +261,13 @@ class IcueFaceCameraActivity : ComponentActivity() {
             setTextColor(Color.WHITE)
             contentDescription = "Close session"
             background = roundedRipple(0x66101B2B.toInt(), 0x44FFFFFF, 22f, 0x33FFFFFF)
-            setOnClickListener { finish() }
+            setOnClickListener {
+                when (val s = session) {
+                    is CameraSession.LiveAttendance -> completeAttendanceSession("liveStream", s.roster, s.callback)
+                    is CameraSession.MultiPhotoAttendance -> completeAttendanceSession("multiPhoto", s.roster, s.callback)
+                    else -> finish()
+                }
+            }
         }
 
         val topControls = LinearLayout(this).apply {
@@ -596,6 +638,18 @@ class IcueFaceCameraActivity : ComponentActivity() {
         val COLOR_ACCENT_GREEN = 0xFF00E676.toInt()
         val COLOR_TEXT_PRIMARY = 0xFFF1F5F9.toInt()
         val COLOR_TEXT_SECONDARY = 0xFF94A3B8.toInt()
+        const val UNRECOGNIZED_STABILIZATION_MS = 2200L
+        const val UNRECOGNIZED_MIN_FRAMES = 12
+    }
+
+    private fun centerDistance(b1: IcueBoundingBox, b2: IcueBoundingBox): Float {
+        val cx1 = (b1.left + b1.right) / 2f
+        val cy1 = (b1.top + b1.bottom) / 2f
+        val cx2 = (b2.left + b2.right) / 2f
+        val cy2 = (b2.top + b2.bottom) / 2f
+        val dx = cx1 - cx2
+        val dy = cy1 - cy2
+        return kotlin.math.sqrt(dx * dx + dy * dy)
     }
 
     private fun startCamera() {
@@ -781,22 +835,15 @@ class IcueFaceCameraActivity : ComponentActivity() {
     ) {
         if (isFinishing || isDestroyed || completed || activeSession.sdk.isClosed) return
         try {
-            val recognitions = if (activeSession.profiles.isEmpty()) {
-                emptyList()
-            } else {
-                activeSession.sdk.recognizeYuv420(
-                    frame = frame,
-                    profiles = activeSession.profiles,
-                    mode = RecognitionMode.MULTI,
-                    maxFaces = activeSession.maxFaces,
-                    threshold = activeSession.threshold,
-                )
-            }
-            val faces = if (activeSession.profiles.isEmpty()) {
-                activeSession.sdk.detectFacesInYuv420(frame)
-            } else {
-                recognitions.map { it.boundingBox }
-            }
+            // Empty profiles still runs detection: every face comes back unmatched (unknown).
+            val recognitions = activeSession.sdk.recognizeYuv420(
+                frame = frame,
+                profiles = activeSession.profiles,
+                mode = RecognitionMode.MULTI,
+                maxFaces = activeSession.maxFaces,
+                threshold = activeSession.threshold,
+            )
+            val faces = recognitions.map { it.boundingBox }
             if (isFinishing || isDestroyed || completed) return
             val (width, height) = frame.outputDimensions()
             val result = IcueFaceTrackingResult(
@@ -816,19 +863,23 @@ class IcueFaceCameraActivity : ComponentActivity() {
                         formatFaceLabel(
                             matched = recognition.matched,
                             personId = recognition.personId,
+                            name = recognition.name,
+                            label = recognition.label,
                             score = recognition.score,
                             showDetectedLabel = activeSession.showDetectedLabel,
                             showMatchingPercentage = activeSession.showMatchingPercentage,
                             showUnrecognizedLabel = activeSession.showUnrecognizedLabel,
-                            unrecognizedLabel = activeSession.unrecognizedLabel
+                            unrecognizedLabel = activeSession.unrecognizedLabel,
+                            detectedLabelField = activeSession.detectedLabelField,
                         )
                     },
-                    recognitions.map { it.matched }
+                    recognitions.map { if (activeSession.profiles.isEmpty()) FaceState.SCANNING else if (it.matched) FaceState.MATCHED else FaceState.UNKNOWN }
                 )
+                val prefix = if (activeSession.type == AttendanceType.TRANSPORT) "BUS TRANSPORT" else "ATTENDANCE"
                 statusPill.text = when {
-                    activeSession.profiles.isEmpty() -> "ATTENDANCE • TRACKING ${faces.size} STUDENT(S)"
-                    faces.isEmpty() -> "ATTENDANCE • SCANNING CLASSROOM"
-                    else -> "ATTENDANCE • ${faces.size} STUDENT(S) (${matchCount} RECOGNIZED)"
+                    activeSession.profiles.isEmpty() -> "$prefix • TRACKING ${faces.size} STUDENT(S)"
+                    faces.isEmpty() -> "$prefix • SCANNING CLASSROOM"
+                    else -> "$prefix • ${faces.size} STUDENT(S) (${matchCount} RECOGNIZED)"
                 }
                 statusPill.background = roundedPill(0xCC0B1422.toInt(), 0x6600E5FF.toInt())
                 activeSession.listener.onFaces(result)
@@ -847,19 +898,22 @@ class IcueFaceCameraActivity : ComponentActivity() {
     ) {
         if (isFinishing || isDestroyed || completed || activeSession.sdk.isClosed) return
         try {
-            val recognitions = if (activeSession.roster.isEmpty()) {
-                emptyList()
-            } else {
-                activeSession.sdk.recognizeYuv420(
-                    frame = frame,
-                    profiles = activeSession.roster,
-                    mode = RecognitionMode.MULTI,
-                    maxFaces = activeSession.maxFaces,
-                    threshold = activeSession.threshold,
-                )
-            }
+            // Empty roster still runs detection: every face comes back unmatched (unknown).
+            val recognitions = activeSession.sdk.recognizeYuv420(
+                frame = frame,
+                profiles = activeSession.roster,
+                mode = RecognitionMode.MULTI,
+                maxFaces = activeSession.maxFaces,
+                threshold = activeSession.threshold,
+            )
             if (isFinishing || isDestroyed || completed) return
+            val nowMs = System.currentTimeMillis()
+            var confirmedUnrecognizedFace: IcueRecognitionResult? = null
+            var anyFaceScanning = false
             var frameUnrecognized = 0
+            val faceLabels = mutableListOf<String>()
+            val faceStates = mutableListOf<FaceState>()
+
             recognitions.forEach { recognition ->
                 if (recognition.matched && recognition.personId != null) {
                     val pId = recognition.personId!!
@@ -869,21 +923,88 @@ class IcueFaceCameraActivity : ComponentActivity() {
                     val existingScore = (existing?.get("score") as? Number)?.toDouble() ?: 0.0
                     if (recognition.score >= activeSession.threshold || hits >= 2) {
                         if (existing == null || recognition.score > existingScore) {
-                            markedPresentMap[pId] = mapOf(
+                            val record = mutableMapOf<String, Any?>(
                                 "personId" to pId,
                                 "score" to recognition.score.toDouble(),
                                 "boundingBox" to recognition.boundingBox.toChannelValue(),
-                                "timestampMillis" to System.currentTimeMillis(),
+                                "timestampMillis" to nowMs,
                             )
+                            recognition.name?.let { record["name"] = it }
+                            recognition.label?.let { record["label"] = it }
+                            markedPresentMap[pId] = record
                         }
                     }
+
+                    // Face matched a registered student! Remove any active unrecognized tracker near this face
+                    unrecognizedTrackers.removeAll { t ->
+                        (recognition.boundingBox.trackingId != null && t.trackingId == recognition.boundingBox.trackingId) ||
+                                centerDistance(t.lastBox, recognition.boundingBox) < 140f
+                    }
+
+                    faceLabels.add(
+                        formatFaceLabel(
+                            matched = true,
+                            personId = pId,
+                            name = recognition.name,
+                            label = recognition.label,
+                            score = recognition.score,
+                            showDetectedLabel = activeSession.showDetectedLabel,
+                            showMatchingPercentage = activeSession.showMatchingPercentage,
+                            showUnrecognizedLabel = activeSession.showUnrecognizedLabel,
+                            unrecognizedLabel = activeSession.unrecognizedLabel,
+                            detectedLabelField = activeSession.detectedLabelField,
+                        )
+                    )
+                    faceStates.add(FaceState.MATCHED)
                 } else {
+                    // Face is not currently matched to the roster.
                     frameUnrecognized++
+                    // Find or create an unrecognized tracker to give the student time to properly scan.
+                    var tracker = unrecognizedTrackers.firstOrNull { t ->
+                        (recognition.boundingBox.trackingId != null && t.trackingId == recognition.boundingBox.trackingId) ||
+                                centerDistance(t.lastBox, recognition.boundingBox) < 140f
+                    }
+                    if (tracker == null) {
+                        tracker = UnrecognizedFaceTracker(
+                            trackerId = java.util.UUID.randomUUID().toString(),
+                            trackingId = recognition.boundingBox.trackingId,
+                            firstSeenMs = nowMs,
+                            lastSeenMs = nowMs,
+                            frameCount = 1,
+                            bestScore = recognition.score,
+                            lastBox = recognition.boundingBox,
+                            embedding = recognition.embedding,
+                        )
+                        unrecognizedTrackers.add(tracker)
+                    } else {
+                        tracker.lastSeenMs = nowMs
+                        tracker.frameCount++
+                        tracker.bestScore = maxOf(tracker.bestScore, recognition.score)
+                        tracker.lastBox = recognition.boundingBox
+                        tracker.embedding = recognition.embedding ?: tracker.embedding
+                    }
+
+                    val trackedDuration = nowMs - tracker.firstSeenMs
+                    if (trackedDuration >= UNRECOGNIZED_STABILIZATION_MS && tracker.frameCount >= UNRECOGNIZED_MIN_FRAMES) {
+                        // Persistently unmatched over the stabilization window: confirmed unknown!
+                        confirmedUnrecognizedFace = recognition
+                        faceLabels.add(
+                            if (activeSession.showUnrecognizedLabel) activeSession.unrecognizedLabel else "NOT IN THIS BUS"
+                        )
+                        faceStates.add(FaceState.UNKNOWN)
+                    } else {
+                        // Still in active scanning stabilization window: give time to align and match
+                        anyFaceScanning = true
+                        val scanFeedback = if (trackedDuration < 1200L) "SCANNING... HOLD STILL" else "VERIFYING... HOLD STILL"
+                        faceLabels.add(scanFeedback)
+                        faceStates.add(FaceState.SCANNING)
+                    }
                 }
             }
-            if (frameUnrecognized > unrecognizedCount) {
-                unrecognizedCount = frameUnrecognized
-            }
+
+            // Remove trackers for faces that have left the screen (> 1500ms since last seen)
+            unrecognizedTrackers.removeAll { nowMs - it.lastSeenMs > 1500L }
+            unrecognizedCount = maxOf(unrecognizedCount, frameUnrecognized)
 
             val (width, height) = frame.outputDimensions()
             val faces = recognitions.map { it.boundingBox }
@@ -891,26 +1012,60 @@ class IcueFaceCameraActivity : ComponentActivity() {
             val presentCount = markedPresentMap.size
             val percent = if (totalRoster == 0) 0 else (presentCount * 100 / totalRoster)
 
+            val trackingResult = IcueFaceTrackingResult(
+                faces = faces,
+                recognitions = recognitions,
+                frameWidth = width,
+                frameHeight = height,
+                timestampMillis = nowMs,
+            )
+
             runOnUiThread {
+                activeSession.listener?.onFaces(trackingResult)
                 overlay.update(
                     faces,
                     width,
                     height,
-                    recognitions.map { recognition ->
-                        formatFaceLabel(
-                            matched = recognition.matched && recognition.personId != null,
-                            personId = recognition.personId,
-                            score = recognition.score,
-                            showDetectedLabel = activeSession.showDetectedLabel,
-                            showMatchingPercentage = activeSession.showMatchingPercentage,
-                            showUnrecognizedLabel = activeSession.showUnrecognizedLabel,
-                            unrecognizedLabel = activeSession.unrecognizedLabel
-                        )
-                    },
-                    recognitions.map { it.matched && it.personId != null }
+                    faceLabels,
+                    faceStates,
                 )
-                statusPill.text = "LIVE ATTENDANCE • $presentCount/$totalRoster PRESENT ($percent%)"
-                statusPill.background = roundedPill(0xCC0B1422.toInt(), 0x6600E676.toInt())
+                val prefix = if (activeSession.type == AttendanceType.TRANSPORT) "BUS TRANSPORT" else "LIVE ATTENDANCE"
+                if (confirmedUnrecognizedFace != null) {
+                    statusPill.text = "⚠️ ${if (activeSession.type == AttendanceType.TRANSPORT) "NOT IN THIS BUS" else "UNREGISTERED STUDENT"}"
+                    statusPill.background = roundedPill(0xCC2A0808.toInt(), 0xAAFF2A54.toInt())
+                } else if (anyFaceScanning && presentCount == 0) {
+                    statusPill.text = "🔍 SCANNING FACE • HOLD STILL..."
+                    statusPill.background = roundedPill(0xCC0B1422.toInt(), 0x6600E5FF.toInt())
+                } else {
+                    statusPill.text = "$prefix • $presentCount/$totalRoster PRESENT ($percent%)"
+                    statusPill.background = roundedPill(0xCC0B1422.toInt(), 0x6600E676.toInt())
+                }
+            }
+
+            // If an unrecognized face has been stably confirmed (scanned for >= 2.2s with >= 12 frames without matching):
+            if (confirmedUnrecognizedFace != null) {
+                val photoPath = saveLowQualityJpeg(frame)
+                if (photoPath != null) {
+                    capturedPhotoPaths.add(photoPath)
+                }
+                val record = mutableMapOf<String, Any?>(
+                    "score" to confirmedUnrecognizedFace.score.toDouble(),
+                    "confidenceScore" to confirmedUnrecognizedFace.score.toDouble(),
+                    "boundingBox" to confirmedUnrecognizedFace.boundingBox.toChannelValue(),
+                    "timestampMillis" to nowMs,
+                )
+                photoPath?.let { record["sourceImagePath"] = it }
+                confirmedUnrecognizedFace.embedding?.let { record["embedding"] = it }
+                if (unrecognizedRecords.size < 100) {
+                    unrecognizedRecords.add(record)
+                }
+                unrecognizedCount = maxOf(unrecognizedCount, unrecognizedRecords.size)
+                // Already recorded above; don't flush it again on completion.
+                unrecognizedTrackers.removeAll { it.lastBox === confirmedUnrecognizedFace.boundingBox }
+
+                // Finish and navigate back to the app with the unrecognized details
+                completeAttendanceSession("liveStream", activeSession.roster, activeSession.callback)
+                return
             }
 
             if (activeSession.autoFinish && totalRoster > 0 && presentCount >= totalRoster) {
@@ -952,18 +1107,18 @@ class IcueFaceCameraActivity : ComponentActivity() {
         }
         captureRequested = false
         try {
-            val recognitions = if (activeSession.roster.isEmpty()) {
-                emptyList()
-            } else {
-                activeSession.sdk.recognizeYuv420(
-                    frame = frame,
-                    profiles = activeSession.roster,
-                    mode = RecognitionMode.MULTI,
-                    maxFaces = activeSession.maxFaces,
-                    threshold = activeSession.threshold,
-                )
-            }
+            // Empty roster still runs detection: every face comes back unmatched (unknown).
+            val recognitions = activeSession.sdk.recognizeYuv420(
+                frame = frame,
+                profiles = activeSession.roster,
+                mode = RecognitionMode.MULTI,
+                maxFaces = activeSession.maxFaces,
+                threshold = activeSession.threshold,
+            )
             if (isFinishing || isDestroyed || completed) return
+            val photoPath = saveLowQualityJpeg(frame)?.also { path ->
+                capturedPhotoPaths.add(path)
+            }
             var frameUnrecognized = 0
             recognitions.forEach { recognition ->
                 if (recognition.matched && recognition.personId != null) {
@@ -971,19 +1126,30 @@ class IcueFaceCameraActivity : ComponentActivity() {
                     val existing = markedPresentMap[pId]
                     val existingScore = (existing?.get("score") as? Number)?.toDouble() ?: 0.0
                     if (existing == null || recognition.score > existingScore) {
-                        markedPresentMap[pId] = mapOf(
+                        val record = mutableMapOf<String, Any?>(
                             "personId" to pId,
                             "score" to recognition.score.toDouble(),
                             "boundingBox" to recognition.boundingBox.toChannelValue(),
                             "timestampMillis" to System.currentTimeMillis(),
                         )
+                        recognition.name?.let { record["name"] = it }
+                        recognition.label?.let { record["label"] = it }
+                        markedPresentMap[pId] = record
                     }
                 } else {
                     frameUnrecognized++
+                    if (unrecognizedRecords.size < 100) {
+                        val record = mutableMapOf<String, Any?>(
+                            "score" to recognition.score.toDouble(),
+                            "confidenceScore" to recognition.score.toDouble(),
+                            "boundingBox" to recognition.boundingBox.toChannelValue(),
+                            "timestampMillis" to System.currentTimeMillis(),
+                        )
+                        photoPath?.let { record["sourceImagePath"] = it }
+                        recognition.embedding?.let { record["embedding"] = it }
+                        unrecognizedRecords.add(record)
+                    }
                 }
-            }
-            saveLowQualityJpeg(frame)?.let { path ->
-                capturedPhotoPaths.add(path)
             }
             unrecognizedCount += frameUnrecognized
             photosCapturedCount++
@@ -1003,14 +1169,17 @@ class IcueFaceCameraActivity : ComponentActivity() {
                         formatFaceLabel(
                             matched = recognition.matched && recognition.personId != null,
                             personId = recognition.personId,
+                            name = recognition.name,
+                            label = recognition.label,
                             score = recognition.score,
                             showDetectedLabel = activeSession.showDetectedLabel,
                             showMatchingPercentage = activeSession.showMatchingPercentage,
                             showUnrecognizedLabel = activeSession.showUnrecognizedLabel,
-                            unrecognizedLabel = activeSession.unrecognizedLabel
+                            unrecognizedLabel = activeSession.unrecognizedLabel,
+                            detectedLabelField = activeSession.detectedLabelField,
                         )
                     },
-                    recognitions.map { it.matched && it.personId != null }
+                    recognitions.map { if (it.matched && it.personId != null) FaceState.MATCHED else FaceState.UNKNOWN }
                 )
                 statusPill.text = "MULTI-PHOTO • ${photosCapturedCount} PHOTO(S) • $presentCount/$totalRoster PRESENT"
                 statusPill.background = roundedPill(0xCC0B1422.toInt(), 0x6600E676.toInt())
@@ -1064,6 +1233,21 @@ class IcueFaceCameraActivity : ComponentActivity() {
         if (completed) return
         completed = true
         val endTimeMs = System.currentTimeMillis()
+        // Finished before stabilization: faces still being scanned are unrecognized too.
+        unrecognizedTrackers.forEach { t ->
+            if (unrecognizedRecords.size < 100) {
+                unrecognizedRecords.add(
+                    buildMap {
+                        put("score", t.bestScore.toDouble())
+                        put("confidenceScore", t.bestScore.toDouble())
+                        put("boundingBox", t.lastBox.toChannelValue())
+                        put("timestampMillis", t.lastSeenMs)
+                        t.embedding?.let { put("embedding", it) }
+                    }
+                )
+            }
+        }
+        unrecognizedTrackers.clear()
         val presentList = markedPresentMap.values.toList()
         val presentIds = markedPresentMap.keys.toSet()
         val absentIds = roster.map { it.personId }.filter { !presentIds.contains(it) }
@@ -1071,7 +1255,8 @@ class IcueFaceCameraActivity : ComponentActivity() {
         finalAttendanceResult = mapOf(
             "present" to presentList,
             "absentPersonIds" to absentIds,
-            "unrecognizedFaceCount" to unrecognizedCount,
+            "unrecognizedFaceCount" to maxOf(unrecognizedCount, unrecognizedRecords.size),
+            "unrecognizedFaces" to unrecognizedRecords.toList(),
             "totalRosterCount" to roster.size,
             "sessionStartTimeMs" to sessionStartTimeMs,
             "sessionEndTimeMs" to endTimeMs,
@@ -1088,16 +1273,34 @@ class IcueFaceCameraActivity : ComponentActivity() {
     private fun formatFaceLabel(
         matched: Boolean,
         personId: String?,
+        name: String?,
+        label: String?,
         score: Float,
         showDetectedLabel: Boolean,
         showMatchingPercentage: Boolean,
         showUnrecognizedLabel: Boolean,
-        unrecognizedLabel: String
+        unrecognizedLabel: String,
+        detectedLabelField: String = "ID",
     ): String {
         return if (matched) {
             val parts = mutableListOf<String>()
-            if (showDetectedLabel && personId != null) {
-                parts.add(personId)
+            if (showDetectedLabel) {
+                val labelText = when (detectedLabelField.trim().uppercase()) {
+                    "NAME" -> name?.takeIf { it.isNotBlank() } ?: label?.takeIf { it.isNotBlank() } ?: personId
+                    "LABEL" -> label?.takeIf { it.isNotBlank() } ?: name?.takeIf { it.isNotBlank() } ?: personId
+                    "NAME_AND_ID", "NAMEANDID", "BOTH" -> {
+                        val displayName = name?.takeIf { it.isNotBlank() } ?: label?.takeIf { it.isNotBlank() }
+                        if (displayName != null && personId != null) {
+                            "$displayName ($personId)"
+                        } else {
+                            displayName ?: personId
+                        }
+                    }
+                    else -> personId
+                }
+                if (!labelText.isNullOrBlank()) {
+                    parts.add(labelText)
+                }
             }
             if (showMatchingPercentage) {
                 parts.add("${(score * 100).toInt()}%")
@@ -1369,30 +1572,66 @@ private class FaceOverlayView(activity: Activity) : View(activity) {
         strokeWidth = 1f * density
     }
 
+    var labelFontSize: Float = FaceSdkDefaults.DEFAULT_LABEL_FONT_SIZE
+        set(value) {
+            field = if (value > 0f) value else FaceSdkDefaults.DEFAULT_LABEL_FONT_SIZE
+            labelTextPaint.textSize = field * density
+            invalidate()
+        }
+
     private val labelTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.WHITE
-        textSize = 12f * density
+        textSize = FaceSdkDefaults.DEFAULT_LABEL_FONT_SIZE * density
         typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
     }
 
+    private val tintPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
+    private val badgePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
+    private val badgeRingPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.WHITE
+        style = Paint.Style.STROKE
+        strokeWidth = 2f * density
+    }
+    private val badgeIconPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.WHITE
+        style = Paint.Style.STROKE
+        strokeWidth = 3f * density
+        strokeCap = Paint.Cap.ROUND
+        strokeJoin = Paint.Join.ROUND
+    }
+    private val trailPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
+    private val badgePath = Path()
+
     private var faces: List<IcueBoundingBox> = emptyList()
     private var labels: List<String?> = emptyList()
-    private var isMatchedList: List<Boolean> = emptyList()
+    private var states: List<FaceState> = emptyList()
     private var sourceWidth = 1
     private var sourceHeight = 1
+
+    // When each face first entered its current state, keyed by trackingId (or index), to drive the badge pop-in.
+    private val stateSince = HashMap<Any, Pair<FaceState, Long>>()
 
     fun update(
         newFaces: List<IcueBoundingBox>,
         width: Int,
         height: Int,
         newLabels: List<String?> = emptyList(),
-        newMatchedList: List<Boolean> = emptyList(),
+        newStates: List<FaceState> = emptyList(),
     ) {
         faces = newFaces
         labels = newLabels
-        isMatchedList = newMatchedList
+        states = newStates
         sourceWidth = width.coerceAtLeast(1)
         sourceHeight = height.coerceAtLeast(1)
+        val now = System.currentTimeMillis()
+        val seen = HashSet<Any>()
+        newFaces.forEachIndexed { i, face ->
+            val key: Any = face.trackingId ?: i
+            seen += key
+            val state = newStates.getOrNull(i) ?: FaceState.SCANNING
+            if (stateSince[key]?.first != state) stateSince[key] = state to now
+        }
+        stateSince.keys.retainAll(seen)
         invalidate()
     }
 
@@ -1419,17 +1658,30 @@ private class FaceOverlayView(activity: Activity) : View(activity) {
                     offsetY + face.bottom * scale,
                 )
                 val label = labels.getOrNull(index)
-                val isMatched = isMatchedList.getOrNull(index) ?: (label != null && label != "UNREGISTERED STUDENT" && label.isNotBlank())
-                val mainColor = if (isMatched) 0xFF00E676.toInt() else 0xFF00E5FF.toInt()
+                val state = states.getOrNull(index) ?: FaceState.SCANNING
+                val mainColor = when (state) {
+                    FaceState.MATCHED -> COLOR_MATCHED
+                    FaceState.UNKNOWN -> COLOR_UNKNOWN
+                    FaceState.SCANNING -> COLOR_SCANNING
+                }
 
                 bracketPaint.color = mainColor
                 glowPaint.color = (mainColor and 0x00FFFFFF) or 0x33000000
                 scanLinePaint.color = mainColor
 
+                if (state != FaceState.SCANNING) {
+                    tintPaint.color = (mainColor and 0x00FFFFFF) or 0x1F000000
+                    val r = 14f * density
+                    canvas.drawRoundRect(rect, r, r, tintPaint)
+                }
                 drawCyberBrackets(canvas, rect)
-                drawLaserScanLine(canvas, rect)
+                if (state == FaceState.SCANNING) drawLaserScanLine(canvas, rect)
                 label?.takeIf { it.isNotBlank() }?.let { text ->
                     drawCyberLabel(canvas, rect, text, mainColor)
+                }
+                if (state != FaceState.SCANNING) {
+                    val since = stateSince[face.trackingId ?: index]?.second ?: 0L
+                    drawStatusBadge(canvas, rect, state, mainColor, since)
                 }
             }
         }
@@ -1497,16 +1749,42 @@ private class FaceOverlayView(activity: Activity) : View(activity) {
             null,
             Shader.TileMode.CLAMP
         )
-        val trailPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            shader = gradientShader
-            style = Paint.Style.FILL
-        }
+        trailPaint.shader = gradientShader
         canvas.drawRect(rect.left + pad, scanY - trailHeight, rect.right - pad, scanY, trailPaint)
     }
 
+    /** Circular ✓ (recognized) or ! (unrecognized) badge on the face's top-right corner, with an overshoot pop-in. */
+    private fun drawStatusBadge(canvas: Canvas, rect: RectF, state: FaceState, color: Int, sinceMs: Long) {
+        val t = ((System.currentTimeMillis() - sinceMs) / BADGE_POP_MS.toFloat()).coerceIn(0f, 1f)
+        // Overshoot ease-out: grows past 1.0 then settles.
+        val pop = 1f + 2.2f * (t - 1f) * (t - 1f) * (t - 1f) + 1.2f * (t - 1f) * (t - 1f)
+        val radius = (minOf(rect.width(), rect.height()) * 0.11f).coerceIn(13f * density, 22f * density) * pop
+        if (radius <= 0f) return
+        val cx = rect.right.coerceAtMost(width - radius - 4f * density)
+        val cy = rect.top.coerceAtLeast(radius + 4f * density)
+
+        badgePaint.color = (color and 0x00FFFFFF) or 0x55000000
+        canvas.drawCircle(cx, cy, radius * 1.35f, badgePaint)
+        badgePaint.color = color
+        canvas.drawCircle(cx, cy, radius, badgePaint)
+        canvas.drawCircle(cx, cy, radius, badgeRingPaint)
+
+        badgeIconPaint.strokeWidth = radius * 0.22f
+        badgePath.reset()
+        if (state == FaceState.MATCHED) {
+            badgePath.moveTo(cx - radius * 0.45f, cy + radius * 0.02f)
+            badgePath.lineTo(cx - radius * 0.12f, cy + radius * 0.35f)
+            badgePath.lineTo(cx + radius * 0.48f, cy - radius * 0.32f)
+            canvas.drawPath(badgePath, badgeIconPaint)
+        } else {
+            canvas.drawLine(cx, cy - radius * 0.45f, cx, cy + radius * 0.12f, badgeIconPaint)
+            canvas.drawPoint(cx, cy + radius * 0.42f, badgeIconPaint)
+        }
+    }
+
     private fun drawCyberLabel(canvas: Canvas, faceRect: RectF, label: String, strokeColor: Int) {
-        val horizontalPadding = 12f * density
-        val verticalPadding = 8f * density
+        val horizontalPadding = (labelFontSize * 0.8f).coerceAtLeast(8f) * density
+        val verticalPadding = (labelFontSize * 0.5f).coerceAtLeast(6f) * density
         val displayLabel = ellipsizeLabel(label, width - 16f * density - horizontalPadding * 2)
         val textWidth = labelTextPaint.measureText(displayLabel)
         val metrics = labelTextPaint.fontMetrics
@@ -1538,4 +1816,13 @@ private class FaceOverlayView(activity: Activity) : View(activity) {
         }
         return label.substring(0, end) + ellipsis
     }
+
+    private companion object {
+        const val COLOR_MATCHED = 0xFF00E676.toInt()
+        const val COLOR_UNKNOWN = 0xFFFF2A54.toInt()
+        const val COLOR_SCANNING = 0xFF00E5FF.toInt()
+        const val BADGE_POP_MS = 320L
+    }
 }
+
+internal enum class FaceState { SCANNING, MATCHED, UNKNOWN }

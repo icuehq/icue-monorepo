@@ -4,6 +4,8 @@
 *.pyc
 *.swp
 .DS_Store
+local.properties
+.gradle/
 .atom/
 .build/
 .buildlog/

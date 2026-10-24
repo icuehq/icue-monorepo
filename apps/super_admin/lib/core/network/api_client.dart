@@ -10,7 +10,7 @@ class ApiClient {
   final PrefService _prefService;
 
   ApiClient(this._prefService) : _dio = Dio() {
-    _dio.options.baseUrl = 'https://itraxpro.com';
+    _dio.options.baseUrl = 'https://icuepro.com';
     _dio.options.connectTimeout = const Duration(seconds: 15);
     _dio.options.receiveTimeout = const Duration(seconds: 15);
 

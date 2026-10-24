@@ -49,6 +49,19 @@ class FaceTrackingResult {
   final DateTime timestamp;
   final bool stopped;
 
+  /// Returns only recognition results that were not matched to an enrolled profile (unknown students).
+  List<FaceRecognitionResult> get unrecognizedFaces =>
+      recognitions.where((r) => !r.matched || r.personId == null).toList(growable: false);
+
+  /// Alias for [unrecognizedFaces].
+  List<FaceRecognitionResult> get unrecognizedRecognitions => unrecognizedFaces;
+
+  /// True if any unrecognized/unknown student faces are present in this frame.
+  bool get hasUnrecognizedFaces => unrecognizedFaces.isNotEmpty;
+
+  /// Number of unrecognized student faces in this frame.
+  int get unrecognizedFaceCount => unrecognizedFaces.length;
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||

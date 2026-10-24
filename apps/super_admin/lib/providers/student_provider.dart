@@ -282,24 +282,27 @@ class StudentProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void resetAndFetch() {
-    _students.clear();
+  // Bumped on every reset so responses from a superseded request are dropped.
+  int _requestGen = 0;
+
+  Future<void> resetAndFetch() {
+    _students = [];
     _currentPage = 1;
     _hasMore = true;
+    _isLoadingMore = false;
     _errorMessage = null;
-    fetchStudents(isRefresh: true);
+    return fetchStudents(isRefresh: true);
   }
 
   Future<void> fetchStudents({bool isRefresh = false}) async {
-    if (_classId == null) {
-      return;
-    }
+    if (_classId == null) return;
     if (isRefresh) {
       _isLoading = true;
     } else {
-      if (!_hasMore || _isLoadingMore) return;
+      if (!_hasMore || _isLoadingMore || _isLoading) return;
       _isLoadingMore = true;
     }
+    final gen = ++_requestGen;
     _errorMessage = null;
     notifyListeners();
 
@@ -310,28 +313,22 @@ class StudentProvider extends ChangeNotifier {
         pageSize: _pageSize,
         studentPhoto: _studentPhotoFilter,
       );
+      if (gen != _requestGen) return;
 
-      if (isRefresh) {
-        _students = response.data;
-      } else {
-        _students.addAll(response.data);
-      }
-
+      _students = [..._students, ...response.data];
       _totalStudents = response.metadata.total;
-      _hasMore = _students.length < _totalStudents;
+      // An empty page means no more data, even if total says otherwise.
+      _hasMore = response.data.isNotEmpty && _students.length < _totalStudents;
       if (_hasMore) {
         _currentPage++;
       }
-
-      _isLoading = false;
-      _isLoadingMore = false;
-      notifyListeners();
     } catch (e) {
-      _isLoading = false;
-      _isLoadingMore = false;
+      if (gen != _requestGen) return;
       _errorMessage = e.toString().replaceAll('DioException', 'Network Error');
-      notifyListeners();
     }
+    _isLoading = false;
+    _isLoadingMore = false;
+    notifyListeners();
   }
 
   Future<bool> uploadStudentEmbedding({
@@ -447,9 +444,15 @@ class StudentProvider extends ChangeNotifier {
   Future<void> fetchStandards() async {
     try {
       _standards = await _studentService.getStandards();
-      notifyListeners();
+      // Without a selected class nothing is ever fetched; default to the first.
+      if (_standards.isNotEmpty &&
+          !_standards.any((s) => s.id == _classId)) {
+        _classId = _standards.first.id;
+      }
     } catch (e) {
       debugPrint('[getStandards error]: $e');
+      _errorMessage = 'Failed to load classes. Please try again.';
     }
+    notifyListeners();
   }
 }

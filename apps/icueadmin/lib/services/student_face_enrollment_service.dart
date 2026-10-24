@@ -63,13 +63,14 @@ class EnrolledStudentProfile {
 
 class StudentFaceEnrollmentService {
   StudentFaceEnrollmentService({IcueFaceSdk? sdk})
-      : _sdk = sdk ?? IcueFaceSdk();
+    : _sdk = sdk ?? IcueFaceSdk();
 
   final IcueFaceSdk _sdk;
 
   static const String profileSchemaVersion = '1.0.0';
   static const String modelVersion = '1.0.0';
-  static const String modelChecksum = '8f2a9e01b34c56789abcdef0123456789abcdef0123456789abcdef012345678';
+  static const String modelChecksum =
+      '8f2a9e01b34c56789abcdef0123456789abcdef0123456789abcdef012345678';
   static const String preprocessingVersion = 'v1_umeyama_5pt';
   static const String qualityConfigVersion = 'v1_prod_quality';
 
@@ -79,7 +80,9 @@ class StudentFaceEnrollmentService {
   static const double minPairwiseSimilarity = 0.75;
 
   /// Validates quality of a capture photo prior to extracting embeddings.
-  Future<EnrollmentSampleQuality> validateSampleQuality(String photoPath) async {
+  Future<EnrollmentSampleQuality> validateSampleQuality(
+    String photoPath,
+  ) async {
     try {
       final boxes = await _sdk.detectFaces(imagePath: photoPath);
       if (boxes.isEmpty) {
@@ -97,7 +100,8 @@ class StudentFaceEnrollmentService {
           faceCount: boxes.length,
           width: 0,
           height: 0,
-          failureReason: 'Multiple faces detected (${boxes.length}). Photo must contain exactly 1 face.',
+          failureReason:
+              'Multiple faces detected (${boxes.length}). Photo must contain exactly 1 face.',
         );
       }
 
@@ -111,7 +115,8 @@ class StudentFaceEnrollmentService {
           faceCount: 1,
           width: width,
           height: height,
-          failureReason: 'Face size too small (${width.toInt()}x${height.toInt()}px). Minimum required is 120x120px.',
+          failureReason:
+              'Face size too small (${width.toInt()}x${height.toInt()}px). Minimum required is 120x120px.',
         );
       }
 
@@ -140,11 +145,15 @@ class StudentFaceEnrollmentService {
     required DateTime consentTimestamp,
   }) async {
     if (!guardianConsentGiven) {
-      throw ArgumentError('Guardian consent is mandatory under DPDP Act before storing student biometric embeddings.');
+      throw ArgumentError(
+        'Guardian consent is mandatory under DPDP Act before storing student biometric embeddings.',
+      );
     }
 
     if (samplePhotoPaths.length < minSamples) {
-      throw ArgumentError('At least $minSamples valid sample photos are required for enrollment.');
+      throw ArgumentError(
+        'At least $minSamples valid sample photos are required for enrollment.',
+      );
     }
 
     final List<Float32List> extractedEmbeddings = [];
@@ -152,7 +161,9 @@ class StudentFaceEnrollmentService {
     for (final path in samplePhotoPaths) {
       final quality = await validateSampleQuality(path);
       if (!quality.isValid) {
-        throw StateError('Sample $path failed quality checks: ${quality.failureReason}');
+        throw StateError(
+          'Sample $path failed quality checks: ${quality.failureReason}',
+        );
       }
       final Float32List emb = await _sdk.extractEmbedding(imagePath: path);
       extractedEmbeddings.add(emb);
@@ -166,7 +177,9 @@ class StudentFaceEnrollmentService {
           second: extractedEmbeddings[j],
         );
         if (sim < minPairwiseSimilarity) {
-          throw StateError('Sample ${i + 1} and Sample ${j + 1} exhibit low similarity ($sim). Enrollment aborted to prevent mixed identities.');
+          throw StateError(
+            'Sample ${i + 1} and Sample ${j + 1} exhibit low similarity ($sim). Enrollment aborted to prevent mixed identities.',
+          );
         }
       }
     }

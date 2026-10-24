@@ -94,7 +94,7 @@ class EmbeddingProvider extends ChangeNotifier {
         _localImagePath = pickedFile.path;
         _imageSource = source == ImageSource.camera ? 'Camera' : 'Gallery';
         _generatedEmbedding = null;
-        _scanStatusText = 'Photo loaded. Click SCAN FACE to process.';
+        _scanStatusText = 'Photo loaded. Tap GENERATE EMBEDDING to process.';
         notifyListeners();
       }
     } catch (e) {

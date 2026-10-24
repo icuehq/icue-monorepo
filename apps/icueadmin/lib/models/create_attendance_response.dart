@@ -33,13 +33,13 @@ class CreateAttendanceResponse {
         presenties: json['Presenties'] is int
             ? json['Presenties'] as int
             : (json['Presenties'] != null
-                ? int.tryParse(json['Presenties'].toString())
-                : null),
+                  ? int.tryParse(json['Presenties'].toString())
+                  : null),
         absenties: json['Absenties'] is int
             ? json['Absenties'] as int
             : (json['Absenties'] != null
-                ? int.tryParse(json['Absenties'].toString())
-                : null),
+                  ? int.tryParse(json['Absenties'].toString())
+                  : null),
         attendanceMode: json['AttendanceMode']?.toString(),
         attendanceDate: json['AttendanceDate']?.toString(),
         attendanceTime: json['AttendanceTime']?.toString(),
@@ -62,17 +62,17 @@ class CreateAttendanceResponse {
   final String message;
 
   Map<String, dynamic> toJson() => {
-        'Id': id,
-        'Standard': standard,
-        'Section': section,
-        'Period': period,
-        'Presenties': presenties,
-        'Absenties': absenties,
-        'AttendanceMode': attendanceMode,
-        'AttendanceDate': attendanceDate,
-        'AttendanceTime': attendanceTime,
-        'AttendedBy': attendedBy,
-        'err': err,
-        'message': message,
-      };
+    'Id': id,
+    'Standard': standard,
+    'Section': section,
+    'Period': period,
+    'Presenties': presenties,
+    'Absenties': absenties,
+    'AttendanceMode': attendanceMode,
+    'AttendanceDate': attendanceDate,
+    'AttendanceTime': attendanceTime,
+    'AttendedBy': attendedBy,
+    'err': err,
+    'message': message,
+  };
 }

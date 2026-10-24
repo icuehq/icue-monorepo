@@ -5,6 +5,7 @@ import '../pages/attendance/create_attendance_page.dart';
 import '../pages/attendance/sdk_attendance_page.dart';
 import '../providers/attendance_provider.dart';
 import '../providers/auth_provider.dart';
+import '../utils/app_utils.dart';
 import 'attendance_mode_dialog.dart';
 
 class ResumeAttendanceDialog extends StatefulWidget {
@@ -26,7 +27,7 @@ class _ResumeAttendanceDialogState extends State<ResumeAttendanceDialog> {
       child: AlertDialog(
         title: const Text('There is an ongoing attendance!'),
         content: Text(
-          'For ${ongoingAttendance?.standard} - ${ongoingAttendance?.section}\n${ongoingAttendance?.attendanceDate}',
+          'For ${ongoingAttendance?.standard} - ${ongoingAttendance?.section}\n${ongoingAttendance?.attendanceDate.formatAsIndianDate(fallback: '')}',
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
         ),
         actions: [

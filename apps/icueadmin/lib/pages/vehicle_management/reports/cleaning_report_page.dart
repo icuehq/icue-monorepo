@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../models/vehicle.dart';
 import '../../../providers/reports_provider.dart';
 import '../../../providers/vehicle_provider.dart';
+import '../../../utils/app_utils.dart';
 import '../../../utils/constants.dart';
 import '../../../widgets/no_data_widget.dart';
 import '../../../widgets/report_filter_modal.dart';
@@ -156,14 +157,14 @@ class _CleaningReportPageState extends State<CleaningReportPage> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        report.createdDate ?? '',
+                        report.createdDate.formatAsIndianDate(fallback: ''),
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       Text(
-                        report.createdTime ?? '',
+                        report.createdTime.formatAsIndianTime(fallback: ''),
                         style: const TextStyle(
                           fontSize: 14,
                           color: Colors.black54,

@@ -80,7 +80,7 @@ class _DriverDocsPageState extends State<DriverDocsPage> {
                   ),
                 ),
                 Text(
-                  'Expiry: ${widget.driver.licenceExpiryDate ?? '-'}',
+                  'Expiry: ${widget.driver.licenceExpiryDate.formatAsIndianDate()}',
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,

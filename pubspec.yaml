@@ -18,8 +18,8 @@ melos:
       exec: flutter clean
       description: Clean build folders and artifacts across all packages and apps.
     format:
-      exec: dart format .
-      description: Run dart format on all packages and apps in the workspace.
+      run: melos exec -- dart format .
+      description: Run dart format across all workspace packages.
     format:check:
       exec: dart format --set-exit-if-changed .
       description: Check dart format on all packages and apps in the workspace.

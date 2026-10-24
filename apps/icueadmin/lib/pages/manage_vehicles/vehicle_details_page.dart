@@ -158,8 +158,10 @@ class VehicleDetailsPage extends StatelessWidget {
                       info('Chassis Number:', vehicle.chasisNumber),
                       info('Engine Number:', vehicle.engineNumber),
                       info('RTA:', vehicle.rtaOfcName),
-                      info('Date of Reg:', vehicle.dateOfReg),
-                      info('Service Date:', vehicle.dateOfReg),
+                      info(
+                        'Date of Reg:',
+                        vehicle.dateOfReg.formatAsIndianDate(),
+                      ),
                       info(
                         'Claimed Mileage:',
                         '${vehicle.companyClaimedMileage}',
@@ -189,11 +191,14 @@ class VehicleDetailsPage extends StatelessWidget {
                       ),
                       const Divider(),
                       info('Insurance Number:', vehicle.insuranceNumber),
-                      info('Insured Date:', vehicle.insuredDate),
+                      info(
+                        'Insured Date:',
+                        vehicle.insuredDate.formatAsIndianDate(),
+                      ),
                       const SizedBox(height: 10),
                       info(
                         'Insurance Expiry Date:',
-                        vehicle.insuranceExpiryDate,
+                        vehicle.insuranceExpiryDate.formatAsIndianDate(),
                       ),
                       const SizedBox(height: 20),
                       const Text(
@@ -204,8 +209,14 @@ class VehicleDetailsPage extends StatelessWidget {
                         ),
                       ),
                       const Divider(),
-                      info('RC Expiry Date:', vehicle.rcExpiryDate),
-                      info('Service Date:', vehicle.serviceDate),
+                      info(
+                        'RC Expiry Date:',
+                        vehicle.rcExpiryDate.formatAsIndianDate(),
+                      ),
+                      info(
+                        'Service Date:',
+                        vehicle.serviceDate.formatAsIndianDate(),
+                      ),
                       info('Capacity:', '${vehicle.capacity ?? '-'}'),
                       // info('Dash Cam Id:', vehicle.dashcamId),
                       const SizedBox(height: 20),
@@ -220,9 +231,12 @@ class VehicleDetailsPage extends StatelessWidget {
                       info('Fire Ext Name:', vehicle.fireExtName),
                       info(
                         'Fire Ext Install Date:',
-                        vehicle.fireExtInstallDate,
+                        vehicle.fireExtInstallDate.formatAsIndianDate(),
                       ),
-                      info('Fire Ext Expiry Date:', vehicle.fireExtExpiryDate),
+                      info(
+                        'Fire Ext Expiry Date:',
+                        vehicle.fireExtExpiryDate.formatAsIndianDate(),
+                      ),
                       const SizedBox(height: 20),
                       const Text(
                         'First Aid Kit:',
@@ -237,7 +251,10 @@ class VehicleDetailsPage extends StatelessWidget {
                         return Column(
                           children: [
                             info('Name:', item?.medicineDetails),
-                            info('Expiry Date:', item?.medicineExpiryDate),
+                            info(
+                              'Expiry Date:',
+                              item?.medicineExpiryDate.formatAsIndianDate(),
+                            ),
                             const SizedBox(height: 10),
                           ],
                         );

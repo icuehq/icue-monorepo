@@ -9,20 +9,35 @@ import 'package:image/image.dart' as img;
 import 'package:injectable/injectable.dart';
 import 'package:intl/intl.dart';
 
+import '../models/class_attendance_detail.dart';
+import '../models/class_attendance_stats.dart';
 import '../models/create_attendance.dart';
 import '../models/create_attendance_response.dart';
+import '../models/meta_data.dart';
 import '../services/api_client.dart';
 import '../services/hive_service.dart';
 import '../utils/app_utils.dart';
+import '../utils/constants.dart';
 
 @lazySingleton
 class AttendanceProvider extends ChangeNotifier {
   AttendanceProvider(this._apiClient);
 
-  final ApiClient _apiClient;
+  // Class Attendance Statistics state
+  List<ClassAttendanceStatItem> attendanceStats = [];
+
+  bool attendanceStatsLoading = false;
+  Metadata? attendanceStatsMetadata;
+  bool classAttendanceLoading = false;
+  Metadata? classAttendanceMetadata;
+  // Class Attendance Details (student records) state
+  List<ClassAttendanceStudentItem> classAttendanceStudents = [];
+
   bool loading = false;
   CreateAttendance? ongoingAttendance;
   String? ongoingAttendanceKey;
+
+  final ApiClient _apiClient;
 
   /// Returns the active ongoingAttendanceKey, or falls back to the first key in Hive if available.
   String? get effectiveAttendanceKey {
@@ -226,25 +241,6 @@ class AttendanceProvider extends ChangeNotifier {
       }
     } catch (error, stack) {
       _apiClient.logCrash('setAttendanceImages()', error, stack);
-    }
-  }
-
-  Uint8List _compressImageBytes(
-    Uint8List inputBytes, {
-    int quality = 35,
-    int maxWidth = 800,
-  }) {
-    try {
-      final decoded = img.decodeImage(inputBytes);
-      if (decoded == null) return inputBytes;
-
-      final resized = decoded.width > maxWidth
-          ? img.copyResize(decoded, width: maxWidth)
-          : decoded;
-
-      return Uint8List.fromList(img.encodeJpg(resized, quality: quality));
-    } catch (_) {
-      return inputBytes;
     }
   }
 
@@ -550,6 +546,204 @@ class AttendanceProvider extends ChangeNotifier {
       }
     } catch (error, stack) {
       _apiClient.logCrash('toggleStudentAttendance()', error, stack);
+    }
+  }
+
+  void clearAttendanceStats() {
+    attendanceStats.clear();
+    attendanceStatsMetadata = null;
+    notifyListeners();
+  }
+
+  void clearClassAttendanceStudents() {
+    classAttendanceStudents.clear();
+    classAttendanceMetadata = null;
+    notifyListeners();
+  }
+
+  Future<ClassAttendanceStatsResponse?> getClassAttendanceStats({
+    required FilterMode reportMode,
+    DateTime? fromDate,
+    DateTime? toDate,
+    String? month,
+    String? year,
+    int? classId,
+    String? section,
+    int pageNumber = 1,
+    int pageSize = 10,
+  }) async {
+    if (pageNumber == 1) {
+      attendanceStatsLoading = true;
+      attendanceStats.clear();
+      notifyListeners();
+    }
+
+    try {
+      final user = HiveService.userInfoBox.values.firstOrNull;
+      final branchId =
+          HiveService.zonalBranch.get('selected')?.id ?? user?.branchId;
+
+      final payload = <String, dynamic>{
+        'ReportMode': reportMode.name,
+        'PageSize': pageSize,
+        'PageNumber': pageNumber,
+        'OrganizationId': user?.organizationId,
+        'ZoneId': user?.zoneId,
+        'BranchId': branchId,
+      };
+
+      if (reportMode == FilterMode.bydate) {
+        payload['FromDate'] = fromDate != null
+            ? DateFormat('MM/dd/yyyy').format(fromDate)
+            : DateFormat('MM/dd/yyyy').format(DateTime.now());
+      } else if (reportMode == FilterMode.byperiod) {
+        if (fromDate != null) {
+          payload['FromDate'] = DateFormat('MM/dd/yyyy').format(fromDate);
+        }
+        if (toDate != null) {
+          payload['ToDate'] = DateFormat('MM/dd/yyyy').format(toDate);
+        }
+      } else if (reportMode == FilterMode.bymonth) {
+        if (month != null) payload['Month'] = month;
+        if (year != null) payload['Year'] = year;
+      }
+
+      if (classId != null) {
+        payload['ClassId'] = classId;
+      }
+      if (section != null && section.isNotEmpty) {
+        payload['Section'] = section;
+      }
+
+      final response = await _apiClient.post(
+        '/v2.0/getClassAttendanceStats',
+        data: payload,
+      );
+
+      final responseData = response.data;
+      if (responseData is Map<String, dynamic>) {
+        final result = ClassAttendanceStatsResponse.fromJson(responseData);
+        attendanceStatsMetadata = result.metadata;
+        if (pageNumber == 1) {
+          attendanceStats = List<ClassAttendanceStatItem>.from(result.data);
+        } else {
+          attendanceStats.addAll(result.data);
+        }
+        return result;
+      }
+      return null;
+    } catch (error, stack) {
+      if (error.runtimeType.toString() != 'DioException') {
+        _apiClient.logCrash('/getClassAttendanceStats', error, stack);
+      }
+      return null;
+    } finally {
+      attendanceStatsLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<ClassAttendanceDetailResponse?> getClassAttendance({
+    required FilterMode reportMode,
+    required int classId,
+    required String section,
+    DateTime? fromDate,
+    DateTime? toDate,
+    String? month,
+    String? year,
+    String status = '',
+    int pageNumber = 1,
+    int pageSize = 10,
+    bool clearPrevious = true,
+  }) async {
+    if (pageNumber == 1 && clearPrevious) {
+      classAttendanceLoading = true;
+      classAttendanceStudents.clear();
+      notifyListeners();
+    } else if (pageNumber == 1) {
+      classAttendanceLoading = true;
+      notifyListeners();
+    }
+
+    try {
+      final user = HiveService.userInfoBox.values.firstOrNull;
+      final branchId =
+          HiveService.zonalBranch.get('selected')?.id ?? user?.branchId;
+
+      final payload = <String, dynamic>{
+        'ReportMode': reportMode.name,
+        'ClassId': classId,
+        'Section': section,
+        'Status': status,
+        'PageSize': pageSize,
+        'PageNumber': pageNumber,
+        'OrganizationId': user?.organizationId,
+        'ZoneId': user?.zoneId,
+        'BranchId': branchId,
+      };
+
+      if (reportMode == FilterMode.bydate) {
+        payload['FromDate'] = fromDate != null
+            ? DateFormat('MM/dd/yyyy').format(fromDate)
+            : DateFormat('MM/dd/yyyy').format(DateTime.now());
+      } else if (reportMode == FilterMode.byperiod) {
+        if (fromDate != null) {
+          payload['FromDate'] = DateFormat('MM/dd/yyyy').format(fromDate);
+        }
+        if (toDate != null) {
+          payload['ToDate'] = DateFormat('MM/dd/yyyy').format(toDate);
+        }
+      } else if (reportMode == FilterMode.bymonth) {
+        if (month != null) payload['Month'] = month;
+        if (year != null) payload['Year'] = year;
+      }
+
+      final response = await _apiClient.post(
+        '/v2.0/getClassAttendance',
+        data: payload,
+      );
+
+      final responseData = response.data;
+      if (responseData is Map<String, dynamic>) {
+        final result = ClassAttendanceDetailResponse.fromJson(responseData);
+        classAttendanceMetadata = result.metadata;
+        if (pageNumber == 1) {
+          classAttendanceStudents = List<ClassAttendanceStudentItem>.from(
+            result.data,
+          );
+        } else {
+          classAttendanceStudents.addAll(result.data);
+        }
+        return result;
+      }
+      return null;
+    } catch (error, stack) {
+      if (error.runtimeType.toString() != 'DioException') {
+        _apiClient.logCrash('/getClassAttendance', error, stack);
+      }
+      return null;
+    } finally {
+      classAttendanceLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Uint8List _compressImageBytes(
+    Uint8List inputBytes, {
+    int quality = 35,
+    int maxWidth = 800,
+  }) {
+    try {
+      final decoded = img.decodeImage(inputBytes);
+      if (decoded == null) return inputBytes;
+
+      final resized = decoded.width > maxWidth
+          ? img.copyResize(decoded, width: maxWidth)
+          : decoded;
+
+      return Uint8List.fromList(img.encodeJpg(resized, quality: quality));
+    } catch (_) {
+      return inputBytes;
     }
   }
 }

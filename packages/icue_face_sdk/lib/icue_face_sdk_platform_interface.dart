@@ -124,6 +124,12 @@ abstract class IcueFaceSdkPlatform extends PlatformInterface {
     required bool showDetectedLabel,
     required bool showUnrecognizedLabel,
     required String unrecognizedLabel,
+    AttendanceType type = AttendanceType.TRANSPORT,
+    double? fontSize,
+    double? nameFontSize,
+    DetectedLabelField detectedLabelField = DetectedLabelField.ID,
+    DetectedLabelField? labelField,
+    DetectedLabelField? labelType,
   }) =>
       throw UnimplementedError('startFaceTracking() has not been implemented.');
 

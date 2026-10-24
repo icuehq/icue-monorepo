@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/vehicle_cleaning_success.dart';
+import '../utils/app_date_utils.dart';
 
 class FailedVehicleCleaningDialog extends StatelessWidget {
   const FailedVehicleCleaningDialog({super.key, required this.failedData});
@@ -22,8 +23,7 @@ class FailedVehicleCleaningDialog extends StatelessWidget {
             return ListTile(
               title: Text(data.vehicleNo),
               subtitle: Text(
-                'Cleaned Date: ${data.cleanedDate}\n'
-                'Reason: ${data.msg}',
+                'Cleaned Date: ${data.cleanedDate.formatAsIndianDate()}\n',
               ),
             );
           },

@@ -22,6 +22,7 @@ import '../providers/auth_provider.dart' as _i773;
 import '../providers/common_provider.dart' as _i710;
 import '../providers/driver_provider.dart' as _i825;
 import '../providers/expense_provider.dart' as _i964;
+import '../providers/facility_provider.dart' as _i485;
 import '../providers/gatepass_provider.dart' as _i371;
 import '../providers/reports_provider.dart' as _i990;
 import '../providers/students_provider.dart' as _i871;
@@ -66,6 +67,8 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i371.GatePassProvider(gh<_i1013.ApiClient>()));
     gh.lazySingleton<_i625.AttendanceProvider>(
         () => _i625.AttendanceProvider(gh<_i1013.ApiClient>()));
+    gh.lazySingleton<_i485.FacilityProvider>(
+        () => _i485.FacilityProvider(gh<_i1013.ApiClient>()));
     gh.lazySingleton<_i773.AuthProvider>(
         () => _i773.AuthProvider(gh<_i1013.ApiClient>()));
     gh.lazySingleton<_i825.DriverProvider>(

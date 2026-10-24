@@ -127,7 +127,7 @@ ThemeData _buildTheme({
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
-        minimumSize: const Size(double.infinity, 48),
+        // minimumSize: const Size(double.infinity, 48),
         shape: buttonShape,
         side: BorderSide(color: scheme.primary, width: 2),
         foregroundColor: scheme.primary,

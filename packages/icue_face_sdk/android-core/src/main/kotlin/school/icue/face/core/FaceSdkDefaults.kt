@@ -8,6 +8,7 @@ object FaceSdkDefaults {
     const val DEFAULT_MATCH_THRESHOLD = 0.68f
     const val DEFAULT_AMBIGUITY_MARGIN = 0.05f
     const val DEFAULT_MAX_FACES = 20
+    const val DEFAULT_LABEL_FONT_SIZE = 12f
 
     // ArcFace 5-Point Canonical Landmarks
     const val CANONICAL_LEFT_EYE_X = 38.2946f

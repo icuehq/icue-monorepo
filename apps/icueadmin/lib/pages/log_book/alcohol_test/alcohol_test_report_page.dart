@@ -6,6 +6,7 @@ import '../../../models/alcohol_test_report.dart';
 import '../../../models/drivers.dart';
 import '../../../providers/driver_provider.dart';
 import '../../../providers/reports_provider.dart';
+import '../../../utils/app_utils.dart';
 import '../../../utils/constants.dart';
 import '../../../widgets/driver_auto_complete_field.dart';
 import '../../../widgets/no_data_widget.dart';
@@ -351,7 +352,7 @@ class _ReportCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            '${item.submittedDate} • ${item.submittedTime}',
+                            '${item.submittedDate.formatAsIndianDate(fallback: '')} • ${item.submittedTime.formatAsIndianTime(fallback: '')}',
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.grey.shade600,

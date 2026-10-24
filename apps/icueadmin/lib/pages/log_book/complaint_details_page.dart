@@ -5,6 +5,7 @@ import 'package:timelines_plus/timelines_plus.dart';
 import '../../models/complaint_data.dart';
 import '../../services/analytics_service.dart';
 import '../../services/injectable.dart';
+import '../../utils/app_utils.dart';
 import '../vehicle_management/reports/image_view.dart';
 
 class ComplaintDetailsPage extends StatefulWidget {
@@ -46,7 +47,7 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  '${detail.date} ${detail.time}',
+                  '${detail.date.formatAsIndianDate(fallback: '')} ${detail.time.formatAsIndianTime(fallback: '')}',
                   style: const TextStyle(
                     color: Colors.black,
                     fontWeight: FontWeight.bold,

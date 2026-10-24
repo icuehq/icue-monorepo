@@ -109,7 +109,10 @@ class DriverInfoPage extends StatelessWidget {
               info('Mobile Number', '${driver.mobile ?? '-'}'),
               info('Alternate Number', '${driver.alternateNumber ?? '-'}'),
               info('Licence Number', driver.licenceNumber),
-              info('Licence Issued Date', driver.licenceIssuedDate),
+              info(
+                'Licence Issued Date',
+                driver.licenceIssuedDate.formatAsIndianDate(),
+              ),
               if (licenceStatus != null)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 5),
@@ -122,12 +125,18 @@ class DriverInfoPage extends StatelessWidget {
                     ),
                   ),
                 ),
-              info('Licence Expiry Date', driver.licenceExpiryDate),
+              info(
+                'Licence Expiry Date',
+                driver.licenceExpiryDate.formatAsIndianDate(),
+              ),
               info(
                 'Address',
                 '${driver.address.line1} ${driver.address.line2 ?? ''} ${driver.city ?? ''} ${driver.state ?? ''} ${driver.pincode ?? ''}',
               ),
-              info('Date Of Joining', driver.dateOfJoining),
+              info(
+                'Date Of Joining',
+                driver.dateOfJoining.formatAsIndianDate(),
+              ),
               info('Id Type', maskNumber(driver.idType ?? '-')),
               const SizedBox(height: 20),
               Row(

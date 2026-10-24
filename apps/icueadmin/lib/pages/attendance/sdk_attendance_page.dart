@@ -235,9 +235,11 @@ class _SdkAttendancePageState extends State<SdkAttendancePage> {
     try {
       final attendanceProvider = context.read<AttendanceProvider>();
       final key = attendanceProvider.effectiveAttendanceKey;
-      final existingAttendance =
-          key != null ? HiveService.createAttendanceBox.get(key) : null;
-      final existingPresentIds = existingAttendance?.students
+      final existingAttendance = key != null
+          ? HiveService.createAttendanceBox.get(key)
+          : null;
+      final existingPresentIds =
+          existingAttendance?.students
               .where((s) => s.isPresent)
               .map((s) => s.id)
               .toSet() ??
@@ -250,7 +252,8 @@ class _SdkAttendancePageState extends State<SdkAttendancePage> {
           result.mode == AttendanceMode.liveStream;
 
       final studentsToUpdate = _studentList.map((student) {
-        final isPresent = existingPresentIds.contains(student.id) ||
+        final isPresent =
+            existingPresentIds.contains(student.id) ||
             newlyPresentIds.contains(student.id.toString());
         return AttendanceStudent(
           id: student.id,

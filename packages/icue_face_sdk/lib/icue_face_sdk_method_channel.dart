@@ -229,17 +229,32 @@ class MethodChannelIcueFaceSdk extends IcueFaceSdkPlatform {
     required bool showDetectedLabel,
     required bool showUnrecognizedLabel,
     required String unrecognizedLabel,
-  }) => _invoke<void>('startFaceTracking', <String, Object>{
-    'profiles': profiles.map((profile) => profile.toMap()).toList(),
-    'lens': lens.nativeValue,
-    'mode': RecognitionMode.multi.nativeValue,
-    'maxFaces': maxFaces,
-    'threshold': threshold,
-    'showMatchingPercentage': showMatchingPercentage,
-    'showDetectedLabel': showDetectedLabel,
-    'showUnrecognizedLabel': showUnrecognizedLabel,
-    'unrecognizedLabel': unrecognizedLabel,
-  });
+    AttendanceType type = AttendanceType.TRANSPORT,
+    double? fontSize,
+    double? nameFontSize,
+    DetectedLabelField detectedLabelField = DetectedLabelField.ID,
+    DetectedLabelField? labelField,
+    DetectedLabelField? labelType,
+  }) {
+    final effectiveFontSize = nameFontSize ?? fontSize ?? 12.0;
+    final effectiveLabelField = labelField ?? labelType ?? detectedLabelField;
+    return _invoke<void>('startFaceTracking', <String, Object>{
+      'profiles': profiles.map((profile) => profile.toMap()).toList(),
+      'lens': lens.nativeValue,
+      'mode': RecognitionMode.multi.nativeValue,
+      'maxFaces': maxFaces,
+      'threshold': threshold,
+      'showMatchingPercentage': showMatchingPercentage,
+      'showDetectedLabel': showDetectedLabel,
+      'showUnrecognizedLabel': showUnrecognizedLabel,
+      'unrecognizedLabel': unrecognizedLabel,
+      'type': type.name,
+      'fontSize': effectiveFontSize,
+      'nameFontSize': effectiveFontSize,
+      'detectedLabelField': effectiveLabelField.name,
+      'labelField': effectiveLabelField.name,
+    });
+  }
 
   @override
   Future<void> stopFaceTracking() => _invoke<void>('stopFaceTracking');
@@ -262,6 +277,11 @@ class MethodChannelIcueFaceSdk extends IcueFaceSdkPlatform {
         'showDetectedLabel': config.showDetectedLabel,
         'showUnrecognizedLabel': config.showUnrecognizedLabel,
         'unrecognizedLabel': config.unrecognizedLabel,
+        'type': config.type.name,
+        'fontSize': config.effectiveFontSize,
+        'nameFontSize': config.effectiveFontSize,
+        'detectedLabelField': config.detectedLabelField.name,
+        'labelField': config.detectedLabelField.name,
       },
     );
     return result == null ? null : AttendanceResult.fromMap(result);
@@ -285,6 +305,11 @@ class MethodChannelIcueFaceSdk extends IcueFaceSdkPlatform {
         'showDetectedLabel': config.showDetectedLabel,
         'showUnrecognizedLabel': config.showUnrecognizedLabel,
         'unrecognizedLabel': config.unrecognizedLabel,
+        'type': config.type.name,
+        'fontSize': config.effectiveFontSize,
+        'nameFontSize': config.effectiveFontSize,
+        'detectedLabelField': config.detectedLabelField.name,
+        'labelField': config.detectedLabelField.name,
       },
     );
     return result == null ? null : AttendanceResult.fromMap(result);

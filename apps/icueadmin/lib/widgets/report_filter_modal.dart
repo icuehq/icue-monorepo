@@ -105,7 +105,7 @@ class _ReportFilterModalState extends State<ReportFilterModal> {
     }
   }
 
-  String _fmt(DateTime d) => '${d.day}/${d.month}/${d.year}';
+  String _fmt(DateTime d) => d.formattedDate();
 
   @override
   Widget build(BuildContext context) {
@@ -153,14 +153,14 @@ class _ReportFilterModalState extends State<ReportFilterModal> {
             // 2) Conditional inputs
             if (_mode == FilterMode.bydate) ...[
               InputField(
-                initialValue: _tempDate.formattedGatePassDate(),
+                initialValue: _tempDate.formattedDate(),
                 key: const ValueKey('Date'),
                 label: 'Date',
                 showTitle: false,
                 filled: false,
                 hintText: 'Select Date',
                 controller: TextEditingController(
-                  text: _tempDate.formattedGatePassDate(),
+                  text: _tempDate.formattedDate(),
                 ),
                 readOnly: true,
                 type: TextFieldType.datePicker,

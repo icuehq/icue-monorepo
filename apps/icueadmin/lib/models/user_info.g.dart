@@ -33,6 +33,13 @@ class UserInfoAdapter extends TypeAdapter<UserInfo> {
       typeOfBusiness: fields[14] as String,
       loginType: fields[6] as String,
       wardId: fields[16] as dynamic,
+      enableVirtualClassRoom: fields[20] as bool?,
+      enableVroomMeeting: fields[23] as bool?,
+      enableVroomItAdminApproval: fields[22] as bool?,
+      enableVoice: fields[21] as bool?,
+      isWebRtcEnabled: fields[26] as bool?,
+      isTextChatEnabled: fields[25] as bool?,
+      isAudioBridgeEnabled: fields[24] as bool?,
       token: fields[13] as String,
       isFirstLogin: fields[4] as bool,
       schoolName: fields[18] as String?,
@@ -43,19 +50,33 @@ class UserInfoAdapter extends TypeAdapter<UserInfo> {
   @override
   void write(BinaryWriter writer, UserInfo obj) {
     writer
-      ..writeByte(20)
+      ..writeByte(27)
       ..writeByte(0)
       ..write(obj.branchId)
       ..writeByte(1)
       ..write(obj.classes)
+      ..writeByte(20)
+      ..write(obj.enableVirtualClassRoom)
+      ..writeByte(21)
+      ..write(obj.enableVoice)
+      ..writeByte(22)
+      ..write(obj.enableVroomItAdminApproval)
+      ..writeByte(23)
+      ..write(obj.enableVroomMeeting)
       ..writeByte(2)
       ..write(obj.id)
+      ..writeByte(24)
+      ..write(obj.isAudioBridgeEnabled)
       ..writeByte(3)
       ..write(obj.isCorporate)
       ..writeByte(4)
       ..write(obj.isFirstLogin)
       ..writeByte(5)
       ..write(obj.isLogistics)
+      ..writeByte(25)
+      ..write(obj.isTextChatEnabled)
+      ..writeByte(26)
+      ..write(obj.isWebRtcEnabled)
       ..writeByte(6)
       ..write(obj.loginType)
       ..writeByte(7)
@@ -68,6 +89,10 @@ class UserInfoAdapter extends TypeAdapter<UserInfo> {
       ..write(obj.organizationId)
       ..writeByte(11)
       ..write(obj.roles)
+      ..writeByte(18)
+      ..write(obj.schoolName)
+      ..writeByte(19)
+      ..write(obj.schoolShortName)
       ..writeByte(12)
       ..write(obj.sesid)
       ..writeByte(13)
@@ -79,11 +104,7 @@ class UserInfoAdapter extends TypeAdapter<UserInfo> {
       ..writeByte(16)
       ..write(obj.wardId)
       ..writeByte(17)
-      ..write(obj.zoneId)
-      ..writeByte(18)
-      ..write(obj.schoolName)
-      ..writeByte(19)
-      ..write(obj.schoolShortName);
+      ..write(obj.zoneId);
   }
 
   @override

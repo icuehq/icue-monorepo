@@ -339,14 +339,13 @@ class _ReportDetails extends StatelessWidget {
   Widget build(BuildContext context) {
     // Optimization: Pre-calculate values to avoid repeated logic inside the build method
     final arrivalTimeText = isRouteEnded
-        ? '${report.endTime}'.toTime().formattedTime()
-        : '${report.arrivalTime}'.toTime().formattedTime();
+        ? report.endTime.formatAsIndianTime()
+        : report.arrivalTime.formatAsIndianTime();
     final arrivalTimeLabel = isRouteEnded
         ? 'Route Ended Time: '
         : 'Arrival Time: ';
     final startedTimeText = '${report.startDate} ${report.startTime}'
-        .toDateTime()
-        .formattedFullDateTime();
+        .formatAsIndianFullDateTime();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -362,9 +361,7 @@ class _ReportDetails extends StatelessWidget {
           const SizedBox(height: 8),
           _buildDetailRow(
             'Ended Time: ',
-            '${report.endDate} ${report.endTime}'
-                .toDateTime()
-                .formattedFullDateTime(),
+            '${report.endDate} ${report.endTime}'.formatAsIndianFullDateTime(),
           ),
         ],
       ],

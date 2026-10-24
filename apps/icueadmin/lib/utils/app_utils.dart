@@ -1,11 +1,12 @@
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 import '../models/routes.dart';
 import '../utils/navigation/app_router.dart';
 import '../widgets/loading_dialog.dart';
+
+export 'app_date_utils.dart';
 
 class AppUtils {
   static void showLoadingDialog(BuildContext context, String msg) {
@@ -144,58 +145,6 @@ class AppUtils {
   }
 }
 
-extension DateTimeExtension on DateTime? {
-  String formattedDateTime() {
-    if (this == null) {
-      return '-';
-    }
-    return DateFormat('dd / hh:mm a').format(this!);
-  }
-
-  String formattedDate() {
-    if (this == null) {
-      return '-';
-    }
-    return DateFormat('dd-MM-yyyy').format(this!);
-  }
-
-  /// MM/dd/yyyy
-  String? formattedGatePassDate() {
-    if (this == null) {
-      return null;
-    }
-    return DateFormat('MM/dd/yyyy').format(this!);
-  }
-
-  String formattedAttendanceTime() {
-    if (this == null) {
-      return '-';
-    }
-    return DateFormat('HH:mm').format(this!);
-  }
-
-  String formattedTimeWithSecs() {
-    if (this == null) {
-      return '-';
-    }
-    return DateFormat('hh:mm:ss a').format(this!);
-  }
-
-  String formattedTime() {
-    if (this == null) {
-      return '-';
-    }
-    return DateFormat('hh:mm a').format(this!);
-  }
-
-  String formattedFullDateTime() {
-    if (this == null) {
-      return '-';
-    }
-    return DateFormat('dd-MMM-yyyy hh:mm a').format(this!);
-  }
-}
-
 extension TimeOfDayConverter on TimeOfDay {
   String to24hours() {
     final hour = this.hour.toString().padLeft(2, '0');
@@ -223,40 +172,4 @@ Map<String, dynamic> removeEmptyAndNullValues(Map<String, dynamic> data) {
   );
 
   return cleanedData;
-}
-
-// Write an extension on String MM/dd/yyyy to return DateTime
-extension DateConverter on String? {
-  DateTime? toDate() {
-    if (this == null || this!.isEmpty) {
-      return null;
-    }
-    try {
-      return DateFormat('MM/dd/yyyy').parse(this!);
-    } catch (e) {
-      return DateFormat('dd-MM-yyyy').parse(this!);
-    }
-  }
-
-  DateTime? toDateTime() {
-    if (this == null || this!.isEmpty) {
-      return null;
-    }
-    try {
-      return DateFormat('MM/dd/yyyy HH:mm').parse(this!);
-    } catch (e) {
-      return DateFormat('dd-MM-yyyy HH:mm').parse(this!);
-    }
-  }
-
-  DateTime? toTime() {
-    if (this == null || this!.isEmpty) {
-      return null;
-    }
-    try {
-      return DateFormat('HH:mm:ss').parse(this!);
-    } catch (e) {
-      return DateFormat('HH:mm').parse(this!);
-    }
-  }
 }

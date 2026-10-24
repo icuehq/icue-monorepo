@@ -178,12 +178,13 @@ class IcueFaceSdk(
         }
 
         if (profiles.isEmpty()) {
-            return faces.map { face ->
+            return faces.mapIndexed { i, face ->
                 IcueRecognitionResult(
                     personId = null,
                     score = -1f,
                     matched = false,
                     boundingBox = face.toBoundingBox(),
+                    embedding = liveEmbeddings[i],
                 )
             }
         }
@@ -216,6 +217,8 @@ class IcueFaceSdk(
                     score = candidate.score,
                     matched = true,
                     boundingBox = faces[candidate.faceIdx].toBoundingBox(),
+                    name = matchedProfile.name,
+                    label = matchedProfile.label,
                 )
             }
         }
@@ -232,6 +235,7 @@ class IcueFaceSdk(
                     score = bestScore,
                     matched = false,
                     boundingBox = faces[fIdx].toBoundingBox(),
+                    embedding = liveEmbeddings[fIdx],
                 )
             }
         }
@@ -246,7 +250,12 @@ class IcueFaceSdk(
         profiles.map { profile ->
             require(profile.personId.isNotBlank()) { "personId cannot be blank" }
             EmbeddingMath.validateEmbedding(profile.embedding)
-            PreparedProfile(profile.personId, EmbeddingMath.l2Normalize(profile.embedding))
+            PreparedProfile(
+                personId = profile.personId,
+                embedding = EmbeddingMath.l2Normalize(profile.embedding),
+                name = profile.name,
+                label = profile.label,
+            )
         }
 
     private fun validateRecognitionOptions(maxFaces: Int, threshold: Float) {
@@ -309,6 +318,8 @@ class IcueFaceSdk(
     private data class PreparedProfile(
         val personId: String,
         val embedding: FloatArray,
+        val name: String? = null,
+        val label: String? = null,
     )
 
     companion object {

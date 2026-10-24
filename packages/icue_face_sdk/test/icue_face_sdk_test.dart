@@ -51,6 +51,12 @@ class FakeIcueFaceSdkPlatform extends IcueFaceSdkPlatform {
     required bool showDetectedLabel,
     required bool showUnrecognizedLabel,
     required String unrecognizedLabel,
+    AttendanceType type = AttendanceType.TRANSPORT,
+    double? fontSize,
+    double? nameFontSize,
+    DetectedLabelField detectedLabelField = DetectedLabelField.ID,
+    DetectedLabelField? labelField,
+    DetectedLabelField? labelType,
   }) async {
     trackingLens = lens;
   }
@@ -356,5 +362,245 @@ void main() {
     expect(batchResult.mode, AttendanceMode.batchImages);
     expect(batchResult.photosProcessed, 2);
     expect(batchResult.capturedImagePaths, ['/img1.jpg', '/img2.jpg']);
+  });
+
+  test('AttendanceType has ATTENDANCE and TRANSPORT with TRANSPORT as default in AttendanceConfig', () {
+    expect(AttendanceType.values, containsAll([AttendanceType.ATTENDANCE, AttendanceType.TRANSPORT]));
+    expect(AttendanceType.ATTENDANCE.name, 'ATTENDANCE');
+    expect(AttendanceType.TRANSPORT.name, 'TRANSPORT');
+    expect(AttendanceType.fromString('attendance'), AttendanceType.ATTENDANCE);
+    expect(AttendanceType.fromString('transport'), AttendanceType.TRANSPORT);
+    expect(AttendanceType.fromString(null), AttendanceType.TRANSPORT);
+
+    const defaultConfig = AttendanceConfig();
+    expect(defaultConfig.type, AttendanceType.TRANSPORT);
+    expect(defaultConfig.effectiveFontSize, 12.0);
+
+    const customConfig = AttendanceConfig(
+      type: AttendanceType.ATTENDANCE,
+      fontSize: 16.0,
+    );
+    expect(customConfig.type, AttendanceType.ATTENDANCE);
+    expect(customConfig.effectiveFontSize, 16.0);
+
+    final updated = customConfig.copyWith(nameFontSize: 20.0);
+    expect(updated.effectiveFontSize, 20.0);
+  });
+
+  test('DetectedLabelField enum supports values, string parsing, and aliases', () {
+    expect(
+      DetectedLabelField.values,
+      containsAll([
+        DetectedLabelField.ID,
+        DetectedLabelField.NAME,
+        DetectedLabelField.LABEL,
+        DetectedLabelField.NAME_AND_ID,
+      ]),
+    );
+
+    expect(DetectedLabelField.fromString('id'), DetectedLabelField.ID);
+    expect(DetectedLabelField.fromString('NAME'), DetectedLabelField.NAME);
+    expect(DetectedLabelField.fromString('label'), DetectedLabelField.LABEL);
+    expect(DetectedLabelField.fromString('name_and_id'), DetectedLabelField.NAME_AND_ID);
+    expect(DetectedLabelField.fromString('both'), DetectedLabelField.NAME_AND_ID);
+    expect(DetectedLabelField.fromString('BOTH'), DetectedLabelField.NAME_AND_ID);
+    expect(DetectedLabelField.fromString('unknown'), DetectedLabelField.ID);
+    expect(DetectedLabelField.fromString(null), DetectedLabelField.ID);
+
+    // DetectedLabelType is a typedef for DetectedLabelField
+    expect(DetectedLabelType.values, DetectedLabelField.values);
+  });
+
+  test('FaceProfile supports name, label, and effectiveLabel with fallback', () {
+    final fullProfile = FaceProfile(
+      personId: 'STU001',
+      embedding: List<double>.filled(faceEmbeddingSize, 0.1),
+      name: 'John Doe',
+      label: 'Bus Leader',
+    );
+    expect(fullProfile.name, 'John Doe');
+    expect(fullProfile.label, 'Bus Leader');
+    expect(fullProfile.effectiveLabel, 'Bus Leader');
+
+    final nameOnlyProfile = FaceProfile(
+      personId: 'STU002',
+      embedding: List<double>.filled(faceEmbeddingSize, 0.1),
+      name: 'Jane Smith',
+    );
+    expect(nameOnlyProfile.name, 'Jane Smith');
+    expect(nameOnlyProfile.label, isNull);
+    expect(nameOnlyProfile.effectiveLabel, 'Jane Smith');
+
+    final idOnlyProfile = FaceProfile(
+      personId: 'STU003',
+      embedding: List<double>.filled(faceEmbeddingSize, 0.1),
+    );
+    expect(idOnlyProfile.name, isNull);
+    expect(idOnlyProfile.label, isNull);
+    expect(idOnlyProfile.effectiveLabel, 'STU003');
+
+    final map = fullProfile.toMap();
+    expect(map['personId'], 'STU001');
+    expect(map['name'], 'John Doe');
+    expect(map['label'], 'Bus Leader');
+
+    final copy = fullProfile.copyWith(name: 'Johnny');
+    expect(copy.name, 'Johnny');
+    expect(copy.label, 'Bus Leader');
+  });
+
+  test('FaceRecognitionResult supports name, label, and effectiveLabel', () {
+    final result = FaceRecognitionResult.fromMap({
+      'personId': 'STU001',
+      'name': 'John Doe',
+      'label': 'Bus Leader',
+      'score': 0.95,
+      'matched': true,
+      'boundingBox': {
+        'left': 10.0,
+        'top': 10.0,
+        'right': 50.0,
+        'bottom': 50.0,
+      },
+    });
+
+    expect(result.name, 'John Doe');
+    expect(result.label, 'Bus Leader');
+    expect(result.effectiveLabel, 'Bus Leader');
+
+    final toMap = result.toMap();
+    expect(toMap['name'], 'John Doe');
+    expect(toMap['label'], 'Bus Leader');
+  });
+
+  test('AttendanceRecord supports name and label in serialization', () {
+    final record = AttendanceRecord(
+      personId: 'STU001',
+      name: 'John Doe',
+      label: 'Bus Leader',
+      confidenceScore: 0.95,
+      timestamp: DateTime.fromMillisecondsSinceEpoch(1000),
+    );
+
+    expect(record.name, 'John Doe');
+    expect(record.label, 'Bus Leader');
+
+    final map = record.toMap();
+    expect(map['name'], 'John Doe');
+    expect(map['label'], 'Bus Leader');
+
+    final reconstructed = AttendanceRecord.fromMap(map);
+    expect(reconstructed.name, 'John Doe');
+    expect(reconstructed.label, 'Bus Leader');
+  });
+
+  test('AttendanceConfig supports detectedLabelField and aliases', () {
+    const defaultConfig = AttendanceConfig();
+    expect(defaultConfig.detectedLabelField, DetectedLabelField.ID);
+    expect(defaultConfig.labelField, DetectedLabelField.ID);
+    expect(defaultConfig.labelType, DetectedLabelField.ID);
+
+    const nameConfig = AttendanceConfig(
+      detectedLabelField: DetectedLabelField.NAME,
+    );
+    expect(nameConfig.detectedLabelField, DetectedLabelField.NAME);
+
+    const aliasConfig = AttendanceConfig(
+      labelField: DetectedLabelField.LABEL,
+    );
+    expect(aliasConfig.detectedLabelField, DetectedLabelField.LABEL);
+
+    const typeConfig = AttendanceConfig(
+      labelType: DetectedLabelField.NAME_AND_ID,
+    );
+    expect(typeConfig.detectedLabelField, DetectedLabelField.NAME_AND_ID);
+
+    final updated = defaultConfig.copyWith(
+      detectedLabelField: DetectedLabelField.NAME,
+    );
+    expect(updated.detectedLabelField, DetectedLabelField.NAME);
+  });
+
+  test('UnrecognizedFaceRecord serializes and deserializes properly', () {
+    final record = UnrecognizedFaceRecord(
+      score: 0.35,
+      boundingBox: const FaceBoundingBox(left: 10, top: 20, right: 50, bottom: 60),
+      timestamp: DateTime.fromMillisecondsSinceEpoch(1000),
+      sourceImagePath: '/path/to/img.jpg',
+    );
+
+    expect(record.score, 0.35);
+    expect(record.confidenceScore, 0.35);
+    expect(record.sourceImagePath, '/path/to/img.jpg');
+    expect(record.boundingBox?.left, 10);
+
+    final map = record.toMap();
+    expect(map['score'], 0.35);
+    expect(map['confidenceScore'], 0.35);
+    expect(map['sourceImagePath'], '/path/to/img.jpg');
+
+    final reconstructed = UnrecognizedFaceRecord.fromMap(map);
+    expect(reconstructed.score, 0.35);
+    expect(reconstructed.confidenceScore, 0.35);
+    expect(reconstructed.sourceImagePath, '/path/to/img.jpg');
+    expect(reconstructed.boundingBox?.left, 10);
+  });
+
+  test('AttendanceResult exposes unrecognizedFaces and aliases', () {
+    final result = AttendanceResult(
+      present: [],
+      absentPersonIds: [],
+      unrecognizedFaceCount: 1,
+      totalRosterCount: 5,
+      sessionStartTime: DateTime.now(),
+      sessionEndTime: DateTime.now(),
+      mode: AttendanceMode.liveStream,
+      capturedImagePaths: [],
+      unrecognizedFaces: [
+        UnrecognizedFaceRecord(
+          score: 0.4,
+          boundingBox: const FaceBoundingBox(left: 0, top: 0, right: 10, bottom: 10),
+          timestamp: DateTime.now(),
+        ),
+      ],
+    );
+
+    expect(result.unrecognizedFaces, hasLength(1));
+    expect(result.unrecognized, hasLength(1));
+    expect(result.unrecognizedStudents, hasLength(1));
+    expect(result.hasUnrecognizedFaces, isTrue);
+    expect(result.unrecognizedFaceCount, 1);
+  });
+
+  test('FaceTrackingResult exposes unrecognizedFaces and counts', () {
+    final result = FaceTrackingResult(
+      faces: const [
+        FaceBoundingBox(left: 0, top: 0, right: 10, bottom: 10),
+        FaceBoundingBox(left: 15, top: 15, right: 25, bottom: 25),
+      ],
+      recognitions: const [
+        FaceRecognitionResult(
+          personId: 'STU01',
+          name: 'Student 1',
+          score: 0.9,
+          matched: true,
+          boundingBox: FaceBoundingBox(left: 0, top: 0, right: 10, bottom: 10),
+        ),
+        FaceRecognitionResult(
+          personId: null,
+          score: 0.3,
+          matched: false,
+          boundingBox: FaceBoundingBox(left: 15, top: 15, right: 25, bottom: 25),
+        ),
+      ],
+      frameWidth: 100,
+      frameHeight: 100,
+      timestamp: DateTime.now(),
+    );
+
+    expect(result.hasUnrecognizedFaces, isTrue);
+    expect(result.unrecognizedFaceCount, 1);
+    expect(result.unrecognizedFaces, hasLength(1));
+    expect(result.unrecognizedRecognitions.single.matched, isFalse);
   });
 }
