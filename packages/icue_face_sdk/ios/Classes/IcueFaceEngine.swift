@@ -1,3 +1,4 @@
+import Flutter
 import Foundation
 import UIKit
 import MLKitFaceDetection
@@ -58,6 +59,8 @@ public struct IcueRecognitionResult {
     public let boundingBox: IcueBoundingBox
     public let name: String?
     public let label: String?
+    /// Normalized embedding of the live face; only populated for unmatched (unknown) faces.
+    public let embedding: [Float]?
 
     public init(
         personId: String?,
@@ -65,7 +68,8 @@ public struct IcueRecognitionResult {
         matched: Bool,
         boundingBox: IcueBoundingBox,
         name: String? = nil,
-        label: String? = nil
+        label: String? = nil,
+        embedding: [Float]? = nil
     ) {
         self.personId = personId
         self.score = score
@@ -73,6 +77,12 @@ public struct IcueRecognitionResult {
         self.boundingBox = boundingBox
         self.name = name
         self.label = label
+        self.embedding = embedding
+    }
+
+    /// [embedding] as typed data for the platform channel (arrives in Dart as Float32List).
+    public var embeddingData: FlutterStandardTypedData? {
+        embedding.map { FlutterStandardTypedData(float32: Data(bytes: $0, count: $0.count * MemoryLayout<Float>.size)) }
     }
 
     public func toMap() -> [String: Any?] {
@@ -82,7 +92,8 @@ public struct IcueRecognitionResult {
             "label": label,
             "score": Double(score),
             "matched": matched,
-            "boundingBox": boundingBox.toMap()
+            "boundingBox": boundingBox.toMap(),
+            "embedding": embeddingData
         ]
     }
 }
@@ -202,8 +213,8 @@ internal class IcueFaceEngine {
             }
 
             if profiles.isEmpty {
-                return processFaces.map { face in
-                    IcueRecognitionResult(personId: nil, score: -1.0, matched: false, boundingBox: faceToBoundingBox(face))
+                return processFaces.enumerated().map { i, face in
+                    IcueRecognitionResult(personId: nil, score: -1.0, matched: false, boundingBox: faceToBoundingBox(face), embedding: liveEmbeddings[i])
                 }
             }
 
@@ -258,7 +269,8 @@ internal class IcueFaceEngine {
                         matched: false,
                         boundingBox: faceToBoundingBox(processFaces[fIdx]),
                         name: nil,
-                        label: nil
+                        label: nil,
+                        embedding: liveEmbeddings[fIdx]
                     )
                 }
             }

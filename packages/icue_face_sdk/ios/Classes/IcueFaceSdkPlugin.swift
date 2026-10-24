@@ -588,13 +588,14 @@ public class IcueFaceSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
                         } else {
                             unrecognizedCount += 1
                             if unrecognizedRecords.count < 100 {
-                                let record: [String: Any] = [
+                                var record: [String: Any] = [
                                     "score": Double(rec.score),
                                     "confidenceScore": Double(rec.score),
                                     "boundingBox": rec.boundingBox.toMap(),
                                     "timestampMillis": nowMs,
                                     "sourceImagePath": path
                                 ]
+                                if let emb = rec.embeddingData { record["embedding"] = emb }
                                 unrecognizedRecords.append(record)
                             }
                         }

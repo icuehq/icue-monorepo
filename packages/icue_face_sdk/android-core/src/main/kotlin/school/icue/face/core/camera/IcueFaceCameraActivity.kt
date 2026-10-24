@@ -100,6 +100,7 @@ class IcueFaceCameraActivity : ComponentActivity() {
         var frameCount: Int,
         var bestScore: Float,
         var lastBox: IcueBoundingBox,
+        var embedding: FloatArray? = null,
     )
     private val unrecognizedTrackers = java.util.concurrent.CopyOnWriteArrayList<UnrecognizedFaceTracker>()
     private val cameraPermissionLauncher = registerForActivityResult(
@@ -972,6 +973,7 @@ class IcueFaceCameraActivity : ComponentActivity() {
                             frameCount = 1,
                             bestScore = recognition.score,
                             lastBox = recognition.boundingBox,
+                            embedding = recognition.embedding,
                         )
                         unrecognizedTrackers.add(tracker)
                     } else {
@@ -979,6 +981,7 @@ class IcueFaceCameraActivity : ComponentActivity() {
                         tracker.frameCount++
                         tracker.bestScore = maxOf(tracker.bestScore, recognition.score)
                         tracker.lastBox = recognition.boundingBox
+                        tracker.embedding = recognition.embedding ?: tracker.embedding
                     }
 
                     val trackedDuration = nowMs - tracker.firstSeenMs
@@ -1052,6 +1055,7 @@ class IcueFaceCameraActivity : ComponentActivity() {
                     "timestampMillis" to nowMs,
                 )
                 photoPath?.let { record["sourceImagePath"] = it }
+                confirmedUnrecognizedFace.embedding?.let { record["embedding"] = it }
                 if (unrecognizedRecords.size < 100) {
                     unrecognizedRecords.add(record)
                 }
@@ -1142,6 +1146,7 @@ class IcueFaceCameraActivity : ComponentActivity() {
                             "timestampMillis" to System.currentTimeMillis(),
                         )
                         photoPath?.let { record["sourceImagePath"] = it }
+                        recognition.embedding?.let { record["embedding"] = it }
                         unrecognizedRecords.add(record)
                     }
                 }
@@ -1232,12 +1237,13 @@ class IcueFaceCameraActivity : ComponentActivity() {
         unrecognizedTrackers.forEach { t ->
             if (unrecognizedRecords.size < 100) {
                 unrecognizedRecords.add(
-                    mapOf(
-                        "score" to t.bestScore.toDouble(),
-                        "confidenceScore" to t.bestScore.toDouble(),
-                        "boundingBox" to t.lastBox.toChannelValue(),
-                        "timestampMillis" to t.lastSeenMs,
-                    )
+                    buildMap {
+                        put("score", t.bestScore.toDouble())
+                        put("confidenceScore", t.bestScore.toDouble())
+                        put("boundingBox", t.lastBox.toChannelValue())
+                        put("timestampMillis", t.lastSeenMs)
+                        t.embedding?.let { put("embedding", it) }
+                    }
                 )
             }
         }

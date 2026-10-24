@@ -623,6 +623,7 @@ internal class IcueFaceCameraViewController: UIViewController, AVCaptureVideoDat
                             if let path = photoPath {
                                 record["sourceImagePath"] = path
                             }
+                            if let emb = unrec.embeddingData { record["embedding"] = emb }
                             if self.unrecognizedRecords.count < 100 {
                                 self.unrecognizedRecords.append(record)
                             }

@@ -178,12 +178,13 @@ class IcueFaceSdk(
         }
 
         if (profiles.isEmpty()) {
-            return faces.map { face ->
+            return faces.mapIndexed { i, face ->
                 IcueRecognitionResult(
                     personId = null,
                     score = -1f,
                     matched = false,
                     boundingBox = face.toBoundingBox(),
+                    embedding = liveEmbeddings[i],
                 )
             }
         }
@@ -234,6 +235,7 @@ class IcueFaceSdk(
                     score = bestScore,
                     matched = false,
                     boundingBox = faces[fIdx].toBoundingBox(),
+                    embedding = liveEmbeddings[fIdx],
                 )
             }
         }

@@ -7,4 +7,6 @@ data class IcueRecognitionResult(
     val boundingBox: IcueBoundingBox,
     val name: String? = null,
     val label: String? = null,
+    /** Normalized embedding of the live face; only populated for unmatched (unknown) faces. */
+    val embedding: FloatArray? = null,
 )

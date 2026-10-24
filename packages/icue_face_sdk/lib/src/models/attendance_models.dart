@@ -1,5 +1,7 @@
 // ignore_for_file: constant_identifier_names
 
+import 'dart:typed_data';
+
 import 'camera_lens.dart';
 import 'face_bounding_box.dart';
 import 'face_profile.dart';
@@ -137,6 +139,7 @@ class UnrecognizedFaceRecord {
     required this.timestamp,
     this.boundingBox,
     this.sourceImagePath,
+    this.embedding,
   }) : confidenceScore = confidenceScore ?? score ?? 0.0;
 
   factory UnrecognizedFaceRecord.fromMap(Map<Object?, Object?> map) {
@@ -151,6 +154,7 @@ class UnrecognizedFaceRecord {
           ? DateTime.fromMillisecondsSinceEpoch(rawTimestamp)
           : DateTime.now(),
       sourceImagePath: map['sourceImagePath'] as String?,
+      embedding: FaceRecognitionResult.parseEmbedding(map['embedding']),
     );
   }
 
@@ -169,12 +173,16 @@ class UnrecognizedFaceRecord {
   /// Optional file path of the source image/photo if saved.
   final String? sourceImagePath;
 
+  /// Embedding of the unknown face, so callers can enroll or cluster it.
+  final Float32List? embedding;
+
   Map<String, Object?> toMap() => <String, Object?>{
     'score': confidenceScore,
     'confidenceScore': confidenceScore,
     if (boundingBox != null) 'boundingBox': boundingBox!.toMap(),
     'timestampMillis': timestamp.millisecondsSinceEpoch,
     if (sourceImagePath != null) 'sourceImagePath': sourceImagePath,
+    if (embedding != null) 'embedding': embedding,
   };
 
   @override

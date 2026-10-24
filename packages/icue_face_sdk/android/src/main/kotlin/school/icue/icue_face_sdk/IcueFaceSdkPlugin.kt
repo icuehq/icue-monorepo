@@ -555,13 +555,14 @@ class IcueFaceSdkPlugin :
                             frameUnrecognized++
                             if (unrecognizedRecords.size < 100) {
                                 unrecognizedRecords.add(
-                                    mapOf(
-                                        "score" to recognition.score.toDouble(),
-                                        "confidenceScore" to recognition.score.toDouble(),
-                                        "boundingBox" to listOf(recognition.boundingBox).toBoundingBoxChannelValue().first(),
-                                        "timestampMillis" to System.currentTimeMillis(),
-                                        "sourceImagePath" to imagePath,
-                                    )
+                                    buildMap {
+                                        put("score", recognition.score.toDouble())
+                                        put("confidenceScore", recognition.score.toDouble())
+                                        put("boundingBox", listOf(recognition.boundingBox).toBoundingBoxChannelValue().first())
+                                        put("timestampMillis", System.currentTimeMillis())
+                                        put("sourceImagePath", imagePath)
+                                        recognition.embedding?.let { put("embedding", it) }
+                                    }
                                 )
                             }
                         }
@@ -777,6 +778,7 @@ class IcueFaceSdkPlugin :
             "score" to recognition.score,
             "matched" to recognition.matched,
             "boundingBox" to listOf(recognition.boundingBox).toBoundingBoxChannelValue().first(),
+            "embedding" to recognition.embedding,
         )
     }
 
