@@ -64,41 +64,41 @@ class _IdentifyScreenState extends State<IdentifyScreen> {
 
       if (!mounted) return;
 
+      // Build the roster from every stored embedding, not just the students
+      // currently loaded in the (paginated, single-class) directory list.
       final studentProvider = Provider.of<StudentProvider>(
         context,
         listen: false,
       );
-      final prefService = getIt<PrefService>();
-      final candidates = studentProvider.filteredStudents.isNotEmpty
-          ? studentProvider.filteredStudents
-          : studentProvider.students;
+      final photoByStudent = {
+        for (final s in studentProvider.students) s.id: s.photoUrl,
+      };
 
       _faceProfiles.clear();
       _candidateStudentMap.clear();
 
-      for (int i = 0; i < candidates.length; i++) {
-        final student = candidates[i];
-        if (prefService.hasStudentEmbedding(student.id)) {
-          final savedEmbedding = prefService.getStudentEmbedding(student.id);
-          if (savedEmbedding != null &&
-              savedEmbedding.embedding.length == faceEmbeddingSize &&
-              savedEmbedding.embedding.every((e) => e.isFinite)) {
-            _candidateStudentMap[student.id.toString()] = student;
-            _faceProfiles.add(
-              FaceProfile(
-                personId: student.id.toString(),
-                embedding: savedEmbedding.embedding,
-                name: student.name,
-                label: student.admissionNumber,
-              ),
-            );
-          }
+      for (final saved in getIt<PrefService>().getAllStudentEmbeddings()) {
+        if (saved.embedding.length != faceEmbeddingSize ||
+            !saved.embedding.every((e) => e.isFinite)) {
+          continue;
         }
-        if (mounted) {
-          setState(() {
-            _prepProgress = 0.2 + (0.8 * (i + 1) / candidates.length);
-          });
-        }
+        final id = saved.studentId.toString();
+        _candidateStudentMap[id] = Student(
+          id: saved.studentId,
+          name: saved.name,
+          admissionNumber: saved.admissionNumber,
+          standard: saved.standard,
+          section: saved.section,
+          photoUrl: photoByStudent[saved.studentId],
+        );
+        _faceProfiles.add(
+          FaceProfile(
+            personId: id,
+            embedding: saved.embedding,
+            name: saved.name,
+            label: saved.admissionNumber,
+          ),
+        );
       }
 
       if (!mounted) return;
@@ -228,15 +228,26 @@ class _IdentifyScreenState extends State<IdentifyScreen> {
   Future<void> _startSinglePhotoScan(ImageSource source) async {
     if (_faceProfiles.isEmpty || _isScanning) return;
 
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(
-      source: source,
-      maxWidth: 1200,
-      maxHeight: 1200,
-      imageQuality: 90,
-    );
+    final XFile? pickedFile;
+    try {
+      pickedFile = await ImagePicker().pickImage(
+        source: source,
+        maxWidth: 1200,
+        maxHeight: 1200,
+        imageQuality: 90,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not open image source: $e'),
+          backgroundColor: const Color(0xFFFF2A54),
+        ),
+      );
+      return;
+    }
 
-    if (pickedFile == null) return;
+    if (pickedFile == null || !mounted) return;
 
     setState(() {
       _isScanning = true;

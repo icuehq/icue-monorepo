@@ -76,6 +76,19 @@ class PrefService {
     }
   }
 
+  List<StudentEmbedding> getAllStudentEmbeddings() {
+    return _prefs
+        .getKeys()
+        .where((k) => k.startsWith(_keyEmbeddingPrefix))
+        .map(
+          (k) => getStudentEmbedding(
+            int.tryParse(k.substring(_keyEmbeddingPrefix.length)) ?? -1,
+          ),
+        )
+        .whereType<StudentEmbedding>()
+        .toList();
+  }
+
   bool hasStudentEmbedding(int studentId) {
     final key = '$_keyEmbeddingPrefix$studentId';
     return _prefs.containsKey(key) &&

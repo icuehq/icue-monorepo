@@ -29,6 +29,7 @@ class _StudentListScreenState extends State<StudentListScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final provider = Provider.of<StudentProvider>(context, listen: false);
       await provider.fetchStandards();
+      if (!mounted) return;
       provider.resetAndFetch();
     });
     _scrollController.addListener(_onScroll);
@@ -41,8 +42,9 @@ class _StudentListScreenState extends State<StudentListScreen> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
+    if (_scrollController.hasClients &&
+        _scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 200) {
       Provider.of<StudentProvider>(context, listen: false).fetchStudents();
     }
   }
@@ -201,17 +203,20 @@ class _StudentListScreenState extends State<StudentListScreen> {
     required Color color,
     required VoidCallback onPressed,
   }) {
-    return InkWell(
-      onTap: onPressed,
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        padding: const EdgeInsets.all(7),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.06),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          padding: const EdgeInsets.all(7),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+          ),
+          child: Icon(icon, color: color, size: 24),
         ),
-        child: Icon(icon, color: color, size: 24),
       ),
     );
   }
@@ -300,7 +305,12 @@ class _StudentListScreenState extends State<StudentListScreen> {
                   text: 'Try Again',
                   height: 44,
                   borderRadius: 14,
-                  onPressed: () => studentProvider.resetAndFetch(),
+                  onPressed: () async {
+                    if (studentProvider.standards.isEmpty) {
+                      await studentProvider.fetchStandards();
+                    }
+                    studentProvider.resetAndFetch();
+                  },
                 ),
               ),
             ],
@@ -337,12 +347,11 @@ class _StudentListScreenState extends State<StudentListScreen> {
     return RefreshIndicator(
       color: const Color(0xFF6C63FF),
       backgroundColor: const Color(0xFF15102A),
-      onRefresh: () async {
-        studentProvider.resetAndFetch();
-      },
+      onRefresh: studentProvider.resetAndFetch,
       child: ListView.builder(
         controller: _scrollController,
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 90),
+        physics: const AlwaysScrollableScrollPhysics(),
         itemCount: list.length + (studentProvider.isLoadingMore ? 1 : 0),
         itemBuilder: (context, index) {
           if (index == list.length) {

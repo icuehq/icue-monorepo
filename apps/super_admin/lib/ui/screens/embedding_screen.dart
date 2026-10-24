@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
+import '../../data/models/student_model.dart';
 import '../../providers/embedding_provider.dart';
 import '../../providers/student_provider.dart';
 import '../widgets/ambient_background.dart';
@@ -13,7 +14,7 @@ import '../widgets/custom_button.dart';
 import '../widgets/glass_card.dart';
 
 class EmbeddingScreen extends StatefulWidget {
-  final dynamic student; // Student model instance
+  final Student student;
 
   const EmbeddingScreen({super.key, required this.student});
 
@@ -130,7 +131,7 @@ class _EmbeddingScreenState extends State<EmbeddingScreen>
       if (success) {
         showDialog(
           context: context,
-          builder: (context) => AlertDialog(
+          builder: (dialogContext) => AlertDialog(
             backgroundColor: const Color(0xFF15102A),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
@@ -163,7 +164,7 @@ class _EmbeddingScreenState extends State<EmbeddingScreen>
                   borderRadius: 10,
                   fontSize: 13,
                   onPressed: () {
-                    Navigator.pop(context); // Close dialog
+                    Navigator.pop(dialogContext); // Close dialog
                     Navigator.pop(context); // Go back to student list
                   },
                 ),
