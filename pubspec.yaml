@@ -2,24 +2,12 @@ name: icue_monorepo
 publish_to: none
 
 environment:
-  sdk: ^3.9.0
-
-workspace:
-  - apps/icueadmin
-  - packages/icue_face_sdk
+  sdk: ^3.13.1
 
 dev_dependencies:
-  flutter_lints: ^6.0.0
-  melos: ^8.2.2
+  melos: ^8.9.0
 
-melos:
-  scripts:
-    clean:
-      exec: flutter clean
-      description: Clean build folders and artifacts across all packages and apps.
-    format:
-      exec: dart format .
-      description: Run dart format on all packages and apps in the workspace.
-    format:check:
-      exec: dart format --set-exit-if-changed .
-      description: Check dart format on all packages and apps in the workspace.
+# workspace:
+#   - packages/helper
+#   - packages/client_package
+#   - packages/server_package

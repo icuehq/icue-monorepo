@@ -1,5 +1,6 @@
 analyzer:
   exclude:
+    - build/**
     - android/**
     - ios/**
     - web/**
@@ -7,3 +8,4 @@ analyzer:
     - macos/**
     - linux/**
 include: ../../analysis_options.yaml
+
