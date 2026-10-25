@@ -1,0 +1,54 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "icueadmin [Dev]",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "apps/icueadmin",
+      "program": "lib/main.dart",
+      "args": [
+        "--flavor",
+        "dev",
+        "--dart-define=ENV=dev"
+      ]
+    },
+    {
+      "name": "icueadmin [Prod]",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "apps/icueadmin",
+      "program": "lib/main.dart",
+      "args": [
+        "--flavor",
+        "prod",
+        "--dart-define=ENV=prod"
+      ]
+    },
+    {
+      "name": "impl [Dev]",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "apps/impl",
+      "program": "lib/main.dart",
+      "args": [
+        "--flavor",
+        "dev",
+        "--dart-define=ENV=dev"
+      ]
+    },
+    {
+      "name": "impl [Prod]",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "apps/impl",
+      "program": "lib/main.dart",
+      "args": [
+        "--flavor",
+        "prod",
+        "--dart-define=ENV=prod"
+      ]
+    }
+  ]
+}
+

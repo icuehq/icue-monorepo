@@ -1,0 +1,23 @@
+name: local_storage
+description: "Centralized Hive-based local storage and caching service for icue apps."
+version: 1.0.0
+resolution: workspace
+
+environment:
+  sdk: ^3.13.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  get_it: ^8.0.2
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  injectable: ^2.5.0
+  meta: ^1.15.0
+
+dev_dependencies:
+  build_runner: ^2.4.13
+  flutter_lints: ^6.0.0
+  flutter_test:
+    sdk: flutter
+  injectable_generator: ^2.6.2

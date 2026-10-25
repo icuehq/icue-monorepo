@@ -4,10 +4,13 @@ publish_to: none
 environment:
   sdk: ^3.13.1
 
+workspace:
+  - apps/icueadmin
+  - apps/impl
+  - packages/api_client
+  - packages/core_ui
+  - packages/local_storage
+  - features/auth
+
 dev_dependencies:
   melos: ^8.9.0
-
-# workspace:
-#   - packages/helper
-#   - packages/client_package
-#   - packages/server_package
