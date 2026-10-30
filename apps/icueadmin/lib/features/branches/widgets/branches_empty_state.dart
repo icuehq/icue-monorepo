@@ -77,9 +77,7 @@ class BranchesEmptyState extends StatelessWidget {
                 onPressed: onAction,
                 icon: const Icon(Icons.refresh_rounded, size: 18),
                 label: const Text('Retry'),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size(160, 44),
-                ),
+                style: FilledButton.styleFrom(minimumSize: const Size(160, 44)),
               ),
           ],
         ),

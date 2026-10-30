@@ -78,7 +78,7 @@ void main() {
             'RouteNo': 'R-1',
             'RouteDetailsId': 1,
             'RouteStartTime': '07:00 AM',
-          }
+          },
         ],
         'Slot1InProgress': [
           {
@@ -89,7 +89,7 @@ void main() {
             'RouteNo': 'R-2',
             'RouteDetailsId': 2,
             'RouteStartTime': '07:15 AM',
-          }
+          },
         ],
         'Slot1Completed': <Map<String, dynamic>>[],
         'Slot2NotStarted': <Map<String, dynamic>>[],
@@ -102,7 +102,7 @@ void main() {
             'RouteNo': 'R-3',
             'RouteDetailsId': 3,
             'RouteStartTime': '01:00 PM',
-          }
+          },
         ],
         'Slot2Completed': <Map<String, dynamic>>[],
         'Slot3NotStarted': <Map<String, dynamic>>[],
@@ -154,7 +154,7 @@ void main() {
             'RouteNo': 'R-9',
             'RouteDetailsId': 99,
             'RouteStartTime': '07:00 AM',
-          }
+          },
         ],
         'Slot1Completed': <Map<String, dynamic>>[],
         'Slot2NotStarted': <Map<String, dynamic>>[],
@@ -178,9 +178,7 @@ void main() {
       mockApi.nextResponseData = {
         'err': false,
         'message': 'Success',
-        'data': {
-          'trackLink': 'https://maps.example.com/track/route_101',
-        },
+        'data': {'trackLink': 'https://maps.example.com/track/route_101'},
       };
 
       final url = await provider.resolveLiveTrackUrl(
@@ -198,7 +196,7 @@ void main() {
         'TotalSlots': 1,
         'ActiveSlot': 'Slot1',
         'SlotNames': [
-          {'Slot': 'Slot1', 'SlotName': 'Morning'}
+          {'Slot': 'Slot1', 'SlotName': 'Morning'},
         ],
         'Slot1NotStarted': <Map<String, dynamic>>[],
         'Slot1InProgress': [
@@ -210,7 +208,7 @@ void main() {
             'RouteNo': 'R-55',
             'RouteDetailsId': 55,
             'RouteStartTime': '07:30 AM',
-          }
+          },
         ],
         'Slot1Completed': <Map<String, dynamic>>[],
       };

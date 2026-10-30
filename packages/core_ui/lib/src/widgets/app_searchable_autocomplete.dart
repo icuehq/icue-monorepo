@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 /// Generic, accessible autocomplete input field for searching and picking items
@@ -23,7 +24,8 @@ class AppSearchableAutocomplete<T extends Object> extends StatefulWidget {
   });
 
   /// Function that returns candidate options matching the user's text query.
-  final FutureOr<Iterable<T>> Function(TextEditingValue textEditingValue) optionsBuilder;
+  final FutureOr<Iterable<T>> Function(TextEditingValue textEditingValue)
+  optionsBuilder;
 
   /// String representation of an option shown in text field and option rows.
   final String Function(T option) displayStringForOption;
@@ -59,10 +61,12 @@ class AppSearchableAutocomplete<T extends Object> extends StatefulWidget {
   final double maxOptionsHeight;
 
   @override
-  State<AppSearchableAutocomplete<T>> createState() => _AppSearchableAutocompleteState<T>();
+  State<AppSearchableAutocomplete<T>> createState() =>
+      _AppSearchableAutocompleteState<T>();
 }
 
-class _AppSearchableAutocompleteState<T extends Object> extends State<AppSearchableAutocomplete<T>> {
+class _AppSearchableAutocompleteState<T extends Object>
+    extends State<AppSearchableAutocomplete<T>> {
   FocusNode? _focusNode;
 
   @override
@@ -85,7 +89,10 @@ class _AppSearchableAutocompleteState<T extends Object> extends State<AppSearcha
                 if (widget.isRequired)
                   const TextSpan(
                     text: ' *',
-                    style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
               ],
             ),
@@ -103,7 +110,9 @@ class _AppSearchableAutocompleteState<T extends Object> extends State<AppSearcha
             _focusNode = focusNode;
 
             if (widget.initialSelection != null && controller.text.isEmpty) {
-              controller.text = widget.displayStringForOption(widget.initialSelection!);
+              controller.text = widget.displayStringForOption(
+                widget.initialSelection!,
+              );
             }
 
             return ValueListenableBuilder<TextEditingValue>(
@@ -115,16 +124,20 @@ class _AppSearchableAutocompleteState<T extends Object> extends State<AppSearcha
                   controller: controller,
                   focusNode: focusNode,
                   enabled: widget.enabled,
-                  validator: widget.validator ??
+                  validator:
+                      widget.validator ??
                       (widget.isRequired
                           ? (val) => (val == null || val.trim().isEmpty)
-                              ? 'This field is required'
-                              : null
+                                ? 'This field is required'
+                                : null
                           : null),
                   decoration: InputDecoration(
                     hintText: widget.hintText,
                     isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                       borderSide: BorderSide(color: Colors.grey.shade400),
@@ -135,7 +148,10 @@ class _AppSearchableAutocompleteState<T extends Object> extends State<AppSearcha
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: theme.primaryColor, width: 1.5),
+                      borderSide: BorderSide(
+                        color: theme.primaryColor,
+                        width: 1.5,
+                      ),
                     ),
                     errorBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),

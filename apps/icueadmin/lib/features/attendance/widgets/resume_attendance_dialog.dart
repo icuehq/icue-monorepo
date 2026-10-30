@@ -31,10 +31,7 @@ class ResumeAttendanceDialog extends StatelessWidget {
           onPressed: onDelete,
           child: const Text('Discard'),
         ),
-        FilledButton(
-          onPressed: onResume,
-          child: const Text('Resume'),
-        ),
+        FilledButton(onPressed: onResume, child: const Text('Resume')),
       ],
     );
   }

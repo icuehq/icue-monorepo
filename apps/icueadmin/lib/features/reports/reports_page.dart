@@ -55,9 +55,7 @@ class ReportsPage extends StatelessWidget {
     ];
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Reports & Analytics'),
-      ),
+      appBar: AppBar(title: const Text('Reports & Analytics')),
       body: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
         itemCount: reportItems.length,
@@ -92,10 +90,7 @@ class ReportsPage extends StatelessWidget {
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(
                   item.subtitle,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade600,
-                  ),
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                 ),
               ),
               trailing: Icon(

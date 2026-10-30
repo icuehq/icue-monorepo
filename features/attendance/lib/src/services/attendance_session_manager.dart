@@ -8,18 +8,9 @@ enum ProfileState {
   requiresReenrollment,
 }
 
-enum AttendanceState {
-  unreviewed,
-  present,
-  possiblyAbsent,
-  absent,
-}
+enum AttendanceState { unreviewed, present, possiblyAbsent, absent }
 
-enum MarkSource {
-  face,
-  manual,
-  none,
-}
+enum MarkSource { face, manual, none }
 
 class StudentSessionState {
   StudentSessionState({

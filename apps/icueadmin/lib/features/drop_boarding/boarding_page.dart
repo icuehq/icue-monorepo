@@ -1,6 +1,7 @@
 import 'package:auth/auth.dart';
 import 'package:drop_boarding/drop_boarding.dart';
 import 'package:flutter/material.dart';
+import 'package:icueadmin/analytics/app_events.dart';
 import 'package:icueadmin/features/drop_boarding/widgets/boarding_vehicle_card.dart';
 import 'package:icueadmin/features/reports/widgets/report_empty_state.dart';
 import 'package:provider/provider.dart';
@@ -57,6 +58,7 @@ class _BoardingPageState extends State<BoardingPage> {
     if (!mounted) return;
 
     if (success) {
+      track(AppEvents.vehiclesLeft, {'route_count': _selectedRouteIds.length});
       setState(() {
         _selectedRouteIds.clear();
       });
@@ -96,10 +98,10 @@ class _BoardingPageState extends State<BoardingPage> {
               if (user != null) {
                 final branchId = auth.selectedBranch?.id ?? user.branchId;
                 context.read<DropBoardingProvider>().fetchVehicleArrivals(
-                      zoneId: user.zoneId,
-                      branchId: branchId,
-                      organizationId: user.organizationId,
-                    );
+                  zoneId: user.zoneId,
+                  branchId: branchId,
+                  organizationId: user.organizationId,
+                );
               }
             },
           ),
@@ -126,47 +128,45 @@ class _BoardingPageState extends State<BoardingPage> {
       body: provider.isLoading && vehicles.isEmpty
           ? const Center(child: CircularProgressIndicator())
           : vehicles.isEmpty
-              ? ReportEmptyState(
-                  icon: Icons.airport_shuttle_outlined,
-                  message:
-                      'No vehicles currently waiting in boarding zone.\nVehicles marked as arrived will appear here.',
-                  onRetry: () {
-                    final auth = context.read<AuthProvider>();
-                    final user = auth.user;
-                    if (user != null) {
-                      final branchId =
-                          auth.selectedBranch?.id ?? user.branchId;
-                      context.read<DropBoardingProvider>().fetchVehicleArrivals(
-                            zoneId: user.zoneId,
-                            branchId: branchId,
-                            organizationId: user.organizationId,
-                          );
-                    }
-                  },
-                )
-              : ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: vehicles.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    final vehicle = vehicles[index];
-                    final isSelected = _selectedRouteIds.contains(vehicle.id);
+          ? ReportEmptyState(
+              icon: Icons.airport_shuttle_outlined,
+              message: 'No vehicles currently waiting in boarding zone.\nVehicles marked as arrived will appear here.',
+              onRetry: () {
+                final auth = context.read<AuthProvider>();
+                final user = auth.user;
+                if (user != null) {
+                  final branchId = auth.selectedBranch?.id ?? user.branchId;
+                  context.read<DropBoardingProvider>().fetchVehicleArrivals(
+                    zoneId: user.zoneId,
+                    branchId: branchId,
+                    organizationId: user.organizationId,
+                  );
+                }
+              },
+            )
+          : ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: vehicles.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final vehicle = vehicles[index];
+                final isSelected = _selectedRouteIds.contains(vehicle.id);
 
-                    return BoardingVehicleCard(
-                      vehicle: vehicle,
-                      isSelected: isSelected,
-                      onChanged: (selected) {
-                        setState(() {
-                          if (selected == true) {
-                            _selectedRouteIds.add(vehicle.id);
-                          } else {
-                            _selectedRouteIds.remove(vehicle.id);
-                          }
-                        });
-                      },
-                    );
+                return BoardingVehicleCard(
+                  vehicle: vehicle,
+                  isSelected: isSelected,
+                  onChanged: (selected) {
+                    setState(() {
+                      if (selected == true) {
+                        _selectedRouteIds.add(vehicle.id);
+                      } else {
+                        _selectedRouteIds.remove(vehicle.id);
+                      }
+                    });
                   },
-                ),
+                );
+              },
+            ),
     );
   }
 }

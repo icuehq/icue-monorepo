@@ -17,7 +17,7 @@ import 'package:injectable/injectable.dart' as _i526;
 import 'package:routes/routes.dart' as _i678;
 
 class DropBoardingPackageModule extends _i526.MicroPackageModule {
-// initializes the registration of main-scope dependencies inside of GetIt
+  // initializes the registration of main-scope dependencies inside of GetIt
   @override
   _i687.FutureOr<void> init(_i526.GetItHelper gh) {
     gh.lazySingleton<_i903.DropBoardingSocketService>(
@@ -25,11 +25,14 @@ class DropBoardingPackageModule extends _i526.MicroPackageModule {
       dispose: (i) => i.dispose(),
     );
     gh.lazySingleton<_i959.DropBoardingService>(
-        () => _i959.DropBoardingService(gh<_i633.ApiClient>()));
-    gh.factory<_i739.DropBoardingProvider>(() => _i739.DropBoardingProvider(
-          gh<_i959.DropBoardingService>(),
-          gh<_i903.DropBoardingSocketService>(),
-          gh<_i678.RouteService>(),
-        ));
+      () => _i959.DropBoardingService(gh<_i633.ApiClient>()),
+    );
+    gh.factory<_i739.DropBoardingProvider>(
+      () => _i739.DropBoardingProvider(
+        gh<_i959.DropBoardingService>(),
+        gh<_i903.DropBoardingSocketService>(),
+        gh<_i678.RouteService>(),
+      ),
+    );
   }
 }

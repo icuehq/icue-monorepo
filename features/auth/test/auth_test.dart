@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:api_client/api_client.dart';
 import 'package:auth/auth.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -152,18 +153,25 @@ void main() {
       expect(provider.username, equals('cached_user'));
     });
 
-    test('sets friendly message when login throws UnauthorizedException', () async {
-      final fakeStorage = _FakeUserLocalStorage();
-      final fakeService = _FakeAuthService(fakeStorage)
-        ..errorToThrow = const UnauthorizedException(message: 'un authorized');
-      final tokenProvider = SessionTokenProvider(fakeStorage);
-      final provider = AuthProvider(fakeService, fakeStorage, tokenProvider);
+    test(
+      'sets friendly message when login throws UnauthorizedException',
+      () async {
+        final fakeStorage = _FakeUserLocalStorage();
+        final fakeService = _FakeAuthService(
+          fakeStorage,
+        )..errorToThrow = const UnauthorizedException(message: 'un authorized');
+        final tokenProvider = SessionTokenProvider(fakeStorage);
+        final provider = AuthProvider(fakeService, fakeStorage, tokenProvider);
 
-      final result = await provider.verifyOtpAndLogin(otp: '1234');
+        final result = await provider.verifyOtpAndLogin(otp: '1234');
 
-      expect(result, isFalse);
-      expect(provider.errorMessage, equals('Invalid OTP. Please check and try again.'));
-    });
+        expect(result, isFalse);
+        expect(
+          provider.errorMessage,
+          equals('Invalid OTP. Please check and try again.'),
+        );
+      },
+    );
 
     test('sets friendly message when login throws ApiException with generic un authorized', () async {
       final fakeStorage = _FakeUserLocalStorage();
@@ -175,53 +183,77 @@ void main() {
       final result = await provider.verifyOtpAndLogin(otp: '1234');
 
       expect(result, isFalse);
-      expect(provider.errorMessage, equals('Invalid OTP. Please check and try again.'));
-    });
-
-    test('resets auth and displays friendly message on session expiration', () async {
-      final fakeStorage = _FakeUserLocalStorage();
-      await fakeStorage.saveUser(
-        UserInfo(id: 1, name: 'Active User', userName: 'active', token: 'tok-123'),
+      expect(
+        provider.errorMessage,
+        equals('Invalid OTP. Please check and try again.'),
       );
-      final tokenProvider = SessionTokenProvider(fakeStorage);
-      final fakeService = _FakeAuthService(fakeStorage);
-      final provider = AuthProvider(fakeService, fakeStorage, tokenProvider);
-
-      expect(provider.isAuthenticated, isTrue);
-
-      // Trigger 401 unresolvable auth failure
-      await tokenProvider.onAuthFailed();
-
-      expect(provider.isAuthenticated, isFalse);
-      expect(provider.step, equals(AuthStep.requestOtp));
-      expect(provider.errorMessage, equals('Session expired. Please log in again.'));
     });
 
-    test('zonal admin login requires branch selection before reaching dashboard', () async {
-      final fakeStorage = _FakeUserLocalStorage();
-      final fakeService = _FakeAuthService(fakeStorage)
-        ..mockUser = UserInfo(
-          id: 50,
-          name: 'Zonal Admin',
-          userName: 'zonaladmin',
-          token: 'zonal-token',
-          roles: <Role>[Role(id: 10, name: 'Fleet_ZonalAdmin')],
+    test(
+      'resets auth and displays friendly message on session expiration',
+      () async {
+        final fakeStorage = _FakeUserLocalStorage();
+        await fakeStorage.saveUser(
+          UserInfo(
+            id: 1,
+            name: 'Active User',
+            userName: 'active',
+            token: 'tok-123',
+          ),
         );
-      final tokenProvider = SessionTokenProvider(fakeStorage);
-      final provider = AuthProvider(fakeService, fakeStorage, tokenProvider);
+        final tokenProvider = SessionTokenProvider(fakeStorage);
+        final fakeService = _FakeAuthService(fakeStorage);
+        final provider = AuthProvider(fakeService, fakeStorage, tokenProvider);
 
-      final success = await provider.login(username: '9876543210', password: 'otp');
-      expect(success, isTrue);
-      expect(provider.isZonalAdminOrSupervisor, isTrue);
-      expect(provider.needsBranchSelection, isTrue);
+        expect(provider.isAuthenticated, isTrue);
 
-      // Select branch
-      final branch = Branch(id: 1, schoolName: 'Greenwood', schoolShortName: 'GW');
-      await provider.selectZonalBranch(branch);
+        // Trigger 401 unresolvable auth failure
+        await tokenProvider.onAuthFailed();
 
-      expect(provider.selectedBranch?.schoolName, equals('Greenwood'));
-      expect(provider.needsBranchSelection, isFalse);
-    });
+        expect(provider.isAuthenticated, isFalse);
+        expect(provider.step, equals(AuthStep.requestOtp));
+        expect(
+          provider.errorMessage,
+          equals('Session expired. Please log in again.'),
+        );
+      },
+    );
+
+    test(
+      'zonal admin login requires branch selection before reaching dashboard',
+      () async {
+        final fakeStorage = _FakeUserLocalStorage();
+        final fakeService = _FakeAuthService(fakeStorage)
+          ..mockUser = UserInfo(
+            id: 50,
+            name: 'Zonal Admin',
+            userName: 'zonaladmin',
+            token: 'zonal-token',
+            roles: <Role>[Role(id: 10, name: 'Fleet_ZonalAdmin')],
+          );
+        final tokenProvider = SessionTokenProvider(fakeStorage);
+        final provider = AuthProvider(fakeService, fakeStorage, tokenProvider);
+
+        final success = await provider.login(
+          username: '9876543210',
+          password: 'otp',
+        );
+        expect(success, isTrue);
+        expect(provider.isZonalAdminOrSupervisor, isTrue);
+        expect(provider.needsBranchSelection, isTrue);
+
+        // Select branch
+        final branch = Branch(
+          id: 1,
+          schoolName: 'Greenwood',
+          schoolShortName: 'GW',
+        );
+        await provider.selectZonalBranch(branch);
+
+        expect(provider.selectedBranch?.schoolName, equals('Greenwood'));
+        expect(provider.needsBranchSelection, isFalse);
+      },
+    );
   });
 
   group('UserLocalStorage real Hive backward compatibility', () {
@@ -309,7 +341,11 @@ void main() {
     });
 
     test('saveSelectedBranch and getSelectedBranch in Hive', () async {
-      final branch = Branch(id: 5, schoolName: 'Oakridge', schoolShortName: 'OAK');
+      final branch = Branch(
+        id: 5,
+        schoolName: 'Oakridge',
+        schoolShortName: 'OAK',
+      );
       await userLocalStorage.saveSelectedBranch(branch);
       final retrieved = userLocalStorage.getSelectedBranch();
       expect(retrieved, isNotNull);
@@ -348,7 +384,11 @@ void main() {
       // 4. AuthProvider boots up and reads from storage
       final tokenProvider = SessionTokenProvider(reloadedUserStorage);
       final authService = _FakeAuthService(reloadedUserStorage);
-      final provider = AuthProvider(authService, reloadedUserStorage, tokenProvider);
+      final provider = AuthProvider(
+        authService,
+        reloadedUserStorage,
+        tokenProvider,
+      );
 
       // 5. Must be authenticated immediately without showing login
       expect(provider.isAuthenticated, isTrue);
@@ -460,7 +500,11 @@ class _FakeUserLocalStorage extends UserLocalStorage {
 
 class _FakeAuthService extends AuthService {
   _FakeAuthService(UserLocalStorage userLocalStorage)
-      : super(ApiClient(), SessionTokenProvider(userLocalStorage), userLocalStorage);
+    : super(
+        ApiClient(),
+        SessionTokenProvider(userLocalStorage),
+        userLocalStorage,
+      );
 
   Exception? errorToThrow;
   UserInfo? mockUser;
@@ -487,13 +531,14 @@ class _FakeAuthService extends AuthService {
 
   @override
   Future<List<Branch>> getBranchesByZoneId() async => <Branch>[
-        Branch(id: 1, schoolName: 'Branch A', schoolShortName: 'BA'),
-      ];
+    Branch(id: 1, schoolName: 'Branch A', schoolShortName: 'BA'),
+  ];
 
   @override
   Future<List<PersonType>> getPersonTypes() async => <PersonType>[];
 
   @override
-  Future<List<AssignedEntityClass>> getAssignedEntities({bool forAttendance = false}) async =>
-      <AssignedEntityClass>[];
+  Future<List<AssignedEntityClass>> getAssignedEntities({
+    bool forAttendance = false,
+  }) async => <AssignedEntityClass>[];
 }

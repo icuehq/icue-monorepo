@@ -49,7 +49,8 @@ class AnnouncementTemplateForm extends StatelessWidget {
           onChanged: onTemplateChanged,
           validator: (val) => val == null ? 'Please select a template' : null,
         ),
-        if (selectedTemplate != null && selectedTemplate!.title == 'Custom') ...[
+        if (selectedTemplate != null &&
+            selectedTemplate!.title == 'Custom') ...[
           const SizedBox(height: 16),
           TextFormField(
             initialValue: customTitle,
@@ -128,10 +129,7 @@ class AnnouncementTemplateForm extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   interpolatedMessage,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.blue.shade900,
-                  ),
+                  style: TextStyle(fontSize: 14, color: Colors.blue.shade900),
                 ),
               ],
             ),

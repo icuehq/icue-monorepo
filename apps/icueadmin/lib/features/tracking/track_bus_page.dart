@@ -70,7 +70,9 @@ class _TrackBusPageState extends State<TrackBusPage> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Live tracking map link is unavailable for this route.'),
+          content: Text(
+            'Live tracking map link is unavailable for this route.',
+          ),
           backgroundColor: Colors.red,
         ),
       );
@@ -88,7 +90,8 @@ class _TrackBusPageState extends State<TrackBusPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () => context.read<TrackingProvider>().fetchFleetStatus(),
+            onPressed: () =>
+                context.read<TrackingProvider>().fetchFleetStatus(),
           ),
         ],
       ),
@@ -100,8 +103,7 @@ class _TrackBusPageState extends State<TrackBusPage> {
               child: activeVehicles.isEmpty
                   ? ReportEmptyState(
                       icon: Icons.directions_bus_filled_outlined,
-                      message:
-                          'No buses are currently running on active trips.\nCheck back when trips commence.',
+                      message: 'No buses are currently running on active trips.\nCheck back when trips commence.',
                       onRetry: () =>
                           context.read<TrackingProvider>().fetchFleetStatus(),
                     )
@@ -109,11 +111,11 @@ class _TrackBusPageState extends State<TrackBusPage> {
                       padding: const EdgeInsets.all(16),
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                        childAspectRatio: 1.15,
-                      ),
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
+                            childAspectRatio: 1.15,
+                          ),
                       itemCount: activeVehicles.length,
                       itemBuilder: (context, index) {
                         final vehicle = activeVehicles[index];

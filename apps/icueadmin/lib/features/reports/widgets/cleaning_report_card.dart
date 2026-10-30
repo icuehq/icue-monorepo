@@ -2,10 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:reports/reports.dart';
 
 class CleaningReportCard extends StatelessWidget {
-  const CleaningReportCard({
-    required this.report,
-    super.key,
-  });
+  const CleaningReportCard({required this.report, super.key});
 
   final CleaningReportData report;
 
@@ -39,7 +36,9 @@ class CleaningReportCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        report.vehicleNo.isNotEmpty ? report.vehicleNo : 'Vehicle',
+                        report.vehicleNo.isNotEmpty
+                            ? report.vehicleNo
+                            : 'Vehicle',
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
@@ -57,10 +56,7 @@ class CleaningReportCard extends StatelessWidget {
                 ),
                 Text(
                   '${report.createdDate} ${report.createdTime}'.trim(),
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey.shade600,
-                  ),
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
                 ),
               ],
             ),
@@ -77,8 +73,10 @@ class CleaningReportCard extends StatelessWidget {
                       part.status.toLowerCase() == 'yes' ||
                       part.status.toLowerCase() == 'done';
                   return Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: isCleaned
                           ? Colors.green.shade50
@@ -95,9 +93,13 @@ class CleaningReportCard extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          isCleaned ? Icons.check_circle : Icons.warning_rounded,
+                          isCleaned
+                              ? Icons.check_circle
+                              : Icons.warning_rounded,
                           size: 13,
-                          color: isCleaned ? Colors.green.shade700 : Colors.orange.shade800,
+                          color: isCleaned
+                              ? Colors.green.shade700
+                              : Colors.orange.shade800,
                         ),
                         const SizedBox(width: 4),
                         Text(
@@ -153,7 +155,11 @@ class CleaningReportCard extends StatelessWidget {
                             width: 60,
                             height: 60,
                             color: Colors.grey.shade200,
-                            child: const Icon(Icons.image, size: 24, color: Colors.grey),
+                            child: const Icon(
+                              Icons.image,
+                              size: 24,
+                              color: Colors.grey,
+                            ),
                           ),
                         ),
                       ),

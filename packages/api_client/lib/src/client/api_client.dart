@@ -54,24 +54,45 @@ class ApiClient {
       branchIdProvider: () => currentBranchId,
       onSessionExpired: expireSession,
     );
+    // Fail fast when offline instead of waiting out the connect timeout.
+    this.dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          if (isOnline?.call() == false) {
+            handler.reject(
+              DioException.connectionError(
+                requestOptions: options,
+                reason: 'No internet connection',
+              ),
+              true,
+            );
+          } else {
+            handler.next(options);
+          }
+        },
+      ),
+    );
     this.dio.interceptors.add(_authInterceptor);
 
     if (enableLogging) {
-      this.dio.interceptors.add(
-        LoggingInterceptor(logPrint: logPrint),
-      );
+      this.dio.interceptors.add(LoggingInterceptor(logPrint: logPrint));
     }
 
-    this.dio.interceptors.add(ErrorInterceptor(
-      onLogCrash: (path, error, stack, {fatal = true, message}) => log(
-        'ERROR in $path: $message',
-        name: 'ApiClient',
-        error: error,
-        stackTrace: stack,
+    this.dio.interceptors.add(
+      ErrorInterceptor(
+        onLogCrash: (path, error, stack, {fatal = true, message}) {
+          log(
+            'ERROR in $path: $message',
+            name: 'ApiClient',
+            error: error,
+            stackTrace: stack,
+          );
+          onLogCrash?.call(path, error, stack, fatal: fatal, message: message);
+        },
+        onShowErrorMessage: onShowErrorMessage,
+        onSessionExpired: expireSession,
       ),
-      onShowErrorMessage: onShowErrorMessage,
-      onSessionExpired: expireSession,
-    ));
+    );
   }
 
   final Dio dio;
@@ -80,6 +101,14 @@ class ApiClient {
   final dynamic Function()? branchIdProvider;
   void Function(String message)? onShowErrorMessage;
   void Function()? onSessionExpired;
+
+  /// When set and returning false, requests fail immediately with a
+  /// [NetworkException] (wire to `ConnectivityService.isOnline`).
+  bool Function()? isOnline;
+
+  /// Receives unexpected API failures (5xx, 404, parse errors; not 4xx
+  /// validation/auth or connectivity) so apps can forward them to a crash reporter.
+  CrashLoggerCallback? onLogCrash;
 
   TokenProvider? _tokenProvider;
   late final AuthInterceptor _authInterceptor;

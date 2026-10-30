@@ -54,17 +54,17 @@ class AlcoholTestItem {
   final String createdBy;
 
   Map<String, dynamic> toJson() => {
-        'Id': id,
-        'SubmittedDate': submittedDate,
-        'SubmittedTime': submittedTime,
-        'PersonType': personType,
-        'PersonName': personName,
-        'PersonMobile': personMobile,
-        'AlcoholTest': alcoholTest,
-        'AlcoholTestReading': alcoholTestReading,
-        'ImageUrl': ?imageUrl,
-        'CreatedBy': createdBy,
-      };
+    'Id': id,
+    'SubmittedDate': submittedDate,
+    'SubmittedTime': submittedTime,
+    'PersonType': personType,
+    'PersonName': personName,
+    'PersonMobile': personMobile,
+    'AlcoholTest': alcoholTest,
+    'AlcoholTestReading': alcoholTestReading,
+    'ImageUrl': ?imageUrl,
+    'CreatedBy': createdBy,
+  };
 }
 
 @immutable
@@ -87,7 +87,8 @@ class AlcoholTestResponse {
       err: json['err'] as bool? ?? false,
       message: json['message'] as String? ?? '',
       total: totalCount,
-      data: (json['data'] as List<dynamic>?)
+      data:
+          (json['data'] as List<dynamic>?)
               ?.whereType<Map<String, dynamic>>()
               .map(AlcoholTestItem.fromJson)
               .toList() ??

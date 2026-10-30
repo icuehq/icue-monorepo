@@ -39,10 +39,7 @@ class FleetSlotCard extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      CircleAvatar(
-                        radius: 8,
-                        backgroundColor: statusColor,
-                      ),
+                      CircleAvatar(radius: 8, backgroundColor: statusColor),
                       const SizedBox(width: 10),
                       Text(
                         '$title • $statusTitle (${items.length})',
@@ -84,8 +81,9 @@ class FleetSlotCard extends StatelessWidget {
                           ),
                           child: ListTile(
                             leading: CircleAvatar(
-                              backgroundColor:
-                                  statusColor.withValues(alpha: 0.15),
+                              backgroundColor: statusColor.withValues(
+                                alpha: 0.15,
+                              ),
                               child: Icon(
                                 Icons.directions_bus_rounded,
                                 color: statusColor,

@@ -13,15 +13,17 @@ class ExpenseService {
 
   /// Fetches expense types and dynamic field schemas.
   Future<List<ExpenseType>> getExpenseTypes() async {
-    final response =
-        await _apiClient.post<dynamic>('/v1.0/getExpenseTypeDetails');
+    final response = await _apiClient.post<dynamic>(
+      '/v1.0/getExpenseTypeDetails',
+    );
     return parseList(response.data, ExpenseType.fromJson);
   }
 
   /// Fetches primary expense categories.
   Future<List<Detail>> getExpenseCategories() async {
-    final response =
-        await _apiClient.post<dynamic>('/v1.0/getExpenseCategories');
+    final response = await _apiClient.post<dynamic>(
+      '/v1.0/getExpenseCategories',
+    );
     final data = response.data;
     if (data is Map<String, dynamic>) {
       final parsed = ExpenseCategoryResponse.fromJson(data);
@@ -142,10 +144,7 @@ class ExpenseService {
 
     final response = await _apiClient.post<dynamic>(
       '/v1.0/generateBillNo',
-      data: {
-        'InitiatedDate': billDate,
-        'InitiatedTime': timeStr,
-      },
+      data: {'InitiatedDate': billDate, 'InitiatedTime': timeStr},
     );
 
     if (response.data is Map<String, dynamic>) {
@@ -184,8 +183,9 @@ class ExpenseService {
     }
 
     final refNo = addExpenseRes?['RefNo'];
-    final effectiveBillAmount =
-        request.billAmount.isNotEmpty ? request.billAmount : addExpenseRes?['BillAmount']?.toString();
+    final effectiveBillAmount = request.billAmount.isNotEmpty
+        ? request.billAmount
+        : addExpenseRes?['BillAmount']?.toString();
 
     final formDataMap = <String, dynamic>{
       ...baseData,

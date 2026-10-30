@@ -12,7 +12,7 @@ import 'package:api_client/src/di/api_client_micro_module.dart' as _i983;
 import 'package:injectable/injectable.dart' as _i526;
 
 class ApiClientPackageModule extends _i526.MicroPackageModule {
-// initializes the registration of main-scope dependencies inside of GetIt
+  // initializes the registration of main-scope dependencies inside of GetIt
   @override
   _i687.FutureOr<void> init(_i526.GetItHelper gh) {
     final apiClientModule = _$ApiClientModule();

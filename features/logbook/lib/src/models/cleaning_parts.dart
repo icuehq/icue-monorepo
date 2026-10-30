@@ -2,15 +2,12 @@ import 'package:flutter/foundation.dart';
 
 @immutable
 class CleaningPart {
-  const CleaningPart({
-    required this.id,
-    required this.name,
-  });
+  const CleaningPart({required this.id, required this.name});
 
   factory CleaningPart.fromJson(Map<String, dynamic> json) => CleaningPart(
-        id: json['Id'] as int? ?? 0,
-        name: json['Name'] as String? ?? '',
-      );
+    id: json['Id'] as int? ?? 0,
+    name: json['Name'] as String? ?? '',
+  );
 
   final int id;
   final String name;
@@ -40,7 +37,8 @@ class VehicleCleaningPartsResponse {
       VehicleCleaningPartsResponse(
         err: json['err'] as bool? ?? false,
         message: json['message'] as String? ?? '',
-        data: (json['data'] as List<dynamic>?)
+        data:
+            (json['data'] as List<dynamic>?)
                 ?.whereType<Map<String, dynamic>>()
                 .map(CleaningPart.fromJson)
                 .toList() ??
@@ -54,18 +52,12 @@ class VehicleCleaningPartsResponse {
 
 @immutable
 class CleanedVehicleEntry {
-  const CleanedVehicleEntry({
-    required this.id,
-    required this.vehicleNo,
-  });
+  const CleanedVehicleEntry({required this.id, required this.vehicleNo});
 
   final int id;
   final String vehicleNo;
 
-  Map<String, dynamic> toJson() => {
-        'Id': id,
-        'VehicleNo': vehicleNo,
-      };
+  Map<String, dynamic> toJson() => {'Id': id, 'VehicleNo': vehicleNo};
 }
 
 @immutable
@@ -79,9 +71,9 @@ class SubmitCleaningDataRequest {
   final List<CleanedVehicleEntry> vehicles;
 
   Map<String, dynamic> toJson() => {
-        'CleanedPartIds': cleanedPartIds,
-        'Vehicles': vehicles.map((v) => v.toJson()).toList(),
-      };
+    'CleanedPartIds': cleanedPartIds,
+    'Vehicles': vehicles.map((v) => v.toJson()).toList(),
+  };
 }
 
 @immutable

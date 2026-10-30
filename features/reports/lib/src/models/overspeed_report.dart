@@ -2,25 +2,19 @@ import 'package:flutter/foundation.dart';
 
 @immutable
 class OverSpeedDatum {
-  const OverSpeedDatum({
-    required this.speed,
-    required this.gpsTime,
-  });
+  const OverSpeedDatum({required this.speed, required this.gpsTime});
 
   factory OverSpeedDatum.fromJson(Map<String, dynamic> json) => OverSpeedDatum(
-        speed: (json['speed'] as num?)?.toDouble() ?? 0.0,
-        gpsTime: json['gpsTime'] is num
-            ? (json['gpsTime'] as num).toInt()
-            : int.tryParse(json['gpsTime']?.toString() ?? '0') ?? 0,
-      );
+    speed: (json['speed'] as num?)?.toDouble() ?? 0.0,
+    gpsTime: json['gpsTime'] is num
+        ? (json['gpsTime'] as num).toInt()
+        : int.tryParse(json['gpsTime']?.toString() ?? '0') ?? 0,
+  );
 
   final double speed;
   final int gpsTime;
 
-  Map<String, dynamic> toJson() => {
-        'speed': speed,
-        'gpsTime': gpsTime,
-      };
+  Map<String, dynamic> toJson() => {'speed': speed, 'gpsTime': gpsTime};
 }
 
 @immutable
@@ -53,7 +47,8 @@ class OverSpeedReportItem {
         endTime: json['EndTime'] as String? ?? '',
         startDate: json['StartDate'] as String? ?? '',
         averageSpeed: (json['AverageSpeed'] as num?)?.toDouble() ?? 0.0,
-        overSpeedData: (json['OverSpeedData'] as List<dynamic>?)
+        overSpeedData:
+            (json['OverSpeedData'] as List<dynamic>?)
                 ?.whereType<Map<String, dynamic>>()
                 .map(OverSpeedDatum.fromJson)
                 .toList() ??
@@ -74,19 +69,19 @@ class OverSpeedReportItem {
   final String vehicleNumber;
 
   Map<String, dynamic> toJson() => {
-        'VehicleNumber': vehicleNumber,
-        'DriverName': driverName,
-        'DriverMobile': driverMobile,
-        'Mode': mode,
-        'RouteNo': routeNo,
-        'StartPoint': startPoint,
-        'EndPoint': endPoint,
-        'StartTime': startTime,
-        'EndTime': endTime,
-        'StartDate': startDate,
-        'AverageSpeed': averageSpeed,
-        'OverSpeedData': overSpeedData.map((x) => x.toJson()).toList(),
-      };
+    'VehicleNumber': vehicleNumber,
+    'DriverName': driverName,
+    'DriverMobile': driverMobile,
+    'Mode': mode,
+    'RouteNo': routeNo,
+    'StartPoint': startPoint,
+    'EndPoint': endPoint,
+    'StartTime': startTime,
+    'EndTime': endTime,
+    'StartDate': startDate,
+    'AverageSpeed': averageSpeed,
+    'OverSpeedData': overSpeedData.map((x) => x.toJson()).toList(),
+  };
 }
 
 /// Flattened overspeed violation record for presentation in lists.

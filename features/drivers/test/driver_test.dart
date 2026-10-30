@@ -85,7 +85,10 @@ void main() {
       expect(response.err, isFalse);
       expect(response.docs?.recordId, equals(55));
       expect(response.docs?.type, equals('License'));
-      expect(response.docs?.docUrl, equals('https://cdn.example.com/license.pdf'));
+      expect(
+        response.docs?.docUrl,
+        equals('https://cdn.example.com/license.pdf'),
+      );
     });
   });
 

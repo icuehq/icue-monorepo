@@ -584,10 +584,7 @@ void main() {
 }
 
 class _MockTokenProvider implements TokenProvider {
-  _MockTokenProvider(
-    this.token, {
-    this.branchId,
-  });
+  _MockTokenProvider(this.token, {this.branchId});
 
   final String? token;
   final dynamic branchId;

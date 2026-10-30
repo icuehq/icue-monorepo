@@ -46,7 +46,7 @@ void main() {
             'Time': '08:30 AM',
             'ImgMode': 'AUTO',
             'DateTime': '2026-10-30T08:30:00.000Z',
-          }
+          },
         ],
       };
 
@@ -96,7 +96,7 @@ void main() {
         'StartDate': '2026-10-30',
         'AverageSpeed': 45.2,
         'OverSpeedData': [
-          {'speed': 65.5, 'gpsTime': 1761840000000}
+          {'speed': 65.5, 'gpsTime': 1761840000000},
         ],
       };
 
@@ -123,7 +123,7 @@ void main() {
             'CleanedData': [
               {'Id': 1, 'Name': 'Windshield', 'Status': 'Cleaned'},
             ],
-          }
+          },
         ],
       };
 
@@ -135,60 +135,66 @@ void main() {
       expect(res.data.first.cleanedData.first.name, 'Windshield');
     });
 
-    test('AlcoholReportResponse and Record parse driver breathalyzer results', () {
-      final json = <String, dynamic>{
-        'err': false,
-        'message': 'Success',
-        'metadata': {'total': 1, 'page': 1, 'pagesize': 10},
-        'data': [
-          {
-            'Id': 55,
-            'SubmittedDate': '2026-10-30',
-            'SubmittedTime': '06:30 AM',
-            'PersonType': 'DRIVER',
-            'PersonInfo': {'Name': 'Michael Driver', 'Mobile': '9988776655'},
-            'AlcoholTest': 'PASSED',
-            'AlcoholTestReading': 0.0,
-            'ImageUrl': 'https://example.com/test.jpg',
-            'CreatedBy': 'Safety Officer',
-          }
-        ],
-      };
-
-      final res = AlcoholReportResponse.fromJson(json);
-      expect(res.data.length, 1);
-      expect(res.data.first.personName, 'Michael Driver');
-      expect(res.data.first.alcoholTest, 'PASSED');
-      expect(res.data.first.alcoholTestReading, 0.0);
-    });
-
-    test('ArrivalTimeReportResponse and ArrivalTimeItem deserialize properly', () {
-      final json = <String, dynamic>{
-        'err': false,
-        'message': 'Success',
-        'data': {
+    test(
+      'AlcoholReportResponse and Record parse driver breathalyzer results',
+      () {
+        final json = <String, dynamic>{
+          'err': false,
+          'message': 'Success',
           'metadata': {'total': 1, 'page': 1, 'pagesize': 10},
           'data': [
             {
-              'VehicleNumber': 'KA01AB1234',
-              'RouteNo': 'R-1',
-              'Mode': 'Pickup',
-              'StartDate': '2026-10-30',
-              'StartTime': '07:00 AM',
-              'EndDate': '2026-10-30',
-              'EndTime': '08:15 AM',
-              'ArrivalTime': '08:10 AM',
-            }
+              'Id': 55,
+              'SubmittedDate': '2026-10-30',
+              'SubmittedTime': '06:30 AM',
+              'PersonType': 'DRIVER',
+              'PersonInfo': {'Name': 'Michael Driver', 'Mobile': '9988776655'},
+              'AlcoholTest': 'PASSED',
+              'AlcoholTestReading': 0.0,
+              'ImageUrl': 'https://example.com/test.jpg',
+              'CreatedBy': 'Safety Officer',
+            },
           ],
-        },
-      };
+        };
 
-      final res = ArrivalTimeReportResponse.fromJson(json);
-      expect(res.metadata.total, 1);
-      expect(res.data.length, 1);
-      expect(res.data.first.vehicleNumber, 'KA01AB1234');
-      expect(res.data.first.arrivalTime, '08:10 AM');
-    });
+        final res = AlcoholReportResponse.fromJson(json);
+        expect(res.data.length, 1);
+        expect(res.data.first.personName, 'Michael Driver');
+        expect(res.data.first.alcoholTest, 'PASSED');
+        expect(res.data.first.alcoholTestReading, 0.0);
+      },
+    );
+
+    test(
+      'ArrivalTimeReportResponse and ArrivalTimeItem deserialize properly',
+      () {
+        final json = <String, dynamic>{
+          'err': false,
+          'message': 'Success',
+          'data': {
+            'metadata': {'total': 1, 'page': 1, 'pagesize': 10},
+            'data': [
+              {
+                'VehicleNumber': 'KA01AB1234',
+                'RouteNo': 'R-1',
+                'Mode': 'Pickup',
+                'StartDate': '2026-10-30',
+                'StartTime': '07:00 AM',
+                'EndDate': '2026-10-30',
+                'EndTime': '08:15 AM',
+                'ArrivalTime': '08:10 AM',
+              },
+            ],
+          },
+        };
+
+        final res = ArrivalTimeReportResponse.fromJson(json);
+        expect(res.metadata.total, 1);
+        expect(res.data.length, 1);
+        expect(res.data.first.vehicleNumber, 'KA01AB1234');
+        expect(res.data.first.arrivalTime, '08:10 AM');
+      },
+    );
   });
 
   group('ReportsProvider State Management', () {
@@ -217,9 +223,9 @@ void main() {
               'Date': '2026-10-30',
               'Time': '09:00 AM',
               'DateTime': '2026-10-30T09:00:00.000Z',
-            }
+            },
           ],
-        }
+        },
       ];
 
       await provider.fetchFuelReadings(
@@ -242,7 +248,7 @@ void main() {
           'ActualTotalKmsDriven': 30,
           'TotalNoOfKMReadingsTaken': 2,
           'SPEEDOMETERDIFF': '35',
-        }
+        },
       ];
 
       await provider.fetchMileageReports(
@@ -266,9 +272,9 @@ void main() {
           'RouteNo': 'R-1',
           'AverageSpeed': 40.0,
           'OverSpeedData': [
-            {'speed': 70.0, 'gpsTime': 1761840000000}
+            {'speed': 70.0, 'gpsTime': 1761840000000},
           ],
-        }
+        },
       ];
 
       await provider.fetchOverSpeedReports(
@@ -292,9 +298,9 @@ void main() {
           {
             'VehicleNo': 'KA01AB1234',
             'CleanedData': [
-              {'Id': 1, 'Name': 'Interior', 'Status': 'Clean'}
+              {'Id': 1, 'Name': 'Interior', 'Status': 'Clean'},
             ],
-          }
+          },
         ],
       };
 
@@ -317,7 +323,7 @@ void main() {
             'PersonInfo': {'Name': 'Driver A', 'Mobile': '999'},
             'AlcoholTest': 'PASSED',
             'AlcoholTestReading': 0.0,
-          }
+          },
         ],
       };
 
@@ -341,16 +347,13 @@ void main() {
               'Mode': 'Pickup',
               'StartDate': '2026-10-30',
               'StartTime': '07:00 AM',
-            }
+            },
           ],
         },
       };
 
       final filter = AppFilterResult.byRange(
-        DateTimeRange(
-          start: DateTime(2026, 10),
-          end: DateTime(2026, 10, 30),
-        ),
+        DateTimeRange(start: DateTime(2026, 10), end: DateTime(2026, 10, 30)),
       );
       await provider.fetchArrivalTimeReport(filter: filter);
 

@@ -63,9 +63,9 @@ class AddVehicleRequest {
         fireExtExpiryDate: json['FireExtExpiryDate'] as String?,
         firstAidKit: json['FirstAidKit'] is List
             ? (json['FirstAidKit'] as List)
-                .whereType<Map<String, dynamic>>()
-                .map(FirstAidKit.fromJson)
-                .toList()
+                  .whereType<Map<String, dynamic>>()
+                  .map(FirstAidKit.fromJson)
+                  .toList()
             : const <FirstAidKit>[],
       );
 
@@ -99,33 +99,33 @@ class AddVehicleRequest {
   final List<FirstAidKit> firstAidKit;
 
   Map<String, dynamic> toJson() => {
-        'Source': source,
-        if (id != null) 'Id': id,
-        if (dashCamId != null) 'DashcamId': dashCamId,
-        if (organizationId != null) 'OrganizationId': organizationId,
-        if (zoneId != null) 'ZoneId': zoneId,
-        if (branchId != null) 'BranchId': branchId,
-        'Number': number,
-        'FuelType': fuelType,
-        'CompanyClaimedMileage': companyClaimedMileage,
-        'ActualExpectedMileage': actualExpectedMileage,
-        'DriverId': driverId,
-        'DriverNumber': driverNumber,
-        'DriverName': driverName,
-        'AirCondition': airCondition,
-        'ChasisNumber': chasisNumber,
-        'EngineNumber': engineNumber,
-        'Year': year,
-        'RtaOfcName': rtaOfcName,
-        'DateOfReg': dateOfReg,
-        'Model': model,
-        'Make': make,
-        'Capacity': capacity,
-        'ServiceDate': serviceDate,
-        'Colour': colour,
-        'FireExtName': fireExtName,
-        'FireExtInstallDate': fireExtInstallDate,
-        'FireExtExpiryDate': fireExtExpiryDate,
-        'FirstAidKit': firstAidKit.map((x) => x.toJson()).toList(),
-      };
+    'Source': source,
+    if (id != null) 'Id': id,
+    if (dashCamId != null) 'DashcamId': dashCamId,
+    if (organizationId != null) 'OrganizationId': organizationId,
+    if (zoneId != null) 'ZoneId': zoneId,
+    if (branchId != null) 'BranchId': branchId,
+    'Number': number,
+    'FuelType': fuelType,
+    'CompanyClaimedMileage': companyClaimedMileage,
+    'ActualExpectedMileage': actualExpectedMileage,
+    'DriverId': driverId,
+    'DriverNumber': driverNumber,
+    'DriverName': driverName,
+    'AirCondition': airCondition,
+    'ChasisNumber': chasisNumber,
+    'EngineNumber': engineNumber,
+    'Year': year,
+    'RtaOfcName': rtaOfcName,
+    'DateOfReg': dateOfReg,
+    'Model': model,
+    'Make': make,
+    'Capacity': capacity,
+    'ServiceDate': serviceDate,
+    'Colour': colour,
+    'FireExtName': fireExtName,
+    'FireExtInstallDate': fireExtInstallDate,
+    'FireExtExpiryDate': fireExtExpiryDate,
+    'FirstAidKit': firstAidKit.map((x) => x.toJson()).toList(),
+  };
 }

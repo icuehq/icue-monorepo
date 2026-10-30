@@ -1,6 +1,7 @@
 import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icueadmin/analytics/app_events.dart';
 import 'package:icueadmin/routing/app_routes.dart';
 import 'package:provider/provider.dart';
 import 'package:vehicles/vehicles.dart';
@@ -32,6 +33,7 @@ class VehicleDetailsPage extends StatelessWidget {
               final success = await provider.deleteVehicle(vehicle.id!);
               if (context.mounted) {
                 if (success) {
+                  track(AppEvents.vehicleDeleted);
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Vehicle removed from fleet successfully'),
@@ -141,8 +143,7 @@ class VehicleDetailsPage extends StatelessWidget {
                   children: [
                     CircleAvatar(
                       radius: 26,
-                      backgroundColor: Theme.of(context)
-                          .primaryColor
+                      backgroundColor: Theme.of(context).primaryColor
                           .withValues(alpha: 0.15),
                       child: Icon(
                         Icons.directions_bus_rounded,
@@ -203,7 +204,11 @@ class VehicleDetailsPage extends StatelessWidget {
                     children: [
                       const Row(
                         children: [
-                          Icon(Icons.warning_rounded, color: Colors.red, size: 20),
+                          Icon(
+                            Icons.warning_rounded,
+                            color: Colors.red,
+                            size: 20,
+                          ),
                           SizedBox(width: 8),
                           Text(
                             'Compliance Alerts',
@@ -248,8 +253,10 @@ class VehicleDetailsPage extends StatelessWidget {
                   children: [
                     const Text(
                       'Fleet Details',
-                      style:
-                          TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 14),
                     _buildInfoRow('Make', vehicle.make),
@@ -292,12 +299,17 @@ class VehicleDetailsPage extends StatelessWidget {
                   children: [
                     const Text(
                       'Assigned Driver',
-                      style:
-                          TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 14),
                     _buildInfoRow('Driver Name', vehicle.driverName),
-                    _buildInfoRow('Driver Phone', '${vehicle.driverNumber ?? '-'}'),
+                    _buildInfoRow(
+                      'Driver Phone',
+                      '${vehicle.driverNumber ?? '-'}',
+                    ),
                   ],
                 ),
               ),
@@ -314,10 +326,7 @@ class VehicleDetailsPage extends StatelessWidget {
                       ),
                     ),
                     onPressed: () {
-                      context.push(
-                        AppRoutes.addVehicle,
-                        extra: vehicle,
-                      );
+                      context.push(AppRoutes.addVehicle, extra: vehicle);
                     },
                     icon: const Icon(Icons.edit_rounded, size: 18),
                     label: const Text('Edit Vehicle'),
@@ -333,10 +342,7 @@ class VehicleDetailsPage extends StatelessWidget {
                       ),
                     ),
                     onPressed: () {
-                      context.push(
-                        AppRoutes.vehicleDocs,
-                        extra: vehicle,
-                      );
+                      context.push(AppRoutes.vehicleDocs, extra: vehicle);
                     },
                     icon: const Icon(Icons.folder_shared_outlined, size: 18),
                     label: const Text('Documents'),

@@ -1,25 +1,21 @@
 class FirstAidKit {
-  const FirstAidKit({
-    this.id,
-    this.medicineDetails,
-    this.medicineExpiryDate,
-  });
+  const FirstAidKit({this.id, this.medicineDetails, this.medicineExpiryDate});
 
   factory FirstAidKit.fromJson(Map<String, dynamic> json) => FirstAidKit(
-        id: json['Id'] as int?,
-        medicineDetails: json['MedicineDetails'] as String?,
-        medicineExpiryDate: json['MedicineExpiryDate'] as String?,
-      );
+    id: json['Id'] as int?,
+    medicineDetails: json['MedicineDetails'] as String?,
+    medicineExpiryDate: json['MedicineExpiryDate'] as String?,
+  );
 
   final int? id;
   final String? medicineDetails;
   final String? medicineExpiryDate;
 
   Map<String, dynamic> toJson() => {
-        if (id != null) 'Id': id,
-        'MedicineDetails': medicineDetails,
-        'MedicineExpiryDate': medicineExpiryDate,
-      };
+    if (id != null) 'Id': id,
+    'MedicineDetails': medicineDetails,
+    'MedicineExpiryDate': medicineExpiryDate,
+  };
 }
 
 class VehicleData {
@@ -73,60 +69,60 @@ class VehicleData {
   });
 
   factory VehicleData.fromJson(Map<String, dynamic> json) => VehicleData(
-        id: json['Id'] as int?,
-        number: json['Number'] as String? ?? '',
-        driverId: json['DriverId'] as int?,
-        driverName: json['DriverName'] as String?,
-        driverNumber: json['DriverNumber'],
-        capacity: json['Capacity'],
-        dashcamId: json['DashcamId'] as String?,
-        isEnabledBluetoothDevice: json['IsEnabledBluetoothDevice'] as bool?,
-        colour: json['Colour'] as String?,
-        vendorId: json['VendorId'],
-        make: json['Make'] as String?,
-        airCondition: json['AirCondition'] as String?,
-        model: json['Model'] as String?,
-        year: json['Year'] as String?,
-        chasisNumber: json['ChasisNumber'] as String?,
-        insuranceCopy: json['InsuranceCopy'],
-        serviceDate: json['ServiceDate'] as String?,
-        companyClaimedMileage: json['CompanyClaimedMileage'],
-        actualExpectedMileage: json['ActualExpectedMileage'],
-        fuelType: json['FuelType'] as String?,
-        insuranceNumber: json['InsuranceNumber'] as String?,
-        insuredDate: json['InsuredDate'] as String?,
-        insuranceExpiryDate: json['InsuranceExpiryDate'] as String?,
-        rcNumber: json['RCNumber'] as String?,
-        rcStartDate: json['RCStartDate'] as String?,
-        rcExpiryDate: json['RCExpiryDate'] as String?,
-        fitnessNumber: json['FitnessNumber'] as String?,
-        fitnessStartDate: json['FitnessStartDate'] as String?,
-        fitnessExpiryDate: json['FitnessExpiryDate'] as String?,
-        roadTaxNumber: json['RoadTaxNumber'] as String?,
-        roadTaxStartDate: json['RoadTaxStartDate'] as String?,
-        roadTaxExpiryDate: json['RoadTaxExpiryDate'] as String?,
-        pollutionExpiryDate: json['PollutionExpiryDate'] as String?,
-        permitNumber: json['PermitNumber'] as String?,
-        permitStartDate: json['PermitStartDate'] as String?,
-        permitExpiryDate: json['PermitExpiryDate'] as String?,
-        pollutionNumber: json['PollutionNumber'] as String?,
-        pollutionStartDate: json['PollutionStartDate'] as String?,
-        engineNumber: json['EngineNumber'] as String?,
-        rtaOfcName: json['RtaOfcName'] as String?,
-        dateOfReg: json['DateOfReg'] as String?,
-        fireExtName: json['FireExtName'] as String?,
-        fireExtInstallDate: json['FireExtInstallDate'] as String?,
-        fireExtExpiryDate: json['FireExtExpiryDate'] as String?,
-        firstAidKit: json['FirstAidKit'] is List
-            ? (json['FirstAidKit'] as List)
-                .whereType<Map<String, dynamic>>()
-                .map(FirstAidKit.fromJson)
-                .toList()
-            : const <FirstAidKit>[],
-        routes: json['routes'] is List
-            ? List<String>.from((json['routes'] as List).map((x) => x.toString()))
-            : const <String>[],
-      );
+    id: json['Id'] as int?,
+    number: json['Number'] as String? ?? '',
+    driverId: json['DriverId'] as int?,
+    driverName: json['DriverName'] as String?,
+    driverNumber: json['DriverNumber'],
+    capacity: json['Capacity'],
+    dashcamId: json['DashcamId'] as String?,
+    isEnabledBluetoothDevice: json['IsEnabledBluetoothDevice'] as bool?,
+    colour: json['Colour'] as String?,
+    vendorId: json['VendorId'],
+    make: json['Make'] as String?,
+    airCondition: json['AirCondition'] as String?,
+    model: json['Model'] as String?,
+    year: json['Year'] as String?,
+    chasisNumber: json['ChasisNumber'] as String?,
+    insuranceCopy: json['InsuranceCopy'],
+    serviceDate: json['ServiceDate'] as String?,
+    companyClaimedMileage: json['CompanyClaimedMileage'],
+    actualExpectedMileage: json['ActualExpectedMileage'],
+    fuelType: json['FuelType'] as String?,
+    insuranceNumber: json['InsuranceNumber'] as String?,
+    insuredDate: json['InsuredDate'] as String?,
+    insuranceExpiryDate: json['InsuranceExpiryDate'] as String?,
+    rcNumber: json['RCNumber'] as String?,
+    rcStartDate: json['RCStartDate'] as String?,
+    rcExpiryDate: json['RCExpiryDate'] as String?,
+    fitnessNumber: json['FitnessNumber'] as String?,
+    fitnessStartDate: json['FitnessStartDate'] as String?,
+    fitnessExpiryDate: json['FitnessExpiryDate'] as String?,
+    roadTaxNumber: json['RoadTaxNumber'] as String?,
+    roadTaxStartDate: json['RoadTaxStartDate'] as String?,
+    roadTaxExpiryDate: json['RoadTaxExpiryDate'] as String?,
+    pollutionExpiryDate: json['PollutionExpiryDate'] as String?,
+    permitNumber: json['PermitNumber'] as String?,
+    permitStartDate: json['PermitStartDate'] as String?,
+    permitExpiryDate: json['PermitExpiryDate'] as String?,
+    pollutionNumber: json['PollutionNumber'] as String?,
+    pollutionStartDate: json['PollutionStartDate'] as String?,
+    engineNumber: json['EngineNumber'] as String?,
+    rtaOfcName: json['RtaOfcName'] as String?,
+    dateOfReg: json['DateOfReg'] as String?,
+    fireExtName: json['FireExtName'] as String?,
+    fireExtInstallDate: json['FireExtInstallDate'] as String?,
+    fireExtExpiryDate: json['FireExtExpiryDate'] as String?,
+    firstAidKit: json['FirstAidKit'] is List
+        ? (json['FirstAidKit'] as List)
+              .whereType<Map<String, dynamic>>()
+              .map(FirstAidKit.fromJson)
+              .toList()
+        : const <FirstAidKit>[],
+    routes: json['routes'] is List
+        ? List<String>.from((json['routes'] as List).map((x) => x.toString()))
+        : const <String>[],
+  );
 
   final int? id;
   final String number;
@@ -176,51 +172,51 @@ class VehicleData {
   final List<String> routes;
 
   Map<String, dynamic> toJson() => {
-        if (id != null) 'Id': id,
-        'Number': number,
-        'DriverId': driverId,
-        'DriverName': driverName,
-        'DriverNumber': driverNumber,
-        'Capacity': capacity,
-        'DashcamId': dashcamId,
-        'IsEnabledBluetoothDevice': isEnabledBluetoothDevice,
-        'Colour': colour,
-        'VendorId': vendorId,
-        'Make': make,
-        'AirCondition': airCondition,
-        'Model': model,
-        'Year': year,
-        'ChasisNumber': chasisNumber,
-        'InsuranceCopy': insuranceCopy,
-        'ServiceDate': serviceDate,
-        'CompanyClaimedMileage': companyClaimedMileage,
-        'ActualExpectedMileage': actualExpectedMileage,
-        'FuelType': fuelType,
-        'InsuranceNumber': insuranceNumber,
-        'InsuredDate': insuredDate,
-        'InsuranceExpiryDate': insuranceExpiryDate,
-        'RCNumber': rcNumber,
-        'RCStartDate': rcStartDate,
-        'RCExpiryDate': rcExpiryDate,
-        'FitnessNumber': fitnessNumber,
-        'FitnessStartDate': fitnessStartDate,
-        'FitnessExpiryDate': fitnessExpiryDate,
-        'RoadTaxNumber': roadTaxNumber,
-        'RoadTaxStartDate': roadTaxStartDate,
-        'RoadTaxExpiryDate': roadTaxExpiryDate,
-        'PollutionExpiryDate': pollutionExpiryDate,
-        'PermitNumber': permitNumber,
-        'PermitStartDate': permitStartDate,
-        'PermitExpiryDate': permitExpiryDate,
-        'PollutionNumber': pollutionNumber,
-        'PollutionStartDate': pollutionStartDate,
-        'EngineNumber': engineNumber,
-        'RtaOfcName': rtaOfcName,
-        'DateOfReg': dateOfReg,
-        'FireExtName': fireExtName,
-        'FireExtInstallDate': fireExtInstallDate,
-        'FireExtExpiryDate': fireExtExpiryDate,
-        'FirstAidKit': firstAidKit.map((x) => x.toJson()).toList(),
-        'routes': routes,
-      };
+    if (id != null) 'Id': id,
+    'Number': number,
+    'DriverId': driverId,
+    'DriverName': driverName,
+    'DriverNumber': driverNumber,
+    'Capacity': capacity,
+    'DashcamId': dashcamId,
+    'IsEnabledBluetoothDevice': isEnabledBluetoothDevice,
+    'Colour': colour,
+    'VendorId': vendorId,
+    'Make': make,
+    'AirCondition': airCondition,
+    'Model': model,
+    'Year': year,
+    'ChasisNumber': chasisNumber,
+    'InsuranceCopy': insuranceCopy,
+    'ServiceDate': serviceDate,
+    'CompanyClaimedMileage': companyClaimedMileage,
+    'ActualExpectedMileage': actualExpectedMileage,
+    'FuelType': fuelType,
+    'InsuranceNumber': insuranceNumber,
+    'InsuredDate': insuredDate,
+    'InsuranceExpiryDate': insuranceExpiryDate,
+    'RCNumber': rcNumber,
+    'RCStartDate': rcStartDate,
+    'RCExpiryDate': rcExpiryDate,
+    'FitnessNumber': fitnessNumber,
+    'FitnessStartDate': fitnessStartDate,
+    'FitnessExpiryDate': fitnessExpiryDate,
+    'RoadTaxNumber': roadTaxNumber,
+    'RoadTaxStartDate': roadTaxStartDate,
+    'RoadTaxExpiryDate': roadTaxExpiryDate,
+    'PollutionExpiryDate': pollutionExpiryDate,
+    'PermitNumber': permitNumber,
+    'PermitStartDate': permitStartDate,
+    'PermitExpiryDate': permitExpiryDate,
+    'PollutionNumber': pollutionNumber,
+    'PollutionStartDate': pollutionStartDate,
+    'EngineNumber': engineNumber,
+    'RtaOfcName': rtaOfcName,
+    'DateOfReg': dateOfReg,
+    'FireExtName': fireExtName,
+    'FireExtInstallDate': fireExtInstallDate,
+    'FireExtExpiryDate': fireExtExpiryDate,
+    'FirstAidKit': firstAidKit.map((x) => x.toJson()).toList(),
+    'routes': routes,
+  };
 }

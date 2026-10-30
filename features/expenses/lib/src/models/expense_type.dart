@@ -13,22 +13,24 @@ class ExpenseType {
   });
 
   factory ExpenseType.fromJson(Map<String, dynamic> json) => ExpenseType(
-        expenseType: json['ExpenseType'] as int? ?? 0,
-        expenseTypeDesc: json['ExpenseTypeDesc'] as String? ?? '',
-        code: json['Code'] as String? ?? '',
-        subItems: json['SubItems'] as bool? ?? false,
-        expenseTypeDetails: (json['ExpenseTypeDetails'] as List<dynamic>?)
-                ?.whereType<Map<String, dynamic>>()
-                .map(ExpenseTypeDetail.fromJson)
-                .toList() ??
-            const <ExpenseTypeDetail>[],
-        isMode: json['IsMode'] as bool? ?? false,
-        modes: (json['Modes'] as List<dynamic>?)
-                ?.whereType<Map<String, dynamic>>()
-                .map(ExpenseMode.fromJson)
-                .toList() ??
-            const <ExpenseMode>[],
-      );
+    expenseType: json['ExpenseType'] as int? ?? 0,
+    expenseTypeDesc: json['ExpenseTypeDesc'] as String? ?? '',
+    code: json['Code'] as String? ?? '',
+    subItems: json['SubItems'] as bool? ?? false,
+    expenseTypeDetails:
+        (json['ExpenseTypeDetails'] as List<dynamic>?)
+            ?.whereType<Map<String, dynamic>>()
+            .map(ExpenseTypeDetail.fromJson)
+            .toList() ??
+        const <ExpenseTypeDetail>[],
+    isMode: json['IsMode'] as bool? ?? false,
+    modes:
+        (json['Modes'] as List<dynamic>?)
+            ?.whereType<Map<String, dynamic>>()
+            .map(ExpenseMode.fromJson)
+            .toList() ??
+        const <ExpenseMode>[],
+  );
 
   final int expenseType;
   final String expenseTypeDesc;
@@ -39,15 +41,14 @@ class ExpenseType {
   final List<ExpenseMode> modes;
 
   Map<String, dynamic> toJson() => {
-        'ExpenseType': expenseType,
-        'ExpenseTypeDesc': expenseTypeDesc,
-        'Code': code,
-        'SubItems': subItems,
-        'ExpenseTypeDetails':
-            expenseTypeDetails.map((x) => x.toJson()).toList(),
-        'IsMode': isMode,
-        'Modes': modes.map((x) => x.toJson()).toList(),
-      };
+    'ExpenseType': expenseType,
+    'ExpenseTypeDesc': expenseTypeDesc,
+    'Code': code,
+    'SubItems': subItems,
+    'ExpenseTypeDetails': expenseTypeDetails.map((x) => x.toJson()).toList(),
+    'IsMode': isMode,
+    'Modes': modes.map((x) => x.toJson()).toList(),
+  };
 
   @override
   bool operator ==(Object other) =>
@@ -78,7 +79,8 @@ class ExpenseTypeDetail {
         id: json['Id'] as int? ?? 0,
         name: json['Name'] as String? ?? '',
         code: json['Code'] as String? ?? '',
-        details: (json['Details'] as List<dynamic>?)
+        details:
+            (json['Details'] as List<dynamic>?)
                 ?.whereType<Map<String, dynamic>>()
                 .map(Detail.fromJson)
                 .toList() ??
@@ -97,27 +99,22 @@ class ExpenseTypeDetail {
   final String? regexPattern;
 
   Map<String, dynamic> toJson() => {
-        'Id': id,
-        'Name': name,
-        'Code': code,
-        'Details': details.map((x) => x.toJson()).toList(),
-        'Type': type,
-        'IsRequired': isRequired,
-        'RegexPattern': ?regexPattern,
-      };
+    'Id': id,
+    'Name': name,
+    'Code': code,
+    'Details': details.map((x) => x.toJson()).toList(),
+    'Type': type,
+    'IsRequired': isRequired,
+    'RegexPattern': ?regexPattern,
+  };
 }
 
 @immutable
 class Detail {
-  const Detail({
-    required this.id,
-    required this.name,
-  });
+  const Detail({required this.id, required this.name});
 
-  factory Detail.fromJson(Map<String, dynamic> json) => Detail(
-        id: json['Id'],
-        name: json['Name'] as String? ?? '',
-      );
+  factory Detail.fromJson(Map<String, dynamic> json) =>
+      Detail(id: json['Id'], name: json['Name'] as String? ?? '');
 
   final dynamic id;
   final String name;
@@ -138,17 +135,13 @@ class Detail {
 
 @immutable
 class ExpenseMode {
-  const ExpenseMode({
-    required this.id,
-    required this.name,
-    required this.code,
-  });
+  const ExpenseMode({required this.id, required this.name, required this.code});
 
   factory ExpenseMode.fromJson(Map<String, dynamic> json) => ExpenseMode(
-        id: json['Id'] as int? ?? 0,
-        name: json['Name'] as String? ?? '',
-        code: json['Code'] as String? ?? '',
-      );
+    id: json['Id'] as int? ?? 0,
+    name: json['Name'] as String? ?? '',
+    code: json['Code'] as String? ?? '',
+  );
 
   final int id;
   final String name;

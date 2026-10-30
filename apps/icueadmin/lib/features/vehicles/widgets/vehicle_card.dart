@@ -3,11 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:vehicles/vehicles.dart';
 
 class VehicleCard extends StatelessWidget {
-  const VehicleCard({
-    super.key,
-    required this.vehicle,
-    required this.onTap,
-  });
+  const VehicleCard({super.key, required this.vehicle, required this.onTap});
 
   final VehicleData vehicle;
   final VoidCallback onTap;
@@ -59,7 +55,8 @@ class VehicleCard extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     radius: 20,
-                    backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                    backgroundColor: Theme.of(context).primaryColor
+                        .withValues(alpha: 0.1),
                     child: Icon(
                       Icons.directions_bus_rounded,
                       color: Theme.of(context).primaryColor,
@@ -81,7 +78,8 @@ class VehicleCard extends StatelessWidget {
                         if (vehicle.make != null || vehicle.model != null) ...[
                           const SizedBox(height: 2),
                           Text(
-                            '${vehicle.make ?? ''} ${vehicle.model ?? ''}'.trim(),
+                            '${vehicle.make ?? ''} ${vehicle.model ?? ''}'
+                                .trim(),
                             style: TextStyle(
                               fontSize: 13,
                               color: Colors.grey.shade600,
@@ -93,7 +91,10 @@ class VehicleCard extends StatelessWidget {
                   ),
                   if (vehicle.capacity != null)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.blue.shade50,
                         borderRadius: BorderRadius.circular(8),
@@ -115,21 +116,32 @@ class VehicleCard extends StatelessWidget {
                   ),
                 ],
               ),
-              if (vehicle.driverName != null && vehicle.driverName!.isNotEmpty) ...[
+              if (vehicle.driverName != null &&
+                  vehicle.driverName!.isNotEmpty) ...[
                 const SizedBox(height: 10),
                 Row(
                   children: [
-                    Icon(Icons.person_outline, size: 16, color: Colors.grey.shade600),
+                    Icon(
+                      Icons.person_outline,
+                      size: 16,
+                      color: Colors.grey.shade600,
+                    ),
                     const SizedBox(width: 6),
                     Text(
                       'Driver: ${vehicle.driverName}',
-                      style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.shade700,
+                      ),
                     ),
                     if (vehicle.driverNumber != null) ...[
                       const SizedBox(width: 8),
                       Text(
                         '(${vehicle.driverNumber})',
-                        style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade500,
+                        ),
                       ),
                     ],
                   ],
@@ -138,7 +150,10 @@ class VehicleCard extends StatelessWidget {
               if (hasAlerts) ...[
                 const SizedBox(height: 10),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.red.shade50,
                     borderRadius: BorderRadius.circular(8),
@@ -146,7 +161,11 @@ class VehicleCard extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.warning_amber_rounded, size: 16, color: Colors.red),
+                      const Icon(
+                        Icons.warning_amber_rounded,
+                        size: 16,
+                        color: Colors.red,
+                      ),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(

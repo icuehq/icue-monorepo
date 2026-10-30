@@ -1,6 +1,7 @@
 import 'package:auth/auth.dart';
 import 'package:drop_boarding/drop_boarding.dart';
 import 'package:flutter/material.dart';
+import 'package:icueadmin/analytics/app_events.dart';
 import 'package:icueadmin/features/drop_boarding/widgets/boarding_zone_dialog.dart';
 import 'package:icueadmin/features/drop_boarding/widgets/drop_route_card.dart';
 import 'package:icueadmin/features/reports/widgets/report_empty_state.dart';
@@ -67,6 +68,9 @@ class _DropVehiclesPageState extends State<DropVehiclesPage> {
     if (!mounted) return;
 
     if (success) {
+      track(AppEvents.vehiclesArrived, {
+        'route_count': _selectedRouteIds.length,
+      });
       setState(() {
         _selectedRouteIds.clear();
       });
@@ -106,10 +110,10 @@ class _DropVehiclesPageState extends State<DropVehiclesPage> {
               if (user != null) {
                 final branchId = auth.selectedBranch?.id ?? user.branchId;
                 context.read<DropBoardingProvider>().fetchInitialData(
-                      zoneId: user.zoneId,
-                      branchId: branchId,
-                      organizationId: user.organizationId,
-                    );
+                  zoneId: user.zoneId,
+                  branchId: branchId,
+                  organizationId: user.organizationId,
+                );
               }
             },
           ),
@@ -136,47 +140,45 @@ class _DropVehiclesPageState extends State<DropVehiclesPage> {
       body: provider.isLoading && routes.isEmpty
           ? const Center(child: CircularProgressIndicator())
           : routes.isEmpty
-              ? ReportEmptyState(
-                  icon: Icons.check_circle_rounded,
-                  message:
-                      'All drop-off vehicles have arrived.\nNo pending routes to mark.',
-                  onRetry: () {
-                    final auth = context.read<AuthProvider>();
-                    final user = auth.user;
-                    if (user != null) {
-                      final branchId =
-                          auth.selectedBranch?.id ?? user.branchId;
-                      context.read<DropBoardingProvider>().fetchInitialData(
-                            zoneId: user.zoneId,
-                            branchId: branchId,
-                            organizationId: user.organizationId,
-                          );
-                    }
-                  },
-                )
-              : ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: routes.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    final route = routes[index];
-                    final isSelected = _selectedRouteIds.contains(route.id);
+          ? ReportEmptyState(
+              icon: Icons.check_circle_rounded,
+              message: 'All drop-off vehicles have arrived.\nNo pending routes to mark.',
+              onRetry: () {
+                final auth = context.read<AuthProvider>();
+                final user = auth.user;
+                if (user != null) {
+                  final branchId = auth.selectedBranch?.id ?? user.branchId;
+                  context.read<DropBoardingProvider>().fetchInitialData(
+                    zoneId: user.zoneId,
+                    branchId: branchId,
+                    organizationId: user.organizationId,
+                  );
+                }
+              },
+            )
+          : ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: routes.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final route = routes[index];
+                final isSelected = _selectedRouteIds.contains(route.id);
 
-                    return DropRouteCard(
-                      route: route,
-                      isSelected: isSelected,
-                      onChanged: (selected) {
-                        setState(() {
-                          if (selected == true) {
-                            _selectedRouteIds.add(route.id);
-                          } else {
-                            _selectedRouteIds.remove(route.id);
-                          }
-                        });
-                      },
-                    );
+                return DropRouteCard(
+                  route: route,
+                  isSelected: isSelected,
+                  onChanged: (selected) {
+                    setState(() {
+                      if (selected == true) {
+                        _selectedRouteIds.add(route.id);
+                      } else {
+                        _selectedRouteIds.remove(route.id);
+                      }
+                    });
                   },
-                ),
+                );
+              },
+            ),
     );
   }
 }

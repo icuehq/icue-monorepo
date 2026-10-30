@@ -16,7 +16,8 @@ class MileageReportItem {
         routeNo: json['RouteNo'] as String? ?? '',
         actualTotalKmsDriven: json['ActualTotalKmsDriven'] is num
             ? json['ActualTotalKmsDriven'] as num
-            : num.tryParse(json['ActualTotalKmsDriven']?.toString() ?? '0') ?? 0,
+            : num.tryParse(json['ActualTotalKmsDriven']?.toString() ?? '0') ??
+                  0,
         totalNoOfKmReadingsTaken:
             (json['TotalNoOfKMReadingsTaken'] as num?)?.toInt() ?? 0,
         speedometerDiff: json['SPEEDOMETERDIFF']?.toString() ?? '',
@@ -29,10 +30,10 @@ class MileageReportItem {
   final String vehicleNumber;
 
   Map<String, dynamic> toJson() => {
-        'VehicleNumber': vehicleNumber,
-        'RouteNo': routeNo,
-        'ActualTotalKmsDriven': actualTotalKmsDriven,
-        'TotalNoOfKMReadingsTaken': totalNoOfKmReadingsTaken,
-        'SPEEDOMETERDIFF': speedometerDiff,
-      };
+    'VehicleNumber': vehicleNumber,
+    'RouteNo': routeNo,
+    'ActualTotalKmsDriven': actualTotalKmsDriven,
+    'TotalNoOfKMReadingsTaken': totalNoOfKmReadingsTaken,
+    'SPEEDOMETERDIFF': speedometerDiff,
+  };
 }

@@ -5,6 +5,7 @@ import 'package:drivers/drivers.dart';
 import 'package:expenses/expenses.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icueadmin/features/announcements/announcements_page.dart';
 import 'package:icueadmin/features/announcements/post_announcements_page.dart';
 import 'package:icueadmin/features/attendance/attendance_confirmation_page.dart';
@@ -62,8 +63,9 @@ import 'package:logbook/logbook.dart';
 import 'package:routes/routes.dart';
 import 'package:vehicles/vehicles.dart';
 
-final GlobalKey<NavigatorState> rootNavigatorKey =
-    GlobalKey<NavigatorState>(debugLabel: 'root');
+final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>(
+  debugLabel: 'root',
+);
 
 /// Pure redirect logic used by [GoRouter] and unit tests.
 String? handleAuthRedirect({
@@ -101,6 +103,7 @@ GoRouter createRouter({
   return GoRouter(
     navigatorKey: navigatorKey ?? rootNavigatorKey,
     initialLocation: initialLocation,
+    observers: [AnalyticsService.instance.observer],
     refreshListenable: authProvider,
     redirect: (context, state) => handleAuthRedirect(
       isAuthenticated: authProvider.isAuthenticated,
@@ -161,8 +164,9 @@ GoRouter createRouter({
         path: AppRoutes.addVehicle,
         name: AppRoutes.addVehicleName,
         builder: (context, state) {
-          final vehicle =
-              state.extra is VehicleData ? state.extra as VehicleData : null;
+          final vehicle = state.extra is VehicleData
+              ? state.extra as VehicleData
+              : null;
           return AddVehiclePage(vehicle: vehicle);
         },
       ),
@@ -237,8 +241,9 @@ GoRouter createRouter({
         path: AppRoutes.selfFilling,
         name: AppRoutes.selfFillingName,
         builder: (context, state) {
-          final fuelType =
-              state.extra is String ? state.extra as String : 'Diesel';
+          final fuelType = state.extra is String
+              ? state.extra as String
+              : 'Diesel';
           return SelfFillingPage(initialFuelType: fuelType);
         },
       ),
@@ -246,8 +251,9 @@ GoRouter createRouter({
         path: AppRoutes.endFilling,
         name: AppRoutes.endFillingName,
         builder: (context, state) {
-          final fuelType =
-              state.extra is String ? state.extra as String : 'Diesel';
+          final fuelType = state.extra is String
+              ? state.extra as String
+              : 'Diesel';
           return EndFillingPage(initialFuelType: fuelType);
         },
       ),
@@ -273,8 +279,9 @@ GoRouter createRouter({
         path: AppRoutes.complaints,
         name: AppRoutes.complaintsName,
         builder: (context, state) {
-          final map =
-              state.extra is Map<String, dynamic> ? state.extra as Map<String, dynamic> : null;
+          final map = state.extra is Map<String, dynamic>
+              ? state.extra as Map<String, dynamic>
+              : null;
           return ComplaintsPage(
             status: map?['status'] as String?,
             categoryId: map?['categoryId'] as int?,
@@ -359,10 +366,7 @@ GoRouter createRouter({
               : <String, dynamic>{};
           final student = map['student'] as StudentData;
           final personType = map['personType'] as String? ?? 'STUDENT';
-          return ConfirmGatePassPage(
-            student: student,
-            personType: personType,
-          );
+          return ConfirmGatePassPage(student: student, personType: personType);
         },
       ),
       GoRoute(
@@ -443,7 +447,7 @@ GoRouter createRouter({
           final section = map['section'] as String? ?? '';
           final initialMode =
               map['initialMode'] as AttendanceModeOption? ??
-                  AttendanceModeOption.sdkLive;
+              AttendanceModeOption.sdkLive;
           return SdkAttendancePage(
             standard: standard,
             section: section,

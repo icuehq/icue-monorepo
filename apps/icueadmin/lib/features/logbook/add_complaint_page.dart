@@ -1,6 +1,7 @@
 import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icueadmin/analytics/app_events.dart';
 import 'package:logbook/logbook.dart';
 import 'package:provider/provider.dart';
 import 'package:vehicles/vehicles.dart';
@@ -41,9 +42,9 @@ class _AddComplaintPageState extends State<AddComplaintPage> {
   Future<void> _submit() async {
     FocusManager.instance.primaryFocus?.unfocus();
     if (_selectedVehicle == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a vehicle')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please select a vehicle')));
       return;
     }
     if (!_formKey.currentState!.validate()) return;
@@ -66,6 +67,7 @@ class _AddComplaintPageState extends State<AddComplaintPage> {
     if (!mounted) return;
 
     if (success) {
+      track(AppEvents.complaintCreated);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Complaint registered successfully!')),
       );
@@ -91,9 +93,7 @@ class _AddComplaintPageState extends State<AddComplaintPage> {
     final categories = logBookProvider.categories;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('New Vehicle Complaint'),
-      ),
+      appBar: AppBar(title: const Text('New Vehicle Complaint')),
       body: Form(
         key: _formKey,
         child: ListView(
@@ -106,15 +106,18 @@ class _AddComplaintPageState extends State<AddComplaintPage> {
                 if (textEditingValue.text.isEmpty) {
                   return vehicles;
                 }
-                return vehicles.where((v) => v.number
-                    .toLowerCase()
-                    .contains(textEditingValue.text.toLowerCase()));
+                return vehicles.where(
+                  (v) => v.number.toLowerCase().contains(
+                    textEditingValue.text.toLowerCase(),
+                  ),
+                );
               },
               displayStringForOption: (v) => v.number,
               initialSelection: _selectedVehicle,
               onSelected: (v) => setState(() => _selectedVehicle = v),
-              validator: (_) =>
-                  _selectedVehicle == null ? 'Vehicle selection is required' : null,
+              validator: (_) => _selectedVehicle == null
+                  ? 'Vehicle selection is required'
+                  : null,
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<int>(
@@ -127,7 +130,10 @@ class _AddComplaintPageState extends State<AddComplaintPage> {
                 ...categories.map(
                   (c) => DropdownMenuItem(value: c.id, child: Text(c.name)),
                 ),
-                const DropdownMenuItem(value: 0, child: Text('Others (Specify)')),
+                const DropdownMenuItem(
+                  value: 0,
+                  child: Text('Others (Specify)'),
+                ),
               ],
               onChanged: (id) => setState(() => _selectedCategoryId = id),
               validator: (val) =>
@@ -150,7 +156,8 @@ class _AddComplaintPageState extends State<AddComplaintPage> {
               controller: _descController,
               decoration: const InputDecoration(
                 labelText: 'Issue Description *',
-                hintText: 'Describe the symptoms, breakdown location, or defects...',
+                hintText:
+                    'Describe the symptoms, breakdown location, or defects...',
                 border: OutlineInputBorder(),
                 alignLabelWithHint: true,
               ),
@@ -228,7 +235,10 @@ class _AddComplaintPageState extends State<AddComplaintPage> {
                     )
                   : const Text(
                       'Submit Complaint',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
             ),
           ],

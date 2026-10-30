@@ -71,7 +71,7 @@ void main() {
             'RequestDate': '2026-10-30',
             'RequestTime': '10:30 AM',
             'RequestDt': '2026-10-30',
-          }
+          },
         ],
       };
 
@@ -85,7 +85,10 @@ void main() {
 
       final out = req.toJson();
       expect(out['Class'], 'X');
-      expect(out['UniqueNo'], isNull); // in GatePassRequest it's AdmissionNumber
+      expect(
+        out['UniqueNo'],
+        isNull,
+      ); // in GatePassRequest it's AdmissionNumber
       expect(out['AdmissionNumber'], 'ADM-2026');
     });
 
@@ -168,7 +171,7 @@ void main() {
             'RequestDate': '2026-10-30',
             'RequestTime': '11:00 AM',
             'RequestDt': '2026-10-30',
-          }
+          },
         ],
       };
 
@@ -196,47 +199,50 @@ void main() {
       expect(provider.isLoading, false);
     });
 
-    test('updateGatePassStatus removes approved item from pending list', () async {
-      mockApi.nextResponseData = {
-        'err': false,
-        'message': 'Success',
-        'data': [
-          {
-            'Id': 303,
-            'OrganizationId': 1,
-            'BranchId': 2,
-            'ZoneId': 3,
-            'PersonType': 'STUDENT',
-            'GatePassType': 'MEDICAL',
-            'Class': 'X',
-            'Section': 'A',
-            'AdmissionNumber': 'ADM-303',
-            'Name': 'David',
-            'PersonId': 8003,
-            'IsHostelite': false,
-            'HostelType': 'InCampus',
-            'RequestDate': '2026-10-30',
-            'RequestTime': '09:00 AM',
-            'RequestDt': '2026-10-30',
-          }
-        ],
-      };
+    test(
+      'updateGatePassStatus removes approved item from pending list',
+      () async {
+        mockApi.nextResponseData = {
+          'err': false,
+          'message': 'Success',
+          'data': [
+            {
+              'Id': 303,
+              'OrganizationId': 1,
+              'BranchId': 2,
+              'ZoneId': 3,
+              'PersonType': 'STUDENT',
+              'GatePassType': 'MEDICAL',
+              'Class': 'X',
+              'Section': 'A',
+              'AdmissionNumber': 'ADM-303',
+              'Name': 'David',
+              'PersonId': 8003,
+              'IsHostelite': false,
+              'HostelType': 'InCampus',
+              'RequestDate': '2026-10-30',
+              'RequestTime': '09:00 AM',
+              'RequestDt': '2026-10-30',
+            },
+          ],
+        };
 
-      await provider.fetchGatePassRequests(DateTime(2026, 10, 30));
-      expect(provider.requests.length, 1);
+        await provider.fetchGatePassRequests(DateTime(2026, 10, 30));
+        expect(provider.requests.length, 1);
 
-      mockApi.nextResponseData = {'err': false, 'message': 'Approved'};
-      final success = await provider.updateGatePassStatus(
-        id: 303,
-        personId: 8003,
-        date: '2026-10-30',
-        status: 'APPROVE',
-      );
+        mockApi.nextResponseData = {'err': false, 'message': 'Approved'};
+        final success = await provider.updateGatePassStatus(
+          id: 303,
+          personId: 8003,
+          date: '2026-10-30',
+          status: 'APPROVE',
+        );
 
-      expect(mockApi.lastPath, '/v1.0/approveGPRequest');
-      expect(success, true);
-      expect(provider.requests, isEmpty);
-    });
+        expect(mockApi.lastPath, '/v1.0/approveGPRequest');
+        expect(success, true);
+        expect(provider.requests, isEmpty);
+      },
+    );
 
     test('clearData empties requests and resets error message', () {
       provider.clearData();

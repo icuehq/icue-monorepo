@@ -1,11 +1,7 @@
 import 'package:expenses/expenses.dart';
 import 'package:flutter/material.dart';
 
-enum FuelModeAction {
-  fuelStation,
-  selfFilling,
-  endFilling,
-}
+enum FuelModeAction { fuelStation, selfFilling, endFilling }
 
 class FuelModeDialog extends StatelessWidget {
   const FuelModeDialog({
@@ -120,16 +116,16 @@ class _ModeTile extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey.shade600,
-                    ),
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios_rounded,
-                size: 14, color: Colors.grey),
+            const Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 14,
+              color: Colors.grey,
+            ),
           ],
         ),
       ),

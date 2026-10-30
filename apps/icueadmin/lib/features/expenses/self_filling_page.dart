@@ -1,13 +1,11 @@
 import 'package:expenses/expenses.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icueadmin/analytics/app_events.dart';
 import 'package:provider/provider.dart';
 
 class SelfFillingPage extends StatefulWidget {
-  const SelfFillingPage({
-    super.key,
-    this.initialFuelType = 'Diesel',
-  });
+  const SelfFillingPage({super.key, this.initialFuelType = 'Diesel'});
 
   final String initialFuelType;
 
@@ -18,8 +16,7 @@ class SelfFillingPage extends StatefulWidget {
 class _SelfFillingPageState extends State<SelfFillingPage> {
   final _formKey = GlobalKey<FormState>();
   late String _fuelType;
-  final TextEditingController _startReadingController =
-      TextEditingController();
+  final TextEditingController _startReadingController = TextEditingController();
 
   String? _gaugeFileName;
   List<int>? _gaugeFileBytes;
@@ -53,12 +50,14 @@ class _SelfFillingPageState extends State<SelfFillingPage> {
       gaugeFileBytes: _gaugeFileBytes,
     );
 
-    final success =
-        await context.read<ExpenseProvider>().updateSelfFillingStatus(req);
+    final success = await context
+        .read<ExpenseProvider>()
+        .updateSelfFillingStatus(req);
 
     if (!mounted) return;
 
     if (success) {
+      track(AppEvents.selfFillingStarted);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Self-filling session started successfully!'),
@@ -83,9 +82,7 @@ class _SelfFillingPageState extends State<SelfFillingPage> {
     final provider = context.watch<ExpenseProvider>();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Start Campus Self-Filling'),
-      ),
+      appBar: AppBar(title: const Text('Start Campus Self-Filling')),
       body: Form(
         key: _formKey,
         child: ListView(
@@ -132,8 +129,9 @@ class _SelfFillingPageState extends State<SelfFillingPage> {
             const SizedBox(height: 16),
             TextFormField(
               controller: _startReadingController,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               decoration: const InputDecoration(
                 labelText: 'Initial Gauge Reading (Litres) *',
                 border: OutlineInputBorder(),
@@ -212,7 +210,10 @@ class _SelfFillingPageState extends State<SelfFillingPage> {
                     )
                   : const Text(
                       'Confirm & Start Session',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
             ),
           ],

@@ -1,0 +1,31 @@
+{
+    "flutter": {
+        "platforms": {
+            "android": {
+                "default": {
+                    "projectId": "icueadmin",
+                    "appId": "1:682367186948:android:c3bdd27bd6139861b81d51",
+                    "fileOutput": "android/app/google-services.json"
+                }
+            },
+            "ios": {
+                "default": {
+                    "projectId": "icueadmin",
+                    "appId": "1:682367186948:ios:5eac0ded1e1b29cab81d51",
+                    "uploadDebugSymbols": false,
+                    "fileOutput": "ios/Runner/GoogleService-Info.plist"
+                }
+            },
+            "dart": {
+                "lib/firebase_options.dart": {
+                    "projectId": "icueadmin",
+                    "configurations": {
+                        "android": "1:682367186948:android:c3bdd27bd6139861b81d51",
+                        "ios": "1:682367186948:ios:5eac0ded1e1b29cab81d51",
+                        "web": "1:682367186948:web:6180308950468321b81d51"
+                    }
+                }
+            }
+        }
+    }
+}

@@ -4,10 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:icueadmin/routing/app_routes.dart';
 
 class ExpenseConfirmationPage extends StatelessWidget {
-  const ExpenseConfirmationPage({
-    super.key,
-    required this.data,
-  });
+  const ExpenseConfirmationPage({super.key, required this.data});
 
   final ExpenseConfirmationData data;
 
@@ -85,10 +82,7 @@ class ExpenseConfirmationPage extends StatelessWidget {
                       ],
                       if (data.mode != null) ...[
                         const Divider(height: 18),
-                        _DetailRow(
-                          label: 'Mode',
-                          value: data.mode!,
-                        ),
+                        _DetailRow(label: 'Mode', value: data.mode!),
                       ],
                     ],
                   ),

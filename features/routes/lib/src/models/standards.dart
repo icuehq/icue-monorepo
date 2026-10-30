@@ -1,21 +1,13 @@
 class Section {
-  const Section({
-    required this.id,
-    required this.name,
-  });
+  const Section({required this.id, required this.name});
 
-  factory Section.fromJson(Map<String, dynamic> json) => Section(
-        id: json['Id'] as int? ?? 0,
-        name: json['Name'] as String? ?? '',
-      );
+  factory Section.fromJson(Map<String, dynamic> json) =>
+      Section(id: json['Id'] as int? ?? 0, name: json['Name'] as String? ?? '');
 
   final int id;
   final String name;
 
-  Map<String, dynamic> toJson() => {
-        'Id': id,
-        'Name': name,
-      };
+  Map<String, dynamic> toJson() => {'Id': id, 'Name': name};
 }
 
 class Standards {
@@ -27,16 +19,16 @@ class Standards {
   });
 
   factory Standards.fromJson(Map<String, dynamic> json) => Standards(
-        id: json['Id'] as int? ?? 0,
-        name: json['Name'] as String? ?? '',
-        standardType: json['StandardType'] as String?,
-        sections: json['Sections'] is List
-            ? (json['Sections'] as List)
-                .whereType<Map<String, dynamic>>()
-                .map(Section.fromJson)
-                .toList()
-            : const <Section>[],
-      );
+    id: json['Id'] as int? ?? 0,
+    name: json['Name'] as String? ?? '',
+    standardType: json['StandardType'] as String?,
+    sections: json['Sections'] is List
+        ? (json['Sections'] as List)
+              .whereType<Map<String, dynamic>>()
+              .map(Section.fromJson)
+              .toList()
+        : const <Section>[],
+  );
 
   final int id;
   final String name;
@@ -44,9 +36,9 @@ class Standards {
   final List<Section> sections;
 
   Map<String, dynamic> toJson() => {
-        'Id': id,
-        'Name': name,
-        'StandardType': standardType,
-        'Sections': sections.map((x) => x.toJson()).toList(),
-      };
+    'Id': id,
+    'Name': name,
+    'StandardType': standardType,
+    'Sections': sections.map((x) => x.toJson()).toList(),
+  };
 }

@@ -25,15 +25,18 @@ class Announcement {
       announcementId: json['_id'] as String? ?? '',
       id: json['Id'] as int? ?? 0,
       organizationId: json['OrganizationId'] as int? ?? 0,
-      zoneIds: (json['ZoneIds'] as List<dynamic>?)
+      zoneIds:
+          (json['ZoneIds'] as List<dynamic>?)
               ?.map((e) => (e as num).toInt())
               .toList() ??
           const <int>[],
-      branchIds: (json['BranchIds'] as List<dynamic>?)
+      branchIds:
+          (json['BranchIds'] as List<dynamic>?)
               ?.map((e) => (e as num).toInt())
               .toList() ??
           const <int>[],
-      studentIds: (json['StudentIds'] as List<dynamic>?)
+      studentIds:
+          (json['StudentIds'] as List<dynamic>?)
               ?.where((e) => e != null)
               .toList() ??
           const <dynamic>[],
@@ -68,22 +71,22 @@ class Announcement {
   final bool isActive;
 
   Map<String, dynamic> toJson() => {
-        '_id': announcementId,
-        'Id': id,
-        'OrganizationId': organizationId,
-        'ZoneIds': zoneIds,
-        'BranchIds': branchIds,
-        'StudentIds': studentIds,
-        'Title': title,
-        'Description': description,
-        'AnnouncementDate': announcementDate,
-        'AnnouncementTime': announcementTime,
-        'ExpiryDate': ?expiryDate,
-        'Image': ?image,
-        'CreatedBy': createdBy,
-        'CreatedDate': ?createdDate?.toIso8601String(),
-        'IsActive': isActive,
-      };
+    '_id': announcementId,
+    'Id': id,
+    'OrganizationId': organizationId,
+    'ZoneIds': zoneIds,
+    'BranchIds': branchIds,
+    'StudentIds': studentIds,
+    'Title': title,
+    'Description': description,
+    'AnnouncementDate': announcementDate,
+    'AnnouncementTime': announcementTime,
+    'ExpiryDate': ?expiryDate,
+    'Image': ?image,
+    'CreatedBy': createdBy,
+    'CreatedDate': ?createdDate?.toIso8601String(),
+    'IsActive': isActive,
+  };
 
   @override
   bool operator ==(Object other) =>

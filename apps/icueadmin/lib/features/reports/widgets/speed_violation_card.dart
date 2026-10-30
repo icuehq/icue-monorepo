@@ -3,10 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:reports/reports.dart';
 
 class SpeedViolationCard extends StatelessWidget {
-  const SpeedViolationCard({
-    required this.record,
-    super.key,
-  });
+  const SpeedViolationCard({required this.record, super.key});
 
   final OverSpeedRecord record;
 
@@ -80,10 +77,7 @@ class SpeedViolationCard extends StatelessWidget {
                     ),
                   Text(
                     timeStr,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey.shade500,
-                    ),
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
                   ),
                 ],
               ),
@@ -101,10 +95,7 @@ class SpeedViolationCard extends StatelessWidget {
                 ),
                 Text(
                   'Avg: ${record.averageSpeed.toStringAsFixed(1)}',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey.shade500,
-                  ),
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
                 ),
               ],
             ),

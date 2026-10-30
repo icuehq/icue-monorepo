@@ -43,10 +43,9 @@ class _SdkAttendancePageState extends State<SdkAttendancePage> {
       if (!mounted) return;
 
       final routesProvider = context.read<RoutesProvider>();
-      await routesProvider.fetchStudents(
-        widget.standard.classId,
-        [widget.section],
-      );
+      await routesProvider.fetchStudents(widget.standard.classId, [
+        widget.section,
+      ]);
 
       if (!mounted) return;
       _studentList = routesProvider.students;
@@ -59,11 +58,11 @@ class _SdkAttendancePageState extends State<SdkAttendancePage> {
           final studentIds = _studentList.map((e) => e.id).toList();
 
           await context.read<AttendanceProvider>().fetchStudentEmbeddings(
-                organizationId: user.organizationId,
-                zoneId: user.zoneId,
-                branchId: branchId,
-                studentIds: studentIds,
-              );
+            organizationId: user.organizationId,
+            zoneId: user.zoneId,
+            branchId: branchId,
+            studentIds: studentIds,
+          );
         }
       }
 
@@ -94,10 +93,7 @@ class _SdkAttendancePageState extends State<SdkAttendancePage> {
           embedding.length == faceEmbeddingSize &&
           embedding.every((e) => e.isFinite)) {
         roster.add(
-          FaceProfile(
-            personId: student.id.toString(),
-            embedding: embedding,
-          ),
+          FaceProfile(personId: student.id.toString(), embedding: embedding),
         );
       }
     }
@@ -183,9 +179,7 @@ class _SdkAttendancePageState extends State<SdkAttendancePage> {
     try {
       final result = await _sdk.startMultiPhotoAttendance(
         roster: roster,
-        config: const AttendanceConfig(
-          unrecognizedLabel: 'UNKNOWN FACE',
-        ),
+        config: const AttendanceConfig(unrecognizedLabel: 'UNKNOWN FACE'),
       );
 
       if (!mounted) return;
@@ -213,15 +207,17 @@ class _SdkAttendancePageState extends State<SdkAttendancePage> {
     final ongoing = attendanceProvider.ongoingAttendance;
     final previouslyPresent =
         ongoing?.students.where((s) => s.isPresent).map((s) => s.id).toSet() ??
-            <int>{};
+        <int>{};
 
     final recognizedIds = result.present.map((e) => e.personId).toSet();
 
-    final isLive = widget.initialMode == AttendanceModeOption.sdkLive ||
+    final isLive =
+        widget.initialMode == AttendanceModeOption.sdkLive ||
         result.mode == AttendanceMode.liveStream;
 
     final updatedStudents = _studentList.map((student) {
-      final isPresent = previouslyPresent.contains(student.id) ||
+      final isPresent =
+          previouslyPresent.contains(student.id) ||
           recognizedIds.contains(student.id.toString());
       return AttendanceStudent(
         id: student.id,
@@ -271,93 +267,93 @@ class _SdkAttendancePageState extends State<SdkAttendancePage> {
               ),
             )
           : _errorMessage != null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.error_outline,
-                          color: Colors.red,
-                          size: 48,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          _errorMessage!,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(color: Colors.red),
-                        ),
-                        const SizedBox(height: 20),
-                        FilledButton(
-                          onPressed: _initSdkAndFetch,
-                          child: const Text('Retry'),
-                        ),
-                      ],
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      color: Colors.red,
+                      size: 48,
                     ),
-                  ),
-                )
-              : Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: Colors.indigo.shade50,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            widget.initialMode == AttendanceModeOption.sdkLive
-                                ? Icons.videocam_rounded
-                                : Icons.camera_alt_rounded,
-                            size: 64,
-                            color: Colors.indigo,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        Text(
-                          '${widget.standard.standard} - Section ${widget.section}',
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          '$rosterCount registered face profiles ready for match.',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-                        FilledButton.icon(
-                          onPressed: _cameraBusy
-                              ? null
-                              : () {
-                                  if (widget.initialMode ==
-                                      AttendanceModeOption.sdkLive) {
-                                    _startLiveAttendance();
-                                  } else {
-                                    _startMultiPhotoAttendance();
-                                  }
-                                },
-                          style: FilledButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 24,
-                              vertical: 14,
-                            ),
-                          ),
-                          icon: const Icon(Icons.camera),
-                          label: const Text('Open Camera Scanner'),
-                        ),
-                      ],
+                    const SizedBox(height: 16),
+                    Text(
+                      _errorMessage!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.red),
                     ),
-                  ),
+                    const SizedBox(height: 20),
+                    FilledButton(
+                      onPressed: _initSdkAndFetch,
+                      child: const Text('Retry'),
+                    ),
+                  ],
                 ),
+              ),
+            )
+          : Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.indigo.shade50,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        widget.initialMode == AttendanceModeOption.sdkLive
+                            ? Icons.videocam_rounded
+                            : Icons.camera_alt_rounded,
+                        size: 64,
+                        color: Colors.indigo,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      '${widget.standard.standard} - Section ${widget.section}',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '$rosterCount registered face profiles ready for match.',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    FilledButton.icon(
+                      onPressed: _cameraBusy
+                          ? null
+                          : () {
+                              if (widget.initialMode ==
+                                  AttendanceModeOption.sdkLive) {
+                                _startLiveAttendance();
+                              } else {
+                                _startMultiPhotoAttendance();
+                              }
+                            },
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 14,
+                        ),
+                      ),
+                      icon: const Icon(Icons.camera),
+                      label: const Text('Open Camera Scanner'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
     );
   }
 }

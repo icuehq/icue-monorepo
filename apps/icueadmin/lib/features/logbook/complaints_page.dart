@@ -35,10 +35,10 @@ class _ComplaintsPageState extends State<ComplaintsPage> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<LogBookProvider>().fetchComplaints(
-            status: _selectedStatus,
-            categoryId: _selectedCategoryId,
-            vehicleId: widget.vehicleId,
-          );
+        status: _selectedStatus,
+        categoryId: _selectedCategoryId,
+        vehicleId: widget.vehicleId,
+      );
       context.read<LogBookProvider>().fetchComplaintCategories();
     });
   }
@@ -51,11 +51,11 @@ class _ComplaintsPageState extends State<ComplaintsPage> {
 
   void _onFilterChanged() {
     context.read<LogBookProvider>().fetchComplaints(
-          status: _selectedStatus,
-          categoryId: _selectedCategoryId,
-          vehicleId: widget.vehicleId,
-          complaintNo: _searchQuery.isNotEmpty ? _searchQuery : null,
-        );
+      status: _selectedStatus,
+      categoryId: _selectedCategoryId,
+      vehicleId: widget.vehicleId,
+      complaintNo: _searchQuery.isNotEmpty ? _searchQuery : null,
+    );
   }
 
   @override
@@ -137,9 +137,13 @@ class _ComplaintsPageState extends State<ComplaintsPage> {
                           shrinkWrap: true,
                           padding: const EdgeInsets.all(16),
                           children: [
-                            const Text('Filter by Status',
-                                style: TextStyle(
-                                    fontWeight: FontWeight.bold, fontSize: 16)),
+                            const Text(
+                              'Filter by Status',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
                             const SizedBox(height: 10),
                             ListTile(
                               title: const Text('All Statuses'),
@@ -149,7 +153,12 @@ class _ComplaintsPageState extends State<ComplaintsPage> {
                                 _onFilterChanged();
                               },
                             ),
-                            ...['Open', 'In-Progress', 'Resolved', 'Closed'].map(
+                            ...[
+                              'Open',
+                              'In-Progress',
+                              'Resolved',
+                              'Closed',
+                            ].map(
                               (s) => ListTile(
                                 title: Text(s),
                                 onTap: () {
@@ -169,12 +178,14 @@ class _ComplaintsPageState extends State<ComplaintsPage> {
                     label: Text(
                       _selectedCategoryId != null
                           ? categories
-                              .firstWhere(
-                                (c) => c.id == _selectedCategoryId,
-                                orElse: () => const ComplaintCategory(
-                                    id: 0, name: 'Category'),
-                              )
-                              .name
+                                .firstWhere(
+                                  (c) => c.id == _selectedCategoryId,
+                                  orElse: () => const ComplaintCategory(
+                                    id: 0,
+                                    name: 'Category',
+                                  ),
+                                )
+                                .name
                           : 'All Categories',
                     ),
                     selected: _selectedCategoryId != null,
@@ -185,9 +196,13 @@ class _ComplaintsPageState extends State<ComplaintsPage> {
                           shrinkWrap: true,
                           padding: const EdgeInsets.all(16),
                           children: [
-                            const Text('Filter by Category',
-                                style: TextStyle(
-                                    fontWeight: FontWeight.bold, fontSize: 16)),
+                            const Text(
+                              'Filter by Category',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
                             const SizedBox(height: 10),
                             ListTile(
                               title: const Text('All Categories'),
@@ -212,7 +227,8 @@ class _ComplaintsPageState extends State<ComplaintsPage> {
                       );
                     },
                   ),
-                  if (_selectedStatus != null || _selectedCategoryId != null) ...[
+                  if (_selectedStatus != null ||
+                      _selectedCategoryId != null) ...[
                     const SizedBox(width: 8),
                     ActionChip(
                       avatar: const Icon(Icons.clear, size: 14),
@@ -258,7 +274,8 @@ class _ComplaintsPageState extends State<ComplaintsPage> {
                                           ? 'No complaints match "$_searchQuery"'
                                           : 'No complaints found for current filter.',
                                       style: TextStyle(
-                                          color: Colors.grey.shade600),
+                                        color: Colors.grey.shade600,
+                                      ),
                                     ),
                                   ],
                                 ),

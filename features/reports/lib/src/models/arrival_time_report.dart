@@ -36,15 +36,15 @@ class ArrivalTimeItem {
   final String vehicleNumber;
 
   Map<String, dynamic> toJson() => {
-        'VehicleNumber': vehicleNumber,
-        'RouteNo': routeNo,
-        'Mode': mode,
-        'StartDate': startDate,
-        'StartTime': startTime,
-        'EndDate': endDate,
-        'EndTime': endTime,
-        'ArrivalTime': arrivalTime,
-      };
+    'VehicleNumber': vehicleNumber,
+    'RouteNo': routeNo,
+    'Mode': mode,
+    'StartDate': startDate,
+    'StartTime': startTime,
+    'EndDate': endDate,
+    'EndTime': endTime,
+    'ArrivalTime': arrivalTime,
+  };
 }
 
 @immutable
@@ -89,11 +89,11 @@ class ArrivalTimeReportResponse {
   final ReportMetadata metadata;
 
   Map<String, dynamic> toJson() => {
-        'err': err,
-        'message': message,
-        'data': {
-          'metadata': metadata.toJson(),
-          'data': data.map((x) => x.toJson()).toList(),
-        },
-      };
+    'err': err,
+    'message': message,
+    'data': {
+      'metadata': metadata.toJson(),
+      'data': data.map((x) => x.toJson()).toList(),
+    },
+  };
 }

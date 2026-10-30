@@ -27,7 +27,8 @@ class AddDriverRequest {
     this.licenceExpiryDate,
   });
 
-  factory AddDriverRequest.fromJson(Map<String, dynamic> json) => AddDriverRequest(
+  factory AddDriverRequest.fromJson(Map<String, dynamic> json) =>
+      AddDriverRequest(
         source: json['Source'] as String? ?? 'adminapp',
         id: json['Id'] as int?,
         organizationId: json['OrganizationId'] as int?,
@@ -80,28 +81,28 @@ class AddDriverRequest {
   final String? licenceExpiryDate;
 
   Map<String, dynamic> toJson() => {
-        'Source': source,
-        if (id != null) 'Id': id,
-        if (organizationId != null) 'OrganizationId': organizationId,
-        if (zoneId != null) 'ZoneId': zoneId,
-        if (branchId != null) 'BranchId': branchId,
-        'FirstName': firstName,
-        'MiddleName': middleName,
-        'LastName': lastName,
-        'Mobile': mobile,
-        'AlternateNumber': alternateNumber,
-        'Email': email,
-        'Address': address?.toJson() ?? const Address(line1: '').toJson(),
-        'DateOfBirth': dateOfBirth,
-        'DateOfJoining': dateOfJoining,
-        'Country': country,
-        'State': state,
-        'City': city,
-        'Pincode': pincode,
-        'IdType': idType,
-        'DrivingExperience': drivingExperience,
-        'LicenceNumber': licenceNumber,
-        'LicenceIssuedDate': licenceIssuedDate,
-        'LicenceExpiryDate': licenceExpiryDate,
-      };
+    'Source': source,
+    if (id != null) 'Id': id,
+    if (organizationId != null) 'OrganizationId': organizationId,
+    if (zoneId != null) 'ZoneId': zoneId,
+    if (branchId != null) 'BranchId': branchId,
+    'FirstName': firstName,
+    'MiddleName': middleName,
+    'LastName': lastName,
+    'Mobile': mobile,
+    'AlternateNumber': alternateNumber,
+    'Email': email,
+    'Address': address?.toJson() ?? const Address(line1: '').toJson(),
+    'DateOfBirth': dateOfBirth,
+    'DateOfJoining': dateOfJoining,
+    'Country': country,
+    'State': state,
+    'City': city,
+    'Pincode': pincode,
+    'IdType': idType,
+    'DrivingExperience': drivingExperience,
+    'LicenceNumber': licenceNumber,
+    'LicenceIssuedDate': licenceIssuedDate,
+    'LicenceExpiryDate': licenceExpiryDate,
+  };
 }

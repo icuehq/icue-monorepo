@@ -93,8 +93,7 @@ class AttendanceModeSheet extends StatelessWidget {
               icon: Icons.videocam_rounded,
               iconColor: const Color(0xFF6366F1),
               title: 'Live Camera Scan',
-              subtitle:
-                  'Automated video sweep across classroom for real-time face matching',
+              subtitle: 'Automated video sweep across classroom for real-time face matching',
               option: AttendanceModeOption.sdkLive,
               isBadge: true,
               badgeText: 'AUTOMATED',

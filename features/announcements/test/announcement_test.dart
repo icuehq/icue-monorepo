@@ -18,7 +18,9 @@ class MockAnnouncementService implements AnnouncementService {
   }
 
   @override
-  Future<bool> createFleetAnnouncement(CreateAnnouncementRequest request) async {
+  Future<bool> createFleetAnnouncement(
+    CreateAnnouncementRequest request,
+  ) async {
     lastCreateRequest = request;
     return createFleetSuccess;
   }
@@ -178,30 +180,33 @@ void main() {
       expect(provider.announcementTitles.first.title, equals('Breakdown'));
     });
 
-    test('postAnnouncement delegates to service and reloads announcements', () async {
-      mockService.mockAnnouncements = [
-        const Announcement(
-          announcementId: '2',
-          id: 2,
-          title: 'Updated Alert',
-          description: 'Broadcast published.',
-        ),
-      ];
+    test(
+      'postAnnouncement delegates to service and reloads announcements',
+      () async {
+        mockService.mockAnnouncements = [
+          const Announcement(
+            announcementId: '2',
+            id: 2,
+            title: 'Updated Alert',
+            description: 'Broadcast published.',
+          ),
+        ];
 
-      const req = CreateAnnouncementRequest(
-        title: 'Heavy Traffic',
-        description: 'Expect 20 min delay.',
-        mode: 'Pickup',
-        routes: [5],
-      );
+        const req = CreateAnnouncementRequest(
+          title: 'Heavy Traffic',
+          description: 'Expect 20 min delay.',
+          mode: 'Pickup',
+          routes: [5],
+        );
 
-      final result = await provider.postAnnouncement(req);
+        final result = await provider.postAnnouncement(req);
 
-      expect(result, isTrue);
-      expect(mockService.lastCreateRequest?.title, equals('Heavy Traffic'));
-      expect(provider.announcements.length, equals(1));
-      expect(provider.announcements.first.title, equals('Updated Alert'));
-      expect(provider.isLoading, isFalse);
-    });
+        expect(result, isTrue);
+        expect(mockService.lastCreateRequest?.title, equals('Heavy Traffic'));
+        expect(provider.announcements.length, equals(1));
+        expect(provider.announcements.first.title, equals('Updated Alert'));
+        expect(provider.isLoading, isFalse);
+      },
+    );
   });
 }

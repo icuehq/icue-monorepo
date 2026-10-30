@@ -48,10 +48,7 @@ class VehicleComplianceForm extends StatelessWidget {
       children: [
         const Text(
           'Compliance & Driver Assignment',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
         Row(
@@ -85,7 +82,9 @@ class VehicleComplianceForm extends StatelessWidget {
               child: AppTextField(
                 controller: claimedMileageController,
                 hintText: 'Company Mileage (km/l)',
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 inputFormatters: [
                   FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
                 ],
@@ -96,7 +95,9 @@ class VehicleComplianceForm extends StatelessWidget {
               child: AppTextField(
                 controller: expectedMileageController,
                 hintText: 'Expected Mileage (km/l)',
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 inputFormatters: [
                   FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
                 ],
@@ -142,7 +143,10 @@ class VehicleComplianceForm extends StatelessWidget {
                   child: AppTextField(
                     controller: fireExtInstallDateController,
                     hintText: 'Install Date',
-                    prefixIcon: const Icon(Icons.calendar_today_outlined, size: 18),
+                    prefixIcon: const Icon(
+                      Icons.calendar_today_outlined,
+                      size: 18,
+                    ),
                   ),
                 ),
               ),

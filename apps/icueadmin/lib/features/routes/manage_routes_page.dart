@@ -25,9 +25,7 @@ class ManageRoutesPage extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Manage Routes'),
-      ),
+      appBar: AppBar(title: const Text('Manage Routes')),
       body: ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: _menuItems.length,
@@ -42,8 +40,10 @@ class ManageRoutesPage extends StatelessWidget {
               side: BorderSide(color: Colors.grey.shade200),
             ),
             child: ListTile(
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 8,
+              ),
               onTap: () => context.push(item.route),
               leading: CircleAvatar(
                 radius: 22,
@@ -52,8 +52,10 @@ class ManageRoutesPage extends StatelessWidget {
               ),
               title: Text(
                 item.title,
-                style:
-                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
               ),
               subtitle: Text(
                 item.subtitle,

@@ -43,10 +43,10 @@ class _MileageReportPageState extends State<MileageReportPage> {
   void _fetchData() {
     if (_selectedVehicle == null) return;
     context.read<ReportsProvider>().fetchMileageReports(
-          vehicleNumber: _selectedVehicle!.number,
-          month: _selectedMonth,
-          year: _selectedYear,
-        );
+      vehicleNumber: _selectedVehicle!.number,
+      month: _selectedMonth,
+      year: _selectedYear,
+    );
   }
 
   @override
@@ -58,9 +58,7 @@ class _MileageReportPageState extends State<MileageReportPage> {
     final years = List.generate(5, (i) => (currentYear - i).toString());
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mileage Analytics Report'),
-      ),
+      appBar: AppBar(title: const Text('Mileage Analytics Report')),
       body: Column(
         children: [
           Container(
@@ -75,7 +73,9 @@ class _MileageReportPageState extends State<MileageReportPage> {
                     final list = vehicleProvider.vehicles;
                     if (textEditingValue.text.isEmpty) return list;
                     final q = textEditingValue.text.toLowerCase();
-                    return list.where((v) => v.number.toLowerCase().contains(q));
+                    return list.where(
+                      (v) => v.number.toLowerCase().contains(q),
+                    );
                   },
                   displayStringForOption: (v) => v.number,
                   initialSelection: _selectedVehicle,
@@ -124,10 +124,7 @@ class _MileageReportPageState extends State<MileageReportPage> {
                         ),
                         items: years
                             .map(
-                              (y) => DropdownMenuItem(
-                                value: y,
-                                child: Text(y),
-                              ),
+                              (y) => DropdownMenuItem(value: y, child: Text(y)),
                             )
                             .toList(),
                         onChanged: (val) {
@@ -148,89 +145,77 @@ class _MileageReportPageState extends State<MileageReportPage> {
             child: _selectedVehicle == null
                 ? const ReportEmptyState(
                     icon: Icons.directions_bus_outlined,
-                    message: 'Please choose a vehicle to view mileage analytics.',
+                    message:
+                        'Please choose a vehicle to view mileage analytics.',
                   )
                 : reportsProvider.isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : reports.isEmpty
-                        ? ReportEmptyState(
-                            message:
-                                'No mileage records found for ${_selectedVehicle!.number} in $_selectedMonth/$_selectedYear.',
-                            onRetry: _fetchData,
-                          )
-                        : SingleChildScrollView(
-                            padding: const EdgeInsets.all(16),
-                            child: SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: Card(
-                                elevation: 1,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: DataTable(
-                                  headingRowColor:
-                                      WidgetStatePropertyAll(Colors.grey.shade50),
-                                  columns: const [
-                                    DataColumn(
-                                      label: Text(
-                                        'Route',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                    DataColumn(
-                                      label: Text(
-                                        'Total Kms',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                    DataColumn(
-                                      label: Text(
-                                        'Readings',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                    DataColumn(
-                                      label: Text(
-                                        'Speedometer Diff',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                  rows: reports.map((r) {
-                                    return DataRow(
-                                      cells: [
-                                        DataCell(
-                                          Text(
-                                            r.routeNo,
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                        ),
-                                        DataCell(
-                                          Text('${r.actualTotalKmsDriven} km'),
-                                        ),
-                                        DataCell(
-                                          Text('${r.totalNoOfKmReadingsTaken}'),
-                                        ),
-                                        DataCell(
-                                          Text('${r.speedometerDiff} km'),
-                                        ),
-                                      ],
-                                    );
-                                  }).toList(),
-                                ),
+                ? const Center(child: CircularProgressIndicator())
+                : reports.isEmpty
+                ? ReportEmptyState(
+                    message:
+                        'No mileage records found for ${_selectedVehicle!.number} in $_selectedMonth/$_selectedYear.',
+                    onRetry: _fetchData,
+                  )
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Card(
+                        elevation: 1,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: DataTable(
+                          headingRowColor: WidgetStatePropertyAll(
+                            Colors.grey.shade50,
+                          ),
+                          columns: const [
+                            DataColumn(
+                              label: Text(
+                                'Route',
+                                style: TextStyle(fontWeight: FontWeight.bold),
                               ),
                             ),
-                          ),
+                            DataColumn(
+                              label: Text(
+                                'Total Kms',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            DataColumn(
+                              label: Text(
+                                'Readings',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            DataColumn(
+                              label: Text(
+                                'Speedometer Diff',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
+                          rows: reports.map((r) {
+                            return DataRow(
+                              cells: [
+                                DataCell(
+                                  Text(
+                                    r.routeNo,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                DataCell(Text('${r.actualTotalKmsDriven} km')),
+                                DataCell(Text('${r.totalNoOfKmReadingsTaken}')),
+                                DataCell(Text('${r.speedometerDiff} km')),
+                              ],
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                  ),
           ),
         ],
       ),

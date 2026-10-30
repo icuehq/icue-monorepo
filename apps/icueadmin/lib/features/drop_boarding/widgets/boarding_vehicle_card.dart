@@ -64,8 +64,9 @@ class BoardingVehicleCard extends StatelessWidget {
                     Text(
                       vehicle.vehicleNumber,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.textTheme.bodySmall?.color
-                            ?.withValues(alpha: 0.7),
+                        color: theme.textTheme.bodySmall?.color?.withValues(
+                          alpha: 0.7,
+                        ),
                       ),
                     ),
                   ],
@@ -75,7 +76,10 @@ class BoardingVehicleCard extends StatelessWidget {
             if (vehicle.boardingType != null &&
                 vehicle.boardingType!.isNotEmpty)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.green.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),

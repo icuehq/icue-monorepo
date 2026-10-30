@@ -13,7 +13,8 @@ class ExpenseCategoryResponse {
       ExpenseCategoryResponse(
         err: json['err'] as bool? ?? false,
         message: json['message'] as String? ?? '',
-        record: (json['Record'] as List<dynamic>?)
+        record:
+            (json['Record'] as List<dynamic>?)
                 ?.whereType<Map<String, dynamic>>()
                 .map(Detail.fromJson)
                 .toList() ??
@@ -25,8 +26,8 @@ class ExpenseCategoryResponse {
   final List<Detail> record;
 
   Map<String, dynamic> toJson() => {
-        'err': err,
-        'message': message,
-        'Record': record.map((x) => x.toJson()).toList(),
-      };
+    'err': err,
+    'message': message,
+    'Record': record.map((x) => x.toJson()).toList(),
+  };
 }

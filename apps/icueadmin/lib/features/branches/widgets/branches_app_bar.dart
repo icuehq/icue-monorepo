@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 
 class BranchesAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const BranchesAppBar({
-    required this.onLogout,
-    super.key,
-  });
+  const BranchesAppBar({required this.onLogout, super.key});
 
   final Future<void> Function() onLogout;
 

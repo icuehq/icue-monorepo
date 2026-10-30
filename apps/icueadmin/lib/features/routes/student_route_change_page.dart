@@ -53,11 +53,9 @@ class _StudentRouteChangePageState extends State<StudentRouteChangePage> {
         _selectedClassId != null &&
         _selectedSection != null) {
       _pageNo++;
-      provider.fetchStudents(
-        _selectedClassId!,
-        [_selectedSection!],
-        pageNo: _pageNo,
-      );
+      provider.fetchStudents(_selectedClassId!, [
+        _selectedSection!,
+      ], pageNo: _pageNo);
     }
   }
 
@@ -96,9 +94,9 @@ class _StudentRouteChangePageState extends State<StudentRouteChangePage> {
       _pageNo = 1;
     });
     if (_selectedClassId != null && section != null) {
-      context
-          .read<RoutesProvider>()
-          .fetchStudents(_selectedClassId!, [section]);
+      context.read<RoutesProvider>().fetchStudents(_selectedClassId!, [
+        section,
+      ]);
     }
   }
 
@@ -117,9 +115,7 @@ class _StudentRouteChangePageState extends State<StudentRouteChangePage> {
     final availableSections = selectedStandard?.sections ?? const <Section>[];
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Student Route Change'),
-      ),
+      appBar: AppBar(title: const Text('Student Route Change')),
       body: Column(
         children: [
           Padding(
@@ -133,7 +129,9 @@ class _StudentRouteChangePageState extends State<StudentRouteChangePage> {
                     isExpanded: true,
                     decoration: InputDecoration(
                       contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -152,14 +150,18 @@ class _StudentRouteChangePageState extends State<StudentRouteChangePage> {
                     isExpanded: true,
                     decoration: InputDecoration(
                       contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
                     items: availableSections.map((sec) {
                       return DropdownMenuItem(
-                          value: sec.name, child: Text(sec.name));
+                        value: sec.name,
+                        child: Text(sec.name),
+                      );
                     }).toList(),
                     onChanged: _onSectionChanged,
                   ),
@@ -173,10 +175,12 @@ class _StudentRouteChangePageState extends State<StudentRouteChangePage> {
               controller: _searchController,
               decoration: InputDecoration(
                 hintText: 'Search student by name or roll number...',
-                hintStyle:
-                    TextStyle(color: Colors.grey.shade400, fontSize: 13),
-                prefixIcon:
-                    const Icon(Icons.search, size: 20, color: Colors.grey),
+                hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+                prefixIcon: const Icon(
+                  Icons.search,
+                  size: 20,
+                  color: Colors.grey,
+                ),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear, size: 18),
@@ -186,8 +190,10 @@ class _StudentRouteChangePageState extends State<StudentRouteChangePage> {
                         },
                       )
                     : null,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -195,9 +201,7 @@ class _StudentRouteChangePageState extends State<StudentRouteChangePage> {
             ),
           ),
           const SizedBox(height: 8),
-          Expanded(
-            child: _buildStudentList(provider),
-          ),
+          Expanded(child: _buildStudentList(provider)),
         ],
       ),
     );

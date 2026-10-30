@@ -21,7 +21,8 @@ class GatePassStudentCard extends StatelessWidget {
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: CircleAvatar(
           radius: 22,
-          backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+          backgroundColor: Theme.of(context).primaryColor
+              .withValues(alpha: 0.1),
           child: Icon(
             Icons.school_rounded,
             color: Theme.of(context).primaryColor,

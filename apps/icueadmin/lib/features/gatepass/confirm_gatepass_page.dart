@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gatepass/gatepass.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icueadmin/analytics/app_events.dart';
 import 'package:icueadmin/routing/app_routes.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -54,6 +55,7 @@ class _ConfirmGatePassPageState extends State<ConfirmGatePassPage> {
     if (!mounted) return;
 
     if (success) {
+      track(AppEvents.gatepassIssued);
       setState(() => _issued = true);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -72,9 +74,7 @@ class _ConfirmGatePassPageState extends State<ConfirmGatePassPage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Issue Gate Pass'),
-      ),
+      appBar: AppBar(title: const Text('Issue Gate Pass')),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -91,7 +91,9 @@ class _ConfirmGatePassPageState extends State<ConfirmGatePassPage> {
                   children: [
                     CircleAvatar(
                       radius: 26,
-                      backgroundColor: theme.primaryColor.withValues(alpha: 0.1),
+                      backgroundColor: theme.primaryColor.withValues(
+                        alpha: 0.1,
+                      ),
                       child: Icon(
                         Icons.person_rounded,
                         color: theme.primaryColor,

@@ -1,12 +1,7 @@
 import 'package:flutter/material.dart';
 
 class NoDataWidget extends StatelessWidget {
-  const NoDataWidget({
-    super.key,
-    this.msg,
-    this.image,
-    this.size,
-  });
+  const NoDataWidget({super.key, this.msg, this.image, this.size});
 
   final String? msg;
   final String? image;

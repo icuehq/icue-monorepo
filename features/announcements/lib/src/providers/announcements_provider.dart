@@ -45,8 +45,7 @@ class AnnouncementsProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _announcementTitles =
-          await _announcementService.getAnnouncementTitles();
+      _announcementTitles = await _announcementService.getAnnouncementTitles();
     } catch (e) {
       _errorMessage = e.toString();
     } finally {
@@ -62,8 +61,9 @@ class AnnouncementsProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final success =
-          await _announcementService.createFleetAnnouncement(request);
+      final success = await _announcementService.createFleetAnnouncement(
+        request,
+      );
       if (success) {
         _announcements = await _announcementService.getAnnouncements();
       }

@@ -194,9 +194,10 @@ void main() {
 
     test('fetchFuelStorages populates storage tanks', () async {
       mockService.mockStorages = [
-        const Storage(type: 'Pump', items: [
-          StorageItem(name: 'Pump 1', capacity: 1000),
-        ]),
+        const Storage(
+          type: 'Pump',
+          items: [StorageItem(name: 'Pump 1', capacity: 1000)],
+        ),
       ];
 
       await provider.fetchFuelStorages('Diesel');
@@ -204,36 +205,45 @@ void main() {
       expect(provider.fuelStorages.first.items.first.name, equals('Pump 1'));
     });
 
-    test('updateSelfFillingStatus persists start gauge reading and calls service', () async {
-      const request = SelfFillingStatusRequest(
-        fuelType: 'Diesel',
-        gaugeMode: 'start',
-        startReading: '12450.5',
-      );
+    test(
+      'updateSelfFillingStatus persists start gauge reading and calls service',
+      () async {
+        const request = SelfFillingStatusRequest(
+          fuelType: 'Diesel',
+          gaugeMode: 'start',
+          startReading: '12450.5',
+        );
 
-      final success = await provider.updateSelfFillingStatus(request);
-      expect(success, isTrue);
-      expect(provider.startGaugeReading, equals('12450.5'));
-      expect(mockService.lastStatusRequest?.startReading, equals('12450.5'));
-    });
+        final success = await provider.updateSelfFillingStatus(request);
+        expect(success, isTrue);
+        expect(provider.startGaugeReading, equals('12450.5'));
+        expect(mockService.lastStatusRequest?.startReading, equals('12450.5'));
+      },
+    );
 
-    test('submitExpense delegates to service and tracks filled vehicle', () async {
-      const request = StoreExpenseRequest(
-        vehicleNumber: 'AP29AB1234',
-        expenseType: ExpenseType(
-          expenseType: 2,
-          expenseTypeDesc: 'Maintenance',
-          code: 'maintenance',
-        ),
-        billDate: '2026-10-30',
-        billAmount: '1500',
-        vendorName: 'Bosch Auto Care',
-      );
+    test(
+      'submitExpense delegates to service and tracks filled vehicle',
+      () async {
+        const request = StoreExpenseRequest(
+          vehicleNumber: 'AP29AB1234',
+          expenseType: ExpenseType(
+            expenseType: 2,
+            expenseTypeDesc: 'Maintenance',
+            code: 'maintenance',
+          ),
+          billDate: '2026-10-30',
+          billAmount: '1500',
+          vendorName: 'Bosch Auto Care',
+        );
 
-      final success = await provider.submitExpense(request);
-      expect(success, isTrue);
-      expect(mockService.lastStoreRequest?.vehicleNumber, equals('AP29AB1234'));
-      expect(provider.filledVehicleNumbers, contains('AP29AB1234'));
-    });
+        final success = await provider.submitExpense(request);
+        expect(success, isTrue);
+        expect(
+          mockService.lastStoreRequest?.vehicleNumber,
+          equals('AP29AB1234'),
+        );
+        expect(provider.filledVehicleNumbers, contains('AP29AB1234'));
+      },
+    );
   });
 }

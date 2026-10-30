@@ -37,10 +37,7 @@ class DriverPersonalInfoForm extends StatelessWidget {
       children: [
         const Text(
           'Personal Information',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
         AppTextField(
@@ -144,9 +141,7 @@ class DriverPersonalInfoForm extends StatelessWidget {
           keyboardType: TextInputType.number,
           maxLength: 12,
           prefixIcon: const Icon(Icons.badge_outlined, size: 20),
-          inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
-          ],
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
         ),
       ],
     );

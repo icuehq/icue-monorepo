@@ -52,9 +52,7 @@ class _DriversPageState extends State<DriversPage> {
     final driverProvider = context.watch<DriverProvider>();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Drivers'),
-      ),
+      appBar: AppBar(title: const Text('Drivers')),
       floatingActionButton: ValueListenableBuilder<bool>(
         valueListenable: _isFabVisibleNotifier,
         builder: (context, isVisible, child) {
@@ -79,7 +77,8 @@ class _DriversPageState extends State<DriversPage> {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: DriverSearchBar(
               controller: _searchController,
-              onChanged: (val) => _searchQueryNotifier.value = val.trim().toLowerCase(),
+              onChanged: (val) =>
+                  _searchQueryNotifier.value = val.trim().toLowerCase(),
             ),
           ),
           Expanded(
@@ -105,7 +104,11 @@ class _DriversPageState extends State<DriversPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline_rounded, size: 48, color: Colors.red),
+              const Icon(
+                Icons.error_outline_rounded,
+                size: 48,
+                color: Colors.red,
+              ),
               const SizedBox(height: 12),
               Text(
                 provider.errorMessage!,
@@ -194,10 +197,7 @@ class _DriversPageState extends State<DriversPage> {
                 driver: driver,
                 onTap: () {
                   FocusManager.instance.primaryFocus?.unfocus();
-                  context.push(
-                    AppRoutes.driverInfo,
-                    extra: driver,
-                  );
+                  context.push(AppRoutes.driverInfo, extra: driver);
                 },
               );
             },

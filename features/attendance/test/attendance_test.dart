@@ -114,7 +114,7 @@ void main() {
             'RollNo': '02',
             'AdmissionNumber': 'ADM-02',
             'IsPresent': false,
-          }
+          },
         ],
         'ClassId': 10,
         'Section': 'A',
@@ -191,38 +191,40 @@ void main() {
       expect(sessionManager.eligibleRoster.first.personId, '101');
     });
 
-    test('processes observation frames and marks present when threshold met',
-        () {
-      const box = FaceBoundingBox(
-        left: 10,
-        top: 10,
-        right: 100,
-        bottom: 100,
-        trackingId: 1,
-      );
+    test(
+      'processes observation frames and marks present when threshold met',
+      () {
+        const box = FaceBoundingBox(
+          left: 10,
+          top: 10,
+          right: 100,
+          bottom: 100,
+          trackingId: 1,
+        );
 
-      const result = FaceRecognitionResult(
-        matched: true,
-        personId: '101',
-        score: 0.95,
-        boundingBox: box,
-      );
+        const result = FaceRecognitionResult(
+          matched: true,
+          personId: '101',
+          score: 0.95,
+          boundingBox: box,
+        );
 
-      // Frame 1
-      sessionManager.processObservationFrame(
-        results: [result],
-        frameRosterRevision: 'rev_1',
-      );
-      expect(sessionManager.studentMap['101']!.isPresent, false);
+        // Frame 1
+        sessionManager.processObservationFrame(
+          results: [result],
+          frameRosterRevision: 'rev_1',
+        );
+        expect(sessionManager.studentMap['101']!.isPresent, false);
 
-      // Frame 2 -> meets threshold of 2
-      sessionManager.processObservationFrame(
-        results: [result],
-        frameRosterRevision: 'rev_1',
-      );
-      expect(sessionManager.studentMap['101']!.isPresent, true);
-      expect(sessionManager.studentMap['101']!.markSource, MarkSource.face);
-    });
+        // Frame 2 -> meets threshold of 2
+        sessionManager.processObservationFrame(
+          results: [result],
+          frameRosterRevision: 'rev_1',
+        );
+        expect(sessionManager.studentMap['101']!.isPresent, true);
+        expect(sessionManager.studentMap['101']!.markSource, MarkSource.face);
+      },
+    );
 
     test('manual override updates student state', () {
       sessionManager.setManualAttendance('102', true);
@@ -255,33 +257,35 @@ void main() {
       provider = AttendanceProvider(service, storage);
     });
 
-    test('updateAttendance and getOngoingAttendance persist and restore session',
-        () async {
-      const student = AttendanceStudent(
-        id: 1,
-        name: 'Student One',
-        rollNo: '01',
-        admissionNumber: 'ADM-1',
-        isPresent: true,
-      );
+    test(
+      'updateAttendance and getOngoingAttendance persist and restore session',
+      () async {
+        const student = AttendanceStudent(
+          id: 1,
+          name: 'Student One',
+          rollNo: '01',
+          admissionNumber: 'ADM-1',
+          isPresent: true,
+        );
 
-      await provider.updateAttendance(
-        classId: 5,
-        className: 'Grade 5',
-        section: 'A',
-        period: '1',
-        student: student,
-      );
+        await provider.updateAttendance(
+          classId: 5,
+          className: 'Grade 5',
+          section: 'A',
+          period: '1',
+          student: student,
+        );
 
-      expect(provider.ongoingAttendance, isNotNull);
-      expect(provider.ongoingAttendance!.students.length, 1);
+        expect(provider.ongoingAttendance, isNotNull);
+        expect(provider.ongoingAttendance!.students.length, 1);
 
-      // Verify restore from storage
-      final restored = await provider.getOngoingAttendance();
-      expect(restored, isNotNull);
-      expect(restored!.classId, 5);
-      expect(restored.section, 'A');
-    });
+        // Verify restore from storage
+        final restored = await provider.getOngoingAttendance();
+        expect(restored, isNotNull);
+        expect(restored!.classId, 5);
+        expect(restored.section, 'A');
+      },
+    );
 
     test('toggleStudentAttendance flips student presence flag', () async {
       const student = AttendanceStudent(

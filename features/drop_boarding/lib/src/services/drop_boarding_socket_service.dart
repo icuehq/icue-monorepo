@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:drop_boarding/src/models/vehicle_arrival.dart';
 import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
@@ -16,16 +17,12 @@ class DropBoardingSocketService {
   bool get isConnected => _socket?.connected ?? false;
 
   /// Connects to real-time socket and registers to the vehicleArrivalStatus room.
-  void connect({
-    required String baseUrl,
-    required int branchId,
-  }) {
+  void connect({required String baseUrl, required int branchId}) {
     disconnect();
 
     // Use port 3002 if baseUrl does not specify a port
     final uri = Uri.tryParse(baseUrl);
-    final socketUrl =
-        (uri != null && uri.hasPort) ? baseUrl : '$baseUrl:3002';
+    final socketUrl = (uri != null && uri.hasPort) ? baseUrl : '$baseUrl:3002';
 
     final roomPayload = <String, dynamic>{
       'roomName': 'vehicleArrivalStatus-$branchId',

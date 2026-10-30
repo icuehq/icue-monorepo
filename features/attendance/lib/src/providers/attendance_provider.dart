@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:attendance/src/models/create_attendance.dart';
 import 'package:attendance/src/models/create_attendance_response.dart';
 import 'package:attendance/src/services/attendance_service.dart';
@@ -9,10 +10,7 @@ import 'package:local_storage/local_storage.dart';
 
 @injectable
 class AttendanceProvider extends ChangeNotifier {
-  AttendanceProvider(
-    this._attendanceService,
-    this._storageService,
-  );
+  AttendanceProvider(this._attendanceService, this._storageService);
 
   final AttendanceService _attendanceService;
   final StorageService _storageService;
@@ -40,8 +38,9 @@ class AttendanceProvider extends ChangeNotifier {
     }
 
     if (_storageService.isBoxOpen(StorageConstants.createAttendanceBox)) {
-      final box =
-          _storageService.getBox<String>(StorageConstants.createAttendanceBox);
+      final box = _storageService.getBox<String>(
+        StorageConstants.createAttendanceBox,
+      );
       if (box.keys.isNotEmpty) {
         final key = box.keys.first.toString();
         _ongoingAttendanceKey = key;
@@ -102,10 +101,7 @@ class AttendanceProvider extends ChangeNotifier {
     try {
       final key = effectiveAttendanceKey;
       if (key != null) {
-        await _storageService.delete(
-          StorageConstants.createAttendanceBox,
-          key,
-        );
+        await _storageService.delete(StorageConstants.createAttendanceBox, key);
       }
       _ongoingAttendanceKey = null;
       _ongoingAttendance = null;
@@ -160,10 +156,10 @@ class AttendanceProvider extends ChangeNotifier {
           attendanceMode: student.attendanceMode,
         );
       } else {
-        final existing =
-            CreateAttendance.fromJson(jsonDecode(raw) as Map<String, dynamic>);
-        final updatedStudents =
-            List<AttendanceStudent>.from(existing.students);
+        final existing = CreateAttendance.fromJson(
+          jsonDecode(raw) as Map<String, dynamic>,
+        );
+        final updatedStudents = List<AttendanceStudent>.from(existing.students);
         final index = updatedStudents.indexWhere((e) => e.id == student.id);
         if (index != -1) {
           updatedStudents[index] = student;
@@ -233,13 +229,15 @@ class AttendanceProvider extends ChangeNotifier {
           month: DateTime.now().month,
           year: DateTime.now().year,
           period: activePeriod,
-          attendanceMode: attendanceMode ??
+          attendanceMode:
+              attendanceMode ??
               (students.isNotEmpty ? students.first.attendanceMode : null),
           images: images,
         );
       } else {
-        final existing =
-            CreateAttendance.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+        final existing = CreateAttendance.fromJson(
+          jsonDecode(raw) as Map<String, dynamic>,
+        );
         final studentMap = {for (final s in existing.students) s.id: s};
         for (final s in students) {
           studentMap[s.id] = s;
@@ -280,10 +278,10 @@ class AttendanceProvider extends ChangeNotifier {
       );
       if (raw == null || raw.isEmpty) return;
 
-      final attendance =
-          CreateAttendance.fromJson(jsonDecode(raw) as Map<String, dynamic>);
-      final updatedStudents =
-          List<AttendanceStudent>.from(attendance.students);
+      final attendance = CreateAttendance.fromJson(
+        jsonDecode(raw) as Map<String, dynamic>,
+      );
+      final updatedStudents = List<AttendanceStudent>.from(attendance.students);
       final index = updatedStudents.indexWhere((e) => e.id == student.id);
       if (index != -1) {
         updatedStudents[index] = student.copyWith(
@@ -351,16 +349,16 @@ class AttendanceProvider extends ChangeNotifier {
     );
     if (raw == null || raw.isEmpty) return null;
 
-    final attendance =
-        CreateAttendance.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+    final attendance = CreateAttendance.fromJson(
+      jsonDecode(raw) as Map<String, dynamic>,
+    );
 
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      final response =
-          await _attendanceService.createAttendance(attendance);
+      final response = await _attendanceService.createAttendance(attendance);
 
       if (!response.err) {
         // Upload images if any
@@ -382,10 +380,7 @@ class AttendanceProvider extends ChangeNotifier {
       }
     } catch (e) {
       _errorMessage = e.toString();
-      return CreateAttendanceResponse(
-        err: true,
-        message: e.toString(),
-      );
+      return CreateAttendanceResponse(err: true, message: e.toString());
     } finally {
       _isLoading = false;
       notifyListeners();

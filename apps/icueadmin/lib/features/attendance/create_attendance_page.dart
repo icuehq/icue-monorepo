@@ -37,10 +37,9 @@ class _CreateAttendancePageState extends State<CreateAttendancePage> {
     setState(() => _isLoading = true);
     final routesProvider = context.read<RoutesProvider>();
 
-    await routesProvider.fetchStudents(
-      widget.standard.classId,
-      [widget.section],
-    );
+    await routesProvider.fetchStudents(widget.standard.classId, [
+      widget.section,
+    ]);
 
     if (!mounted) return;
     final studentList = routesProvider.students;
@@ -54,8 +53,9 @@ class _CreateAttendancePageState extends State<CreateAttendancePage> {
         ongoing.classId == widget.standard.classId &&
         ongoing.section == widget.section) {
       final markedIds = ongoing.students.map((e) => e.id).toSet();
-      final nextUnmarked =
-          studentList.indexWhere((s) => !markedIds.contains(s.id));
+      final nextUnmarked = studentList.indexWhere(
+        (s) => !markedIds.contains(s.id),
+      );
       if (nextUnmarked != -1) {
         startingIndex = nextUnmarked;
       } else if (markedIds.length >= studentList.length &&
@@ -89,12 +89,12 @@ class _CreateAttendancePageState extends State<CreateAttendancePage> {
     );
 
     await context.read<AttendanceProvider>().updateAttendance(
-          classId: widget.standard.classId,
-          className: widget.standard.standard,
-          section: widget.section,
-          period: '',
-          student: attendanceStudent,
-        );
+      classId: widget.standard.classId,
+      className: widget.standard.standard,
+      section: widget.section,
+      period: '',
+      student: attendanceStudent,
+    );
 
     if (!mounted) return;
 
@@ -129,100 +129,103 @@ class _CreateAttendancePageState extends State<CreateAttendancePage> {
           if (total > 0)
             TextButton(
               onPressed: _navigateToConfirmation,
-              child: const Text('Review', style: TextStyle(color: Colors.white)),
+              child: const Text(
+                'Review',
+                style: TextStyle(color: Colors.white),
+              ),
             ),
         ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _students.isEmpty
-              ? Center(
-                  child: Text(
-                    'No students enrolled in this section.',
-                    style: TextStyle(color: Colors.grey.shade600),
-                  ),
-                )
-              : Column(
-                  children: [
-                    // Progress Indicator
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                      child: Column(
+          ? Center(
+              child: Text(
+                'No students enrolled in this section.',
+                style: TextStyle(color: Colors.grey.shade600),
+              ),
+            )
+          : Column(
+              children: [
+                // Progress Indicator
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Marking Student ${_currentIndex + 1} of $total',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              Text(
-                                '${(((_currentIndex) / total) * 100).toInt()}%',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: theme.colorScheme.primary,
-                                ),
-                              ),
-                            ],
+                          Text(
+                            'Marking Student ${_currentIndex + 1} of $total',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
                           ),
-                          const SizedBox(height: 8),
-                          LinearProgressIndicator(
-                            value: total > 0 ? (_currentIndex / total) : 0,
-                            borderRadius: BorderRadius.circular(4),
-                            minHeight: 8,
+                          Text(
+                            '${(((_currentIndex) / total) * 100).toInt()}%',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.primary,
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                    const Spacer(),
-                    // Active Card
-                    if (!isComplete)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: AttendanceSwipeCard(
-                          student: _students[_currentIndex],
-                          color: Colors.white,
-                        ),
-                      )
-                    else
-                      Center(
-                        child: Column(
-                          children: [
-                            const Icon(
-                              Icons.check_circle_outline_rounded,
-                              size: 64,
-                              color: Colors.green,
-                            ),
-                            const SizedBox(height: 16),
-                            const Text(
-                              'All students reviewed!',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            FilledButton(
-                              onPressed: _navigateToConfirmation,
-                              child: const Text('Proceed to Confirmation'),
-                            ),
-                          ],
-                        ),
+                      const SizedBox(height: 8),
+                      LinearProgressIndicator(
+                        value: total > 0 ? (_currentIndex / total) : 0,
+                        borderRadius: BorderRadius.circular(4),
+                        minHeight: 8,
                       ),
-                    const Spacer(),
-                    // Bottom Actions
-                    if (!isComplete)
-                      AttendanceSwipeActions(
-                        onAbsent: () => _markStudent(isPresent: false),
-                        onPresent: () => _markStudent(isPresent: true),
-                        onUndo: _currentIndex > 0 ? _handleUndo : null,
-                      ),
-                    const SizedBox(height: 16),
-                  ],
+                    ],
+                  ),
                 ),
+                const Spacer(),
+                // Active Card
+                if (!isComplete)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: AttendanceSwipeCard(
+                      student: _students[_currentIndex],
+                      color: Colors.white,
+                    ),
+                  )
+                else
+                  Center(
+                    child: Column(
+                      children: [
+                        const Icon(
+                          Icons.check_circle_outline_rounded,
+                          size: 64,
+                          color: Colors.green,
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'All students reviewed!',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        FilledButton(
+                          onPressed: _navigateToConfirmation,
+                          child: const Text('Proceed to Confirmation'),
+                        ),
+                      ],
+                    ),
+                  ),
+                const Spacer(),
+                // Bottom Actions
+                if (!isComplete)
+                  AttendanceSwipeActions(
+                    onAbsent: () => _markStudent(isPresent: false),
+                    onPresent: () => _markStudent(isPresent: true),
+                    onUndo: _currentIndex > 0 ? _handleUndo : null,
+                  ),
+                const SizedBox(height: 16),
+              ],
+            ),
     );
   }
 }

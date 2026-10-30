@@ -2,6 +2,7 @@ import 'package:core_ui/core_ui.dart';
 import 'package:drivers/drivers.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icueadmin/analytics/app_events.dart';
 import 'package:logbook/logbook.dart';
 import 'package:provider/provider.dart';
 
@@ -17,8 +18,9 @@ class _AlcoholTestFormPageState extends State<AlcoholTestFormPage> {
 
   Driver? _selectedDriver;
   String _status = 'PASSED';
-  final TextEditingController _readingController =
-      TextEditingController(text: '0.00');
+  final TextEditingController _readingController = TextEditingController(
+    text: '0.00',
+  );
 
   String? _photoName;
   List<int>? _photoBytes;
@@ -40,16 +42,18 @@ class _AlcoholTestFormPageState extends State<AlcoholTestFormPage> {
   Future<void> _submit() async {
     FocusManager.instance.primaryFocus?.unfocus();
     if (_selectedDriver == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a driver')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please select a driver')));
       return;
     }
     if (!_formKey.currentState!.validate()) return;
     _formKey.currentState!.save();
 
     final readingVal = double.tryParse(_readingController.text.trim()) ?? 0.0;
-    final driverName = '${_selectedDriver!.firstName} ${_selectedDriver!.lastName ?? ''}'.trim();
+    final driverName =
+        '${_selectedDriver!.firstName} ${_selectedDriver!.lastName ?? ''}'
+            .trim();
     final driverMobile = _selectedDriver!.mobile?.toString() ?? '';
 
     final req = AlcoholTestSubmissionRequest(
@@ -62,16 +66,16 @@ class _AlcoholTestFormPageState extends State<AlcoholTestFormPage> {
       fileBytes: _photoBytes,
     );
 
-    final success =
-        await context.read<LogBookProvider>().submitAlcoholTest(req);
+    final success = await context.read<LogBookProvider>().submitAlcoholTest(
+      req,
+    );
 
     if (!mounted) return;
 
     if (success) {
+      track(AppEvents.alcoholTestSubmitted);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Alcohol test recorded successfully!'),
-        ),
+        const SnackBar(content: Text('Alcohol test recorded successfully!')),
       );
       context.pop();
     } else {
@@ -94,9 +98,7 @@ class _AlcoholTestFormPageState extends State<AlcoholTestFormPage> {
     final drivers = driverProvider.drivers;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Driver Breathalyzer Test'),
-      ),
+      appBar: AppBar(title: const Text('Driver Breathalyzer Test')),
       body: Form(
         key: _formKey,
         child: ListView(
@@ -135,17 +137,20 @@ class _AlcoholTestFormPageState extends State<AlcoholTestFormPage> {
                   return drivers;
                 }
                 final query = textEditingValue.text.toLowerCase();
-                return drivers.where((d) =>
-                    '${d.firstName} ${d.lastName ?? ''} ${d.mobile ?? ''}'
-                        .toLowerCase()
-                        .contains(query));
+                return drivers.where(
+                  (d) => '${d.firstName} ${d.lastName ?? ''} ${d.mobile ?? ''}'
+                      .toLowerCase()
+                      .contains(query),
+                );
               },
               displayStringForOption: (d) =>
-                  '${d.firstName} ${d.lastName ?? ''} (${d.mobile ?? ''})'.trim(),
+                  '${d.firstName} ${d.lastName ?? ''} (${d.mobile ?? ''})'
+                      .trim(),
               initialSelection: _selectedDriver,
               onSelected: (d) => setState(() => _selectedDriver = d),
-              validator: (_) =>
-                  _selectedDriver == null ? 'Driver selection is required' : null,
+              validator: (_) => _selectedDriver == null
+                  ? 'Driver selection is required'
+                  : null,
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
@@ -155,8 +160,14 @@ class _AlcoholTestFormPageState extends State<AlcoholTestFormPage> {
                 border: OutlineInputBorder(),
               ),
               items: const [
-                DropdownMenuItem(value: 'PASSED', child: Text('PASSED (0.00 % BAC)')),
-                DropdownMenuItem(value: 'FAILED', child: Text('FAILED (Positive BAC)')),
+                DropdownMenuItem(
+                  value: 'PASSED',
+                  child: Text('PASSED (0.00 % BAC)'),
+                ),
+                DropdownMenuItem(
+                  value: 'FAILED',
+                  child: Text('FAILED (Positive BAC)'),
+                ),
               ],
               onChanged: (val) {
                 setState(() {
@@ -170,8 +181,9 @@ class _AlcoholTestFormPageState extends State<AlcoholTestFormPage> {
             const SizedBox(height: 16),
             TextFormField(
               controller: _readingController,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               decoration: const InputDecoration(
                 labelText: 'BAC Meter Reading (% BAC) *',
                 border: OutlineInputBorder(),
@@ -255,7 +267,10 @@ class _AlcoholTestFormPageState extends State<AlcoholTestFormPage> {
                     )
                   : const Text(
                       'Submit Alcohol Test Record',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
             ),
           ],

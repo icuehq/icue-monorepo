@@ -14,7 +14,8 @@ class FuelStorageResponse {
         err: json['err'] as bool? ?? false,
         message: json['message'] as String? ?? '',
         toFill: json['toFill'] as bool?,
-        data: (json['data'] as List<dynamic>?)
+        data:
+            (json['data'] as List<dynamic>?)
                 ?.whereType<Map<String, dynamic>>()
                 .map(Storage.fromJson)
                 .toList() ??
@@ -27,36 +28,34 @@ class FuelStorageResponse {
   final List<Storage> data;
 
   Map<String, dynamic> toJson() => {
-        'err': err,
-        'message': message,
-        'toFill': ?toFill,
-        'data': data.map((x) => x.toJson()).toList(),
-      };
+    'err': err,
+    'message': message,
+    'toFill': ?toFill,
+    'data': data.map((x) => x.toJson()).toList(),
+  };
 }
 
 @immutable
 class Storage {
-  const Storage({
-    required this.type,
-    this.items = const <StorageItem>[],
-  });
+  const Storage({required this.type, this.items = const <StorageItem>[]});
 
   factory Storage.fromJson(Map<String, dynamic> json) => Storage(
-        type: json['Type'] as String? ?? '',
-        items: (json['Items'] as List<dynamic>?)
-                ?.whereType<Map<String, dynamic>>()
-                .map(StorageItem.fromJson)
-                .toList() ??
-            const <StorageItem>[],
-      );
+    type: json['Type'] as String? ?? '',
+    items:
+        (json['Items'] as List<dynamic>?)
+            ?.whereType<Map<String, dynamic>>()
+            .map(StorageItem.fromJson)
+            .toList() ??
+        const <StorageItem>[],
+  );
 
   final String type;
   final List<StorageItem> items;
 
   Map<String, dynamic> toJson() => {
-        'Type': type,
-        'Items': items.map((x) => x.toJson()).toList(),
-      };
+    'Type': type,
+    'Items': items.map((x) => x.toJson()).toList(),
+  };
 }
 
 @immutable
@@ -70,12 +69,12 @@ class StorageItem {
   });
 
   factory StorageItem.fromJson(Map<String, dynamic> json) => StorageItem(
-        name: json['Name'] as String? ?? '',
-        capacity: json['Capacity'] as int? ?? 0,
-        fuelType: json['FuelType'] as String?,
-        fuelPrice: json['FuelPrice'] as String?,
-        type: json['Type'] as String?,
-      );
+    name: json['Name'] as String? ?? '',
+    capacity: json['Capacity'] as int? ?? 0,
+    fuelType: json['FuelType'] as String?,
+    fuelPrice: json['FuelPrice'] as String?,
+    type: json['Type'] as String?,
+  );
 
   final String name;
   final int capacity;
@@ -84,10 +83,10 @@ class StorageItem {
   final String? type;
 
   Map<String, dynamic> toJson() => {
-        'Name': name,
-        'Capacity': capacity,
-        'FuelType': ?fuelType,
-        'FuelPrice': ?fuelPrice,
-        'Type': ?type,
-      };
+    'Name': name,
+    'Capacity': capacity,
+    'FuelType': ?fuelType,
+    'FuelPrice': ?fuelPrice,
+    'Type': ?type,
+  };
 }

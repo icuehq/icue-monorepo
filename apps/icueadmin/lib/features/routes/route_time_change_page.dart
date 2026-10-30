@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:icueadmin/analytics/app_events.dart';
 import 'package:icueadmin/features/routes/widgets/route_time_item.dart';
 import 'package:provider/provider.dart';
 import 'package:routes/routes.dart';
@@ -26,7 +27,9 @@ class _RouteTimeChangePageState extends State<RouteTimeChangePage> {
     });
 
     _searchController.addListener(() {
-      setState(() => _searchQuery = _searchController.text.trim().toLowerCase());
+      setState(
+        () => _searchQuery = _searchController.text.trim().toLowerCase(),
+      );
     });
   }
 
@@ -80,6 +83,9 @@ class _RouteTimeChangePageState extends State<RouteTimeChangePage> {
     if (!mounted) return;
 
     if (success) {
+      track(AppEvents.routeTimeUpdated, {
+        'route_count': _selectedRouteIds.length,
+      });
       setState(() => _selectedRouteIds.clear());
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -107,13 +113,12 @@ class _RouteTimeChangePageState extends State<RouteTimeChangePage> {
                 (r.vehicleNumber ?? '').toLowerCase().contains(_searchQuery);
           }).toList();
 
-    final isAllSelected = filteredRoutes.isNotEmpty &&
+    final isAllSelected =
+        filteredRoutes.isNotEmpty &&
         _selectedRouteIds.length == filteredRoutes.length;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Route Time Change'),
-      ),
+      appBar: AppBar(title: const Text('Route Time Change')),
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -170,18 +175,22 @@ class _RouteTimeChangePageState extends State<RouteTimeChangePage> {
               controller: _searchController,
               decoration: InputDecoration(
                 hintText: 'Search by route or vehicle number...',
-                hintStyle:
-                    TextStyle(color: Colors.grey.shade400, fontSize: 13),
-                prefixIcon:
-                    const Icon(Icons.search, size: 20, color: Colors.grey),
+                hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+                prefixIcon: const Icon(
+                  Icons.search,
+                  size: 20,
+                  color: Colors.grey,
+                ),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear, size: 18),
                         onPressed: () => _searchController.clear(),
                       )
                     : null,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -190,8 +199,10 @@ class _RouteTimeChangePageState extends State<RouteTimeChangePage> {
           ),
           if (filteredRoutes.isNotEmpty)
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 4,
+              ),
               child: Row(
                 children: [
                   Checkbox(
@@ -199,8 +210,9 @@ class _RouteTimeChangePageState extends State<RouteTimeChangePage> {
                     onChanged: (val) {
                       setState(() {
                         if (val ?? false) {
-                          _selectedRouteIds
-                              .addAll(filteredRoutes.map((r) => r.id));
+                          _selectedRouteIds.addAll(
+                            filteredRoutes.map((r) => r.id),
+                          );
                         } else {
                           _selectedRouteIds.clear();
                         }
@@ -210,7 +222,9 @@ class _RouteTimeChangePageState extends State<RouteTimeChangePage> {
                   Text(
                     'Select All (${filteredRoutes.length} routes)',
                     style: const TextStyle(
-                        fontWeight: FontWeight.w600, fontSize: 13),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
                   ),
                   const Spacer(),
                   Text(
@@ -224,9 +238,7 @@ class _RouteTimeChangePageState extends State<RouteTimeChangePage> {
                 ],
               ),
             ),
-          Expanded(
-            child: _buildRouteList(provider, filteredRoutes),
-          ),
+          Expanded(child: _buildRouteList(provider, filteredRoutes)),
         ],
       ),
     );

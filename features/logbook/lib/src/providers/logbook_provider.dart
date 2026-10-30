@@ -232,10 +232,7 @@ class LogBookProvider extends ChangeNotifier {
   }
 
   /// Fetches alcohol test logs.
-  Future<void> fetchAlcoholTestReport({
-    int page = 1,
-    String? search,
-  }) async {
+  Future<void> fetchAlcoholTestReport({int page = 1, String? search}) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();

@@ -22,17 +22,26 @@ class DriverService {
 
   /// Creates a new driver record.
   Future<void> createDriver(AddDriverRequest request) async {
-    await _apiClient.post<dynamic>('/v1.0/createDriver', data: request.toJson());
+    await _apiClient.post<dynamic>(
+      '/v1.0/createDriver',
+      data: request.toJson(),
+    );
   }
 
   /// Updates an existing driver record.
   Future<void> updateDriver(AddDriverRequest request) async {
-    await _apiClient.post<dynamic>('/v1.0/updateDriver', data: request.toJson());
+    await _apiClient.post<dynamic>(
+      '/v1.0/updateDriver',
+      data: request.toJson(),
+    );
   }
 
   /// Deletes a driver by their ID.
   Future<void> deleteDriver(int driverId) async {
-    await _apiClient.post<dynamic>('/v1.0/deleteDriver', data: {'id': driverId});
+    await _apiClient.post<dynamic>(
+      '/v1.0/deleteDriver',
+      data: {'id': driverId},
+    );
   }
 
   /// Retrieves a specific document (e.g. 'License', 'Id', 'Profile') for [driverId].

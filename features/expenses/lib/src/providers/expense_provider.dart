@@ -81,8 +81,9 @@ class ExpenseProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _subCategories =
-          await _expenseService.getExpenseSubCategories(categoryId);
+      _subCategories = await _expenseService.getExpenseSubCategories(
+        categoryId,
+      );
     } catch (e) {
       _errorMessage = e.toString();
     } finally {
@@ -108,8 +109,7 @@ class ExpenseProvider extends ChangeNotifier {
   }
 
   /// Updates pump status for self filling.
-  Future<bool> updateSelfFillingStatus(
-      SelfFillingStatusRequest request) async {
+  Future<bool> updateSelfFillingStatus(SelfFillingStatusRequest request) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();

@@ -57,9 +57,7 @@ class _VehicleDocsPageState extends State<VehicleDocsPage> {
                 fit: BoxFit.contain,
                 errorBuilder: (context, error, stackTrace) => const Padding(
                   padding: EdgeInsets.all(24.0),
-                  child: Center(
-                    child: Text('Unable to preview document.'),
-                  ),
+                  child: Center(child: Text('Unable to preview document.')),
                 ),
               ),
             ),
@@ -116,7 +114,8 @@ class _VehicleDocsPageState extends State<VehicleDocsPage> {
     String? rawDate;
     switch (docType) {
       case 'Insurance':
-        rawDate = doc?.insuranceExpiryDate ?? widget.vehicle.insuranceExpiryDate;
+        rawDate =
+            doc?.insuranceExpiryDate ?? widget.vehicle.insuranceExpiryDate;
       case 'RC':
         rawDate = doc?.rcExpiryDate ?? widget.vehicle.rcExpiryDate;
       case 'Fitness':
@@ -124,7 +123,8 @@ class _VehicleDocsPageState extends State<VehicleDocsPage> {
       case 'RoadTax':
         rawDate = doc?.roadTaxExpiryDate ?? widget.vehicle.roadTaxExpiryDate;
       case 'Pollution':
-        rawDate = doc?.pollutionExpiryDate ?? widget.vehicle.pollutionExpiryDate;
+        rawDate =
+            doc?.pollutionExpiryDate ?? widget.vehicle.pollutionExpiryDate;
       case 'Permit':
         rawDate = doc?.permitExpiryDate ?? widget.vehicle.permitExpiryDate;
     }
@@ -155,9 +155,7 @@ class _VehicleDocsPageState extends State<VehicleDocsPage> {
     final provider = context.watch<VehicleProvider>();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Vehicle Documents'),
-      ),
+      appBar: AppBar(title: const Text('Vehicle Documents')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(

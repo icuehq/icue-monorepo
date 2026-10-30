@@ -89,9 +89,7 @@ class _OptionsPageState extends State<OptionsPage> {
         .toList();
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.vehicle.number),
-      ),
+      appBar: AppBar(title: Text(widget.vehicle.number)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -147,7 +145,10 @@ class _OptionsPageState extends State<OptionsPage> {
             clipBehavior: Clip.antiAlias,
             child: ExpansionTile(
               initiallyExpanded: true,
-              leading: const Icon(Icons.receipt_long_rounded, color: Colors.blue),
+              leading: const Icon(
+                Icons.receipt_long_rounded,
+                color: Colors.blue,
+              ),
               title: const Text(
                 'Record Expense',
                 style: TextStyle(fontWeight: FontWeight.bold),
@@ -170,7 +171,11 @@ class _OptionsPageState extends State<OptionsPage> {
                       leading: CircleAvatar(
                         radius: 16,
                         backgroundColor: Colors.blue.shade50,
-                        child: Icon(icon, color: Colors.blue.shade700, size: 18),
+                        child: Icon(
+                          icon,
+                          color: Colors.blue.shade700,
+                          size: 18,
+                        ),
                       ),
                       title: Text(
                         type.expenseTypeDesc,

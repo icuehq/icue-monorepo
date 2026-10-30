@@ -14,8 +14,9 @@ class AttendanceSwipeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final initial =
-        student.name.isNotEmpty ? student.name[0].toUpperCase() : 'S';
+    final initial = student.name.isNotEmpty
+        ? student.name[0].toUpperCase()
+        : 'S';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),

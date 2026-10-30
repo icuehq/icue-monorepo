@@ -136,8 +136,9 @@ class ReportsService {
       payload['FromDate'] = startDate != null
           ? DateFormat('MM/dd/yyyy').format(startDate)
           : null;
-      payload['ToDate'] =
-          endDate != null ? DateFormat('MM/dd/yyyy').format(endDate) : null;
+      payload['ToDate'] = endDate != null
+          ? DateFormat('MM/dd/yyyy').format(endDate)
+          : null;
     }
 
     final response = await _apiClient.post<dynamic>(
@@ -178,8 +179,9 @@ class ReportsService {
       payload['FromDate'] = startDate != null
           ? DateFormat('MM/dd/yyyy').format(startDate)
           : null;
-      payload['ToDate'] =
-          endDate != null ? DateFormat('MM/dd/yyyy').format(endDate) : null;
+      payload['ToDate'] = endDate != null
+          ? DateFormat('MM/dd/yyyy').format(endDate)
+          : null;
     }
 
     final response = await _apiClient.post<dynamic>(
@@ -222,8 +224,9 @@ class ReportsService {
       payload['FromDate'] = startDate != null
           ? DateFormat('MM/dd/yyyy').format(startDate)
           : null;
-      payload['ToDate'] =
-          endDate != null ? DateFormat('MM/dd/yyyy').format(endDate) : null;
+      payload['ToDate'] = endDate != null
+          ? DateFormat('MM/dd/yyyy').format(endDate)
+          : null;
     }
 
     final response = await _apiClient.post<dynamic>(

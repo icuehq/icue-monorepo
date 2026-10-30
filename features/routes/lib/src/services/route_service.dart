@@ -61,11 +61,7 @@ class RouteService {
   }) async {
     final response = await _apiClient.post<dynamic>(
       '/v2.0/searchStudent',
-      data: {
-        'searchText': search,
-        'ClassId': ?classId,
-        'Sections': ?sections,
-      },
+      data: {'searchText': search, 'ClassId': ?classId, 'Sections': ?sections},
     );
     final data = response.data;
     if (data is List) {

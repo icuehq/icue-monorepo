@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icueadmin/features/gatepass/widgets/gatepass_student_card.dart';
@@ -43,10 +44,10 @@ class _GenerateGatePassPageState extends State<GenerateGatePassPage> {
       if (!mounted) return;
       if (query.trim().isNotEmpty) {
         context.read<RoutesProvider>().searchStudent(
-              query.trim(),
-              classId: _selectedStandard?.id,
-              sections: _selectedSection != null ? [_selectedSection!] : null,
-            );
+          query.trim(),
+          classId: _selectedStandard?.id,
+          sections: _selectedSection != null ? [_selectedSection!] : null,
+        );
       } else {
         _fetchStudents(isInitial: true);
       }
@@ -56,11 +57,9 @@ class _GenerateGatePassPageState extends State<GenerateGatePassPage> {
   void _fetchStudents({bool isInitial = false}) {
     if (isInitial) _page = 1;
     if (_selectedStandard != null && _selectedSection != null) {
-      context.read<RoutesProvider>().fetchStudents(
-            _selectedStandard!.id,
-            [_selectedSection!],
-            pageNo: _page,
-          );
+      context.read<RoutesProvider>().fetchStudents(_selectedStandard!.id, [
+        _selectedSection!,
+      ], pageNo: _page);
     }
   }
 
@@ -77,9 +76,7 @@ class _GenerateGatePassPageState extends State<GenerateGatePassPage> {
     final isLoading = routesProvider.studentsLoading;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Generate Gate Pass'),
-      ),
+      appBar: AppBar(title: const Text('Generate Gate Pass')),
       body: Column(
         children: [
           Container(
@@ -134,13 +131,15 @@ class _GenerateGatePassPageState extends State<GenerateGatePassPage> {
                           labelText: 'Section',
                           isDense: true,
                         ),
-                        items: (_selectedStandard?.sections ?? const <Section>[])
-                            .map((sec) {
-                          return DropdownMenuItem(
-                            value: sec.name,
-                            child: Text(sec.name),
-                          );
-                        }).toList(),
+                        items:
+                            (_selectedStandard?.sections ?? const <Section>[])
+                                .map((sec) {
+                                  return DropdownMenuItem(
+                                    value: sec.name,
+                                    child: Text(sec.name),
+                                  );
+                                })
+                                .toList(),
                         onChanged: (val) {
                           setState(() => _selectedSection = val);
                           _searchController.clear();
@@ -177,46 +176,47 @@ class _GenerateGatePassPageState extends State<GenerateGatePassPage> {
             child: isLoading && students.isEmpty
                 ? const Center(child: CircularProgressIndicator())
                 : students.isEmpty
-                    ? ReportEmptyState(
-                        icon: Icons.person_search_outlined,
-                        message: _selectedStandard == null || _selectedSection == null
-                            ? 'Please select standard and section to browse students.'
-                            : 'No students found matching your criteria.',
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: students.length +
-                            (routesProvider.hasNextPage ? 1 : 0),
-                        itemBuilder: (context, index) {
-                          if (index == students.length) {
-                            return Center(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                child: isLoading
-                                    ? const CircularProgressIndicator()
-                                    : ElevatedButton(
-                                        onPressed: _loadMore,
-                                        child: const Text('Load More'),
-                                      ),
-                              ),
-                            );
-                          }
+                ? ReportEmptyState(
+                    icon: Icons.person_search_outlined,
+                    message:
+                        _selectedStandard == null || _selectedSection == null
+                        ? 'Please select standard and section to browse students.'
+                        : 'No students found matching your criteria.',
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount:
+                        students.length + (routesProvider.hasNextPage ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (index == students.length) {
+                        return Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            child: isLoading
+                                ? const CircularProgressIndicator()
+                                : ElevatedButton(
+                                    onPressed: _loadMore,
+                                    child: const Text('Load More'),
+                                  ),
+                          ),
+                        );
+                      }
 
-                          final student = students[index];
-                          return GatePassStudentCard(
-                            student: student,
-                            onIssue: () {
-                              context.push(
-                                AppRoutes.confirmGatePass,
-                                extra: {
-                                  'student': student,
-                                  'personType': _personType,
-                                },
-                              );
+                      final student = students[index];
+                      return GatePassStudentCard(
+                        student: student,
+                        onIssue: () {
+                          context.push(
+                            AppRoutes.confirmGatePass,
+                            extra: {
+                              'student': student,
+                              'personType': _personType,
                             },
                           );
                         },
-                      ),
+                      );
+                    },
+                  ),
           ),
         ],
       ),

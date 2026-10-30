@@ -22,10 +22,8 @@ class UpdateComplaintModal extends StatefulWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => UpdateComplaintModal(
-        complaint: complaint,
-        onSubmit: onSubmit,
-      ),
+      builder: (ctx) =>
+          UpdateComplaintModal(complaint: complaint, onSubmit: onSubmit),
     );
   }
 
@@ -110,7 +108,10 @@ class _UpdateComplaintModalState extends State<UpdateComplaintModal> {
               const SizedBox(height: 16),
               Text(
                 'Update Complaint #${widget.complaint.complaintNo}',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
@@ -120,12 +121,16 @@ class _UpdateComplaintModalState extends State<UpdateComplaintModal> {
                   border: OutlineInputBorder(),
                 ),
                 items: const [
-                  DropdownMenuItem(value: 'In-Progress', child: Text('In-Progress')),
+                  DropdownMenuItem(
+                    value: 'In-Progress',
+                    child: Text('In-Progress'),
+                  ),
                   DropdownMenuItem(value: 'Resolved', child: Text('Resolved')),
                   DropdownMenuItem(value: 'Closed', child: Text('Closed')),
                   DropdownMenuItem(value: 'Open', child: Text('Open')),
                 ],
-                onChanged: (val) => setState(() => _status = val ?? 'In-Progress'),
+                onChanged: (val) =>
+                    setState(() => _status = val ?? 'In-Progress'),
               ),
               const SizedBox(height: 14),
               TextFormField(

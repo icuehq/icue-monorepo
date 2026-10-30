@@ -1,8 +1,4 @@
-enum AttendanceModeOption {
-  manual,
-  sdkLive,
-  sdkPhoto,
-}
+enum AttendanceModeOption { manual, sdkLive, sdkPhoto }
 
 class AttendanceStudent {
   const AttendanceStudent({
@@ -35,14 +31,14 @@ class AttendanceStudent {
   final String? attendanceMode;
 
   Map<String, dynamic> toJson() => {
-        'Id': id,
-        'Name': name,
-        'RollNo': rollNo,
-        'AdmissionNumber': admissionNumber,
-        'IsPresent': isPresent,
-        'UID': ?uid,
-        'AttendanceMode': ?attendanceMode,
-      };
+    'Id': id,
+    'Name': name,
+    'RollNo': rollNo,
+    'AdmissionNumber': admissionNumber,
+    'IsPresent': isPresent,
+    'UID': ?uid,
+    'AttendanceMode': ?attendanceMode,
+  };
 
   AttendanceStudent copyWith({
     int? id,
@@ -89,9 +85,9 @@ class CreateAttendance {
       source: json['Source'] as String? ?? 'adminapp',
       students: studentsRaw is List
           ? studentsRaw
-              .whereType<Map<String, dynamic>>()
-              .map(AttendanceStudent.fromJson)
-              .toList()
+                .whereType<Map<String, dynamic>>()
+                .map(AttendanceStudent.fromJson)
+                .toList()
           : const <AttendanceStudent>[],
       classId: json['ClassId'] as int? ?? 0,
       section: json['Section'] as String? ?? '',
@@ -102,9 +98,7 @@ class CreateAttendance {
       year: json['Year'] as int? ?? DateTime.now().year,
       period: json['Period'] as String? ?? '1',
       attendanceMode: json['AttendanceMode'] as String?,
-      images: imagesRaw is List
-          ? imagesRaw.whereType<String>().toList()
-          : null,
+      images: imagesRaw is List ? imagesRaw.whereType<String>().toList() : null,
     );
   }
 
@@ -122,19 +116,19 @@ class CreateAttendance {
   final List<String>? images;
 
   Map<String, dynamic> toJson() => {
-        'Source': source,
-        'Students': students.map((x) => x.toJson()).toList(),
-        'ClassId': classId,
-        'Section': section,
-        'Standard': standard,
-        'AttendanceDate': attendanceDate,
-        'AttendanceTime': attendanceTime,
-        'Month': month,
-        'Year': year,
-        'Period': period,
-        'AttendanceMode': ?attendanceMode,
-        'Images': ?images,
-      };
+    'Source': source,
+    'Students': students.map((x) => x.toJson()).toList(),
+    'ClassId': classId,
+    'Section': section,
+    'Standard': standard,
+    'AttendanceDate': attendanceDate,
+    'AttendanceTime': attendanceTime,
+    'Month': month,
+    'Year': year,
+    'Period': period,
+    'AttendanceMode': ?attendanceMode,
+    'Images': ?images,
+  };
 
   CreateAttendance copyWith({
     String? source,

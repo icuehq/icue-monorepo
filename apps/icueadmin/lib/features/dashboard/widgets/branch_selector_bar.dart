@@ -27,9 +27,7 @@ class BranchSelectorBar extends StatelessWidget {
             ),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              minimumSize: const Size(100, 38),
-            ),
+            style: ElevatedButton.styleFrom(minimumSize: const Size(100, 38)),
             onPressed: () {
               context.push(AppRoutes.branches);
             },

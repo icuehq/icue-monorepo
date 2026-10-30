@@ -16,9 +16,7 @@ class TrackingService {
     );
 
     if (response.data is Map<String, dynamic>) {
-      return FleetStatusReport.fromJson(
-        response.data as Map<String, dynamic>,
-      );
+      return FleetStatusReport.fromJson(response.data as Map<String, dynamic>);
     }
     return const FleetStatusReport();
   }

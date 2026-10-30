@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:drop_boarding/src/models/boarding_type.dart';
 import 'package:drop_boarding/src/models/vehicle_arrival.dart';
 import 'package:drop_boarding/src/services/drop_boarding_service.dart';
@@ -132,8 +133,9 @@ class DropBoardingProvider extends ChangeNotifier {
     String? boardingZone,
   }) async {
     final idSet = routeIds.toSet();
-    final selectedRoutes =
-        _dropRoutes.where((r) => idSet.contains(r.id)).toList();
+    final selectedRoutes = _dropRoutes
+        .where((r) => idSet.contains(r.id))
+        .toList();
 
     if (selectedRoutes.isEmpty) return false;
 
@@ -155,13 +157,13 @@ class DropBoardingProvider extends ChangeNotifier {
           )
           .toList();
 
-      final success =
-          await _dropBoardingService.updateMultiVehicleArrivalStatus(
-        zoneId: zoneId,
-        branchId: branchId,
-        organizationId: organizationId,
-        vehicles: vehiclesPayload,
-      );
+      final success = await _dropBoardingService
+          .updateMultiVehicleArrivalStatus(
+            zoneId: zoneId,
+            branchId: branchId,
+            organizationId: organizationId,
+            vehicles: vehiclesPayload,
+          );
 
       if (success) {
         await fetchVehicleArrivals(
@@ -195,10 +197,8 @@ class DropBoardingProvider extends ChangeNotifier {
 
     try {
       final vehiclesPayload = routeIds.map((id) {
-        final dropRoute =
-            _dropRoutes.where((r) => r.id == id).firstOrNull;
-        final arrival =
-            _vehicleArrivals.where((a) => a.id == id).firstOrNull;
+        final dropRoute = _dropRoutes.where((r) => r.id == id).firstOrNull;
+        final arrival = _vehicleArrivals.where((a) => a.id == id).firstOrNull;
 
         return <String, dynamic>{
           'RouteId': id,
@@ -210,13 +210,13 @@ class DropBoardingProvider extends ChangeNotifier {
         };
       }).toList();
 
-      final success =
-          await _dropBoardingService.updateMultiVehicleArrivalStatus(
-        zoneId: zoneId,
-        branchId: branchId,
-        organizationId: organizationId,
-        vehicles: vehiclesPayload,
-      );
+      final success = await _dropBoardingService
+          .updateMultiVehicleArrivalStatus(
+            zoneId: zoneId,
+            branchId: branchId,
+            organizationId: organizationId,
+            vehicles: vehiclesPayload,
+          );
 
       if (success) {
         await fetchVehicleArrivals(
@@ -236,18 +236,13 @@ class DropBoardingProvider extends ChangeNotifier {
   }
 
   /// Initializes real-time socket updates for vehicle arrivals.
-  void initSocket({
-    required String baseUrl,
-    required int branchId,
-  }) {
+  void initSocket({required String baseUrl, required int branchId}) {
     _socketSubscription?.cancel();
-    _dropBoardingSocketService.connect(
-      baseUrl: baseUrl,
-      branchId: branchId,
-    );
+    _dropBoardingSocketService.connect(baseUrl: baseUrl, branchId: branchId);
 
-    _socketSubscription =
-        _dropBoardingSocketService.onArrivalsUpdated.listen((arrivals) {
+    _socketSubscription = _dropBoardingSocketService.onArrivalsUpdated.listen((
+      arrivals,
+    ) {
       _vehicleArrivals = arrivals;
       notifyListeners();
     });

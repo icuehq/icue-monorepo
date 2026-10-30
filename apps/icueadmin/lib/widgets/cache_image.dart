@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 
 class CacheImage extends StatelessWidget {
-  const CacheImage({
-    required this.url,
-    required this.size,
-    super.key,
-  });
+  const CacheImage({required this.url, required this.size, super.key});
 
   final double size;
   final String url;

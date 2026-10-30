@@ -13,12 +13,14 @@ import 'package:expenses/src/services/expense_service.dart' as _i107;
 import 'package:injectable/injectable.dart' as _i526;
 
 class ExpensesPackageModule extends _i526.MicroPackageModule {
-// initializes the registration of main-scope dependencies inside of GetIt
+  // initializes the registration of main-scope dependencies inside of GetIt
   @override
   _i687.FutureOr<void> init(_i526.GetItHelper gh) {
     gh.lazySingleton<_i107.ExpenseService>(
-        () => _i107.ExpenseService(gh<_i633.ApiClient>()));
+      () => _i107.ExpenseService(gh<_i633.ApiClient>()),
+    );
     gh.lazySingleton<_i51.ExpenseProvider>(
-        () => _i51.ExpenseProvider(gh<_i107.ExpenseService>()));
+      () => _i51.ExpenseProvider(gh<_i107.ExpenseService>()),
+    );
   }
 }

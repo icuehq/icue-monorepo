@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:api_client/api_client.dart';
 import 'package:attendance/src/models/create_attendance.dart';
 import 'package:attendance/src/models/create_attendance_response.dart';

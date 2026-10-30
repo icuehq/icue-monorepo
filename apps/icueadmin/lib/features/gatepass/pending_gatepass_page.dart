@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gatepass/gatepass.dart';
+import 'package:icueadmin/analytics/app_events.dart';
 import 'package:icueadmin/features/gatepass/widgets/gatepass_request_card.dart';
 import 'package:icueadmin/features/reports/widgets/report_empty_state.dart';
 import 'package:intl/intl.dart';
@@ -57,6 +58,7 @@ class _PendingGatePassPageState extends State<PendingGatePassPage> {
     if (!mounted) return;
 
     if (success) {
+      track(AppEvents.gatepassReviewed, {'status': status});
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(

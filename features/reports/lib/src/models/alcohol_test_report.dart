@@ -55,19 +55,16 @@ class AlcoholTestRecord {
   final String submittedTime;
 
   Map<String, dynamic> toJson() => {
-        'Id': id,
-        'SubmittedDate': submittedDate,
-        'SubmittedTime': submittedTime,
-        'PersonType': personType,
-        'PersonInfo': {
-          'Name': personName,
-          'Mobile': personMobile,
-        },
-        'AlcoholTest': alcoholTest,
-        'AlcoholTestReading': alcoholTestReading,
-        'ImageUrl': imageUrl,
-        'CreatedBy': createdBy,
-      };
+    'Id': id,
+    'SubmittedDate': submittedDate,
+    'SubmittedTime': submittedTime,
+    'PersonType': personType,
+    'PersonInfo': {'Name': personName, 'Mobile': personMobile},
+    'AlcoholTest': alcoholTest,
+    'AlcoholTestReading': alcoholTestReading,
+    'ImageUrl': imageUrl,
+    'CreatedBy': createdBy,
+  };
 }
 
 @immutable
@@ -84,7 +81,8 @@ class AlcoholReportResponse {
         metadata: json['metadata'] is Map
             ? ReportMetadata.fromJson(json['metadata'] as Map<String, dynamic>)
             : const ReportMetadata(),
-        data: (json['data'] as List<dynamic>?)
+        data:
+            (json['data'] as List<dynamic>?)
                 ?.whereType<Map<String, dynamic>>()
                 .map(AlcoholTestRecord.fromJson)
                 .toList() ??
@@ -99,9 +97,9 @@ class AlcoholReportResponse {
   final ReportMetadata metadata;
 
   Map<String, dynamic> toJson() => {
-        'metadata': metadata.toJson(),
-        'data': data.map((x) => x.toJson()).toList(),
-        'err': err,
-        'message': message,
-      };
+    'metadata': metadata.toJson(),
+    'data': data.map((x) => x.toJson()).toList(),
+    'err': err,
+    'message': message,
+  };
 }

@@ -1,14 +1,20 @@
+import 'dart:async';
+
 import 'package:announcements/announcements.dart';
 import 'package:api_client/api_client.dart';
 import 'package:attendance/attendance.dart';
 import 'package:auth/auth.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:drivers/drivers.dart';
 import 'package:drop_boarding/drop_boarding.dart';
 import 'package:expenses/expenses.dart';
 import 'package:flutter/material.dart';
 import 'package:gatepass/gatepass.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_firebase/icue_firebase.dart';
+import 'package:icueadmin/analytics/app_events.dart';
 import 'package:icueadmin/di/injection.dart';
+import 'package:icueadmin/firebase_options.dart';
 import 'package:icueadmin/routing/app_router.dart';
 import 'package:icueadmin/theme/app_theme.dart';
 import 'package:local_storage/local_storage.dart';
@@ -22,23 +28,51 @@ import 'package:vehicles/vehicles.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  await initFirebase(DefaultFirebaseOptions.currentPlatform);
+
   // 1. Resolve environment from --dart-define=ENV or --dart-define=FLAVOR
   final env = ApiEnvironment.fromEnvironment();
 
   // 2. Initialize dependencies for this environment
   await configureDependencies(env.name);
 
+  final connectivity = ConnectivityService();
+  await connectivity.init();
+  getIt<ApiClient>().isOnline = () => connectivity.isOnline;
+
+  // Forward unexpected API failures to Crashlytics as non-fatals.
+  getIt<ApiClient>().onLogCrash =
+      (path, error, stack, {fatal = false, message}) {
+        final dio = error is DioException ? error : null;
+        CrashlyticsService.instance.recordError(
+          error,
+          stack,
+          reason: 'API ${dio?.requestOptions.method ?? ''} $path: $message',
+          information: [
+            'status: ${dio?.response?.statusCode}',
+            'type: ${dio?.type.name}',
+            'url: ${dio?.requestOptions.uri}',
+          ],
+        );
+      };
+
   // 3. Initialize Hive storage service & restore user session box
   await getIt<StorageService>().init();
   await getIt<UserLocalStorage>().init();
 
-  runApp(IcueAdminApp(environment: env));
+  runApp(IcueAdminApp(environment: env, connectivity: connectivity));
+  unawaited(AppUpdateService.checkForUpdate());
 }
 
 class IcueAdminApp extends StatefulWidget {
-  const IcueAdminApp({required this.environment, super.key});
+  const IcueAdminApp({
+    required this.environment,
+    required this.connectivity,
+    super.key,
+  });
 
   final ApiEnvironment environment;
+  final ConnectivityService connectivity;
 
   @override
   State<IcueAdminApp> createState() => _IcueAdminAppState();
@@ -58,6 +92,8 @@ class _IcueAdminAppState extends State<IcueAdminApp> {
   late final DropBoardingProvider _dropBoardingProvider;
   late final AttendanceProvider _attendanceProvider;
   late final GoRouter _router;
+  int? _trackedUserId;
+  int? _trackedBranchId;
 
   @override
   void initState() {
@@ -74,14 +110,69 @@ class _IcueAdminAppState extends State<IcueAdminApp> {
     _trackingProvider = getIt<TrackingProvider>();
     _dropBoardingProvider = getIt<DropBoardingProvider>();
     _attendanceProvider = getIt<AttendanceProvider>();
+    // Seed so a restored session isn't logged as a fresh login.
+    _trackedUserId = _authProvider.user?.id;
+    _trackedBranchId = _authProvider.selectedBranch?.id;
+    _authProvider.addListener(_syncFirebaseUser);
+    _syncFirebaseUser();
     _router = createRouter(
       authProvider: _authProvider,
       environment: widget.environment,
+    );
+    // Restored session: login-time prompt won't fire, so ask here.
+    if (_authProvider.user != null) {
+      unawaited(NotificationService.instance.requestPermission());
+    }
+    unawaited(
+      NotificationService.instance.init(
+        // Backend sends the target path as data['route'].
+        onTap: (data) {
+          final route = data['route'];
+          if (route is String && route.startsWith('/')) _router.go(route);
+        },
+      ),
+    );
+  }
+
+  /// Tags crash reports and analytics events with the signed-in user (cleared on logout).
+  void _syncFirebaseUser() {
+    final user = _authProvider.user;
+    final branch = _authProvider.selectedBranch;
+    if (user?.id != _trackedUserId) {
+      if (user == null) {
+        track(AppEvents.logout);
+      } else {
+        AnalyticsService.instance.logLogin('otp');
+        unawaited(NotificationService.instance.requestPermission());
+      }
+    }
+    if (branch != null && branch.id != _trackedBranchId) {
+      track(AppEvents.branchSelected);
+    }
+    _trackedUserId = user?.id;
+    _trackedBranchId = branch?.id;
+    CrashlyticsService.instance.setUser(
+      id: user == null ? null : '${user.id}',
+      organizationId: user == null ? null : '${user.organizationId}',
+      zoneId: user == null ? null : '${user.zoneId}',
+      // Zonal admins pick a branch; fall back to the user's own otherwise.
+      branchId: user == null ? null : '${branch?.id ?? user.branchId}',
+      schoolName: branch?.schoolName ?? user?.schoolName,
+    );
+    AnalyticsService.instance.setUser(
+      id: user == null ? null : '${user.id}',
+      properties: {
+        'organization_id': '${user?.organizationId}',
+        'zone_id': '${user?.zoneId}',
+        'branch_id': '${branch?.id ?? user?.branchId}',
+        'school_name': branch?.schoolName ?? user?.schoolName,
+      },
     );
   }
 
   @override
   void dispose() {
+    _authProvider.removeListener(_syncFirebaseUser);
     _router.dispose();
     super.dispose();
   }
@@ -97,15 +188,9 @@ class _IcueAdminAppState extends State<IcueAdminApp> {
         ChangeNotifierProvider<AnnouncementsProvider>.value(
           value: _announcementsProvider,
         ),
-        ChangeNotifierProvider<ExpenseProvider>.value(
-          value: _expenseProvider,
-        ),
-        ChangeNotifierProvider<LogBookProvider>.value(
-          value: _logBookProvider,
-        ),
-        ChangeNotifierProvider<ReportsProvider>.value(
-          value: _reportsProvider,
-        ),
+        ChangeNotifierProvider<ExpenseProvider>.value(value: _expenseProvider),
+        ChangeNotifierProvider<LogBookProvider>.value(value: _logBookProvider),
+        ChangeNotifierProvider<ReportsProvider>.value(value: _reportsProvider),
         ChangeNotifierProvider<GatePassProvider>.value(
           value: _gatePassProvider,
         ),
@@ -124,6 +209,8 @@ class _IcueAdminAppState extends State<IcueAdminApp> {
         debugShowCheckedModeBanner: false,
         theme: AppTheme.forEnvironment(widget.environment),
         routerConfig: _router,
+        builder: (context, child) =>
+            ConnectivityBanner(service: widget.connectivity, child: child!),
       ),
     );
   }

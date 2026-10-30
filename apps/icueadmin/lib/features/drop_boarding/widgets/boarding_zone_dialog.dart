@@ -2,10 +2,7 @@ import 'package:drop_boarding/drop_boarding.dart';
 import 'package:flutter/material.dart';
 
 class BoardingZoneDialog extends StatefulWidget {
-  const BoardingZoneDialog({
-    required this.boardingTypes,
-    super.key,
-  });
+  const BoardingZoneDialog({required this.boardingTypes, super.key});
 
   final List<BoardingType> boardingTypes;
 
@@ -39,8 +36,7 @@ class _BoardingZoneDialogState extends State<BoardingZoneDialog> {
                 item.name,
                 style: TextStyle(
                   fontSize: 15,
-                  fontWeight:
-                      isSelected ? FontWeight.bold : FontWeight.w500,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                   color: isSelected ? theme.colorScheme.primary : null,
                 ),
               ),
@@ -55,8 +51,9 @@ class _BoardingZoneDialogState extends State<BoardingZoneDialog> {
               ),
               dense: true,
               selected: isSelected,
-              selectedTileColor:
-                  theme.colorScheme.primary.withValues(alpha: 0.08),
+              selectedTileColor: theme.colorScheme.primary.withValues(
+                alpha: 0.08,
+              ),
               onTap: () {
                 setState(() {
                   _selectedZone = item.name;

@@ -20,23 +20,23 @@ class ChangeRouteRequest {
   final String? point;
 
   Map<String, dynamic> toJson() => {
-        'IsInTransport': existingRouteId != null ? 'yes' : 'no',
-        'ChangeMode': mode.label,
-        'StudentId': studentId,
-        'ClassId': classId,
-        'Sections': sections,
-        ...(mode == RouteMode.pickup
-            ? {
-                if (existingRouteId != null) 'PickupRouteId': existingRouteId,
-                'TargetPickupRoute': route,
-                'TargetPickPoint': point,
-              }
-            : {
-                if (existingRouteId != null) 'DropRouteId': existingRouteId,
-                'TargetDropRoute': route,
-                'TargetDropPoint': point,
-              }),
-      };
+    'IsInTransport': existingRouteId != null ? 'yes' : 'no',
+    'ChangeMode': mode.label,
+    'StudentId': studentId,
+    'ClassId': classId,
+    'Sections': sections,
+    ...(mode == RouteMode.pickup
+        ? {
+            if (existingRouteId != null) 'PickupRouteId': existingRouteId,
+            'TargetPickupRoute': route,
+            'TargetPickPoint': point,
+          }
+        : {
+            if (existingRouteId != null) 'DropRouteId': existingRouteId,
+            'TargetDropRoute': route,
+            'TargetDropPoint': point,
+          }),
+  };
 }
 
 class ChangeBothRoutesRequest {
@@ -65,20 +65,18 @@ class ChangeBothRoutesRequest {
   final String dropPoint;
 
   Map<String, dynamic> toJson() => {
-        'IsInTransport': existingPickupRouteId != null ? 'yes' : 'no',
-        'StudentId': studentId,
-        'ClassId': classId,
-        'Sections': sections,
-        if (existingPickupRouteId != null)
-          'PickupRouteId': existingPickupRouteId,
-        if (existingDropRouteId != null) 'DropRouteId': existingDropRouteId,
-        if (existingPickupPoint != null)
-          'ExistingPickPoint': existingPickupPoint,
-        'TargetPickupRoute': pickupRoute,
-        'TargetPickPoint': pickupPoint,
-        'TargetDropRoute': dropRoute,
-        'TargetDropPoint': dropPoint,
-      };
+    'IsInTransport': existingPickupRouteId != null ? 'yes' : 'no',
+    'StudentId': studentId,
+    'ClassId': classId,
+    'Sections': sections,
+    if (existingPickupRouteId != null) 'PickupRouteId': existingPickupRouteId,
+    if (existingDropRouteId != null) 'DropRouteId': existingDropRouteId,
+    if (existingPickupPoint != null) 'ExistingPickPoint': existingPickupPoint,
+    'TargetPickupRoute': pickupRoute,
+    'TargetPickPoint': pickupPoint,
+    'TargetDropRoute': dropRoute,
+    'TargetDropPoint': dropPoint,
+  };
 }
 
 class UpdateRouteTimeRequest {
@@ -95,9 +93,9 @@ class UpdateRouteTimeRequest {
   final List<int> selectedRouteIds;
 
   Map<String, dynamic> toJson() => {
-        'RouteStartTime': time,
-        'Mode': mode.label,
-        'ChangeMode': changeMode,
-        if (changeMode != 'ALL') 'RouteIds': selectedRouteIds,
-      };
+    'RouteStartTime': time,
+    'Mode': mode.label,
+    'ChangeMode': changeMode,
+    if (changeMode != 'ALL') 'RouteIds': selectedRouteIds,
+  };
 }

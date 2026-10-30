@@ -52,9 +52,7 @@ class _VehiclesPageState extends State<VehiclesPage> {
     final vehicleProvider = context.watch<VehicleProvider>();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Vehicles Fleet'),
-      ),
+      appBar: AppBar(title: const Text('Vehicles Fleet')),
       floatingActionButton: ValueListenableBuilder<bool>(
         valueListenable: _isFabVisibleNotifier,
         builder: (context, isVisible, child) {
@@ -107,8 +105,11 @@ class _VehiclesPageState extends State<VehiclesPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline_rounded,
-                  size: 48, color: Colors.red),
+              const Icon(
+                Icons.error_outline_rounded,
+                size: 48,
+                color: Colors.red,
+              ),
               const SizedBox(height: 12),
               Text(
                 provider.errorMessage!,
@@ -199,10 +200,7 @@ class _VehiclesPageState extends State<VehiclesPage> {
                 vehicle: vehicle,
                 onTap: () {
                   FocusManager.instance.primaryFocus?.unfocus();
-                  context.push(
-                    AppRoutes.vehicleDetails,
-                    extra: vehicle,
-                  );
+                  context.push(AppRoutes.vehicleDetails, extra: vehicle);
                 },
               );
             },

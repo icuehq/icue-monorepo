@@ -13,12 +13,14 @@ import 'package:gatepass/src/services/gatepass_service.dart' as _i925;
 import 'package:injectable/injectable.dart' as _i526;
 
 class GatepassPackageModule extends _i526.MicroPackageModule {
-// initializes the registration of main-scope dependencies inside of GetIt
+  // initializes the registration of main-scope dependencies inside of GetIt
   @override
   _i687.FutureOr<void> init(_i526.GetItHelper gh) {
     gh.lazySingleton<_i925.GatePassService>(
-        () => _i925.GatePassService(gh<_i633.ApiClient>()));
+      () => _i925.GatePassService(gh<_i633.ApiClient>()),
+    );
     gh.lazySingleton<_i176.GatePassProvider>(
-        () => _i176.GatePassProvider(gh<_i925.GatePassService>()));
+      () => _i176.GatePassProvider(gh<_i925.GatePassService>()),
+    );
   }
 }

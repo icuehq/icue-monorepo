@@ -19,11 +19,7 @@ class LogBookService {
   }) async {
     final response = await _apiClient.post<dynamic>(
       '/v1.0/getVhComplaintsStats',
-      data: {
-        'PageNumber': page,
-        'PageSize': 10,
-        'CountsBy': countBy,
-      },
+      data: {'PageNumber': page, 'PageSize': 10, 'CountsBy': countBy},
     );
     if (response.data is Map<String, dynamic>) {
       return ComplaintsDashboardResponse.fromJson(
@@ -159,7 +155,8 @@ class LogBookService {
     if (response.data is Map<String, dynamic>) {
       final map = response.data as Map<String, dynamic>;
       final failedCount = (map['failedCnt'] as num?)?.toInt() ?? 0;
-      final failedData = (map['failedData'] as List<dynamic>?)
+      final failedData =
+          (map['failedData'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           const <String>[];
@@ -211,11 +208,7 @@ class LogBookService {
   }) async {
     final response = await _apiClient.post<dynamic>(
       '/v2.0/getPrsnAlcoholTest',
-      data: {
-        'PageNumber': page,
-        'PageSize': pageSize,
-        'Search': ?search,
-      },
+      data: {'PageNumber': page, 'PageSize': pageSize, 'Search': ?search},
     );
     if (response.data is Map<String, dynamic>) {
       return AlcoholTestResponse.fromJson(

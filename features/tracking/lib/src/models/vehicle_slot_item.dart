@@ -12,7 +12,8 @@ class VehicleSlotItem {
     required this.routeStartTime,
   });
 
-  factory VehicleSlotItem.fromJson(Map<String, dynamic> json) => VehicleSlotItem(
+  factory VehicleSlotItem.fromJson(Map<String, dynamic> json) =>
+      VehicleSlotItem(
         vehicleNumber: json['VehicleNumber'] as String? ?? '',
         driverName: json['DriverName'] as String? ?? '',
         driverNumber: json['DriverNumber']?.toString() ?? '',
@@ -31,12 +32,12 @@ class VehicleSlotItem {
   final String vehicleNumber;
 
   Map<String, dynamic> toJson() => {
-        'VehicleNumber': vehicleNumber,
-        'DriverName': driverName,
-        'DriverNumber': driverNumber,
-        'Mode': mode,
-        'RouteNo': routeNo,
-        'RouteDetailsId': routeDetailsId,
-        'RouteStartTime': routeStartTime,
-      };
+    'VehicleNumber': vehicleNumber,
+    'DriverName': driverName,
+    'DriverNumber': driverNumber,
+    'Mode': mode,
+    'RouteNo': routeNo,
+    'RouteDetailsId': routeDetailsId,
+    'RouteStartTime': routeStartTime,
+  };
 }

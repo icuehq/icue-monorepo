@@ -42,7 +42,8 @@ class _SelectPointsDialogState extends State<SelectPointsDialog> {
       return p.name.toLowerCase().contains(_query.toLowerCase());
     }).toList();
 
-    final allSelected = widget.availablePoints.isNotEmpty &&
+    final allSelected =
+        widget.availablePoints.isNotEmpty &&
         _selectedNames.length == widget.availablePoints.length;
 
     return AlertDialog(
@@ -61,8 +62,9 @@ class _SelectPointsDialogState extends State<SelectPointsDialog> {
                 if (allSelected) {
                   _selectedNames.clear();
                 } else {
-                  _selectedNames =
-                      widget.availablePoints.map((p) => p.name).toList();
+                  _selectedNames = widget.availablePoints
+                      .map((p) => p.name)
+                      .toList();
                 }
               });
             },
@@ -79,8 +81,10 @@ class _SelectPointsDialogState extends State<SelectPointsDialog> {
               decoration: InputDecoration(
                 hintText: 'Search points...',
                 prefixIcon: const Icon(Icons.search, size: 20),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),

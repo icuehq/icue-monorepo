@@ -12,7 +12,8 @@ class AnnouncementTitlesResponse {
     return AnnouncementTitlesResponse(
       err: json['err'] as bool? ?? false,
       message: json['message'] as String? ?? '',
-      data: (json['data'] as List<dynamic>?)
+      data:
+          (json['data'] as List<dynamic>?)
               ?.whereType<Map<String, dynamic>>()
               .map(AnnouncementTitle.fromJson)
               .toList() ??
@@ -25,10 +26,10 @@ class AnnouncementTitlesResponse {
   final List<AnnouncementTitle> data;
 
   Map<String, dynamic> toJson() => {
-        'err': err,
-        'message': message,
-        'data': data.map((x) => x.toJson()).toList(),
-      };
+    'err': err,
+    'message': message,
+    'data': data.map((x) => x.toJson()).toList(),
+  };
 }
 
 @immutable
@@ -50,9 +51,8 @@ class AnnouncementTitle {
       descHeader: json['DescHeader'] as String? ?? '',
       descBody: json['DescBody'] as String? ?? '',
       descFooter: json['DescFooter'] as String? ?? '',
-      vars: (json['Vars'] as List<dynamic>?)
-              ?.map((e) => e.toString())
-              .toList() ??
+      vars:
+          (json['Vars'] as List<dynamic>?)?.map((e) => e.toString()).toList() ??
           const <String>[],
       isActive: json['IsActive'] as bool? ?? true,
     );
@@ -67,14 +67,14 @@ class AnnouncementTitle {
   final bool isActive;
 
   Map<String, dynamic> toJson() => {
-        'Type': type,
-        'Title': title,
-        'DescHeader': descHeader,
-        'DescBody': descBody,
-        'DescFooter': descFooter,
-        'Vars': vars,
-        'IsActive': isActive,
-      };
+    'Type': type,
+    'Title': title,
+    'DescHeader': descHeader,
+    'DescBody': descBody,
+    'DescFooter': descFooter,
+    'Vars': vars,
+    'IsActive': isActive,
+  };
 
   @override
   bool operator ==(Object other) =>

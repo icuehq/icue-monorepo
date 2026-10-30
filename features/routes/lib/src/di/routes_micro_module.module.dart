@@ -13,12 +13,14 @@ import 'package:routes/src/providers/routes_provider.dart' as _i677;
 import 'package:routes/src/services/route_service.dart' as _i564;
 
 class RoutesPackageModule extends _i526.MicroPackageModule {
-// initializes the registration of main-scope dependencies inside of GetIt
+  // initializes the registration of main-scope dependencies inside of GetIt
   @override
   _i687.FutureOr<void> init(_i526.GetItHelper gh) {
     gh.lazySingleton<_i564.RouteService>(
-        () => _i564.RouteService(gh<_i633.ApiClient>()));
+      () => _i564.RouteService(gh<_i633.ApiClient>()),
+    );
     gh.lazySingleton<_i677.RoutesProvider>(
-        () => _i677.RoutesProvider(gh<_i564.RouteService>()));
+      () => _i677.RoutesProvider(gh<_i564.RouteService>()),
+    );
   }
 }

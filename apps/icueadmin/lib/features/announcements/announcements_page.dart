@@ -52,7 +52,9 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
             tooltip: 'Refresh',
             onPressed: provider.isLoading
                 ? null
-                : () => context.read<AnnouncementsProvider>().fetchAnnouncements(),
+                : () => context
+                      .read<AnnouncementsProvider>()
+                      .fetchAnnouncements(),
           ),
         ],
         bottom: PreferredSize(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:icueadmin/analytics/app_events.dart';
 import 'package:icueadmin/features/logbook/widgets/complaint_status_badge.dart';
 import 'package:icueadmin/features/logbook/widgets/update_complaint_modal.dart';
 import 'package:logbook/logbook.dart';
@@ -27,6 +28,7 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
     if (!mounted) return;
 
     if (success) {
+      track(AppEvents.complaintUpdated);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Complaint updated successfully!')),
       );
@@ -73,9 +75,7 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Complaint #${_complaint.complaintNo}'),
-      ),
+      appBar: AppBar(title: Text('Complaint #${_complaint.complaintNo}')),
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -160,9 +160,7 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
           if (_complaint.details.isEmpty)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 24),
-              child: Center(
-                child: Text('No status updates recorded yet.'),
-              ),
+              child: Center(child: Text('No status updates recorded yet.')),
             )
           else
             ListView.separated(
@@ -221,8 +219,11 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            Icon(Icons.person_outline,
-                                size: 14, color: Colors.grey.shade500),
+                            Icon(
+                              Icons.person_outline,
+                              size: 14,
+                              color: Colors.grey.shade500,
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               detail.createdBy,

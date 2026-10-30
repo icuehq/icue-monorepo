@@ -79,7 +79,7 @@ void main() {
           {
             'Name': 'KPHB Colony',
             'StudentIds': [10, 20, 30],
-          }
+          },
         ],
       };
 
@@ -122,7 +122,7 @@ void main() {
     test('StudentData and Student deserializes with metadata', () {
       final json = <String, dynamic>{
         'metadata': [
-          {'total': 150, 'pageNumber': 1, 'pageSize': 100}
+          {'total': 150, 'pageNumber': 1, 'pageSize': 100},
         ],
         'data': [
           {
@@ -137,7 +137,7 @@ void main() {
             'mode': ['Pickup', 'Drop'],
             'routes': ['R-01', 'R-02'],
             'routeIds': ['101', '102'],
-          }
+          },
         ],
       };
 
@@ -210,40 +210,44 @@ void main() {
     });
 
     test('fetchStandards loads standards list', () async {
-      mockService.mockStandards = [
-        const Standards(id: 1, name: 'Grade 1'),
-      ];
+      mockService.mockStandards = [const Standards(id: 1, name: 'Grade 1')];
 
       await provider.fetchStandards();
       expect(provider.standards.length, equals(1));
       expect(mockService.getStandardsCalled, isTrue);
     });
 
-    test('fetchStudents populates students list and handles pagination flag', () async {
-      mockService.mockStudent = const Student(
-        metadata: [Metadatum(total: 2)],
-        data: [
-          StudentData(id: 1, name: 'Student 1'),
-          StudentData(id: 2, name: 'Student 2'),
-        ],
-      );
+    test(
+      'fetchStudents populates students list and handles pagination flag',
+      () async {
+        mockService.mockStudent = const Student(
+          metadata: [Metadatum(total: 2)],
+          data: [
+            StudentData(id: 1, name: 'Student 1'),
+            StudentData(id: 2, name: 'Student 2'),
+          ],
+        );
 
-      await provider.fetchStudents(5, ['A']);
-      expect(provider.students.length, equals(2));
-      expect(provider.hasNextPage, isFalse);
-      expect(mockService.getStudentsCalled, isTrue);
-    });
+        await provider.fetchStudents(5, ['A']);
+        expect(provider.students.length, equals(2));
+        expect(provider.hasNextPage, isFalse);
+        expect(mockService.getStudentsCalled, isTrue);
+      },
+    );
 
-    test('searchStudent updates students and sets hasNextPage to false', () async {
-      mockService.mockSearchResults = [
-        const StudentData(id: 1, name: 'Aarav'),
-      ];
+    test(
+      'searchStudent updates students and sets hasNextPage to false',
+      () async {
+        mockService.mockSearchResults = [
+          const StudentData(id: 1, name: 'Aarav'),
+        ];
 
-      await provider.searchStudent('Aarav');
-      expect(provider.students.length, equals(1));
-      expect(provider.hasNextPage, isFalse);
-      expect(mockService.searchStudentCalled, isTrue);
-    });
+        await provider.searchStudent('Aarav');
+        expect(provider.students.length, equals(1));
+        expect(provider.hasNextPage, isFalse);
+        expect(mockService.searchStudentCalled, isTrue);
+      },
+    );
 
     test('updateRouteTime calls service and refreshes routes', () async {
       const request = UpdateRouteTimeRequest(

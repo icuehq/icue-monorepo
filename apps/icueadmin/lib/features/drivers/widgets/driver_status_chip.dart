@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 
 class DriverStatusChip extends StatelessWidget {
-  const DriverStatusChip({
-    super.key,
-    required this.label,
-    this.color,
-  });
+  const DriverStatusChip({super.key, required this.label, this.color});
 
   final String label;
   final Color? color;
@@ -18,9 +14,7 @@ class DriverStatusChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: effectiveColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: effectiveColor.withValues(alpha: 0.3),
-        ),
+        border: Border.all(color: effectiveColor.withValues(alpha: 0.3)),
       ),
       child: Text(
         label,

@@ -31,17 +31,17 @@ class CreateGatePassRequest {
   final String section;
 
   Map<String, dynamic> toJson() => {
-        'ClassId': classId,
-        'PersonId': personId,
-        'Class': className,
-        'Section': section,
-        'Name': name,
-        'UniqueNo': admissionNumber,
-        'IsHostelite': isHostelite,
-        'HostelType': hostelType,
-        'GatePassDate': gatePassDate,
-        'GatePassType': gatePassType,
-        'RFID': rfid,
-        'PersonType': personType,
-      };
+    'ClassId': classId,
+    'PersonId': personId,
+    'Class': className,
+    'Section': section,
+    'Name': name,
+    'UniqueNo': admissionNumber,
+    'IsHostelite': isHostelite,
+    'HostelType': hostelType,
+    'GatePassDate': gatePassDate,
+    'GatePassType': gatePassType,
+    'RFID': rfid,
+    'PersonType': personType,
+  };
 }

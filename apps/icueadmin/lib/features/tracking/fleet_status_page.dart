@@ -45,7 +45,8 @@ class _FleetStatusPageState extends State<FleetStatusPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () => context.read<TrackingProvider>().fetchFleetStatus(),
+            onPressed: () =>
+                context.read<TrackingProvider>().fetchFleetStatus(),
           ),
         ],
       ),
@@ -60,15 +61,16 @@ class _FleetStatusPageState extends State<FleetStatusPage> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).primaryColor.withValues(alpha: 0.08),
+                      color: Theme.of(context).primaryColor
+                          .withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
                       children: [
                         CircleAvatar(
                           radius: 20,
-                          backgroundColor:
-                              Theme.of(context).primaryColor.withValues(alpha: 0.15),
+                          backgroundColor: Theme.of(context).primaryColor
+                              .withValues(alpha: 0.15),
                           child: Icon(
                             Icons.speed_rounded,
                             color: Theme.of(context).primaryColor,

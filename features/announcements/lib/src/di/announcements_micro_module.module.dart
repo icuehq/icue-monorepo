@@ -14,12 +14,14 @@ import 'package:api_client/api_client.dart' as _i633;
 import 'package:injectable/injectable.dart' as _i526;
 
 class AnnouncementsPackageModule extends _i526.MicroPackageModule {
-// initializes the registration of main-scope dependencies inside of GetIt
+  // initializes the registration of main-scope dependencies inside of GetIt
   @override
   _i687.FutureOr<void> init(_i526.GetItHelper gh) {
     gh.lazySingleton<_i60.AnnouncementService>(
-        () => _i60.AnnouncementService(gh<_i633.ApiClient>()));
+      () => _i60.AnnouncementService(gh<_i633.ApiClient>()),
+    );
     gh.lazySingleton<_i739.AnnouncementsProvider>(
-        () => _i739.AnnouncementsProvider(gh<_i60.AnnouncementService>()));
+      () => _i739.AnnouncementsProvider(gh<_i60.AnnouncementService>()),
+    );
   }
 }

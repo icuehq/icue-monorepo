@@ -90,8 +90,9 @@ class ExpenseBillSection extends StatelessWidget {
             Expanded(
               child: TextFormField(
                 controller: billAmountController,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 decoration: const InputDecoration(
                   labelText: 'Bill Amount (₹) *',
                   border: OutlineInputBorder(),

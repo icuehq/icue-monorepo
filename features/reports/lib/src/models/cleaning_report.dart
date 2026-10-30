@@ -3,13 +3,10 @@ import 'package:reports/src/models/report_metadata.dart';
 
 @immutable
 class CleanedPartItem {
-  const CleanedPartItem({
-    this.id,
-    this.name = '',
-    this.status = '',
-  });
+  const CleanedPartItem({this.id, this.name = '', this.status = ''});
 
-  factory CleanedPartItem.fromJson(Map<String, dynamic> json) => CleanedPartItem(
+  factory CleanedPartItem.fromJson(Map<String, dynamic> json) =>
+      CleanedPartItem(
         id: json['Id'] as int?,
         name: json['Name'] as String? ?? '',
         status: json['Status'] as String? ?? '',
@@ -19,11 +16,7 @@ class CleanedPartItem {
   final String name;
   final String status;
 
-  Map<String, dynamic> toJson() => {
-        'Id': id,
-        'Name': name,
-        'Status': status,
-      };
+  Map<String, dynamic> toJson() => {'Id': id, 'Name': name, 'Status': status};
 }
 
 @immutable
@@ -41,7 +34,8 @@ class CleaningReportData {
   factory CleaningReportData.fromJson(Map<String, dynamic> json) =>
       CleaningReportData(
         vehicleNo: json['VehicleNo'] as String? ?? '',
-        cleanedData: (json['CleanedData'] as List<dynamic>?)
+        cleanedData:
+            (json['CleanedData'] as List<dynamic>?)
                 ?.whereType<Map<String, dynamic>>()
                 .map(CleanedPartItem.fromJson)
                 .toList() ??
@@ -50,7 +44,8 @@ class CleaningReportData {
         createdDate: json['CreatedDate'] as String? ?? '',
         createdTime: json['CreatedTime'] as String? ?? '',
         source: json['Source'] as String? ?? '',
-        photos: (json['Photos'] as List<dynamic>?)
+        photos:
+            (json['Photos'] as List<dynamic>?)
                 ?.map((e) => e.toString())
                 .toList() ??
             const <String>[],
@@ -65,14 +60,14 @@ class CleaningReportData {
   final String vehicleNo;
 
   Map<String, dynamic> toJson() => {
-        'VehicleNo': vehicleNo,
-        'CleanedData': cleanedData.map((x) => x.toJson()).toList(),
-        'CreatedBy': createdBy,
-        'CreatedDate': createdDate,
-        'Source': source,
-        'CreatedTime': createdTime,
-        'Photos': photos,
-      };
+    'VehicleNo': vehicleNo,
+    'CleanedData': cleanedData.map((x) => x.toJson()).toList(),
+    'CreatedBy': createdBy,
+    'CreatedDate': createdDate,
+    'Source': source,
+    'CreatedTime': createdTime,
+    'Photos': photos,
+  };
 }
 
 @immutable
@@ -89,7 +84,8 @@ class CleaningReportResponse {
         metadata: json['metadata'] is Map
             ? ReportMetadata.fromJson(json['metadata'] as Map<String, dynamic>)
             : const ReportMetadata(),
-        data: (json['data'] as List<dynamic>?)
+        data:
+            (json['data'] as List<dynamic>?)
                 ?.whereType<Map<String, dynamic>>()
                 .map(CleaningReportData.fromJson)
                 .toList() ??
@@ -104,9 +100,9 @@ class CleaningReportResponse {
   final ReportMetadata metadata;
 
   Map<String, dynamic> toJson() => {
-        'metadata': metadata.toJson(),
-        'data': data.map((x) => x.toJson()).toList(),
-        'err': err,
-        'message': message,
-      };
+    'metadata': metadata.toJson(),
+    'data': data.map((x) => x.toJson()).toList(),
+    'err': err,
+    'message': message,
+  };
 }

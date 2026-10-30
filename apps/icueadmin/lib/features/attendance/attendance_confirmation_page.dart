@@ -1,6 +1,7 @@
 import 'package:attendance/attendance.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icueadmin/analytics/app_events.dart';
 import 'package:icueadmin/features/attendance/widgets/attendance_photos_section.dart';
 import 'package:icueadmin/features/attendance/widgets/attendance_student_tile.dart';
 import 'package:icueadmin/routing/app_routes.dart';
@@ -53,9 +54,7 @@ class _AttendanceConfirmationPageState extends State<AttendanceConfirmationPage>
     );
 
     if (confirmed == true && mounted) {
-      await context
-          .read<AttendanceProvider>()
-          .toggleStudentAttendance(student);
+      await context.read<AttendanceProvider>().toggleStudentAttendance(student);
     }
   }
 
@@ -88,6 +87,7 @@ class _AttendanceConfirmationPageState extends State<AttendanceConfirmationPage>
     if (!mounted) return;
 
     if (result != null && !result.err) {
+      track(AppEvents.attendanceSubmitted);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -138,10 +138,8 @@ class _AttendanceConfirmationPageState extends State<AttendanceConfirmationPage>
       );
     }
 
-    final presentStudents =
-        ongoing.students.where((s) => s.isPresent).toList();
-    final absentStudents =
-        ongoing.students.where((s) => !s.isPresent).toList();
+    final presentStudents = ongoing.students.where((s) => s.isPresent).toList();
+    final absentStudents = ongoing.students.where((s) => !s.isPresent).toList();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
@@ -195,8 +193,7 @@ class _AttendanceConfirmationPageState extends State<AttendanceConfirmationPage>
                     : ListView.separated(
                         padding: const EdgeInsets.all(16),
                         itemCount: presentStudents.length,
-                        separatorBuilder: (_, _) =>
-                            const SizedBox(height: 8),
+                        separatorBuilder: (_, _) => const SizedBox(height: 8),
                         itemBuilder: (context, index) {
                           final student = presentStudents[index];
                           return AttendanceStudentTile(
@@ -216,8 +213,7 @@ class _AttendanceConfirmationPageState extends State<AttendanceConfirmationPage>
                     : ListView.separated(
                         padding: const EdgeInsets.all(16),
                         itemCount: absentStudents.length,
-                        separatorBuilder: (_, _) =>
-                            const SizedBox(height: 8),
+                        separatorBuilder: (_, _) => const SizedBox(height: 8),
                         itemBuilder: (context, index) {
                           final student = absentStudents[index];
                           return AttendanceStudentTile(

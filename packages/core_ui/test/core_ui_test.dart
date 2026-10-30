@@ -45,7 +45,9 @@ void main() {
     test('byRange formats label as Start - End date', () {
       final start = DateTime(2025);
       final end = DateTime(2025, 1, 31);
-      final result = AppFilterResult.byRange(DateTimeRange(start: start, end: end));
+      final result = AppFilterResult.byRange(
+        DateTimeRange(start: start, end: end),
+      );
       expect(result.mode, equals(AppFilterMode.byRange));
       expect(result.displayLabel, equals('1/1/2025 - 31/1/2025'));
     });
@@ -62,10 +64,7 @@ void main() {
     });
 
     test('isUploaded is false when fileUrl is empty or null', () {
-      const doc = DocumentItemData(
-        docType: 'License',
-        title: 'Driver License',
-      );
+      const doc = DocumentItemData(docType: 'License', title: 'Driver License');
       expect(doc.isUploaded, isFalse);
     });
 

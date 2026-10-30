@@ -19,11 +19,11 @@ class CreateAnnouncementRequest {
   final List<int>? studentIds;
 
   Map<String, dynamic> toJson() => {
-        'Title': title,
-        'Description': description,
-        'Mode': mode,
-        'Routes': routes,
-        'PickUpPoints': ?points,
-        'StudentIds': ?studentIds,
-      };
+    'Title': title,
+    'Description': description,
+    'Mode': mode,
+    'Routes': routes,
+    'PickUpPoints': ?points,
+    'StudentIds': ?studentIds,
+  };
 }

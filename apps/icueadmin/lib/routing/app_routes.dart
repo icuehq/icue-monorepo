@@ -52,8 +52,7 @@ abstract final class AppRoutes {
   static const String repairsExpense = '/layout.repairsandexpenses';
   static const String repairsExpenseName = 'repairsExpense';
 
-  static const String vehicleOptions =
-      '/layout.repairsandexpenses/options';
+  static const String vehicleOptions = '/layout.repairsandexpenses/options';
   static const String vehicleOptionsName = 'vehicleOptions';
 
   static const String manageExpense = '/layout.fuelfilling';
@@ -68,8 +67,7 @@ abstract final class AppRoutes {
   static const String endFilling = '/layout.fuelfilling/end-filling';
   static const String endFillingName = 'endFilling';
 
-  static const String expenseConfirmation =
-      '/layout.fuelfilling/confirmation';
+  static const String expenseConfirmation = '/layout.fuelfilling/confirmation';
   static const String expenseConfirmationName = 'expenseConfirmation';
 
   static const String logBook = '/layout.logbook';
@@ -93,8 +91,7 @@ abstract final class AppRoutes {
   static const String cleaningLog = '/layout.logbook/layout.cleaninglog';
   static const String cleaningLogName = 'cleaningLog';
 
-  static const String alcoholTestForm =
-      '/layout.logbook/layout.alcoholtest';
+  static const String alcoholTestForm = '/layout.logbook/layout.alcoholtest';
   static const String alcoholTestFormName = 'alcoholTestForm';
 
   static const String reports = '/layout.reports';
@@ -104,8 +101,7 @@ abstract final class AppRoutes {
       '/layout.reports/layout.vehiclearrival';
   static const String arrivalTimeReportName = 'arrivalTimeReport';
 
-  static const String cleaningReport =
-      '/layout.reports/layout.vehiclecleaning';
+  static const String cleaningReport = '/layout.reports/layout.vehiclecleaning';
   static const String cleaningReportName = 'cleaningReport';
 
   static const String alcoholTestReport =
@@ -141,15 +137,13 @@ abstract final class AppRoutes {
   static const String trackBus = '/layout.trackvehicle';
   static const String trackBusName = 'trackBus';
 
-  static const String trackingWebview =
-      '/layout.trackvehicle/webview';
+  static const String trackingWebview = '/layout.trackvehicle/webview';
   static const String trackingWebviewName = 'trackingWebview';
 
   static const String dropBoarding = '/layout.dropboarding';
   static const String dropBoardingName = 'dropBoarding';
 
-  static const String dropVehicles =
-      '/layout.dropboarding/drop-vehicles';
+  static const String dropVehicles = '/layout.dropboarding/drop-vehicles';
   static const String dropVehiclesName = 'dropVehicles';
 
   static const String boarding = '/layout.dropboarding/boarding';
@@ -158,12 +152,10 @@ abstract final class AppRoutes {
   static const String attendance = '/layout.attendance';
   static const String attendanceName = 'attendance';
 
-  static const String attendanceSections =
-      '/layout.attendance/sections';
+  static const String attendanceSections = '/layout.attendance/sections';
   static const String attendanceSectionsName = 'attendanceSections';
 
-  static const String createAttendance =
-      '/layout.attendance/create';
+  static const String createAttendance = '/layout.attendance/create';
   static const String createAttendanceName = 'createAttendance';
 
   static const String sdkAttendance = '/layout.attendance/sdk';

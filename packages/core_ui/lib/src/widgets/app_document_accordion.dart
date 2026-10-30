@@ -60,7 +60,8 @@ class AppDocumentAccordion extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final expiryAlert = document.expiryStatusMessage;
-    final isExpired = document.daysUntilExpiry != null && document.daysUntilExpiry! < 0;
+    final isExpired =
+        document.daysUntilExpiry != null && document.daysUntilExpiry! < 0;
 
     return Card(
       elevation: 0.5,
@@ -70,7 +71,9 @@ class AppDocumentAccordion extends StatelessWidget {
         side: BorderSide(
           color: isExpired
               ? Colors.red.shade300
-              : (document.isUploaded ? Colors.green.shade200 : Colors.grey.shade300),
+              : (document.isUploaded
+                    ? Colors.green.shade200
+                    : Colors.grey.shade300),
         ),
       ),
       child: ExpansionTile(
@@ -78,9 +81,13 @@ class AppDocumentAccordion extends StatelessWidget {
         leading: CircleAvatar(
           backgroundColor: isExpired
               ? Colors.red.shade50
-              : (document.isUploaded ? Colors.green.shade50 : Colors.grey.shade100),
+              : (document.isUploaded
+                    ? Colors.green.shade50
+                    : Colors.grey.shade100),
           child: Icon(
-            document.isUploaded ? Icons.verified_rounded : Icons.description_outlined,
+            document.isUploaded
+                ? Icons.verified_rounded
+                : Icons.description_outlined,
             color: isExpired
                 ? Colors.red
                 : (document.isUploaded ? Colors.green : Colors.grey),
@@ -104,8 +111,11 @@ class AppDocumentAccordion extends StatelessWidget {
                 ),
               )
             : (document.docNumber != null && document.docNumber!.isNotEmpty
-                ? Text('No: ${document.docNumber}', style: const TextStyle(fontSize: 12))
-                : null),
+                  ? Text(
+                      'No: ${document.docNumber}',
+                      style: const TextStyle(fontSize: 12),
+                    )
+                  : null),
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -119,7 +129,10 @@ class AppDocumentAccordion extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Expiry Date:', style: TextStyle(color: Colors.grey)),
+                        const Text(
+                          'Expiry Date:',
+                          style: TextStyle(color: Colors.grey),
+                        ),
                         Text(
                           '${document.expiryDate!.day}/${document.expiryDate!.month}/${document.expiryDate!.year}',
                           style: const TextStyle(fontWeight: FontWeight.bold),
@@ -141,8 +154,15 @@ class AppDocumentAccordion extends StatelessWidget {
                       const SizedBox(width: 8),
                       TextButton.icon(
                         onPressed: onDeleteDocument,
-                        icon: const Icon(Icons.delete_outline, color: Colors.red, size: 16),
-                        label: const Text('Delete', style: TextStyle(color: Colors.red)),
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          color: Colors.red,
+                          size: 16,
+                        ),
+                        label: const Text(
+                          'Delete',
+                          style: TextStyle(color: Colors.red),
+                        ),
                       ),
                     ],
                     if (onUploadDocument != null) ...[
@@ -150,7 +170,9 @@ class AppDocumentAccordion extends StatelessWidget {
                       ElevatedButton.icon(
                         onPressed: onUploadDocument,
                         icon: Icon(
-                          document.isUploaded ? Icons.edit_rounded : Icons.upload_file_rounded,
+                          document.isUploaded
+                              ? Icons.edit_rounded
+                              : Icons.upload_file_rounded,
                           size: 16,
                         ),
                         label: Text(document.isUploaded ? 'Replace' : 'Upload'),

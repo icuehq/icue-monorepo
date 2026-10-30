@@ -80,8 +80,12 @@ class ErrorInterceptor extends Interceptor {
     );
   }
 
-  ApiException _mapDioException(DioException err, [String? precomputedMessage]) {
-    final defaultMsg = precomputedMessage ?? ErrorHelpers.extractErrorMessage(err);
+  ApiException _mapDioException(
+    DioException err, [
+    String? precomputedMessage,
+  ]) {
+    final defaultMsg =
+        precomputedMessage ?? ErrorHelpers.extractErrorMessage(err);
 
     switch (err.type) {
       case DioExceptionType.connectionTimeout:
@@ -135,9 +139,7 @@ class ErrorInterceptor extends Interceptor {
             );
           case final int code when code >= 500 && code < 600:
             return ServerException(
-              message:
-                  serverMessage ??
-                  'Our servers are temporarily unavailable. Please try again shortly.',
+              message: serverMessage ?? 'Our servers are temporarily unavailable. Please try again shortly.',
               statusCode: statusCode,
               originalError: err,
             );
@@ -162,10 +164,7 @@ class ErrorInterceptor extends Interceptor {
             originalError: err,
           );
         }
-        return UnknownApiException(
-          message: defaultMsg,
-          originalError: err,
-        );
+        return UnknownApiException(message: defaultMsg, originalError: err);
     }
   }
 

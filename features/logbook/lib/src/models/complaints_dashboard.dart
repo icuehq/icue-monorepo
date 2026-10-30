@@ -20,7 +20,8 @@ class ComplaintsDashboardResponse {
       err: json['err'] as bool? ?? false,
       message: json['message'] as String? ?? '',
       total: totalCount,
-      data: (json['data'] as List<dynamic>?)
+      data:
+          (json['data'] as List<dynamic>?)
               ?.whereType<Map<String, dynamic>>()
               .map(ComplaintDashboardItem.fromJson)
               .toList() ??
@@ -54,7 +55,8 @@ class ComplaintDashboardItem {
         categoryId: json['CategoryId'] as int?,
         vehicle: json['Vehicle'] as String?,
         vehicleId: json['VehicleId'] as int?,
-        statuses: (json['Statuses'] as List<dynamic>?)
+        statuses:
+            (json['Statuses'] as List<dynamic>?)
                 ?.whereType<Map<String, dynamic>>()
                 .map(ComplaintStatusCount.fromJson)
                 .toList() ??
@@ -70,22 +72,19 @@ class ComplaintDashboardItem {
   final List<ComplaintStatusCount> statuses;
 
   Map<String, dynamic> toJson() => {
-        'TotalCount': totalCount,
-        'Status': ?status,
-        'Category': ?category,
-        'CategoryId': ?categoryId,
-        'Vehicle': ?vehicle,
-        'VehicleId': ?vehicleId,
-        'Statuses': statuses.map((x) => x.toJson()).toList(),
-      };
+    'TotalCount': totalCount,
+    'Status': ?status,
+    'Category': ?category,
+    'CategoryId': ?categoryId,
+    'Vehicle': ?vehicle,
+    'VehicleId': ?vehicleId,
+    'Statuses': statuses.map((x) => x.toJson()).toList(),
+  };
 }
 
 @immutable
 class ComplaintStatusCount {
-  const ComplaintStatusCount({
-    required this.status,
-    required this.count,
-  });
+  const ComplaintStatusCount({required this.status, required this.count});
 
   factory ComplaintStatusCount.fromJson(Map<String, dynamic> json) =>
       ComplaintStatusCount(
@@ -96,8 +95,5 @@ class ComplaintStatusCount {
   final String status;
   final int count;
 
-  Map<String, dynamic> toJson() => {
-        'Status': status,
-        'Count': count,
-      };
+  Map<String, dynamic> toJson() => {'Status': status, 'Count': count};
 }

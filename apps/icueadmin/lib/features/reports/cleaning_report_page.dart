@@ -39,10 +39,10 @@ class _CleaningReportPageState extends State<CleaningReportPage> {
       _page = 1;
     }
     context.read<ReportsProvider>().fetchCleaningReport(
-          filter: _filterResult,
-          page: _page,
-          vehicleNo: _selectedVehicle?.number,
-        );
+      filter: _filterResult,
+      page: _page,
+      vehicleNo: _selectedVehicle?.number,
+    );
   }
 
   void _loadMore() {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icueadmin/analytics/app_events.dart';
 import 'package:logbook/logbook.dart';
 import 'package:provider/provider.dart';
 import 'package:vehicles/vehicles.dart';
@@ -43,7 +44,9 @@ class _CleaningLogPageState extends State<CleaningLogPage> {
     }
     if (_selectedPartIds.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select at least one cleaned area')),
+        const SnackBar(
+          content: Text('Please select at least one cleaned area'),
+        ),
       );
       return;
     }
@@ -63,6 +66,7 @@ class _CleaningLogPageState extends State<CleaningLogPage> {
     if (!mounted) return;
 
     if (res.success && res.failedCount == 0) {
+      track(AppEvents.cleaningLogSubmitted);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Cleaning inspection recorded successfully!'),
@@ -114,9 +118,7 @@ class _CleaningLogPageState extends State<CleaningLogPage> {
     }).toList();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Vehicle Cleaning Log'),
-      ),
+      appBar: AppBar(title: const Text('Vehicle Cleaning Log')),
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -203,23 +205,24 @@ class _CleaningLogPageState extends State<CleaningLogPage> {
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                      ),
                     ),
                     onChanged: (val) => setState(() => _query = val),
                   ),
                 ),
                 Expanded(
                   child: filteredVehicles.isEmpty
-                      ? const Center(
-                          child: Text('No vehicles found.'),
-                        )
+                      ? const Center(child: Text('No vehicles found.'))
                       : ListView.builder(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           itemCount: filteredVehicles.length,
                           itemBuilder: (context, index) {
                             final vehicle = filteredVehicles[index];
-                            final isChecked =
-                                _selectedVehicleIds.contains(vehicle.id);
+                            final isChecked = _selectedVehicleIds.contains(
+                              vehicle.id,
+                            );
 
                             return CheckboxListTile(
                               dense: true,

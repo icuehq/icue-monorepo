@@ -11,6 +11,7 @@ workspace:
   - packages/core_ui
   - packages/local_storage
   - packages/icue_face_sdk
+  - packages/icue_firebase
   - features/auth
   - features/drivers
   - features/vehicles
@@ -26,3 +27,45 @@ workspace:
 
 dev_dependencies:
   melos: ^8.9.0
+
+melos:
+  scripts:
+    lint:
+      description: Analyze every package.
+      run: melos exec -c 5 -- flutter analyze --no-fatal-infos
+
+    format:
+      description: Format all Dart code.
+      run: dart format .
+
+    format:check:
+      description: Fail if any file is unformatted.
+      run: dart format --set-exit-if-changed .
+
+    test:
+      description: Run tests in every package that has a test/ dir.
+      run: melos exec -c 3 --fail-fast -- flutter test
+      packageFilters:
+        dirExists: test
+
+    gen:
+      description: Run build_runner in packages that depend on it.
+      run: melos exec -c 3 -- dart run build_runner build --delete-conflicting-outputs
+      packageFilters:
+        dependsOn: build_runner
+
+    gen:watch:
+      description: Watch build_runner in packages that depend on it.
+      run: melos exec -- dart run build_runner watch --delete-conflicting-outputs
+      packageFilters:
+        dependsOn: build_runner
+
+    clean:
+      description: Flutter clean every package.
+      run: melos exec -c 5 -- flutter clean
+      packageFilters:
+        flutter: true
+
+    outdated:
+      description: Show outdated dependencies.
+      run: melos exec -c 5 -- flutter pub outdated

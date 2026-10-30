@@ -55,18 +55,16 @@ class _AttendancePageState extends State<AttendancePage> {
       } else {
         context.push(
           AppRoutes.createAttendance,
-          extra: {
-            'standard': targetClass,
-            'section': ongoing.section,
-          },
+          extra: {'standard': targetClass, 'section': ongoing.section},
         );
       }
     }
   }
 
   Future<bool> _checkAndShowOngoingDialog() async {
-    final ongoing =
-        await context.read<AttendanceProvider>().getOngoingAttendance();
+    final ongoing = await context
+        .read<AttendanceProvider>()
+        .getOngoingAttendance();
     if (!mounted || ongoing == null) return true;
 
     var resume = false;
@@ -110,8 +108,8 @@ class _AttendancePageState extends State<AttendancePage> {
             icon: const Icon(Icons.refresh),
             onPressed: () async {
               await context.read<AuthProvider>().getAssignedEntities(
-                    forAttendance: true,
-                  );
+                forAttendance: true,
+              );
               if (context.mounted) {
                 await context.read<AttendanceProvider>().getOngoingAttendance();
               }
@@ -169,8 +167,9 @@ class _AttendancePageState extends State<AttendancePage> {
                                 leading: Container(
                                   padding: const EdgeInsets.all(8),
                                   decoration: BoxDecoration(
-                                    color: theme.colorScheme.primary
-                                        .withValues(alpha: 0.1),
+                                    color: theme.colorScheme.primary.withValues(
+                                      alpha: 0.1,
+                                    ),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Icon(

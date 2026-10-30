@@ -32,7 +32,8 @@ class _SelectRoutesDialogState extends State<SelectRoutesDialog> {
       return r.routeNo.toLowerCase().contains(_query.toLowerCase());
     }).toList();
 
-    final allSelected = widget.availableRoutes.isNotEmpty &&
+    final allSelected =
+        widget.availableRoutes.isNotEmpty &&
         _selectedIds.length == widget.availableRoutes.length;
 
     return AlertDialog(
@@ -51,8 +52,9 @@ class _SelectRoutesDialogState extends State<SelectRoutesDialog> {
                 if (allSelected) {
                   _selectedIds.clear();
                 } else {
-                  _selectedIds =
-                      widget.availableRoutes.map((r) => r.id).toList();
+                  _selectedIds = widget.availableRoutes
+                      .map((r) => r.id)
+                      .toList();
                 }
               });
             },
@@ -69,8 +71,10 @@ class _SelectRoutesDialogState extends State<SelectRoutesDialog> {
               decoration: InputDecoration(
                 hintText: 'Search routes...',
                 prefixIcon: const Icon(Icons.search, size: 20),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),

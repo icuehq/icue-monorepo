@@ -27,10 +27,7 @@ class BranchSearchBar extends StatelessWidget {
           onChanged: onChanged,
           decoration: InputDecoration(
             hintText: 'Search branch by name or short code...',
-            hintStyle: TextStyle(
-              color: Colors.grey.shade500,
-              fontSize: 14,
-            ),
+            hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
             prefixIcon: Icon(
               Icons.search_rounded,
               color: hasText ? primaryColor : Colors.grey.shade500,

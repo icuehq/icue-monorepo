@@ -34,8 +34,10 @@ class ComplaintCard extends StatelessWidget {
               Row(
                 children: [
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.grey.shade100,
                       borderRadius: BorderRadius.circular(6),
@@ -63,8 +65,11 @@ class ComplaintCard extends StatelessWidget {
               const SizedBox(height: 10),
               Row(
                 children: [
-                  Icon(Icons.category_outlined,
-                      size: 16, color: Colors.grey.shade600),
+                  Icon(
+                    Icons.category_outlined,
+                    size: 16,
+                    color: Colors.grey.shade600,
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     complaint.categoryName,
@@ -92,8 +97,11 @@ class ComplaintCard extends StatelessWidget {
               const SizedBox(height: 12),
               Row(
                 children: [
-                  Icon(Icons.access_time_rounded,
-                      size: 14, color: Colors.grey.shade500),
+                  Icon(
+                    Icons.access_time_rounded,
+                    size: 14,
+                    color: Colors.grey.shade500,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     '${complaint.stsUpdatedDt} ${complaint.stsUpdatedTime}',
@@ -108,8 +116,11 @@ class ComplaintCard extends StatelessWidget {
                       color: Colors.blue,
                     ),
                   ),
-                  const Icon(Icons.arrow_forward_ios_rounded,
-                      size: 11, color: Colors.blue),
+                  const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 11,
+                    color: Colors.blue,
+                  ),
                 ],
               ),
             ],

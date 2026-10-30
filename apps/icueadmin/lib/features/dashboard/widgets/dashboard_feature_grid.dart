@@ -154,8 +154,9 @@ class DashboardFeatureGrid extends StatelessWidget {
           itemBuilder: (context, index) {
             final item = actions[index];
             final color = _palette[index % _palette.length];
-            final title =
-                item.displayName.isNotEmpty ? item.displayName : item.name;
+            final title = item.displayName.isNotEmpty
+                ? item.displayName
+                : item.name;
             final icon = _resolveIcon(
               item.icon.isNotEmpty ? item.icon : item.name,
             );
@@ -268,8 +269,8 @@ class DashboardFeatureGrid extends StatelessWidget {
                             hasSubActions
                                 ? '${item.subActionItems!.length} options'
                                 : (item.routeState.isNotEmpty
-                                    ? item.routeState
-                                    : 'Available'),
+                                      ? item.routeState
+                                      : 'Available'),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(

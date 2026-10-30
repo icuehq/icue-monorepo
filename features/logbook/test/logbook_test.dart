@@ -11,8 +11,9 @@ class MockLogBookService implements LogBookService {
 
   bool submitComplaintSuccess = true;
   bool updateComplaintSuccess = true;
-  CleaningSubmissionResult mockCleaningResult =
-      const CleaningSubmissionResult(success: true);
+  CleaningSubmissionResult mockCleaningResult = const CleaningSubmissionResult(
+    success: true,
+  );
   bool submitAlcoholTestSuccess = true;
 
   CreateComplaintRequest? lastComplaintRequest;
@@ -24,8 +25,7 @@ class MockLogBookService implements LogBookService {
   Future<ComplaintsDashboardResponse> getComplaintsStats({
     required String countBy,
     int page = 1,
-  }) async =>
-      mockStatsResponse;
+  }) async => mockStatsResponse;
 
   @override
   Future<ComplaintDataResponse> getComplaints({
@@ -35,8 +35,7 @@ class MockLogBookService implements LogBookService {
     String? action,
     String? complaintNo,
     int page = 1,
-  }) async =>
-      mockComplaintsResponse;
+  }) async => mockComplaintsResponse;
 
   @override
   Future<List<ComplaintCategory>> getComplaintCategories() async =>
@@ -77,8 +76,7 @@ class MockLogBookService implements LogBookService {
     int page = 1,
     int pageSize = 10,
     String? search,
-  }) async =>
-      mockAlcoholTestResponse;
+  }) async => mockAlcoholTestResponse;
 }
 
 void main() {
@@ -165,9 +163,7 @@ void main() {
 
       const req = SubmitCleaningDataRequest(
         cleanedPartIds: [1, 2],
-        vehicles: [
-          CleanedVehicleEntry(id: 101, vehicleNo: 'AP29AB1234'),
-        ],
+        vehicles: [CleanedVehicleEntry(id: 101, vehicleNo: 'AP29AB1234')],
       );
 
       final jsonReq = req.toJson();
@@ -186,10 +182,7 @@ void main() {
             'SubmittedDate': '2026-10-30',
             'SubmittedTime': '07:30 AM',
             'PersonType': 'DRIVER',
-            'PersonInfo': {
-              'Name': 'Ramesh Kumar',
-              'Mobile': '9876543210',
-            },
+            'PersonInfo': {'Name': 'Ramesh Kumar', 'Mobile': '9876543210'},
             'AlcoholTest': 'PASSED',
             'AlcoholTestReading': 0.00,
             'ImageUrl': 'https://example.com/test.jpg',
@@ -222,9 +215,7 @@ void main() {
     test('fetchComplaintsStats loads aggregated dashboard items', () async {
       mockService.mockStatsResponse = const ComplaintsDashboardResponse(
         total: 2,
-        data: [
-          ComplaintDashboardItem(totalCount: 2, status: 'Open'),
-        ],
+        data: [ComplaintDashboardItem(totalCount: 2, status: 'Open')],
       );
 
       await provider.fetchComplaintsStats(countBy: 'Status');
@@ -234,26 +225,29 @@ void main() {
       expect(provider.stats.first.status, equals('Open'));
     });
 
-    test('fetchComplaints loads complaint list and manages pagination count', () async {
-      mockService.mockComplaintsResponse = const ComplaintDataResponse(
-        total: 1,
-        data: [
-          Complaint(
-            id: 1,
-            complaintNo: 501,
-            vehicleNo: 'AP29AB1234',
-            categoryName: 'Engine Noise',
-            currStatus: 'Open',
-            currAction: 'Diagnosing',
-          ),
-        ],
-      );
+    test(
+      'fetchComplaints loads complaint list and manages pagination count',
+      () async {
+        mockService.mockComplaintsResponse = const ComplaintDataResponse(
+          total: 1,
+          data: [
+            Complaint(
+              id: 1,
+              complaintNo: 501,
+              vehicleNo: 'AP29AB1234',
+              categoryName: 'Engine Noise',
+              currStatus: 'Open',
+              currAction: 'Diagnosing',
+            ),
+          ],
+        );
 
-      await provider.fetchComplaints();
+        await provider.fetchComplaints();
 
-      expect(provider.complaints.length, equals(1));
-      expect(provider.complaints.first.complaintNo, equals(501));
-    });
+        expect(provider.complaints.length, equals(1));
+        expect(provider.complaints.first.complaintNo, equals(501));
+      },
+    );
 
     test('createComplaint delegates to service and triggers refresh', () async {
       const request = CreateComplaintRequest(
@@ -266,21 +260,30 @@ void main() {
       final result = await provider.createComplaint(request);
 
       expect(result, isTrue);
-      expect(mockService.lastComplaintRequest?.vehicleNumber, equals('AP29AB1234'));
-      expect(mockService.lastComplaintRequest?.description, equals('AC cooling issue'));
-    });
-
-    test('submitVehicleCleaning handles successful cleaning inspections', () async {
-      const request = SubmitCleaningDataRequest(
-        cleanedPartIds: [1],
-        vehicles: [CleanedVehicleEntry(id: 1, vehicleNo: 'AP29AB1234')],
+      expect(
+        mockService.lastComplaintRequest?.vehicleNumber,
+        equals('AP29AB1234'),
       );
-
-      final result = await provider.submitCleaningData(request);
-
-      expect(result.success, isTrue);
-      expect(mockService.lastCleaningRequest?.cleanedPartIds, equals([1]));
+      expect(
+        mockService.lastComplaintRequest?.description,
+        equals('AC cooling issue'),
+      );
     });
+
+    test(
+      'submitVehicleCleaning handles successful cleaning inspections',
+      () async {
+        const request = SubmitCleaningDataRequest(
+          cleanedPartIds: [1],
+          vehicles: [CleanedVehicleEntry(id: 1, vehicleNo: 'AP29AB1234')],
+        );
+
+        final result = await provider.submitCleaningData(request);
+
+        expect(result.success, isTrue);
+        expect(mockService.lastCleaningRequest?.cleanedPartIds, equals([1]));
+      },
+    );
 
     test('submitAlcoholTest sends driver breathalyzer submission', () async {
       const request = AlcoholTestSubmissionRequest(

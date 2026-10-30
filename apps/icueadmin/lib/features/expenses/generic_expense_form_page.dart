@@ -1,6 +1,7 @@
 import 'package:expenses/expenses.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icueadmin/analytics/app_events.dart';
 import 'package:icueadmin/features/expenses/widgets/expense_bill_section.dart';
 import 'package:icueadmin/routing/app_routes.dart';
 import 'package:provider/provider.dart';
@@ -20,10 +21,7 @@ class GenericExpenseArgs {
 }
 
 class GenericExpenseFormPage extends StatefulWidget {
-  const GenericExpenseFormPage({
-    super.key,
-    required this.args,
-  });
+  const GenericExpenseFormPage({super.key, required this.args});
 
   final GenericExpenseArgs args;
 
@@ -184,6 +182,7 @@ class _GenericExpenseFormPageState extends State<GenericExpenseFormPage> {
     if (!mounted) return;
 
     if (success) {
+      track(AppEvents.expenseSubmitted, {'type': '${widget.args.expenseType}'});
       context.pushReplacement(
         AppRoutes.expenseConfirmation,
         extra: ExpenseConfirmationData(
@@ -231,7 +230,8 @@ class _GenericExpenseFormPageState extends State<GenericExpenseFormPage> {
               billAmountController: _billAmountController,
               vendorNameController: _vendorNameController,
               status: _status,
-              onStatusChanged: (val) => setState(() => _status = val ?? 'UnBilled'),
+              onStatusChanged: (val) =>
+                  setState(() => _status = val ?? 'UnBilled'),
               billFileName: _billFileName,
               onPickBillFile: () {
                 setState(() {
@@ -251,9 +251,8 @@ class _GenericExpenseFormPageState extends State<GenericExpenseFormPage> {
             const SizedBox(height: 12),
             Text(
               '${widget.args.expenseType.expenseTypeDesc} Details',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(context).textTheme.titleSmall
+                  ?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             if (code != 'salary') ...[
@@ -372,12 +371,15 @@ class _GenericExpenseFormPageState extends State<GenericExpenseFormPage> {
                 ),
                 items: expenseProvider.categories.map((c) {
                   return DropdownMenuItem<int>(
-                    value: c.id is int ? c.id as int : int.tryParse(c.id.toString()) ?? 0,
+                    value: c.id is int
+                        ? c.id as int
+                        : int.tryParse(c.id.toString()) ?? 0,
                     child: Text(c.name),
                   );
                 }).toList(),
                 onChanged: _onCategoryChanged,
-                validator: (val) => val == null ? 'Please select category' : null,
+                validator: (val) =>
+                    val == null ? 'Please select category' : null,
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
@@ -402,8 +404,9 @@ class _GenericExpenseFormPageState extends State<GenericExpenseFormPage> {
                   Expanded(
                     child: TextFormField(
                       controller: _fuelQtyController,
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       decoration: const InputDecoration(
                         labelText: 'Quantity (Litres) *',
                         border: OutlineInputBorder(),
@@ -417,8 +420,9 @@ class _GenericExpenseFormPageState extends State<GenericExpenseFormPage> {
                   Expanded(
                     child: TextFormField(
                       controller: _fuelRateController,
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       decoration: const InputDecoration(
                         labelText: 'Rate (₹ / Litre) *',
                         border: OutlineInputBorder(),

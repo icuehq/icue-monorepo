@@ -21,10 +21,10 @@ class _DropBoardingPageState extends State<DropBoardingPage> {
       final user = auth.user;
       if (user != null) {
         context.read<DropBoardingProvider>().fetchInitialData(
-              zoneId: user.zoneId,
-              branchId: auth.selectedBranch?.id ?? user.branchId,
-              organizationId: user.organizationId,
-            );
+          zoneId: user.zoneId,
+          branchId: auth.selectedBranch?.id ?? user.branchId,
+          organizationId: user.organizationId,
+        );
       }
     });
   }
@@ -32,9 +32,7 @@ class _DropBoardingPageState extends State<DropBoardingPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Drop & Boarding'),
-      ),
+      appBar: AppBar(title: const Text('Drop & Boarding')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -49,8 +47,7 @@ class _DropBoardingPageState extends State<DropBoardingPage> {
           _NavigationCard(
             icon: Icons.departure_board_rounded,
             title: 'Boarding Status',
-            subtitle:
-                'Track parked vehicles awaiting departure and mark them as left.',
+            subtitle: 'Track parked vehicles awaiting departure and mark them as left.',
             onTap: () => context.push(AppRoutes.boarding),
           ),
         ],
@@ -110,8 +107,9 @@ class _NavigationCard extends StatelessWidget {
                     Text(
                       subtitle,
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.textTheme.bodyMedium?.color
-                            ?.withValues(alpha: 0.7),
+                        color: theme.textTheme.bodyMedium?.color?.withValues(
+                          alpha: 0.7,
+                        ),
                       ),
                     ),
                   ],

@@ -69,7 +69,7 @@ void main() {
             'RouteNo': 'R-02',
             'VehicleNumber': 'KA01AB5678',
             'Status': 'ARRIVED',
-          }
+          },
         ],
       };
 
@@ -80,10 +80,7 @@ void main() {
     });
 
     test('BoardingType deserializes and serializes properly', () {
-      final json = <String, dynamic>{
-        'Id': '1',
-        'Name': 'Bay 1',
-      };
+      final json = <String, dynamic>{'Id': '1', 'Name': 'Bay 1'};
 
       final type = BoardingType.fromJson(json);
       expect(type.id, '1');
@@ -129,33 +126,35 @@ void main() {
       );
     });
 
-    test('fetchInitialData populates arrivals and calculates drop routes',
-        () async {
-      mockApi.nextResponseData = {
-        'err': false,
-        'message': 'Success',
-        'data': [
-          {
-            'RouteId': 1,
-            'RouteNo': 'R-01',
-            'VehicleNumber': 'KA01AA1111',
-            'Status': 'ARRIVED',
-          }
-        ],
-      };
+    test(
+      'fetchInitialData populates arrivals and calculates drop routes',
+      () async {
+        mockApi.nextResponseData = {
+          'err': false,
+          'message': 'Success',
+          'data': [
+            {
+              'RouteId': 1,
+              'RouteNo': 'R-01',
+              'VehicleNumber': 'KA01AA1111',
+              'Status': 'ARRIVED',
+            },
+          ],
+        };
 
-      // Both getVehicleArrivals and getRoutesAndPoints will hit mockApi
-      await provider.fetchInitialData(
-        zoneId: 1,
-        branchId: 10,
-        organizationId: 100,
-      );
+        // Both getVehicleArrivals and getRoutesAndPoints will hit mockApi
+        await provider.fetchInitialData(
+          zoneId: 1,
+          branchId: 10,
+          organizationId: 100,
+        );
 
-      expect(provider.isLoading, false);
-      expect(provider.vehicleArrivals.length, 1);
-      expect(provider.arrivedVehicles.length, 1);
-      expect(provider.arrivedVehicles.first.routeNo, 'R-01');
-    });
+        expect(provider.isLoading, false);
+        expect(provider.vehicleArrivals.length, 1);
+        expect(provider.arrivedVehicles.length, 1);
+        expect(provider.arrivedVehicles.first.routeNo, 'R-01');
+      },
+    );
 
     test('fetchBoardingTypes loads boarding types into provider', () async {
       mockApi.nextResponseData = {

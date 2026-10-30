@@ -2,6 +2,7 @@ import 'package:core_ui/core_ui.dart';
 import 'package:drivers/drivers.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icueadmin/analytics/app_events.dart';
 import 'package:icueadmin/features/vehicles/widgets/vehicle_basic_info_form.dart';
 import 'package:icueadmin/features/vehicles/widgets/vehicle_compliance_form.dart';
 import 'package:provider/provider.dart';
@@ -65,22 +66,29 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
 
     _dateOfRegController = TextEditingController(text: v?.dateOfReg ?? '');
     _rtaOfcController = TextEditingController(text: v?.rtaOfcName ?? '');
-    _claimedMileageController =
-        TextEditingController(text: '${v?.companyClaimedMileage ?? ''}');
-    _expectedMileageController =
-        TextEditingController(text: '${v?.actualExpectedMileage ?? ''}');
+    _claimedMileageController = TextEditingController(
+      text: '${v?.companyClaimedMileage ?? ''}',
+    );
+    _expectedMileageController = TextEditingController(
+      text: '${v?.actualExpectedMileage ?? ''}',
+    );
     _fireExtNameController = TextEditingController(text: v?.fireExtName ?? '');
-    _fireExtInstallDateController =
-        TextEditingController(text: v?.fireExtInstallDate ?? '');
-    _fireExtExpiryDateController =
-        TextEditingController(text: v?.fireExtExpiryDate ?? '');
+    _fireExtInstallDateController = TextEditingController(
+      text: v?.fireExtInstallDate ?? '',
+    );
+    _fireExtExpiryDateController = TextEditingController(
+      text: v?.fireExtExpiryDate ?? '',
+    );
 
-    final firstAid =
-        v != null && v.firstAidKit.isNotEmpty ? v.firstAidKit.first : null;
-    _firstAidDetailsController =
-        TextEditingController(text: firstAid?.medicineDetails ?? '');
-    _firstAidExpiryDateController =
-        TextEditingController(text: firstAid?.medicineExpiryDate ?? '');
+    final firstAid = v != null && v.firstAidKit.isNotEmpty
+        ? v.firstAidKit.first
+        : null;
+    _firstAidDetailsController = TextEditingController(
+      text: firstAid?.medicineDetails ?? '',
+    );
+    _firstAidExpiryDateController = TextEditingController(
+      text: firstAid?.medicineExpiryDate ?? '',
+    );
 
     _fuelType = v?.fuelType ?? 'Diesel';
     _isAc = v?.airCondition?.toLowerCase() == 'yes';
@@ -88,8 +96,9 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
     _dateOfReg = AppDateUtils.tryParseDate(v?.dateOfReg);
     _fireExtInstallDate = AppDateUtils.tryParseDate(v?.fireExtInstallDate);
     _fireExtExpiryDate = AppDateUtils.tryParseDate(v?.fireExtExpiryDate);
-    _firstAidExpiryDate =
-        AppDateUtils.tryParseDate(firstAid?.medicineExpiryDate);
+    _firstAidExpiryDate = AppDateUtils.tryParseDate(
+      firstAid?.medicineExpiryDate,
+    );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -188,6 +197,7 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
     if (!mounted) return;
 
     if (success) {
+      track(isEditing ? AppEvents.vehicleUpdated : AppEvents.vehicleAdded);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -215,9 +225,7 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
     final driverProvider = context.watch<DriverProvider>();
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(isEditing ? 'Update Vehicle' : 'Add Vehicle'),
-      ),
+      appBar: AppBar(title: Text(isEditing ? 'Update Vehicle' : 'Add Vehicle')),
       body: SafeArea(
         child: Form(
           key: _formKey,
@@ -262,8 +270,9 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
                     onSelected: (date) {
                       setState(() {
                         _dateOfReg = date;
-                        _dateOfRegController.text =
-                            AppDateUtils.formatDate(date);
+                        _dateOfRegController.text = AppDateUtils.formatDate(
+                          date,
+                        );
                       });
                     },
                   ),

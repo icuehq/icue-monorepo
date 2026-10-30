@@ -63,9 +63,7 @@ class _ManageExpensePageState extends State<ManageExpensePage> {
         .toList();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Manage Expenses'),
-      ),
+      appBar: AppBar(title: const Text('Manage Expenses')),
       body: provider.isLoading && types.isEmpty
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(

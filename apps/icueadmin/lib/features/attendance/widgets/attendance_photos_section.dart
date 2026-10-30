@@ -1,11 +1,9 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 class AttendancePhotosSection extends StatelessWidget {
-  const AttendancePhotosSection({
-    required this.images,
-    super.key,
-  });
+  const AttendancePhotosSection({required this.images, super.key});
 
   final List<String> images;
 

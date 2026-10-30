@@ -10,9 +10,7 @@ class GatePassPage extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Gate Pass'),
-      ),
+      appBar: AppBar(title: const Text('Gate Pass')),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -28,7 +26,8 @@ class GatePassPage extends StatelessWidget {
           _buildActionCard(
             context,
             title: 'Pending Approval Requests',
-            subtitle: 'Review, approve, or reject student gate pass applications',
+            subtitle:
+                'Review, approve, or reject student gate pass applications',
             icon: Icons.pending_actions_rounded,
             color: theme.primaryColor,
             onTap: () => context.push(AppRoutes.pendingGatePass),
@@ -78,11 +77,7 @@ class GatePassPage extends StatelessWidget {
             style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
           ),
         ),
-        trailing: Icon(
-          Icons.arrow_forward_ios_rounded,
-          size: 16,
-          color: color,
-        ),
+        trailing: Icon(Icons.arrow_forward_ios_rounded, size: 16, color: color),
       ),
     );
   }

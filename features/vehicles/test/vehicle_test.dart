@@ -57,7 +57,10 @@ class MockVehicleService implements VehicleService {
   Future<void> uploadVehicleDocs(FormData formData) async {}
 
   @override
-  Future<void> deleteVehicleDoc({required int id, required String type}) async {}
+  Future<void> deleteVehicleDoc({
+    required int id,
+    required String type,
+  }) async {}
 
   @override
   Future<bool> checkVehicleNumber(String number) async {
@@ -120,7 +123,7 @@ void main() {
             'Id': 1,
             'MedicineDetails': 'Bandages & Antiseptic',
             'MedicineExpiryDate': '2026-05-01',
-          }
+          },
         ],
         'routes': ['Route 1', 'Route 2'],
       };
@@ -130,7 +133,10 @@ void main() {
       expect(vehicleData.number, equals('TS09EA1234'));
       expect(vehicleData.make, equals('Tata'));
       expect(vehicleData.firstAidKit.length, equals(1));
-      expect(vehicleData.firstAidKit.first.medicineDetails, contains('Bandages'));
+      expect(
+        vehicleData.firstAidKit.first.medicineDetails,
+        contains('Bandages'),
+      );
       expect(vehicleData.routes.length, equals(2));
 
       final serialized = vehicleData.toJson();
@@ -215,7 +221,10 @@ void main() {
     });
 
     test('addVehicle calls service and refreshes fleet', () async {
-      const request = AddVehicleRequest(number: 'TS01AB9999', fuelType: 'Diesel');
+      const request = AddVehicleRequest(
+        number: 'TS01AB9999',
+        fuelType: 'Diesel',
+      );
       final result = await provider.addVehicle(request);
 
       expect(result, isTrue);

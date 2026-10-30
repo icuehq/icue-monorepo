@@ -2,10 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:reports/reports.dart';
 
 class AlcoholReportCard extends StatelessWidget {
-  const AlcoholReportCard({
-    required this.record,
-    super.key,
-  });
+  const AlcoholReportCard({required this.record, super.key});
 
   final AlcoholTestRecord record;
 
@@ -32,8 +29,12 @@ class AlcoholReportCard extends StatelessWidget {
                       ? Colors.green.shade50
                       : Colors.red.shade50,
                   child: Icon(
-                    isPassed ? Icons.check_circle_rounded : Icons.cancel_rounded,
-                    color: isPassed ? Colors.green.shade700 : Colors.red.shade700,
+                    isPassed
+                        ? Icons.check_circle_rounded
+                        : Icons.cancel_rounded,
+                    color: isPassed
+                        ? Colors.green.shade700
+                        : Colors.red.shade700,
                     size: 24,
                   ),
                 ),
@@ -63,8 +64,10 @@ class AlcoholReportCard extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: isPassed
                         ? Colors.green.shade100

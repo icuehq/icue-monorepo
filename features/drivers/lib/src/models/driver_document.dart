@@ -14,18 +14,18 @@ class DriverDocs {
   });
 
   factory DriverDocs.fromJson(Map<String, dynamic> json) => DriverDocs(
-        recordId: json['RecordId'] as int? ?? 0,
-        type: json['Type'] as String? ?? '',
-        frontPhotoDocumentId: json['FrontPhoto_DocumentId'] as String?,
-        frontPhotoImageUrl: json['FrontPhoto_ImageUrl'] as String?,
-        frontPhotoContentType: json['FrontPhoto_ContentType'] as String?,
-        backPhotoImageUrl: json['BackPhoto_ImageUrl'] as String?,
-        backPhotoContentType: json['BackPhoto_ContentType'] as String?,
-        backPhotoDocumentId: json['BackPhoto_DocumentId'] as String?,
-        docUrl: json['DocUrl'] as String?,
-        contentType: json['ContentType'] as String?,
-        documentId: json['DocumentId'] as String?,
-      );
+    recordId: json['RecordId'] as int? ?? 0,
+    type: json['Type'] as String? ?? '',
+    frontPhotoDocumentId: json['FrontPhoto_DocumentId'] as String?,
+    frontPhotoImageUrl: json['FrontPhoto_ImageUrl'] as String?,
+    frontPhotoContentType: json['FrontPhoto_ContentType'] as String?,
+    backPhotoImageUrl: json['BackPhoto_ImageUrl'] as String?,
+    backPhotoContentType: json['BackPhoto_ContentType'] as String?,
+    backPhotoDocumentId: json['BackPhoto_DocumentId'] as String?,
+    docUrl: json['DocUrl'] as String?,
+    contentType: json['ContentType'] as String?,
+    documentId: json['DocumentId'] as String?,
+  );
 
   final int recordId;
   final String type;
@@ -40,18 +40,18 @@ class DriverDocs {
   final String? documentId;
 
   Map<String, dynamic> toJson() => {
-        'RecordId': recordId,
-        'Type': type,
-        'FrontPhoto_DocumentId': frontPhotoDocumentId,
-        'FrontPhoto_ImageUrl': frontPhotoImageUrl,
-        'FrontPhoto_ContentType': frontPhotoContentType,
-        'BackPhoto_ImageUrl': backPhotoImageUrl,
-        'BackPhoto_ContentType': backPhotoContentType,
-        'BackPhoto_DocumentId': backPhotoDocumentId,
-        'DocUrl': docUrl,
-        'ContentType': contentType,
-        'DocumentId': documentId,
-      };
+    'RecordId': recordId,
+    'Type': type,
+    'FrontPhoto_DocumentId': frontPhotoDocumentId,
+    'FrontPhoto_ImageUrl': frontPhotoImageUrl,
+    'FrontPhoto_ContentType': frontPhotoContentType,
+    'BackPhoto_ImageUrl': backPhotoImageUrl,
+    'BackPhoto_ContentType': backPhotoContentType,
+    'BackPhoto_DocumentId': backPhotoDocumentId,
+    'DocUrl': docUrl,
+    'ContentType': contentType,
+    'DocumentId': documentId,
+  };
 }
 
 class DriverDocumentResponse {
@@ -75,8 +75,8 @@ class DriverDocumentResponse {
   final DriverDocs? docs;
 
   Map<String, dynamic> toJson() => {
-        'err': err,
-        'message': message,
-        if (docs != null) 'docs': docs!.toJson(),
-      };
+    'err': err,
+    'message': message,
+    if (docs != null) 'docs': docs!.toJson(),
+  };
 }

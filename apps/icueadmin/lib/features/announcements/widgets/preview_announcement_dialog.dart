@@ -104,7 +104,9 @@ class PreviewAnnouncementDialog extends StatelessWidget {
       ),
       actions: [
         TextButton(
-          onPressed: isSubmitting ? null : () => Navigator.of(context).pop(false),
+          onPressed: isSubmitting
+              ? null
+              : () => Navigator.of(context).pop(false),
           child: const Text('Cancel'),
         ),
         ElevatedButton(

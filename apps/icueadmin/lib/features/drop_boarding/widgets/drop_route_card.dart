@@ -65,8 +65,9 @@ class DropRouteCard extends StatelessWidget {
                     Text(
                       route.vehicleNumber!,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.textTheme.bodySmall?.color
-                            ?.withValues(alpha: 0.7),
+                        color: theme.textTheme.bodySmall?.color?.withValues(
+                          alpha: 0.7,
+                        ),
                       ),
                     ),
                   ],

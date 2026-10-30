@@ -2,6 +2,7 @@ import 'package:core_ui/core_ui.dart';
 import 'package:drivers/drivers.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icueadmin/analytics/app_events.dart';
 import 'package:icueadmin/features/drivers/widgets/driver_detail_row.dart';
 import 'package:icueadmin/features/drivers/widgets/driver_status_chip.dart';
 import 'package:icueadmin/routing/app_routes.dart';
@@ -31,6 +32,7 @@ class DriverInfoPage extends StatelessWidget {
               final success = await provider.deleteDriver(driver.id);
               if (context.mounted) {
                 if (success) {
+                  track(AppEvents.driverDeleted);
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Driver deleted successfully'),
@@ -41,7 +43,9 @@ class DriverInfoPage extends StatelessWidget {
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text(provider.errorMessage ?? 'Failed to delete driver'),
+                      content: Text(
+                        provider.errorMessage ?? 'Failed to delete driver',
+                      ),
                       backgroundColor: Colors.red,
                     ),
                   );
@@ -58,7 +62,10 @@ class DriverInfoPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final parsedExpiry = AppDateUtils.tryParseDate(driver.licenceExpiryDate);
-    final expiryStatus = AppDateUtils.checkExpiryStatus('License', parsedExpiry);
+    final expiryStatus = AppDateUtils.checkExpiryStatus(
+      'License',
+      parsedExpiry,
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -91,8 +98,8 @@ class DriverInfoPage extends StatelessWidget {
                       children: [
                         CircleAvatar(
                           radius: 28,
-                          backgroundColor:
-                              Theme.of(context).primaryColor.withValues(alpha: 0.15),
+                          backgroundColor: Theme.of(context).primaryColor
+                              .withValues(alpha: 0.15),
                           child: Text(
                             driver.firstName.isNotEmpty
                                 ? driver.firstName[0].toUpperCase()
@@ -191,24 +198,23 @@ class DriverInfoPage extends StatelessWidget {
                           ? '${driver.alternateNumber}'
                           : null,
                     ),
-                    DriverDetailRow(
-                      title: 'Email',
-                      value: driver.email,
-                    ),
-                    DriverDetailRow(
-                      title: 'Aadhar / ID',
-                      value: driver.idType,
-                    ),
+                    DriverDetailRow(title: 'Email', value: driver.email),
+                    DriverDetailRow(title: 'Aadhar / ID', value: driver.idType),
                     DriverDetailRow(
                       title: 'Address',
-                      value: [
-                        driver.address.line1,
-                        driver.address.line2,
-                        driver.city,
-                        driver.state,
-                        driver.country,
-                        driver.pincode != null ? '${driver.pincode}' : null,
-                      ].where((s) => s != null && s.trim().isNotEmpty).join(', '),
+                      value:
+                          [
+                                driver.address.line1,
+                                driver.address.line2,
+                                driver.city,
+                                driver.state,
+                                driver.country,
+                                driver.pincode != null
+                                    ? '${driver.pincode}'
+                                    : null,
+                              ]
+                              .where((s) => s != null && s.trim().isNotEmpty)
+                              .join(', '),
                     ),
                   ],
                 ),
@@ -226,10 +232,7 @@ class DriverInfoPage extends StatelessWidget {
                       ),
                     ),
                     onPressed: () {
-                      context.push(
-                        AppRoutes.addDriver,
-                        extra: driver,
-                      );
+                      context.push(AppRoutes.addDriver, extra: driver);
                     },
                     icon: const Icon(Icons.edit_rounded, size: 18),
                     label: const Text('Edit Driver'),
@@ -245,10 +248,7 @@ class DriverInfoPage extends StatelessWidget {
                       ),
                     ),
                     onPressed: () {
-                      context.push(
-                        AppRoutes.driverDocs,
-                        extra: driver,
-                      );
+                      context.push(AppRoutes.driverDocs, extra: driver);
                     },
                     icon: const Icon(Icons.folder_shared_outlined, size: 18),
                     label: const Text('Documents'),

@@ -3,10 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:routes/routes.dart';
 
 class ChangeRouteModal extends StatefulWidget {
-  const ChangeRouteModal({
-    super.key,
-    required this.student,
-  });
+  const ChangeRouteModal({super.key, required this.student});
 
   final StudentData student;
 
@@ -119,8 +116,9 @@ class _ChangeRouteModalState extends State<ChangeRouteModal> {
     final provider = context.watch<RoutesProvider>();
     final routes = provider.routes;
 
-    final pickupRoutes =
-        routes.where((r) => r.mode == RouteMode.pickup).toList();
+    final pickupRoutes = routes
+        .where((r) => r.mode == RouteMode.pickup)
+        .toList();
     final dropRoutes = routes.where((r) => r.mode == RouteMode.drop).toList();
 
     final selectedPickupRoute = _selectedPickupRouteId != null
@@ -200,8 +198,10 @@ class _ChangeRouteModalState extends State<ChangeRouteModal> {
               hint: const Text('Select Pickup Route'),
               isExpanded: true,
               decoration: InputDecoration(
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -226,8 +226,10 @@ class _ChangeRouteModalState extends State<ChangeRouteModal> {
                 hint: const Text('Select Pickup Stop'),
                 isExpanded: true,
                 decoration: InputDecoration(
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -251,8 +253,10 @@ class _ChangeRouteModalState extends State<ChangeRouteModal> {
               hint: const Text('Select Drop Route'),
               isExpanded: true,
               decoration: InputDecoration(
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -277,8 +281,10 @@ class _ChangeRouteModalState extends State<ChangeRouteModal> {
                 hint: const Text('Select Drop Stop'),
                 isExpanded: true,
                 decoration: InputDecoration(
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),

@@ -2,6 +2,7 @@ import 'package:core_ui/core_ui.dart';
 import 'package:drivers/drivers.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icueadmin/analytics/app_events.dart';
 import 'package:icueadmin/features/drivers/widgets/driver_license_info_form.dart';
 import 'package:icueadmin/features/drivers/widgets/driver_personal_info_form.dart';
 import 'package:provider/provider.dart';
@@ -57,16 +58,30 @@ class _AddDriverPageState extends State<AddDriverPage> {
     _dobController = TextEditingController(text: d?.dateOfBirth ?? '');
     _dojController = TextEditingController(text: d?.dateOfJoining ?? '');
     _mobileController = TextEditingController(text: '${d?.mobile ?? ''}');
-    _altMobileController = TextEditingController(text: '${d?.alternateNumber ?? ''}');
+    _altMobileController = TextEditingController(
+      text: '${d?.alternateNumber ?? ''}',
+    );
     _emailController = TextEditingController(text: d?.email ?? '');
     _aadharController = TextEditingController(text: d?.idType ?? '');
 
-    _licenseNumberController = TextEditingController(text: d?.licenceNumber ?? '');
-    _licenseIssueDateController = TextEditingController(text: d?.licenceIssuedDate ?? '');
-    _licenseExpiryDateController = TextEditingController(text: d?.licenceExpiryDate ?? '');
-    _experienceController = TextEditingController(text: '${d?.drivingExperience ?? ''}');
-    _addressLine1Controller = TextEditingController(text: d?.address.line1 ?? '');
-    _addressLine2Controller = TextEditingController(text: d?.address.line2 ?? '');
+    _licenseNumberController = TextEditingController(
+      text: d?.licenceNumber ?? '',
+    );
+    _licenseIssueDateController = TextEditingController(
+      text: d?.licenceIssuedDate ?? '',
+    );
+    _licenseExpiryDateController = TextEditingController(
+      text: d?.licenceExpiryDate ?? '',
+    );
+    _experienceController = TextEditingController(
+      text: '${d?.drivingExperience ?? ''}',
+    );
+    _addressLine1Controller = TextEditingController(
+      text: d?.address.line1 ?? '',
+    );
+    _addressLine2Controller = TextEditingController(
+      text: d?.address.line2 ?? '',
+    );
     _cityController = TextEditingController(text: d?.city ?? '');
     _stateController = TextEditingController(text: d?.state ?? '');
     _countryController = TextEditingController(text: d?.country ?? 'India');
@@ -130,7 +145,9 @@ class _AddDriverPageState extends State<AddDriverPage> {
       firstName: _firstNameController.text.trim(),
       middleName: _middleNameController.text.trim(),
       lastName: _lastNameController.text.trim(),
-      mobile: int.tryParse(_mobileController.text.trim()) ?? _mobileController.text.trim(),
+      mobile:
+          int.tryParse(_mobileController.text.trim()) ??
+          _mobileController.text.trim(),
       alternateNumber: int.tryParse(_altMobileController.text.trim()),
       email: _emailController.text.trim(),
       idType: _aadharController.text.trim(),
@@ -158,6 +175,7 @@ class _AddDriverPageState extends State<AddDriverPage> {
     if (!mounted) return;
 
     if (success) {
+      track(isEditing ? AppEvents.driverUpdated : AppEvents.driverAdded);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -184,9 +202,7 @@ class _AddDriverPageState extends State<AddDriverPage> {
     final provider = context.watch<DriverProvider>();
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(isEditing ? 'Update Driver' : 'Add Driver'),
-      ),
+      appBar: AppBar(title: Text(isEditing ? 'Update Driver' : 'Add Driver')),
       body: SafeArea(
         child: Form(
           key: _formKey,

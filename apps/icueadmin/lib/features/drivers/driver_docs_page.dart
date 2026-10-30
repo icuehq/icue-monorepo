@@ -50,9 +50,7 @@ class _DriverDocsPageState extends State<DriverDocsPage> {
                 fit: BoxFit.contain,
                 errorBuilder: (context, error, stackTrace) => const Padding(
                   padding: EdgeInsets.all(24.0),
-                  child: Center(
-                    child: Text('Unable to preview document.'),
-                  ),
+                  child: Center(child: Text('Unable to preview document.')),
                 ),
               ),
             ),
@@ -80,7 +78,10 @@ class _DriverDocsPageState extends State<DriverDocsPage> {
             onPressed: () async {
               Navigator.of(ctx).pop();
               final provider = context.read<DriverProvider>();
-              final success = await provider.deleteDriverDoc(widget.driver.id, docType);
+              final success = await provider.deleteDriverDoc(
+                widget.driver.id,
+                docType,
+              );
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -106,9 +107,7 @@ class _DriverDocsPageState extends State<DriverDocsPage> {
     final provider = context.watch<DriverProvider>();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Driver Documents'),
-      ),
+      appBar: AppBar(title: const Text('Driver Documents')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(

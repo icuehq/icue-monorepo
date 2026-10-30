@@ -1,6 +1,7 @@
 import 'package:announcements/announcements.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icueadmin/analytics/app_events.dart';
 import 'package:icueadmin/features/announcements/widgets/announcement_template_form.dart';
 import 'package:icueadmin/features/announcements/widgets/preview_announcement_dialog.dart';
 import 'package:icueadmin/features/announcements/widgets/select_points_dialog.dart';
@@ -164,22 +165,25 @@ class _PostAnnouncementsPageState extends State<PostAnnouncementsPage> {
         return;
       }
       targetRoutes = _selectedRouteIds;
-      final selectedRoutesList =
-          routes.where((r) => _selectedRouteIds.contains(r.id));
+      final selectedRoutesList = routes.where(
+        (r) => _selectedRouteIds.contains(r.id),
+      );
       targetStudents = selectedRoutesList
           .expand((r) => r.points)
           .expand((p) => p.studentIds)
           .toList();
     } else {
       if (_singleRouteId == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please select a route')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Please select a route')));
         return;
       }
       if (_selectedPointNames.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please select at least one stop point')),
+          const SnackBar(
+            content: Text('Please select at least one stop point'),
+          ),
         );
         return;
       }
@@ -214,14 +218,18 @@ class _PostAnnouncementsPageState extends State<PostAnnouncementsPage> {
       studentIds: targetStudents.isNotEmpty ? targetStudents : null,
     );
 
-    final success =
-        await context.read<AnnouncementsProvider>().postAnnouncement(req);
+    final success = await context
+        .read<AnnouncementsProvider>()
+        .postAnnouncement(req);
 
     if (!mounted) return;
 
     if (success) {
+      track(AppEvents.announcementPosted);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Announcement broadcast sent successfully!')),
+        const SnackBar(
+          content: Text('Announcement broadcast sent successfully!'),
+        ),
       );
       context.pop();
     } else {
@@ -246,7 +254,8 @@ class _PostAnnouncementsPageState extends State<PostAnnouncementsPage> {
     final selectedRoute = _singleRouteId != null
         ? routes.firstWhere(
             (r) => r.id == _singleRouteId,
-            orElse: () => const Routee(id: 0, routeNo: '', mode: RouteMode.pickup),
+            orElse: () =>
+                const Routee(id: 0, routeNo: '', mode: RouteMode.pickup),
           )
         : null;
 
@@ -389,8 +398,8 @@ class _PostAnnouncementsPageState extends State<PostAnnouncementsPage> {
                         child: Text(
                           _selectedPointNames.isEmpty
                               ? (selectedRoute == null
-                                  ? 'Select a route first'
-                                  : 'Tap to select stops')
+                                    ? 'Select a route first'
+                                    : 'Tap to select stops')
                               : '${_selectedPointNames.length} stops selected (${_selectedStudentIds.length} students)',
                           style: TextStyle(
                             color: _selectedPointNames.isEmpty
@@ -431,7 +440,10 @@ class _PostAnnouncementsPageState extends State<PostAnnouncementsPage> {
                     icon: const Icon(Icons.send_rounded),
                     label: const Text(
                       'Preview & Broadcast',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ],

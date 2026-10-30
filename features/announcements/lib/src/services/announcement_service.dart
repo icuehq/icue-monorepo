@@ -32,7 +32,9 @@ class AnnouncementService {
 
   /// Fetches predefined announcement title templates and appends the "Custom" title template.
   Future<List<AnnouncementTitle>> getAnnouncementTitles() async {
-    final response = await _apiClient.post<dynamic>('/v1.0/getAnnouncementTitles');
+    final response = await _apiClient.post<dynamic>(
+      '/v1.0/getAnnouncementTitles',
+    );
     final data = response.data;
     final List<AnnouncementTitle> titles = [];
     if (data is Map<String, dynamic>) {
@@ -55,7 +57,9 @@ class AnnouncementService {
   }
 
   /// Creates and broadcasts a fleet announcement.
-  Future<bool> createFleetAnnouncement(CreateAnnouncementRequest request) async {
+  Future<bool> createFleetAnnouncement(
+    CreateAnnouncementRequest request,
+  ) async {
     final response = await _apiClient.post<dynamic>(
       '/v1.0/createFleetAnnouncement',
       data: request.toJson(),

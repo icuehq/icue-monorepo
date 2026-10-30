@@ -39,11 +39,11 @@ class _ArrivalTimeReportPageState extends State<ArrivalTimeReportPage> {
       _page = 1;
     }
     context.read<ReportsProvider>().fetchArrivalTimeReport(
-          filter: _filterResult,
-          mode: _mode,
-          page: _page,
-          vehicleNo: _selectedVehicle?.number,
-        );
+      filter: _filterResult,
+      mode: _mode,
+      page: _page,
+      vehicleNo: _selectedVehicle?.number,
+    );
   }
 
   void _loadMore() {
@@ -151,7 +151,8 @@ class _ArrivalTimeReportPageState extends State<ArrivalTimeReportPage> {
                                 child: Padding(
                                   padding: const EdgeInsets.all(16),
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Row(
                                         mainAxisAlignment:
@@ -194,12 +195,14 @@ class _ArrivalTimeReportPageState extends State<ArrivalTimeReportPage> {
                                         children: [
                                           _buildDetailCol(
                                             'Trip Start',
-                                            '${item.startDate} ${item.startTime}'.trim(),
+                                            '${item.startDate} ${item.startTime}'
+                                                .trim(),
                                           ),
                                           _buildDetailCol(
                                             'Arrival Time',
                                             item.arrivalTime ?? 'Pending',
-                                            isHighlight: item.arrivalTime != null,
+                                            isHighlight:
+                                                item.arrivalTime != null,
                                           ),
                                         ],
                                       ),
@@ -216,7 +219,11 @@ class _ArrivalTimeReportPageState extends State<ArrivalTimeReportPage> {
     );
   }
 
-  Widget _buildDetailCol(String label, String value, {bool isHighlight = false}) {
+  Widget _buildDetailCol(
+    String label,
+    String value, {
+    bool isHighlight = false,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

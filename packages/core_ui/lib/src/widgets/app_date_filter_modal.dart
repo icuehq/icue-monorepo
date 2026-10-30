@@ -20,22 +20,17 @@ class AppFilterResult {
     this.range,
   });
 
-  factory AppFilterResult.byDate(DateTime date) => AppFilterResult._(
-        mode: AppFilterMode.byDate,
-        date: date,
-      );
+  factory AppFilterResult.byDate(DateTime date) =>
+      AppFilterResult._(mode: AppFilterMode.byDate, date: date);
 
-  factory AppFilterResult.byMonth({required String month, required String year}) =>
-      AppFilterResult._(
-        mode: AppFilterMode.byMonth,
-        month: month,
-        year: year,
-      );
+  factory AppFilterResult.byMonth({
+    required String month,
+    required String year,
+  }) =>
+      AppFilterResult._(mode: AppFilterMode.byMonth, month: month, year: year);
 
-  factory AppFilterResult.byRange(DateTimeRange range) => AppFilterResult._(
-        mode: AppFilterMode.byRange,
-        range: range,
-      );
+  factory AppFilterResult.byRange(DateTimeRange range) =>
+      AppFilterResult._(mode: AppFilterMode.byRange, range: range);
 
   final AppFilterMode mode;
   final DateTime? date;
@@ -113,8 +108,18 @@ class _AppDateFilterModalState extends State<AppDateFilterModal> {
   DateTimeRange? _selectedRange;
 
   static const List<String> _months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
   ];
 
   late final List<String> _years = List.generate(
@@ -253,7 +258,10 @@ class _AppDateFilterModalState extends State<AppDateFilterModal> {
                       decoration: const InputDecoration(
                         labelText: 'Month',
                         border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                       ),
                       items: _months.map((m) {
                         return DropdownMenuItem(value: m, child: Text(m));
@@ -268,7 +276,10 @@ class _AppDateFilterModalState extends State<AppDateFilterModal> {
                       decoration: const InputDecoration(
                         labelText: 'Year',
                         border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                       ),
                       items: _years.map((y) {
                         return DropdownMenuItem(value: y, child: Text(y));
@@ -298,14 +309,21 @@ class _AppDateFilterModalState extends State<AppDateFilterModal> {
             ],
             const SizedBox(height: 24),
             ElevatedButton(
-              onPressed: (_selectedMode == AppFilterMode.byRange && _selectedRange == null)
+              onPressed:
+                  (_selectedMode == AppFilterMode.byRange &&
+                      _selectedRange == null)
                   ? null
                   : _applyFilter,
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
-              child: const Text('Apply Filter', style: TextStyle(fontWeight: FontWeight.bold)),
+              child: const Text(
+                'Apply Filter',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
           ],
         ),

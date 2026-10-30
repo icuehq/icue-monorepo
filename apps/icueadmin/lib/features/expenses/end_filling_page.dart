@@ -1,13 +1,11 @@
 import 'package:expenses/expenses.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icueadmin/analytics/app_events.dart';
 import 'package:provider/provider.dart';
 
 class EndFillingPage extends StatefulWidget {
-  const EndFillingPage({
-    super.key,
-    this.initialFuelType = 'Diesel',
-  });
+  const EndFillingPage({super.key, this.initialFuelType = 'Diesel'});
 
   final String initialFuelType;
 
@@ -49,12 +47,14 @@ class _EndFillingPageState extends State<EndFillingPage> {
       gaugeFileBytes: _gaugeFileBytes,
     );
 
-    final success =
-        await context.read<ExpenseProvider>().updateSelfFillingStatus(req);
+    final success = await context
+        .read<ExpenseProvider>()
+        .updateSelfFillingStatus(req);
 
     if (!mounted) return;
 
     if (success) {
+      track(AppEvents.selfFillingEnded);
       context.read<ExpenseProvider>().reset();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -86,9 +86,7 @@ class _EndFillingPageState extends State<EndFillingPage> {
     final totalLitres = endVal > startVal ? (endVal - startVal) : 0.0;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('End Campus Self-Filling'),
-      ),
+      appBar: AppBar(title: const Text('End Campus Self-Filling')),
       body: Form(
         key: _formKey,
         child: ListView(
@@ -138,7 +136,9 @@ class _EndFillingPageState extends State<EndFillingPage> {
                           style: TextStyle(fontSize: 12, color: Colors.grey),
                         ),
                         Text(
-                          startReading != null ? '$startReading L' : 'Not recorded',
+                          startReading != null
+                              ? '$startReading L'
+                              : 'Not recorded',
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -153,8 +153,9 @@ class _EndFillingPageState extends State<EndFillingPage> {
             const SizedBox(height: 14),
             TextFormField(
               controller: _endReadingController,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               decoration: const InputDecoration(
                 labelText: 'Final Gauge Reading (Litres) *',
                 border: OutlineInputBorder(),
@@ -210,8 +211,11 @@ class _EndFillingPageState extends State<EndFillingPage> {
                 runSpacing: 6,
                 children: filledVehicles.map((v) {
                   return Chip(
-                    avatar: const Icon(Icons.check_circle,
-                        size: 16, color: Colors.green),
+                    avatar: const Icon(
+                      Icons.check_circle,
+                      size: 16,
+                      color: Colors.green,
+                    ),
                     label: Text(v),
                   );
                 }).toList(),
@@ -277,7 +281,9 @@ class _EndFillingPageState extends State<EndFillingPage> {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              onPressed: provider.isLoading ? null : () => _submit(startReading),
+              onPressed: provider.isLoading
+                  ? null
+                  : () => _submit(startReading),
               icon: const Icon(Icons.stop_circle_rounded),
               label: provider.isLoading
                   ? const SizedBox(
@@ -287,7 +293,10 @@ class _EndFillingPageState extends State<EndFillingPage> {
                     )
                   : const Text(
                       'Finish & Close Session',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
             ),
           ],

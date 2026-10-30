@@ -8,16 +8,13 @@ class LogBookPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Log Book'),
-      ),
+      appBar: AppBar(title: const Text('Log Book')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           _LogBookHubCard(
             title: 'Complaints Management',
-            subtitle:
-                'Monitor vehicle breakdown reports, maintenance tickets, and issue resolutions.',
+            subtitle: 'Monitor vehicle breakdown reports, maintenance tickets, and issue resolutions.',
             icon: Icons.report_problem_rounded,
             color: Colors.red,
             onTap: () => context.push(AppRoutes.complaintsDashboard),
@@ -25,8 +22,7 @@ class LogBookPage extends StatelessWidget {
           const SizedBox(height: 14),
           _LogBookHubCard(
             title: 'Vehicle Cleaning Log',
-            subtitle:
-                'Inspect fleet cleanliness, sanitize interiors/exteriors, and log daily sanitization.',
+            subtitle: 'Inspect fleet cleanliness, sanitize interiors/exteriors, and log daily sanitization.',
             icon: Icons.cleaning_services_rounded,
             color: Colors.teal,
             onTap: () => context.push(AppRoutes.cleaningLog),
@@ -34,8 +30,7 @@ class LogBookPage extends StatelessWidget {
           const SizedBox(height: 14),
           _LogBookHubCard(
             title: 'Driver Alcohol Testing',
-            subtitle:
-                'Record daily pre-trip breathalyzer tests to ensure fleet safety and regulatory compliance.',
+            subtitle: 'Record daily pre-trip breathalyzer tests to ensure fleet safety and regulatory compliance.',
             icon: Icons.local_drink_rounded,
             color: Colors.indigo,
             onTap: () => context.push(AppRoutes.alcoholTestForm),

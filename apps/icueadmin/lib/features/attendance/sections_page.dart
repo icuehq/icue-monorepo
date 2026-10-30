@@ -63,10 +63,7 @@ class _SectionsPageState extends State<SectionsPage> {
     if (mode == AttendanceModeOption.manual) {
       await context.push(
         AppRoutes.createAttendance,
-        extra: {
-          'standard': widget.standard,
-          'section': _selectedSection!,
-        },
+        extra: {'standard': widget.standard, 'section': _selectedSection!},
       );
     } else {
       await context.push(
@@ -86,15 +83,14 @@ class _SectionsPageState extends State<SectionsPage> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
-      appBar: AppBar(
-        title: Text('${widget.standard.standard} Sections'),
-      ),
+      appBar: AppBar(title: Text('${widget.standard.standard} Sections')),
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: FilledButton(
-            onPressed:
-                _selectedSection == null || _isChecking ? null : _handleStartAttendance,
+            onPressed: _selectedSection == null || _isChecking
+                ? null
+                : _handleStartAttendance,
             style: FilledButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
@@ -111,66 +107,67 @@ class _SectionsPageState extends State<SectionsPage> {
       body: _isChecking
           ? const Center(child: CircularProgressIndicator())
           : widget.standard.sections.isEmpty
-              ? Center(
-                  child: Text(
-                    'No sections available for this class.',
-                    style: TextStyle(color: Colors.grey.shade600),
-                  ),
-                )
-              : RadioGroup<String>(
-                  groupValue: _selectedSection,
-                  onChanged: (val) {
-                    if (val != null) _handleSectionSelected(val);
-                  },
-                  child: ListView.separated(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: widget.standard.sections.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      final section = widget.standard.sections[index];
-                      final isSelected = section == _selectedSection;
+          ? Center(
+              child: Text(
+                'No sections available for this class.',
+                style: TextStyle(color: Colors.grey.shade600),
+              ),
+            )
+          : RadioGroup<String>(
+              groupValue: _selectedSection,
+              onChanged: (val) {
+                if (val != null) _handleSectionSelected(val);
+              },
+              child: ListView.separated(
+                padding: const EdgeInsets.all(16),
+                itemCount: widget.standard.sections.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  final section = widget.standard.sections[index];
+                  final isSelected = section == _selectedSection;
 
-                      return Card(
-                        elevation: isSelected ? 2 : 1,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(
-                            color: isSelected
-                                ? theme.colorScheme.primary
-                                : Colors.grey.shade300,
-                            width: isSelected ? 1.5 : 1,
-                          ),
+                  return Card(
+                    elevation: isSelected ? 2 : 1,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(
+                        color: isSelected
+                            ? theme.colorScheme.primary
+                            : Colors.grey.shade300,
+                        width: isSelected ? 1.5 : 1,
+                      ),
+                    ),
+                    child: RadioListTile<String>(
+                      title: Text(
+                        'Section $section',
+                        style: TextStyle(
+                          fontWeight: isSelected
+                              ? FontWeight.bold
+                              : FontWeight.w500,
+                          fontSize: 15,
                         ),
-                        child: RadioListTile<String>(
-                          title: Text(
-                            'Section $section',
-                            style: TextStyle(
-                              fontWeight: isSelected
-                                  ? FontWeight.bold
-                                  : FontWeight.w500,
-                              fontSize: 15,
-                            ),
+                      ),
+                      secondary: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: 0.1,
                           ),
-                          secondary: Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.primary
-                                  .withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Icon(
-                              Icons.bookmark_outline,
-                              size: 20,
-                              color: theme.colorScheme.primary,
-                            ),
-                          ),
-                          value: section,
-                          activeColor: theme.colorScheme.primary,
+                          borderRadius: BorderRadius.circular(6),
                         ),
-                      );
-                    },
-                  ),
-                ),
+                        child: Icon(
+                          Icons.bookmark_outline,
+                          size: 20,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                      value: section,
+                      activeColor: theme.colorScheme.primary,
+                    ),
+                  );
+                },
+              ),
+            ),
     );
   }
 }

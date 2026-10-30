@@ -47,11 +47,11 @@ class _OverSpeedReportPageState extends State<OverSpeedReportPage> {
   void _fetchData() {
     if (_selectedVehicle == null) return;
     context.read<ReportsProvider>().fetchOverSpeedReports(
-          vehicleNumber: _selectedVehicle!.number,
-          month: _selectedMonth,
-          year: _selectedYear,
-          speedLimit: _selectedSpeedLimit,
-        );
+      vehicleNumber: _selectedVehicle!.number,
+      month: _selectedMonth,
+      year: _selectedYear,
+      speedLimit: _selectedSpeedLimit,
+    );
   }
 
   @override
@@ -63,9 +63,7 @@ class _OverSpeedReportPageState extends State<OverSpeedReportPage> {
     final years = List.generate(5, (i) => (currentYear - i).toString());
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Over-Speed Violations'),
-      ),
+      appBar: AppBar(title: const Text('Over-Speed Violations')),
       body: Column(
         children: [
           Container(
@@ -80,7 +78,9 @@ class _OverSpeedReportPageState extends State<OverSpeedReportPage> {
                     final list = vehicleProvider.vehicles;
                     if (textEditingValue.text.isEmpty) return list;
                     final q = textEditingValue.text.toLowerCase();
-                    return list.where((v) => v.number.toLowerCase().contains(q));
+                    return list.where(
+                      (v) => v.number.toLowerCase().contains(q),
+                    );
                   },
                   displayStringForOption: (v) => v.number,
                   initialSelection: _selectedVehicle,
@@ -129,10 +129,7 @@ class _OverSpeedReportPageState extends State<OverSpeedReportPage> {
                         ),
                         items: years
                             .map(
-                              (y) => DropdownMenuItem(
-                                value: y,
-                                child: Text(y),
-                              ),
+                              (y) => DropdownMenuItem(value: y, child: Text(y)),
                             )
                             .toList(),
                         onChanged: (val) {
@@ -207,22 +204,20 @@ class _OverSpeedReportPageState extends State<OverSpeedReportPage> {
                         'Please choose a vehicle to view over-speed incidents.',
                   )
                 : reportsProvider.isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : violations.isEmpty
-                        ? ReportEmptyState(
-                            message:
-                                'No over-speed incidents detected for ${_selectedVehicle!.number} exceeding $_selectedSpeedLimit km/h in $_selectedMonth/$_selectedYear.',
-                            onRetry: _fetchData,
-                          )
-                        : ListView.builder(
-                            padding: const EdgeInsets.all(16),
-                            itemCount: violations.length,
-                            itemBuilder: (context, index) {
-                              return SpeedViolationCard(
-                                record: violations[index],
-                              );
-                            },
-                          ),
+                ? const Center(child: CircularProgressIndicator())
+                : violations.isEmpty
+                ? ReportEmptyState(
+                    message:
+                        'No over-speed incidents detected for ${_selectedVehicle!.number} exceeding $_selectedSpeedLimit km/h in $_selectedMonth/$_selectedYear.',
+                    onRetry: _fetchData,
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: violations.length,
+                    itemBuilder: (context, index) {
+                      return SpeedViolationCard(record: violations[index]);
+                    },
+                  ),
           ),
         ],
       ),

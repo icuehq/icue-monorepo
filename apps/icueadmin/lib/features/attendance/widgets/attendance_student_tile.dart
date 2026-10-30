@@ -56,9 +56,7 @@ class AttendanceStudentTile extends StatelessWidget {
                   ? Colors.green.withValues(alpha: 0.12)
                   : Colors.red.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: isPresent ? Colors.green : Colors.red,
-              ),
+              border: Border.all(color: isPresent ? Colors.green : Colors.red),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -66,7 +64,9 @@ class AttendanceStudentTile extends StatelessWidget {
                 Icon(
                   isPresent ? Icons.check_circle : Icons.cancel,
                   size: 16,
-                  color: isPresent ? Colors.green.shade700 : Colors.red.shade700,
+                  color: isPresent
+                      ? Colors.green.shade700
+                      : Colors.red.shade700,
                 ),
                 const SizedBox(width: 4),
                 Text(
@@ -74,8 +74,9 @@ class AttendanceStudentTile extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
-                    color:
-                        isPresent ? Colors.green.shade800 : Colors.red.shade800,
+                    color: isPresent
+                        ? Colors.green.shade800
+                        : Colors.red.shade800,
                   ),
                 ),
               ],

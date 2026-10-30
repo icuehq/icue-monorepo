@@ -21,7 +21,8 @@ class GatePassRequest {
     required this.requestDt,
   });
 
-  factory GatePassRequest.fromJson(Map<String, dynamic> json) => GatePassRequest(
+  factory GatePassRequest.fromJson(Map<String, dynamic> json) =>
+      GatePassRequest(
         id: (json['Id'] as num?)?.toInt() ?? 0,
         organizationId: (json['OrganizationId'] as num?)?.toInt() ?? 0,
         branchId: (json['BranchId'] as num?)?.toInt() ?? 0,
@@ -58,23 +59,23 @@ class GatePassRequest {
   final int zoneId;
 
   Map<String, dynamic> toJson() => {
-        'Id': id,
-        'OrganizationId': organizationId,
-        'BranchId': branchId,
-        'ZoneId': zoneId,
-        'PersonType': personType,
-        'GatePassType': gatePassType,
-        'Class': datumClass,
-        'Section': section,
-        'AdmissionNumber': admissionNumber,
-        'Name': name,
-        'PersonId': personId,
-        'IsHostelite': isHostelite,
-        'HostelType': hostelType,
-        'RequestDate': requestDate,
-        'RequestTime': requestTime,
-        'RequestDt': requestDt,
-      };
+    'Id': id,
+    'OrganizationId': organizationId,
+    'BranchId': branchId,
+    'ZoneId': zoneId,
+    'PersonType': personType,
+    'GatePassType': gatePassType,
+    'Class': datumClass,
+    'Section': section,
+    'AdmissionNumber': admissionNumber,
+    'Name': name,
+    'PersonId': personId,
+    'IsHostelite': isHostelite,
+    'HostelType': hostelType,
+    'RequestDate': requestDate,
+    'RequestTime': requestTime,
+    'RequestDt': requestDt,
+  };
 }
 
 @immutable
@@ -89,7 +90,8 @@ class GatePassRequestsResponse {
       GatePassRequestsResponse(
         err: json['err'] as bool? ?? false,
         message: json['message'] as String? ?? '',
-        data: (json['data'] as List<dynamic>?)
+        data:
+            (json['data'] as List<dynamic>?)
                 ?.whereType<Map<String, dynamic>>()
                 .map(GatePassRequest.fromJson)
                 .toList() ??
@@ -101,8 +103,8 @@ class GatePassRequestsResponse {
   final String message;
 
   Map<String, dynamic> toJson() => {
-        'err': err,
-        'message': message,
-        'data': data.map((x) => x.toJson()).toList(),
-      };
+    'err': err,
+    'message': message,
+    'data': data.map((x) => x.toJson()).toList(),
+  };
 }

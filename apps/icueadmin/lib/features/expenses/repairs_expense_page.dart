@@ -77,8 +77,7 @@ class _RepairsExpensePageState extends State<RepairsExpensePage> {
       body: vehicleProvider.isLoading && allVehicles.isEmpty
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
-              onRefresh: () =>
-                  context.read<VehicleProvider>().fetchVehicles(),
+              onRefresh: () => context.read<VehicleProvider>().fetchVehicles(),
               child: filtered.isEmpty
                   ? ListView(
                       physics: const AlwaysScrollableScrollPhysics(),

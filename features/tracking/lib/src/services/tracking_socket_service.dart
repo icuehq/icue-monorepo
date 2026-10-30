@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
@@ -9,8 +10,7 @@ class TrackingSocketService {
   final StreamController<Map<String, dynamic>> _routeStatsController =
       StreamController<Map<String, dynamic>>.broadcast();
 
-  Stream<Map<String, dynamic>> get onRouteStats =>
-      _routeStatsController.stream;
+  Stream<Map<String, dynamic>> get onRouteStats => _routeStatsController.stream;
 
   bool get isConnected => _socket?.connected ?? false;
 
@@ -25,9 +25,7 @@ class TrackingSocketService {
 
     // Use port 3002 if baseUrl does not specify a port
     final uri = Uri.tryParse(baseUrl);
-    final socketUrl = (uri != null && uri.hasPort)
-        ? baseUrl
-        : '$baseUrl:3002';
+    final socketUrl = (uri != null && uri.hasPort) ? baseUrl : '$baseUrl:3002';
 
     final authPayload = <String, dynamic>{
       'ZoneId': zoneId,

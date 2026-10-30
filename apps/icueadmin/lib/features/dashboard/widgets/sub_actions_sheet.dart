@@ -25,10 +25,7 @@ class SubActionsSheet extends StatelessWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (ctx) => SubActionsSheet(
-        action: action,
-        iconColor: iconColor,
-      ),
+      builder: (ctx) => SubActionsSheet(action: action, iconColor: iconColor),
     );
   }
 
@@ -100,8 +97,9 @@ class SubActionsSheet extends StatelessWidget {
                 separatorBuilder: (_, _) => const Divider(height: 1),
                 itemBuilder: (ctx, index) {
                   final sub = subItems[index];
-                  final title =
-                      sub.displayName.isNotEmpty ? sub.displayName : sub.name;
+                  final title = sub.displayName.isNotEmpty
+                      ? sub.displayName
+                      : sub.name;
 
                   return ListTile(
                     contentPadding: const EdgeInsets.symmetric(

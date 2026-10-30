@@ -13,8 +13,9 @@ class VehicleService {
 
   /// Fetches basic vehicle numbers list for dropdowns and selectors.
   Future<List<Vehicle>> getVehicles() async {
-    final response =
-        await _apiClient.post<dynamic>('/v1.0/getVehiclesNumbersByBranch');
+    final response = await _apiClient.post<dynamic>(
+      '/v1.0/getVehiclesNumbersByBranch',
+    );
     return parseList(
       response.data,
       Vehicle.fromJson,
@@ -46,12 +47,18 @@ class VehicleService {
 
   /// Creates a new vehicle in the fleet.
   Future<void> createVehicle(AddVehicleRequest request) async {
-    await _apiClient.post<dynamic>('/v1.0/createVehicle', data: request.toJson());
+    await _apiClient.post<dynamic>(
+      '/v1.0/createVehicle',
+      data: request.toJson(),
+    );
   }
 
   /// Updates an existing vehicle.
   Future<void> updateVehicle(AddVehicleRequest request) async {
-    await _apiClient.post<dynamic>('/v1.0/updateVehicle', data: request.toJson());
+    await _apiClient.post<dynamic>(
+      '/v1.0/updateVehicle',
+      data: request.toJson(),
+    );
   }
 
   /// Deletes a vehicle by its ID.
@@ -65,10 +72,7 @@ class VehicleService {
   }
 
   /// Retrieves document data for a vehicle and doc type (e.g. 'Insurance', 'RC', 'Fitness', etc.).
-  Future<Docs?> getVehicleDocs({
-    required int id,
-    required String type,
-  }) async {
+  Future<Docs?> getVehicleDocs({required int id, required String type}) async {
     try {
       final response = await _apiClient.post<dynamic>(
         '/v1.0/getVehicleDocs',
@@ -92,10 +96,7 @@ class VehicleService {
   }
 
   /// Deletes a specific vehicle document.
-  Future<void> deleteVehicleDoc({
-    required int id,
-    required String type,
-  }) async {
+  Future<void> deleteVehicleDoc({required int id, required String type}) async {
     await _apiClient.post<dynamic>(
       '/v1.0/deleteVehicleDocs',
       data: {'Target': 'Vehicle', 'RecordId': id, 'Type': type},

@@ -39,10 +39,7 @@ class DriverLicenseInfoForm extends StatelessWidget {
       children: [
         const Text(
           'License & Address Details',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
         Row(
@@ -53,7 +50,10 @@ class DriverLicenseInfoForm extends StatelessWidget {
                 controller: licenseNumberController,
                 hintText: 'License Number',
                 maxLength: 20,
-                prefixIcon: const Icon(Icons.card_membership_outlined, size: 20),
+                prefixIcon: const Icon(
+                  Icons.card_membership_outlined,
+                  size: 20,
+                ),
               ),
             ),
             const SizedBox(width: 12),
@@ -78,7 +78,10 @@ class DriverLicenseInfoForm extends StatelessWidget {
                   child: AppTextField(
                     controller: licenseIssueDateController,
                     hintText: 'Issue Date',
-                    prefixIcon: const Icon(Icons.calendar_today_outlined, size: 20),
+                    prefixIcon: const Icon(
+                      Icons.calendar_today_outlined,
+                      size: 20,
+                    ),
                   ),
                 ),
               ),
@@ -120,10 +123,7 @@ class DriverLicenseInfoForm extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: AppTextField(
-                controller: cityController,
-                hintText: 'City',
-              ),
+              child: AppTextField(controller: cityController, hintText: 'City'),
             ),
             const SizedBox(width: 12),
             Expanded(

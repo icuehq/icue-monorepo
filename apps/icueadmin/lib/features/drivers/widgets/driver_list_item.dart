@@ -4,11 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:icueadmin/features/drivers/widgets/driver_status_chip.dart';
 
 class DriverListItem extends StatelessWidget {
-  const DriverListItem({
-    super.key,
-    required this.driver,
-    required this.onTap,
-  });
+  const DriverListItem({super.key, required this.driver, required this.onTap});
 
   final Driver driver;
   final VoidCallback onTap;
@@ -16,7 +12,10 @@ class DriverListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final parsedExpiry = AppDateUtils.tryParseDate(driver.licenceExpiryDate);
-    final licenceStatus = AppDateUtils.checkExpiryStatus('License', parsedExpiry);
+    final licenceStatus = AppDateUtils.checkExpiryStatus(
+      'License',
+      parsedExpiry,
+    );
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -34,7 +33,8 @@ class DriverListItem extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 22,
-                backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                backgroundColor: Theme.of(context).primaryColor
+                    .withValues(alpha: 0.1),
                 child: Text(
                   driver.firstName.isNotEmpty
                       ? driver.firstName[0].toUpperCase()

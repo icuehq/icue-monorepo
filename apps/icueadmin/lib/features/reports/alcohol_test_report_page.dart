@@ -39,10 +39,10 @@ class _AlcoholTestReportPageState extends State<AlcoholTestReportPage> {
       _page = 1;
     }
     context.read<ReportsProvider>().fetchAlcoholTestReport(
-          filter: _filterResult,
-          page: _page,
-          personId: _selectedDriver?.id,
-        );
+      filter: _filterResult,
+      page: _page,
+      personId: _selectedDriver?.id,
+    );
   }
 
   void _loadMore() {
@@ -85,10 +85,11 @@ class _AlcoholTestReportPageState extends State<AlcoholTestReportPage> {
                 final list = driverProvider.drivers;
                 if (textEditingValue.text.isEmpty) return list;
                 final q = textEditingValue.text.toLowerCase();
-                return list.where((d) =>
-                    '${d.firstName} ${d.lastName ?? ''} ${d.mobile ?? ''}'
-                        .toLowerCase()
-                        .contains(q));
+                return list.where(
+                  (d) => '${d.firstName} ${d.lastName ?? ''} ${d.mobile ?? ''}'
+                      .toLowerCase()
+                      .contains(q),
+                );
               },
               displayStringForOption: (d) =>
                   '${d.firstName} ${d.lastName ?? ''}'.trim(),

@@ -43,10 +43,10 @@ class _FuelReportPageState extends State<FuelReportPage> {
   void _fetchData() {
     if (_selectedVehicle == null) return;
     context.read<ReportsProvider>().fetchFuelReadings(
-          vehicleNumber: _selectedVehicle!.number,
-          month: _selectedMonth,
-          year: _selectedYear,
-        );
+      vehicleNumber: _selectedVehicle!.number,
+      month: _selectedMonth,
+      year: _selectedYear,
+    );
   }
 
   @override
@@ -58,9 +58,7 @@ class _FuelReportPageState extends State<FuelReportPage> {
     final years = List.generate(5, (i) => (currentYear - i).toString());
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Fuel Consumption Report'),
-      ),
+      appBar: AppBar(title: const Text('Fuel Consumption Report')),
       body: Column(
         children: [
           Container(
@@ -75,7 +73,9 @@ class _FuelReportPageState extends State<FuelReportPage> {
                     final list = vehicleProvider.vehicles;
                     if (textEditingValue.text.isEmpty) return list;
                     final q = textEditingValue.text.toLowerCase();
-                    return list.where((v) => v.number.toLowerCase().contains(q));
+                    return list.where(
+                      (v) => v.number.toLowerCase().contains(q),
+                    );
                   },
                   displayStringForOption: (v) => v.number,
                   initialSelection: _selectedVehicle,
@@ -124,10 +124,7 @@ class _FuelReportPageState extends State<FuelReportPage> {
                         ),
                         items: years
                             .map(
-                              (y) => DropdownMenuItem(
-                                value: y,
-                                child: Text(y),
-                              ),
+                              (y) => DropdownMenuItem(value: y, child: Text(y)),
                             )
                             .toList(),
                         onChanged: (val) {
@@ -148,109 +145,107 @@ class _FuelReportPageState extends State<FuelReportPage> {
             child: _selectedVehicle == null
                 ? const ReportEmptyState(
                     icon: Icons.directions_bus_outlined,
-                    message: 'Please choose a vehicle to view fuel reading logs.',
+                    message:
+                        'Please choose a vehicle to view fuel reading logs.',
                   )
                 : reportsProvider.isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : readings.isEmpty
-                        ? ReportEmptyState(
-                            message:
-                                'No fuel refill records found for ${_selectedVehicle!.number} in $_selectedMonth/$_selectedYear.',
-                            onRetry: _fetchData,
-                          )
-                        : ListView.separated(
-                            padding: const EdgeInsets.all(16),
-                            itemCount: readings.length,
-                            separatorBuilder: (_, _) =>
-                                const SizedBox(height: 10),
-                            itemBuilder: (context, index) {
-                              final item = readings[index];
-                              return Card(
-                                elevation: 1,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                ? const Center(child: CircularProgressIndicator())
+                : readings.isEmpty
+                ? ReportEmptyState(
+                    message:
+                        'No fuel refill records found for ${_selectedVehicle!.number} in $_selectedMonth/$_selectedYear.',
+                    onRetry: _fetchData,
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: readings.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 10),
+                    itemBuilder: (context, index) {
+                      final item = readings[index];
+                      return Card(
+                        elevation: 1,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 20,
+                                backgroundColor: Colors.indigo.shade50,
+                                child: Icon(
+                                  Icons.local_gas_station_rounded,
+                                  color: Colors.indigo.shade700,
+                                  size: 22,
                                 ),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(16),
-                                  child: Row(
-                                    children: [
-                                      CircleAvatar(
-                                        radius: 20,
-                                        backgroundColor: Colors.indigo.shade50,
-                                        child: Icon(
-                                          Icons.local_gas_station_rounded,
-                                          color: Colors.indigo.shade700,
-                                          size: 22,
-                                        ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      '${item.fuelFilled?.toStringAsFixed(1) ?? "0"} Litres',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 15,
                                       ),
-                                      const SizedBox(width: 14),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              '${item.fuelFilled?.toStringAsFixed(1) ?? "0"} Litres',
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 15,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              'Odo: ${item.speedometer ?? "-"} km',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.grey.shade600,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Odo: ${item.speedometer ?? "-"} km',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey.shade600,
                                       ),
-                                      Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.end,
-                                        children: [
-                                          Text(
-                                            item.date,
-                                            style: const TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                          Text(
-                                            item.time,
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              color: Colors.grey.shade500,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      if (item.image != null &&
-                                          item.image!.isNotEmpty) ...[
-                                        const SizedBox(width: 10),
-                                        IconButton(
-                                          icon: const Icon(Icons.image_outlined),
-                                          onPressed: () {
-                                            showDialog<void>(
-                                              context: context,
-                                              builder: (_) => Dialog(
-                                                child: Image.network(
-                                                  item.image!,
-                                                  fit: BoxFit.contain,
-                                                ),
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                      ],
-                                    ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    item.date,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
+                                  Text(
+                                    item.time,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.grey.shade500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (item.image != null &&
+                                  item.image!.isNotEmpty) ...[
+                                const SizedBox(width: 10),
+                                IconButton(
+                                  icon: const Icon(Icons.image_outlined),
+                                  onPressed: () {
+                                    showDialog<void>(
+                                      context: context,
+                                      builder: (_) => Dialog(
+                                        child: Image.network(
+                                          item.image!,
+                                          fit: BoxFit.contain,
+                                        ),
+                                      ),
+                                    );
+                                  },
                                 ),
-                              );
-                            },
+                              ],
+                            ],
                           ),
+                        ),
+                      );
+                    },
+                  ),
           ),
         ],
       ),

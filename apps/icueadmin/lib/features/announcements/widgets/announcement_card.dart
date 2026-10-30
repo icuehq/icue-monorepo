@@ -2,10 +2,7 @@ import 'package:announcements/announcements.dart';
 import 'package:flutter/material.dart';
 
 class AnnouncementCard extends StatelessWidget {
-  const AnnouncementCard({
-    super.key,
-    required this.announcement,
-  });
+  const AnnouncementCard({super.key, required this.announcement});
 
   final Announcement announcement;
 
@@ -36,8 +33,10 @@ class AnnouncementCard extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: announcement.isActive
                         ? Colors.green.shade50

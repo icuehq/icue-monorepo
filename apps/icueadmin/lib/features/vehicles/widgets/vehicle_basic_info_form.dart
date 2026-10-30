@@ -41,10 +41,7 @@ class VehicleBasicInfoForm extends StatelessWidget {
       children: [
         const Text(
           'Vehicle Specifications',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
         AppTextField(
@@ -102,8 +99,9 @@ class VehicleBasicInfoForm extends StatelessWidget {
                 keyboardType: TextInputType.number,
                 maxLength: 3,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                validator: (v) =>
-                    v == null || v.trim().isEmpty ? 'Capacity is required' : null,
+                validator: (v) => v == null || v.trim().isEmpty
+                    ? 'Capacity is required'
+                    : null,
               ),
             ),
           ],
@@ -116,7 +114,10 @@ class VehicleBasicInfoForm extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 14),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Theme.of(context).primaryColor, width: 2),
+                  border: Border.all(
+                    color: Theme.of(context).primaryColor,
+                    width: 2,
+                  ),
                   color: Colors.white,
                 ),
                 child: DropdownButtonHideUnderline(
@@ -169,10 +170,7 @@ class VehicleBasicInfoForm extends StatelessWidget {
               style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
             ),
             const Spacer(),
-            Switch(
-              value: isAc,
-              onChanged: onAcChanged,
-            ),
+            Switch(value: isAc, onChanged: onAcChanged),
           ],
         ),
       ],

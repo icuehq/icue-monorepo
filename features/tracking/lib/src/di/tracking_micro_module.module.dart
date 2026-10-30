@@ -14,7 +14,7 @@ import 'package:tracking/src/services/tracking_service.dart' as _i384;
 import 'package:tracking/src/services/tracking_socket_service.dart' as _i317;
 
 class TrackingPackageModule extends _i526.MicroPackageModule {
-// initializes the registration of main-scope dependencies inside of GetIt
+  // initializes the registration of main-scope dependencies inside of GetIt
   @override
   _i687.FutureOr<void> init(_i526.GetItHelper gh) {
     gh.lazySingleton<_i317.TrackingSocketService>(
@@ -22,10 +22,13 @@ class TrackingPackageModule extends _i526.MicroPackageModule {
       dispose: (i) => i.dispose(),
     );
     gh.lazySingleton<_i384.TrackingService>(
-        () => _i384.TrackingService(gh<_i633.ApiClient>()));
-    gh.lazySingleton<_i97.TrackingProvider>(() => _i97.TrackingProvider(
-          gh<_i384.TrackingService>(),
-          gh<_i317.TrackingSocketService>(),
-        ));
+      () => _i384.TrackingService(gh<_i633.ApiClient>()),
+    );
+    gh.lazySingleton<_i97.TrackingProvider>(
+      () => _i97.TrackingProvider(
+        gh<_i384.TrackingService>(),
+        gh<_i317.TrackingSocketService>(),
+      ),
+    );
   }
 }
