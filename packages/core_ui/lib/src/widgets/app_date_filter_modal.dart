@@ -132,8 +132,17 @@ class _AppDateFilterModalState extends State<AppDateFilterModal> {
     super.initState();
     _selectedMode = widget.initialMode;
     _selectedDate = widget.initialDate ?? DateTime.now();
-    _selectedMonth = widget.initialMonth ?? _months[DateTime.now().month - 1];
-    _selectedYear = widget.initialYear ?? DateTime.now().year.toString();
+    // Callers may pass a numeric month ("10"); dropdown values must match
+    // an item exactly, so map to a name and fall back to the current one.
+    final monthIndex = int.tryParse(widget.initialMonth ?? '');
+    _selectedMonth = _months.contains(widget.initialMonth)
+        ? widget.initialMonth
+        : (monthIndex != null && monthIndex >= 1 && monthIndex <= 12)
+        ? _months[monthIndex - 1]
+        : _months[DateTime.now().month - 1];
+    _selectedYear = _years.contains(widget.initialYear)
+        ? widget.initialYear
+        : _years.first;
     _selectedRange = widget.initialRange;
   }
 
