@@ -35,7 +35,6 @@ dependencies:
   tracking:
   vehicles:
 
-  firebase_core: any
 dev_dependencies:
   build_runner: ^2.4.13
   flutter_lints: ^6.0.0
