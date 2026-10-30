@@ -14,12 +14,6 @@ abstract class TokenProvider {
   /// Current branch ID if available (used for injecting BranchId in non-GET requests).
   dynamic getBranchId() => null;
 
-  /// Application source identifier (defaults to 'adminapp').
-  String? getSource() => 'adminapp';
-
-  /// User information map for crash reporting metadata.
-  Map<String, dynamic>? getUserInformation() => null;
-
   /// Invalidate any in-memory cached session or branch data.
   void invalidateSessionCache() {}
 }

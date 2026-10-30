@@ -559,12 +559,10 @@ void main() {
     test('triggers onShowErrorMessage and onSessionExpired callbacks', () {
       String? shownMessage;
       bool sessionExpiredCalled = false;
-      bool sessionInvalidated = false;
 
       final interceptor = ErrorInterceptor(
         onShowErrorMessage: (msg) => shownMessage = msg,
         onSessionExpired: () => sessionExpiredCalled = true,
-        onInvalidateSession: () => sessionInvalidated = true,
       );
 
       final err = DioException(
@@ -581,22 +579,6 @@ void main() {
 
       expect(shownMessage, equals('Session timed out'));
       expect(sessionExpiredCalled, isTrue);
-      expect(sessionInvalidated, isTrue);
-    });
-  });
-
-  group('ApiClient.logCrash', () {
-    test('logs unexpected crash without error', () {
-      final client = ApiClient();
-      expect(
-        () => client.logCrash(
-          '/api/v1.0/sync',
-          Exception('Test crash'),
-          StackTrace.empty,
-          message: 'Sync failed',
-        ),
-        returnsNormally,
-      );
     });
   });
 }
@@ -621,12 +603,6 @@ class _MockTokenProvider implements TokenProvider {
 
   @override
   dynamic getBranchId() => branchId;
-
-  @override
-  String? getSource() => 'adminapp';
-
-  @override
-  Map<String, dynamic>? getUserInformation() => null;
 
   @override
   void invalidateSessionCache() {}

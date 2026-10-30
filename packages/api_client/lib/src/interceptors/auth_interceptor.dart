@@ -14,7 +14,6 @@ class AuthInterceptor extends QueuedInterceptor {
     this.tokenProvider,
     required this.dio,
     this.source,
-    this.sourceProvider,
     this.branchIdProvider,
     this.onSessionExpired,
   });
@@ -22,7 +21,6 @@ class AuthInterceptor extends QueuedInterceptor {
   TokenProvider? tokenProvider;
   final Dio dio;
   final String? source;
-  final String? Function()? sourceProvider;
   final dynamic Function()? branchIdProvider;
   final void Function()? onSessionExpired;
 
@@ -32,13 +30,6 @@ class AuthInterceptor extends QueuedInterceptor {
       return GetIt.I<TokenProvider>();
     }
     return null;
-  }
-
-  String? _resolveSource() {
-    if (source != null) return source;
-    final providedSource = sourceProvider?.call();
-    if (providedSource != null) return providedSource;
-    return _resolveTokenProvider()?.getSource() ?? defaultSourceValue;
   }
 
   dynamic _resolveBranchId() {
@@ -69,7 +60,7 @@ class AuthInterceptor extends QueuedInterceptor {
     if (options.method.toUpperCase() != 'GET' &&
         options.extra['no_context'] != true) {
       final extraFields = <String, dynamic>{
-        defaultSourceKey: _resolveSource(),
+        defaultSourceKey: source ?? defaultSourceValue,
         defaultBranchKey: _resolveBranchId(),
       }..removeWhere((_, v) => v == null);
 
@@ -113,8 +104,7 @@ class AuthInterceptor extends QueuedInterceptor {
       final provider = _resolveTokenProvider();
       if (provider != null) {
         try {
-          final refreshed = await provider.refreshToken();
-          if (refreshed) {
+          if (await provider.refreshToken()) {
             final options = err.requestOptions;
             options.extra['is_retry'] = true;
 
@@ -123,16 +113,11 @@ class AuthInterceptor extends QueuedInterceptor {
               options.headers['token'] = newToken;
             }
 
-            final retryResponse = await dio.fetch<dynamic>(options);
-            return handler.resolve(retryResponse);
-          } else {
-            await provider.onAuthFailed();
-            onSessionExpired?.call();
+            return handler.resolve(await dio.fetch<dynamic>(options));
           }
-        } catch (_) {
-          await provider.onAuthFailed();
-          onSessionExpired?.call();
-        }
+        } catch (_) {}
+        await provider.onAuthFailed();
+        onSessionExpired?.call();
       }
     }
 

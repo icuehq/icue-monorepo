@@ -18,13 +18,11 @@ class ErrorInterceptor extends Interceptor {
     this.onLogCrash,
     this.onShowErrorMessage,
     this.onSessionExpired,
-    this.onInvalidateSession,
   });
 
   final CrashLoggerCallback? onLogCrash;
   final void Function(String message)? onShowErrorMessage;
   final void Function()? onSessionExpired;
-  final void Function()? onInvalidateSession;
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
@@ -66,7 +64,6 @@ class ErrorInterceptor extends Interceptor {
 
     // 5. Handle session expiration on 401
     if (statusCode == 401) {
-      onInvalidateSession?.call();
       onSessionExpired?.call();
     }
 
@@ -91,16 +88,9 @@ class ErrorInterceptor extends Interceptor {
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
       case DioExceptionType.connectionError:
-        return NetworkException(
-          message: ErrorHelpers.handleError(err) ?? defaultMsg,
-          originalError: err,
-        );
-
       case DioExceptionType.badCertificate:
         return NetworkException(
-          message:
-              ErrorHelpers.handleError(err) ??
-              'The server certificate is invalid. Please contact support.',
+          message: ErrorHelpers.handleError(err) ?? defaultMsg,
           originalError: err,
         );
 
@@ -108,7 +98,7 @@ class ErrorInterceptor extends Interceptor {
         final response = err.response;
         final statusCode = response?.statusCode;
         final data = response?.data;
-        final serverMessage = _extractServerMessage(data);
+        final serverMessage = ErrorHelpers.messageFromData(data);
 
         switch (statusCode) {
           case 400:
@@ -165,7 +155,6 @@ class ErrorInterceptor extends Interceptor {
           originalError: err,
         );
 
-      case DioExceptionType.unknown:
       default:
         if (ErrorHelpers.isConnectionError(err)) {
           return NetworkException(
@@ -180,34 +169,6 @@ class ErrorInterceptor extends Interceptor {
     }
   }
 
-  String? _extractServerMessage(dynamic data) {
-    if (data is Map) {
-      final msg =
-          data['message'] ??
-          data['Message'] ??
-          data['error'] ??
-          data['Error'] ??
-          data['errorMessage'] ??
-          data['ErrorMessage'] ??
-          data['msg'] ??
-          data['detail'];
-      if (msg is String && msg.trim().isNotEmpty) {
-        final trimmed = msg.trim();
-        return trimmed.contains('<!DOCTYPE html>')
-            ? 'Something went wrong...'
-            : trimmed;
-      }
-    }
-    if (data is String && data.trim().isNotEmpty) {
-      final trimmed = data.trim();
-      if (trimmed.contains('<!DOCTYPE html>') || trimmed.startsWith('<')) {
-        return 'Something went wrong...';
-      }
-      return trimmed;
-    }
-    return null;
-  }
-
   bool _isLoginRequest(RequestOptions options) {
     final path = options.uri.path.isNotEmpty ? options.uri.path : options.path;
     final normalizedPath = path.endsWith('/')
@@ -216,13 +177,13 @@ class ErrorInterceptor extends Interceptor {
     return normalizedPath.endsWith('/login') || normalizedPath == 'login';
   }
 
-  bool _isGenericUnauthorized(String message) {
-    final normalized = message.trim().toLowerCase().replaceAll(
-      RegExp(r'[\s\-_\.]'),
-      '',
-    );
-    return normalized == 'unauthorized' ||
-        normalized == 'unauthorizedaccess' ||
-        normalized == 'invalidcredentials';
-  }
+  static const _genericUnauthorized = {
+    'unauthorized',
+    'unauthorizedaccess',
+    'invalidcredentials',
+  };
+
+  bool _isGenericUnauthorized(String message) => _genericUnauthorized.contains(
+    message.trim().toLowerCase().replaceAll(RegExp(r'[\s\-_\.]'), ''),
+  );
 }

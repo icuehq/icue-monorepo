@@ -27,10 +27,7 @@ class ErrorHelpers {
         }
         return 'Network error occurred. Please check your internet connection and try again.';
       case DioExceptionType.unknown:
-        final errorMessage = error.message ?? '';
-        if (errorMessage.contains('Failed host lookup') ||
-            errorMessage.contains('nodename nor servname') ||
-            errorMessage.contains('connection')) {
+        if (_isLookupFailure(error)) {
           return 'Unable to connect to the server. Please check your internet connection.';
         }
         return null;
@@ -45,10 +42,34 @@ class ErrorHelpers {
         error.type == DioExceptionType.connectionTimeout ||
         error.type == DioExceptionType.sendTimeout ||
         error.type == DioExceptionType.receiveTimeout ||
-        (error.type == DioExceptionType.unknown &&
-            (error.message?.contains('Failed host lookup') == true ||
-                error.message?.contains('nodename nor servname') == true ||
-                error.message?.contains('connection') == true));
+        (error.type == DioExceptionType.unknown && _isLookupFailure(error));
+  }
+
+  static bool _isLookupFailure(DioException error) {
+    final message = error.message ?? '';
+    return message.contains('Failed host lookup') ||
+        message.contains('nodename nor servname') ||
+        message.contains('connection');
+  }
+
+  /// Pulls a message out of a response body ([Map] message keys or raw
+  /// [String]); null when absent. HTML error pages become a generic message.
+  static String? messageFromData(dynamic data) {
+    final raw = data is Map
+        ? data['message'] ??
+              data['Message'] ??
+              data['error'] ??
+              data['Error'] ??
+              data['errorMessage'] ??
+              data['ErrorMessage'] ??
+              data['msg'] ??
+              data['detail']
+        : data;
+    if (raw is! String || raw.trim().isEmpty) return null;
+    final trimmed = raw.trim();
+    return trimmed.startsWith('<') || trimmed.contains('<!DOCTYPE html>')
+        ? 'Something went wrong...'
+        : trimmed;
   }
 
   /// Extracts a user-friendly error message from [DioException], handling connection errors,
@@ -62,31 +83,9 @@ class ErrorHelpers {
       }
     }
 
-    final data = error.response?.data;
-    String msg = '';
-    if (data is String) {
-      msg = data;
-    } else if (data is Map) {
-      final messageField =
-          data['message'] ??
-          data['Message'] ??
-          data['error'] ??
-          data['Error'] ??
-          data['errorMessage'] ??
-          data['ErrorMessage'] ??
-          data['msg'] ??
-          data['detail'];
-      if (messageField != null) {
-        msg = messageField.toString();
-      }
-    }
-
-    if (msg.isEmpty) {
-      msg = error.message ?? handleError(error) ?? 'Unexpected error occurred.';
-    }
-
-    return msg.contains('<!DOCTYPE html>') || msg.trim().startsWith('<')
-        ? 'Something went wrong...'
-        : msg;
+    return messageFromData(error.response?.data) ??
+        error.message ??
+        handleError(error) ??
+        'Unexpected error occurred.';
   }
 }

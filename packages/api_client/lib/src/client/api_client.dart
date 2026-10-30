@@ -1,10 +1,8 @@
-import 'dart:convert';
 import 'dart:developer';
 
 import 'package:api_client/src/auth/token_provider.dart';
 import 'package:api_client/src/config/api_environment.dart';
 import 'package:api_client/src/errors/api_exception.dart';
-import 'package:api_client/src/errors/error_helpers.dart';
 import 'package:api_client/src/interceptors/auth_interceptor.dart';
 import 'package:api_client/src/interceptors/error_interceptor.dart';
 import 'package:api_client/src/interceptors/logging_interceptor.dart';
@@ -19,13 +17,10 @@ class ApiClient {
     ApiEnvironment? environment,
     TokenProvider? tokenProvider,
     Dio? dio,
-    List<Interceptor> additionalInterceptors = const [],
     Duration connectTimeout = const Duration(seconds: 20),
     Duration receiveTimeout = const Duration(seconds: 20),
-    BaseOptions? customBaseOptions,
     bool enableLogging = true,
     void Function(String message)? logPrint,
-    LoggingStyle loggingStyle = LoggingStyle.standard,
     this.source = defaultSourceValue,
     this.branchIdProvider,
     this.onShowErrorMessage,
@@ -34,57 +29,49 @@ class ApiClient {
        dio =
            dio ??
            Dio(
-             customBaseOptions ??
-                 BaseOptions(
-                   baseUrl:
-                       '${(environment ?? ApiEnvironment.fromEnvironment()).baseUrl}/api',
-                   connectTimeout: connectTimeout,
-                   receiveTimeout: receiveTimeout,
-                   headers: {
-                     'Content-Type': 'application/json',
-                     'Accept': 'application/json',
-                   },
-                 ),
+             BaseOptions(
+               baseUrl:
+                   '${(environment ?? ApiEnvironment.fromEnvironment()).baseUrl}/api',
+               connectTimeout: connectTimeout,
+               receiveTimeout: receiveTimeout,
+               headers: {
+                 'Content-Type': 'application/json',
+                 'Accept': 'application/json',
+               },
+             ),
            ) {
     _tokenProvider = tokenProvider;
+
+    void expireSession() {
+      invalidateSessionCache();
+      onSessionExpired?.call();
+    }
 
     _authInterceptor = AuthInterceptor(
       tokenProvider: _tokenProvider,
       dio: this.dio,
       source: source,
       branchIdProvider: () => currentBranchId,
-      onSessionExpired: () {
-        invalidateSessionCache();
-        onSessionExpired?.call();
-      },
+      onSessionExpired: expireSession,
     );
     this.dio.interceptors.add(_authInterceptor);
 
     if (enableLogging) {
       this.dio.interceptors.add(
-        LoggingInterceptor(
-          logPrint: logPrint,
-          style: loggingStyle,
-        ),
+        LoggingInterceptor(logPrint: logPrint),
       );
     }
 
-    _errorInterceptor = ErrorInterceptor(
-      onLogCrash: (path, error, stack, {fatal = true, message}) {
-        logCrash(path, error, stack, fatal: fatal, message: message);
-      },
+    this.dio.interceptors.add(ErrorInterceptor(
+      onLogCrash: (path, error, stack, {fatal = true, message}) => log(
+        'ERROR in $path: $message',
+        name: 'ApiClient',
+        error: error,
+        stackTrace: stack,
+      ),
       onShowErrorMessage: onShowErrorMessage,
-      onSessionExpired: () {
-        invalidateSessionCache();
-        onSessionExpired?.call();
-      },
-      onInvalidateSession: invalidateSessionCache,
-    );
-    this.dio.interceptors.add(_errorInterceptor);
-
-    if (additionalInterceptors.isNotEmpty) {
-      this.dio.interceptors.addAll(additionalInterceptors);
-    }
+      onSessionExpired: expireSession,
+    ));
   }
 
   final Dio dio;
@@ -96,7 +83,6 @@ class ApiClient {
 
   TokenProvider? _tokenProvider;
   late final AuthInterceptor _authInterceptor;
-  late final ErrorInterceptor _errorInterceptor;
 
   dynamic _cachedBranchId;
 
@@ -128,49 +114,32 @@ class ApiClient {
     _resolveTokenProvider()?.invalidateSessionCache();
   }
 
-  /// Classifies error and returns user-friendly error message.
-  String? handleError(DioException error) => ErrorHelpers.handleError(error);
-
-  /// Determines if the error is a connection or network error.
-  bool isConnectionError(DioException error) =>
-      ErrorHelpers.isConnectionError(error);
-
-  /// Extracts error message from response body or falls back to user-friendly network message.
-  String extractErrorMessage(DioException error) =>
-      ErrorHelpers.extractErrorMessage(error);
-
-  /// Logs error details matching legacy application conventions.
-  void logCrash(
-    String from,
-    Object error,
-    StackTrace? stack, {
-    bool fatal = true,
-    String? message,
-  }) {
-    final logMessage = 'ERROR in $from: $message';
-    log(logMessage, name: 'ApiClient', error: error, stackTrace: stack);
-  }
-
-  /// Formats and logs request details matching legacy application conventions.
-  void logRequest(RequestOptions options) {
-    dynamic data = options.data;
-    if (data is FormData) {
-      data = Map<String, dynamic>.fromEntries(
-        data.fields.map((f) => MapEntry<String, dynamic>(f.key, f.value)),
-      );
-    }
-
-    String bodyStr;
+  Future<Response<T>> _send<T>(
+    String method,
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+    CancelToken? cancelToken,
+  }) async {
     try {
-      bodyStr = jsonEncode(data ?? <String, dynamic>{});
-    } catch (_) {
-      bodyStr = (data ?? const <String, dynamic>{}).toString();
+      return await dio.request<T>(
+        path,
+        data: data,
+        queryParameters: queryParameters,
+        options: (options ?? Options()).copyWith(
+          method: method,
+          headers: {...?options?.headers, ...?headers},
+        ),
+        cancelToken: cancelToken,
+      );
+    } on DioException catch (e) {
+      // Surface the typed [ApiException] set by [ErrorInterceptor].
+      final error = e.error;
+      if (error is ApiException) throw error;
+      rethrow;
     }
-
-    log(
-      'REQUEST[${options.method}] => PATH: ${options.baseUrl}${options.path} => BODY: $bodyStr',
-      name: 'ApiClient',
-    );
   }
 
   /// Sends a GET request and handles typed exception re-throwing.
@@ -180,22 +149,14 @@ class ApiClient {
     Map<String, dynamic>? queryParameters,
     Options? options,
     CancelToken? cancelToken,
-  }) async {
-    options ??= Options();
-    if (headers != null) {
-      options.headers = {...?options.headers, ...headers};
-    }
-    try {
-      return await dio.get<T>(
-        path,
-        queryParameters: queryParameters,
-        options: options,
-        cancelToken: cancelToken,
-      );
-    } on DioException catch (e) {
-      throw _unwrapApiException(e);
-    }
-  }
+  }) => _send<T>(
+    'GET',
+    path,
+    headers: headers,
+    queryParameters: queryParameters,
+    options: options,
+    cancelToken: cancelToken,
+  );
 
   /// Sends a POST request and handles typed exception re-throwing.
   Future<Response<T>> post<T>(
@@ -205,23 +166,15 @@ class ApiClient {
     Map<String, dynamic>? queryParameters,
     Options? options,
     CancelToken? cancelToken,
-  }) async {
-    options ??= Options();
-    if (headers != null) {
-      options.headers = {...?options.headers, ...headers};
-    }
-    try {
-      return await dio.post<T>(
-        path,
-        data: data,
-        queryParameters: queryParameters,
-        options: options,
-        cancelToken: cancelToken,
-      );
-    } on DioException catch (e) {
-      throw _unwrapApiException(e);
-    }
-  }
+  }) => _send<T>(
+    'POST',
+    path,
+    data: data,
+    headers: headers,
+    queryParameters: queryParameters,
+    options: options,
+    cancelToken: cancelToken,
+  );
 
   /// Sends a PUT request and handles typed exception re-throwing.
   Future<Response<T>> put<T>(
@@ -231,23 +184,15 @@ class ApiClient {
     Map<String, dynamic>? queryParameters,
     Options? options,
     CancelToken? cancelToken,
-  }) async {
-    options ??= Options();
-    if (headers != null) {
-      options.headers = {...?options.headers, ...headers};
-    }
-    try {
-      return await dio.put<T>(
-        path,
-        data: data,
-        queryParameters: queryParameters,
-        options: options,
-        cancelToken: cancelToken,
-      );
-    } on DioException catch (e) {
-      throw _unwrapApiException(e);
-    }
-  }
+  }) => _send<T>(
+    'PUT',
+    path,
+    data: data,
+    headers: headers,
+    queryParameters: queryParameters,
+    options: options,
+    cancelToken: cancelToken,
+  );
 
   /// Sends a PATCH request and handles typed exception re-throwing.
   Future<Response<T>> patch<T>(
@@ -257,23 +202,15 @@ class ApiClient {
     Map<String, dynamic>? queryParameters,
     Options? options,
     CancelToken? cancelToken,
-  }) async {
-    options ??= Options();
-    if (headers != null) {
-      options.headers = {...?options.headers, ...headers};
-    }
-    try {
-      return await dio.patch<T>(
-        path,
-        data: data,
-        queryParameters: queryParameters,
-        options: options,
-        cancelToken: cancelToken,
-      );
-    } on DioException catch (e) {
-      throw _unwrapApiException(e);
-    }
-  }
+  }) => _send<T>(
+    'PATCH',
+    path,
+    data: data,
+    headers: headers,
+    queryParameters: queryParameters,
+    options: options,
+    cancelToken: cancelToken,
+  );
 
   /// Sends a DELETE request and handles typed exception re-throwing.
   Future<Response<T>> delete<T>(
@@ -283,28 +220,13 @@ class ApiClient {
     Map<String, dynamic>? queryParameters,
     Options? options,
     CancelToken? cancelToken,
-  }) async {
-    options ??= Options();
-    if (headers != null) {
-      options.headers = {...?options.headers, ...headers};
-    }
-    try {
-      return await dio.delete<T>(
-        path,
-        data: data,
-        queryParameters: queryParameters,
-        options: options,
-        cancelToken: cancelToken,
-      );
-    } on DioException catch (e) {
-      throw _unwrapApiException(e);
-    }
-  }
-
-  Exception _unwrapApiException(DioException e) {
-    if (e.error is ApiException) {
-      return e.error as ApiException;
-    }
-    return e;
-  }
+  }) => _send<T>(
+    'DELETE',
+    path,
+    data: data,
+    headers: headers,
+    queryParameters: queryParameters,
+    options: options,
+    cancelToken: cancelToken,
+  );
 }

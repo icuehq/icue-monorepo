@@ -58,23 +58,6 @@ class SessionTokenProvider implements TokenProvider {
   }
 
   @override
-  String? getSource() => 'adminapp';
-
-  @override
-  Map<String, dynamic>? getUserInformation() {
-    final user = _userLocalStorage.getUser();
-    if (user == null) return null;
-    return <String, dynamic>{
-      'Id': user.id,
-      'OrganizationId': user.organizationId,
-      'ZoneId': user.zoneId,
-      'BranchId': user.branchId,
-      'SchoolName': user.schoolName,
-      'Role': user.roles.map((r) => r.toJson()).toList(),
-    };
-  }
-
-  @override
   void invalidateSessionCache() {
     _token = null;
   }
