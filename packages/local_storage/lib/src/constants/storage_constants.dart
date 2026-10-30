@@ -18,9 +18,6 @@ abstract final class StorageConstants {
   static const String expenseCategoryBox = 'expenseCategory-v2';
   static const String fuelStorageBox = 'fuelStorage-v2';
 
-  /// General application cache box for arbitrary feature responses or key-value data.
-  static const String appCacheBox = 'appCache-v1';
-
   // --- Key Names ---
   static const String fcmTokenKey = 'fcm_token';
   static const String currentUserKey = 'current_user';

@@ -1,5 +1,6 @@
 library;
 
+export 'src/di/gatepass_micro_module.module.dart';
 export 'src/models/create_gatepass_request.dart';
 export 'src/models/gatepass_request.dart';
 export 'src/models/gatepass_type.dart';

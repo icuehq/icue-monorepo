@@ -44,6 +44,7 @@ class _StudentRouteChangePageState extends State<StudentRouteChangePage> {
   }
 
   void _onScroll() {
+    if (!_scrollController.hasClients) return;
     final provider = context.read<RoutesProvider>();
     if (_scrollController.position.pixels >=
             _scrollController.position.maxScrollExtent - 200 &&

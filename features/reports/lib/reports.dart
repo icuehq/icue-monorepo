@@ -1,5 +1,6 @@
 library;
 
+export 'src/di/reports_micro_module.module.dart';
 export 'src/models/alcohol_test_report.dart';
 export 'src/models/arrival_time_report.dart';
 export 'src/models/cleaning_report.dart';

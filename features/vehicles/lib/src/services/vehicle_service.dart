@@ -15,31 +15,21 @@ class VehicleService {
   Future<List<Vehicle>> getVehicles() async {
     final response =
         await _apiClient.post<dynamic>('/v1.0/getVehiclesNumbersByBranch');
-    final data = response.data;
-    if (data is List) {
-      final vehicles = data
-          .whereType<Map<String, dynamic>>()
-          .map(Vehicle.fromJson)
-          .toList();
-      vehicles.sort((a, b) => a.number.compareTo(b.number));
-      return vehicles;
-    }
-    return <Vehicle>[];
+    return parseList(
+      response.data,
+      Vehicle.fromJson,
+      compare: (a, b) => a.number.compareTo(b.number),
+    );
   }
 
   /// Fetches full vehicle fleet data with compliance dates and driver associations.
   Future<List<VehicleData>> getVehiclesData() async {
     final response = await _apiClient.post<dynamic>('/v1.0/getVehicles');
-    final data = response.data;
-    if (data is List) {
-      final vehicles = data
-          .whereType<Map<String, dynamic>>()
-          .map(VehicleData.fromJson)
-          .toList();
-      vehicles.sort((a, b) => a.number.compareTo(b.number));
-      return vehicles;
-    }
-    return <VehicleData>[];
+    return parseList(
+      response.data,
+      VehicleData.fromJson,
+      compare: (a, b) => a.number.compareTo(b.number),
+    );
   }
 
   /// Fetches complete vehicle details by vehicle number.

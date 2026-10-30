@@ -32,20 +32,14 @@ class _ComplaintsDashboardPageState extends State<ComplaintsDashboardPage> {
 
   void _navigateToFilteredComplaints(ComplaintDashboardItem item) {
     if (_countBy == 'Status') {
-      context.push(
-        AppRoutes.complaints,
-        extra: {'status': item.status},
-      );
+      context.push(AppRoutes.complaints, extra: {'status': item.status});
     } else if (_countBy == 'Category') {
       context.push(
         AppRoutes.complaints,
         extra: {'categoryId': item.categoryId},
       );
     } else {
-      context.push(
-        AppRoutes.complaints,
-        extra: {'vehicleId': item.vehicleId},
-      );
+      context.push(AppRoutes.complaints, extra: {'vehicleId': item.vehicleId});
     }
   }
 
@@ -65,16 +59,19 @@ class _ComplaintsDashboardPageState extends State<ComplaintsDashboardPage> {
           ),
         ],
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(60),
+          preferredSize: const Size.fromHeight(76),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: DropdownButtonFormField<String>(
               initialValue: _countBy,
               decoration: InputDecoration(
-                labelText: 'Group Complaints By',
+                // labelText: 'Group Complaints By',
                 filled: true,
                 fillColor: Theme.of(context).cardColor,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
                   borderSide: BorderSide.none,
@@ -131,11 +128,14 @@ class _ComplaintsDashboardPageState extends State<ComplaintsDashboardPage> {
                     )
                   : ListView.builder(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 10),
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
                       itemCount: stats.length,
                       itemBuilder: (context, index) {
                         final item = stats[index];
-                        final title = item.status ??
+                        final title =
+                            item.status ??
                             item.category ??
                             item.vehicle ??
                             'Unknown';
@@ -168,11 +168,14 @@ class _ComplaintsDashboardPageState extends State<ComplaintsDashboardPage> {
                                       ),
                                       Container(
                                         padding: const EdgeInsets.symmetric(
-                                            horizontal: 10, vertical: 4),
+                                          horizontal: 10,
+                                          vertical: 4,
+                                        ),
                                         decoration: BoxDecoration(
                                           color: Colors.blue.shade50,
-                                          borderRadius:
-                                              BorderRadius.circular(12),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
                                         ),
                                         child: Text(
                                           '${item.totalCount} complaints',
@@ -195,7 +198,9 @@ class _ComplaintsDashboardPageState extends State<ComplaintsDashboardPage> {
                                           visualDensity: VisualDensity.compact,
                                           label: Text(
                                             '${s.status}: ${s.count}',
-                                            style: const TextStyle(fontSize: 11),
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                            ),
                                           ),
                                         );
                                       }).toList(),

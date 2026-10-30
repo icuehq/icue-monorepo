@@ -1,40 +1,159 @@
-import 'package:hive/hive.dart';
+import 'package:flutter/foundation.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:injectable/injectable.dart';
+import 'package:local_storage/src/constants/storage_constants.dart';
 
-/// Centralized storage service interface for persisting and retrieving application data.
-abstract class StorageService {
-  /// Initializes the local storage engine (e.g. Hive.initFlutter) and registers adapters.
-  Future<void> init();
+@lazySingleton
+class StorageService {
+  bool _isInitialized = false;
+  final Map<String, dynamic> _openBoxes = {};
 
-  /// Opens a box with the given name if not already open.
-  Future<Box<T>> openBox<T>(String boxName);
+  Future<void> init() async {
+    if (_isInitialized) return;
 
-  /// Returns an already opened box. Throws an error or opens it if not yet open.
-  Box<T> getBox<T>(String boxName);
+    await Hive.initFlutter();
 
-  /// Checks if a box is currently open.
-  bool isBoxOpen(String boxName);
+    // Eagerly open core shared system boxes
+    await Future.wait([openBox<String>(StorageConstants.fcmTokenBox)]);
 
-  /// Stores a value under [key] in [boxName].
-  Future<void> put<T>(String boxName, dynamic key, T value);
+    _isInitialized = true;
+  }
 
-  /// Retrieves a value under [key] from [boxName], returning [defaultValue] if null.
-  T? get<T>(String boxName, dynamic key, {T? defaultValue});
+  Future<Box<T>> openBox<T>(String boxName) async {
+    final lower = boxName.toLowerCase();
+    if (_openBoxes.containsKey(lower) && Hive.isBoxOpen(boxName)) {
+      return _openBoxes[lower] as Box<T>;
+    }
+    final box = await Hive.openBox<T>(boxName);
+    _openBoxes[lower] = box;
+    return box;
+  }
 
-  /// Deletes a key-value entry from [boxName].
-  Future<void> delete(String boxName, dynamic key);
+  Box<T> getBox<T>(String boxName) {
+    final lower = boxName.toLowerCase();
+    if (_openBoxes.containsKey(lower)) {
+      return _openBoxes[lower] as Box<T>;
+    }
+    if (!Hive.isBoxOpen(boxName)) {
+      throw StateError(
+        'Box "$boxName" is not open. Call openBox("$boxName") before accessing it.',
+      );
+    }
+    final box = Hive.box<T>(boxName);
+    _openBoxes[lower] = box;
+    return box;
+  }
 
-  /// Checks if [boxName] contains [key].
-  bool containsKey(String boxName, dynamic key);
+  bool isBoxOpen(String boxName) => Hive.isBoxOpen(boxName);
 
-  /// Retrieves all values stored in [boxName].
-  List<T> getAll<T>(String boxName);
+  dynamic _findBox(String boxName) {
+    final lower = boxName.toLowerCase();
+    if (_openBoxes.containsKey(lower)) {
+      return _openBoxes[lower];
+    }
+    if (Hive.isBoxOpen(boxName)) {
+      try {
+        final box = Hive.box<dynamic>(boxName);
+        _openBoxes[lower] = box;
+        return box;
+      } catch (_) {
+        return null;
+      }
+    }
+    return null;
+  }
 
-  /// Clears all entries in [boxName].
-  Future<void> clearBox(String boxName);
+  Future<void> put<T>(String boxName, dynamic key, T value) async {
+    final box = await openBox<T>(boxName);
+    await box.put(key, value);
+  }
 
-  /// Clears all known and open storage boxes (e.g. on user logout).
-  Future<void> clearAll();
+  T? get<T>(String boxName, dynamic key, {T? defaultValue}) {
+    final lower = boxName.toLowerCase();
+    if (_openBoxes.containsKey(lower)) {
+      final box = _openBoxes[lower];
+      return (box as dynamic).get(key, defaultValue: defaultValue) as T?;
+    }
+    if (!Hive.isBoxOpen(boxName)) return defaultValue;
+    try {
+      final box = Hive.box<T>(boxName);
+      _openBoxes[lower] = box;
+      return box.get(key, defaultValue: defaultValue);
+    } catch (_) {
+      return defaultValue;
+    }
+  }
 
-  /// Closes all open boxes safely.
-  Future<void> closeAll();
+  Future<void> delete(String boxName, dynamic key) async {
+    final box = _findBox(boxName);
+    if (box != null) {
+      await (box as dynamic).delete(key);
+    }
+  }
+
+  bool containsKey(String boxName, dynamic key) {
+    final box = _findBox(boxName);
+    if (box == null) return false;
+    return (box as dynamic).containsKey(key) as bool;
+  }
+
+  List<T> getAll<T>(String boxName) {
+    final lower = boxName.toLowerCase();
+    if (_openBoxes.containsKey(lower)) {
+      final box = _openBoxes[lower];
+      return ((box as dynamic).values as Iterable).cast<T>().toList();
+    }
+    if (!Hive.isBoxOpen(boxName)) return <T>[];
+    try {
+      final box = Hive.box<T>(boxName);
+      _openBoxes[lower] = box;
+      return box.values.toList();
+    } catch (_) {
+      return <T>[];
+    }
+  }
+
+  Future<void> clearBox(String boxName) async {
+    final box = _findBox(boxName);
+    if (box != null) {
+      await (box as dynamic).clear();
+      return;
+    }
+    final opened = await openBox<dynamic>(boxName);
+    await opened.clear();
+  }
+
+  Future<void> clearAll() async {
+    final knownBoxes = [
+      StorageConstants.userInfoBox,
+      StorageConstants.fcmTokenBox,
+      StorageConstants.getActionsByRoleBox,
+      StorageConstants.standardsBox,
+      StorageConstants.announcementTitleBox,
+      StorageConstants.routesBox,
+      StorageConstants.vehicleBox,
+      StorageConstants.vehicleDetailsBox,
+      StorageConstants.createAttendanceBox,
+      StorageConstants.personTypesBox,
+      StorageConstants.fuelPriceBox,
+      StorageConstants.zonalBranchBox,
+      StorageConstants.expenseTypesBox,
+      StorageConstants.expenseCategoryBox,
+      StorageConstants.fuelStorageBox,
+    ];
+
+    for (final boxName in knownBoxes) {
+      try {
+        await clearBox(boxName);
+      } catch (e) {
+        debugPrint('Error clearing box $boxName: $e');
+      }
+    }
+  }
+
+  Future<void> closeAll() async {
+    _openBoxes.clear();
+    await Hive.close();
+    _isInitialized = false;
+  }
 }

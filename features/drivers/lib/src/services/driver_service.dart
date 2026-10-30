@@ -13,16 +13,11 @@ class DriverService {
   /// Fetches all drivers for the authenticated organization & branch.
   Future<List<Driver>> getDrivers() async {
     final response = await _apiClient.post<dynamic>('/v1.0/getDrivers');
-    final data = response.data;
-    if (data is List) {
-      final drivers = data
-          .whereType<Map<String, dynamic>>()
-          .map(Driver.fromJson)
-          .toList();
-      drivers.sort((a, b) => a.firstName.compareTo(b.firstName));
-      return drivers;
-    }
-    return <Driver>[];
+    return parseList(
+      response.data,
+      Driver.fromJson,
+      compare: (a, b) => a.firstName.compareTo(b.firstName),
+    );
   }
 
   /// Creates a new driver record.

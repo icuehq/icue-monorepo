@@ -226,13 +226,13 @@ void main() {
 
   group('UserLocalStorage real Hive backward compatibility', () {
     late Directory tempDir;
-    late HiveStorageService storageService;
+    late StorageService storageService;
     late UserLocalStorage userLocalStorage;
 
     setUp(() async {
       tempDir = await Directory.systemTemp.createTemp('hive_auth_test_');
       Hive.init(tempDir.path);
-      storageService = HiveStorageService();
+      storageService = StorageService();
       userLocalStorage = UserLocalStorage(storageService);
     });
 
@@ -341,7 +341,7 @@ void main() {
       await Hive.close();
 
       // 3. New app lifecycle starts: storage engine and user storage initialize
-      final reloadedStorageService = HiveStorageService();
+      final reloadedStorageService = StorageService();
       final reloadedUserStorage = UserLocalStorage(reloadedStorageService);
       await reloadedUserStorage.init();
 

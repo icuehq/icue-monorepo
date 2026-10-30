@@ -1,5 +1,6 @@
 library;
 
+export 'src/di/tracking_micro_module.module.dart';
 export 'src/models/fleet_status_report.dart';
 export 'src/models/slot_category.dart';
 export 'src/models/vehicle_slot_item.dart';

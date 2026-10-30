@@ -68,7 +68,11 @@ class StudentRouteCard extends StatelessWidget {
                 OutlinedButton(
                   onPressed: onChangeRoute,
                   style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    minimumSize: Size.zero,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -88,8 +92,11 @@ class StudentRouteCard extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.north_east_rounded,
-                              size: 14, color: Colors.green.shade700),
+                          Icon(
+                            Icons.north_east_rounded,
+                            size: 14,
+                            color: Colors.green.shade700,
+                          ),
                           const SizedBox(width: 4),
                           const Text(
                             'Pickup',
@@ -123,8 +130,11 @@ class StudentRouteCard extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.south_west_rounded,
-                              size: 14, color: Colors.blue.shade700),
+                          Icon(
+                            Icons.south_west_rounded,
+                            size: 14,
+                            color: Colors.blue.shade700,
+                          ),
                           const SizedBox(width: 4),
                           const Text(
                             'Drop',

@@ -7,3 +7,4 @@ export 'package:logbook/src/models/complaints.dart';
 export 'package:logbook/src/models/complaints_dashboard.dart';
 export 'package:logbook/src/providers/logbook_provider.dart';
 export 'package:logbook/src/services/logbook_service.dart';
+export 'src/di/logbook_micro_module.module.dart';

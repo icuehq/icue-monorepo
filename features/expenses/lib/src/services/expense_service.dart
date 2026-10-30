@@ -15,14 +15,7 @@ class ExpenseService {
   Future<List<ExpenseType>> getExpenseTypes() async {
     final response =
         await _apiClient.post<dynamic>('/v1.0/getExpenseTypeDetails');
-    final data = response.data;
-    if (data is List) {
-      return data
-          .whereType<Map<String, dynamic>>()
-          .map(ExpenseType.fromJson)
-          .toList();
-    }
-    return <ExpenseType>[];
+    return parseList(response.data, ExpenseType.fromJson);
   }
 
   /// Fetches primary expense categories.

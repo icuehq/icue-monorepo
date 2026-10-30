@@ -28,14 +28,7 @@ class RouteService {
   /// Fetches standards and their sections.
   Future<List<Standards>> getStandards() async {
     final response = await _apiClient.post<dynamic>('/v1.0/getStandards');
-    final data = response.data;
-    if (data is List) {
-      return data
-          .whereType<Map<String, dynamic>>()
-          .map(Standards.fromJson)
-          .toList();
-    }
-    return <Standards>[];
+    return parseList(response.data, Standards.fromJson);
   }
 
   /// Fetches students for a specific class and sections with pagination.
