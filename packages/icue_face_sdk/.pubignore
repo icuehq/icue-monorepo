@@ -1,0 +1,4 @@
+# Local build and IDE output.
+android-core/build/
+coverage/
+*.iml

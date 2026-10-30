@@ -10,7 +10,19 @@ workspace:
   - packages/api_client
   - packages/core_ui
   - packages/local_storage
+  - packages/icue_face_sdk
   - features/auth
+  - features/drivers
+  - features/vehicles
+  - features/routes
+  - features/announcements
+  - features/expenses
+  - features/logbook
+  - features/reports
+  - features/gatepass
+  - features/tracking
+  - features/drop_boarding
+  - features/attendance
 
 dev_dependencies:
   melos: ^8.9.0

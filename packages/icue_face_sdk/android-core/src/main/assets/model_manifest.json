@@ -1,0 +1,28 @@
+{
+  "manifestSchemaVersion": "1.0.0",
+  "modelVersion": "1.0.0",
+  "modelChecksum": "8f2a9e01b34c56789abcdef0123456789abcdef0123456789abcdef012345678",
+  "preprocessingVersion": "v1_umeyama_5pt",
+  "inputShape": [1, 112, 112, 3],
+  "inputType": "float32",
+  "outputShape": [1, 192],
+  "allowedOutputTypes": ["float32", "int8", "uint8"],
+  "tensorLayout": "NHWC",
+  "colourSpace": "RGB",
+  "channelOrder": "RGB",
+  "pixelRange": [-1.0, 1.0],
+  "normalizationMean": 127.5,
+  "normalizationScale": 128.0,
+  "alignmentMode": "5_POINT_UMEYAMA_PROCRUSTES",
+  "canonicalLandmarks": {
+    "imageLeftEye": [38.2946, 51.6963],
+    "imageRightEye": [73.5318, 51.5014],
+    "nose": [56.0252, 71.7366],
+    "imageLeftMouth": [41.5493, 92.3655],
+    "imageRightMouth": [70.7299, 92.2041]
+  },
+  "resizeInterpolation": "BILINEAR",
+  "borderMode": "BORDER_CONSTANT",
+  "borderValue": [0, 0, 0],
+  "allowedQuantizationMode": "PER_TENSOR"
+}

@@ -1,6 +1,8 @@
 import 'package:auth/auth.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:icueadmin/features/dashboard/widgets/sub_actions_sheet.dart';
+import 'package:icueadmin/routing/app_routes.dart';
 import 'package:provider/provider.dart';
 
 class DashboardFeatureGrid extends StatelessWidget {
@@ -175,12 +177,42 @@ class DashboardFeatureGrid extends StatelessWidget {
                       iconColor: color,
                     );
                   } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('$title module selected'),
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
+                    final lowerTitle = title.toLowerCase();
+                    final lowerRoute = item.routeState.toLowerCase();
+
+                    if (lowerTitle.contains('add driver') ||
+                        lowerRoute.contains('add-driver')) {
+                      context.push(AppRoutes.addDriver);
+                    } else if (lowerTitle.contains('driver') ||
+                        lowerRoute.contains('driver')) {
+                      context.push(AppRoutes.drivers);
+                    } else if (lowerTitle.contains('add vehicle') ||
+                        lowerRoute.contains('add-vehicle')) {
+                      context.push(AppRoutes.addVehicle);
+                    } else if (lowerTitle.contains('vehicle') ||
+                        lowerTitle.contains('fleet') ||
+                        lowerRoute.contains('vehicle') ||
+                        lowerRoute.contains('fleet')) {
+                      context.push(AppRoutes.vehicles);
+                    } else if (lowerTitle.contains('student') &&
+                            lowerTitle.contains('route') ||
+                        lowerRoute.contains('student-route')) {
+                      context.push(AppRoutes.studentRouteChange);
+                    } else if (lowerTitle.contains('time') &&
+                            lowerTitle.contains('route') ||
+                        lowerRoute.contains('route-time')) {
+                      context.push(AppRoutes.routeTimeChange);
+                    } else if (lowerTitle.contains('route') ||
+                        lowerRoute.contains('route')) {
+                      context.push(AppRoutes.manageRoutes);
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('$title module selected'),
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    }
                   }
                 },
                 child: Padding(

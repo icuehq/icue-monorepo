@@ -1,0 +1,21 @@
+name: drivers
+description: "Shared drivers feature package for icue apps."
+version: 1.0.0
+resolution: workspace
+
+environment:
+  sdk: ^3.13.1
+
+dependencies:
+  api_client:
+  flutter:
+    sdk: flutter
+  get_it: ^8.0.2
+  injectable: ^2.5.0
+
+dev_dependencies:
+  build_runner: ^2.4.13
+  flutter_lints: ^6.0.0
+  flutter_test:
+    sdk: flutter
+  injectable_generator: ^2.6.2

@@ -2,9 +2,11 @@ import 'package:api_client/api_client.dart';
 import 'package:auth/auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:go_router/go_router.dart';
 import 'package:icueadmin/dialogs/logout_dialog.dart';
 import 'package:icueadmin/features/dashboard/widgets/branch_selector_bar.dart';
 import 'package:icueadmin/features/dashboard/widgets/sub_actions_sheet.dart';
+import 'package:icueadmin/routing/app_routes.dart';
 import 'package:icueadmin/widgets/cache_image.dart';
 import 'package:icueadmin/widgets/no_data_widget.dart';
 import 'package:provider/provider.dart';
@@ -141,12 +143,52 @@ class _DashboardPageState extends State<DashboardPage> {
                               iconColor: Theme.of(context).primaryColorDark,
                             );
                           } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('${item.displayName} selected'),
-                                duration: const Duration(seconds: 2),
-                              ),
-                            );
+                            final lowerRoute = item.routeState.toLowerCase();
+                            final lowerTitle = item.displayName.toLowerCase();
+                            if (lowerRoute.contains('announcement') ||
+                                lowerTitle.contains('announcement')) {
+                              context.push(AppRoutes.postAnnouncement);
+                            } else if (lowerRoute.contains('repairs') ||
+                                lowerTitle.contains('repairs') ||
+                                lowerTitle.contains('expense') ||
+                                lowerRoute.contains('expense')) {
+                              context.push(AppRoutes.repairsExpense);
+                            } else if (lowerRoute.contains('fuel') ||
+                                lowerTitle.contains('fuel')) {
+                              context.push(AppRoutes.manageExpense);
+                            } else if (lowerRoute.contains('logbook') ||
+                                lowerTitle.contains('log book') ||
+                                lowerTitle.contains('logbook')) {
+                              context.push(AppRoutes.logBook);
+                            } else if (lowerRoute.contains('report') ||
+                                lowerTitle.contains('report')) {
+                              context.push(AppRoutes.reports);
+                            } else if (lowerRoute.contains('gatepass') ||
+                                lowerTitle.contains('gate pass') ||
+                                lowerTitle.contains('gatepass')) {
+                              context.push(AppRoutes.gatePass);
+                            } else if (lowerRoute.contains('track') ||
+                                lowerTitle.contains('track')) {
+                              context.push(AppRoutes.trackBus);
+                            } else if (lowerRoute.contains('fleet') ||
+                                lowerTitle.contains('fleet status')) {
+                              context.push(AppRoutes.fleetStatus);
+                            } else if (lowerRoute.contains('drop') ||
+                                lowerRoute.contains('board') ||
+                                lowerTitle.contains('drop') ||
+                                lowerTitle.contains('boarding')) {
+                              context.push(AppRoutes.dropBoarding);
+                            } else if (lowerRoute.contains('attend') ||
+                                lowerTitle.contains('attend')) {
+                              context.push(AppRoutes.attendance);
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('${item.displayName} selected'),
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            }
                           }
                         },
                         leading: Padding(
