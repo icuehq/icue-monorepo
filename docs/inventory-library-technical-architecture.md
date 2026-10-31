@@ -2,7 +2,7 @@
 
 **Status:** Draft for review  
 **Source:** `docs/inventory-and-library-management-prd-frs.md` (FRS 1.0, baseline 1.1)  
-**Firebase project:** `icueadmin` · **Region:** `asia-south1` (Mumbai) for Firestore, Storage and Functions · **Firestore:** Standard edition, Native mode (Core operations only; no Pipelines, no MongoDB mode)
+**Firebase project:** `icueadmin` · **Region:** `asia-south1` (Mumbai) for Firestore, Storage and Functions · **Firestore:** `(default)` database, Standard edition, Native mode (Core operations only; no Pipelines, no MongoDB mode)
 
 This document decides *how* the FRS is built. Functional behaviour stays defined by the FRS; section numbers like "FRS 10.8" refer to it.
 
@@ -91,7 +91,7 @@ Own records (teacher's loans, parent's wards) need no permission; they are match
 ### 3.2 Where permissions are stored
 
 - `schools/{sid}/config/rolePermissions` — `{ roles: { "<roleId>": ["inv.items.view", ...] } }`. Seeded from the table above, edited by admins (audited).
-- `schools/{sid}/userAccess/{uid}` — resolved `{ perms: [...], cmp: [...], all, updatedAt }`. Written by the `session.sync` callable after sign-in, and rewritten for affected users by a trigger when `rolePermissions` changes.
+- `schools/{sid}/userAccess/{uid}` — resolved `{ perms: [...], cmp: [...], all, rol, pt, eid, wards, updatedAt }` (`rol` for recompute, `eid`/`wards` for notification recipients). Written by the `session.sync` callable after sign-in, and rewritten for affected users by a trigger when `rolePermissions` changes.
 
 Rules read one `userAccess` doc per request (`get()` is cached within a request). Functions read the same doc, so rules and Functions can never disagree.
 
@@ -195,6 +195,8 @@ A failed transaction writes nothing (FRS 22 "no partial updates").
 
 ### 5.1 Callables
 
+Names below are logical; they deploy as `<group>-<name>` (`session.sync` → `session-sync`, `inv.item.upsert` → `inv-item-upsert`) because function names cannot contain dots.
+
 | Area | Callables |
 | --- | --- |
 | Session | `session.sync` |
@@ -270,7 +272,7 @@ These are enforced in Functions transactions and covered by unit tests.
 
 ### 7.1 Outbox
 
-Business transactions write `outbox/{eventKey}` docs inside the same transaction, e.g. `lowstock__{balanceId}__{yyyy-mm-dd}`, `overdue__{loanId}__{yyyy-mm-dd}`, `pr_decided__{prId}`. Because the key is deterministic, `create` fails for an existing event → no repeated messages (FRS 23). `outboxSend` resolves recipients (by permission + campus, or member/requester), loads tokens and sends via `sendEach`.
+Business transactions write `outbox/{eventKey}` docs inside the same transaction, e.g. `lowstock__{balanceId}__{yyyy-mm-dd}`, `overdue__{loanId}__{yyyy-mm-dd}`, `pr_decided__{prId}`. Because the key is deterministic, an existing event is skipped (read in the transaction, not `create`, which would abort the business write) → no repeated messages (FRS 23). Delivery creates `notifications/{eventKey__uid}` once per recipient, so retries never double-send. `outboxSend` resolves recipients (by permission + campus, or member/requester), loads tokens and sends via `sendEach`.
 
 Recipients:
 
@@ -345,7 +347,7 @@ service cloud.firestore {
 
 ### 8.2 Storage
 
-Paths: `schools/{sid}/{module}/{collection}/{docId}/{file}`. Rules: `sid` claim match, module permission via `firestore.get` of `userAccess`, max 10 MB, content types image/*, application/pdf, spreadsheet types. Uploads are only allowed to a path that `files.getUploadPath` has registered in a pending-upload doc; the owning callable then links the file to its record.
+Paths: `schools/{sid}/{module}/{collection}/{docId}/{file}`. Rules: `sid` claim match, module permission via `firestore.get` of `userAccess`, max 10 MB, content types image/*, application/pdf, spreadsheet types. Uploads are only allowed to a path that `files.getUploadPath` has registered in a pending-upload doc; the owning callable then links the file to its record. Until that callable exists (first phase with uploads), Storage writes are denied.
 
 Ceiling: file read access is per-module, not per-record. Per-record checks would need signed URLs from a Function; add if a record-level leak matters.
 
@@ -399,7 +401,7 @@ Types: inventory categories, items, opening stock, stores, assets, vendors; libr
 ```
 firebase/
   firebase.json            # firestore, storage, functions (region asia-south1), emulators
-  .firebaserc              # default: icueadmin
+  .firebaserc              # default: icueadmin-dev (alias dev); prod alias icueadmin
   firestore.rules
   firestore.indexes.json
   storage.rules
@@ -415,7 +417,7 @@ firebase/
   rules-tests/             # @firebase/rules-unit-testing against the emulator
 features/
   inventory/lib/src/{models,services,providers,di}
-  library/lib/src/{models,services,providers,di}
+  library/lib/src/{models,services,providers,di}   # Dart package `school_library` (`library` is reserved)
 packages/icue_firebase/    # + auth, firestore, functions, storage; callable helper; paged query helper
 features/auth/             # + Firebase custom-token exchange, token dual-write
 apps/icueadmin/lib/features/{inventory,library}/   # UI

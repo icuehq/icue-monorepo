@@ -1,0 +1,46 @@
+rules_version = '2';
+
+// Clients read; all writes go through Cloud Functions (Admin SDK bypasses rules).
+// Exceptions: own device tokens/mute, and (later) verification count lines.
+service cloud.firestore {
+  match /databases/{db}/documents {
+    function signedIn() { return request.auth != null; }
+    function inSchool(sid) { return signedIn() && string(request.auth.token.sid) == sid; }
+    function access(sid) { return get(/databases/$(db)/documents/schools/$(sid)/userAccess/$(request.auth.uid)).data; }
+    function can(sid, p) { return p in access(sid).perms; }
+    function onCampus(sid, c) { return access(sid).all == true || c in access(sid).cmp; }
+    function own() {
+      return resource.data.personErpId == request.auth.token.get('eid', null)
+          || resource.data.personErpId in request.auth.token.get('wards', []);
+    }
+
+    // Default: no client writes anywhere under a school. Reads need an explicit rule below.
+    // auditLogs, requests, uniqueKeys, outbox, counters have no client access at all.
+    match /schools/{sid}/{coll}/{id} {
+      allow write: if false;
+    }
+
+    match /schools/{sid}/userAccess/{uid} {
+      allow read: if inSchool(sid) && request.auth.uid == uid;
+    }
+    match /schools/{sid}/config/{doc} {
+      allow read: if inSchool(sid);
+    }
+    match /schools/{sid}/notifications/{id} {
+      allow read: if inSchool(sid) && resource.data.uid == request.auth.uid;
+    }
+
+    match /devices/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow write: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['mute']);
+
+      match /tokens/{id} {
+        allow read, delete: if signedIn() && request.auth.uid == uid;
+        allow create, update: if signedIn() && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['token', 'platform', 'app', 'updatedAt'])
+          && request.resource.data.token is string;
+      }
+    }
+  }
+}

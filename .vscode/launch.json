@@ -14,6 +14,32 @@
       ]
     },
     {
+      "name": "icueadmin [Dev + Emulators · Android]",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "apps/icueadmin",
+      "program": "lib/main.dart",
+      "args": [
+        "--flavor",
+        "dev",
+        "--dart-define=ENV=dev",
+        "--dart-define=FIREBASE_EMULATOR=10.0.2.2"
+      ]
+    },
+    {
+      "name": "icueadmin [Dev + Emulators · iOS]",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "apps/icueadmin",
+      "program": "lib/main.dart",
+      "args": [
+        "--flavor",
+        "dev",
+        "--dart-define=ENV=dev",
+        "--dart-define=FIREBASE_EMULATOR=127.0.0.1"
+      ]
+    },
+    {
       "name": "icueadmin [Prod]",
       "request": "launch",
       "type": "dart",

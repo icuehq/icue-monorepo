@@ -9,10 +9,12 @@ import 'package:gatepass/gatepass.dart';
 import 'package:get_it/get_it.dart';
 import 'package:icueadmin/di/injection.config.dart';
 import 'package:injectable/injectable.dart';
+import 'package:inventory/inventory.dart';
 import 'package:local_storage/local_storage.dart';
 import 'package:logbook/logbook.dart';
 import 'package:reports/reports.dart';
 import 'package:routes/routes.dart';
+import 'package:school_library/school_library.dart';
 import 'package:tracking/tracking.dart';
 import 'package:vehicles/vehicles.dart';
 
@@ -34,6 +36,8 @@ final getIt = GetIt.instance;
     ExternalModule(LogbookPackageModule),
     ExternalModule(ReportsPackageModule),
     ExternalModule(TrackingPackageModule),
+    ExternalModule(InventoryPackageModule),
+    ExternalModule(SchoolLibraryPackageModule),
   ],
 )
 Future<void> configureDependencies(String environment) async {

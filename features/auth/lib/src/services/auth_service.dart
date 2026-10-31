@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:api_client/api_client.dart';
 import 'package:auth/src/models/assigned_entities.dart';
 import 'package:auth/src/models/branches.dart';
@@ -7,6 +10,9 @@ import 'package:auth/src/models/role_actions.dart';
 import 'package:auth/src/models/user_info.dart';
 import 'package:auth/src/storage/session_token_provider.dart';
 import 'package:auth/src/storage/user_local_storage.dart';
+import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart';
+import 'package:icue_firebase/icue_firebase.dart';
 import 'package:injectable/injectable.dart';
 
 /// Centralized authentication and role service for all icue apps.
@@ -63,8 +69,77 @@ class AuthService {
 
     // Persist full user info in Hive 'userInfo-v2' matching existing app format
     await userLocalStorage.saveUser(userInfo);
+    unawaited(ensureFirebaseSession(refresh: true));
 
     return userInfo;
+  }
+
+  Future<bool>? _firebaseSignIn;
+
+  /// Ensures a Firebase user for the stored Node session (custom-token
+  /// exchange via `/v1.0/firebaseToken`, then `session-sync`). [refresh]
+  /// re-exchanges even when signed in (after every Node login, for fresh
+  /// claims). Concurrent calls share one exchange. Best-effort: false on any
+  /// failure, so the Node login never depends on Firebase.
+  Future<bool> ensureFirebaseSession({bool refresh = false}) async {
+    final user = userLocalStorage.getUser();
+    if (user == null || Firebase.apps.isEmpty) return false;
+    // Web restores the Firebase user asynchronously.
+    final current = await FirebaseAuth.instance.authStateChanges().first;
+    if (!refresh && current?.uid == 'u_${user.id}') return true;
+    return _firebaseSignIn ??= _exchangeFirebaseToken().whenComplete(
+      () => _firebaseSignIn = null,
+    );
+  }
+
+  Future<bool> _exchangeFirebaseToken() async {
+    try {
+      final auth = FirebaseAuth.instance;
+      if (auth.currentUser != null) await auth.signOut();
+      final token = usesEmulator
+          ? _emulatorToken()
+          : await _nodeFirebaseToken();
+      if (token == null || token.isEmpty) return false;
+      await auth.signInWithCustomToken(token);
+      await callFunction('session-sync');
+      return true;
+    } catch (_) {
+      // Not logged: errors may carry the custom token. Retried on next call.
+      return false;
+    }
+  }
+
+  Future<String?> _nodeFirebaseToken() async {
+    final response = await apiClient.post<dynamic>('/v1.0/firebaseToken');
+    final dynamic data = response.data;
+    final token = data is Map<String, dynamic> ? data['token'] : null;
+    return token is String ? token : null;
+  }
+
+  /// Local runs against the emulators: claims built from the Node user, as
+  /// the Node endpoint will (architecture §2). Replace with the real endpoint
+  /// once it is live; wards/parents are not covered.
+  String? _emulatorToken() {
+    final user = userLocalStorage.getUser();
+    if (user == null) return null;
+    final branch = userLocalStorage.getSelectedBranch()?.id ?? user.branchId;
+    return emulatorCustomToken('u_${user.id}', <String, Object?>{
+      'sid': user.organizationId,
+      'cmp': <int>[if (branch != 0) branch],
+      'all': false,
+      'rol': [for (final r in user.roles) r.id],
+      'pt': 'staff',
+      'eid': user.id,
+    });
+  }
+
+  /// `devices/{uid}/tokens/{sha256(token)}` of the signed-in Firebase user.
+  DocumentReference<Map<String, dynamic>>? _pushTokenDoc(String token) {
+    if (Firebase.apps.isEmpty) return null;
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return null;
+    final id = sha256.convert(utf8.encode(token)).toString();
+    return FirebaseFirestore.instance.doc('devices/$uid/tokens/$id');
   }
 
   /// Fetches actions permitted for the current user role against `/v1.0/getActionsByRole`.
@@ -146,8 +221,10 @@ class AuthService {
     return classes;
   }
 
-  /// Registers the device's FCM [token] with the server (`/v1.0/updateRegTokens`).
-  /// Skipped when the same token is already stored; best-effort.
+  /// Registers the device's FCM [token] with Node (`/v1.0/updateRegTokens`)
+  /// and Firestore (`devices/{uid}/tokens`). Skipped when the same token is
+  /// already stored; it is stored only after both writes, so a failure is
+  /// retried on next launch. Best-effort.
   Future<void> registerPushToken(String token) async {
     final user = userLocalStorage.getUser();
     if (user == null || userLocalStorage.getFcmToken() == token) return;
@@ -160,13 +237,21 @@ class AuthService {
           'Id': user.id,
         },
       );
+      if (!await ensureFirebaseSession()) return;
+      await _pushTokenDoc(token)?.set(<String, Object>{
+        'token': token,
+        'platform': kIsWeb ? 'web' : defaultTargetPlatform.name,
+        'app': 'icueadmin',
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
       await userLocalStorage.saveFcmToken(token);
     } catch (_) {
       // Retried on next launch/login since the token isn't stored.
     }
   }
 
-  /// Unregisters the stored FCM token (`/v1.0/removeRegToken`); best-effort.
+  /// Unregisters the stored FCM token from Node (`/v1.0/removeRegToken`) and
+  /// Firestore; best-effort. Must run before Firebase sign-out.
   Future<void> _removePushToken() async {
     final token = userLocalStorage.getFcmToken();
     final user = userLocalStorage.getUser();
@@ -181,6 +266,9 @@ class AuthService {
         },
       );
     } catch (_) {}
+    try {
+      await _pushTokenDoc(token)?.delete();
+    } catch (_) {}
   }
 
   /// Logs out the user by notifying the server and clearing all Hive storage boxes.
@@ -193,6 +281,7 @@ class AuthService {
     } finally {
       await userLocalStorage.clearAll();
       await tokenProvider.clear();
+      if (Firebase.apps.isNotEmpty) await FirebaseAuth.instance.signOut();
     }
   }
 }

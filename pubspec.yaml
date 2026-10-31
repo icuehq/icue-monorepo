@@ -24,6 +24,8 @@ workspace:
   - features/tracking
   - features/drop_boarding
   - features/attendance
+  - features/inventory
+  - features/library
 
 dev_dependencies:
   melos: ^8.9.0
@@ -65,6 +67,22 @@ melos:
       run: melos exec -c 5 -- flutter clean
       packageFilters:
         flutter: true
+
+    firebase:test:
+      description: Cloud Functions and Security Rules tests on the emulator.
+      run: cd firebase/functions && npm ci && npm test && cd ../rules-tests && npm ci && npm test
+
+    emulators:
+      description: Start Firebase emulators; loads and saves firebase/.emulator-data (Ctrl-C saves).
+      run: firebase/scripts/emulators.sh start
+
+    emulators:reset:
+      description: Delete the saved emulator data.
+      run: firebase/scripts/emulators.sh reset
+
+    emulators:seed:
+      description: "Seed rolePermissions into running emulators: melos run emulators:seed -- --school 12 --roles admin=4"
+      run: firebase/scripts/emulators.sh seed
 
     outdated:
       description: Show outdated dependencies.

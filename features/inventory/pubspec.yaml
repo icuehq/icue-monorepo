@@ -1,0 +1,17 @@
+name: inventory
+description: "Inventory domain package for iCue Admin (Firebase-backed: Firestore reads, Cloud Functions writes)."
+version: 1.0.0
+resolution: workspace
+
+environment:
+  sdk: ^3.13.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  injectable: ^2.5.0
+
+dev_dependencies:
+  build_runner: ^2.4.13
+  flutter_lints: ^6.0.0
+  injectable_generator: ^2.6.2

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:api_client/api_client.dart';
 import 'package:auth/src/models/assigned_entities.dart';
 import 'package:auth/src/models/branches.dart';
@@ -78,6 +80,8 @@ class AuthProvider extends ChangeNotifier {
       user = storedUser;
       _username = storedUser.userName;
       _step = AuthStep.authenticated;
+      // Restored Node session: sign in to Firebase if it has no user.
+      unawaited(_authService.ensureFirebaseSession());
     }
   }
 
@@ -92,6 +96,8 @@ class AuthProvider extends ChangeNotifier {
       user = storedUser;
       _username = storedUser.userName;
       _step = AuthStep.authenticated;
+      // Restored Node session: sign in to Firebase if it has no user.
+      unawaited(_authService.ensureFirebaseSession());
       notifyListeners();
     }
   }

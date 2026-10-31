@@ -36,7 +36,7 @@ must be listed under `workspace:` and use `resolution: workspace`.
 - Feature UI (pages/widgets) lives in the app; feature packages hold models, services and providers only.
 - Dependency injection uses `get_it` + `injectable`. Each feature package declares a micro-package module; the app aggregates them in `lib/di/injection.dart`. A new feature package must be registered in the app's `injection.dart` and the root `workspace:` list.
 - All HTTP goes through `api_client`; do not create ad-hoc `Dio`/`http` clients in features or apps.
-- Inventory and Library (`features/inventory`, `features/library`) are Firebase-backed: reads use Firestore, writes go only through Cloud Functions callables in `firebase/`, via `icue_firebase`. They do not use `api_client`, and Firestore stores ERP people/departments as IDs only. Authority: `docs/inventory-library-technical-architecture.md`; build state and next phase: `docs/inventory-library-progress.md`. Work one phase per session on the shared branch, and update the progress doc at the end of each phase.
+- Inventory and Library (`features/inventory`, `features/library` — package `school_library`, since `library` is a Dart keyword) are Firebase-backed: reads use Firestore, writes go only through Cloud Functions callables in `firebase/`, via `icue_firebase`. They do not use `api_client`, and Firestore stores ERP people/departments as IDs only. Authority: `docs/inventory-library-technical-architecture.md`; build state and next phase: `docs/inventory-library-progress.md`. Work one phase per session on the shared branch, and update the progress doc at the end of each phase.
 - API base URL is selected at build time via `--dart-define=ENV=` (or `FLAVOR=`). Never hardcode environment URLs elsewhere. The Firebase project follows the same switch (`apps/icueadmin/lib/app_firebase_options.dart`, native configs in `android/app/src/<flavor>/` and `ios/config/<env>/`); never point a dev build at the prod project.
 
 ## Security boundaries
@@ -52,6 +52,8 @@ Run from the repo root (`dart pub get` first; `melos bootstrap` is not needed wi
 - `melos run lint` — `flutter analyze` on every package (must pass with no errors/warnings).
 - `melos run format` / `melos run format:check` — Dart formatting.
 - `melos run test` — tests in every package with a `test/` dir.
+- `melos run firebase:test` — Cloud Functions (`firebase/functions`) and Security Rules (`firebase/rules-tests`) tests on the emulator. Firebase deploys default to `icueadmin-dev`; prod needs `--project prod`.
+- `melos run emulators` — local Firebase emulators (run as `icueadmin-dev` because the mobile apps take their project ID from `google-services.json`; all services are emulated and `outboxSend` never sends real FCM there). Loads `firebase/.emulator-data` on start and saves it on Ctrl-C; `melos run emulators:reset` wipes it, `melos run emulators:seed -- --school <sid> --roles admin=<id>` seeds role permissions. To run the app against them use the `icueadmin [Dev + Emulators · Android|iOS]` launch configs (`--dart-define=FIREBASE_EMULATOR=<host>`; debug/profile builds only), which sign in with a locally built unsigned custom token instead of Node's `/v1.0/firebaseToken`.
 - `melos run gen` — `build_runner` (injectable DI config). Re-run after changing any `@injectable`/annotated class or adding a package module.
 
 Never hand-edit `*.g.dart`, `*.module.dart`, `injection.config.dart` or other generated files.
