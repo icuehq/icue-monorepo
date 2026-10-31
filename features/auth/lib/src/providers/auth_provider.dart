@@ -286,6 +286,10 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Registers the device push token for the signed-in user.
+  Future<void> registerPushToken(String token) =>
+      _authService.registerPushToken(token);
+
   /// Logs out the user and resets all local state and Hive boxes.
   Future<void> logout() async {
     loading = true;

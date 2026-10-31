@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     // START: FlutterFire Configuration
@@ -6,6 +9,12 @@ plugins {
     // END: FlutterFire Configuration
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
 android {
@@ -26,29 +35,42 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+        }
     }
 
-    buildFeatures {
-        resValues = true
+    signingConfigs {
+        create("release") {
+            keyAlias = keystoreProperties["keyAlias"] as String
+            keyPassword = keystoreProperties["keyPassword"] as String
+            storeFile = keystoreProperties["storeFile"]?.let { file(it) }
+            storePassword = keystoreProperties["storePassword"] as String
+        }
     }
 
     flavorDimensions += "default"
+
     productFlavors {
         create("dev") {
             dimension = "default"
+            resValue(type = "string", name = "app_name", value = "iCue Admin (Dev)")
             applicationIdSuffix = ".dev"
-            resValue("string", "app_name", "icueadmin (Dev)")
+            versionNameSuffix = "-dev"
+            manifestPlaceholders["appIcon"] = "@mipmap/ic_launcher_dev"
         }
+
         create("prod") {
             dimension = "default"
-            resValue("string", "app_name", "icueadmin")
+            resValue(type = "string", name = "app_name", value = "iCue Admin")
+            manifestPlaceholders["appIcon"] = "@mipmap/ic_launcher"
         }
     }
 
     buildTypes {
         release {
             // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }

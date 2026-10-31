@@ -16,6 +16,7 @@ import 'package:icueadmin/analytics/app_events.dart';
 import 'package:icueadmin/di/injection.dart';
 import 'package:icueadmin/features/splash/app_bootstrap.dart';
 import 'package:icueadmin/routing/app_router.dart';
+import 'package:icueadmin/routing/app_routes.dart';
 import 'package:icueadmin/theme/app_theme.dart';
 import 'package:logbook/logbook.dart';
 import 'package:provider/provider.dart';
@@ -67,6 +68,7 @@ class _IcueAdminAppState extends State<IcueAdminApp> {
   late final GoRouter _router;
   int? _trackedUserId;
   int? _trackedBranchId;
+  StreamSubscription<String>? _tokenSub;
 
   @override
   void initState() {
@@ -95,16 +97,29 @@ class _IcueAdminAppState extends State<IcueAdminApp> {
     // Restored session: login-time prompt won't fire, so ask here.
     if (_authProvider.user != null) {
       unawaited(NotificationService.instance.requestPermission());
+      unawaited(_registerPushToken());
     }
     unawaited(
       NotificationService.instance.init(
-        // Backend sends the target path as data['route'].
+        // Backend sends the target path as data['route'] (legacy: data['action']).
         onTap: (data) {
           final route = data['route'];
-          if (route is String && route.startsWith('/')) _router.go(route);
+          if (route is String && route.startsWith('/')) {
+            _router.go(route);
+          } else {
+            _router.go(data['action'] == 'Track' ? AppRoutes.trackBus : '/');
+          }
         },
       ),
     );
+    _tokenSub = NotificationService.instance.onTokenRefresh.listen(
+      _authProvider.registerPushToken,
+    );
+  }
+
+  Future<void> _registerPushToken() async {
+    final token = await NotificationService.instance.token;
+    if (token != null) await _authProvider.registerPushToken(token);
   }
 
   /// Tags crash reports and analytics events with the signed-in user (cleared on logout).
@@ -117,6 +132,7 @@ class _IcueAdminAppState extends State<IcueAdminApp> {
       } else {
         AnalyticsService.instance.logLogin('otp');
         unawaited(NotificationService.instance.requestPermission());
+        unawaited(_registerPushToken());
       }
     }
     if (branch != null && branch.id != _trackedBranchId) {
@@ -146,6 +162,7 @@ class _IcueAdminAppState extends State<IcueAdminApp> {
   @override
   void dispose() {
     _authProvider.removeListener(_syncFirebaseUser);
+    unawaited(_tokenSub?.cancel());
     _router.dispose();
     super.dispose();
   }

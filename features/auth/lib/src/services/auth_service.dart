@@ -146,8 +146,46 @@ class AuthService {
     return classes;
   }
 
+  /// Registers the device's FCM [token] with the server (`/v1.0/updateRegTokens`).
+  /// Skipped when the same token is already stored; best-effort.
+  Future<void> registerPushToken(String token) async {
+    final user = userLocalStorage.getUser();
+    if (user == null || userLocalStorage.getFcmToken() == token) return;
+    try {
+      await apiClient.post<dynamic>(
+        '/v1.0/updateRegTokens',
+        data: <String, dynamic>{
+          'DeviceId': token,
+          'Type': 'AdminApp',
+          'Id': user.id,
+        },
+      );
+      await userLocalStorage.saveFcmToken(token);
+    } catch (_) {
+      // Retried on next launch/login since the token isn't stored.
+    }
+  }
+
+  /// Unregisters the stored FCM token (`/v1.0/removeRegToken`); best-effort.
+  Future<void> _removePushToken() async {
+    final token = userLocalStorage.getFcmToken();
+    final user = userLocalStorage.getUser();
+    if (token == null || user == null) return;
+    try {
+      await apiClient.post<dynamic>(
+        '/v1.0/removeRegToken',
+        data: <String, dynamic>{
+          'DeviceId': token,
+          'Type': 'AdminApp',
+          'Id': user.id,
+        },
+      );
+    } catch (_) {}
+  }
+
   /// Logs out the user by notifying the server and clearing all Hive storage boxes.
   Future<void> logout() async {
+    await _removePushToken();
     try {
       await apiClient.post<dynamic>('/v1.0/logout');
     } catch (_) {

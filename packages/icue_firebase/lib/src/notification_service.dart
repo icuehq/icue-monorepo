@@ -17,7 +17,7 @@ final _local = FlutterLocalNotificationsPlugin();
 Future<void> _initLocal({DidReceiveNotificationResponseCallback? onTap}) async {
   await _local.initialize(
     settings: const InitializationSettings(
-      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+      android: AndroidInitializationSettings('@mipmap/ic_launcher_monochrome'),
       // Permission is requested explicitly via requestPermission().
       iOS: DarwinInitializationSettings(
         requestAlertPermission: false,
@@ -38,7 +38,7 @@ Future<void> _show(RemoteMessage m) {
   final title = m.notification?.title ?? m.data['title'] as String?;
   final body = m.notification?.body ?? m.data['body'] as String?;
   return _local.show(
-    id: m.hashCode,
+    id: (m.messageId ?? '${m.sentTime?.millisecondsSinceEpoch}').hashCode,
     title: title,
     body: body,
     notificationDetails: NotificationDetails(
@@ -115,9 +115,16 @@ class NotificationService {
 
   // ponytail: FCM token API is deprecated in favour of register()/onRegistered
   // (Firebase Installation ID); switch once the backend sends to FIDs.
-  // Deprecated token API, see note above.
-  // ignore: deprecated_member_use
-  Future<String?> get token => _fcm.getToken();
+  Future<String?> get token async {
+    // iOS: the FCM token isn't available until APNs has issued its token.
+    if (defaultTargetPlatform == TargetPlatform.iOS &&
+        await _fcm.getAPNSToken() == null) {
+      await Future<void>.delayed(const Duration(seconds: 3));
+    }
+    // Deprecated token API, see note above.
+    // ignore: deprecated_member_use
+    return _fcm.getToken();
+  }
 
   // Deprecated token API, see note above.
   // ignore: deprecated_member_use
