@@ -5,8 +5,8 @@ import 'package:flutter/scheduler.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icueadmin/dialogs/logout_dialog.dart';
 import 'package:icueadmin/features/dashboard/widgets/branch_selector_bar.dart';
-import 'package:icueadmin/widgets/cache_image.dart';
 import 'package:icueadmin/widgets/no_data_widget.dart';
+import 'package:icueadmin/widgets/option_card_tile.dart';
 import 'package:provider/provider.dart';
 
 const Map<String, String> _iconsMap = {
@@ -17,10 +17,12 @@ const Map<String, String> _iconsMap = {
   'layout.repairsandexpenses': 'assets/dashboard/manage-vehicles.png',
   'layout.fuelfilling': 'assets/dashboard/manage-expense.png',
   'layout.reports': 'assets/dashboard/reports.png',
-  'layout.drivers': 'assets/dashboard/reports.png',
-  'layout.vehicles': 'assets/dashboard/reports.png',
+  'layout.drivers': 'assets/dashboard/drivers.png',
+  'layout.vehicles': 'assets/dashboard/vehicles.png',
   'layout.logbook': 'assets/dashboard/log-book.png',
   'layout.dropboarding': 'assets/dashboard/student-drop.png',
+  'layout.gatepass': 'assets/dashboard/gate-pass.png',
+  'layout.attendance': 'assets/dashboard/attendance.png',
 };
 
 class DashboardPage extends StatefulWidget {
@@ -126,39 +128,11 @@ class _DashboardPageState extends State<DashboardPage> {
                     final item = actions[index];
                     final iconPath = _iconsMap[item.routeState];
 
-                    return Card(
-                      elevation: 1,
-                      margin: const EdgeInsets.only(bottom: 10),
-                      child: ListTile(
-                        onTap: () => context.push('/${item.routeState}'),
-                        leading: Padding(
-                          padding: const EdgeInsets.only(top: 5, bottom: 5),
-                          child: SizedBox(
-                            width: 56,
-                            height: 56,
-                            child: iconPath != null
-                                ? Image.asset(
-                                    iconPath,
-                                    errorBuilder: (_, _, _) =>
-                                        CacheImage(url: item.icon, size: 56),
-                                  )
-                                : CacheImage(url: item.icon, size: 56),
-                          ),
-                        ),
-                        title: Text(
-                          item.displayName,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                            color: Theme.of(context).primaryColorDark,
-                          ),
-                        ),
-                        trailing: Icon(
-                          Icons.arrow_forward_ios,
-                          size: 24,
-                          color: Theme.of(context).primaryColorDark,
-                        ),
-                      ),
+                    return OptionCardTile(
+                      title: item.displayName,
+                      iconAsset: iconPath,
+                      networkIconUrl: item.icon,
+                      onTap: () => context.push('/${item.routeState}'),
                     );
                   },
                 ),

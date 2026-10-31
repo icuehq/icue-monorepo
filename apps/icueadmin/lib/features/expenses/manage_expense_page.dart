@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icueadmin/features/expenses/widgets/fuel_mode_dialog.dart';
 import 'package:icueadmin/routing/app_routes.dart';
+import 'package:icueadmin/widgets/option_card_tile.dart';
 import 'package:provider/provider.dart';
 
 class ManageExpensePage extends StatefulWidget {
@@ -13,12 +14,12 @@ class ManageExpensePage extends StatefulWidget {
 }
 
 class _ManageExpensePageState extends State<ManageExpensePage> {
-  static const Map<String, IconData> _iconMap = {
-    'fuel': Icons.local_gas_station_rounded,
-    'tyres': Icons.tire_repair_rounded,
-    'maintenance': Icons.build_circle_outlined,
-    'salary': Icons.account_balance_wallet_outlined,
-    'battery': Icons.battery_charging_full_rounded,
+  static const Map<String, String> _assetMap = {
+    'fuel': 'assets/dashboard/expense-fuel.png',
+    'tyres': 'assets/dashboard/expense-tyres.png',
+    'maintenance': 'assets/dashboard/expense-maintenance.png',
+    'salary': 'assets/dashboard/expense-salary.png',
+    'battery': 'assets/dashboard/expense-battery.png',
   };
 
   @override
@@ -75,49 +76,14 @@ class _ManageExpensePageState extends State<ManageExpensePage> {
                 separatorBuilder: (_, _) => const SizedBox(height: 10),
                 itemBuilder: (context, index) {
                   final item = types[index];
-                  final icon = _iconMap[item.code] ?? Icons.payment_rounded;
+                  final assetPath = _assetMap[item.code];
 
-                  return Card(
-                    elevation: 1,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      side: BorderSide(color: Colors.grey.shade200),
-                    ),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 6,
-                      ),
-                      leading: CircleAvatar(
-                        radius: 20,
-                        backgroundColor: Colors.blue.shade50,
-                        child: Icon(
-                          icon,
-                          color: Colors.blue.shade700,
-                          size: 22,
-                        ),
-                      ),
-                      title: Text(
-                        item.expenseTypeDesc,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      subtitle: Text(
+                  return OptionCardTile(
+                    title: item.expenseTypeDesc,
+                    subtitle:
                         'Record & manage ${item.expenseTypeDesc.toLowerCase()}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                      trailing: const Icon(
-                        Icons.arrow_forward_ios_rounded,
-                        size: 16,
-                        color: Colors.grey,
-                      ),
-                      onTap: () => _onCategoryTapped(item),
-                    ),
+                    iconAsset: assetPath,
+                    onTap: () => _onCategoryTapped(item),
                   );
                 },
               ),
