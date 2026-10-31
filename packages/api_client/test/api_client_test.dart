@@ -38,15 +38,13 @@ void main() {
       expect(client.dio.interceptors.any((i) => i is ErrorInterceptor), isTrue);
     });
 
-    test('resolves and caches currentBranchId', () {
-      final client = ApiClient(
-        tokenProvider: _MockTokenProvider('token', branchId: 101),
-      );
+    test('resolves currentBranchId live from the token provider', () {
+      final provider = _MockTokenProvider('token', branchId: 101);
+      final client = ApiClient(tokenProvider: provider);
       expect(client.currentBranchId, equals(101));
 
-      // After invalidateSessionCache, it refreshes
-      client.invalidateSessionCache();
-      expect(client.currentBranchId, equals(101));
+      provider.branchId = 202;
+      expect(client.currentBranchId, equals(202));
     });
   });
 
@@ -587,7 +585,7 @@ class _MockTokenProvider implements TokenProvider {
   _MockTokenProvider(this.token, {this.branchId});
 
   final String? token;
-  final dynamic branchId;
+  dynamic branchId;
 
   @override
   Future<String?> getAccessToken() async => token;
@@ -600,6 +598,12 @@ class _MockTokenProvider implements TokenProvider {
 
   @override
   dynamic getBranchId() => branchId;
+
+  @override
+  dynamic getOrganizationId() => null;
+
+  @override
+  dynamic getZoneId() => null;
 
   @override
   void invalidateSessionCache() {}

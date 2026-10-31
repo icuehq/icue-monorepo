@@ -4,10 +4,12 @@ import 'package:get_it/get_it.dart';
 
 const String defaultSourceKey = 'Source';
 const String defaultBranchKey = 'BranchId';
+const String defaultOrganizationKey = 'OrganizationId';
+const String defaultZoneKey = 'ZoneId';
 const String defaultSourceValue = 'adminapp';
 
 /// Interceptor that attaches the authentication token ('token' header),
-/// injects required contextual metadata (Source, BranchId) into non-GET request bodies,
+/// injects required contextual metadata (Source, BranchId, OrganizationId, ZoneId) into non-GET request bodies,
 /// and handles automatic 401 retry and session revocation.
 class AuthInterceptor extends QueuedInterceptor {
   AuthInterceptor({
@@ -62,13 +64,16 @@ class AuthInterceptor extends QueuedInterceptor {
       final extraFields = <String, dynamic>{
         defaultSourceKey: source ?? defaultSourceValue,
         defaultBranchKey: _resolveBranchId(),
+        defaultOrganizationKey: _resolveTokenProvider()?.getOrganizationId(),
+        defaultZoneKey: _resolveTokenProvider()?.getZoneId(),
       }..removeWhere((_, v) => v == null);
 
       if (options.data is Map<dynamic, dynamic>) {
-        final mapData = Map<String, dynamic>.from(
-          options.data as Map<dynamic, dynamic>,
-        )..addAll(extraFields);
-        options.data = mapData;
+        // Caller-provided values win over injected defaults.
+        options.data = <String, dynamic>{
+          ...extraFields,
+          ...Map<String, dynamic>.from(options.data as Map<dynamic, dynamic>),
+        };
       } else if (options.data is FormData) {
         final formData = options.data as FormData;
         final existingFields = <String, String>{

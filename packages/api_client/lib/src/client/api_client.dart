@@ -113,8 +113,6 @@ class ApiClient {
   TokenProvider? _tokenProvider;
   late final AuthInterceptor _authInterceptor;
 
-  dynamic _cachedBranchId;
-
   TokenProvider? _resolveTokenProvider() {
     if (_tokenProvider != null) return _tokenProvider;
     if (GetIt.I.isRegistered<TokenProvider>()) {
@@ -129,17 +127,12 @@ class ApiClient {
     _authInterceptor.tokenProvider = provider;
   }
 
-  /// Current active branch ID, resolved from cache, custom provider, or token provider.
-  dynamic get currentBranchId {
-    if (_cachedBranchId != null) return _cachedBranchId;
-    _cachedBranchId =
-        branchIdProvider?.call() ?? _resolveTokenProvider()?.getBranchId();
-    return _cachedBranchId;
-  }
+  /// Current active branch ID, resolved live so branch switches take effect.
+  dynamic get currentBranchId =>
+      branchIdProvider?.call() ?? _resolveTokenProvider()?.getBranchId();
 
   /// Clears in-memory session and branch cache on logout or credential change.
   void invalidateSessionCache() {
-    _cachedBranchId = null;
     _resolveTokenProvider()?.invalidateSessionCache();
   }
 

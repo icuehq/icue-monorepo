@@ -58,6 +58,12 @@ class SessionTokenProvider implements TokenProvider {
   }
 
   @override
+  dynamic getOrganizationId() => _userLocalStorage.getUser()?.organizationId;
+
+  @override
+  dynamic getZoneId() => _userLocalStorage.getUser()?.zoneId;
+
+  @override
   void invalidateSessionCache() {
     _token = null;
   }

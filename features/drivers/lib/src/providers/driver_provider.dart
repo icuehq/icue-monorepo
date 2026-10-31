@@ -134,7 +134,17 @@ class DriverProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _driverService.deleteDriverDoc(driverId, docType);
+      final doc = _driverDocs[docType];
+      // Front/back photos and single-file docs each carry their own id.
+      for (final id in {
+        doc?.documentId,
+        doc?.frontPhotoDocumentId,
+        doc?.backPhotoDocumentId,
+      }) {
+        if (id != null && id.isNotEmpty) {
+          await _driverService.deleteDriverDoc(driverId, docType, id);
+        }
+      }
       _driverDocs.remove(docType);
       return true;
     } catch (e) {

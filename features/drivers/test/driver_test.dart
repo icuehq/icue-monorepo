@@ -174,7 +174,11 @@ class _FakeDriverService extends DriverService {
   Future<void> uploadDriverDocs(FormData formData) async {}
 
   @override
-  Future<void> deleteDriverDoc(int driverId, String docType) async {}
+  Future<void> deleteDriverDoc(
+    int driverId,
+    String docType,
+    String docId,
+  ) async {}
 }
 
 class _FakeApiClient extends ApiClient {

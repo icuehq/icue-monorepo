@@ -14,6 +14,10 @@ abstract class TokenProvider {
   /// Current branch ID if available (used for injecting BranchId in non-GET requests).
   dynamic getBranchId() => null;
 
+  /// Organization and zone of the signed-in user (injected in non-GET requests).
+  dynamic getOrganizationId() => null;
+  dynamic getZoneId() => null;
+
   /// Invalidate any in-memory cached session or branch data.
   void invalidateSessionCache() {}
 }

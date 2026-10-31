@@ -49,6 +49,11 @@ android {
         }
     }
 
+    buildFeatures {
+        // Flavors define app_name via resValue.
+        resValues = true
+    }
+
     flavorDimensions += "default"
 
     productFlavors {

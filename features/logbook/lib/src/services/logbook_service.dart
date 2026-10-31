@@ -62,7 +62,7 @@ class LogBookService {
   Future<List<ComplaintCategory>> getComplaintCategories() async {
     final response = await _apiClient.post<dynamic>(
       '/v1.0/getVhComplaintCategories',
-      data: <String, dynamic>{},
+      data: {'IsActive': 'true'},
     );
     if (response.data is Map<String, dynamic>) {
       final parsed = ComplaintCategoriesResponse.fromJson(
@@ -77,14 +77,14 @@ class LogBookService {
   Future<bool> submitComplaint(CreateComplaintRequest request) async {
     final formMap = <String, dynamic>{
       'VehicleId': request.vehicleId,
-      'VehicleNumber': request.vehicleNumber,
+      'VehicleNo': request.vehicleNumber,
       'CategoryId': request.categoryId,
+      'CategoryName': request.newCategoryName ?? '',
       'Desc': request.description,
-      'CategoryName': ?request.newCategoryName,
     };
 
     if (request.photoBytes != null) {
-      formMap['Photos'] = MultipartFile.fromBytes(
+      formMap['Images'] = MultipartFile.fromBytes(
         request.photoBytes!,
         filename: request.photoName ?? 'complaint.jpg',
       );

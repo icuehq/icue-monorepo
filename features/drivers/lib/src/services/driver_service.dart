@@ -39,8 +39,10 @@ class DriverService {
   /// Deletes a driver by their ID.
   Future<void> deleteDriver(int driverId) async {
     await _apiClient.post<dynamic>(
-      '/v1.0/deleteDriver',
-      data: {'id': driverId},
+      '/v1.0/deleteDrivers',
+      data: {
+        'Ids': [driverId],
+      },
     );
   }
 
@@ -49,7 +51,7 @@ class DriverService {
     try {
       final response = await _apiClient.post<dynamic>(
         '/v1.0/getDriverDocs',
-        data: {'id': driverId, 'type': docType},
+        data: {'Target': 'Driver', 'RecordId': driverId, 'Type': docType},
       );
       if (response.data is Map<String, dynamic>) {
         final docResponse = DriverDocumentResponse.fromJson(
@@ -69,11 +71,20 @@ class DriverService {
     await _apiClient.post<dynamic>('/v1.0/uploadDriverDocs', data: formData);
   }
 
-  /// Deletes a specific document for [driverId].
-  Future<void> deleteDriverDoc(int driverId, String docType) async {
+  /// Deletes one stored document file ([docId]) of [docType] for [driverId].
+  Future<void> deleteDriverDoc(
+    int driverId,
+    String docType,
+    String docId,
+  ) async {
     await _apiClient.post<dynamic>(
-      '/v1.0/deleteDriverDoc',
-      data: {'id': driverId, 'type': docType},
+      '/v1.0/deleteDriverDocs',
+      data: {
+        'Target': 'Driver',
+        'RecordId': driverId,
+        'Type': docType,
+        'DocumentId': docId,
+      },
     );
   }
 }
