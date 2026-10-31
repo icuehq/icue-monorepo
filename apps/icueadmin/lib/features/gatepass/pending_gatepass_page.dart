@@ -1,9 +1,9 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:gatepass/gatepass.dart';
 import 'package:icueadmin/analytics/app_events.dart';
 import 'package:icueadmin/features/gatepass/widgets/gatepass_request_card.dart';
 import 'package:icueadmin/features/reports/widgets/report_empty_state.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 class PendingGatePassPage extends StatefulWidget {
@@ -81,7 +81,7 @@ class _PendingGatePassPageState extends State<PendingGatePassPage> {
   Widget build(BuildContext context) {
     final provider = context.watch<GatePassProvider>();
     final requests = provider.requests;
-    final dateDisplay = DateFormat('dd MMM yyyy').format(_selectedDate);
+    final dateDisplay = AppDateUtils.formatDisplayDate(_selectedDate);
 
     return Scaffold(
       appBar: AppBar(

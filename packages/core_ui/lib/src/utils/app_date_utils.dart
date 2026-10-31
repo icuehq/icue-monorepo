@@ -1,3 +1,5 @@
+import 'package:intl/intl.dart';
+
 abstract final class AppDateUtils {
   /// Safely parses a date string supporting ISO 8601, dd-MM-yyyy, and MM/dd/yyyy.
   static DateTime? tryParseDate(String? input) {
@@ -43,11 +45,39 @@ abstract final class AppDateUtils {
     }
   }
 
-  /// Formats date to dd/MM/yyyy.
-  static String formatDate(DateTime? date) {
-    if (date == null) return '-';
-    final d = date.day.toString().padLeft(2, '0');
-    final m = date.month.toString().padLeft(2, '0');
-    return '$d/$m/${date.year}';
-  }
+  /// Formats date to dd/MM/yyyy, or '-' when null.
+  static String formatDate(DateTime? date) =>
+      date == null ? '-' : DateFormat('dd/MM/yyyy').format(date);
+
+  /// API date: yyyy-MM-dd.
+  static String formatApiDate(DateTime date) =>
+      DateFormat('yyyy-MM-dd').format(date);
+
+  /// US-style API date: MM/dd/yyyy.
+  static String formatUsDate(DateTime date) =>
+      DateFormat('MM/dd/yyyy').format(date);
+
+  /// Display date: 05 Mar 2025.
+  static String formatDisplayDate(DateTime date) =>
+      DateFormat('dd MMM yyyy').format(date);
+
+  /// Display date and 12h time: 05 Mar 2025, 02:30 PM.
+  static String formatDisplayDateTime(DateTime date) =>
+      DateFormat('dd MMM yyyy, hh:mm a').format(date);
+
+  /// dd/MM/yyyy HH:mm.
+  static String formatDateTime(DateTime date) =>
+      DateFormat('dd/MM/yyyy HH:mm').format(date);
+
+  /// 12h time: 02:30 PM.
+  static String formatTime12(DateTime date) =>
+      DateFormat('hh:mm a').format(date);
+
+  /// 24h time: 14:30:05.
+  static String formatTime24(DateTime date) =>
+      DateFormat('HH:mm:ss').format(date);
+
+  /// Unpadded-hour time: 9:05.
+  static String formatHourMinute(DateTime date) =>
+      DateFormat('H:mm').format(date);
 }

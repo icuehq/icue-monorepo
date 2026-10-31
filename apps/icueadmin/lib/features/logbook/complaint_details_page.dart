@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icueadmin/analytics/app_events.dart';
 import 'package:icueadmin/features/logbook/widgets/complaint_status_badge.dart';
@@ -41,15 +42,13 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
           currStatus: req.status,
           currAction: req.action,
           stsUpdatedDt: DateTime.now().toIso8601String().split('T').first,
-          stsUpdatedTime:
-              '${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2, '0')}',
+          stsUpdatedTime: AppDateUtils.formatHourMinute(DateTime.now()),
           details: [
             ComplaintDetail(
               status: req.status,
               action: req.action,
               date: DateTime.now().toIso8601String().split('T').first,
-              time:
-                  '${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2, '0')}',
+              time: AppDateUtils.formatHourMinute(DateTime.now()),
               description: req.description ?? '',
               createdBy: 'Admin',
             ),

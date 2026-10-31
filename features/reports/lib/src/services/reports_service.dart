@@ -1,6 +1,6 @@
 import 'package:api_client/api_client.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:injectable/injectable.dart';
-import 'package:intl/intl.dart';
 import 'package:reports/src/models/alcohol_test_report.dart';
 import 'package:reports/src/models/arrival_time_report.dart';
 import 'package:reports/src/models/cleaning_report.dart';
@@ -134,10 +134,10 @@ class ReportsService {
       payload['Year'] = year;
     } else {
       payload['FromDate'] = startDate != null
-          ? DateFormat('MM/dd/yyyy').format(startDate)
+          ? AppDateUtils.formatUsDate(startDate)
           : null;
       payload['ToDate'] = endDate != null
-          ? DateFormat('MM/dd/yyyy').format(endDate)
+          ? AppDateUtils.formatUsDate(endDate)
           : null;
     }
 
@@ -177,10 +177,10 @@ class ReportsService {
       payload['Year'] = year;
     } else {
       payload['FromDate'] = startDate != null
-          ? DateFormat('MM/dd/yyyy').format(startDate)
+          ? AppDateUtils.formatUsDate(startDate)
           : null;
       payload['ToDate'] = endDate != null
-          ? DateFormat('MM/dd/yyyy').format(endDate)
+          ? AppDateUtils.formatUsDate(endDate)
           : null;
     }
 
@@ -222,10 +222,10 @@ class ReportsService {
       payload['Year'] = year;
     } else {
       payload['FromDate'] = startDate != null
-          ? DateFormat('MM/dd/yyyy').format(startDate)
+          ? AppDateUtils.formatUsDate(startDate)
           : null;
       payload['ToDate'] = endDate != null
-          ? DateFormat('MM/dd/yyyy').format(endDate)
+          ? AppDateUtils.formatUsDate(endDate)
           : null;
     }
 

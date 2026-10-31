@@ -1,9 +1,9 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:gatepass/gatepass.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icueadmin/analytics/app_events.dart';
 import 'package:icueadmin/routing/app_routes.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:routes/routes.dart';
 
@@ -37,7 +37,7 @@ class _ConfirmGatePassPageState extends State<ConfirmGatePassPage> {
     if (_selectedCategory == null) return;
 
     final provider = context.read<GatePassProvider>();
-    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final today = AppDateUtils.formatApiDate(DateTime.now());
 
     final request = CreateGatePassRequest(
       personId: widget.student.id,

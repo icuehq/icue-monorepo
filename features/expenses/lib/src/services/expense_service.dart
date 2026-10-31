@@ -1,4 +1,5 @@
 import 'package:api_client/api_client.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:expenses/src/models/expense_category.dart';
 import 'package:expenses/src/models/expense_requests.dart';
 import 'package:expenses/src/models/expense_type.dart';
@@ -139,8 +140,7 @@ class ExpenseService {
   /// Generates a unique Bill Number if user left it blank.
   Future<String?> generateBillNo(String billDate) async {
     final now = DateTime.now();
-    final timeStr =
-        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
+    final timeStr = AppDateUtils.formatTime24(now);
 
     final response = await _apiClient.post<dynamic>(
       '/v1.0/generateBillNo',

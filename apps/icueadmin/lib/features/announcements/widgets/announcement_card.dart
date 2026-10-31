@@ -1,4 +1,5 @@
 import 'package:announcements/announcements.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 
 class AnnouncementCard extends StatelessWidget {
@@ -10,7 +11,7 @@ class AnnouncementCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final formattedDate = announcement.createdDate != null
-        ? '${announcement.createdDate!.day.toString().padLeft(2, '0')}/${announcement.createdDate!.month.toString().padLeft(2, '0')}/${announcement.createdDate!.year} ${announcement.createdDate!.hour.toString().padLeft(2, '0')}:${announcement.createdDate!.minute.toString().padLeft(2, '0')}'
+        ? AppDateUtils.formatDateTime(announcement.createdDate!)
         : announcement.announcementDate;
 
     return Card(

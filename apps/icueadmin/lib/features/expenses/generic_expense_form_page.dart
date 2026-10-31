@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:expenses/expenses.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -125,8 +126,7 @@ class _GenericExpenseFormPageState extends State<GenericExpenseFormPage> {
     if (!_formKey.currentState!.validate()) return;
     _formKey.currentState!.save();
 
-    final dateFormatted =
-        '${_billDate.day.toString().padLeft(2, '0')}/${_billDate.month.toString().padLeft(2, '0')}/${_billDate.year}';
+    final dateFormatted = AppDateUtils.formatDate(_billDate);
 
     final extraFields = <String, dynamic>{};
     final code = widget.args.expenseType.code;

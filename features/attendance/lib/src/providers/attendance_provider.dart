@@ -3,9 +3,9 @@ import 'dart:convert';
 import 'package:attendance/src/models/create_attendance.dart';
 import 'package:attendance/src/models/create_attendance_response.dart';
 import 'package:attendance/src/services/attendance_service.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
-import 'package:intl/intl.dart';
 import 'package:local_storage/local_storage.dart';
 
 @injectable
@@ -56,7 +56,7 @@ class AttendanceProvider extends ChangeNotifier {
     required String section,
     String? period,
   }) {
-    final dateStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final dateStr = AppDateUtils.formatApiDate(DateTime.now());
     final activePeriod = (period == null || period.isEmpty) ? '1' : period;
     return '$dateStr-$classId-$section-$activePeriod';
   }
@@ -148,8 +148,8 @@ class AttendanceProvider extends ChangeNotifier {
           classId: classId,
           section: section,
           standard: className,
-          attendanceDate: DateFormat('dd/MM/yyyy').format(DateTime.now()),
-          attendanceTime: DateFormat('hh:mm a').format(DateTime.now()),
+          attendanceDate: AppDateUtils.formatDate(DateTime.now()),
+          attendanceTime: AppDateUtils.formatTime12(DateTime.now()),
           month: DateTime.now().month,
           year: DateTime.now().year,
           period: activePeriod,
@@ -224,8 +224,8 @@ class AttendanceProvider extends ChangeNotifier {
           classId: classId,
           section: section,
           standard: className,
-          attendanceDate: DateFormat('dd/MM/yyyy').format(DateTime.now()),
-          attendanceTime: DateFormat('hh:mm a').format(DateTime.now()),
+          attendanceDate: AppDateUtils.formatDate(DateTime.now()),
+          attendanceTime: AppDateUtils.formatTime12(DateTime.now()),
           month: DateTime.now().month,
           year: DateTime.now().year,
           period: activePeriod,

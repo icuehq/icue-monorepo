@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 
 class ExpenseBillSection extends StatelessWidget {
@@ -29,8 +30,7 @@ class ExpenseBillSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final dateStr =
-        '${billDate.day.toString().padLeft(2, '0')}/${billDate.month.toString().padLeft(2, '0')}/${billDate.year}';
+    final dateStr = AppDateUtils.formatDate(billDate);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

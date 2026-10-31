@@ -1,10 +1,10 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/foundation.dart';
 import 'package:gatepass/src/models/create_gatepass_request.dart';
 import 'package:gatepass/src/models/gatepass_request.dart';
 import 'package:gatepass/src/models/gatepass_type.dart';
 import 'package:gatepass/src/services/gatepass_service.dart';
 import 'package:injectable/injectable.dart';
-import 'package:intl/intl.dart';
 
 @lazySingleton
 class GatePassProvider extends ChangeNotifier {
@@ -55,7 +55,7 @@ class GatePassProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final dateStr = DateFormat('yyyy-MM-dd').format(date);
+      final dateStr = AppDateUtils.formatApiDate(date);
       _requests = await _gatePassService.getGatePassRequests(dateStr);
     } catch (e) {
       _errorMessage = e.toString();

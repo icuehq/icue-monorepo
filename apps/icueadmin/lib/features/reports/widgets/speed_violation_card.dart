@@ -1,5 +1,5 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:reports/reports.dart';
 
 class SpeedViolationCard extends StatelessWidget {
@@ -9,7 +9,7 @@ class SpeedViolationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final timeStr = DateFormat('dd MMM yyyy, hh:mm a').format(record.gpsTime);
+    final timeStr = AppDateUtils.formatDisplayDateTime(record.gpsTime);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 10),

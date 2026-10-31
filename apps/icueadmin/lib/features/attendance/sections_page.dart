@@ -1,10 +1,10 @@
 import 'package:attendance/attendance.dart';
 import 'package:auth/auth.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icueadmin/features/attendance/widgets/attendance_mode_sheet.dart';
 import 'package:icueadmin/routing/app_routes.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 class SectionsPage extends StatefulWidget {
@@ -25,7 +25,7 @@ class _SectionsPageState extends State<SectionsPage> {
 
     try {
       final attendanceProvider = context.read<AttendanceProvider>();
-      final date = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      final date = AppDateUtils.formatApiDate(DateTime.now());
 
       final exists = await attendanceProvider.checkAttendanceExists(
         classId: widget.standard.classId,

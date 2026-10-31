@@ -14,10 +14,9 @@ import 'package:go_router/go_router.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icueadmin/analytics/app_events.dart';
 import 'package:icueadmin/di/injection.dart';
-import 'package:icueadmin/firebase_options.dart';
+import 'package:icueadmin/features/splash/app_bootstrap.dart';
 import 'package:icueadmin/routing/app_router.dart';
 import 'package:icueadmin/theme/app_theme.dart';
-import 'package:local_storage/local_storage.dart';
 import 'package:logbook/logbook.dart';
 import 'package:provider/provider.dart';
 import 'package:reports/reports.dart';
@@ -25,43 +24,17 @@ import 'package:routes/routes.dart';
 import 'package:tracking/tracking.dart';
 import 'package:vehicles/vehicles.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-
-  await initFirebase(DefaultFirebaseOptions.currentPlatform);
-
-  // 1. Resolve environment from --dart-define=ENV or --dart-define=FLAVOR
+  // Env is a compile-time define, so it's safe to resolve before bootstrap.
   final env = ApiEnvironment.fromEnvironment();
-
-  // 2. Initialize dependencies for this environment
-  await configureDependencies(env.name);
-
-  final connectivity = ConnectivityService();
-  await connectivity.init();
-  getIt<ApiClient>().isOnline = () => connectivity.isOnline;
-
-  // Forward unexpected API failures to Crashlytics as non-fatals.
-  getIt<ApiClient>().onLogCrash =
-      (path, error, stack, {fatal = false, message}) {
-        final dio = error is DioException ? error : null;
-        CrashlyticsService.instance.recordError(
-          error,
-          stack,
-          reason: 'API ${dio?.requestOptions.method ?? ''} $path: $message',
-          information: [
-            'status: ${dio?.response?.statusCode}',
-            'type: ${dio?.type.name}',
-            'url: ${dio?.requestOptions.uri}',
-          ],
-        );
-      };
-
-  // 3. Initialize Hive storage service & restore user session box
-  await getIt<StorageService>().init();
-  await getIt<UserLocalStorage>().init();
-
-  runApp(IcueAdminApp(environment: env, connectivity: connectivity));
-  unawaited(AppUpdateService.checkForUpdate());
+  runApp(
+    AppBootstrap(
+      environment: env,
+      builder: (connectivity) =>
+          IcueAdminApp(environment: env, connectivity: connectivity),
+    ),
+  );
 }
 
 class IcueAdminApp extends StatefulWidget {

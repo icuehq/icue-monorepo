@@ -15,7 +15,6 @@ dependencies:
   icue_face_sdk:
   image: ^4.8.0
   injectable: ^2.5.0
-  intl: ^0.20.2
   local_storage:
   routes:
 

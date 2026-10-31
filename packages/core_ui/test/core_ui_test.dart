@@ -141,4 +141,13 @@ void main() {
       expect(safe, isNull);
     });
   });
+
+  group('AppCurrencyUtils', () {
+    test('formats INR with lakh grouping', () {
+      expect(AppCurrencyUtils.formatInr(1234567.5), '₹12,34,567.50');
+      expect(AppCurrencyUtils.formatInr('500'), '₹500.00');
+      expect(AppCurrencyUtils.formatInr(null), '-');
+      expect(AppCurrencyUtils.formatInr('abc'), '-');
+    });
+  });
 }

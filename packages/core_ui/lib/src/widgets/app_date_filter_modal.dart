@@ -1,3 +1,4 @@
+import 'package:core_ui/src/utils/app_date_utils.dart';
 import 'package:flutter/material.dart';
 
 /// Modes for filtering report / list items by temporal dimensions.
@@ -43,7 +44,7 @@ class AppFilterResult {
     switch (mode) {
       case AppFilterMode.byDate:
         final d = date ?? DateTime.now();
-        return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+        return AppDateUtils.formatDate(d);
       case AppFilterMode.byMonth:
         return '$month $year';
       case AppFilterMode.byRange:

@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:expenses/expenses.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -76,7 +77,7 @@ class ExpenseConfirmationPage extends StatelessWidget {
                         const Divider(height: 18),
                         _DetailRow(
                           label: 'Bill Amount',
-                          value: '₹ ${data.amount}',
+                          value: AppCurrencyUtils.formatInr(data.amount),
                           isHighlighted: true,
                         ),
                       ],
