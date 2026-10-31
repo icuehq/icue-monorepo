@@ -26,12 +26,12 @@ feature package, icueadmin screens (files under 500 lines), and DI registration.
 ## Environment prerequisites
 
 - [ ] Firestore database `icueadmin` (Standard, Native, `asia-south1`) created
-- [ ] Firebase project `icueadmin-dev` created (same settings), project ID noted here: `____`
+- [x] Firebase project `icueadmin-dev` created, project ID `icueadmin-dev` (project number 483508933555); Android, iOS and web dev apps registered; aliases in `firebase/.firebaserc`
 - [ ] Blaze plan enabled on both projects
 - [ ] Node dev: `POST /v1.0/firebaseToken` live (signs with `icueadmin-dev` service account)
 - [ ] Node prod: `POST /v1.0/firebaseToken` live
 - [ ] Node endpoints confirmed (students by class/section, staff, departments, roles, academic years)
-- [ ] Dev/prod Android and iOS flavors with separate app IDs
+- [x] Dev/prod Android and iOS flavors with separate app IDs (both build)
 
 ## Phase 0 – Shared foundation
 
@@ -91,4 +91,7 @@ Format: `date · phase · what changed from the architecture doc · why`.
 
 ## Open items
 
-- (none yet)
+- `icueadmin` Firebase config is on the `prod` flavor; `dev` uses the real `icueadmin-dev` config (Android `src/dev/google-services.json`, iOS `ios/config/dev/GoogleService-Info.plist`, `lib/firebase_options_dev.dart`). Still to do on the Firebase side: confirm `icueadmin-dev` has Firestore (Standard, Native, `asia-south1`), Blaze plan and Auth enabled; upload the APNs key; add the dev Android SHA-1/SHA-256 if needed.
+- iOS now builds for both flavors (CocoaPods only, SPM off). To get there: Firebase plugins pinned to `firebase_core 5.0.0` / `firebase_analytics 13.0.0` / `firebase_crashlytics 6.0.0` / `firebase_messaging 17.0.0` (iOS SDK 12.19.0, the newest on CocoaPods trunk; `5.1.0` needs 12.19.3), `icue_face_sdk` on ML Kit 7, iOS minimum raised to 15.5, pods linked statically, and flavor xcconfigs fixed. Unpin Firebase once trunk has 12.19.3. Re-test face recognition on a device after the ML Kit 6→7 upgrade.
+- `ios/Podfile.lock` is untracked; decide whether to commit it.
+- Dev Node push credentials must be switched to `icueadmin-dev`; APNs key must be uploaded to `icueadmin-dev`.

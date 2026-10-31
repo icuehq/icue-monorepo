@@ -21,7 +21,7 @@ public struct IcueBoundingBox {
     public let bottom: Float
     public let trackingId: Int?
 
-    public toMap() -> [String: Any?] {
+    public func toMap() -> [String: Any?] {
         return [
             "left": Double(left),
             "top": Double(top),
@@ -53,7 +53,7 @@ public struct IcueRecognitionResult {
     public let matched: Bool
     public let boundingBox: IcueBoundingBox
 
-    public toMap() -> [String: Any?] {
+    public func toMap() -> [String: Any?] {
         return [
             "personId": personId,
             "score": Double(score),

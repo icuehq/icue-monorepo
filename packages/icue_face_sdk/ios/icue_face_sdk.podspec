@@ -17,8 +17,8 @@ On-device face detection and MobileFaceNet recognition for iOS applications usin
   s.resources        = 'Assets/**/*'
   s.dependency 'Flutter'
   s.dependency 'TensorFlowLiteSwift', '~> 2.14.0'
-  s.dependency 'GoogleMLKit/FaceDetection', '~> 6.0.0'
-  s.platform         = :ios, '13.0'
+  s.dependency 'GoogleMLKit/FaceDetection', '~> 7.0.0'
+  s.platform         = :ios, '15.5'
 
   # Flutter.framework does not contain a i386 slice.
   s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES', 'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386' }

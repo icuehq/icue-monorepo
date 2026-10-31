@@ -37,7 +37,7 @@ must be listed under `workspace:` and use `resolution: workspace`.
 - Dependency injection uses `get_it` + `injectable`. Each feature package declares a micro-package module; the app aggregates them in `lib/di/injection.dart`. A new feature package must be registered in the app's `injection.dart` and the root `workspace:` list.
 - All HTTP goes through `api_client`; do not create ad-hoc `Dio`/`http` clients in features or apps.
 - Inventory and Library (`features/inventory`, `features/library`) are Firebase-backed: reads use Firestore, writes go only through Cloud Functions callables in `firebase/`, via `icue_firebase`. They do not use `api_client`, and Firestore stores ERP people/departments as IDs only. Authority: `docs/inventory-library-technical-architecture.md`; build state and next phase: `docs/inventory-library-progress.md`. Work one phase per session on the shared branch, and update the progress doc at the end of each phase.
-- API base URL is selected at build time via `--dart-define=ENV=` (or `FLAVOR=`). Never hardcode environment URLs elsewhere.
+- API base URL is selected at build time via `--dart-define=ENV=` (or `FLAVOR=`). Never hardcode environment URLs elsewhere. The Firebase project follows the same switch (`apps/icueadmin/lib/app_firebase_options.dart`, native configs in `android/app/src/<flavor>/` and `ios/config/<env>/`); never point a dev build at the prod project.
 
 ## Security boundaries
 

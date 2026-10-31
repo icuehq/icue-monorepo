@@ -5,9 +5,9 @@ import 'package:auth/auth.dart';
 import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
+import 'package:icueadmin/app_firebase_options.dart';
 import 'package:icueadmin/di/injection.dart';
 import 'package:icueadmin/features/splash/splash_page.dart';
-import 'package:icueadmin/firebase_options.dart';
 import 'package:icueadmin/theme/app_theme.dart';
 import 'package:local_storage/local_storage.dart';
 
@@ -34,7 +34,7 @@ class _AppBootstrapState extends State<AppBootstrap> {
   late Future<ConnectivityService> _init = _initialize();
 
   Future<ConnectivityService> _initialize() async {
-    await initFirebase(DefaultFirebaseOptions.currentPlatform);
+    await initFirebase(firebaseOptionsFor(widget.environment));
     await configureDependencies(widget.environment.name);
 
     final connectivity = ConnectivityService();
