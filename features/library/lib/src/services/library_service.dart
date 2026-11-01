@@ -1,6 +1,7 @@
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:injectable/injectable.dart';
 import 'package:school_library/src/models/lib_copies.dart';
+import 'package:school_library/src/models/lib_loans.dart';
 import 'package:school_library/src/models/lib_masters.dart';
 import 'package:school_library/src/models/lib_members.dart';
 
@@ -139,6 +140,30 @@ class LibraryService {
     return d.exists ? LibMember.fromMap(d.id, d.data()!) : null;
   }
 
+  /// A page of loans in [status], earliest due first.
+  Future<PagedResult<LibLoan>> loans(
+    String status, {
+    DocumentSnapshot<Map<String, dynamic>>? after,
+  }) async => fetchPage(
+    (await _coll('libLoans'))
+        .where('status', isEqualTo: status)
+        .orderBy('dueOn'),
+    (d) => LibLoan.fromMap(d.id, d.data()!),
+    after: after,
+  );
+
+  /// The active loan of a copy, if it is out.
+  Future<LibLoan?> activeLoanOf(String copyId) async {
+    final r = await (await _coll('libLoans'))
+        .where('copyId', isEqualTo: copyId)
+        .where('status', isEqualTo: 'active')
+        .limit(1)
+        .get();
+    return r.docs.isEmpty
+        ? null
+        : LibLoan.fromMap(r.docs.first.id, r.docs.first.data());
+  }
+
   // --- writes: callables, same requestId on user retry --------------------
 
   Future<void> seedDefaults() => _call('lib-seedDefaults', {});
@@ -198,6 +223,15 @@ class LibraryService {
 
   Future<void> setMemberActive(String id, {required bool active}) =>
       _call('lib-member-setStatus', _status(id, active));
+
+  Future<void> issueLoan(Map<String, Object?> data, {String? requestId}) =>
+      _call('lib-loan-issue', data, requestId);
+
+  Future<void> returnLoan(Map<String, Object?> data, {String? requestId}) =>
+      _call('lib-loan-return', data, requestId);
+
+  Future<void> renewLoan(String id, {String? requestId}) =>
+      _call('lib-loan-renew', {'id': id}, requestId);
 
   Map<String, Object?> _status(String id, bool active) => {
     'id': id,

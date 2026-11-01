@@ -297,4 +297,7 @@ abstract final class AppRoutes {
 
   static const String libraryPolicies = '/layout.library/policies';
   static const String libraryPoliciesName = 'libraryPolicies';
+
+  static const String libraryCirculation = '/layout.library/circulation';
+  static const String libraryCirculationName = 'libraryCirculation';
 }

@@ -71,7 +71,7 @@ Inventory definition of done: FRS §31.
 | Lib-1 | Libraries, categories, catalogue (11.2–11.4) | done, not deployed | – (committed) |
 | Lib-2 | Copies, accession numbers, acquisition, barcodes (11.5–11.6) | done, not deployed | d3f48e8 |
 | Lib-3 | Memberships, borrowing policies (11.7–11.8) | done, not deployed | abb3f9d |
-| Lib-4 | Issue, return, renewal (11.9–11.11) | not started | – |
+| Lib-4 | Issue, return, renewal (11.9–11.11) | done, not deployed | – |
 | Lib-5 | Reservations, waiting lists (11.12) | not started | – |
 | Lib-6 | Fines, lost and damaged books (11.13–11.14) | not started | – |
 | Lib-7 | Inter-library transfers, stock verification (11.15–11.16) | not started | – |
@@ -450,6 +450,10 @@ Format: `date · phase · what changed from the architecture doc · why`.
 - 2026-11-01 · Lib-3 · Borrowing history, outstanding books and outstanding fines (FRS 11.7) are not shown yet · loans arrive with Lib-4 and fines with Lib-6; the list shows `activeLoans` only. `blocked` is stored false and set by fines in Lib-6. The membership end date is stored but not enforced until issue (Lib-4); the expiring-membership notification arrives with `dailyLibrary`.
 - 2026-11-01 · Lib-3 · Members and policies are readable school-wide with `lib.members.view` (librarian, principal, admin); writes are campus scoped through the library · teachers do not see the member list.
 - 2026-11-01 · Lib-3 · Member search is an exact ERP ID lookup (a miss opens the enrol sheet); the list is paged by ERP ID per type · IDs are the only identity stored, so there is no name search.
+- 2026-11-01 · Lib-4 · Return stores `overdueDays` but raises no fine · fines, lost/damaged incidents and the damage penalty arrive with Lib-6, which reads the loan's frozen `policySnapshot`. A damaged return sets the copy `damaged` and creates no incident yet.
+- 2026-11-01 · Lib-4 · Renewal does not check reservations, and a returned copy goes straight to `available` · reservations and the hold queue arrive with Lib-5. A copy `reserved` for the member cannot be issued until then.
+- 2026-11-01 · Lib-4 · `lib.loan.markLost` is not built (Lib-6). Renewal extends from the later of the due date and today by the loan's snapshot `loanDays`; inactive or blocked members cannot renew. Issue/return numbers are `ISS/…` and `RET/…`; no printable issue slip yet.
+- 2026-11-01 · Lib-4 · The circulation screen lists active loans only (earliest due first); borrowing history on the member sheet (FRS 11.7) is not shown yet. Camera scanning is untested on a device (no native build run).
 
 ## Open items
 

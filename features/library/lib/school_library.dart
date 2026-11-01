@@ -2,6 +2,7 @@ library;
 
 export 'src/di/school_library_micro_module.module.dart';
 export 'src/models/lib_copies.dart';
+export 'src/models/lib_loans.dart';
 export 'src/models/lib_masters.dart';
 export 'src/models/lib_members.dart';
 export 'src/providers/library_provider.dart';

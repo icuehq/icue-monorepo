@@ -597,6 +597,62 @@
           "order": "ASCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "libLoans",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "dueOn",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "libLoans",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "memberId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "issuedOn",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "libLoans",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "copyId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "issuedOn",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "libLoans",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "personErpId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "issuedOn",
+          "order": "DESCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": [

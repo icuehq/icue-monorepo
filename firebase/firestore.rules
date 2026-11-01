@@ -142,6 +142,11 @@ service cloud.firestore {
       allow read: if inSchool(sid) && coll in ['libMembers', 'libPolicies'] && can(sid, 'lib.members.view');
     }
 
+    // Loans (Lib-4): circulation staff on the campus, or the borrower / parent by ERP ID.
+    match /schools/{sid}/libLoans/{id} {
+      allow read: if inSchool(sid) && ((can(sid, 'lib.circulation.operate') && onCampus(sid, resource.data.campusId)) || own());
+    }
+
     match /devices/{uid} {
       allow read: if signedIn() && request.auth.uid == uid;
       allow write: if signedIn() && request.auth.uid == uid

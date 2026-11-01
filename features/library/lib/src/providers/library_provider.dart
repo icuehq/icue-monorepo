@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:injectable/injectable.dart';
 import 'package:school_library/src/models/lib_copies.dart';
+import 'package:school_library/src/models/lib_loans.dart';
 import 'package:school_library/src/models/lib_masters.dart';
 import 'package:school_library/src/models/lib_members.dart';
 import 'package:school_library/src/services/library_service.dart';
@@ -34,6 +35,12 @@ class LibraryProvider extends ChangeNotifier {
   bool hasMoreMembers = false;
   String memberType = 'student';
   DocumentSnapshot<Map<String, dynamic>>? _memberCursor;
+
+  // Active loans (paged, earliest due first).
+  final List<LibLoan> loans = [];
+  bool loansLoading = false;
+  bool hasMoreLoans = false;
+  DocumentSnapshot<Map<String, dynamic>>? _loanCursor;
 
   /// The policy a member of [category] gets in [libraryId], if one is set up.
   LibPolicy? policyFor(String libraryId, String category) {
@@ -147,6 +154,29 @@ class LibraryProvider extends ChangeNotifier {
     }
   }
 
+  /// (Re)loads the first page of active loans, or the next one when [more] is true.
+  Future<void> loadLoans({bool more = false}) async {
+    if (loansLoading || (more && !hasMoreLoans)) return;
+    if (!more) _loanCursor = null;
+    loansLoading = true;
+    errorMessage = null;
+    notifyListeners();
+    try {
+      final page = await _service.loans('active', after: _loanCursor);
+      if (!more) loans.clear();
+      loans.addAll(page.items);
+      _loanCursor = page.cursor;
+      hasMoreLoans = page.hasMore;
+    } catch (e) {
+      errorMessage = _message(e);
+    } finally {
+      loansLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<LibLoan?> activeLoanOf(String copyId) => _service.activeLoanOf(copyId);
+
   Future<LibMember?> member(String type, int erpId) =>
       _service.member(type, erpId);
 
@@ -247,6 +277,22 @@ class LibraryProvider extends ChangeNotifier {
   Future<bool> setMemberActive(String id, {required bool active}) => _write(
     () => _service.setMemberActive(id, active: active),
     reload: loadMembers,
+  );
+
+  Future<bool> issueLoan(Map<String, Object?> d, {String? requestId}) => _write(
+    () => _service.issueLoan(d, requestId: requestId),
+    reload: loadLoans,
+  );
+
+  Future<bool> returnLoan(Map<String, Object?> d, {String? requestId}) =>
+      _write(
+        () => _service.returnLoan(d, requestId: requestId),
+        reload: loadLoans,
+      );
+
+  Future<bool> renewLoan(String id, {String? requestId}) => _write(
+    () => _service.renewLoan(id, requestId: requestId),
+    reload: loadLoans,
   );
 
   Future<bool> _write(

@@ -11,6 +11,7 @@ import { verification } from './inventory/verification';
 import { itemSearch } from './inventory/search';
 import { copies as libCopies } from './library/copies';
 import { masters as libMasters } from './library/masters';
+import { loans as libLoans } from './library/loans';
 import { members as libMembers } from './library/members';
 import { catalogueSearch } from './library/search';
 import * as sessionFns from './session';
@@ -109,4 +110,5 @@ export const lib = {
   copy: { update: callable(libCopies.copyUpdate), move: callable(libCopies.copyMove), setStatus: callable(libCopies.copySetStatus) },
   policy: { upsert: callable(libMembers.policyUpsert), setStatus: callable(libMembers.policySetStatus) },
   member: { upsert: callable(libMembers.memberUpsert), setStatus: callable(libMembers.memberSetStatus) },
+  loan: { issue: callable(libLoans.loanIssue), return: callable(libLoans.loanReturn), renew: callable(libLoans.loanRenew) },
 };
