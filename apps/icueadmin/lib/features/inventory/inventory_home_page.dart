@@ -66,6 +66,12 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
             a.can('inv.procure.operate'),
       ),
       (
+        Icons.receipt_long_rounded,
+        'Purchase orders',
+        AppRoutes.inventoryPurchaseOrders,
+        a.can('inv.procure.operate'),
+      ),
+      (
         Icons.storefront_rounded,
         'Vendors',
         AppRoutes.inventoryVendors,

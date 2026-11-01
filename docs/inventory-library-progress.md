@@ -56,7 +56,7 @@ feature package, icueadmin screens (files under 500 lines), and DI registration.
 | Inv-1 | Categories, units, items, tracking methods, variants, stores (10.2–10.5) | done, not deployed | – (committed) |
 | Inv-2 | Stock overview, receiving, issuance, returns, transfers, adjustments, damaged/expired/lost (10.6–10.12) | done, not deployed | – (committed) |
 | Inv-3 | Purchase requests, approvals, vendors (10.13–10.14) | done, not deployed | – (committed) |
-| Inv-4 | Quotations, comparison, purchase orders, PO PDF (10.15–10.16) | not started | – |
+| Inv-4 | Quotations, comparison, purchase orders, PO PDF (10.15–10.16) | done, not deployed | – |
 | Inv-5 | Goods receiving/inspection, vendor invoices (10.17–10.18) | not started | – |
 | Inv-6 | Assets, assignment, maintenance (10.19–10.20) | not started | – |
 | Inv-7 | Stock verification, reports, notifications, dashboard (10.1, 10.21–10.23) | not started | – |
@@ -193,6 +193,28 @@ Flutter:
 - [x] `icueadmin` screens under `features/inventory/procurement/` (vendors with form, purchase requests with filter / detail / approve actions, request form); routes `/layout.inventory/{vendors,purchase-requests}`
 - [x] `melos run lint` passes; functions and rules tests pass
 
+### Inv-4
+
+Collections: `invQuotations`, `invPurchaseOrders` (+ `revisions` subcollection).
+
+Functions (`firebase/functions/src/inventory/orders.ts`, all `inv.procure.operate`, campus scoped):
+
+- [x] `inv-quotation-save` (draft or final; lines must be approved-request lines, qty within the request, totals computed; numbering `QT/<fy>/<seq>`), `inv-quotation-select` (final, unexpired, reason required; one selected per request, blocked while a live PO uses the previous one)
+- [x] `inv-po-save` (draft against an approved / partially ordered request; with a quotation the vendor and unit prices come from it; numbering `PO/<fy>/<seq>`), `inv-po-issue` (reserves `qtyOrdered` on the request, sets `partially_ordered` / `ordered`), `inv-po-revise` (header and unit prices; previous version kept in `revisions`; resets acknowledgement), `inv-po-acknowledge`, `inv-po-cancel` (releases ordered quantity), `inv-po-close` (reason unless fully received)
+- [x] Tests: `test/orders.test.ts` (emulator)
+
+Rules and indexes:
+
+- [x] `firestore.rules`: quotations, POs and revisions readable with `inv.procure.operate` on the campus (POs also by delivery campus)
+- [x] `firestore.indexes.json`: POs by campus + status + `createdAt`
+- [x] Rules tests
+
+Flutter:
+
+- [x] `features/inventory`: `inv_orders.dart` models, `ProcurementService` / `ProcurementProvider` extended, model tests
+- [x] `icueadmin` screens under `features/inventory/procurement/` (quotations comparison + select, quotation form, purchase orders list / detail / actions, PO form, PO PDF via `pdf` + `printing`); routes `/layout.inventory/{quotations,quotations/form,purchase-orders,purchase-orders/form}`; opened from the purchase request sheet and the Inventory home
+- [x] `melos run lint` passes (inventory, icueadmin); functions and rules tests pass
+
 ### Lib-1
 
 Collections: `libLibraries`, `libCategories`, `libCatalogue` (title-level; copies arrive in Lib-2).
@@ -260,6 +282,12 @@ Format: `date · phase · what changed from the architecture doc · why`.
 - 2026-11-01 · Inv-3 · The item form does not set the preferred vendor yet; `inv-item-upsert` validates it when sent · deferred from Inv-1, add a vendor dropdown when asked.
 - 2026-11-01 · Inv-3 · An approver may decide a request they raised themselves; there is no second approval level · matches the single-level issue approval; add a self-approval block if the school asks.
 - 2026-11-01 · Inv-3 · Purchase requests may include asset-tracked items (unlike stock callables) · assets are bought like anything else; only stock movements reject them. Statuses `partially_ordered`, `ordered`, `completed` are set by Inv-4/5 (`qtyOrdered` per line).
+- 2026-11-01 · Inv-4 · Quotation attachments are stored empty and the quotation "number" is the system number with the vendor's own number in `vendorRef` · no uploads yet.
+- 2026-11-01 · Inv-4 · A PO covers one request (`prIds` holds one ID) and may be raised without a quotation (vendor and prices entered) · FRS requires only an approved request; multi-request POs wait for a need.
+- 2026-11-01 · Inv-4 · Post-issue revisions change header terms and unit prices only; quantities are fixed (cancel and re-issue) · quantity changes would have to re-balance the request's `qtyOrdered`.
+- 2026-11-01 · Inv-4 · Closing a PO short does not release its unreceived quantity on the request · decide with Inv-5 receiving. Receiving history, `partially_received` / `fully_received` and `qtyReceived` updates arrive with Inv-5; the PO screen already shows received vs ordered.
+- 2026-11-01 · Inv-4 · Purchase orders and quotations are readable only by `inv.procure.operate`; approvers and receiving staff get read access in Inv-5 if needed.
+- 2026-11-01 · Inv-4 · PO PDF is built in the app with `pdf` + `printing` (`layoutPdf`: preview, print, share, save); no school letterhead until the ERP school profile is available.
 
 ## Open items
 

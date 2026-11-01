@@ -153,6 +153,9 @@ class InvPurchaseRequest {
   bool get isEditable => status == 'draft' || status == 'revision_requested';
   bool get isPending => status == 'pending';
 
+  /// Quotations and POs may be raised against these.
+  bool get isOrderable => status == 'approved' || status == 'partially_ordered';
+
   /// Cancelled requests stay on record; ordered quantity blocks cancellation.
   bool get isCancellable =>
       const [

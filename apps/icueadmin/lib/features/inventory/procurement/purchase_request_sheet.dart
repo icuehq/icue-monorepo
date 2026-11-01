@@ -37,6 +37,12 @@ class _PurchaseRequestSheetState extends State<PurchaseRequestSheet> {
     'comment': _comment.text.trim(),
   }, done);
 
+  Future<void> _go(String route, Object extra) async {
+    final router = GoRouter.of(context);
+    Navigator.pop(context);
+    await router.push(route, extra: extra);
+  }
+
   @override
   Widget build(BuildContext context) {
     final r = widget.request;
@@ -45,6 +51,7 @@ class _PurchaseRequestSheetState extends State<PurchaseRequestSheet> {
     final mine = r.createdBy == p.uid;
     final decides = r.isPending && a.can('inv.pr.approve');
     final cancel = mine && r.isCancellable;
+    final buy = a.can('inv.procure.operate') && r.isOrderable;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -121,6 +128,17 @@ class _PurchaseRequestSheetState extends State<PurchaseRequestSheet> {
                   if (context.mounted) Navigator.pop(context);
                 },
                 child: const Text('Edit'),
+              ),
+            ],
+            if (buy) ...[
+              OutlinedButton(
+                onPressed: () => _go(AppRoutes.inventoryQuotations, r),
+                child: const Text('Quotations'),
+              ),
+              OutlinedButton(
+                onPressed: () =>
+                    _go(AppRoutes.inventoryPurchaseOrderForm, (r, null, null)),
+                child: const Text('Create PO'),
               ),
             ],
             if (cancel)

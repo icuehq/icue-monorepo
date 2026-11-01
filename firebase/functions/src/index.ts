@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase-admin/app';
 import './region';
 import { masters } from './inventory/masters';
+import { orders } from './inventory/orders';
 import { procurement } from './inventory/procurement';
 import { stock } from './inventory/stock-ops';
 import { itemSearch } from './inventory/search';
@@ -49,6 +50,15 @@ const procurementFns = {
     submit: callable(procurement.prSubmit),
     decide: callable(procurement.prDecide),
     cancel: callable(procurement.prCancel),
+  },
+  quotation: { save: callable(orders.quotationSave), select: callable(orders.quotationSelect) },
+  po: {
+    save: callable(orders.poSave),
+    issue: callable(orders.poIssue),
+    revise: callable(orders.poRevise),
+    acknowledge: callable(orders.poAcknowledge),
+    cancel: callable(orders.poCancel),
+    close: callable(orders.poClose),
   },
 };
 export const inv = { ...masterFns, ...stockFns, ...procurementFns, seedDefaults: callable(masters.seedDefaults) };

@@ -29,6 +29,8 @@ dependencies:
   inventory:
   local_storage:
   logbook:
+  pdf: ^3.11.3
+  printing: ^5.14.2
   provider: ^6.1.2
   reports:
   routes:

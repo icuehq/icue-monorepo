@@ -39,8 +39,12 @@ import 'package:icueadmin/features/inventory/inventory_home_page.dart';
 import 'package:icueadmin/features/inventory/item_details_page.dart';
 import 'package:icueadmin/features/inventory/item_form_page.dart';
 import 'package:icueadmin/features/inventory/items_page.dart';
+import 'package:icueadmin/features/inventory/procurement/purchase_order_form_page.dart';
+import 'package:icueadmin/features/inventory/procurement/purchase_orders_page.dart';
 import 'package:icueadmin/features/inventory/procurement/purchase_request_form_page.dart';
 import 'package:icueadmin/features/inventory/procurement/purchase_requests_page.dart';
+import 'package:icueadmin/features/inventory/procurement/quotation_form_page.dart';
+import 'package:icueadmin/features/inventory/procurement/quotations_page.dart';
 import 'package:icueadmin/features/inventory/procurement/vendors_page.dart';
 import 'package:icueadmin/features/inventory/stock/issue_request_form_page.dart';
 import 'package:icueadmin/features/inventory/stock/issue_requests_page.dart';
@@ -226,6 +230,35 @@ GoRouter createRouter({
         builder: (context, state) => PurchaseRequestFormPage(
           existing: state.extra as InvPurchaseRequest?,
         ),
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryQuotations,
+        name: AppRoutes.inventoryQuotationsName,
+        builder: (context, state) =>
+            QuotationsPage(request: state.extra! as InvPurchaseRequest),
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryQuotationForm,
+        name: AppRoutes.inventoryQuotationFormName,
+        builder: (context, state) {
+          final (r, q) = state.extra! as (InvPurchaseRequest, InvQuotation?);
+          return QuotationFormPage(request: r, existing: q);
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryPurchaseOrders,
+        name: AppRoutes.inventoryPurchaseOrdersName,
+        builder: (context, state) => const PurchaseOrdersPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryPurchaseOrderForm,
+        name: AppRoutes.inventoryPurchaseOrderFormName,
+        builder: (context, state) {
+          final (r, q, o) =
+              state.extra!
+                  as (InvPurchaseRequest, InvQuotation?, InvPurchaseOrder?);
+          return PurchaseOrderFormPage(request: r, quotation: q, existing: o);
+        },
       ),
       GoRoute(
         path: AppRoutes.inventoryTransfers,

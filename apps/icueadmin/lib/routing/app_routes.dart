@@ -220,6 +220,22 @@ abstract final class AppRoutes {
   static const String inventoryPurchaseRequestFormName =
       'inventoryPurchaseRequestForm';
 
+  static const String inventoryQuotations = '/layout.inventory/quotations';
+  static const String inventoryQuotationsName = 'inventoryQuotations';
+
+  static const String inventoryQuotationForm =
+      '/layout.inventory/quotations/form';
+  static const String inventoryQuotationFormName = 'inventoryQuotationForm';
+
+  static const String inventoryPurchaseOrders =
+      '/layout.inventory/purchase-orders';
+  static const String inventoryPurchaseOrdersName = 'inventoryPurchaseOrders';
+
+  static const String inventoryPurchaseOrderForm =
+      '/layout.inventory/purchase-orders/form';
+  static const String inventoryPurchaseOrderFormName =
+      'inventoryPurchaseOrderForm';
+
   static const String library = '/layout.library';
   static const String libraryName = 'library';
 

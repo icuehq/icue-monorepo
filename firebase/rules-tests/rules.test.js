@@ -257,3 +257,28 @@ describe('procurement (Inv-3)', () => {
     await assertSucceeds(getDoc(doc(db('p_req'), 'schools/12/invItems/i')));
   });
 });
+
+describe('quotations and purchase orders (Inv-4)', () => {
+  beforeEach(() =>
+    env.withSecurityRulesDisabled(async (ctx) => {
+      const fs = ctx.firestore();
+      const acc = (perms, cmp = [31]) => ({ perms, cmp, all: false });
+      await setDoc(doc(fs, 'schools/12/userAccess/p_proc'), acc(['inv.procure.operate']));
+      await setDoc(doc(fs, 'schools/12/userAccess/p_far'), acc(['inv.procure.operate'], [99]));
+      await setDoc(doc(fs, 'schools/12/userAccess/p_apr'), acc(['inv.pr.approve']));
+      await setDoc(doc(fs, 'schools/12/invQuotations/q1'), { campusId: 31, prId: 'pr1' });
+      await setDoc(doc(fs, 'schools/12/invPurchaseOrders/po1'), { campusId: 31, deliveryCampusId: 31 });
+      await setDoc(doc(fs, 'schools/12/invPurchaseOrders/po1/revisions/r1'), { reason: 'x' });
+    }),
+  );
+
+  it('procurement on the campus reads; others and writes are denied', async () => {
+    for (const path of ['invQuotations/q1', 'invPurchaseOrders/po1', 'invPurchaseOrders/po1/revisions/r1']) {
+      await assertSucceeds(getDoc(doc(db('p_proc'), `schools/12/${path}`)));
+      await assertFails(getDoc(doc(db('p_apr'), `schools/12/${path}`)));
+    }
+    await assertFails(getDoc(doc(db('p_far'), 'schools/12/invQuotations/q1')));
+    await assertFails(getDoc(doc(db('p_far'), 'schools/12/invPurchaseOrders/po1')));
+    await assertFails(setDoc(doc(db('p_proc'), 'schools/12/invPurchaseOrders/po1'), { status: 'issued' }));
+  });
+});
