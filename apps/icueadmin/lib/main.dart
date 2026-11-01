@@ -18,6 +18,7 @@ import 'package:icueadmin/features/splash/app_bootstrap.dart';
 import 'package:icueadmin/routing/app_router.dart';
 import 'package:icueadmin/routing/app_routes.dart';
 import 'package:icueadmin/theme/app_theme.dart';
+import 'package:inventory/inventory.dart';
 import 'package:logbook/logbook.dart';
 import 'package:provider/provider.dart';
 import 'package:reports/reports.dart';
@@ -55,6 +56,7 @@ class IcueAdminApp extends StatefulWidget {
 class _IcueAdminAppState extends State<IcueAdminApp> {
   late final AuthProvider _authProvider;
   late final DriverProvider _driverProvider;
+  late final InventoryProvider _inventoryProvider;
   late final VehicleProvider _vehicleProvider;
   late final RoutesProvider _routesProvider;
   late final AnnouncementsProvider _announcementsProvider;
@@ -75,6 +77,7 @@ class _IcueAdminAppState extends State<IcueAdminApp> {
     super.initState();
     _authProvider = getIt<AuthProvider>();
     _driverProvider = getIt<DriverProvider>();
+    _inventoryProvider = getIt<InventoryProvider>();
     _vehicleProvider = getIt<VehicleProvider>();
     _routesProvider = getIt<RoutesProvider>();
     _announcementsProvider = getIt<AnnouncementsProvider>();
@@ -173,6 +176,9 @@ class _IcueAdminAppState extends State<IcueAdminApp> {
       providers: [
         ChangeNotifierProvider<AuthProvider>.value(value: _authProvider),
         ChangeNotifierProvider<DriverProvider>.value(value: _driverProvider),
+        ChangeNotifierProvider<InventoryProvider>.value(
+          value: _inventoryProvider,
+        ),
         ChangeNotifierProvider<VehicleProvider>.value(value: _vehicleProvider),
         ChangeNotifierProvider<RoutesProvider>.value(value: _routesProvider),
         ChangeNotifierProvider<AnnouncementsProvider>.value(

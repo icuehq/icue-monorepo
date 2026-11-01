@@ -34,6 +34,13 @@ import 'package:icueadmin/features/gatepass/confirm_gatepass_page.dart';
 import 'package:icueadmin/features/gatepass/gatepass_page.dart';
 import 'package:icueadmin/features/gatepass/generate_gatepass_page.dart';
 import 'package:icueadmin/features/gatepass/pending_gatepass_page.dart';
+import 'package:icueadmin/features/inventory/categories_page.dart';
+import 'package:icueadmin/features/inventory/inventory_home_page.dart';
+import 'package:icueadmin/features/inventory/item_details_page.dart';
+import 'package:icueadmin/features/inventory/item_form_page.dart';
+import 'package:icueadmin/features/inventory/items_page.dart';
+import 'package:icueadmin/features/inventory/stores_page.dart';
+import 'package:icueadmin/features/inventory/units_page.dart';
 import 'package:icueadmin/features/logbook/add_complaint_page.dart';
 import 'package:icueadmin/features/logbook/alcohol_test_form_page.dart';
 import 'package:icueadmin/features/logbook/cleaning_log_page.dart';
@@ -59,6 +66,7 @@ import 'package:icueadmin/features/vehicles/vehicle_details_page.dart';
 import 'package:icueadmin/features/vehicles/vehicle_docs_page.dart';
 import 'package:icueadmin/features/vehicles/vehicles_page.dart';
 import 'package:icueadmin/routing/app_routes.dart';
+import 'package:inventory/inventory.dart';
 import 'package:logbook/logbook.dart';
 import 'package:routes/routes.dart';
 import 'package:vehicles/vehicles.dart';
@@ -125,6 +133,44 @@ GoRouter createRouter({
         path: AppRoutes.branches,
         name: AppRoutes.branchesName,
         builder: (context, state) => const BranchesPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.inventory,
+        name: AppRoutes.inventoryName,
+        builder: (context, state) => const InventoryHomePage(),
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryCategories,
+        name: AppRoutes.inventoryCategoriesName,
+        builder: (context, state) => const CategoriesPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryUnits,
+        name: AppRoutes.inventoryUnitsName,
+        builder: (context, state) => const UnitsPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryStores,
+        name: AppRoutes.inventoryStoresName,
+        builder: (context, state) => const StoresPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryItems,
+        name: AppRoutes.inventoryItemsName,
+        builder: (context, state) =>
+            ItemsPage(categoryId: state.uri.queryParameters['category']),
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryItemForm,
+        name: AppRoutes.inventoryItemFormName,
+        builder: (context, state) =>
+            ItemFormPage(item: state.extra as InvItem?),
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryItemDetails,
+        name: AppRoutes.inventoryItemDetailsName,
+        builder: (context, state) =>
+            ItemDetailsPage(itemId: state.uri.queryParameters['id'] ?? ''),
       ),
       GoRoute(
         path: AppRoutes.drivers,

@@ -23,6 +23,11 @@ export class Ctx {
     return getFirestore().doc(`schools/${this.sid}/${path}`);
   }
 
+  /** `schools/{sid}/<path>` collection, for queries. */
+  coll(path: string) {
+    return getFirestore().collection(`schools/${this.sid}/${path}`);
+  }
+
   /** Auto-ID doc in `schools/{sid}/<collection>`. */
   newDoc(collection: string): DocumentReference {
     return getFirestore().collection(`schools/${this.sid}/${collection}`).doc();
@@ -130,5 +135,35 @@ export async function runCallable<S extends z.ZodType, R>(
 export function callable<S extends z.ZodType, R>(def: CallableDef<S, R>) {
   return onCall((req) =>
     runCallable(def, req.auth ? { uid: req.auth.uid, token: req.auth.token as Claims } : undefined, req.data),
+  );
+}
+
+export type QueryDef<S extends z.ZodType, R> = {
+  perm: Permission;
+  input: S;
+  handler: (sid: string, input: z.infer<S>) => Promise<R>;
+};
+
+/** Read-only callable pipeline: auth → permission → validation. No transaction, no request record. */
+export async function runQuery<S extends z.ZodType, R>(
+  def: QueryDef<S, R>,
+  auth: { uid: string; token: Claims } | undefined,
+  data: unknown,
+): Promise<R> {
+  if (!auth) throw new HttpsError('unauthenticated', 'Sign in required');
+  if (auth.token.pt === 'parent') throw new HttpsError('permission-denied', 'Read-only user');
+  if (auth.token.sid == null) throw new HttpsError('permission-denied', 'No school');
+  const sid = String(auth.token.sid);
+  const access = (await getFirestore().doc(`schools/${sid}/userAccess/${auth.uid}`).get()).data() as Access | undefined;
+  if (!access) throw new HttpsError('failed-precondition', 'Session not synced');
+  if (!access.perms?.includes(def.perm)) throw new HttpsError('permission-denied', 'Not allowed');
+  const parsed = def.input.safeParse(data ?? {});
+  if (!parsed.success) throw new HttpsError('invalid-argument', z.prettifyError(parsed.error));
+  return def.handler(sid, parsed.data as z.infer<S>);
+}
+
+export function queryCallable<S extends z.ZodType, R>(def: QueryDef<S, R>) {
+  return onCall((req) =>
+    runQuery(def, req.auth ? { uid: req.auth.uid, token: req.auth.token as Claims } : undefined, req.data),
   );
 }

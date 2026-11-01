@@ -67,8 +67,40 @@ describe('school data', () => {
   });
 
   it('module collections: no client writes, no reads without a rule', async () => {
-    await assertFails(setDoc(doc(db('u_1'), 'schools/12/invItems/i1'), { code: 'PEN', campusId: 31 }));
-    await assertFails(getDoc(doc(db('u_1'), 'schools/12/invItems/i1')));
+    await assertFails(setDoc(doc(db('u_1'), 'schools/12/invBalances/b1'), { campusId: 31 }));
+    await assertFails(getDoc(doc(db('u_1'), 'schools/12/invBalances/b1')));
+  });
+});
+
+describe('inventory masters', () => {
+  beforeEach(() =>
+    env.withSecurityRulesDisabled(async (ctx) => {
+      const fs = ctx.firestore();
+      await setDoc(doc(fs, 'schools/12/userAccess/u_3'), { perms: ['inv.settings'], cmp: [31], all: false });
+      for (const c of ['invCategories', 'invUnits', 'invItems']) await setDoc(doc(fs, `schools/12/${c}/a`), { name: 'a' });
+      await setDoc(doc(fs, 'schools/12/invItems/a/variants/v'), { sku: 'v' });
+      await setDoc(doc(fs, 'schools/12/invStores/s31'), { campusId: 31 });
+      await setDoc(doc(fs, 'schools/12/invStores/s32'), { campusId: 32 });
+    }),
+  );
+
+  it('categories, units, items, variants: readable with inv.items.view, never writable', async () => {
+    for (const p of ['invCategories/a', 'invUnits/a', 'invItems/a', 'invItems/a/variants/v']) {
+      await assertSucceeds(getDoc(doc(db('u_1'), `schools/12/${p}`)));
+      await assertFails(getDoc(doc(db('u_2'), `schools/12/${p}`)));
+      await assertFails(getDoc(doc(db('u_1', { ...staff, sid: 13 }), `schools/12/${p}`)));
+      await assertFails(setDoc(doc(db('u_1'), `schools/12/${p}`), { name: 'x' }));
+    }
+  });
+
+  it('stores: campus-scoped reads for stock viewers and settings users', async () => {
+    await assertSucceeds(getDoc(doc(db('u_3'), 'schools/12/invStores/s31')));
+    await assertFails(getDoc(doc(db('u_3'), 'schools/12/invStores/s32')));
+    await assertFails(getDoc(doc(db('u_1'), 'schools/12/invStores/s31')));
+    const list = (uid, cmp) => getDocs(query(collection(db(uid), 'schools/12/invStores'), where('campusId', 'in', cmp)));
+    await assertSucceeds(list('u_3', [31]));
+    await assertFails(list('u_3', [31, 32]));
+    await assertFails(setDoc(doc(db('u_3'), 'schools/12/invStores/s31'), { campusId: 31 }));
   });
 });
 

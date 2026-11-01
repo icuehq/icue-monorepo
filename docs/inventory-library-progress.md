@@ -31,6 +31,7 @@ feature package, icueadmin screens (files under 500 lines), and DI registration.
 - [ ] Node dev: `POST /v1.0/firebaseToken` live (signs with `icueadmin-dev` service account)
 - [ ] Node prod: `POST /v1.0/firebaseToken` live
 - [ ] Node endpoints confirmed (students by class/section, staff, departments, roles, academic years)
+- [ ] `search` database (Enterprise, Native, `asia-south1`) in each project, then `firebase/scripts/create-search-index.sh <project>` (dev has both from a spike; prod has neither)
 - [x] Dev/prod Android and iOS flavors with separate app IDs (both build)
 
 ## Phase 0 – Shared foundation
@@ -52,7 +53,7 @@ feature package, icueadmin screens (files under 500 lines), and DI registration.
 
 | Phase | Scope (FRS) | Status | Commit |
 | --- | --- | --- | --- |
-| Inv-1 | Categories, units, items, tracking methods, variants, stores (10.2–10.5) | not started | – |
+| Inv-1 | Categories, units, items, tracking methods, variants, stores (10.2–10.5) | done, not deployed | – (uncommitted) |
 | Inv-2 | Stock overview, receiving, issuance, returns, transfers, adjustments, damaged/expired/lost (10.6–10.12) | not started | – |
 | Inv-3 | Purchase requests, approvals, vendors (10.13–10.14) | not started | – |
 | Inv-4 | Quotations, comparison, purchase orders, PO PDF (10.15–10.16) | not started | – |
@@ -122,6 +123,30 @@ Flutter:
 - [x] Parent app: exchange + token dual-write noted in Open items
 - [x] `melos run lint` passes
 
+### Inv-1
+
+Collections: `invCategories`, `invUnits` (doc ID = code), `invItems` (+ `variants`), `invStores`.
+
+Functions (`firebase/functions/src/inventory/masters.ts`):
+
+- [x] `inv-category-upsert`, `inv-category-setStatus`, `inv-unit-upsert`, `inv-item-upsert`, `inv-item-setStatus`, `inv-variant-upsert`, `inv-store-upsert`, `inv-store-setStatus`
+- [x] `inv-seedDefaults` (FRS default categories and units, idempotent)
+- [x] Unique codes via `uniqueKeys`; inactive category/subcategory rejected for new use; stock unit/tracking locked once `invMovements` exist
+- [x] Item search: `syncItemSearch` trigger mirrors items into the `search` database, `inv-item-search` callable (`inventory/search.ts`, `runQuery` in `shared/callable.ts`)
+- [x] Tests: `test/masters.test.ts`, `test/search.test.ts` (emulator; text search itself is emulated by a whole-word scan)
+
+Rules and indexes:
+
+- [x] `firestore.rules`: reads for categories/units/items/variants (`inv.items.view`), stores (`inv.stock.view` or `inv.settings`, campus-scoped)
+- [x] `firestore.indexes.json`: `invItems` (`categoryId`, `name`); `search.rules` denies all client access to the `search` database
+- [x] Rules tests for all of the above
+
+Flutter:
+
+- [x] `features/inventory`: models, `InventoryService` (reads + callables), `InventoryProvider`, DI, model tests
+- [x] `icueadmin` screens under `features/inventory/` (home, categories, units, stores, items, item form, item details with variants); routes `/layout.inventory/...`; dashboard card opens it when Node's action `routeState` contains `inventory`
+- [x] `melos run lint` passes; functions and rules tests pass
+
 ## Decisions and deviations
 
 Format: `date · phase · what changed from the architecture doc · why`.
@@ -139,6 +164,13 @@ Format: `date · phase · what changed from the architecture doc · why`.
 - 2026-10-31 · 0 · App emulator mode (`FIREBASE_EMULATOR` dart-define) mints an unsigned custom token locally (claims from the Node user) instead of calling `/v1.0/firebaseToken` · the Node endpoint is not live; ignored in release builds. Android debug manifest allows cleartext for `10.0.2.2`.
 - 2026-10-31 · 0 · App emulators run as project `icueadmin-dev` (not `demo-icue`); automated tests still use `demo-icue` · mobile apps take the project ID from `google-services.json` and ignore a Dart override, so the app called `/icueadmin-dev/...` and the Functions emulator answered 404. Real FCM is skipped inside the emulator (`FUNCTIONS_EMULATOR`).
 - 2026-10-31 · 0 · Emulator ports moved off the defaults (Firestore 8190, Auth 9109, Functions 5011, Storage 9209, UI 4010) · avoids clashing with other local emulator suites.
+- 2026-10-31 · Inv-1 · Item image upload and `files-getUploadPath` deferred (`imagePath` is stored as null) · no item screen needs it yet; arrives with the first mandatory upload (Inv-5 attachments) or earlier on request.
+- 2026-10-31 · Inv-1 · Codes (category, item, SKU, store) cannot change after creation · their `uniqueKeys` entry is never released; renaming is a new record plus deactivating the old one.
+- 2026-10-31 · Inv-1 · Preferred vendor is not set from the item form · `invVendors` arrives in Inv-3.
+- 2026-10-31 · Inv-1 · Store storekeepers are entered as ERP staff IDs, campuses shown as "Campus <id>" · the Node staff and branch-name endpoints are not confirmed yet.
+- 2026-11-01 · Inv-1 · Item search uses the Enterprise `search` database (trigger mirror + `inv-item-search`) instead of `searchTokens` · whole-word matching only, no prefix/type-ahead (verified on dev); search and category filter combine. Emulator falls back to a whole-word scan, so the real text-search path is untested locally.
+- 2026-10-31 · Inv-1 · Seeding defaults is the `inv-seedDefaults` callable (button on empty categories/units screens), not a script · works per project without credentials and is covered by emulator tests.
+- 2026-10-31 · Inv-1 · Item "stock across locations / history" (FRS 10.3) and import/export wait for Inv-2 balances and Inv-8 · nothing to show or import yet.
 
 ## Open items
 

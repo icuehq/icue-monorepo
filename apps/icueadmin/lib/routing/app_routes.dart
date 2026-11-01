@@ -164,4 +164,25 @@ abstract final class AppRoutes {
   static const String attendanceConfirmation =
       '/layout.attendance/confirmation';
   static const String attendanceConfirmationName = 'attendanceConfirmation';
+
+  static const String inventory = '/layout.inventory';
+  static const String inventoryName = 'inventory';
+
+  static const String inventoryCategories = '/layout.inventory/categories';
+  static const String inventoryCategoriesName = 'inventoryCategories';
+
+  static const String inventoryUnits = '/layout.inventory/units';
+  static const String inventoryUnitsName = 'inventoryUnits';
+
+  static const String inventoryStores = '/layout.inventory/stores';
+  static const String inventoryStoresName = 'inventoryStores';
+
+  static const String inventoryItems = '/layout.inventory/items';
+  static const String inventoryItemsName = 'inventoryItems';
+
+  static const String inventoryItemForm = '/layout.inventory/items/form';
+  static const String inventoryItemFormName = 'inventoryItemForm';
+
+  static const String inventoryItemDetails = '/layout.inventory/items/details';
+  static const String inventoryItemDetailsName = 'inventoryItemDetails';
 }

@@ -22,6 +22,7 @@ This document decides *how* the FRS is built. Functional behaviour stays defined
 | D8 | Notifications: Functions send FCM directly, through an outbox collection, to tokens stored in Firestore (registered alongside Node). |
 | D9 | Teachers use `icueadmin`. Parents use the parent app (same `icueadmin` Firebase project, moving into this monorepo) and get **read-only** access to their wards' records. Students never sign in. |
 | D11 | Two Firebase projects: `icueadmin-dev` and `icueadmin` (prod), with dev/prod app flavors (§14). |
+| D12 | Text search runs on a second **Enterprise-edition** Firestore database `search`, mirrored from `(default)` by a trigger and queried only through a callable (§10). `(default)` stays Standard. |
 | D10 | Code lives in `firebase/` (rules, indexes, functions) and `features/inventory`, `features/library` (Dart models/services/providers); UI in `apps/icueadmin`. |
 
 ---
@@ -135,7 +136,7 @@ Common fields on every document: `campusId`, `createdAt`, `createdBy` (uid), `up
 | --- | --- | --- |
 | `invCategories` | code, name, parentId, suggestedTracking, status | Subcategory = `parentId` set |
 | `invUnits` | code, name | Defaults seeded (FRS 10.4) |
-| `invItems` | code, name, categoryId, subcategoryId, stockUnit, purchaseUnits `[{unit, factor}]`, tracking `qty|batch|asset`, variantAttrs, minLevel, reorderLevel, defaultPrice, preferredVendorId, defaultLocation, imagePath, searchTokens | `categoryHistory` via audit log |
+| `invItems` | code, name, categoryId, subcategoryId, stockUnit, purchaseUnits `[{unit, factor}]`, tracking `qty|batch|asset`, variantAttrs, minLevel, reorderLevel, defaultPrice, preferredVendorId, defaultLocation, imagePath | `categoryHistory` via audit log |
 | `invItems/{id}/variants` | attrs `{size, color}`, sku, status | Uniforms etc. |
 | `invStores` | code, name, campusId, location, storekeeperIds, status | Department/location is a field on the store or balance |
 | `invBalances/{storeId__itemId__variantId__batchId}` | qtyAvailable, qtyReserved, qtyDamaged, qtyExpired, qtyReceivedTotal, qtyIssuedTotal, unitCost, value, batchNo, mfgDate, expiryDate, belowReorder | **The only stock balance.** One doc per store × item × variant × batch (`-` when not applicable). |
@@ -147,7 +148,7 @@ Common fields on every document: `campusId`, `createdAt`, `createdBy` (uid), `up
 | `invAdjustments` | balanceId, before, delta, after, reason, evidence, verificationId, approval | Immutable after `completed` |
 | `invUnavailable` | balanceId or assetId, qty, reason, evidence, resolution, resolvedAt | FRS 10.12 register |
 | `invPurchaseRequests` | lines `[{itemId, qty, estPrice, qtyOrdered}]`, itemIds, priority, requiredDate, status (FRS 10.13), approval | |
-| `invVendors` | code, name, contacts, tax, categories, documents, status, searchTokens | |
+| `invVendors` | code, name, contacts, tax, categories, documents, status | Searchable via the `search` mirror (§10) |
 | `invQuotations` | vendorId, prId, lines (qty, unitPrice in item stock unit), discount, tax, delivery, total, validUntil, selected, selectionReason | Comparison is a query by `prId` |
 | `invPurchaseOrders` | vendorId, prIds, quotationId, deliveryCampusId, lines `[{itemId, variantId, qtyOrdered, qtyReceived, qtyAccepted, qtyRejected, unitPrice}]`, totals, terms, status (FRS 10.16), ack | |
 | `invPurchaseOrders/{id}/revisions` | snapshot, changedBy, reason | Post-issue changes (FRS 10.16) |
@@ -165,7 +166,7 @@ Common fields on every document: `campusId`, `createdAt`, `createdBy` (uid), `up
 | --- | --- | --- |
 | `libLibraries` | code, name, campusId, location, staffIds, contact, hours, status | |
 | `libCategories` | code, name, parentId, status | Defaults seeded (FRS 11.3) |
-| `libCatalogue` | title, subtitle, authors[], isbn10, isbn13, publisher, edition, year, language, categoryId, classNo, keywords, coverPath, status, searchTokens, dupKey | School-wide; shared across libraries |
+| `libCatalogue` | title, subtitle, authors[], isbn10, isbn13, publisher, edition, year, language, categoryId, classNo, keywords, coverPath, status, dupKey | School-wide; shared across libraries |
 | `libCopies` | accessionNo, catalogueId, libraryId, campusId, shelf, barcode, rfidTag, acquisitionId, price, source, condition, status (FRS 11.5 + `in_transit`), activeLoanId, heldReservationId | One doc per physical book |
 | `libAcquisitions` | type, catalogueId, qty, libraryId, vendorOrDonor, price, reference, copyIds | |
 | `libMembers/{memberType_erpId}` | memberType `student|teacher`, erpId, classId (students), category (policy key), libraryIds, start, end, status, activeLoans, blocked | Deterministic ID → no duplicate members |
@@ -377,8 +378,10 @@ Types: inventory categories, items, opening stock, stores, assets, vendors; libr
 ## 10. Search, lists and dashboards
 
 - **Pagination:** cursor-based (`startAfterDocument`), 25–50 rows per page.
-- **Search:** Firestore has no full-text search. Searchable docs store `searchTokens` (lower-cased words and their prefixes of name, code, title, authors, ISBN, accession number), queried with `array-contains`. Exact lookups (code, ISBN, accession, barcode, asset ID, RFID tag) use equality queries.
-  - Ceiling: one search term per query, no fuzzy match. Upgrade path: Typesense/Algolia Firebase extension on `libCatalogue`, `invItems` if catalogues outgrow this.
+- **Search:** Standard Firestore has no full-text search, so searchable collections are mirrored into the Enterprise database `search` (same paths, list-row fields only, `srcUpdatedAt` guards against out-of-order deliveries) by an `onDocumentWritten` trigger (`syncItemSearch`). A read-only callable (`inv-item-search`) queries the mirror with the `search` pipeline stage, optional `where` filters (e.g. category), `sort`, `offset`/`limit`, and returns list rows; the school comes from the token. The `search` database allows no client access. Exact lookups (code, ISBN, accession, barcode, asset ID, RFID tag) stay equality queries on `(default)`.
+  - Matching is whole-word, case-insensitive with stemming; **no prefix or type-ahead matching** (checked on a dev database, 2026-10-31). A mirror update is searchable in about 150 ms.
+  - Needs a text index per project (`firebase/scripts/create-search-index.sh`); Flutter has no Pipelines SDK, hence the callable. The emulator has no text search, so in the emulator the callable falls back to a whole-word scan of the mirror and only the real path needs a cloud project to verify.
+  - Library catalogue and vendors reuse the same trigger/callable pattern.
 - **Dashboards:** Firestore aggregation queries (`count()`, `sum()`) with the same filters as the lists — e.g. low stock = `count()` where `belowReorder == true`; stock value = `sum('value')`. No pre-computed counters.
 - **Popular/inactive books:** computed client-side over the selected period's loans. Ceiling: fine for tens of thousands of loans per period; add monthly stat docs if it gets slow.
 - **Indexes:** `firebase/firestore.indexes.json`, one composite index per list filter/sort combination, added with each screen.
@@ -404,6 +407,7 @@ firebase/
   .firebaserc              # default: icueadmin-dev (alias dev); prod alias icueadmin
   firestore.rules
   firestore.indexes.json
+  search.rules             # deny-all rules of the `search` database
   storage.rules
   functions/
     package.json, tsconfig.json
@@ -453,6 +457,7 @@ Still needed before the related screens: the exact Node endpoints (request/respo
 - `firebase/.firebaserc` defines aliases `dev` and `prod`; the default is `dev`. Production deploys must name `--project prod` explicitly.
 - The Flutter app selects Firebase options and the API environment from the same `ENV` dart-define. Dev gets its own `firebase_options` and per-flavor `google-services.json` / `GoogleService-Info.plist`.
 - Rules, indexes and Functions deploy to dev first. Rules tests and function tests run on the emulator and need no project.
+- The `search` database (Enterprise, Native, `asia-south1`, ID `search`) is created by the owner in each project, followed by `scripts/create-search-index.sh <project>`.
 - Seed data (default categories, units, `rolePermissions`) is created per project by a script; production data is never copied to dev.
 - The Node `ENV` and the app's Firebase project must match, or the custom token is rejected.
 

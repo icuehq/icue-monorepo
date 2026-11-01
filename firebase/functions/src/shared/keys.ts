@@ -25,13 +25,16 @@ export async function nextNumber(ctx: Ctx, type: string, date = new Date()): Pro
   return `${type}/${fy}/${String(next).padStart(6, '0')}`;
 }
 
+export const uniqueKeyRef = (ctx: Ctx, kind: string, value: string) =>
+  ctx.doc(`uniqueKeys/${kind}_${encodeURIComponent(value.trim().toLowerCase())}`);
+
 /**
  * Claims `uniqueKeys/{kind_value}` for [refPath]. Codes are case-insensitive.
  * Throws `already-exists` when another record holds it; re-claiming your own is a no-op.
  */
 export async function claimUniqueKey(ctx: Ctx, kind: string, value: string, refPath: string): Promise<void> {
   const norm = value.trim().toLowerCase();
-  const ref = ctx.doc(`uniqueKeys/${kind}_${encodeURIComponent(norm)}`);
+  const ref = uniqueKeyRef(ctx, kind, value);
   const snap = await ctx.tx.get(ref);
   if (snap.exists && snap.data()!.ref !== refPath) {
     throw new HttpsError('already-exists', `${kind} "${value}" already exists`);
