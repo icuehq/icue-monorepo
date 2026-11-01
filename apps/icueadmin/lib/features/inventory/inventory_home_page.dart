@@ -27,20 +27,19 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
     final a = p.access;
     final tiles = <(String, String, String, bool)>[
       (
-        // ponytail: insights tiles reuse existing artwork until dedicated images exist.
-        'assets/dashboard/inventory-stock.png',
+        'assets/dashboard/inventory-dashboard.png',
         'Dashboard',
         AppRoutes.inventoryDashboard,
         a.can('inv.stock.view') || a.can('inv.reports.view'),
       ),
       (
-        'assets/dashboard/inventory-stock.png',
+        'assets/dashboard/inventory-stock-verification.png',
         'Stock verification',
         AppRoutes.inventoryVerifications,
         a.can('inv.stock.view'),
       ),
       (
-        'assets/dashboard/inventory-items.png',
+        'assets/dashboard/inventory-import.png',
         'Import',
         AppRoutes.inventoryImport,
         a.can('inv.settings') ||
@@ -48,7 +47,7 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
             a.can('inv.vendors.manage'),
       ),
       (
-        'assets/dashboard/inventory-purchase-orders.png',
+        'assets/dashboard/reports.png',
         'Reports',
         AppRoutes.inventoryReports,
         a.can('inv.reports.view'),
@@ -100,14 +99,13 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
         a.can('inv.procure.operate') || a.can('inv.stock.operate'),
       ),
       (
-        // ponytail: reuses the purchase-orders artwork until an invoices image exists.
-        'assets/dashboard/inventory-purchase-orders.png',
+        'assets/dashboard/inventory-invoices.png',
         'Vendor invoices',
         AppRoutes.inventoryInvoices,
         a.can('inv.procure.operate'),
       ),
       (
-        'assets/dashboard/inventory-stock.png',
+        'assets/dashboard/inventory-assets.png',
         'Assets',
         AppRoutes.inventoryAssets,
         a.can('inv.assets.view') || a.can('inv.assets.manage'),

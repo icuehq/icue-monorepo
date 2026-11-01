@@ -27,7 +27,7 @@ class _LibraryHomePageState extends State<LibraryHomePage> {
     final view = p.access.can('lib.catalogue.view');
     final tiles = <(String, String, String, bool)>[
       (
-        'assets/dashboard/library.png',
+        'assets/dashboard/library-dashboard.png',
         'Dashboard',
         AppRoutes.libraryDashboard,
         view,
@@ -39,7 +39,7 @@ class _LibraryHomePageState extends State<LibraryHomePage> {
         view,
       ),
       (
-        'assets/dashboard/library-catalogue.png',
+        'assets/dashboard/library-copies.png',
         'Copies',
         AppRoutes.libraryCopies,
         p.access.can('lib.catalogue.manage'),
@@ -57,62 +57,62 @@ class _LibraryHomePageState extends State<LibraryHomePage> {
         view,
       ),
       (
-        'assets/dashboard/library.png',
+        'assets/dashboard/library-circulation.png',
         'Circulation',
         AppRoutes.libraryCirculation,
         p.access.can('lib.circulation.operate'),
       ),
       (
-        'assets/dashboard/library.png',
+        'assets/dashboard/library-reservations.png',
         'Reservations',
         AppRoutes.libraryReservations,
         p.access.can('lib.circulation.operate'),
       ),
       (
-        'assets/dashboard/library.png',
+        'assets/dashboard/library-members.png',
         'Members',
         AppRoutes.libraryMembers,
         p.access.can('lib.members.view'),
       ),
       (
-        'assets/dashboard/library-categories.png',
+        'assets/dashboard/library-policies.png',
         'Borrowing policies',
         AppRoutes.libraryPolicies,
         p.access.can('lib.members.view'),
       ),
       (
-        'assets/dashboard/library.png',
+        'assets/dashboard/library-fines.png',
         'Fines & Penalties',
         AppRoutes.libraryFines,
         p.access.can('lib.circulation.operate') ||
             p.access.can('lib.fines.waive'),
       ),
       (
-        'assets/dashboard/library.png',
+        'assets/dashboard/library-incidents.png',
         'Lost & Damaged',
         AppRoutes.libraryIncidents,
         p.access.can('lib.circulation.operate'),
       ),
       (
-        'assets/dashboard/library.png',
+        'assets/dashboard/library-transfers.png',
         'Transfers',
         AppRoutes.libraryTransfers,
         p.access.can('lib.catalogue.manage'),
       ),
       (
-        'assets/dashboard/library.png',
+        'assets/dashboard/library-stock-verification.png',
         'Stock verification',
         AppRoutes.libraryVerification,
         p.access.can('lib.catalogue.manage'),
       ),
       (
-        'assets/dashboard/library.png',
+        'assets/dashboard/reports.png',
         'Reports',
         AppRoutes.libraryReports,
         p.access.can('lib.reports.view'),
       ),
       (
-        'assets/dashboard/library.png',
+        'assets/dashboard/library-import.png',
         'Import',
         AppRoutes.libraryImport,
         p.access.can('lib.catalogue.manage') ||
