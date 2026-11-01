@@ -92,8 +92,8 @@ Own records (teacher's loans, parent's wardStudentIds) need no permission; they 
 
 ### 3.2 Where permissions are stored
 
-- `schools/{schoolId}/config/rolePermissions` — `{ roles: { "<roleId>": ["inventory.items.view", ...] } }`. Seeded from the table above, edited by admins (audited).
-- `schools/{schoolId}/userAccess/{uid}` — resolved `{ permissions: [...], campusIds: [...], all, roleIds, personType, personErpId, wardStudentIds, updatedAt }` (`roleIds` for recompute, `personErpId`/`wardStudentIds` for notification recipients). Written by the `session.sync` callable after sign-in, and rewritten for affected users by a trigger when `rolePermissions` changes.
+- Permissions are not stored per school: Node's `getActionsByRole` Ids reach Functions as the `actionIds` token claim and map to permission keys in code (`ACTION_PERMISSIONS`); see `docs/inventory-library-node-actions.md`.
+- `schools/{schoolId}/userAccess/{uid}` — resolved `{ permissions: [...], campusIds: [...], all, roleIds, personType, personErpId, wardStudentIds, updatedAt }` (`roleIds` for recompute, `personErpId`/`wardStudentIds` for notification recipients). Written by the `session.sync` callable after every sign-in (permission changes in Node apply at the next token exchange).
 
 Rules read one `userAccess` doc per request (`get()` is cached within a request). Functions read the same doc, so rules and Functions can never disagree.
 

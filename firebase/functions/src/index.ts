@@ -27,7 +27,6 @@ initializeApp();
 
 // Grouped exports deploy as `<group>-<name>` (e.g. `session-sync`); callable names cannot contain dots.
 export const session = { sync: sessionFns.sync };
-export { onRolePermissionsChange } from './session';
 export { syncItemSearch } from './inventory/search';
 export { syncCatalogueSearch } from './library/search';
 export { outboxSend } from './shared/outbox';

@@ -8,8 +8,7 @@
   "scripts": {
     "build": "tsc",
     "test:unit": "vitest run test/unit",
-    "test": "firebase emulators:exec --only firestore --project demo-icue \"vitest run\"",
-    "seed": "tsx scripts/seed.ts"
+    "test": "firebase emulators:exec --only firestore --project demo-icue \"vitest run\""
   },
   "dependencies": {
     "@google-cloud/firestore": "^9.4.0",

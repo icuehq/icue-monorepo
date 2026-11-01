@@ -1,4 +1,4 @@
-/** Fixed permission keys (architecture §3.1). Role → permission mapping is data. */
+/** Fixed permission keys (architecture §3.1). Granted per user through Node actions (see ACTION_PERMISSIONS). */
 export const PERMISSIONS = [
   'inventory.settings',
   'inventory.items.manage',
@@ -26,76 +26,37 @@ export const PERMISSIONS = [
 
 export type Permission = (typeof PERMISSIONS)[number];
 
-/** FRS §12 default matrix, keyed by role name. Seeded per school against Node role IDs. */
-export const DEFAULT_ROLES: Record<string, Permission[]> = {
-  admin: [...PERMISSIONS],
-  principal: [
-    'inventory.items.view',
-    'inventory.stock.view',
-    'inventory.issue.approve',
-    'inventory.adjustment.approve',
-    'inventory.purchaseRequest.approve',
-    'inventory.assets.view',
-    'inventory.reports.view',
-    'library.catalogue.view',
-    'library.reports.view',
-    'library.members.view',
-  ],
-  inventoryManager: [
-    'inventory.settings',
-    'inventory.items.manage',
-    'inventory.items.view',
-    'inventory.stock.view',
-    'inventory.stock.operate',
-    'inventory.adjustment.approve',
-    'inventory.issue.request',
-    'inventory.purchaseRequest.request',
-    'inventory.procure.operate',
-    'inventory.vendors.manage',
-    'inventory.assets.manage',
-    'inventory.assets.view',
-    'inventory.reports.view',
-    'library.catalogue.view',
-  ],
-  storekeeper: [
-    'inventory.items.view',
-    'inventory.stock.view',
-    'inventory.stock.operate',
-    'inventory.issue.request',
-    'inventory.purchaseRequest.request',
-    'inventory.assets.manage',
-    'inventory.assets.view',
-    'library.catalogue.view',
-  ],
-  procurement: [
-    'inventory.items.view',
-    'inventory.stock.view',
-    'inventory.purchaseRequest.request',
-    'inventory.procure.operate',
-    'inventory.vendors.manage',
-    'inventory.assets.view',
-    'library.catalogue.view',
-  ],
-  librarian: [
-    'library.settings',
-    'library.catalogue.manage',
-    'library.catalogue.view',
-    'library.circulation.operate',
-    'library.fines.waive',
-    'library.reports.view',
-    'library.members.view',
-  ],
-  teacher: ['inventory.issue.request', 'inventory.purchaseRequest.request', 'inventory.assets.view', 'library.catalogue.view'],
+/**
+ * Node action Id (`/v1.0/getActionsByRole`, sent as the `actionIds` token claim) → permission.
+ * Ids must match docs/inventory-library-node-actions.md. Parent actions (300, 301) grant nothing.
+ */
+export const ACTION_PERMISSIONS: Record<number, Permission> = {
+  310: 'inventory.settings',
+  311: 'inventory.items.manage',
+  312: 'inventory.items.view',
+  313: 'inventory.stock.view',
+  314: 'inventory.stock.operate',
+  315: 'inventory.issue.request',
+  316: 'inventory.issue.approve',
+  317: 'inventory.adjustment.approve',
+  318: 'inventory.purchaseRequest.request',
+  319: 'inventory.purchaseRequest.approve',
+  320: 'inventory.procure.operate',
+  321: 'inventory.vendors.manage',
+  322: 'inventory.assets.manage',
+  323: 'inventory.assets.view',
+  324: 'inventory.reports.view',
+  330: 'library.settings',
+  331: 'library.catalogue.manage',
+  332: 'library.catalogue.view',
+  333: 'library.circulation.operate',
+  334: 'library.fines.waive',
+  335: 'library.reports.view',
+  336: 'library.members.view',
 };
 
-export type RolePermissions = { roles?: Record<string, string[]> };
-
-/** Union of the permissions of [roleIds]; unknown keys are dropped. */
-export function resolvePerms(config: RolePermissions | undefined, roleIds: unknown[]): string[] {
-  const known = new Set<string>(PERMISSIONS);
-  const out = new Set<string>();
-  for (const id of roleIds) {
-    for (const permission of config?.roles?.[String(id)] ?? []) if (known.has(permission)) out.add(permission);
-  }
-  return [...out].sort();
+/** Permissions of the granted [actionIds]; unknown Ids are ignored. Sorted, unique. */
+export function permissionsFromActions(actionIds: unknown): string[] {
+  const ids = Array.isArray(actionIds) ? actionIds : [];
+  return [...new Set(ids.map((id) => ACTION_PERMISSIONS[Number(id)]).filter(Boolean))].sort();
 }

@@ -8,6 +8,7 @@ import 'package:auth/src/models/otp_response.dart';
 import 'package:auth/src/models/person_types.dart';
 import 'package:auth/src/models/role_actions.dart';
 import 'package:auth/src/models/user_info.dart';
+import 'package:auth/src/services/test_role_actions.dart';
 import 'package:auth/src/storage/session_token_provider.dart';
 import 'package:auth/src/storage/user_local_storage.dart';
 import 'package:crypto/crypto.dart';
@@ -97,7 +98,7 @@ class AuthService {
       final auth = FirebaseAuth.instance;
       if (auth.currentUser != null) await auth.signOut();
       final token = usesEmulator
-          ? _emulatorToken()
+          ? await _emulatorToken()
           : await _nodeFirebaseToken();
       if (token == null || token.isEmpty) return false;
       final credential = await auth.signInWithCustomToken(token);
@@ -118,18 +119,31 @@ class AuthService {
     return token is String ? token : null;
   }
 
-  /// Local runs against the emulators: claims built from the Node user, as
-  /// the Node endpoint will (architecture §2). Replace with the real endpoint
-  /// once it is live; wardStudentIds/parents are not covered.
-  String? _emulatorToken() {
+  /// Local runs against the emulators: claims built from the Node user and
+  /// `getActionsByRole`, as the Node endpoint will (architecture §2). Replace
+  /// with the real endpoint once it is live; wardStudentIds/parents are not
+  /// covered.
+  Future<String?> _emulatorToken() async {
     final user = userLocalStorage.getUser();
     if (user == null) return null;
+    List<RoleActions> actions;
+    try {
+      actions = await getRoleActions();
+    } catch (_) {
+      actions = userLocalStorage.getRoleActions();
+    }
     final branch = userLocalStorage.getSelectedBranch()?.id ?? user.branchId;
     return emulatorCustomToken(user.id.toString(), <String, Object?>{
       'schoolId': user.organizationId,
       'campusIds': <int>[if (branch != 0) branch],
       'hasAllCampuses': false,
       'roleIds': [for (final r in user.roles) r.id],
+      'actionIds': [
+        for (final action in actions) ...[
+          action.id,
+          for (final sub in action.subActionItems ?? <RoleActions>[]) sub.id,
+        ],
+      ],
       'personType': 'staff',
       'personErpId': user.id,
     });
@@ -150,18 +164,21 @@ class AuthService {
     final response = await apiClient.post<dynamic>('/v1.0/getActionsByRole');
 
     if (response.statusCode == 202) {
-      await userLocalStorage.saveRoleActions(<RoleActions>[]);
-      return <RoleActions>[];
+      final actions = withTestRoleActions(<RoleActions>[]);
+      await userLocalStorage.saveRoleActions(actions);
+      return actions;
     }
 
     final dynamic data = response.data;
     if (data is! List) {
-      return <RoleActions>[];
+      return withTestRoleActions(<RoleActions>[]);
     }
 
-    final actions = List<RoleActions>.from(
-      data.map((x) => RoleActions.fromJson(x as Map<String, dynamic>)),
-    )..sort((a, b) => a.tabOrder.compareTo(b.tabOrder));
+    final actions = withTestRoleActions(
+      List<RoleActions>.from(
+        data.map((x) => RoleActions.fromJson(x as Map<String, dynamic>)),
+      )..sort((a, b) => a.tabOrder.compareTo(b.tabOrder)),
+    );
 
     await userLocalStorage.saveRoleActions(actions);
     return actions;

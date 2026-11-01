@@ -84,10 +84,6 @@ melos:
       description: Delete the saved emulator data.
       run: firebase/scripts/emulators.sh reset
 
-    emulators:seed:
-      description: "Seed rolePermissions into running emulators: melos run emulators:seed -- --school 12 --roles admin=4"
-      run: firebase/scripts/emulators.sh seed
-
     outdated:
       description: Show outdated dependencies.
       run: melos exec -c 5 -- flutter pub outdated
