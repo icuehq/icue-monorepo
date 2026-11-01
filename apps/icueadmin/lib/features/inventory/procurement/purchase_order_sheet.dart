@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icueadmin/features/inventory/procurement/invoice_form_sheet.dart';
 import 'package:icueadmin/features/inventory/procurement/order_widgets.dart';
 import 'package:icueadmin/features/inventory/procurement/po_pdf.dart';
+import 'package:icueadmin/features/inventory/procurement/po_receipts_section.dart';
 import 'package:icueadmin/features/inventory/procurement/proc_ui.dart';
 import 'package:icueadmin/features/inventory/stock/stock_ui.dart';
 import 'package:icueadmin/routing/app_routes.dart';
@@ -155,7 +157,9 @@ class PurchaseOrderSheet extends StatelessWidget {
             contentPadding: EdgeInsets.zero,
             title: Text(p.itemName(l.itemId)),
             subtitle: Text(
-              'Received ${fmtQty(l.qtyReceived)} of ${fmtQty(l.qty)}',
+              'Accepted ${fmtQty(l.qtyAccepted)}'
+              '${l.qtyRejected > 0 ? ' · rejected ${fmtQty(l.qtyRejected)}' : ''}'
+              ' of ${fmtQty(l.qty)}',
             ),
             trailing: Text('${fmtQty(l.qty)} × ${money(l.unitPrice)}'),
           ),
@@ -168,6 +172,7 @@ class PurchaseOrderSheet extends StatelessWidget {
           style: Theme.of(context).textTheme.titleMedium,
         ),
         if (o.terms != null && o.terms!.isNotEmpty) Text(o.terms!),
+        PoReceiptsSection(orderId: o.id),
         const SizedBox(height: 12),
         Wrap(
           spacing: 8,
@@ -178,6 +183,20 @@ class PurchaseOrderSheet extends StatelessWidget {
               onPressed: () =>
                   sharePoPdf(o, vendor: vendor, itemName: p.itemName),
             ),
+            if (inv.access.can('inv.stock.operate') && o.canReceive)
+              FilledButton(
+                onPressed: () {
+                  final router = GoRouter.of(context);
+                  Navigator.of(context).pop();
+                  router.push(AppRoutes.inventoryPoReceive, extra: o);
+                },
+                child: const Text('Receive goods'),
+              ),
+            if (op && !o.isDraft && o.status != 'cancelled')
+              OutlinedButton(
+                onPressed: () => InvoiceFormSheet.show(context, o),
+                child: const Text('Record invoice'),
+              ),
             if (op && o.isDraft) ...[
               FilledButton(
                 onPressed: () => _act(context, 'inv-po-issue', {}, 'Issued'),

@@ -24,14 +24,11 @@ class ExpenseVehicleCard extends StatelessWidget {
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        leading: CircleAvatar(
-          radius: 20,
-          backgroundColor: theme.primaryColor.withValues(alpha: 0.1),
-          child: Icon(
-            Icons.directions_bus_rounded,
-            color: theme.primaryColor,
-            size: 22,
-          ),
+        leading: Image.asset(
+          'assets/dashboard/vehicles.png',
+          width: 44,
+          height: 44,
+          fit: BoxFit.contain,
         ),
         title: Text(
           vehicle.number,

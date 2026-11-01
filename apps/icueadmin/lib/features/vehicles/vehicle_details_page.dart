@@ -141,15 +141,11 @@ class VehicleDetailsPage extends StatelessWidget {
                 padding: const EdgeInsets.all(16.0),
                 child: Row(
                   children: [
-                    CircleAvatar(
-                      radius: 26,
-                      backgroundColor: Theme.of(context).primaryColor
-                          .withValues(alpha: 0.15),
-                      child: Icon(
-                        Icons.directions_bus_rounded,
-                        color: Theme.of(context).primaryColor,
-                        size: 28,
-                      ),
+                    Image.asset(
+                      'assets/dashboard/vehicles.png',
+                      width: 52,
+                      height: 52,
+                      fit: BoxFit.contain,
                     ),
                     const SizedBox(width: 16),
                     Expanded(

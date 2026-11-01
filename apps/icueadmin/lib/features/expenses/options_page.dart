@@ -102,14 +102,11 @@ class _OptionsPageState extends State<OptionsPage> {
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
-                  CircleAvatar(
-                    radius: 26,
-                    backgroundColor: theme.primaryColor.withValues(alpha: 0.1),
-                    child: Icon(
-                      Icons.directions_bus_rounded,
-                      color: theme.primaryColor,
-                      size: 28,
-                    ),
+                  Image.asset(
+                    'assets/dashboard/vehicles.png',
+                    width: 52,
+                    height: 52,
+                    fit: BoxFit.contain,
                   ),
                   const SizedBox(width: 16),
                   Expanded(

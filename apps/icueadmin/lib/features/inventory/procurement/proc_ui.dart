@@ -19,7 +19,8 @@ Future<bool> procSubmit(
     invSnack(context, p.errorMessage ?? 'Could not save');
     return false;
   }
-  invSnack(context, '$done · ${res['number']}');
+  final number = res['number'];
+  invSnack(context, number == null ? done : '$done · $number');
   if (close) nav.pop();
   return true;
 }

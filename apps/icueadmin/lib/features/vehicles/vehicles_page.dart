@@ -129,18 +129,23 @@ class _VehiclesPageState extends State<VehiclesPage> {
     }
 
     if (provider.vehiclesData.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.directions_bus_outlined, size: 56, color: Colors.grey),
-            SizedBox(height: 12),
-            Text(
+            Image.asset(
+              'assets/dashboard/vehicles.png',
+              width: 64,
+              height: 64,
+              fit: BoxFit.contain,
+            ),
+            const SizedBox(height: 12),
+            const Text(
               'No vehicles registered in this branch.',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
-            SizedBox(height: 4),
-            Text(
+            const SizedBox(height: 4),
+            const Text(
               'Tap + Add Vehicle to register a vehicle.',
               style: TextStyle(fontSize: 13, color: Colors.grey),
             ),

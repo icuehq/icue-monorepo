@@ -57,7 +57,7 @@ feature package, icueadmin screens (files under 500 lines), and DI registration.
 | Inv-2 | Stock overview, receiving, issuance, returns, transfers, adjustments, damaged/expired/lost (10.6–10.12) | done, not deployed | – (committed) |
 | Inv-3 | Purchase requests, approvals, vendors (10.13–10.14) | done, not deployed | – (committed) |
 | Inv-4 | Quotations, comparison, purchase orders, PO PDF (10.15–10.16) | done, not deployed | – |
-| Inv-5 | Goods receiving/inspection, vendor invoices (10.17–10.18) | not started | – |
+| Inv-5 | Goods receiving/inspection, vendor invoices (10.17–10.18) | done, not deployed | – |
 | Inv-6 | Assets, assignment, maintenance (10.19–10.20) | not started | – |
 | Inv-7 | Stock verification, reports, notifications, dashboard (10.1, 10.21–10.23) | not started | – |
 | Inv-8 | Scanning, RFID, offline, import/export (§11, §14, §9) | not started | – |
@@ -215,6 +215,28 @@ Flutter:
 - [x] `icueadmin` screens under `features/inventory/procurement/` (quotations comparison + select, quotation form, purchase orders list / detail / actions, PO form, PO PDF via `pdf` + `printing`); routes `/layout.inventory/{quotations,quotations/form,purchase-orders,purchase-orders/form}`; opened from the purchase request sheet and the Inventory home
 - [x] `melos run lint` passes (inventory, icueadmin); functions and rules tests pass
 
+### Inv-5
+
+Collections: `invReceipts` (PO deliveries, `source: purchase_order`), `invInvoices`.
+
+Functions (`firebase/functions/src/inventory/receiving.ts`):
+
+- [x] `inv-po-receive` (`inv.stock.operate`, store on the PO's delivery campus): one delivery per call, accepted ≤ still due per line, accepted enters stock at the PO unit price (batch rules as Inv-2), rejected is recorded only; PO becomes `partially_received` / `fully_received`; request becomes `completed` when its last live PO is fully received; cancelled / closed / draft / fully received POs reject
+- [x] `inv-invoice-save` (against a non-draft, non-cancelled PO; vendor from the PO; `receiptIds` must belong to it; invoice number unique per vendor via `uniqueKeys`; editable while unpaid), `inv-invoice-setPayment` (cumulative paid amount ≤ total; `unpaid` / `partially_paid` / `paid`), `inv-invoice-cancel` (unpaid only, releases the number) — all `inv.procure.operate`, campus scoped
+- [x] Tests: `test/receiving.test.ts` (emulator)
+
+Rules and indexes:
+
+- [x] `firestore.rules`: POs also readable with `inv.stock.operate` on the delivery campus; invoices with `inv.procure.operate` on the campus
+- [x] `firestore.indexes.json`: POs by delivery campus + status, invoices by campus + `createdAt` / `poId` / `paymentStatus`
+- [x] Rules tests
+
+Flutter:
+
+- [x] `features/inventory`: `inv_receiving.dart` models (`InvGrn`, `InvInvoice`), `ProcurementService` / `ProcurementProvider` extended, model tests
+- [x] `icueadmin` screens under `features/inventory/procurement/` (receive-goods page, deliveries list and "Record invoice" on the PO sheet, invoices list + sheet with payment update / cancel); routes `/layout.inventory/{purchase-orders/receive,invoices}`; Inventory home shows Purchase orders to receiving staff and a Vendor invoices tile
+- [x] `melos run lint` passes (inventory, icueadmin); functions and rules tests pass
+
 ### Lib-1
 
 Collections: `libLibraries`, `libCategories`, `libCatalogue` (title-level; copies arrive in Lib-2).
@@ -288,6 +310,12 @@ Format: `date · phase · what changed from the architecture doc · why`.
 - 2026-11-01 · Inv-4 · Closing a PO short does not release its unreceived quantity on the request · decide with Inv-5 receiving. Receiving history, `partially_received` / `fully_received` and `qtyReceived` updates arrive with Inv-5; the PO screen already shows received vs ordered.
 - 2026-11-01 · Inv-4 · Purchase orders and quotations are readable only by `inv.procure.operate`; approvers and receiving staff get read access in Inv-5 if needed.
 - 2026-11-01 · Inv-4 · PO PDF is built in the app with `pdf` + `printing` (`layoutPdf`: preview, print, share, save); no school letterhead until the ERP school profile is available.
+- 2026-11-01 · Inv-5 · Receiving uses `inv-po-receive`, not `inv-receipt-confirm` with a PO source · PO validation and PO status updates need their own callable; both write `invReceipts` and share the `GRN` numbering.
+- 2026-11-01 · Inv-5 · Rejected goods are recorded on the receipt and PO line only (no `invUnavailable` entry, no stock) · they never entered the store; returns to the vendor are not tracked. Stock cost is the PO unit price, with no discount/tax/delivery apportioned.
+- 2026-11-01 · Inv-5 · POs with asset-tracked items cannot be received until Inv-6 (stock callables reject assets) · assets are registered individually.
+- 2026-11-01 · Inv-5 · Closing a PO short still leaves its unreceived quantity counted as ordered on the request (carried from Inv-4) · decide with the first user complaint.
+- 2026-11-01 · Inv-5 · `overdue` payment status is derived in the app from `dueDate` (unpaid or partially paid), not stored · no scheduled job to flip it; invoice and receipt attachments and the Finance payment reference input are deferred until uploads exist (payment reference is accepted by the callable and shown when present).
+- 2026-11-01 · Inv-5 · Invoice amounts are entered as subtotal / tax / discount totals, not per line, and are not checked against the PO or receipts · traceability is the PO and receipt references; add three-way matching if Finance asks. Vendor invoices tile reuses the purchase-orders artwork.
 
 ## Open items
 

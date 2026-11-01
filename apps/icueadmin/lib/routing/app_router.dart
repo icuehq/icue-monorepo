@@ -39,6 +39,8 @@ import 'package:icueadmin/features/inventory/inventory_home_page.dart';
 import 'package:icueadmin/features/inventory/item_details_page.dart';
 import 'package:icueadmin/features/inventory/item_form_page.dart';
 import 'package:icueadmin/features/inventory/items_page.dart';
+import 'package:icueadmin/features/inventory/procurement/invoices_page.dart';
+import 'package:icueadmin/features/inventory/procurement/po_receive_page.dart';
 import 'package:icueadmin/features/inventory/procurement/purchase_order_form_page.dart';
 import 'package:icueadmin/features/inventory/procurement/purchase_orders_page.dart';
 import 'package:icueadmin/features/inventory/procurement/purchase_request_form_page.dart';
@@ -259,6 +261,17 @@ GoRouter createRouter({
                   as (InvPurchaseRequest, InvQuotation?, InvPurchaseOrder?);
           return PurchaseOrderFormPage(request: r, quotation: q, existing: o);
         },
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryPoReceive,
+        name: AppRoutes.inventoryPoReceiveName,
+        builder: (context, state) =>
+            PoReceivePage(order: state.extra! as InvPurchaseOrder),
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryInvoices,
+        name: AppRoutes.inventoryInvoicesName,
+        builder: (context, state) => const InvoicesPage(),
       ),
       GoRoute(
         path: AppRoutes.inventoryTransfers,

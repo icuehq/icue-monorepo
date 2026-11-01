@@ -10,6 +10,8 @@ class OrderLine {
     required this.unitPrice,
     this.variantId,
     this.qtyReceived = 0,
+    this.qtyAccepted = 0,
+    this.qtyRejected = 0,
   });
 
   factory OrderLine.fromMap(Map<String, dynamic> m) => OrderLine(
@@ -18,6 +20,8 @@ class OrderLine {
     qty: _n(m['qty'] ?? m['qtyOrdered']),
     unitPrice: _n(m['unitPrice']),
     qtyReceived: _n(m['qtyReceived']),
+    qtyAccepted: _n(m['qtyAccepted']),
+    qtyRejected: _n(m['qtyRejected']),
   );
 
   final String itemId;
@@ -25,6 +29,11 @@ class OrderLine {
   final double qty;
   final double unitPrice;
   final double qtyReceived;
+  final double qtyAccepted;
+  final double qtyRejected;
+
+  /// Still to be delivered or rejected on a purchase order line.
+  double get due => qty - qtyAccepted - qtyRejected;
 }
 
 List<OrderLine> _lines(Object? v) => [
@@ -184,6 +193,10 @@ class InvPurchaseOrder extends _Priced {
   /// Header and price changes after issue (recorded as a revision).
   bool get canRevise => isIssued || status == 'acknowledged';
   bool get canCancel => isDraft || canRevise;
+  bool get canReceive =>
+      status == 'issued' ||
+      status == 'acknowledged' ||
+      status == 'partially_received';
   bool get canClose =>
       canRevise || status == 'partially_received' || status == 'fully_received';
 }

@@ -6,7 +6,7 @@ import { nextNumber } from '../shared/keys';
 import { def, failed, id, missing, note, usable } from '../shared/masters';
 import { day, lineKey, qty, todayIST } from './stock';
 
-/** Quotations (FRS 10.15) and purchase orders (FRS 10.16). Receiving and invoices arrive with Inv-5. */
+/** Quotations (FRS 10.15) and purchase orders (FRS 10.16). Receiving and invoices are in receiving.ts. */
 
 const money = z.number().min(0).max(100_000_000);
 const text = (max: number) => z.string().trim().max(max).nullish();

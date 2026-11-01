@@ -8,7 +8,7 @@ import { lineKey, person, qty, Stock, todayIST, txnFields, unavailableEntry } fr
 /** Stock receiving, issuance, returns, transfers, adjustments, unavailable stock (FRS 10.7–10.12). */
 
 const money = z.number().min(0).max(100_000_000);
-const batch = { batchNo: z.string().trim().min(1).max(40).nullish(), mfgDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullish(), expiryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullish() };
+export const batch = { batchNo: z.string().trim().min(1).max(40).nullish(), mfgDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullish(), expiryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullish() };
 const lines = <T extends z.ZodType>(l: T) => z.array(l).min(1).max(50);
 // Firestore line items are untyped maps; shape is enforced by the callables that write them.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -21,7 +21,7 @@ function unique(ls: Array<{ itemId: string; variantId?: string | null }>) {
 }
 
 export const stock = {
-  /** FRS 10.7. PO-linked receiving (with quantity validation against the order) arrives with Inv-5. */
+  /** FRS 10.7. PO-linked receiving is `inv.po.receive` (receiving.ts). */
   receiptConfirm: def({
     name: 'inv.receipt.confirm',
     perm: 'inv.stock.operate',

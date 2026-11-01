@@ -3,6 +3,7 @@ import 'package:injectable/injectable.dart';
 import 'package:inventory/src/models/inv_masters.dart';
 import 'package:inventory/src/models/inv_orders.dart';
 import 'package:inventory/src/models/inv_procurement.dart';
+import 'package:inventory/src/models/inv_receiving.dart';
 
 /// Vendors and purchase requests (Inv-3): reads from Firestore, writes are callables (see `StockService.call`).
 @lazySingleton
@@ -51,10 +52,14 @@ class ProcurementService {
     return [for (final d in snap.docs) InvQuotation.fromMap(d.id, d.data())];
   }
 
+  /// Procurement sees orders of its campuses; receiving staff only those due at their campuses (rules need the matching filter).
   Future<List<InvPurchaseOrder>> orders(InvAccess a, {String? status}) async {
     if (!a.all && a.campuses.isEmpty) return [];
+    final buyer = a.can('inv.procure.operate');
     Query<Map<String, dynamic>> q = await _coll('invPurchaseOrders');
-    if (!a.all) q = q.where('campusId', whereIn: a.campuses);
+    if (!a.all) {
+      q = q.where(buyer ? 'campusId' : 'deliveryCampusId', whereIn: a.campuses);
+    }
     if (status != null) q = q.where('status', isEqualTo: status);
     final snap = await q.orderBy('createdAt', descending: true).limit(50).get();
     return [
@@ -66,5 +71,30 @@ class ProcurementService {
     final d = await (await _coll('invPurchaseRequests')).doc(id).get();
     final m = d.data();
     return m == null ? null : InvPurchaseRequest.fromMap(d.id, m);
+  }
+
+  /// Deliveries received against one order, newest first (rules need the campus filter).
+  Future<List<InvGrn>> receipts(InvAccess a, String poId) async {
+    if (!a.all && a.campuses.isEmpty) return [];
+    Query<Map<String, dynamic>> q = (await _coll('invReceipts'))
+        .where('poId', isEqualTo: poId);
+    if (!a.all) q = q.where('campusId', whereIn: a.campuses);
+    final snap = await q.get();
+    return [for (final d in snap.docs) InvGrn.fromMap(d.id, d.data())]
+      ..sort((a, b) => b.number.compareTo(a.number));
+  }
+
+  Future<List<InvInvoice>> invoices(
+    InvAccess a, {
+    String? poId,
+    String? status,
+  }) async {
+    if (!a.all && a.campuses.isEmpty) return [];
+    Query<Map<String, dynamic>> q = await _coll('invInvoices');
+    if (!a.all) q = q.where('campusId', whereIn: a.campuses);
+    if (poId != null) q = q.where('poId', isEqualTo: poId);
+    if (status != null) q = q.where('paymentStatus', isEqualTo: status);
+    final snap = await q.orderBy('createdAt', descending: true).limit(50).get();
+    return [for (final d in snap.docs) InvInvoice.fromMap(d.id, d.data())];
   }
 }

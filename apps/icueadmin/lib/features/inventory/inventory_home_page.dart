@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icueadmin/routing/app_routes.dart';
+import 'package:icueadmin/widgets/option_grid_card.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -69,6 +70,13 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
         'assets/dashboard/inventory-purchase-orders.png',
         'Purchase orders',
         AppRoutes.inventoryPurchaseOrders,
+        a.can('inv.procure.operate') || a.can('inv.stock.operate'),
+      ),
+      (
+        // ponytail: reuses the purchase-orders artwork until an invoices image exists.
+        'assets/dashboard/inventory-purchase-orders.png',
+        'Vendor invoices',
+        AppRoutes.inventoryInvoices,
         a.can('inv.procure.operate'),
       ),
       (
@@ -84,54 +92,64 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
         a.can('inv.stock.view') || a.can('inv.settings'),
       ),
     ];
-    final color = Theme.of(context).primaryColorDark;
+    final visibleTiles = tiles.where((t) => t.$4).toList();
+
     return Scaffold(
       appBar: AppBar(title: const Text('Inventory')),
       body: p.isLoading
           ? const Center(child: CircularProgressIndicator())
           : p.errorMessage != null
           ? Center(child: Text(p.errorMessage!))
-          : GridView.count(
-              padding: const EdgeInsets.all(16),
-              crossAxisCount: 2,
-              mainAxisSpacing: 14,
-              crossAxisSpacing: 14,
-              childAspectRatio: 1.3,
-              children: [
-                for (final t in tiles.where((t) => t.$4))
-                  Card(
-                    elevation: 1,
-                    margin: EdgeInsets.zero,
-                    clipBehavior: Clip.antiAlias,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: InkWell(
-                      onTap: () => context.push(t.$3),
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Image.asset(t.$1, width: 56, height: 56),
-                            const SizedBox(height: 12),
-                            Text(
-                              t.$2,
-                              textAlign: TextAlign.center,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: color,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+          : LayoutBuilder(
+              builder: (context, constraints) {
+                final width = constraints.maxWidth;
+                final int crossAxisCount;
+                final double iconSize;
+                final double spacing;
+                final double childAspectRatio;
+
+                if (width >= 900) {
+                  crossAxisCount = 4;
+                  iconSize = 88.0;
+                  spacing = 16.0;
+                  childAspectRatio = 1.25;
+                } else if (width >= 600) {
+                  crossAxisCount = 3;
+                  iconSize = 84.0;
+                  spacing = 14.0;
+                  childAspectRatio = 1.22;
+                } else if (width < 360) {
+                  crossAxisCount = 2;
+                  iconSize = 72.0;
+                  spacing = 10.0;
+                  childAspectRatio = 1.15;
+                } else {
+                  crossAxisCount = 2;
+                  iconSize = 84.0;
+                  spacing = 12.0;
+                  childAspectRatio = 1.18;
+                }
+
+                return GridView.builder(
+                  padding: EdgeInsets.all(spacing + 2),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount,
+                    mainAxisSpacing: spacing,
+                    crossAxisSpacing: spacing,
+                    childAspectRatio: childAspectRatio,
                   ),
-              ],
+                  itemCount: visibleTiles.length,
+                  itemBuilder: (context, index) {
+                    final item = visibleTiles[index];
+                    return OptionGridCard(
+                      title: item.$2,
+                      iconAsset: item.$1,
+                      iconSize: iconSize,
+                      onTap: () => context.push(item.$3),
+                    );
+                  },
+                );
+              },
             ),
     );
   }

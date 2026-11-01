@@ -236,6 +236,13 @@ abstract final class AppRoutes {
   static const String inventoryPurchaseOrderFormName =
       'inventoryPurchaseOrderForm';
 
+  static const String inventoryPoReceive =
+      '/layout.inventory/purchase-orders/receive';
+  static const String inventoryPoReceiveName = 'inventoryPoReceive';
+
+  static const String inventoryInvoices = '/layout.inventory/invoices';
+  static const String inventoryInvoicesName = 'inventoryInvoices';
+
   static const String library = '/layout.library';
   static const String libraryName = 'library';
 

@@ -75,9 +75,14 @@ service cloud.firestore {
     match /schools/{sid}/invQuotations/{id} {
       allow read: if inSchool(sid) && can(sid, 'inv.procure.operate') && onCampus(sid, resource.data.campusId);
     }
+    // Receiving staff read orders due at their campus; invoices (Inv-5) follow procurement.
     match /schools/{sid}/invPurchaseOrders/{id} {
-      allow read: if inSchool(sid) && can(sid, 'inv.procure.operate')
-        && (onCampus(sid, resource.data.campusId) || onCampus(sid, resource.data.deliveryCampusId));
+      allow read: if inSchool(sid) && ((can(sid, 'inv.procure.operate')
+        && (onCampus(sid, resource.data.campusId) || onCampus(sid, resource.data.deliveryCampusId)))
+        || (can(sid, 'inv.stock.operate') && onCampus(sid, resource.data.deliveryCampusId)));
+    }
+    match /schools/{sid}/invInvoices/{id} {
+      allow read: if inSchool(sid) && can(sid, 'inv.procure.operate') && onCampus(sid, resource.data.campusId);
     }
     match /schools/{sid}/invPurchaseOrders/{id}/revisions/{rev} {
       allow read: if inSchool(sid) && can(sid, 'inv.procure.operate');

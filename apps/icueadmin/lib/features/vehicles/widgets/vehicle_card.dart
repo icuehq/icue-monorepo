@@ -53,15 +53,11 @@ class VehicleCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  CircleAvatar(
-                    radius: 20,
-                    backgroundColor: Theme.of(context).primaryColor
-                        .withValues(alpha: 0.1),
-                    child: Icon(
-                      Icons.directions_bus_rounded,
-                      color: Theme.of(context).primaryColor,
-                      size: 22,
-                    ),
+                  Image.asset(
+                    'assets/dashboard/vehicles.png',
+                    width: 44,
+                    height: 44,
+                    fit: BoxFit.contain,
                   ),
                   const SizedBox(width: 12),
                   Expanded(

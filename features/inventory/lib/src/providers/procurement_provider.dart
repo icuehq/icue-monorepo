@@ -4,6 +4,7 @@ import 'package:injectable/injectable.dart';
 import 'package:inventory/src/models/inv_masters.dart';
 import 'package:inventory/src/models/inv_orders.dart';
 import 'package:inventory/src/models/inv_procurement.dart';
+import 'package:inventory/src/models/inv_receiving.dart';
 import 'package:inventory/src/services/procurement_service.dart';
 import 'package:inventory/src/services/stock_service.dart';
 
@@ -20,6 +21,8 @@ class ProcurementProvider extends ChangeNotifier {
   List<InvPurchaseRequest> requests = [];
   List<InvQuotation> quotations = [];
   List<InvPurchaseOrder> orders = [];
+  List<InvGrn> receipts = [];
+  List<InvInvoice> invoices = [];
   String? errorMessage;
   bool isLoading = false;
 
@@ -63,6 +66,17 @@ class ProcurementProvider extends ChangeNotifier {
     orders = await _service.orders(a, status: status);
     await _loadNames(orders.expand((o) => o.lines.map((l) => l.itemId)));
   });
+
+  Future<void> loadReceipts(InvAccess a, String poId) => _load(() async {
+    receipts = await _service.receipts(a, poId);
+    await _loadNames(receipts.expand((g) => g.lines.map((l) => l.itemId)));
+  });
+
+  Future<void> loadInvoices(InvAccess a, {String? poId, String? status}) =>
+      _load(() async {
+        invoices = await _service.invoices(a, poId: poId, status: status);
+        await _loadNames(const []);
+      });
 
   Future<void> _load(Future<void> Function() body) async {
     isLoading = true;

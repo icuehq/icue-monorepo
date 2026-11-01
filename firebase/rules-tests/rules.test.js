@@ -269,6 +269,9 @@ describe('quotations and purchase orders (Inv-4)', () => {
       await setDoc(doc(fs, 'schools/12/invQuotations/q1'), { campusId: 31, prId: 'pr1' });
       await setDoc(doc(fs, 'schools/12/invPurchaseOrders/po1'), { campusId: 31, deliveryCampusId: 31 });
       await setDoc(doc(fs, 'schools/12/invPurchaseOrders/po1/revisions/r1'), { reason: 'x' });
+      await setDoc(doc(fs, 'schools/12/userAccess/p_store'), acc(['inv.stock.operate']));
+      await setDoc(doc(fs, 'schools/12/userAccess/p_store_far'), acc(['inv.stock.operate'], [99]));
+      await setDoc(doc(fs, 'schools/12/invInvoices/i1'), { campusId: 31, poId: 'po1' });
     }),
   );
 
@@ -280,5 +283,15 @@ describe('quotations and purchase orders (Inv-4)', () => {
     await assertFails(getDoc(doc(db('p_far'), 'schools/12/invQuotations/q1')));
     await assertFails(getDoc(doc(db('p_far'), 'schools/12/invPurchaseOrders/po1')));
     await assertFails(setDoc(doc(db('p_proc'), 'schools/12/invPurchaseOrders/po1'), { status: 'issued' }));
+  });
+
+  it('invoices follow procurement; receiving staff read orders due at their campus only', async () => {
+    await assertSucceeds(getDoc(doc(db('p_proc'), 'schools/12/invInvoices/i1')));
+    await assertFails(getDoc(doc(db('p_far'), 'schools/12/invInvoices/i1')));
+    await assertFails(getDoc(doc(db('p_store'), 'schools/12/invInvoices/i1')));
+    await assertFails(setDoc(doc(db('p_proc'), 'schools/12/invInvoices/i1'), { paymentStatus: 'paid' }));
+    await assertSucceeds(getDoc(doc(db('p_store'), 'schools/12/invPurchaseOrders/po1')));
+    await assertFails(getDoc(doc(db('p_store_far'), 'schools/12/invPurchaseOrders/po1')));
+    await assertFails(getDoc(doc(db('p_store'), 'schools/12/invQuotations/q1')));
   });
 });

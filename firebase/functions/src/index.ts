@@ -3,6 +3,7 @@ import './region';
 import { masters } from './inventory/masters';
 import { orders } from './inventory/orders';
 import { procurement } from './inventory/procurement';
+import { invoices, receiving } from './inventory/receiving';
 import { stock } from './inventory/stock-ops';
 import { itemSearch } from './inventory/search';
 import { masters as libMasters } from './library/masters';
@@ -59,6 +60,12 @@ const procurementFns = {
     acknowledge: callable(orders.poAcknowledge),
     cancel: callable(orders.poCancel),
     close: callable(orders.poClose),
+    receive: callable(receiving.poReceive),
+  },
+  invoice: {
+    save: callable(invoices.invoiceSave),
+    setPayment: callable(invoices.invoiceSetPayment),
+    cancel: callable(invoices.invoiceCancel),
   },
 };
 export const inv = { ...masterFns, ...stockFns, ...procurementFns, seedDefaults: callable(masters.seedDefaults) };

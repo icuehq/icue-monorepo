@@ -87,10 +87,11 @@ class _RepairsExpensePageState extends State<RepairsExpensePage> {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(
-                                Icons.directions_bus_outlined,
-                                size: 64,
-                                color: Colors.grey.shade400,
+                              Image.asset(
+                                'assets/dashboard/vehicles.png',
+                                width: 64,
+                                height: 64,
+                                fit: BoxFit.contain,
                               ),
                               const SizedBox(height: 16),
                               Text(
