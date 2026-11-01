@@ -58,7 +58,7 @@ feature package, icueadmin screens (files under 500 lines), and DI registration.
 | Inv-3 | Purchase requests, approvals, vendors (10.13–10.14) | done, not deployed | – (committed) |
 | Inv-4 | Quotations, comparison, purchase orders, PO PDF (10.15–10.16) | done, not deployed | – |
 | Inv-5 | Goods receiving/inspection, vendor invoices (10.17–10.18) | done, not deployed | – |
-| Inv-6 | Assets, assignment, maintenance (10.19–10.20) | not started | – |
+| Inv-6 | Assets, assignment, maintenance (10.19–10.20) | done, not deployed | – |
 | Inv-7 | Stock verification, reports, notifications, dashboard (10.1, 10.21–10.23) | not started | – |
 | Inv-8 | Scanning, RFID, offline, import/export (§11, §14, §9) | not started | – |
 
@@ -237,6 +237,29 @@ Flutter:
 - [x] `icueadmin` screens under `features/inventory/procurement/` (receive-goods page, deliveries list and "Record invoice" on the PO sheet, invoices list + sheet with payment update / cancel); routes `/layout.inventory/{purchase-orders/receive,invoices}`; Inventory home shows Purchase orders to receiving staff and a Vendor invoices tile
 - [x] `melos run lint` passes (inventory, icueadmin); functions and rules tests pass
 
+### Inv-6
+
+Collections: `invAssets` (+ `history` subcollection), `invAssetAssignments`, `invMaintenance`.
+
+Functions (`firebase/functions/src/inventory/assets.ts`, all `inv.assets.manage`, campus scoped):
+
+- [x] `inv-asset-register` (asset-tracked item, active store; ID `AST/<fy>/<seq>` claimed in `uniqueKeys`; with a PO the vendor and price come from the order and units are capped at the line's accepted quantity), `inv-asset-assign` (only `available`), `inv-asset-transfer` (custodian to custodian; closes and keeps the previous assignment), `inv-asset-return` (damaged return makes it `damaged`), `inv-asset-setCondition` (also `available` / `damaged` / `lost`; lost closes an active assignment), `inv-asset-retire` (`retired`, then `disposed`; never from assigned or in maintenance)
+- [x] `inv-maintenance-save` (one live request per asset; asset becomes `under_maintenance`), `inv-maintenance-setStatus` (status drives asset status: `in_progress` → `under_repair`, completed / cancelled restore it; completing needs the repair cost; parts drawn from a store as `issue` movements, needs `inv.stock.operate`)
+- [x] `inv-po-receive` accepts asset-tracked lines: counted on the order, no stock
+- [x] Tests: `test/assets.test.ts`, `test/receiving.test.ts` (emulator)
+
+Rules and indexes:
+
+- [x] `firestore.rules`: assets, history and maintenance with `inv.assets.view` on the campus; assignments also to the assignee (`personErpId`)
+- [x] `firestore.indexes.json`: assets and maintenance by campus (+ status) + `createdAt`, maintenance by asset, assignments by asset / person + `assignedAt`
+- [x] Rules tests
+
+Flutter:
+
+- [x] `features/inventory`: `inv_assets.dart` models, `AssetsService` / `AssetsProvider`, DI, model tests
+- [x] `icueadmin` screens under `features/inventory/assets/` (register form, asset list + sheet with custody history, timeline, actions and QR label via `pdf` + `printing`; maintenance list + sheet, report/edit and status/parts forms); routes `/layout.inventory/{assets,assets/form,maintenance}`; Assets tile on the Inventory home
+- [x] `melos run lint` passes (inventory, icueadmin); functions and rules tests pass
+
 ### Lib-1
 
 Collections: `libLibraries`, `libCategories`, `libCatalogue` (title-level; copies arrive in Lib-2).
@@ -312,10 +335,16 @@ Format: `date · phase · what changed from the architecture doc · why`.
 - 2026-11-01 · Inv-4 · PO PDF is built in the app with `pdf` + `printing` (`layoutPdf`: preview, print, share, save); no school letterhead until the ERP school profile is available.
 - 2026-11-01 · Inv-5 · Receiving uses `inv-po-receive`, not `inv-receipt-confirm` with a PO source · PO validation and PO status updates need their own callable; both write `invReceipts` and share the `GRN` numbering.
 - 2026-11-01 · Inv-5 · Rejected goods are recorded on the receipt and PO line only (no `invUnavailable` entry, no stock) · they never entered the store; returns to the vendor are not tracked. Stock cost is the PO unit price, with no discount/tax/delivery apportioned.
-- 2026-11-01 · Inv-5 · POs with asset-tracked items cannot be received until Inv-6 (stock callables reject assets) · assets are registered individually.
+- 2026-11-01 · Inv-5 · Asset-tracked PO lines are received (counted on the order, no stock) from Inv-6 · stock callables still reject assets; units are registered individually.
 - 2026-11-01 · Inv-5 · Closing a PO short still leaves its unreceived quantity counted as ordered on the request (carried from Inv-4) · decide with the first user complaint.
 - 2026-11-01 · Inv-5 · `overdue` payment status is derived in the app from `dueDate` (unpaid or partially paid), not stored · no scheduled job to flip it; invoice and receipt attachments and the Finance payment reference input are deferred until uploads exist (payment reference is accepted by the callable and shown when present).
 - 2026-11-01 · Inv-5 · Invoice amounts are entered as subtotal / tax / discount totals, not per line, and are not checked against the PO or receipts · traceability is the PO and receipt references; add three-way matching if Finance asks. Vendor invoices tile reuses the purchase-orders artwork.
+- 2026-11-01 · Inv-6 · Custodians are entered as ERP IDs (shown "staff #id") and acknowledgement is recorded by the assigner at handover · no person/department pickers (Node endpoints not confirmed); no custodian-side acknowledge callable.
+- 2026-11-01 · Inv-6 · Transfer moves custody between people / departments only · moving an unassigned asset to another store or campus is not built; add when asked.
+- 2026-11-01 · Inv-6 · An asset in maintenance keeps its custodian and cannot be returned, transferred or retired until the job ends · maintenance status drives asset status (architecture §6). Maintenance attachments are stored empty (no uploads yet) and the technician is free text.
+- 2026-11-01 · Inv-6 · Maintenance parts are drawn once per status update and never reversed; part cost is not added to the repair cost · keep the repair cost as the all-in figure.
+- 2026-11-01 · Inv-6 · QR label (asset ID) is built in the app with `pdf` + `printing`; barcode scanning, `rfidTag` and `imagePath` stay null until Inv-8. Warranty / next-service notifications arrive with Inv-7 (`dailyInventory`). The Assets tile reuses the stock artwork.
+- 2026-11-01 · Inv-6 · Teachers with `inv.assets.view` see the whole campus register; a "my assets" view is not built (rules already let an assignee read their own assignments).
 
 ## Open items
 

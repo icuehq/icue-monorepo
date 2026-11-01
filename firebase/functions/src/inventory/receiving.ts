@@ -4,7 +4,7 @@ import { z } from 'zod';
 import type { Ctx } from '../shared/callable';
 import { claimUniqueKey, uniqueKeyRef } from '../shared/keys';
 import { def, failed, id, missing, note } from '../shared/masters';
-import { day, lineKey, Stock, todayIST, txnFields } from './stock';
+import { Batch, day, lineKey, Stock, todayIST, txnFields } from './stock';
 import { batch } from './stock-ops';
 
 /** Goods receiving against purchase orders (FRS 10.17) and vendor invoice records (FRS 10.18). */
@@ -72,10 +72,16 @@ export const receiving = {
         const got = l.qtyAccepted + l.qtyRejected;
         if (got <= 0) throw failed('Each line needs a quantity');
         if (got > p.qtyOrdered - p.qtyAccepted - p.qtyRejected) throw failed('Received quantity exceeds what is still due on the order');
-        const item = await s.item(l.itemId, l.variantId);
-        const b = s.batchOf(item, l);
-        if (l.qtyAccepted > 0) {
-          s.receive(await s.balance(i.storeId, item, l.variantId, b, true), l.qtyAccepted, 'receive', 'receipt', ref.id, p.unitPrice);
+        // Asset units are counted on the order but never enter stock; each is registered individually (`inv-asset-register`).
+        const asset = (await ctx.tx.get(ctx.doc(`invItems/${l.itemId}`))).data()?.tracking === 'asset';
+        if (asset && !Number.isInteger(l.qtyAccepted + l.qtyRejected)) throw failed('Assets are received in whole units');
+        let b: Required<Batch> = { batchNo: null, mfgDate: null, expiryDate: null };
+        if (!asset) {
+          const item = await s.item(l.itemId, l.variantId);
+          b = s.batchOf(item, l);
+          if (l.qtyAccepted > 0) {
+            s.receive(await s.balance(i.storeId, item, l.variantId, b, true), l.qtyAccepted, 'receive', 'receipt', ref.id, p.unitPrice);
+          }
         }
         p.qtyReceived += got;
         p.qtyAccepted += l.qtyAccepted;

@@ -71,11 +71,15 @@ describe('goods receiving and invoices', () => {
     expect(await code(receive([{ itemId: pen, qtyAccepted: 1 }]))).toBe('failed-precondition'); // fully received
   });
 
-  it('batch items need a batch; asset items are refused', async () => {
+  it('batch items need a batch; asset units are counted on the order but never enter stock', async () => {
     await run(o.poIssue, { id: po });
     await run(masters.itemUpsert, { code: 'MILK', name: 'Milk', categoryId: (await get(`invItems/${pen}`))!.categoryId, stockUnit: 'pcs', tracking: 'batch' }, 'u_1');
     await db().doc(`schools/${SID}/invItems/${ink}`).update({ tracking: 'asset' });
-    expect(await code(receive([{ itemId: ink, qtyAccepted: 1 }]))).toBe('failed-precondition');
+    expect(await code(receive([{ itemId: ink, qtyAccepted: 1.5 }]))).toBe('failed-precondition');
+    const g = await receive([{ itemId: ink, qtyAccepted: 5, qtyRejected: 1 }]);
+    expect(g.poStatus).toBe('partially_received');
+    expect(await get(`invBalances/${store}__${ink}__-__-`)).toBeUndefined();
+    expect(await get(`invPurchaseOrders/${po}`)).toMatchObject({ lines: [{ qtyReceived: 0 }, { qtyAccepted: 5, qtyRejected: 1 }] });
   });
 
   it('invoices: traceable to a live order, unique per vendor, payment recorded, cancel frees the number', async () => {

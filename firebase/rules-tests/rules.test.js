@@ -295,3 +295,37 @@ describe('quotations and purchase orders (Inv-4)', () => {
     await assertFails(getDoc(doc(db('p_store'), 'schools/12/invQuotations/q1')));
   });
 });
+
+describe('assets and maintenance (Inv-6)', () => {
+  beforeEach(() =>
+    env.withSecurityRulesDisabled(async (ctx) => {
+      const fs = ctx.firestore();
+      const acc = (perms, cmp = [31]) => ({ perms, cmp, all: false });
+      await setDoc(doc(fs, 'schools/12/userAccess/p_view'), acc(['inv.assets.view']));
+      await setDoc(doc(fs, 'schools/12/userAccess/p_far'), acc(['inv.assets.view'], [99]));
+      await setDoc(doc(fs, 'schools/12/userAccess/p_none'), acc(['inv.stock.view']));
+      await setDoc(doc(fs, 'schools/12/invAssets/a1'), { campusId: 31, status: 'available' });
+      await setDoc(doc(fs, 'schools/12/invAssets/a1/history/h1'), { campusId: 31, type: 'registered' });
+      await setDoc(doc(fs, 'schools/12/invMaintenance/m1'), { campusId: 31, assetId: 'a1' });
+      await setDoc(doc(fs, 'schools/12/invAssetAssignments/g1'), { campusId: 31, assetId: 'a1', personErpId: 884 });
+    }),
+  );
+
+  it('asset viewers on the campus read; others and every write are denied', async () => {
+    for (const path of ['invAssets/a1', 'invAssets/a1/history/h1', 'invMaintenance/m1']) {
+      await assertSucceeds(getDoc(doc(db('p_view'), `schools/12/${path}`)));
+      await assertFails(getDoc(doc(db('p_far'), `schools/12/${path}`)));
+    }
+    await assertSucceeds(getDoc(doc(db('p_view'), 'schools/12/invAssetAssignments/g1')));
+    await assertFails(getDoc(doc(db('p_far', { sid: 12, pt: 'staff', eid: 1 }), 'schools/12/invAssetAssignments/g1')));
+    await assertFails(getDoc(doc(db('p_none'), 'schools/12/invAssets/a1')));
+    await assertFails(setDoc(doc(db('p_view'), 'schools/12/invAssets/a1'), { status: 'lost' }));
+    await assertFails(setDoc(doc(db('p_view'), 'schools/12/invMaintenance/m1'), { cost: 0 }));
+  });
+
+  it('a custodian reads their own assignment only', async () => {
+    await assertSucceeds(getDoc(doc(db('p_none'), 'schools/12/invAssetAssignments/g1'))); // eid 884
+    await assertFails(getDoc(doc(db('p_none', { sid: 12, pt: 'staff', eid: 1 }), 'schools/12/invAssetAssignments/g1')));
+    await assertFails(getDoc(doc(db('p_none'), 'schools/12/invAssets/a1')));
+  });
+});

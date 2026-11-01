@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase-admin/app';
 import './region';
+import { assets, maintenance } from './inventory/assets';
 import { masters } from './inventory/masters';
 import { orders } from './inventory/orders';
 import { procurement } from './inventory/procurement';
@@ -68,7 +69,18 @@ const procurementFns = {
     cancel: callable(invoices.invoiceCancel),
   },
 };
-export const inv = { ...masterFns, ...stockFns, ...procurementFns, seedDefaults: callable(masters.seedDefaults) };
+const assetFns = {
+  asset: {
+    register: callable(assets.register),
+    assign: callable(assets.assign),
+    transfer: callable(assets.transfer),
+    return: callable(assets.return),
+    setCondition: callable(assets.setCondition),
+    retire: callable(assets.retire),
+  },
+  maintenance: { save: callable(maintenance.save), setStatus: callable(maintenance.setStatus) },
+};
+export const inv = { ...masterFns, ...stockFns, ...procurementFns, ...assetFns, seedDefaults: callable(masters.seedDefaults) };
 
 export const lib = {
   library: { upsert: callable(libMasters.libraryUpsert), setStatus: callable(libMasters.librarySetStatus) },

@@ -80,6 +80,12 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
         a.can('inv.procure.operate'),
       ),
       (
+        'assets/dashboard/inventory-stock.png',
+        'Assets',
+        AppRoutes.inventoryAssets,
+        a.can('inv.assets.view') || a.can('inv.assets.manage'),
+      ),
+      (
         'assets/dashboard/inventory-vendors.png',
         'Vendors',
         AppRoutes.inventoryVendors,

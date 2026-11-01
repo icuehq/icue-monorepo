@@ -34,6 +34,9 @@ import 'package:icueadmin/features/gatepass/confirm_gatepass_page.dart';
 import 'package:icueadmin/features/gatepass/gatepass_page.dart';
 import 'package:icueadmin/features/gatepass/generate_gatepass_page.dart';
 import 'package:icueadmin/features/gatepass/pending_gatepass_page.dart';
+import 'package:icueadmin/features/inventory/assets/asset_form_page.dart';
+import 'package:icueadmin/features/inventory/assets/assets_page.dart';
+import 'package:icueadmin/features/inventory/assets/maintenance_page.dart';
 import 'package:icueadmin/features/inventory/categories_page.dart';
 import 'package:icueadmin/features/inventory/inventory_home_page.dart';
 import 'package:icueadmin/features/inventory/item_details_page.dart';
@@ -267,6 +270,21 @@ GoRouter createRouter({
         name: AppRoutes.inventoryPoReceiveName,
         builder: (context, state) =>
             PoReceivePage(order: state.extra! as InvPurchaseOrder),
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryAssets,
+        name: AppRoutes.inventoryAssetsName,
+        builder: (context, state) => const AssetsPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryAssetForm,
+        name: AppRoutes.inventoryAssetFormName,
+        builder: (context, state) => const AssetFormPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryMaintenance,
+        name: AppRoutes.inventoryMaintenanceName,
+        builder: (context, state) => const MaintenancePage(),
       ),
       GoRoute(
         path: AppRoutes.inventoryInvoices,
