@@ -236,7 +236,7 @@ class DropBoardingProvider extends ChangeNotifier {
   }
 
   /// Initializes real-time socket updates for vehicle arrivals.
-  void initSocket({required String baseUrl, required int branchId}) {
+  void initSocket({String? baseUrl, required int branchId}) {
     _socketSubscription?.cancel();
     _dropBoardingSocketService.connect(baseUrl: baseUrl, branchId: branchId);
 

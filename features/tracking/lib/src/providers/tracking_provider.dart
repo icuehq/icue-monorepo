@@ -63,7 +63,7 @@ class TrackingProvider extends ChangeNotifier {
 
   /// Connects to real-time socket and updates fleet status as live events arrive.
   void initSocket({
-    required String baseUrl,
+    String? baseUrl,
     required int zoneId,
     required int branchId,
     required int organizationId,

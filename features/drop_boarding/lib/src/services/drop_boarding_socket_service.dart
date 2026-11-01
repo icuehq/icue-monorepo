@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:api_client/api_client.dart';
 import 'package:drop_boarding/src/models/vehicle_arrival.dart';
 import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
@@ -8,6 +9,7 @@ import 'package:socket_io_client/socket_io_client.dart' as io;
 @lazySingleton
 class DropBoardingSocketService {
   io.Socket? _socket;
+  String? _currentSocketUrl;
   final StreamController<List<VehicleArrival>> _arrivalsController =
       StreamController<List<VehicleArrival>>.broadcast();
 
@@ -16,13 +18,15 @@ class DropBoardingSocketService {
 
   bool get isConnected => _socket?.connected ?? false;
 
+  @visibleForTesting
+  String? get currentSocketUrl => _currentSocketUrl;
+
   /// Connects to real-time socket and registers to the vehicleArrivalStatus room.
-  void connect({required String baseUrl, required int branchId}) {
+  void connect({String? baseUrl, required int branchId}) {
     disconnect();
 
-    // Use port 3002 if baseUrl does not specify a port
-    final uri = Uri.tryParse(baseUrl);
-    final socketUrl = (uri != null && uri.hasPort) ? baseUrl : '$baseUrl:3002';
+    final socketUrl = baseUrl ?? ApiEnvironment.fromEnvironment().baseUrl;
+    _currentSocketUrl = socketUrl;
 
     final roomPayload = <String, dynamic>{
       'roomName': 'vehicleArrivalStatus-$branchId',
@@ -62,6 +66,7 @@ class DropBoardingSocketService {
 
   /// Disconnects and releases the current socket instance.
   void disconnect() {
+    _currentSocketUrl = null;
     if (_socket != null) {
       _socket?.disconnect();
       _socket?.dispose();

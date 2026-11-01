@@ -198,4 +198,37 @@ void main() {
       expect(socketService.disconnected, true);
     });
   });
+
+  group('DropBoardingSocketService', () {
+    late DropBoardingSocketService service;
+
+    setUp(() {
+      service = DropBoardingSocketService();
+    });
+
+    tearDown(() {
+      service.dispose();
+    });
+
+    test('connect defaults to ApiEnvironment.fromEnvironment().baseUrl without :3002', () {
+      service.connect(branchId: 42);
+      expect(
+        service.currentSocketUrl,
+        equals(ApiEnvironment.fromEnvironment().baseUrl),
+      );
+      expect(service.currentSocketUrl?.contains(':3002'), isFalse);
+    });
+
+    test('connect respects custom baseUrl when provided', () {
+      service.connect(baseUrl: 'https://custom.icue.com', branchId: 42);
+      expect(service.currentSocketUrl, equals('https://custom.icue.com'));
+    });
+
+    test('disconnect clears currentSocketUrl', () {
+      service.connect(branchId: 42);
+      expect(service.currentSocketUrl, isNotNull);
+      service.disconnect();
+      expect(service.currentSocketUrl, isNull);
+    });
+  });
 }

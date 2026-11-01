@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:api_client/api_client.dart';
 import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
@@ -16,16 +17,16 @@ class TrackingSocketService {
 
   /// Initializes the real-time websocket connection for route stats.
   void connect({
-    required String baseUrl,
+    String? baseUrl,
     required int zoneId,
     required int branchId,
     required int organizationId,
   }) {
     disconnect();
 
-    // Use port 3002 if baseUrl does not specify a port
-    final uri = Uri.tryParse(baseUrl);
-    final socketUrl = (uri != null && uri.hasPort) ? baseUrl : '$baseUrl:3002';
+    final base = baseUrl ?? ApiEnvironment.fromEnvironment().baseUrl;
+    final uri = Uri.tryParse(base);
+    final socketUrl = (uri != null && uri.hasPort) ? base : '$base:3002';
 
     final authPayload = <String, dynamic>{
       'ZoneId': zoneId,

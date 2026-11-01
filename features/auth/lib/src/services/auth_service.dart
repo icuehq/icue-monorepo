@@ -100,7 +100,9 @@ class AuthService {
           ? _emulatorToken()
           : await _nodeFirebaseToken();
       if (token == null || token.isEmpty) return false;
-      await auth.signInWithCustomToken(token);
+      final credential = await auth.signInWithCustomToken(token);
+      final name = userLocalStorage.getUser()?.name ?? '';
+      if (name.isNotEmpty) await credential.user?.updateDisplayName(name);
       await callFunction('session-sync');
       return true;
     } catch (_) {

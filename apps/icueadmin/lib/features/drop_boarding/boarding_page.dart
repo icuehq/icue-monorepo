@@ -30,10 +30,7 @@ class _BoardingPageState extends State<BoardingPage> {
           branchId: branchId,
           organizationId: user.organizationId,
         );
-        provider.initSocket(
-          baseUrl: 'https://icuecloud.com',
-          branchId: branchId,
-        );
+        provider.initSocket(branchId: branchId);
       }
     });
   }

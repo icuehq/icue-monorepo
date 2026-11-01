@@ -29,7 +29,6 @@ class _TrackBusPageState extends State<TrackBusPage> {
       final user = auth.user;
       if (user != null) {
         tracking.initSocket(
-          baseUrl: 'https://icuecloud.com',
           zoneId: user.zoneId,
           branchId: auth.selectedBranch?.id ?? user.branchId,
           organizationId: user.organizationId,
