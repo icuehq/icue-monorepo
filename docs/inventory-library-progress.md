@@ -371,6 +371,29 @@ Flutter:
 - [x] `icueadmin` screens under `features/library/` (Members page with student/teacher switch, ERP ID lookup and enrol/edit sheet; Borrowing policies page with edit sheet); routes `/layout.library/{members,policies}`; Members and Borrowing policies tiles
 - [x] `melos run lint` passes (library, icueadmin); functions and rules tests pass
 
+### Lib-4
+
+Collection: `libLoans` (`personErpId` is the flat owner field for rules). Counters `ISS`, `RET`.
+
+Functions (`firebase/functions/src/library/loans.ts`, all `lib.circulation.operate`, campus scoped through the copy / loan):
+
+- [x] `lib-loan-issue` (member active, not blocked, within dates, library access; active policy; limit; restricted category; copy `available`; policy frozen as `policySnapshot`)
+- [x] `lib-loan-return` (only an active loan; `good` → `available`, `damaged` → `damaged`; overdue days stored; `activeLoans` decremented)
+- [x] `lib-loan-renew` (snapshot `maxRenewals`, `overdueRenewal`, `loanDays`)
+- [x] Tests: `test/loans.test.ts` (emulator)
+
+Rules and indexes:
+
+- [x] `firestore.rules`: `libLoans` readable by circulation staff on the campus or the borrower / parent (`own()`)
+- [x] `firestore.indexes.json`: `libLoans` by `status`+`dueOn`, and `memberId` / `copyId` / `personErpId` + `issuedOn`
+- [x] Rules test
+
+Flutter:
+
+- [x] `features/library`: `lib_loans.dart` (`LibLoan`), service / provider (paged active loans, `activeLoanOf`, issue / return / renew), model test
+- [x] `icueadmin`: Circulation page (member + scan to issue, scan to return or renew, active loans list) and loan sheet; route `/layout.library/circulation`; Circulation tile
+- [x] Lint passes (library, icueadmin); functions and rules tests pass
+
 ## Decisions and deviations
 
 Format: `date · phase · what changed from the architecture doc · why`.
