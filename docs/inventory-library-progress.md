@@ -69,8 +69,8 @@ Inventory definition of done: FRS §31.
 | Phase | Scope (FRS) | Status | Commit |
 | --- | --- | --- | --- |
 | Lib-1 | Libraries, categories, catalogue (11.2–11.4) | done, not deployed | – (committed) |
-| Lib-2 | Copies, accession numbers, acquisition, barcodes (11.5–11.6) | done, not deployed | – |
-| Lib-3 | Memberships, borrowing policies (11.7–11.8) | done, not deployed | – |
+| Lib-2 | Copies, accession numbers, acquisition, barcodes (11.5–11.6) | done, not deployed | d3f48e8 |
+| Lib-3 | Memberships, borrowing policies (11.7–11.8) | done, not deployed | abb3f9d |
 | Lib-4 | Issue, return, renewal (11.9–11.11) | not started | – |
 | Lib-5 | Reservations, waiting lists (11.12) | not started | – |
 | Lib-6 | Fines, lost and damaged books (11.13–11.14) | not started | – |
