@@ -39,6 +39,13 @@ import 'package:icueadmin/features/inventory/inventory_home_page.dart';
 import 'package:icueadmin/features/inventory/item_details_page.dart';
 import 'package:icueadmin/features/inventory/item_form_page.dart';
 import 'package:icueadmin/features/inventory/items_page.dart';
+import 'package:icueadmin/features/inventory/stock/issue_request_form_page.dart';
+import 'package:icueadmin/features/inventory/stock/issue_requests_page.dart';
+import 'package:icueadmin/features/inventory/stock/receive_page.dart';
+import 'package:icueadmin/features/inventory/stock/stock_page.dart';
+import 'package:icueadmin/features/inventory/stock/transfer_form_page.dart';
+import 'package:icueadmin/features/inventory/stock/transfers_page.dart';
+import 'package:icueadmin/features/inventory/stock/unavailable_page.dart';
 import 'package:icueadmin/features/inventory/stores_page.dart';
 import 'package:icueadmin/features/inventory/units_page.dart';
 import 'package:icueadmin/features/library/book_details_page.dart';
@@ -178,6 +185,42 @@ GoRouter createRouter({
         name: AppRoutes.inventoryItemDetailsName,
         builder: (context, state) =>
             ItemDetailsPage(itemId: state.uri.queryParameters['id'] ?? ''),
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryStock,
+        name: AppRoutes.inventoryStockName,
+        builder: (context, state) => const StockPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryReceive,
+        name: AppRoutes.inventoryReceiveName,
+        builder: (context, state) =>
+            ReceivePage(storeId: state.uri.queryParameters['store']),
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryRequests,
+        name: AppRoutes.inventoryRequestsName,
+        builder: (context, state) => const IssueRequestsPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryRequestForm,
+        name: AppRoutes.inventoryRequestFormName,
+        builder: (context, state) => const IssueRequestFormPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryTransfers,
+        name: AppRoutes.inventoryTransfersName,
+        builder: (context, state) => const TransfersPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryTransferForm,
+        name: AppRoutes.inventoryTransferFormName,
+        builder: (context, state) => const TransferFormPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryUnavailable,
+        name: AppRoutes.inventoryUnavailableName,
+        builder: (context, state) => const UnavailablePage(),
       ),
       GoRoute(
         path: AppRoutes.library,

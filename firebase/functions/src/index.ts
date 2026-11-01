@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase-admin/app';
 import './region';
 import { masters } from './inventory/masters';
+import { stock } from './inventory/stock-ops';
 import { itemSearch } from './inventory/search';
 import { masters as libMasters } from './library/masters';
 import { catalogueSearch } from './library/search';
@@ -27,7 +28,20 @@ const masterFns = {
   variant: { upsert: callable(masters.variantUpsert) },
   store: { upsert: callable(masters.storeUpsert), setStatus: callable(masters.storeSetStatus) },
 };
-export const inv = { ...masterFns, seedDefaults: callable(masters.seedDefaults) };
+const stockFns = {
+  receipt: { confirm: callable(stock.receiptConfirm) },
+  issueRequest: { submit: callable(stock.issueRequestSubmit), decide: callable(stock.issueRequestDecide) },
+  issue: { create: callable(stock.issueCreate), acknowledge: callable(stock.issueAcknowledge) },
+  return: { create: callable(stock.returnCreate) },
+  transfer: {
+    request: callable(stock.transferRequest),
+    dispatch: callable(stock.transferDispatch),
+    receive: callable(stock.transferReceive),
+  },
+  adjustment: { create: callable(stock.adjustmentCreate) },
+  unavailable: { report: callable(stock.unavailableReport), resolve: callable(stock.unavailableResolve) },
+};
+export const inv = { ...masterFns, ...stockFns, seedDefaults: callable(masters.seedDefaults) };
 
 export const lib = {
   library: { upsert: callable(libMasters.libraryUpsert), setStatus: callable(libMasters.librarySetStatus) },

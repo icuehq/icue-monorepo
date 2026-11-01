@@ -144,7 +144,7 @@ Common fields on every document: `campusId`, `createdAt`, `createdBy` (uid), `up
 | `invIssueRequests` | lines `[{itemId, variantId, qtyRequested, qtyApproved, qtyIssued}]`, itemIds, requester, departmentId, purpose, status, approval `{by, at, comment}` | FRS 10.8 |
 | `invIssues` | requestId, lines `[{balanceId, qty}]`, recipient `{type, erpId}`, issuedBy, recipientAck | One per issuance (partials allowed) |
 | `invReturns` | issueId, lines `[{balanceId, qtyUsable, qtyDamaged}]`, inspection | `qtyReturned ≤ issued − returned` |
-| `invTransfers` | from `{campusId, storeId}`, to, lines `[{balanceId, qtyDispatched, qtyReceived, discrepancy}]`, status `requested|dispatched|partially_received|received` | In-transit = dispatched − received on open transfers |
+| `invTransfers` | from `{campusId, storeId}`, to, `campusId` (source) + `toCampusId` for rules, `requested` `[{itemId, variantId, qty}]`, lines (set at dispatch, one per batch) `[{balanceId, qtyDispatched, qtyReceived, discrepancy}]`, status `requested|dispatched|partially_received|received` | In-transit = dispatched − received on open transfers |
 | `invAdjustments` | balanceId, before, delta, after, reason, evidence, verificationId, approval | Immutable after `completed` |
 | `invUnavailable` | balanceId or assetId, qty, reason, evidence, resolution, resolvedAt | FRS 10.12 register |
 | `invPurchaseRequests` | lines `[{itemId, qty, estPrice, qtyOrdered}]`, itemIds, priority, requiredDate, status (FRS 10.13), approval | |

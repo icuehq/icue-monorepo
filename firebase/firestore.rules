@@ -33,14 +33,32 @@ service cloud.firestore {
     // Inventory masters (Inv-1).
     match /schools/{sid}/{coll}/{id} {
       allow read: if inSchool(sid) && coll in ['invCategories', 'invUnits', 'invItems']
-        && can(sid, 'inv.items.view');
+        && (can(sid, 'inv.items.view') || can(sid, 'inv.issue.request'));
     }
     match /schools/{sid}/invItems/{itemId}/variants/{id} {
-      allow read: if inSchool(sid) && can(sid, 'inv.items.view');
+      allow read: if inSchool(sid) && (can(sid, 'inv.items.view') || can(sid, 'inv.issue.request'));
     }
+    // Stores are readable school-wide so a transfer can name a destination on another campus.
     match /schools/{sid}/invStores/{id} {
-      allow read: if inSchool(sid) && (can(sid, 'inv.stock.view') || can(sid, 'inv.settings'))
-        && onCampus(sid, resource.data.campusId);
+      allow read: if inSchool(sid)
+        && (can(sid, 'inv.stock.view') || can(sid, 'inv.settings') || can(sid, 'inv.issue.request'));
+    }
+
+    // Stock (Inv-2): campus-scoped, written only by Functions.
+    match /schools/{sid}/{coll}/{id} {
+      allow read: if inSchool(sid)
+        && coll in ['invBalances', 'invMovements', 'invReceipts', 'invIssues', 'invReturns', 'invAdjustments', 'invUnavailable']
+        && can(sid, 'inv.stock.view') && onCampus(sid, resource.data.campusId);
+    }
+    // Requesters see their own requests; approvers and stock users see the campus's.
+    match /schools/{sid}/invIssueRequests/{id} {
+      allow read: if inSchool(sid) && (resource.data.createdBy == request.auth.uid
+        || ((can(sid, 'inv.stock.view') || can(sid, 'inv.issue.approve')) && onCampus(sid, resource.data.campusId)));
+    }
+    // Either end of a transfer may read it.
+    match /schools/{sid}/invTransfers/{id} {
+      allow read: if inSchool(sid) && can(sid, 'inv.stock.view')
+        && (onCampus(sid, resource.data.campusId) || onCampus(sid, resource.data.toCampusId));
     }
 
     // Library masters (Lib-1): catalogue is school-wide, readable by anyone who may browse it.

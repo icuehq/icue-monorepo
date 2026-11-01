@@ -54,7 +54,7 @@ feature package, icueadmin screens (files under 500 lines), and DI registration.
 | Phase | Scope (FRS) | Status | Commit |
 | --- | --- | --- | --- |
 | Inv-1 | Categories, units, items, tracking methods, variants, stores (10.2–10.5) | done, not deployed | – (uncommitted) |
-| Inv-2 | Stock overview, receiving, issuance, returns, transfers, adjustments, damaged/expired/lost (10.6–10.12) | not started | – |
+| Inv-2 | Stock overview, receiving, issuance, returns, transfers, adjustments, damaged/expired/lost (10.6–10.12) | done, not deployed | – (uncommitted) |
 | Inv-3 | Purchase requests, approvals, vendors (10.13–10.14) | not started | – |
 | Inv-4 | Quotations, comparison, purchase orders, PO PDF (10.15–10.16) | not started | – |
 | Inv-5 | Goods receiving/inspection, vendor invoices (10.17–10.18) | not started | – |
@@ -147,6 +147,29 @@ Flutter:
 - [x] `icueadmin` screens under `features/inventory/` (home, categories, units, stores, items, item form, item details with variants); routes `/layout.inventory/...`; dashboard card opens it when Node's action `routeState` contains `inventory`
 - [x] `melos run lint` passes; functions and rules tests pass
 
+### Inv-2
+
+Collections: `invBalances`, `invMovements`, `invReceipts`, `invIssueRequests`, `invIssues`, `invReturns`, `invTransfers`, `invAdjustments`, `invUnavailable`.
+
+Functions (`firebase/functions/src/inventory/stock.ts` ledger helper, `stock-ops.ts` callables):
+
+- [x] `inv-receipt-confirm`; `inv-issueRequest-submit` / `-decide`; `inv-issue-create` / `-acknowledge`; `inv-return-create`; `inv-transfer-request` / `-dispatch` / `-receive`; `inv-adjustment-create`; `inv-unavailable-report` / `-resolve`
+- [x] One balance per store × item × variant × batch; append-only `invMovements`; never below zero; expired batches never issued; FEFO allocation; weighted-average cost; low-stock outbox event
+- [x] Returns bounded by outstanding issued quantity, damaged goes to the register; transfers track in-transit, partial receipt, discrepancy
+- [x] Tests: `test/stock.test.ts` (emulator)
+
+Rules and indexes:
+
+- [x] `firestore.rules`: stock collections read with `inv.stock.view` on the campus; issue requests also by their requester; transfers by either campus; requesters (`inv.issue.request`) may read items and stores; stores readable school-wide
+- [x] `firestore.indexes.json`: balances, movements, documents by campus + `createdAt`, requests, transfers, unavailable
+- [x] Rules tests
+
+Flutter:
+
+- [x] `features/inventory`: `inv_stock.dart` models, `StockService`, `StockProvider`, DI, model tests
+- [x] `icueadmin` screens under `features/inventory/stock/` (stock overview with movement history / adjust / report, receive, issue requests with approve / issue / acknowledge / return, transfers, damaged-expired register); routes `/layout.inventory/{stock,requests,transfers,unavailable}`
+- [x] `melos run lint` passes (inventory, icueadmin); functions and rules tests pass
+
 ### Lib-1
 
 Collections: `libLibraries`, `libCategories`, `libCatalogue` (title-level; copies arrive in Lib-2).
@@ -201,6 +224,14 @@ Format: `date · phase · what changed from the architecture doc · why`.
 - 2026-11-01 · Lib-1 · A duplicate title is a hard `already-exists` error, not a warning · the identity key (ISBN-13, or title/author/edition/publisher/year) is claimed in `uniqueKeys`; editing the identity moves the key. Two genuinely different books with identical details must differ in edition or year.
 - 2026-11-01 · Lib-1 · Libraries and catalogue are readable by anyone with `lib.catalogue.view` (no campus filter) · the catalogue is school-wide and teachers need to see where books are; writes stay campus-scoped through the callable wrapper.
 - 2026-11-01 · Lib-1 · Librarian staff are entered as ERP staff IDs, campuses shown as "Campus <id>" · same as Inv-1 stores; Node staff and branch-name endpoints are not confirmed.
+- 2026-11-01 · Inv-2 · Receiving sources exclude purchase orders; PO-linked receiving with quantity validation arrives in Inv-5 · POs do not exist yet. Attachments on receipts are stored as an empty list until uploads exist.
+- 2026-11-01 · Inv-2 · Asset-tracked items are rejected by every stock callable · individual assets, serials and assignment belong to Inv-6.
+- 2026-11-01 · Inv-2 · Adjustments apply immediately; no `inv.adjustment.approve` yet, and damage/expiry are reported under `inv-unavailable-report` instead of adjustment reasons · count-driven approval arrives with Inv-7 verification; `approval` is stored as null.
+- 2026-11-01 · Inv-2 · The `dailyInventory` job that moves expired batches to `qtyExpired` is not built; expired stock is reported manually and is never issuable regardless · the issue check does not depend on the job; the job arrives with Inv-7 notifications.
+- 2026-11-01 · Inv-2 · Issue requests cannot be cancelled and transfers cannot be cancelled before dispatch · not in the callable list; add when users ask.
+- 2026-11-01 · Inv-2 · `belowReorder` compares one balance's available quantity with the item's reorder level (per batch, not per item) · ceiling; Inv-7 dashboards can aggregate per item.
+- 2026-11-01 · Inv-2 · `invStores` is readable school-wide (no campus filter) · a transfer must name a destination store on another campus; writes stay campus-scoped.
+- 2026-11-01 · Inv-2 · Recipients, returning persons and requesters are entered as ERP IDs; receipts, returns and adjustments have no list screen (their movements show in stock history) · Node person pickers are not confirmed; documents are retained in Firestore.
 
 ## Open items
 

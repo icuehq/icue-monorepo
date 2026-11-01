@@ -186,6 +186,27 @@ abstract final class AppRoutes {
   static const String inventoryItemDetails = '/layout.inventory/items/details';
   static const String inventoryItemDetailsName = 'inventoryItemDetails';
 
+  static const String inventoryStock = '/layout.inventory/stock';
+  static const String inventoryStockName = 'inventoryStock';
+
+  static const String inventoryReceive = '/layout.inventory/stock/receive';
+  static const String inventoryReceiveName = 'inventoryReceive';
+
+  static const String inventoryRequests = '/layout.inventory/requests';
+  static const String inventoryRequestsName = 'inventoryRequests';
+
+  static const String inventoryRequestForm = '/layout.inventory/requests/new';
+  static const String inventoryRequestFormName = 'inventoryRequestForm';
+
+  static const String inventoryTransfers = '/layout.inventory/transfers';
+  static const String inventoryTransfersName = 'inventoryTransfers';
+
+  static const String inventoryTransferForm = '/layout.inventory/transfers/new';
+  static const String inventoryTransferFormName = 'inventoryTransferForm';
+
+  static const String inventoryUnavailable = '/layout.inventory/unavailable';
+  static const String inventoryUnavailableName = 'inventoryUnavailable';
+
   static const String library = '/layout.library';
   static const String libraryName = 'library';
 

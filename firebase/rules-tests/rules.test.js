@@ -93,14 +93,71 @@ describe('inventory masters', () => {
     }
   });
 
-  it('stores: campus-scoped reads for stock viewers and settings users', async () => {
+  it('stores: school-wide reads for stock viewers and settings users', async () => {
     await assertSucceeds(getDoc(doc(db('u_3'), 'schools/12/invStores/s31')));
-    await assertFails(getDoc(doc(db('u_3'), 'schools/12/invStores/s32')));
+    await assertSucceeds(getDoc(doc(db('u_3'), 'schools/12/invStores/s32')));
     await assertFails(getDoc(doc(db('u_1'), 'schools/12/invStores/s31')));
-    const list = (uid, cmp) => getDocs(query(collection(db(uid), 'schools/12/invStores'), where('campusId', 'in', cmp)));
-    await assertSucceeds(list('u_3', [31]));
-    await assertFails(list('u_3', [31, 32]));
+    await assertFails(getDoc(doc(db('u_3', { ...staff, sid: 13 }), 'schools/12/invStores/s31')));
+    await assertSucceeds(getDocs(collection(db('u_3'), 'schools/12/invStores')));
     await assertFails(setDoc(doc(db('u_3'), 'schools/12/invStores/s31'), { campusId: 31 }));
+  });
+});
+
+describe('inventory stock', () => {
+  const STOCK = ['invBalances', 'invMovements', 'invReceipts', 'invIssues', 'invReturns', 'invAdjustments', 'invUnavailable'];
+  beforeEach(() =>
+    env.withSecurityRulesDisabled(async (ctx) => {
+      const fs = ctx.firestore();
+      const acc = (perms, cmp = [31]) => ({ perms, cmp, all: false });
+      await setDoc(doc(fs, 'schools/12/userAccess/s_view'), acc(['inv.stock.view']));
+      await setDoc(doc(fs, 'schools/12/userAccess/s_req'), acc(['inv.issue.request']));
+      await setDoc(doc(fs, 'schools/12/userAccess/s_apr'), acc(['inv.issue.approve']));
+      await setDoc(doc(fs, 'schools/12/userAccess/s_32'), acc(['inv.stock.view'], [32]));
+      for (const c of STOCK) {
+        await setDoc(doc(fs, `schools/12/${c}/a31`), { campusId: 31 });
+        await setDoc(doc(fs, `schools/12/${c}/a32`), { campusId: 32 });
+      }
+      await setDoc(doc(fs, 'schools/12/invIssueRequests/r1'), { campusId: 31, createdBy: 's_req' });
+      await setDoc(doc(fs, 'schools/12/invTransfers/t1'), { campusId: 31, toCampusId: 32 });
+      await setDoc(doc(fs, 'schools/12/invItems/i'), { name: 'i' });
+      await setDoc(doc(fs, 'schools/12/invStores/s31'), { campusId: 31 });
+    }),
+  );
+
+  it('balances, ledger and documents: stock viewers on the campus only, never writable', async () => {
+    for (const c of STOCK) {
+      await assertSucceeds(getDoc(doc(db('s_view'), `schools/12/${c}/a31`)));
+      await assertFails(getDoc(doc(db('s_view'), `schools/12/${c}/a32`)));
+      await assertFails(getDoc(doc(db('s_req'), `schools/12/${c}/a31`)));
+      await assertFails(getDoc(doc(db('s_view', { ...staff, sid: 13 }), `schools/12/${c}/a31`)));
+      await assertFails(setDoc(doc(db('s_view'), `schools/12/${c}/a31`), { campusId: 31 }));
+    }
+    const list = (cmp) => getDocs(query(collection(db('s_view'), 'schools/12/invBalances'), where('campusId', 'in', cmp)));
+    await assertSucceeds(list([31]));
+    await assertFails(list([31, 32]));
+  });
+
+  it('issue requests: requester sees own, approvers see the campus', async () => {
+    await assertSucceeds(getDoc(doc(db('s_req'), 'schools/12/invIssueRequests/r1')));
+    await assertSucceeds(getDoc(doc(db('s_apr'), 'schools/12/invIssueRequests/r1')));
+    await assertSucceeds(getDoc(doc(db('s_view'), 'schools/12/invIssueRequests/r1')));
+    await assertFails(getDoc(doc(db('s_32'), 'schools/12/invIssueRequests/r1')));
+    await assertFails(getDoc(doc(db('u_2'), 'schools/12/invIssueRequests/r1')));
+    await assertSucceeds(getDocs(query(collection(db('s_req'), 'schools/12/invIssueRequests'), where('createdBy', '==', 's_req'))));
+    await assertFails(setDoc(doc(db('s_req'), 'schools/12/invIssueRequests/r1'), { status: 'approved' }));
+  });
+
+  it('transfers: visible to both campuses', async () => {
+    await assertSucceeds(getDoc(doc(db('s_view'), 'schools/12/invTransfers/t1')));
+    await assertSucceeds(getDoc(doc(db('s_32'), 'schools/12/invTransfers/t1')));
+    await assertSucceeds(getDocs(query(collection(db('s_32'), 'schools/12/invTransfers'), where('toCampusId', 'in', [32]))));
+    await assertFails(getDoc(doc(db('s_req'), 'schools/12/invTransfers/t1')));
+  });
+
+  it('requesters can browse items and stores to build a request', async () => {
+    await assertSucceeds(getDoc(doc(db('s_req'), 'schools/12/invItems/i')));
+    await assertSucceeds(getDoc(doc(db('s_req'), 'schools/12/invStores/s31')));
+    await assertFails(getDoc(doc(db('s_32'), 'schools/12/invItems/i')));
   });
 });
 
