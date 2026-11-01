@@ -300,4 +300,7 @@ abstract final class AppRoutes {
 
   static const String libraryCirculation = '/layout.library/circulation';
   static const String libraryCirculationName = 'libraryCirculation';
+
+  static const String libraryReservations = '/layout.library/reservations';
+  static const String libraryReservationsName = 'libraryReservations';
 }

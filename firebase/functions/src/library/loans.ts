@@ -1,11 +1,12 @@
 import '../region';
-import { FieldValue } from 'firebase-admin/firestore';
+import { FieldValue, type DocumentReference } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { todayIST } from '../inventory/stock';
 import type { Ctx } from '../shared/callable';
 import { nextNumber } from '../shared/keys';
 import { def, failed, id, missing, note } from '../shared/masters';
 import { policyId } from './members';
+import { release, waitingQuery } from './reservations';
 
 const UP = () => FieldValue.serverTimestamp();
 const addDays = (d: string, n: number) => new Date(Date.parse(`${d}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
@@ -45,7 +46,14 @@ export const loans = {
       if (member.blocked) throw failed('Member is blocked');
       if (member.start > today || (member.end && member.end < today)) throw failed('Membership is not valid today');
       if (!member.libraryIds.includes(copy.libraryId)) throw failed('Member has no access to this library');
-      if (copy.status !== 'available' || copy.activeLoanId) throw failed(`Copy is ${copy.status}`);
+      // A held copy goes only to the member it is held for, within the hold period (FRS 11.12).
+      let held: DocumentReference | undefined;
+      if (copy.status === 'reserved') {
+        held = ctx.doc(`libReservations/${copy.heldReservationId}`);
+        const r = (await ctx.tx.get(held)).data();
+        if (r?.memberId !== m.id || r.status !== 'ready') throw failed('Copy is held for another member');
+        if (r.holdUntil < today) throw failed('The hold on this copy has expired');
+      } else if (copy.status !== 'available' || copy.activeLoanId) throw failed(`Copy is ${copy.status}`);
 
       const policy = (await ctx.tx.get(ctx.doc(`libPolicies/${policyId(copy.libraryId, member.memberCategory)}`))).data();
       if (!policy || policy.status !== 'active') throw failed('No active borrowing policy for this member');
@@ -74,7 +82,8 @@ export const loans = {
         status: 'active',
       };
       ctx.set(loan, { ...after, issuedBy: ctx.uid, issuedAt: UP() });
-      ctx.update(cRef, { status: 'issued', activeLoanId: loan.id, updatedAt: UP() });
+      ctx.update(cRef, { status: 'issued', activeLoanId: loan.id, heldReservationId: null, updatedAt: UP() });
+      if (held) ctx.update(held, { status: 'fulfilled', fulfilledLoanId: loan.id, fulfilledCopyId: c.id, fulfilledAt: UP() });
       ctx.update(mRef, { activeLoans: FieldValue.increment(1), updatedAt: UP() });
       ctx.audit({ action: 'libLoan.issue', ref: loan.path, after });
       return { id: loan.id, number, dueOn: after.dueOn };
@@ -100,7 +109,8 @@ export const loans = {
       const returnNumber = await nextNumber(ctx, 'RET');
       const after = { status: 'returned', returnNumber, returnedOn: today, condition: i.condition, overdueDays, returnRemarks: i.remarks ?? null };
       ctx.update(ref, { ...after, receivedBy: ctx.uid, returnedAt: UP() });
-      ctx.update(cRef, { status: i.condition === 'damaged' ? 'damaged' : 'available', activeLoanId: null, updatedAt: UP() });
+      if (i.condition === 'damaged') ctx.update(cRef, { status: 'damaged', activeLoanId: null, updatedAt: UP() });
+      else await release(ctx, cRef, d);
       if (m.exists) ctx.update(mRef, { activeLoans: Math.max(0, (m.data()!.activeLoans ?? 0) - 1), updatedAt: UP() });
       ctx.audit({ action: 'libLoan.return', ref: ref.path, before: { status: 'active' }, after });
       return { id: ref.id, returnNumber, overdueDays };
@@ -120,7 +130,7 @@ export const loans = {
       const today = todayIST();
       if (d.renewals.length >= p.maxRenewals) throw failed(`Renewal limit of ${p.maxRenewals} reached`);
       if (d.dueOn < today && !p.overdueRenewal) throw failed('Overdue loans cannot be renewed');
-      // ponytail: reservation conflicts are checked once reservations exist (Lib-5).
+      if (!(await waitingQuery(ctx, d.catalogueId, d.libraryId, 1)).empty) throw failed('Another member is waiting for this title');
       const dueOn = addDays(d.dueOn > today ? d.dueOn : today, p.loanDays);
       const renewals = [...d.renewals, { on: today, from: d.dueOn, to: dueOn, by: ctx.uid }];
       ctx.update(ref, { dueOn, renewals, updatedAt: UP() });

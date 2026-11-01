@@ -147,6 +147,11 @@ service cloud.firestore {
       allow read: if inSchool(sid) && ((can(sid, 'lib.circulation.operate') && onCampus(sid, resource.data.campusId)) || own());
     }
 
+    // Reservations (Lib-5): same readers as loans.
+    match /schools/{sid}/libReservations/{id} {
+      allow read: if inSchool(sid) && ((can(sid, 'lib.circulation.operate') && onCampus(sid, resource.data.campusId)) || own());
+    }
+
     match /devices/{uid} {
       allow read: if signedIn() && request.auth.uid == uid;
       allow write: if signedIn() && request.auth.uid == uid

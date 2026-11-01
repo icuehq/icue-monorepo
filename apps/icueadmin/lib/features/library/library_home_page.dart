@@ -58,6 +58,12 @@ class _LibraryHomePageState extends State<LibraryHomePage> {
       ),
       (
         'assets/dashboard/library.png',
+        'Reservations',
+        AppRoutes.libraryReservations,
+        p.access.can('lib.circulation.operate'),
+      ),
+      (
+        'assets/dashboard/library.png',
         'Members',
         AppRoutes.libraryMembers,
         p.access.can('lib.members.view'),

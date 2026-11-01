@@ -5,6 +5,7 @@ import 'package:school_library/src/models/lib_copies.dart';
 import 'package:school_library/src/models/lib_loans.dart';
 import 'package:school_library/src/models/lib_masters.dart';
 import 'package:school_library/src/models/lib_members.dart';
+import 'package:school_library/src/models/lib_reservations.dart';
 import 'package:school_library/src/services/library_service.dart';
 
 @lazySingleton
@@ -41,6 +42,13 @@ class LibraryProvider extends ChangeNotifier {
   bool loansLoading = false;
   bool hasMoreLoans = false;
   DocumentSnapshot<Map<String, dynamic>>? _loanCursor;
+
+  // Reservations (paged, by status).
+  final List<LibReservation> reservations = [];
+  bool reservationsLoading = false;
+  bool hasMoreReservations = false;
+  String reservationStatus = 'waiting';
+  DocumentSnapshot<Map<String, dynamic>>? _reservationCursor;
 
   /// The policy a member of [category] gets in [libraryId], if one is set up.
   LibPolicy? policyFor(String libraryId, String category) {
@@ -175,12 +183,56 @@ class LibraryProvider extends ChangeNotifier {
     }
   }
 
+  /// (Re)loads the first page of reservations, or the next one when [more] is true.
+  Future<void> loadReservations({bool more = false, String? status}) async {
+    if (reservationsLoading || (more && !hasMoreReservations)) return;
+    if (!more) {
+      reservationStatus = status ?? reservationStatus;
+      _reservationCursor = null;
+    }
+    reservationsLoading = true;
+    errorMessage = null;
+    notifyListeners();
+    try {
+      final page = await _service.reservations(
+        reservationStatus,
+        after: _reservationCursor,
+      );
+      if (!more) reservations.clear();
+      reservations.addAll(page.items);
+      _reservationCursor = page.cursor;
+      hasMoreReservations = page.hasMore;
+    } catch (e) {
+      errorMessage = _message(e);
+    } finally {
+      reservationsLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<List<LibReservation>> waitingReservationsOf(
+    String catalogueId, {
+    String? libraryId,
+  }) => _service.waitingReservationsOf(catalogueId, libraryId: libraryId);
+
   Future<LibLoan?> activeLoanOf(String copyId) => _service.activeLoanOf(copyId);
 
   Future<LibMember?> member(String type, int erpId) =>
       _service.member(type, erpId);
 
   Future<LibBook?> book(String id) => _service.book(id);
+
+  Future<({List<LibBook> items, bool hasMore})> searchBooks(
+    String query, {
+    String? categoryId,
+    int offset = 0,
+    int limit = 25,
+  }) => _service.searchBooks(
+    query,
+    categoryId: categoryId,
+    offset: offset,
+    limit: limit,
+  );
 
   Future<List<LibCopy>> copiesOf(String catalogueId) =>
       _service.copiesOf(catalogueId);
@@ -293,6 +345,17 @@ class LibraryProvider extends ChangeNotifier {
   Future<bool> renewLoan(String id, {String? requestId}) => _write(
     () => _service.renewLoan(id, requestId: requestId),
     reload: loadLoans,
+  );
+
+  Future<bool> createReservation(Map<String, Object?> d, {String? requestId}) =>
+      _write(
+        () => _service.createReservation(d, requestId: requestId),
+        reload: loadReservations,
+      );
+
+  Future<bool> cancelReservation(String id, {String? requestId}) => _write(
+    () => _service.cancelReservation(id, requestId: requestId),
+    reload: loadReservations,
   );
 
   Future<bool> _write(

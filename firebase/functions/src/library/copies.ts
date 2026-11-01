@@ -4,6 +4,7 @@ import { z } from 'zod';
 import type { Ctx } from '../shared/callable';
 import { claimUniqueKey, nextNumber, uniqueKeyRef } from '../shared/keys';
 import { def, failed, id, missing, note, usable } from '../shared/masters';
+import { holdDays, hold, nextWaiting, release } from './reservations';
 
 const text = z.string().trim().min(1).max(120);
 const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
@@ -99,6 +100,10 @@ export const copies = {
         remarks: i.remarks ?? null,
         copyIds: ids,
       };
+      // New copies serve the waiting list first, in queue order.
+      const waiting = await nextWaiting(ctx, i.catalogueId, i.libraryId, i.qty);
+      const days = waiting.length ? await holdDays(ctx) : 0;
+      for (const [n, w] of waiting.entries()) await hold(ctx, w, ctx.doc(`libCopies/${ids[n]}`), ids[n], days);
       ctx.set(acq, { ...after, createdAt: UP(), createdBy: ctx.uid });
       ctx.audit({ action: 'libAcquisition.create', ref: acq.path, after });
       return { id: acq.id, number, copyIds: ids };
@@ -157,7 +162,8 @@ export const copies = {
       if (!MANUAL.includes(d.status)) throw failed(`Copy is ${d.status}`);
       if (d.status === i.status) return { id: ref.id };
       if (i.status !== 'available' && i.status !== 'under_maintenance' && !i.reason) throw failed('A reason is required');
-      ctx.update(ref, { status: i.status, updatedAt: UP() });
+      if (i.status === 'available') await release(ctx, ref, d);
+      else ctx.update(ref, { status: i.status, updatedAt: UP() });
       ctx.audit({ action: 'libCopy.status', ref: ref.path, before: { status: d.status }, after: { status: i.status }, reason: i.reason ?? undefined });
       return { id: ref.id };
     },

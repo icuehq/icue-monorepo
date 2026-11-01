@@ -39,6 +39,7 @@ class LibCopy {
     this.vendorOrDonor,
     this.acquiredOn,
     this.remarks,
+    this.heldReservationId,
   });
 
   factory LibCopy.fromMap(String id, Map<String, dynamic> m) => LibCopy(
@@ -57,6 +58,7 @@ class LibCopy {
     vendorOrDonor: m['vendorOrDonor'] as String?,
     acquiredOn: m['acquiredOn'] as String?,
     remarks: m['remarks'] as String?,
+    heldReservationId: m['heldReservationId'] as String?,
   );
 
   final String id;
@@ -74,6 +76,7 @@ class LibCopy {
   final String? vendorOrDonor;
   final String? acquiredOn;
   final String? remarks;
+  final String? heldReservationId;
 
   /// Lost and withdrawn copies are final; issued/reserved/in-transit belong to circulation.
   bool get canChangeStatus =>

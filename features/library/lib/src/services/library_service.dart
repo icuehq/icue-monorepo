@@ -4,6 +4,7 @@ import 'package:school_library/src/models/lib_copies.dart';
 import 'package:school_library/src/models/lib_loans.dart';
 import 'package:school_library/src/models/lib_masters.dart';
 import 'package:school_library/src/models/lib_members.dart';
+import 'package:school_library/src/models/lib_reservations.dart';
 
 /// Library masters: reads from Firestore, writes through callables.
 @lazySingleton
@@ -164,6 +165,31 @@ class LibraryService {
         : LibLoan.fromMap(r.docs.first.id, r.docs.first.data());
   }
 
+  /// A page of reservations in [status], ordered by [createdAt].
+  Future<PagedResult<LibReservation>> reservations(
+    String status, {
+    DocumentSnapshot<Map<String, dynamic>>? after,
+  }) async => fetchPage(
+    (await _coll('libReservations'))
+        .where('status', isEqualTo: status)
+        .orderBy('createdAt'),
+    (d) => LibReservation.fromMap(d.id, d.data()!),
+    after: after,
+  );
+
+  /// Waiting reservations of a title in a library, oldest first.
+  Future<List<LibReservation>> waitingReservationsOf(
+    String catalogueId, {
+    String? libraryId,
+  }) async {
+    Query<Map<String, dynamic>> q = (await _coll('libReservations'))
+        .where('status', isEqualTo: 'waiting')
+        .where('catalogueId', isEqualTo: catalogueId);
+    if (libraryId != null) q = q.where('libraryId', isEqualTo: libraryId);
+    final snap = await q.orderBy('createdAt').get();
+    return [for (final d in snap.docs) LibReservation.fromMap(d.id, d.data())];
+  }
+
   // --- writes: callables, same requestId on user retry --------------------
 
   Future<void> seedDefaults() => _call('lib-seedDefaults', {});
@@ -232,6 +258,14 @@ class LibraryService {
 
   Future<void> renewLoan(String id, {String? requestId}) =>
       _call('lib-loan-renew', {'id': id}, requestId);
+
+  Future<void> createReservation(
+    Map<String, Object?> data, {
+    String? requestId,
+  }) => _call('lib-reservation-create', data, requestId);
+
+  Future<void> cancelReservation(String id, {String? requestId}) =>
+      _call('lib-reservation-cancel', {'id': id}, requestId);
 
   Map<String, Object?> _status(String id, bool active) => {
     'id': id,

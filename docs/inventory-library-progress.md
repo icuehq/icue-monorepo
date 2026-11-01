@@ -72,7 +72,7 @@ Inventory definition of done: FRS §31.
 | Lib-2 | Copies, accession numbers, acquisition, barcodes (11.5–11.6) | done, not deployed | d3f48e8 |
 | Lib-3 | Memberships, borrowing policies (11.7–11.8) | done, not deployed | abb3f9d |
 | Lib-4 | Issue, return, renewal (11.9–11.11) | done, not deployed | 04fe97f |
-| Lib-5 | Reservations, waiting lists (11.12) | not started | – |
+| Lib-5 | Reservations, waiting lists (11.12) | done, not deployed | – |
 | Lib-6 | Fines, lost and damaged books (11.13–11.14) | not started | – |
 | Lib-7 | Inter-library transfers, stock verification (11.15–11.16) | not started | – |
 | Lib-8 | Reports, notifications, dashboard, import/export, parent view (11.1, 11.17–11.18) | not started | – |
@@ -394,6 +394,30 @@ Flutter:
 - [x] `icueadmin`: Circulation page (member + scan to issue, scan to return or renew, active loans list) and loan sheet; route `/layout.library/circulation`; Circulation tile
 - [x] Lint passes (library, icueadmin); functions and rules tests pass
 
+### Lib-5
+
+Collection: `libReservations` (`personErpId` is the flat owner field for rules). Counter `RSV`.
+
+Functions (`firebase/functions/src/library/reservations.ts`, all `lib.circulation.operate`, campus scoped through the library):
+
+- [x] `lib-reservation-create` (only when no shelf copy; eligible member; active policy allows reserve; category not restricted; one live reservation per title/member)
+- [x] `lib-reservation-cancel` (waiting or ready; held copy released to next in queue)
+- [x] `holdExpiry` scheduled job (hourly; expires holds past `holdUntil`, passes copy to next in queue or releases to available)
+- [x] Waiting list integrated into `acquisitionCreate`, `loanReturn`, `loanRenew`, `copySetStatus` (copies freeing up serve the waiting queue)
+- [x] Tests: `test/reservations.test.ts` (emulator)
+
+Rules and indexes:
+
+- [x] `firestore.rules`: `libReservations` readable by circulation staff on the campus or the member / parent (`own()`)
+- [x] `firestore.indexes.json`: `libReservations` composite indexes (status + catalogueId + libraryId + createdAt, status + holdUntil, status + createdAt, personErpId + createdAt)
+- [x] Rules test in `rules-tests/rules.test.js`
+
+Flutter:
+
+- [x] `features/library`: `lib_reservations.dart` (`LibReservation`), service / provider (paged reservations, `waitingReservationsOf`, create / cancel reservation), model test
+- [x] `icueadmin`: Reservations page (status filter: waiting/ready/fulfilled/cancelled, queue position, cancel reservation with confirmation) and reservation sheet; Book details reserve button; route `/layout.library/reservations`; Reservations tile
+- [x] Lint passes (library, icueadmin); functions build and rules tests pass
+
 ## Decisions and deviations
 
 Format: `date · phase · what changed from the architecture doc · why`.
@@ -477,6 +501,7 @@ Format: `date · phase · what changed from the architecture doc · why`.
 - 2026-11-01 · Lib-4 · Renewal does not check reservations, and a returned copy goes straight to `available` · reservations and the hold queue arrive with Lib-5. A copy `reserved` for the member cannot be issued until then.
 - 2026-11-01 · Lib-4 · `lib.loan.markLost` is not built (Lib-6). Renewal extends from the later of the due date and today by the loan's snapshot `loanDays`; inactive or blocked members cannot renew. Issue/return numbers are `ISS/…` and `RET/…`; no printable issue slip yet.
 - 2026-11-01 · Lib-4 · The circulation screen lists active loans only (earliest due first); borrowing history on the member sheet (FRS 11.7) is not shown yet. Camera scanning is untested on a device (no native build run).
+- 2026-11-01 · Lib-5 · Reservations can only be placed when all copies are unavailable (issued, reserved, under maintenance or damaged); available copies must be issued directly · prevents members queuing when a book is ready on the shelf. Queue position is computed as index in the created-ordered waiting list, not stored.
 
 ## Open items
 

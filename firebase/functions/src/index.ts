@@ -13,6 +13,7 @@ import { copies as libCopies } from './library/copies';
 import { masters as libMasters } from './library/masters';
 import { loans as libLoans } from './library/loans';
 import { members as libMembers } from './library/members';
+import { reservations as libReservations } from './library/reservations';
 import { catalogueSearch } from './library/search';
 import * as sessionFns from './session';
 import { callable, queryCallable } from './shared/callable';
@@ -26,6 +27,7 @@ export { syncItemSearch } from './inventory/search';
 export { syncCatalogueSearch } from './library/search';
 export { outboxSend } from './shared/outbox';
 export { dailyInventory } from './inventory/daily';
+export { holdExpiry } from './library/reservations';
 
 const masterFns = {
   category: { upsert: callable(masters.categoryUpsert), setStatus: callable(masters.categorySetStatus) },
@@ -111,4 +113,5 @@ export const lib = {
   policy: { upsert: callable(libMembers.policyUpsert), setStatus: callable(libMembers.policySetStatus) },
   member: { upsert: callable(libMembers.memberUpsert), setStatus: callable(libMembers.memberSetStatus) },
   loan: { issue: callable(libLoans.loanIssue), return: callable(libLoans.loanReturn), renew: callable(libLoans.loanRenew) },
+  reservation: { create: callable(libReservations.reservationCreate), cancel: callable(libReservations.reservationCancel) },
 };

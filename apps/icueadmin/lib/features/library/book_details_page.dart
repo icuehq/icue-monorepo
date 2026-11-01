@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
 import 'package:icueadmin/features/library/widgets/book_copies_section.dart';
+import 'package:icueadmin/features/library/widgets/reservation_sheet.dart';
 import 'package:icueadmin/routing/app_routes.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
@@ -68,6 +69,12 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
       appBar: AppBar(
         title: Text(b.title),
         actions: [
+          if (p.access.can('lib.circulation.operate'))
+            IconButton(
+              icon: const Icon(Icons.bookmark_add_outlined),
+              tooltip: 'Reserve book',
+              onPressed: () => ReservationSheet.show(context, book: b),
+            ),
           if (canEdit)
             IconButton(
               icon: const Icon(Icons.edit_outlined),
