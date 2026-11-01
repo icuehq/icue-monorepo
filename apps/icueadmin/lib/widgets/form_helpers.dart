@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:icue_firebase/icue_firebase.dart' show ErrorReporting;
 import 'package:provider/provider.dart';
 
@@ -49,6 +50,15 @@ String? optionalNumber(String? value) =>
         double.tryParse(value.trim()) != null)
     ? null
     : 'Enter a number';
+
+/// Formatter allowing only non-negative decimal numbers with at most one dot.
+final decimalInputFormatter = TextInputFormatter.withFunction(
+  (oldValue, newValue) {
+    final text = newValue.text;
+    if (text.isEmpty) return newValue;
+    return RegExp(r'^\d*\.?\d*$').hasMatch(text) ? newValue : oldValue;
+  },
+);
 
 String? blankToNull(TextEditingController controller) =>
     controller.text.trim().isEmpty ? null : controller.text.trim();

@@ -197,7 +197,7 @@ String generateCategoryCode(String name) {
   if (clean.isEmpty) return '';
   final words = clean
       .split(RegExp(r'[^A-Z0-9]+'))
-      .where((w) => w.isNotEmpty)
+      .where((word) => word.isNotEmpty)
       .toList();
   if (words.isEmpty) return '';
   if (words.length == 1) {
@@ -208,5 +208,5 @@ String generateCategoryCode(String name) {
     final second = words[1];
     return '${first.substring(0, first.length.clamp(0, 2))}${second[0]}';
   }
-  return words.take(4).map((w) => w[0]).join();
+  return words.take(4).map((word) => word[0]).join();
 }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:icue_firebase/icue_firebase.dart';
+import 'package:icueadmin/features/inventory/widgets/form_section_card.dart';
 import 'package:icueadmin/features/inventory/widgets/purchase_units_editor.dart';
 import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
@@ -121,132 +123,262 @@ class _ItemFormPageState extends State<ItemFormPage> {
       body: Form(
         key: _form,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           children: [
-            TextFormField(
-              controller: _code,
-              enabled: !editing,
-              textCapitalization: TextCapitalization.characters,
-              decoration: const InputDecoration(labelText: 'Item code / SKU *'),
-              validator: requiredText,
-            ),
-            TextFormField(
-              controller: _name,
-              decoration: const InputDecoration(labelText: 'Item name *'),
-              validator: requiredText,
-            ),
-            DropdownButtonFormField<String>(
-              initialValue: _categoryId,
-              decoration: const InputDecoration(labelText: 'Category *'),
-              items: [
-                for (final category in tops)
-                  DropdownMenuItem(
-                    value: category.id,
-                    child: Text(category.name),
-                  ),
-              ],
-              validator: (value) => value == null ? 'Required' : null,
-              onChanged: (value) => setState(() {
-                _categoryId = value;
-                _subcategoryId = null;
-                final suggested = inventoryProvider
-                    .category(value)
-                    ?.suggestedTracking;
-                if (!editing && suggested != null) _tracking = suggested;
-              }),
-            ),
-            if (subs.isNotEmpty)
-              DropdownButtonFormField<String?>(
-                key: ValueKey(_categoryId),
-                initialValue: _subcategoryId,
-                decoration: const InputDecoration(labelText: 'Subcategory'),
-                items: [
-                  const DropdownMenuItem(child: Text('None')),
-                  for (final category in subs)
-                    DropdownMenuItem(
-                      value: category.id,
-                      child: Text(category.name),
+            FormSectionCard(
+              title: 'Basic information',
+              icon: Icons.inventory_2_outlined,
+              children: [
+                TextFormField(
+                  controller: _code,
+                  enabled: !editing,
+                  textCapitalization: TextCapitalization.characters,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(
+                      RegExp(r'[A-Za-z0-9._\-]'),
                     ),
-                ],
-                onChanged: (value) => _subcategoryId = value,
-              ),
-            TextFormField(
-              controller: _description,
-              decoration: const InputDecoration(labelText: 'Description'),
-            ),
-            DropdownButtonFormField<String>(
-              initialValue: _stockUnit,
-              decoration: const InputDecoration(labelText: 'Stock unit *'),
-              items: [
-                for (final unit in inventoryProvider.units)
-                  DropdownMenuItem(
-                    value: unit.code,
-                    child: Text('${unit.name} (${unit.code})'),
+                  ],
+                  textInputAction: TextInputAction.next,
+                  decoration: InputDecoration(
+                    labelText: 'Item code / SKU *',
+                    prefixIcon: const Icon(Icons.qr_code_2_outlined, size: 20),
+                    helperText: !editing
+                        ? 'Unique identifier, e.g. PAP-A4-01'
+                        : null,
                   ),
-              ],
-              validator: (value) => value == null ? 'Required' : null,
-              onChanged: (value) => setState(() => _stockUnit = value),
-            ),
-            DropdownButtonFormField<Tracking>(
-              key: ValueKey(_tracking),
-              initialValue: _tracking,
-              decoration: const InputDecoration(labelText: 'Tracking method *'),
-              items: [
-                for (final tracking in Tracking.values)
-                  DropdownMenuItem(
-                    value: tracking,
-                    child: Text(tracking.label),
+                  validator: requiredText,
+                ),
+                TextFormField(
+                  controller: _name,
+                  textCapitalization: TextCapitalization.words,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    labelText: 'Item name *',
+                    prefixIcon: Icon(Icons.label_outline, size: 20),
                   ),
+                  validator: requiredText,
+                ),
+                DropdownButtonFormField<String>(
+                  initialValue: _categoryId,
+                  decoration: const InputDecoration(
+                    labelText: 'Category *',
+                    prefixIcon: Icon(Icons.category_outlined, size: 20),
+                  ),
+                  items: [
+                    for (final category in tops)
+                      DropdownMenuItem(
+                        value: category.id,
+                        child: Text(category.name),
+                      ),
+                  ],
+                  validator: (value) => value == null ? 'Required' : null,
+                  onChanged: (value) => setState(() {
+                    _categoryId = value;
+                    _subcategoryId = null;
+                    final suggested = inventoryProvider
+                        .category(value)
+                        ?.suggestedTracking;
+                    if (!editing && suggested != null) _tracking = suggested;
+                  }),
+                ),
+                if (subs.isNotEmpty)
+                  DropdownButtonFormField<String?>(
+                    key: ValueKey(_categoryId),
+                    initialValue: _subcategoryId,
+                    decoration: const InputDecoration(
+                      labelText: 'Subcategory',
+                      prefixIcon: Icon(
+                        Icons.subdirectory_arrow_right_outlined,
+                        size: 20,
+                      ),
+                    ),
+                    items: [
+                      const DropdownMenuItem(child: Text('None')),
+                      for (final category in subs)
+                        DropdownMenuItem(
+                          value: category.id,
+                          child: Text(category.name),
+                        ),
+                    ],
+                    onChanged: (value) => _subcategoryId = value,
+                  ),
+                TextFormField(
+                  controller: _description,
+                  minLines: 2,
+                  maxLines: 4,
+                  textCapitalization: TextCapitalization.sentences,
+                  keyboardType: TextInputType.multiline,
+                  decoration: const InputDecoration(
+                    labelText: 'Description',
+                    alignLabelWithHint: true,
+                    prefixIcon: Icon(Icons.notes_outlined, size: 20),
+                  ),
+                ),
               ],
-              onChanged: (tracking) => _tracking = tracking ?? _tracking,
+            ),
+            FormSectionCard(
+              title: 'Stock & tracking',
+              icon: Icons.tune_outlined,
+              children: [
+                DropdownButtonFormField<String>(
+                  initialValue: _stockUnit,
+                  decoration: const InputDecoration(
+                    labelText: 'Stock unit *',
+                    prefixIcon: Icon(Icons.straighten_outlined, size: 20),
+                  ),
+                  items: [
+                    for (final unit in inventoryProvider.units)
+                      DropdownMenuItem(
+                        value: unit.code,
+                        child: Text('${unit.name} (${unit.code})'),
+                      ),
+                  ],
+                  validator: (value) => value == null ? 'Required' : null,
+                  onChanged: (value) => setState(() => _stockUnit = value),
+                ),
+                DropdownButtonFormField<Tracking>(
+                  key: ValueKey(_tracking),
+                  initialValue: _tracking,
+                  decoration: const InputDecoration(
+                    labelText: 'Tracking method *',
+                    prefixIcon: Icon(Icons.track_changes_outlined, size: 20),
+                  ),
+                  items: [
+                    for (final tracking in Tracking.values)
+                      DropdownMenuItem(
+                        value: tracking,
+                        child: Text(tracking.label),
+                      ),
+                  ],
+                  onChanged: (tracking) => _tracking = tracking ?? _tracking,
+                ),
+                PurchaseUnitsEditor(
+                  units: inventoryProvider.units,
+                  stockUnit: _stockUnit,
+                  initial: _purchaseUnits,
+                  onChanged: (purchaseUnits) => _purchaseUnits = purchaseUnits,
+                ),
+              ],
+            ),
+            FormSectionCard(
+              title: 'Stock levels',
+              icon: Icons.stacked_bar_chart_outlined,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _min,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        inputFormatters: [decimalInputFormatter],
+                        textInputAction: TextInputAction.next,
+                        decoration: const InputDecoration(
+                          labelText: 'Minimum stock',
+                          prefixIcon: Icon(
+                            Icons.vertical_align_bottom_outlined,
+                            size: 20,
+                          ),
+                          helperText: 'Alert threshold',
+                        ),
+                        validator: optionalNumber,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _reorder,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        inputFormatters: [decimalInputFormatter],
+                        textInputAction: TextInputAction.next,
+                        decoration: const InputDecoration(
+                          labelText: 'Reorder level',
+                          prefixIcon: Icon(Icons.refresh_outlined, size: 20),
+                          helperText: 'Restock point',
+                        ),
+                        validator: optionalNumber,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            FormSectionCard(
+              title: 'Pricing & storage',
+              icon: Icons.storefront_outlined,
+              children: [
+                TextFormField(
+                  controller: _price,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  inputFormatters: [decimalInputFormatter],
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    labelText: 'Default purchase price',
+                    prefixIcon: Icon(Icons.payments_outlined, size: 20),
+                  ),
+                  validator: optionalNumber,
+                ),
+                TextFormField(
+                  controller: _location,
+                  textCapitalization: TextCapitalization.words,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    labelText: 'Default storage location',
+                    hintText: 'e.g. Shelf A-3, Main Warehouse',
+                    prefixIcon: Icon(Icons.place_outlined, size: 20),
+                  ),
+                ),
+              ],
+            ),
+            FormSectionCard(
+              title: 'Variants (optional)',
+              icon: Icons.style_outlined,
+              children: [
+                TextFormField(
+                  controller: _attrs,
+                  textCapitalization: TextCapitalization.words,
+                  textInputAction: TextInputAction.done,
+                  decoration: const InputDecoration(
+                    labelText: 'Variant attributes',
+                    helperText: 'Comma-separated, e.g. Size, Color, Flavor',
+                    prefixIcon: Icon(Icons.palette_outlined, size: 20),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 8),
-            PurchaseUnitsEditor(
-              units: inventoryProvider.units,
-              stockUnit: _stockUnit,
-              initial: _purchaseUnits,
-              onChanged: (purchaseUnits) => _purchaseUnits = purchaseUnits,
-            ),
-            TextFormField(
-              controller: _attrs,
-              decoration: const InputDecoration(
-                labelText: 'Variant attributes',
-                helperText: 'Comma-separated, e.g. size, color',
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: FilledButton.icon(
+                onPressed: _busy ? null : _save,
+                icon: _busy
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.check_circle_outline, size: 20),
+                label: Text(
+                  _busy ? 'Saving…' : (editing ? 'Update item' : 'Save item'),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ),
-            TextFormField(
-              controller: _min,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Minimum stock level',
-              ),
-              validator: optionalNumber,
-            ),
-            TextFormField(
-              controller: _reorder,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Reorder level'),
-              validator: optionalNumber,
-            ),
-            TextFormField(
-              controller: _price,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Default purchase price',
-              ),
-              validator: optionalNumber,
-            ),
-            TextFormField(
-              controller: _location,
-              decoration: const InputDecoration(
-                labelText: 'Default storage location',
-              ),
-            ),
-            const SizedBox(height: 20),
-            FilledButton(
-              onPressed: _busy ? null : _save,
-              child: Text(_busy ? 'Saving…' : 'Save'),
-            ),
+            const SizedBox(height: 24),
           ],
         ),
       ),
