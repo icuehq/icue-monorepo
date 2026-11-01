@@ -53,9 +53,9 @@ feature package, icueadmin screens (files under 500 lines), and DI registration.
 
 | Phase | Scope (FRS) | Status | Commit |
 | --- | --- | --- | --- |
-| Inv-1 | Categories, units, items, tracking methods, variants, stores (10.2–10.5) | done, not deployed | – (uncommitted) |
-| Inv-2 | Stock overview, receiving, issuance, returns, transfers, adjustments, damaged/expired/lost (10.6–10.12) | done, not deployed | – (uncommitted) |
-| Inv-3 | Purchase requests, approvals, vendors (10.13–10.14) | done, not deployed | – (uncommitted) |
+| Inv-1 | Categories, units, items, tracking methods, variants, stores (10.2–10.5) | done, not deployed | – (committed) |
+| Inv-2 | Stock overview, receiving, issuance, returns, transfers, adjustments, damaged/expired/lost (10.6–10.12) | done, not deployed | – (committed) |
+| Inv-3 | Purchase requests, approvals, vendors (10.13–10.14) | done, not deployed | – (committed) |
 | Inv-4 | Quotations, comparison, purchase orders, PO PDF (10.15–10.16) | not started | – |
 | Inv-5 | Goods receiving/inspection, vendor invoices (10.17–10.18) | not started | – |
 | Inv-6 | Assets, assignment, maintenance (10.19–10.20) | not started | – |
@@ -68,7 +68,7 @@ Inventory definition of done: FRS §31.
 
 | Phase | Scope (FRS) | Status | Commit |
 | --- | --- | --- | --- |
-| Lib-1 | Libraries, categories, catalogue (11.2–11.4) | done, not deployed | – (uncommitted) |
+| Lib-1 | Libraries, categories, catalogue (11.2–11.4) | done, not deployed | – (committed) |
 | Lib-2 | Copies, accession numbers, acquisition, barcodes (11.5–11.6) | not started | – |
 | Lib-3 | Memberships, borrowing policies (11.7–11.8) | not started | – |
 | Lib-4 | Issue, return, renewal (11.9–11.11) | not started | – |
