@@ -33,6 +33,12 @@ class _LibraryHomePageState extends State<LibraryHomePage> {
         view,
       ),
       (
+        'assets/dashboard/library-catalogue.png',
+        'Copies',
+        AppRoutes.libraryCopies,
+        p.access.can('lib.catalogue.manage'),
+      ),
+      (
         'assets/dashboard/library-categories.png',
         'Categories',
         AppRoutes.libraryCategories,

@@ -9,6 +9,7 @@ import { stock } from './inventory/stock-ops';
 import { importRun } from './inventory/import';
 import { verification } from './inventory/verification';
 import { itemSearch } from './inventory/search';
+import { copies as libCopies } from './library/copies';
 import { masters as libMasters } from './library/masters';
 import { catalogueSearch } from './library/search';
 import * as sessionFns from './session';
@@ -103,4 +104,6 @@ export const lib = {
     search: queryCallable(catalogueSearch),
   },
   seedDefaults: callable(libMasters.seedDefaults),
+  acquisition: { create: callable(libCopies.acquisitionCreate) },
+  copy: { update: callable(libCopies.copyUpdate), move: callable(libCopies.copyMove), setStatus: callable(libCopies.copySetStatus) },
 };

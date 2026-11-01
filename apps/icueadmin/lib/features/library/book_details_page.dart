@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
+import 'package:icueadmin/features/library/widgets/book_copies_section.dart';
 import 'package:icueadmin/routing/app_routes.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
@@ -94,7 +95,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                 }
               },
             ),
-          // Physical copies are listed here once copies exist (Lib-2).
+          BookCopiesSection(book: b),
         ],
       ),
     );

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:injectable/injectable.dart';
+import 'package:school_library/src/models/lib_copies.dart';
 import 'package:school_library/src/models/lib_masters.dart';
 import 'package:school_library/src/services/library_service.dart';
 
@@ -105,6 +106,20 @@ class LibraryProvider extends ChangeNotifier {
 
   Future<LibBook?> book(String id) => _service.book(id);
 
+  Future<List<LibCopy>> copiesOf(String catalogueId) =>
+      _service.copiesOf(catalogueId);
+
+  Future<LibCopy?> findCopy(String code) => _service.findCopy(code);
+
+  Future<List<LibAcquisition>> acquisitions() => _service.acquisitions();
+
+  LibLibrary? library(String? id) {
+    for (final l in libraries) {
+      if (l.id == id) return l;
+    }
+    return null;
+  }
+
   // Writes return true on success, else set [errorMessage].
 
   Future<bool> seedDefaults() =>
@@ -141,6 +156,30 @@ class LibraryProvider extends ChangeNotifier {
     () => _service.setBookActive(id, active: active),
     reload: loadBooks,
   );
+
+  /// Accession numbers of the new copies, or null (with [errorMessage]) on failure.
+  Future<List<String>?> createAcquisition(
+    Map<String, Object?> d, {
+    String? requestId,
+  }) async {
+    errorMessage = null;
+    try {
+      return await _service.createAcquisition(d, requestId: requestId);
+    } catch (e) {
+      errorMessage = _message(e);
+      notifyListeners();
+      return null;
+    }
+  }
+
+  Future<bool> updateCopy(Map<String, Object?> d) =>
+      _write(() => _service.updateCopy(d));
+
+  Future<bool> moveCopy(String id, String libraryId, String? shelf) =>
+      _write(() => _service.moveCopy(id, libraryId, shelf));
+
+  Future<bool> setCopyStatus(String id, String status, String? reason) =>
+      _write(() => _service.setCopyStatus(id, status, reason));
 
   Future<bool> _write(
     Future<void> Function() call, {

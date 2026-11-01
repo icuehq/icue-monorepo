@@ -69,7 +69,7 @@ Inventory definition of done: FRS §31.
 | Phase | Scope (FRS) | Status | Commit |
 | --- | --- | --- | --- |
 | Lib-1 | Libraries, categories, catalogue (11.2–11.4) | done, not deployed | – (committed) |
-| Lib-2 | Copies, accession numbers, acquisition, barcodes (11.5–11.6) | not started | – |
+| Lib-2 | Copies, accession numbers, acquisition, barcodes (11.5–11.6) | done, not deployed | – |
 | Lib-3 | Memberships, borrowing policies (11.7–11.8) | not started | – |
 | Lib-4 | Issue, return, renewal (11.9–11.11) | not started | – |
 | Lib-5 | Reservations, waiting lists (11.12) | not started | – |
@@ -327,6 +327,28 @@ Flutter:
 - [x] `icueadmin` screens under `features/library/` (home, libraries, categories, catalogue, book form, book details); routes `/layout.library/...`; dashboard card opens it when Node's action `routeState` contains `library`
 - [x] `melos run lint` passes; functions and rules tests pass
 
+### Lib-2
+
+Collections: `libCopies` (doc ID = accession number), `libAcquisitions`.
+
+Functions (`firebase/functions/src/library/copies.ts`, all `lib.catalogue.manage`, campus scoped through the library / copy):
+
+- [x] `lib-acquisition-create` (purchase, donation or opening stock; 1–100 copies per call; purchase needs a price, donation may be 0; active title and library only; numbering `ACQ/<fy>/<seq>`; creates one copy per unit with school-wide sequential accession numbers `ACC-000001` from `counters/ACC`, used as doc ID and barcode)
+- [x] `lib-copy-update` (shelf, condition, remarks, RFID tag unique per school via `uniqueKeys` `libRfid`), `lib-copy-move` (available copies only, to another active library on an allowed campus), `lib-copy-setStatus` (available / under maintenance / damaged / lost / withdrawn; reason for damaged, lost, withdrawn; lost and withdrawn are final; issued, reserved, in-transit untouchable)
+- [x] Tests: `test/copies.test.ts` (emulator)
+
+Rules and indexes:
+
+- [x] `firestore.rules`: `libCopies` readable with `lib.catalogue.view`; `libAcquisitions` with `lib.catalogue.manage`
+- [x] Indexes: none needed (copies by `catalogueId`, barcode and RFID tag are single-field queries; acquisitions by `createdAt`)
+- [x] Rules tests
+
+Flutter:
+
+- [x] `features/library`: `lib_copies.dart` models (`LibCopy`, `LibAcquisition`), `LibraryService` / `LibraryProvider` extended (copies of a title, find by accession / barcode / RFID, acquisitions, writes), model test
+- [x] `icueadmin` screens under `features/library/` (copies section on the book page with add-copies sheet and label printing, copy sheet with edit / move / status, Copies & acquisitions page with scan-to-find, route `/layout.library/copies`, Copies tile for librarians); labels are QR codes of the accession number via `pdf` + `printing`
+- [x] `melos run lint` passes (library, icueadmin); functions and rules tests pass
+
 ## Decisions and deviations
 
 Format: `date · phase · what changed from the architecture doc · why`.
@@ -396,6 +418,11 @@ Format: `date · phase · what changed from the architecture doc · why`.
 - 2026-11-01 · Inv-8 · Offline is for verification counts only (direct `lines` updates, saved on the device with a "syncs when online" message); submit and every other callable still need a connection. `inv-verification-count` stays for online use. Web persistent cache was not enabled.
 - 2026-11-01 · Inv-8 · Scanning resolves item code (counting) and asset ID / RFID tag (asset list); items have no separate barcode field, and library copies wait for Lib-2. Fixed RFID gate readers and RFID inventory-by-reader are not built (tags are read as keyboard input). Camera scanning is untested on a device (no native build run).
 - 2026-11-01 · Inv-8 · Export is unchanged from Inv-7 (report CSV / PDF); list-level CSV/XLSX export and downloadable import templates are not built (the import page copies the header row).
+- 2026-11-01 · Lib-2 · A copy's document ID is its accession number, generated from one school-wide counter (`ACC-000001`), not an auto ID plus a `uniqueKeys` claim · uniqueness is structural and bulk numbering needs one counter write; accession numbers cannot be typed in, and importing existing numbers waits for Lib-8 import. Barcode equals the accession number.
+- 2026-11-01 · Lib-2 · Acquisition types are purchase, donation and opening stock; transfer arrives with Lib-7 · transfers create no acquisition record. Acquisition attachments are not stored (no uploads) and a new acquisition starts from a book's page, not from the Copies page.
+- 2026-11-01 · Lib-2 · `lib-copy-setStatus` is not in the architecture's callable list; damage, loss and withdrawal can be set by hand here, while incidents and fines arrive with Lib-6 · FRS 11.5 needs these statuses now.
+- 2026-11-01 · Lib-2 · Copy issue and transfer history are not shown on the copy sheet · loans arrive with Lib-4, transfers with Lib-7; changes are in `auditLogs`.
+- 2026-11-01 · Lib-2 · Copies are readable school-wide with `lib.catalogue.view` (like the catalogue) so teachers can see where a book is; writes are campus scoped. Camera scanning of labels uses the Inventory `ScanField` and is untested on a device (no native build run).
 
 ## Open items
 

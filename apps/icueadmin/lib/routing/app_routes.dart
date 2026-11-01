@@ -286,6 +286,9 @@ abstract final class AppRoutes {
   static const String libraryBookForm = '/layout.library/catalogue/form';
   static const String libraryBookFormName = 'libraryBookForm';
 
+  static const String libraryCopies = '/layout.library/copies';
+  static const String libraryCopiesName = 'libraryCopies';
+
   static const String libraryBookDetails = '/layout.library/catalogue/details';
   static const String libraryBookDetailsName = 'libraryBookDetails';
 }

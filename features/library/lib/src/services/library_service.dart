@@ -1,5 +1,6 @@
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:injectable/injectable.dart';
+import 'package:school_library/src/models/lib_copies.dart';
 import 'package:school_library/src/models/lib_masters.dart';
 
 /// Library masters: reads from Firestore, writes through callables.
@@ -80,6 +81,39 @@ class LibraryService {
     return d.exists ? LibBook.fromMap(d.id, d.data()!) : null;
   }
 
+  /// Copies of a title across all libraries, by accession number.
+  Future<List<LibCopy>> copiesOf(String catalogueId) async {
+    final q = (await _coll('libCopies'))
+        .where('catalogueId', isEqualTo: catalogueId);
+    final snap = await q.get();
+    return [for (final d in snap.docs) LibCopy.fromMap(d.id, d.data())]
+      ..sort((a, b) => a.accessionNo.compareTo(b.accessionNo));
+  }
+
+  /// A copy by accession number, barcode or RFID tag (what a scanner reads).
+  Future<LibCopy?> findCopy(String code) async {
+    final c = code.trim();
+    final coll = await _coll('libCopies');
+    final byId = await coll.doc(c.toUpperCase()).get();
+    if (byId.exists) return LibCopy.fromMap(byId.id, byId.data()!);
+    for (final field in const ['barcode', 'rfidTag']) {
+      final r = await coll.where(field, isEqualTo: c).limit(1).get();
+      if (r.docs.isNotEmpty) {
+        return LibCopy.fromMap(r.docs.first.id, r.docs.first.data());
+      }
+    }
+    return null;
+  }
+
+  /// Latest acquisitions (newest first).
+  Future<List<LibAcquisition>> acquisitions({int limit = 100}) async {
+    final snap = await (await _coll('libAcquisitions'))
+        .orderBy('createdAt', descending: true)
+        .limit(limit)
+        .get();
+    return [for (final d in snap.docs) LibAcquisition.fromMap(d.id, d.data())];
+  }
+
   // --- writes: callables, same requestId on user retry --------------------
 
   Future<void> seedDefaults() => _call('lib-seedDefaults', {});
@@ -101,6 +135,32 @@ class LibraryService {
 
   Future<void> setBookActive(String id, {required bool active}) =>
       _call('lib-catalogue-setStatus', _status(id, active));
+
+  /// Returns the new accession numbers.
+  Future<List<String>> createAcquisition(
+    Map<String, Object?> data, {
+    String? requestId,
+  }) async {
+    final res = await callFunction(
+      'lib-acquisition-create',
+      data: data,
+      requestId: requestId,
+    ) as Map<Object?, Object?>;
+    return [for (final c in res['copyIds']! as List<Object?>) c! as String];
+  }
+
+  Future<void> updateCopy(Map<String, Object?> data) =>
+      _call('lib-copy-update', data);
+
+  Future<void> moveCopy(String id, String libraryId, String? shelf) => _call(
+    'lib-copy-move',
+    {'id': id, 'libraryId': libraryId, 'shelf': ?shelf},
+  );
+
+  Future<void> setCopyStatus(String id, String status, String? reason) => _call(
+    'lib-copy-setStatus',
+    {'id': id, 'status': status, 'reason': ?reason},
+  );
 
   Map<String, Object?> _status(String id, bool active) => {
     'id': id,

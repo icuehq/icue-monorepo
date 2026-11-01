@@ -69,6 +69,7 @@ import 'package:icueadmin/features/inventory/units_page.dart';
 import 'package:icueadmin/features/library/book_details_page.dart';
 import 'package:icueadmin/features/library/book_form_page.dart';
 import 'package:icueadmin/features/library/catalogue_page.dart';
+import 'package:icueadmin/features/library/copies_page.dart';
 import 'package:icueadmin/features/library/lib_categories_page.dart';
 import 'package:icueadmin/features/library/libraries_page.dart';
 import 'package:icueadmin/features/library/library_home_page.dart';
@@ -370,6 +371,11 @@ GoRouter createRouter({
         name: AppRoutes.libraryBookFormName,
         builder: (context, state) =>
             BookFormPage(book: state.extra as LibBook?),
+      ),
+      GoRoute(
+        path: AppRoutes.libraryCopies,
+        name: AppRoutes.libraryCopiesName,
+        builder: (context, state) => const CopiesPage(),
       ),
       GoRoute(
         path: AppRoutes.libraryBookDetails,
