@@ -78,10 +78,14 @@ melos:
 
     emulators:
       description: Start Firebase emulators; loads and saves firebase/.emulator-data (Ctrl-C saves).
-      run: firebase/scripts/emulators.sh start
+      run: firebase/scripts/emulators.sh start standard
+
+    emulators:enterprise:
+      description: Same as emulators, but the Firestore emulator runs in Enterprise edition (own data dir firebase/.emulator-data-enterprise).
+      run: firebase/scripts/emulators.sh start enterprise
 
     emulators:reset:
-      description: Delete the saved emulator data.
+      description: Delete the saved emulator data (both editions).
       run: firebase/scripts/emulators.sh reset
 
     outdated:

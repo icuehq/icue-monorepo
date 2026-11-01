@@ -34,6 +34,7 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
   late String? _parentId = widget.category?.parentId ?? widget.parentId;
   late Tracking _tracking =
       widget.category?.suggestedTracking ?? Tracking.quantity;
+  bool _codeManuallyEdited = false;
   bool _busy = false;
 
   @override
@@ -102,6 +103,19 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
           ),
           const SizedBox(height: 14),
 
+          // Name
+          TextFormField(
+            controller: _name,
+            decoration: const InputDecoration(labelText: 'Name *'),
+            validator: requiredText,
+            onChanged: (value) {
+              if (widget.category == null && !_codeManuallyEdited) {
+                _code.text = generateCategoryCode(value);
+              }
+            },
+          ),
+          const SizedBox(height: 16),
+
           // Code
           TextFormField(
             controller: _code,
@@ -112,14 +126,7 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
               helperText: editing ? null : 'Unique code (e.g. BKD, CLN)',
             ),
             validator: requiredText,
-          ),
-          const SizedBox(height: 16),
-
-          // Name
-          TextFormField(
-            controller: _name,
-            decoration: const InputDecoration(labelText: 'Name *'),
-            validator: requiredText,
+            onChanged: (value) => _codeManuallyEdited = value.trim().isNotEmpty,
           ),
           const SizedBox(height: 16),
 
@@ -182,4 +189,24 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
       ),
     );
   }
+}
+
+/// Auto-generates an uppercase category code based on the category name.
+String generateCategoryCode(String name) {
+  final clean = name.trim().toUpperCase();
+  if (clean.isEmpty) return '';
+  final words = clean
+      .split(RegExp(r'[^A-Z0-9]+'))
+      .where((w) => w.isNotEmpty)
+      .toList();
+  if (words.isEmpty) return '';
+  if (words.length == 1) {
+    return words.first.substring(0, words.first.length.clamp(0, 3));
+  }
+  if (words.length == 2) {
+    final first = words[0];
+    final second = words[1];
+    return '${first.substring(0, first.length.clamp(0, 2))}${second[0]}';
+  }
+  return words.take(4).map((w) => w[0]).join();
 }
