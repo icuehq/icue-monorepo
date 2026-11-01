@@ -39,6 +39,7 @@ import 'package:icueadmin/features/inventory/assets/assets_page.dart';
 import 'package:icueadmin/features/inventory/assets/maintenance_page.dart';
 import 'package:icueadmin/features/inventory/categories_page.dart';
 import 'package:icueadmin/features/inventory/insights/dashboard_page.dart';
+import 'package:icueadmin/features/inventory/insights/import_page.dart';
 import 'package:icueadmin/features/inventory/insights/report_page.dart';
 import 'package:icueadmin/features/inventory/insights/reports_page.dart';
 import 'package:icueadmin/features/inventory/insights/verification_page.dart';
@@ -306,6 +307,11 @@ GoRouter createRouter({
         name: AppRoutes.inventoryReportName,
         builder: (context, state) =>
             InventoryReportPage(def: state.extra! as ReportDef),
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryImport,
+        name: AppRoutes.inventoryImportName,
+        builder: (context, state) => const ImportPage(),
       ),
       GoRoute(
         path: AppRoutes.inventoryVerifications,

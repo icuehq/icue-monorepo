@@ -3,6 +3,7 @@ import 'package:icueadmin/features/inventory/assets/asset_action_sheet.dart';
 import 'package:icueadmin/features/inventory/assets/asset_label.dart';
 import 'package:icueadmin/features/inventory/assets/asset_ui.dart';
 import 'package:icueadmin/features/inventory/assets/maintenance_form_sheet.dart';
+import 'package:icueadmin/features/inventory/assets/rfid_sheet.dart';
 import 'package:icueadmin/features/inventory/stock/stock_ui.dart';
 import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
 import 'package:inventory/inventory.dart';
@@ -94,6 +95,7 @@ class _AssetSheetState extends State<AssetSheet> {
           'Dispose',
           () => AssetActionSheet(asset: a, action: AssetAction.retire),
         ),
+      if (manage && !a.isRetired) ('RFID tag', () => RfidSheet(asset: a)),
       if (manage && !a.isRetired && a.status != 'lost' && !a.inMaintenance)
         ('Report fault', () => MaintenanceFormSheet(asset: a)),
     ];
@@ -111,6 +113,7 @@ class _AssetSheetState extends State<AssetSheet> {
         const SizedBox(height: 8),
         _row('Condition', statusLabel(a.condition)),
         _row('Serial', a.serialNo),
+        _row('RFID tag', a.rfidTag),
         _row('Make / model', [a.make, a.model].whereType<String>().join(' ')),
         _row('Location', a.location),
         _row('Held by', a.assignedTo?.label),

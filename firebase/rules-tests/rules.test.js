@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { assertFails, assertSucceeds, initializeTestEnvironment } from '@firebase/rules-unit-testing';
-import { collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, where } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from 'firebase/firestore';
 import { getBytes, ref, uploadString } from 'firebase/storage';
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
 
@@ -335,6 +335,9 @@ describe('verification and reports (Inv-7)', () => {
     env.withSecurityRulesDisabled(async (ctx) => {
       const fs = ctx.firestore();
       const acc = (perms, cmp = [31]) => ({ perms, cmp, all: false });
+      await setDoc(doc(fs, 'schools/12/userAccess/p_count'), acc(['inv.stock.view', 'inv.stock.operate']));
+      await setDoc(doc(fs, 'schools/12/invVerifications/v2'), { campusId: 31, status: 'submitted' });
+      await setDoc(doc(fs, 'schools/12/invVerifications/v2/lines/l1'), { campusId: 31, expected: 3 });
       await setDoc(doc(fs, 'schools/12/userAccess/p_stock'), acc(['inv.stock.view']));
       await setDoc(doc(fs, 'schools/12/userAccess/p_rep'), acc(['inv.reports.view']));
       await setDoc(doc(fs, 'schools/12/userAccess/p_far'), acc(['inv.stock.view', 'inv.reports.view'], [99]));
@@ -345,12 +348,24 @@ describe('verification and reports (Inv-7)', () => {
     }),
   );
 
-  it('stock viewers on the campus read sessions and lines; counting is never a client write', async () => {
+  it('stock viewers on the campus read sessions and lines; stock viewers cannot count', async () => {
     for (const path of ['invVerifications/v1', 'invVerifications/v1/lines/l1']) {
       await assertSucceeds(getDoc(doc(db('p_stock'), `schools/12/${path}`)));
       await assertFails(getDoc(doc(db('p_far'), `schools/12/${path}`)));
     }
-    await assertFails(setDoc(doc(db('p_stock'), 'schools/12/invVerifications/v1/lines/l1'), { counted: 3 }));
+    await assertFails(updateDoc(doc(db('p_stock'), 'schools/12/invVerifications/v1/lines/l1'), { counted: 3, diff: 0, countedBy: 'p_stock' }));
+  });
+
+  it('operators count lines of a counting session (offline-queued writes), nothing else', async () => {
+    const line = (uid, v = 'v1') => doc(db(uid), `schools/12/invVerifications/${v}/lines/l1`);
+    const count = { counted: 5, diff: 2, reason: 'excess', countedBy: 'p_count' };
+    await assertSucceeds(updateDoc(line('p_count'), count));
+    await assertFails(updateDoc(line('p_count'), { ...count, diff: 1 })); // diff must match expected
+    await assertFails(updateDoc(line('p_count'), { ...count, countedBy: 'p_stock' }));
+    await assertFails(updateDoc(line('p_count'), { ...count, expected: 99 })); // snapshot is not editable
+    await assertFails(updateDoc(line('p_count'), { ...count, reason: 'because' }));
+    await assertFails(updateDoc(line('p_count', 'v2'), count)); // session no longer counting
+    await assertFails(updateDoc(line('p_far'), count));
   });
 
   it('report viewers read the campus records of every report collection and the vendors', async () => {

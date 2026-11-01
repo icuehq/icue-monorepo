@@ -2,7 +2,7 @@ import '../region';
 import { DocumentData, DocumentReference, FieldValue } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import type { Ctx } from '../shared/callable';
-import { claimUniqueKey, nextNumber } from '../shared/keys';
+import { claimUniqueKey, nextNumber, uniqueKeyRef } from '../shared/keys';
 import { def, failed, id, missing, note, usable } from '../shared/masters';
 import { day, lineKey, person, qty, Stock, todayIST } from './stock';
 
@@ -193,6 +193,23 @@ export const assets = {
       ctx.update(ref, patch);
       hist(ctx, ref, d, 'condition', { condition: i.condition, status: i.status ?? d.status, remarks: i.remarks ?? null });
       ctx.audit({ action: 'invAsset.setCondition', ref: ref.path, before: { status: d.status, condition: d.condition }, after: { status: patch.status ?? d.status, condition: i.condition } });
+      return { id: ref.id };
+    },
+  }),
+
+  /** Assigns (or clears with `null`) the RFID tag. A tag belongs to one asset; scans resolve it by equality on `rfidTag`. */
+  setRfid: def({
+    name: 'inv.asset.setRfid',
+    perm: 'inv.assets.manage',
+    input: z.object({ id, rfidTag: z.string().trim().min(1).max(64).nullable() }),
+    handler: async (ctx, i) => {
+      const { ref, d } = await loadAsset(ctx, i.id);
+      if (['retired', 'disposed'].includes(d.status)) throw failed(`Asset is ${d.status}`);
+      if (i.rfidTag) await claimUniqueKey(ctx, 'invRfid', i.rfidTag, ref.path);
+      if (d.rfidTag && d.rfidTag.toLowerCase() !== i.rfidTag?.toLowerCase()) ctx.delete(uniqueKeyRef(ctx, 'invRfid', d.rfidTag));
+      ctx.update(ref, { rfidTag: i.rfidTag, updatedAt: UP() });
+      hist(ctx, ref, d, 'rfid', { rfidTag: i.rfidTag });
+      ctx.audit({ action: 'invAsset.setRfid', ref: ref.path, before: { rfidTag: d.rfidTag ?? null }, after: { rfidTag: i.rfidTag } });
       return { id: ref.id };
     },
   }),

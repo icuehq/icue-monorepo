@@ -46,6 +46,7 @@ class InvAsset {
     this.activeAssignmentId,
     this.activeMaintenanceId,
     this.nextServiceDate,
+    this.rfidTag,
   });
 
   factory InvAsset.fromMap(String id, Map<String, dynamic> m) => InvAsset(
@@ -71,6 +72,7 @@ class InvAsset {
     activeAssignmentId: m['activeAssignmentId'] as String?,
     activeMaintenanceId: m['activeMaintenanceId'] as String?,
     nextServiceDate: m['nextServiceDate'] as String?,
+    rfidTag: m['rfidTag'] as String?,
   );
 
   final String id;
@@ -97,6 +99,7 @@ class InvAsset {
   final String? activeAssignmentId;
   final String? activeMaintenanceId;
   final String? nextServiceDate;
+  final String? rfidTag;
 
   static const statuses = [
     'available',

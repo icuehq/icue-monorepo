@@ -401,3 +401,71 @@ const dashboardStats = <(String, String, List<String>)>[
   ('assets', 'Registered assets', ['inv.assets.view']),
   ('maint', 'Assets under maintenance', ['inv.assets.view']),
 ];
+
+/// Parses RFC 4180 CSV (quoted cells, `""` escapes, CRLF) into maps keyed by the header row.
+/// Blank lines are skipped; header names are trimmed.
+List<Map<String, String>> parseCsv(String text) {
+  final rows = <List<String>>[];
+  var row = <String>[];
+  final cell = StringBuffer();
+  var quoted = false;
+  void endCell() {
+    row.add(cell.toString());
+    cell.clear();
+  }
+
+  void endRow() {
+    endCell();
+    if (row.any((c) => c.trim().isNotEmpty)) rows.add(row);
+    row = [];
+  }
+
+  for (var i = 0; i < text.length; i++) {
+    final c = text[i];
+    if (quoted) {
+      if (c != '"') {
+        cell.write(c);
+      } else if (i + 1 < text.length && text[i + 1] == '"') {
+        cell.write('"');
+        i++;
+      } else {
+        quoted = false;
+      }
+    } else if (c == '"') {
+      quoted = true;
+    } else if (c == ',') {
+      endCell();
+    } else if (c == '\n') {
+      endRow();
+    } else if (c != '\r') {
+      cell.write(c);
+    }
+  }
+  endRow();
+  if (rows.isEmpty) return [];
+  final header = [for (final h in rows.first) h.trim()];
+  return [
+    for (final r in rows.skip(1))
+      {
+        for (var k = 0; k < header.length; k++)
+          header[k]: k < r.length ? r[k].trim() : '',
+      },
+  ];
+}
+
+/// Columns of each import type (`inv-import-run`); the first row of the pasted CSV.
+const importColumns = <String, List<String>>{
+  'categories': ['code', 'name', 'tracking', 'parentCode'],
+  'stores': ['code', 'name', 'campusId', 'location'],
+  'items': [
+    'code',
+    'name',
+    'categoryCode',
+    'stockUnit',
+    'tracking',
+    'minLevel',
+    'reorderLevel',
+    'defaultPrice',
+  ],
+  'vendors': ['code', 'name', 'contactPerson', 'phone', 'email', 'taxNo'],
+};

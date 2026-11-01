@@ -6,6 +6,7 @@ import { orders } from './inventory/orders';
 import { procurement } from './inventory/procurement';
 import { invoices, receiving } from './inventory/receiving';
 import { stock } from './inventory/stock-ops';
+import { importRun } from './inventory/import';
 import { verification } from './inventory/verification';
 import { itemSearch } from './inventory/search';
 import { masters as libMasters } from './library/masters';
@@ -78,6 +79,7 @@ const assetFns = {
     transfer: callable(assets.transfer),
     return: callable(assets.return),
     setCondition: callable(assets.setCondition),
+    setRfid: callable(assets.setRfid),
     retire: callable(assets.retire),
   },
   maintenance: { save: callable(maintenance.save), setStatus: callable(maintenance.setStatus) },
@@ -90,7 +92,7 @@ const verificationFns = {
     decide: callable(verification.decide),
   },
 };
-export const inv = { ...masterFns, ...stockFns, ...procurementFns, ...assetFns, ...verificationFns, seedDefaults: callable(masters.seedDefaults) };
+export const inv = { ...masterFns, ...stockFns, ...procurementFns, ...assetFns, ...verificationFns, seedDefaults: callable(masters.seedDefaults), import: { run: importRun } };
 
 export const lib = {
   library: { upsert: callable(libMasters.libraryUpsert), setStatus: callable(libMasters.librarySetStatus) },

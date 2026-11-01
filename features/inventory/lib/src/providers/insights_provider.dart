@@ -83,6 +83,21 @@ class InsightsProvider extends ChangeNotifier {
     }
   });
 
+  /// Saves counts directly to Firestore; false with [errorMessage] set on failure, false without it when only queued offline.
+  Future<bool> saveCounts(
+    InvVerification v,
+    List<(VerificationLine, num, String?)> counts,
+  ) async {
+    errorMessage = null;
+    try {
+      return await _service.saveCounts(v, counts);
+    } catch (e) {
+      errorMessage = _message(e);
+      notifyListeners();
+      return false;
+    }
+  }
+
   /// Runs a callable; returns its result or null with [errorMessage] set.
   Future<Map<String, dynamic>?> act(
     String fn,

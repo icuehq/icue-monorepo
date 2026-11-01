@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:icueadmin/features/inventory/stock/stock_ui.dart';
 import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
+import 'package:icueadmin/features/inventory/widgets/scan_field.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -65,18 +66,40 @@ class _VerificationPageState extends State<VerificationPage> {
     if (res != null) await _load();
   }
 
-  Future<void> _save(List<VerificationLine> lines) =>
-      _act('inv-verification-count', {
-        'lines': [
-          for (final l in lines)
-            if (_counted(l) != null)
-              {
-                'balanceId': l.balanceId,
-                'counted': _counted(l),
-                'reason': _reasons[l.balanceId],
-              },
-        ],
-      }, 'Counts saved');
+  /// Counts go straight to Firestore, so they are kept on the device while offline.
+  /// True only when the server has them (submitting needs that).
+  Future<bool> _save(List<VerificationLine> lines) async {
+    setState(() => _busy = true);
+    final p = context.read<InsightsProvider>();
+    final synced = await p.saveCounts(_v, [
+      for (final l in lines)
+        if (_counted(l) case final c?) (l, c, _reasons[l.balanceId]),
+    ]);
+    if (!mounted) return false;
+    setState(() => _busy = false);
+    invSnack(
+      context,
+      p.errorMessage ??
+          (synced ? 'Counts saved' : 'Saved on this device; syncs when online'),
+    );
+    return synced;
+  }
+
+  /// A scanned item code adds one to the first line of that item that still needs it.
+  void _scanned(String code, List<VerificationLine> lines) {
+    final p = context.read<InsightsProvider>();
+    final hits = [
+      for (final l in lines)
+        if (p.items[l.itemId]?.code.toLowerCase() == code.toLowerCase()) l,
+    ];
+    if (hits.isEmpty) return invSnack(context, 'No line for "$code"');
+    final l = hits.firstWhere(
+      (l) => _counted(l) == null,
+      orElse: () => hits.first,
+    );
+    setState(() => _counts[l.balanceId]!.text = '${(_counted(l) ?? 0) + 1}');
+    invSnack(context, '${p.itemName(l.itemId)}: ${_counted(l)}');
+  }
 
   Future<void> _decide(String decision) async {
     final c = TextEditingController();
@@ -140,8 +163,7 @@ class _VerificationPageState extends State<VerificationPage> {
                     onPressed: _busy
                         ? null
                         : () async {
-                            await _save(p.lines);
-                            if (mounted && p.errorMessage == null) {
+                            if (await _save(p.lines) && mounted) {
                               await _act(
                                 'inv-verification-submit',
                                 {},
@@ -190,6 +212,15 @@ class _VerificationPageState extends State<VerificationPage> {
                     ].join('\n'),
                   ),
                 ),
+                if (editable)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: ScanField(
+                      hint: 'Scan item code to count',
+                      clearOnScan: true,
+                      onScan: (c) => _scanned(c, p.lines),
+                    ),
+                  ),
                 for (final l in p.lines) _line(l, p, editable),
               ],
             ),

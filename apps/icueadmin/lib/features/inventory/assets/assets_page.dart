@@ -4,6 +4,7 @@ import 'package:icueadmin/features/inventory/assets/asset_sheet.dart';
 import 'package:icueadmin/features/inventory/assets/asset_ui.dart';
 import 'package:icueadmin/features/inventory/stock/stock_ui.dart';
 import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
+import 'package:icueadmin/features/inventory/widgets/scan_field.dart';
 import 'package:icueadmin/routing/app_routes.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
@@ -37,6 +38,22 @@ class _AssetsPageState extends State<AssetsPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
+  /// A scan opens the asset with that ID or RFID tag, even outside the loaded list.
+  Future<void> _scanned(String code) async {
+    final p = context.read<AssetsProvider>();
+    final a = await p.findByCode(
+      context.read<InventoryProvider>().access,
+      code,
+    );
+    if (!mounted) return;
+    if (a == null) {
+      invSnack(context, p.errorMessage ?? 'No asset "$code"');
+      return;
+    }
+    await showInvSheet(context, () => AssetSheet(asset: a));
+    if (mounted) await _load();
+  }
+
   @override
   Widget build(BuildContext context) {
     final p = context.watch<AssetsProvider>();
@@ -49,7 +66,8 @@ class _AssetsPageState extends State<AssetsPage> {
         if (q.isEmpty ||
             a.assetId.toLowerCase().contains(q) ||
             a.name.toLowerCase().contains(q) ||
-            (a.serialNo ?? '').toLowerCase().contains(q))
+            (a.serialNo ?? '').toLowerCase().contains(q) ||
+            (a.rfidTag ?? '').toLowerCase().contains(q))
           a,
     ];
     return Scaffold(
@@ -79,12 +97,10 @@ class _AssetsPageState extends State<AssetsPage> {
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
             child: Column(
               children: [
-                TextField(
-                  decoration: const InputDecoration(
-                    hintText: 'Search asset ID, name or serial',
-                    prefixIcon: Icon(Icons.search),
-                  ),
+                ScanField(
+                  hint: 'Search or scan asset ID, tag, name or serial',
                   onChanged: (v) => setState(() => _search = v.trim()),
+                  onScan: _scanned,
                 ),
                 DropdownButton<String?>(
                   isExpanded: true,

@@ -49,6 +49,35 @@ class InsightsService {
     return [for (final d in snap.docs) VerificationLine.fromMap(d.data())];
   }
 
+  /// Writes counts straight to the lines (rules check them), so Firestore queues them while offline.
+  /// Returns false when the server has not confirmed within a few seconds (the write stays queued).
+  Future<bool> saveCounts(
+    InvVerification v,
+    List<(VerificationLine, num, String?)> counts,
+  ) async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final lines = (await _coll('invVerifications'))
+        .doc(v.id)
+        .collection('lines');
+    final batch = FirebaseFirestore.instance.batch();
+    for (final (l, counted, reason) in counts) {
+      final diff = counted - l.expected;
+      batch.update(lines.doc(l.balanceId), {
+        'counted': counted,
+        'diff': diff,
+        'reason': diff == 0 ? null : reason,
+        'countedBy': uid,
+        'countedAt': FieldValue.serverTimestamp(),
+      });
+    }
+    var synced = true;
+    await batch.commit().timeout(
+      const Duration(seconds: 4),
+      onTimeout: () => synced = false,
+    );
+    return synced;
+  }
+
   /// Dashboard figures for the campuses (or the one [storeId]'s campus) the user may see.
   /// A figure the user's permissions cannot read is null.
   Future<Map<String, num?>> dashboard(InvAccess a, {InvStore? store}) async {

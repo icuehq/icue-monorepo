@@ -15,6 +15,27 @@ void main() {
     );
   });
 
+  test(
+    'CSV parses what toCsv writes, plus CRLF, blank lines and short rows',
+    () {
+      final text = toCsv(
+        ['code', 'name'],
+        [
+          ['A', 'say "hi", ok'],
+          ['B', 'two\nlines'],
+        ],
+      );
+      expect(parseCsv(text), [
+        {'code': 'A', 'name': 'say "hi", ok'},
+        {'code': 'B', 'name': 'two\nlines'},
+      ]);
+      expect(parseCsv(' code , name \r\n\r\nX\r\n'), [
+        {'code': 'X', 'name': ''},
+      ]);
+      expect(parseCsv(''), isEmpty);
+    },
+  );
+
   test('verification line difference is counted minus expected', () {
     const l = VerificationLine(
       balanceId: 'b',

@@ -41,6 +41,21 @@ class AssetsService {
     return m == null ? null : InvAsset.fromMap(d.id, m);
   }
 
+  /// A scan: the asset whose ID or RFID tag equals [code] on the user's campuses, or null.
+  Future<InvAsset?> findByCode(InvAccess a, String code) async {
+    for (final field in ['assetId', 'rfidTag']) {
+      final q = _scoped(
+        (await _coll('invAssets')).where(field, isEqualTo: code),
+        a,
+      );
+      final snap = await q?.limit(1).get();
+      if (snap != null && snap.docs.isNotEmpty) {
+        return InvAsset.fromMap(snap.docs.first.id, snap.docs.first.data());
+      }
+    }
+    return null;
+  }
+
   Future<List<InvAssignment>> assignments(InvAccess a, String assetId) async {
     final q = _scoped(
       (await _coll('invAssetAssignments')).where('assetId', isEqualTo: assetId),

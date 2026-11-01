@@ -260,6 +260,8 @@ abstract final class AppRoutes {
   static const String inventoryInvoices = '/layout.inventory/invoices';
   static const String inventoryInvoicesName = 'inventoryInvoices';
 
+  static const String inventoryImport = '/layout.inventory/import';
+  static const String inventoryImportName = 'inventoryImport';
   static const String inventoryAssets = '/layout.inventory/assets';
   static const String inventoryAssetsName = 'inventoryAssets';
 

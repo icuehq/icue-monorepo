@@ -65,6 +65,16 @@ class AssetsProvider extends ChangeNotifier {
     }
   }
 
+  /// Resolves a scanned asset ID or RFID tag; null when unknown (or the read fails, with [errorMessage] set).
+  Future<InvAsset?> findByCode(InvAccess a, String code) async {
+    try {
+      return await _service.findByCode(a, code.trim());
+    } catch (e) {
+      errorMessage = _message(e);
+      return null;
+    }
+  }
+
   /// Names for [itemIds] (parts and registered items).
   Future<void> loadItemNames(Iterable<String> itemIds) async {
     final need = itemIds.where((i) => !items.containsKey(i));

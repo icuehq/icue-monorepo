@@ -1,7 +1,7 @@
 rules_version = '2';
 
 // Clients read; all writes go through Cloud Functions (Admin SDK bypasses rules).
-// Exceptions: own device tokens/mute, and (later) verification count lines.
+// Exceptions: own device tokens/mute, and verification count lines (offline counting, Inv-8).
 service cloud.firestore {
   match /databases/{db}/documents {
     function signedIn() { return request.auth != null; }
@@ -100,12 +100,21 @@ service cloud.firestore {
       allow read: if inSchool(sid) && ((can(sid, 'inv.assets.view') && onCampus(sid, resource.data.campusId)) || own());
     }
 
-    // Verification sessions (Inv-7): stock users on the campus; counting is a callable (offline counting is Inv-8).
+    // Verification sessions (Inv-7): stock users on the campus; counting is also a direct line update so it queues offline.
     match /schools/{sid}/invVerifications/{id} {
       allow read: if inSchool(sid) && can(sid, 'inv.stock.view') && onCampus(sid, resource.data.campusId);
     }
     match /schools/{sid}/invVerifications/{id}/lines/{l} {
       allow read: if inSchool(sid) && can(sid, 'inv.stock.view') && onCampus(sid, resource.data.campusId);
+      // Count only: the same fields `inv-verification-count` writes, while the session is still `counting`.
+      allow update: if inSchool(sid) && can(sid, 'inv.stock.operate') && onCampus(sid, resource.data.campusId)
+        && get(/databases/$(db)/documents/schools/$(sid)/invVerifications/$(id)).data.status == 'counting'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['counted', 'diff', 'reason', 'note', 'countedBy', 'countedAt'])
+        && request.resource.data.counted is number && request.resource.data.counted >= 0
+        && request.resource.data['diff'] == request.resource.data.counted - resource.data.expected
+        && request.resource.data.countedBy == request.auth.uid
+        && (request.resource.data.reason == null
+            || request.resource.data.reason in ['count_correction', 'missing', 'excess', 'other']);
     }
 
     // Reports and the dashboard (Inv-7): report viewers read the campus's records in every report collection.

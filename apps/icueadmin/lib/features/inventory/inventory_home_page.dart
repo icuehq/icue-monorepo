@@ -40,6 +40,14 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
         a.can('inv.stock.view'),
       ),
       (
+        'assets/dashboard/inventory-items.png',
+        'Import',
+        AppRoutes.inventoryImport,
+        a.can('inv.settings') ||
+            a.can('inv.items.manage') ||
+            a.can('inv.vendors.manage'),
+      ),
+      (
         'assets/dashboard/inventory-purchase-orders.png',
         'Reports',
         AppRoutes.inventoryReports,

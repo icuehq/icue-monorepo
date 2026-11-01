@@ -60,7 +60,7 @@ feature package, icueadmin screens (files under 500 lines), and DI registration.
 | Inv-5 | Goods receiving/inspection, vendor invoices (10.17–10.18) | done, not deployed | – |
 | Inv-6 | Assets, assignment, maintenance (10.19–10.20) | done, not deployed | – |
 | Inv-7 | Stock verification, reports, notifications, dashboard (10.1, 10.21–10.23) | done, not deployed | – |
-| Inv-8 | Scanning, RFID, offline, import/export (§11, §14, §9) | not started | – |
+| Inv-8 | Scanning, RFID, offline, import/export (§11, §14, §9) | done, not deployed | – |
 
 Inventory definition of done: FRS §31.
 
@@ -283,6 +283,25 @@ Flutter:
 - [x] `icueadmin` screens under `features/inventory/insights/` (dashboard with store filter, report catalogue + report view with date range, status, search, totals, CSV copy and PDF, verification list/create and count/submit/approve page); routes `/layout.inventory/{dashboard,reports,reports/view,verifications,verifications/view}`; Dashboard, Stock verification and Reports tiles on the Inventory home
 - [x] `melos run lint` passes (inventory, icueadmin); functions and rules tests pass
 
+### Inv-8
+
+Functions (`firebase/functions/src/inventory/`):
+
+- [x] `inv-asset-setRfid` (`inv.assets.manage`; tag unique per school via `uniqueKeys` `invRfid`, moving or clearing releases the old one)
+- [x] `inv-import-run` (`import.ts`; plain callable: each CSV row runs the single-record callable with request ID `<importId>-<row>`, so every rule and permission applies; types categories, stores, items, vendors; 200 rows per call)
+- [x] Tests: `test/import.test.ts` (emulator)
+
+Rules:
+
+- [x] `firestore.rules`: operators with `inv.stock.operate` update verification lines directly (count fields only, session `counting`, `diff` = counted − expected, `countedBy` = caller) so counts queue offline
+- [x] Rules tests
+
+Flutter:
+
+- [x] `features/inventory`: `parseCsv` + `importColumns`, `InvAsset.rfidTag`, `AssetsService.findByCode` (asset ID or RFID tag), `InsightsService.saveCounts` (direct line writes), model tests
+- [x] `icueadmin`: `widgets/scan_field.dart` (keyboard-wedge field + camera via `mobile_scanner`), scan-to-count in the verification page (offline save), scan/search on the asset list, RFID sheet, Import page (`/layout.inventory/import`, Import tile); `NSCameraUsageDescription` added
+- [x] `melos run lint` passes (inventory, icueadmin); functions and rules tests pass
+
 ### Lib-1
 
 Collections: `libLibraries`, `libCategories`, `libCatalogue` (title-level; copies arrive in Lib-2).
@@ -373,6 +392,10 @@ Format: `date · phase · what changed from the architecture doc · why`.
 - 2026-11-01 · Inv-7 · Dashboard has store filter only (campus follows the store); category, date range and academic year filters are not built · balances carry no category and counts are live aggregation queries. Low / out-of-stock count balance lines (item × batch), not items; expiring is the next 30 days. "Pending approvals" = pending purchase requests + issue requests; "pending goods receipts" = orders issued / acknowledged with nothing received.
 - 2026-11-01 · Inv-7 · Reports are one generic screen over the campus-scoped collection: server filters are date range (`createdAt`; expiry uses the expiry date) and status, other filters (item, store, vendor, person, type) are the search box over the loaded rows (500 max) · avoids a composite index per filter. Export is CSV copied to the clipboard and PDF through the print dialog; no Excel file. Vendors and recipients show IDs where documents store no name. Item-wise stock is a per-balance view, not a date-pinned snapshot.
 - 2026-11-01 · Inv-7 · Notifications: "inventory manager" and "storekeeper" are everyone with `inv.stock.operate` on the campus, "asset manager" `inv.assets.manage`, "procurement officer" `inv.procure.operate` · permissions, not role names. Near-expiry and overdue-PO reminders repeat weekly, warranty once per end date, service-due once per date. The 60-day token cleanup from §7.2 is not built.
+- 2026-11-01 · Inv-8 · Import is `inv-import-run` over CSV rows pasted in the app, not `import.validate` / `import.commit` + `importWorker` + xlsx · no staged preview, import history or overwrite; existing codes are rejected per row. Types: categories, stores, items (by `categoryCode`), vendors; opening stock, assets and library types are not importable. Re-run safety comes from the per-row request ID.
+- 2026-11-01 · Inv-8 · Offline is for verification counts only (direct `lines` updates, saved on the device with a "syncs when online" message); submit and every other callable still need a connection. `inv-verification-count` stays for online use. Web persistent cache was not enabled.
+- 2026-11-01 · Inv-8 · Scanning resolves item code (counting) and asset ID / RFID tag (asset list); items have no separate barcode field, and library copies wait for Lib-2. Fixed RFID gate readers and RFID inventory-by-reader are not built (tags are read as keyboard input). Camera scanning is untested on a device (no native build run).
+- 2026-11-01 · Inv-8 · Export is unchanged from Inv-7 (report CSV / PDF); list-level CSV/XLSX export and downloadable import templates are not built (the import page copies the header row).
 
 ## Open items
 
