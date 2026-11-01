@@ -73,7 +73,7 @@ Inventory definition of done: FRS §31.
 | Lib-3 | Memberships, borrowing policies (11.7–11.8) | done, not deployed | abb3f9d |
 | Lib-4 | Issue, return, renewal (11.9–11.11) | done, not deployed | 04fe97f |
 | Lib-5 | Reservations, waiting lists (11.12) | done, not deployed | – |
-| Lib-6 | Fines, lost and damaged books (11.13–11.14) | done, not deployed | – |
+| Lib-6 | Fines, lost and damaged books (11.13–11.14) | done, not deployed | 44c1383 |
 | Lib-7 | Inter-library transfers, stock verification (11.15–11.16) | not started | – |
 | Lib-8 | Reports, notifications, dashboard, import/export, parent view (11.1, 11.17–11.18) | not started | – |
 
