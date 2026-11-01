@@ -47,6 +47,11 @@ export const incidents = {
       if (copy.status === 'lost' || copy.status === 'withdrawn') {
         throw failed(`Copy is already ${copy.status}`);
       }
+      if (copy.activeLoanId || copy.heldReservationId) {
+        throw failed('Copy is on loan or held; use Mark lost / return as damaged, or release the hold first');
+      }
+      const open = await ctx.tx.get(ctx.coll('libIncidents').where('copyId', '==', i.copyId).where('status', '==', 'open').limit(1));
+      if (!open.empty) throw failed('Copy already has an open incident');
 
       let member: Record<string, unknown> | null = null;
       let mRef = null;
@@ -149,17 +154,21 @@ export const incidents = {
       if (!cSnap.exists) throw missing('libCopy');
       const copy = cSnap.data()!;
 
+      if (i.resolution === 'repaired' && d.kind !== 'damaged') throw failed('Only a damaged copy can be repaired');
+      const charge = i.charge ?? d.charge ?? 0;
+      if (charge < (d.charge ?? 0)) throw failed('Charge cannot be lowered on resolve; waive the fine instead');
+
       let repairStatus = d.repairStatus;
-      if (i.resolution === 'repaired') {
-        repairStatus = 'repaired';
-        await release(ctx, cRef, copy);
+      if (i.resolution === 'repaired' || i.resolution === 'dismissed') {
+        // dismissed = no fault found (or the lost book turned up): back to shelf unless already withdrawn
+        if (i.resolution === 'repaired') repairStatus = 'repaired';
+        if (copy.status === 'damaged' || copy.status === 'lost') await release(ctx, cRef, copy);
       } else if (i.resolution === 'written_off') {
         repairStatus = 'writeoff';
         ctx.update(cRef, { status: 'withdrawn', updatedAt: UP() });
       }
 
       // If additional charge is levied and member is on incident and not already charged
-      const charge = i.charge ?? d.charge ?? 0;
       if (charge > (d.charge ?? 0) && d.memberId) {
         const diff = charge - (d.charge ?? 0);
         const mRef = ctx.doc(`libMembers/${d.memberId}`);

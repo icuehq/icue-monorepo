@@ -182,4 +182,20 @@ describe('library fines and incidents', () => {
     await run(incidents.resolve, { id: res.id, resolution: 'written_off', remarks: 'Pages ruined' });
     expect(await get('libCopies/ACC-000002')).toMatchObject({ status: 'withdrawn' });
   });
+
+  it('incident guards: on-loan copy, duplicate open incident, repair of lost, charge reduction; dismissed restores copy', async () => {
+    const r = await issue();
+    await expect(run(incidents.incidentReport, { copyId: 'ACC-000001', kind: 'lost' })).rejects.toThrow(/on loan/);
+
+    const inc = await run(incidents.incidentReport, { copyId: 'ACC-000002', kind: 'damaged', charge: 40, memberId: 'student_501' });
+    await expect(run(incidents.incidentReport, { copyId: 'ACC-000002', kind: 'damaged' })).rejects.toThrow(/open incident/);
+    await expect(run(incidents.resolve, { id: inc.id, resolution: 'dismissed', charge: 10 })).rejects.toThrow(/lowered/);
+
+    await run(incidents.resolve, { id: inc.id, resolution: 'dismissed' });
+    expect(await get('libCopies/ACC-000002')).toMatchObject({ status: 'available' });
+
+    await run(loans.loanMarkLost, { id: r.id });
+    const lost = (await db().collection(`schools/${SID}/libIncidents`).where('kind', '==', 'lost').get()).docs[0];
+    await expect(run(incidents.resolve, { id: lost.id, resolution: 'repaired' })).rejects.toThrow(/damaged copy/);
+  });
 });

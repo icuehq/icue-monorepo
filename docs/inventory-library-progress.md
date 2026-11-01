@@ -530,6 +530,7 @@ Format: `date · phase · what changed from the architecture doc · why`.
 - 2026-11-01 · Lib-5 · Reservations can only be placed when all copies are unavailable (issued, reserved, under maintenance or damaged); available copies must be issued directly · prevents members queuing when a book is ready on the shelf. Queue position is computed as index in the created-ordered waiting list, not stored.
 - 2026-11-01 · Lib-6 · Unblocking member is evaluated when fines are settled (waived in full or paid in full) · if no other outstanding fines exist for the member, the member is unblocked immediately in the same transaction.
 - 2026-11-01 · Lib-6 · Incident resolution 'repaired' triggers reservation queue release · if reservations are waiting for that title, the repaired copy fulfills the next waiting reservation rather than going idle on the shelf.
+- 2026-11-01 · Lib-6 · `lib-incident-report` refuses a copy that is on loan or held, or that already has an open incident; `repaired` is only for damaged copies; `dismissed` (no fault, or the lost book turned up) sends a damaged or lost copy back through the reservation queue/shelf; the charge cannot be lowered on resolve (waive the fine instead) · closes orphaned-loan and duplicate-incident holes found in review. Damage on a held copy cannot be reported until the hold is released.
 
 ## Open items
 
