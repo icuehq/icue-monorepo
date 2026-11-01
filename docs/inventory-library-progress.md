@@ -55,7 +55,7 @@ feature package, icueadmin screens (files under 500 lines), and DI registration.
 | --- | --- | --- | --- |
 | Inv-1 | Categories, units, items, tracking methods, variants, stores (10.2–10.5) | done, not deployed | – (uncommitted) |
 | Inv-2 | Stock overview, receiving, issuance, returns, transfers, adjustments, damaged/expired/lost (10.6–10.12) | done, not deployed | – (uncommitted) |
-| Inv-3 | Purchase requests, approvals, vendors (10.13–10.14) | not started | – |
+| Inv-3 | Purchase requests, approvals, vendors (10.13–10.14) | done, not deployed | – (uncommitted) |
 | Inv-4 | Quotations, comparison, purchase orders, PO PDF (10.15–10.16) | not started | – |
 | Inv-5 | Goods receiving/inspection, vendor invoices (10.17–10.18) | not started | – |
 | Inv-6 | Assets, assignment, maintenance (10.19–10.20) | not started | – |
@@ -170,6 +170,29 @@ Flutter:
 - [x] `icueadmin` screens under `features/inventory/stock/` (stock overview with movement history / adjust / report, receive, issue requests with approve / issue / acknowledge / return, transfers, damaged-expired register); routes `/layout.inventory/{stock,requests,transfers,unavailable}`
 - [x] `melos run lint` passes (inventory, icueadmin); functions and rules tests pass
 
+### Inv-3
+
+Collections: `invVendors`, `invPurchaseRequests` (approval history kept in `history`).
+
+Functions (`firebase/functions/src/inventory/procurement.ts`):
+
+- [x] `inv-vendor-upsert`, `inv-vendor-setStatus` (`inv.vendors.manage`); unique code via `uniqueKeys`; deactivated vendors rejected as an item's preferred vendor
+- [x] `inv-pr-save` (create / edit draft or returned request, optional `submit`), `inv-pr-submit`, `inv-pr-decide` (approve / reject / revise; comment required unless approving), `inv-pr-cancel` (request is kept; blocked once quantity is ordered)
+- [x] Numbering `PR/<fy>/<seq>`; only the requester edits, submits and cancels; campus scoped; outbox events to approvers (on submit), requester (on decision) and procurement (on approval)
+- [x] Tests: `test/procurement.test.ts` (emulator)
+
+Rules and indexes:
+
+- [x] `firestore.rules`: vendors readable with `inv.vendors.manage` or `inv.procure.operate`; purchase requests by their requester, or by approvers / procurement on the campus; `inv.pr.request` may browse items
+- [x] `firestore.indexes.json`: purchase requests by campus + status + `createdAt`, by `createdBy` + `createdAt`
+- [x] Rules tests
+
+Flutter:
+
+- [x] `features/inventory`: `inv_procurement.dart` models, `ProcurementService`, `ProcurementProvider`, DI, model tests
+- [x] `icueadmin` screens under `features/inventory/procurement/` (vendors with form, purchase requests with filter / detail / approve actions, request form); routes `/layout.inventory/{vendors,purchase-requests}`
+- [x] `melos run lint` passes; functions and rules tests pass
+
 ### Lib-1
 
 Collections: `libLibraries`, `libCategories`, `libCatalogue` (title-level; copies arrive in Lib-2).
@@ -232,6 +255,11 @@ Format: `date · phase · what changed from the architecture doc · why`.
 - 2026-11-01 · Inv-2 · `belowReorder` compares one balance's available quantity with the item's reorder level (per batch, not per item) · ceiling; Inv-7 dashboards can aggregate per item.
 - 2026-11-01 · Inv-2 · `invStores` is readable school-wide (no campus filter) · a transfer must name a destination store on another campus; writes stay campus-scoped.
 - 2026-11-01 · Inv-2 · Recipients, returning persons and requesters are entered as ERP IDs; receipts, returns and adjustments have no list screen (their movements show in stock history) · Node person pickers are not confirmed; documents are retained in Firestore.
+- 2026-11-01 · Inv-3 · Vendor purchase history, quotations, POs and invoices (FRS 10.14 "view") wait for Inv-4/5 · those records do not exist yet. Vendor documents are stored as an empty list until uploads exist; vendors are listed and filtered client-side (no `search` mirror) · the list is small.
+- 2026-11-01 · Inv-3 · Requesting department and request attachments are not captured in the app (`departmentId` is accepted by `inv-pr-save`, `attachments` stored empty) · no department picker (Node endpoint unconfirmed) and no uploads yet.
+- 2026-11-01 · Inv-3 · The item form does not set the preferred vendor yet; `inv-item-upsert` validates it when sent · deferred from Inv-1, add a vendor dropdown when asked.
+- 2026-11-01 · Inv-3 · An approver may decide a request they raised themselves; there is no second approval level · matches the single-level issue approval; add a self-approval block if the school asks.
+- 2026-11-01 · Inv-3 · Purchase requests may include asset-tracked items (unlike stock callables) · assets are bought like anything else; only stock movements reject them. Statuses `partially_ordered`, `ordered`, `completed` are set by Inv-4/5 (`qtyOrdered` per line).
 
 ## Open items
 

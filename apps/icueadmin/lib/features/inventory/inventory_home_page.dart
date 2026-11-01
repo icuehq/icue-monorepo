@@ -58,6 +58,20 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
             a.can('inv.stock.view'),
       ),
       (
+        Icons.shopping_cart_rounded,
+        'Purchase requests',
+        AppRoutes.inventoryPurchaseRequests,
+        a.can('inv.pr.request') ||
+            a.can('inv.pr.approve') ||
+            a.can('inv.procure.operate'),
+      ),
+      (
+        Icons.storefront_rounded,
+        'Vendors',
+        AppRoutes.inventoryVendors,
+        a.can('inv.vendors.manage') || a.can('inv.procure.operate'),
+      ),
+      (
         Icons.warehouse_rounded,
         'Stores',
         AppRoutes.inventoryStores,

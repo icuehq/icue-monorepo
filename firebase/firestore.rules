@@ -33,10 +33,10 @@ service cloud.firestore {
     // Inventory masters (Inv-1).
     match /schools/{sid}/{coll}/{id} {
       allow read: if inSchool(sid) && coll in ['invCategories', 'invUnits', 'invItems']
-        && (can(sid, 'inv.items.view') || can(sid, 'inv.issue.request'));
+        && (can(sid, 'inv.items.view') || can(sid, 'inv.issue.request') || can(sid, 'inv.pr.request'));
     }
     match /schools/{sid}/invItems/{itemId}/variants/{id} {
-      allow read: if inSchool(sid) && (can(sid, 'inv.items.view') || can(sid, 'inv.issue.request'));
+      allow read: if inSchool(sid) && (can(sid, 'inv.items.view') || can(sid, 'inv.issue.request') || can(sid, 'inv.pr.request'));
     }
     // Stores are readable school-wide so a transfer can name a destination on another campus.
     match /schools/{sid}/invStores/{id} {
@@ -59,6 +59,16 @@ service cloud.firestore {
     match /schools/{sid}/invTransfers/{id} {
       allow read: if inSchool(sid) && can(sid, 'inv.stock.view')
         && (onCampus(sid, resource.data.campusId) || onCampus(sid, resource.data.toCampusId));
+    }
+
+    // Procurement (Inv-3). Vendors are school-wide; requesters see their own requests,
+    // approvers and procurement the campus's.
+    match /schools/{sid}/invVendors/{id} {
+      allow read: if inSchool(sid) && (can(sid, 'inv.vendors.manage') || can(sid, 'inv.procure.operate'));
+    }
+    match /schools/{sid}/invPurchaseRequests/{id} {
+      allow read: if inSchool(sid) && (resource.data.createdBy == request.auth.uid
+        || ((can(sid, 'inv.pr.approve') || can(sid, 'inv.procure.operate')) && onCampus(sid, resource.data.campusId)));
     }
 
     // Library masters (Lib-1): catalogue is school-wide, readable by anyone who may browse it.

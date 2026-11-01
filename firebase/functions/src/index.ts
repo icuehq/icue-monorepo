@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase-admin/app';
 import './region';
 import { masters } from './inventory/masters';
+import { procurement } from './inventory/procurement';
 import { stock } from './inventory/stock-ops';
 import { itemSearch } from './inventory/search';
 import { masters as libMasters } from './library/masters';
@@ -41,7 +42,16 @@ const stockFns = {
   adjustment: { create: callable(stock.adjustmentCreate) },
   unavailable: { report: callable(stock.unavailableReport), resolve: callable(stock.unavailableResolve) },
 };
-export const inv = { ...masterFns, ...stockFns, seedDefaults: callable(masters.seedDefaults) };
+const procurementFns = {
+  vendor: { upsert: callable(procurement.vendorUpsert), setStatus: callable(procurement.vendorSetStatus) },
+  pr: {
+    save: callable(procurement.prSave),
+    submit: callable(procurement.prSubmit),
+    decide: callable(procurement.prDecide),
+    cancel: callable(procurement.prCancel),
+  },
+};
+export const inv = { ...masterFns, ...stockFns, ...procurementFns, seedDefaults: callable(masters.seedDefaults) };
 
 export const lib = {
   library: { upsert: callable(libMasters.libraryUpsert), setStatus: callable(libMasters.librarySetStatus) },

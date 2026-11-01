@@ -220,3 +220,40 @@ describe('storage', () => {
     await assertFails(uploadString(ref(st('u_1'), 'schools/12/inv/invItems/i1/b.png'), 'x'));
   });
 });
+
+describe('procurement (Inv-3)', () => {
+  beforeEach(() =>
+    env.withSecurityRulesDisabled(async (ctx) => {
+      const fs = ctx.firestore();
+      const acc = (perms, cmp = [31]) => ({ perms, cmp, all: false });
+      await setDoc(doc(fs, 'schools/12/userAccess/p_req'), acc(['inv.pr.request']));
+      await setDoc(doc(fs, 'schools/12/userAccess/p_apr'), acc(['inv.pr.approve']));
+      await setDoc(doc(fs, 'schools/12/userAccess/p_proc'), acc(['inv.procure.operate']));
+      await setDoc(doc(fs, 'schools/12/userAccess/p_ven'), acc(['inv.vendors.manage']));
+      await setDoc(doc(fs, 'schools/12/userAccess/p_32'), acc(['inv.pr.approve'], [32]));
+      await setDoc(doc(fs, 'schools/12/invPurchaseRequests/pr1'), { campusId: 31, createdBy: 'p_req' });
+      await setDoc(doc(fs, 'schools/12/invVendors/v1'), { name: 'v' });
+      await setDoc(doc(fs, 'schools/12/invItems/i'), { name: 'i' });
+    }),
+  );
+
+  it('purchase requests: requester sees own, approvers and procurement the campus', async () => {
+    const pr = (u) => getDoc(doc(db(u), 'schools/12/invPurchaseRequests/pr1'));
+    await assertSucceeds(pr('p_req'));
+    await assertSucceeds(pr('p_apr'));
+    await assertSucceeds(pr('p_proc'));
+    await assertFails(pr('p_32'));
+    await assertFails(pr('p_ven'));
+    await assertFails(getDoc(doc(db('p_apr', { ...staff, sid: 13 }), 'schools/12/invPurchaseRequests/pr1')));
+    await assertSucceeds(getDocs(query(collection(db('p_req'), 'schools/12/invPurchaseRequests'), where('createdBy', '==', 'p_req'))));
+    await assertFails(setDoc(doc(db('p_req'), 'schools/12/invPurchaseRequests/pr1'), { status: 'approved' }));
+  });
+
+  it('vendors: vendor managers and procurement only, never writable; requesters can browse items', async () => {
+    await assertSucceeds(getDoc(doc(db('p_ven'), 'schools/12/invVendors/v1')));
+    await assertSucceeds(getDoc(doc(db('p_proc'), 'schools/12/invVendors/v1')));
+    await assertFails(getDoc(doc(db('p_req'), 'schools/12/invVendors/v1')));
+    await assertFails(setDoc(doc(db('p_ven'), 'schools/12/invVendors/v1'), { name: 'x' }));
+    await assertSucceeds(getDoc(doc(db('p_req'), 'schools/12/invItems/i')));
+  });
+});

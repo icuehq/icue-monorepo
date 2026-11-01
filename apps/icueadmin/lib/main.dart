@@ -59,6 +59,7 @@ class _IcueAdminAppState extends State<IcueAdminApp> {
   late final DriverProvider _driverProvider;
   late final InventoryProvider _inventoryProvider;
   late final StockProvider _stockProvider;
+  late final ProcurementProvider _procurementProvider;
   late final LibraryProvider _libraryProvider;
   late final VehicleProvider _vehicleProvider;
   late final RoutesProvider _routesProvider;
@@ -82,6 +83,7 @@ class _IcueAdminAppState extends State<IcueAdminApp> {
     _driverProvider = getIt<DriverProvider>();
     _inventoryProvider = getIt<InventoryProvider>();
     _stockProvider = getIt<StockProvider>();
+    _procurementProvider = getIt<ProcurementProvider>();
     _libraryProvider = getIt<LibraryProvider>();
     _vehicleProvider = getIt<VehicleProvider>();
     _routesProvider = getIt<RoutesProvider>();
@@ -185,6 +187,9 @@ class _IcueAdminAppState extends State<IcueAdminApp> {
           value: _inventoryProvider,
         ),
         ChangeNotifierProvider<StockProvider>.value(value: _stockProvider),
+        ChangeNotifierProvider<ProcurementProvider>.value(
+          value: _procurementProvider,
+        ),
         ChangeNotifierProvider<LibraryProvider>.value(value: _libraryProvider),
         ChangeNotifierProvider<VehicleProvider>.value(value: _vehicleProvider),
         ChangeNotifierProvider<RoutesProvider>.value(value: _routesProvider),

@@ -39,6 +39,9 @@ import 'package:icueadmin/features/inventory/inventory_home_page.dart';
 import 'package:icueadmin/features/inventory/item_details_page.dart';
 import 'package:icueadmin/features/inventory/item_form_page.dart';
 import 'package:icueadmin/features/inventory/items_page.dart';
+import 'package:icueadmin/features/inventory/procurement/purchase_request_form_page.dart';
+import 'package:icueadmin/features/inventory/procurement/purchase_requests_page.dart';
+import 'package:icueadmin/features/inventory/procurement/vendors_page.dart';
 import 'package:icueadmin/features/inventory/stock/issue_request_form_page.dart';
 import 'package:icueadmin/features/inventory/stock/issue_requests_page.dart';
 import 'package:icueadmin/features/inventory/stock/receive_page.dart';
@@ -206,6 +209,23 @@ GoRouter createRouter({
         path: AppRoutes.inventoryRequestForm,
         name: AppRoutes.inventoryRequestFormName,
         builder: (context, state) => const IssueRequestFormPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryVendors,
+        name: AppRoutes.inventoryVendorsName,
+        builder: (context, state) => const VendorsPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryPurchaseRequests,
+        name: AppRoutes.inventoryPurchaseRequestsName,
+        builder: (context, state) => const PurchaseRequestsPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryPurchaseRequestForm,
+        name: AppRoutes.inventoryPurchaseRequestFormName,
+        builder: (context, state) => PurchaseRequestFormPage(
+          existing: state.extra as InvPurchaseRequest?,
+        ),
       ),
       GoRoute(
         path: AppRoutes.inventoryTransfers,

@@ -77,7 +77,6 @@ export const masters = {
       minLevel: amount,
       reorderLevel: amount,
       defaultPrice: amount,
-      // ponytail: vendor existence is not checked until `invVendors` exists (Inv-3).
       preferredVendorId: id.nullish(),
       defaultLocation: note,
     }),
@@ -93,6 +92,9 @@ export const masters = {
           if (i.subcategoryId) {
             const sub = usable(await ctx.tx.get(ctx.doc(`invCategories/${i.subcategoryId}`)), 'Subcategory', before?.subcategoryId === i.subcategoryId);
             if (sub.parentId !== i.categoryId) throw failed('Subcategory does not belong to the category');
+          }
+          if (i.preferredVendorId) {
+            usable(await ctx.tx.get(ctx.doc(`invVendors/${i.preferredVendorId}`)), 'Vendor', before?.preferredVendorId === i.preferredVendorId);
           }
           const units = new Set([i.stockUnit, ...i.purchaseUnits.map((p) => p.unit)]);
           if (i.purchaseUnits.some((p) => p.unit === i.stockUnit)) throw failed('Purchase unit equals the stock unit');

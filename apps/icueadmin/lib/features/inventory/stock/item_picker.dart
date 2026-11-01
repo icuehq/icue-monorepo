@@ -4,14 +4,18 @@ import 'package:provider/provider.dart';
 
 typedef PickedItem = ({InvItem item, InvVariant? variant});
 
-/// Search-and-pick dialog for stock lines. Asset-tracked items are managed in Assets, so they are hidden.
-Future<PickedItem?> pickItem(BuildContext context) async {
+/// Search-and-pick dialog for stock lines. Asset-tracked items are managed in Assets, so they are hidden
+/// unless [assets] (purchase requests can ask for them).
+Future<PickedItem?> pickItem(
+  BuildContext context, {
+  bool assets = false,
+}) async {
   final p = context.read<InventoryProvider>();
   await p.loadItems(search: '', clearCategory: true);
   if (!context.mounted) return null;
   final item = await showDialog<InvItem>(
     context: context,
-    builder: (_) => const _PickerDialog(),
+    builder: (_) => _PickerDialog(assets: assets),
   );
   if (item == null || item.variantAttrs.isEmpty || !context.mounted) {
     return item == null ? null : (item: item, variant: null);
@@ -40,13 +44,15 @@ Future<PickedItem?> pickItem(BuildContext context) async {
 }
 
 class _PickerDialog extends StatelessWidget {
-  const _PickerDialog();
+  const _PickerDialog({required this.assets});
+
+  final bool assets;
 
   @override
   Widget build(BuildContext context) {
     final p = context.watch<InventoryProvider>();
     final items = p.items
-        .where((i) => i.active && i.tracking != Tracking.asset)
+        .where((i) => i.active && (assets || i.tracking != Tracking.asset))
         .toList();
     return Dialog(
       child: SizedBox(
