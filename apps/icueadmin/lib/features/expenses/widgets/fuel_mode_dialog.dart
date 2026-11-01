@@ -25,10 +25,9 @@ class FuelModeDialog extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           _ModeTile(
-            icon: Icons.local_gas_station_rounded,
+            iconAsset: 'assets/dashboard/expense-fuel.png',
             title: 'Commercial Fuel Station',
             subtitle: 'External petrol pump / retail filling',
-            color: Colors.blue,
             onTap: () {
               Navigator.of(context).pop();
               onSelect(FuelModeAction.fuelStation);
@@ -36,10 +35,9 @@ class FuelModeDialog extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           _ModeTile(
-            icon: Icons.play_circle_fill_rounded,
+            iconAsset: 'assets/dashboard/fuel-start-filling.png',
             title: 'Start Campus Self-Filling',
             subtitle: 'Begin dispensing from internal campus fuel pump',
-            color: Colors.green,
             onTap: () {
               Navigator.of(context).pop();
               onSelect(FuelModeAction.selfFilling);
@@ -47,10 +45,9 @@ class FuelModeDialog extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           _ModeTile(
-            icon: Icons.stop_circle_rounded,
+            iconAsset: 'assets/dashboard/fuel-end-filling.png',
             title: 'End Campus Self-Filling',
             subtitle: 'Record final gauge reading and finish session',
-            color: Colors.deepOrange,
             onTap: () {
               Navigator.of(context).pop();
               onSelect(FuelModeAction.endFilling);
@@ -70,17 +67,15 @@ class FuelModeDialog extends StatelessWidget {
 
 class _ModeTile extends StatelessWidget {
   const _ModeTile({
-    required this.icon,
+    required this.iconAsset,
     required this.title,
     required this.subtitle,
-    required this.color,
     required this.onTap,
   });
 
-  final IconData icon;
+  final String iconAsset;
   final String title;
   final String subtitle;
-  final Color color;
   final VoidCallback onTap;
 
   @override
@@ -96,11 +91,7 @@ class _ModeTile extends StatelessWidget {
         ),
         child: Row(
           children: [
-            CircleAvatar(
-              radius: 20,
-              backgroundColor: color.withValues(alpha: 0.12),
-              child: Icon(icon, color: color, size: 22),
-            ),
+            Image.asset(iconAsset, width: 42, height: 42, fit: BoxFit.contain),
             const SizedBox(width: 12),
             Expanded(
               child: Column(

@@ -17,12 +17,12 @@ class OptionsPage extends StatefulWidget {
 }
 
 class _OptionsPageState extends State<OptionsPage> {
-  static const Map<String, IconData> _iconMap = {
-    'fuel': Icons.local_gas_station_rounded,
-    'tyres': Icons.tire_repair_rounded,
-    'maintenance': Icons.build_circle_outlined,
-    'salary': Icons.account_balance_wallet_outlined,
-    'battery': Icons.battery_charging_full_rounded,
+  static const Map<String, String> _assetMap = {
+    'fuel': 'assets/dashboard/expense-fuel.png',
+    'tyres': 'assets/dashboard/expense-tyres.png',
+    'maintenance': 'assets/dashboard/expense-maintenance.png',
+    'salary': 'assets/dashboard/expense-salary.png',
+    'battery': 'assets/dashboard/expense-battery.png',
   };
 
   @override
@@ -142,9 +142,11 @@ class _OptionsPageState extends State<OptionsPage> {
             clipBehavior: Clip.antiAlias,
             child: ExpansionTile(
               initiallyExpanded: true,
-              leading: const Icon(
-                Icons.receipt_long_rounded,
-                color: Colors.blue,
+              leading: Image.asset(
+                'assets/dashboard/manage-expense.png',
+                width: 36,
+                height: 36,
+                fit: BoxFit.contain,
               ),
               title: const Text(
                 'Record Expense',
@@ -159,24 +161,26 @@ class _OptionsPageState extends State<OptionsPage> {
                   )
                 else
                   ...expenseTypes.map((type) {
-                    final icon = _iconMap[type.code] ?? Icons.payment_rounded;
+                    final asset =
+                        _assetMap[type.code] ??
+                        'assets/dashboard/manage-expense.png';
                     return ListTile(
                       contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20,
+                        horizontal: 16,
                         vertical: 4,
                       ),
-                      leading: CircleAvatar(
-                        radius: 16,
-                        backgroundColor: Colors.blue.shade50,
-                        child: Icon(
-                          icon,
-                          color: Colors.blue.shade700,
-                          size: 18,
-                        ),
+                      leading: Image.asset(
+                        asset,
+                        width: 38,
+                        height: 38,
+                        fit: BoxFit.contain,
                       ),
                       title: Text(
                         type.expenseTypeDesc,
-                        style: const TextStyle(fontWeight: FontWeight.w600),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                        ),
                       ),
                       trailing: const Icon(
                         Icons.arrow_forward_ios_rounded,

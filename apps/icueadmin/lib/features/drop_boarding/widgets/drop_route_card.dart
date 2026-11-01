@@ -35,17 +35,11 @@ class DropRouteCard extends StatelessWidget {
         onChanged: onChanged,
         title: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                Icons.directions_bus_rounded,
-                color: theme.colorScheme.primary,
-                size: 24,
-              ),
+            Image.asset(
+              'assets/dashboard/vehicles.png',
+              width: 44,
+              height: 44,
+              fit: BoxFit.contain,
             ),
             const SizedBox(width: 12),
             Expanded(
