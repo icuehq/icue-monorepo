@@ -291,4 +291,10 @@ abstract final class AppRoutes {
 
   static const String libraryBookDetails = '/layout.library/catalogue/details';
   static const String libraryBookDetailsName = 'libraryBookDetails';
+
+  static const String libraryMembers = '/layout.library/members';
+  static const String libraryMembersName = 'libraryMembers';
+
+  static const String libraryPolicies = '/layout.library/policies';
+  static const String libraryPoliciesName = 'libraryPolicies';
 }

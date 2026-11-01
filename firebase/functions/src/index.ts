@@ -11,6 +11,7 @@ import { verification } from './inventory/verification';
 import { itemSearch } from './inventory/search';
 import { copies as libCopies } from './library/copies';
 import { masters as libMasters } from './library/masters';
+import { members as libMembers } from './library/members';
 import { catalogueSearch } from './library/search';
 import * as sessionFns from './session';
 import { callable, queryCallable } from './shared/callable';
@@ -106,4 +107,6 @@ export const lib = {
   seedDefaults: callable(libMasters.seedDefaults),
   acquisition: { create: callable(libCopies.acquisitionCreate) },
   copy: { update: callable(libCopies.copyUpdate), move: callable(libCopies.copyMove), setStatus: callable(libCopies.copySetStatus) },
+  policy: { upsert: callable(libMembers.policyUpsert), setStatus: callable(libMembers.policySetStatus) },
+  member: { upsert: callable(libMembers.memberUpsert), setStatus: callable(libMembers.memberSetStatus) },
 };

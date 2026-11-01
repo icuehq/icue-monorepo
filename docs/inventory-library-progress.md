@@ -70,7 +70,7 @@ Inventory definition of done: FRS §31.
 | --- | --- | --- | --- |
 | Lib-1 | Libraries, categories, catalogue (11.2–11.4) | done, not deployed | – (committed) |
 | Lib-2 | Copies, accession numbers, acquisition, barcodes (11.5–11.6) | done, not deployed | – |
-| Lib-3 | Memberships, borrowing policies (11.7–11.8) | not started | – |
+| Lib-3 | Memberships, borrowing policies (11.7–11.8) | done, not deployed | – |
 | Lib-4 | Issue, return, renewal (11.9–11.11) | not started | – |
 | Lib-5 | Reservations, waiting lists (11.12) | not started | – |
 | Lib-6 | Fines, lost and damaged books (11.13–11.14) | not started | – |
@@ -349,6 +349,28 @@ Flutter:
 - [x] `icueadmin` screens under `features/library/` (copies section on the book page with add-copies sheet and label printing, copy sheet with edit / move / status, Copies & acquisitions page with scan-to-find, route `/layout.library/copies`, Copies tile for librarians); labels are QR codes of the accession number via `pdf` + `printing`
 - [x] `melos run lint` passes (library, icueadmin); functions and rules tests pass
 
+### Lib-3
+
+Collections: `libMembers` (doc ID `<student|teacher>_<erpId>`), `libPolicies` (doc ID `<libraryId>_<memberCategory>`).
+
+Functions (`firebase/functions/src/library/members.ts`):
+
+- [x] `lib-policy-upsert`, `lib-policy-setStatus` (`lib.settings`; one policy per library and member category; library campus scoped; fine needs an amount; restricted categories must exist; inactive library only for existing policies)
+- [x] `lib-member-upsert`, `lib-member-setStatus` (`lib.circulation.operate`; deterministic ID so no duplicate members; every library active and on an allowed campus; `campusIds` derived; `activeLoans` and `blocked` kept on edit)
+- [x] Tests: `test/members.test.ts` (emulator)
+
+Rules and indexes:
+
+- [x] `firestore.rules`: `libMembers` and `libPolicies` readable with `lib.members.view`
+- [x] `firestore.indexes.json`: `libMembers` by `memberType` + `erpId`
+- [x] Rules tests
+
+Flutter:
+
+- [x] `features/library`: `lib_members.dart` models (`LibPolicy`, `LibMember`), `LibraryService` / `LibraryProvider` extended (policies, paged members, exact lookup, writes), model test
+- [x] `icueadmin` screens under `features/library/` (Members page with student/teacher switch, ERP ID lookup and enrol/edit sheet; Borrowing policies page with edit sheet); routes `/layout.library/{members,policies}`; Members and Borrowing policies tiles
+- [x] `melos run lint` passes (library, icueadmin); functions and rules tests pass
+
 ## Decisions and deviations
 
 Format: `date · phase · what changed from the architecture doc · why`.
@@ -423,6 +445,11 @@ Format: `date · phase · what changed from the architecture doc · why`.
 - 2026-11-01 · Lib-2 · `lib-copy-setStatus` is not in the architecture's callable list; damage, loss and withdrawal can be set by hand here, while incidents and fines arrive with Lib-6 · FRS 11.5 needs these statuses now.
 - 2026-11-01 · Lib-2 · Copy issue and transfer history are not shown on the copy sheet · loans arrive with Lib-4, transfers with Lib-7; changes are in `auditLogs`.
 - 2026-11-01 · Lib-2 · Copies are readable school-wide with `lib.catalogue.view` (like the catalogue) so teachers can see where a book is; writes are campus scoped. Camera scanning of labels uses the Inventory `ScanField` and is untested on a device (no native build run).
+- 2026-11-01 · Lib-3 · Member category is a free key (`primary`, `teacher`) matched to a policy by `<libraryId>_<category>`, not a separate master · FRS lists categories only as policy keys; a member without a matching active policy is flagged in the list and refused at issue in Lib-4. Policy library and category cannot change after creation (make a new policy and deactivate the old one).
+- 2026-11-01 · Lib-3 · Members are enrolled by typing the ERP ID (class ID optional), shown as "Student #id" · only IDs are stored; no student/staff pickers until the Node endpoints are confirmed. There is no bulk enrolment from a class list (Lib-8 import).
+- 2026-11-01 · Lib-3 · Borrowing history, outstanding books and outstanding fines (FRS 11.7) are not shown yet · loans arrive with Lib-4 and fines with Lib-6; the list shows `activeLoans` only. `blocked` is stored false and set by fines in Lib-6. The membership end date is stored but not enforced until issue (Lib-4); the expiring-membership notification arrives with `dailyLibrary`.
+- 2026-11-01 · Lib-3 · Members and policies are readable school-wide with `lib.members.view` (librarian, principal, admin); writes are campus scoped through the library · teachers do not see the member list.
+- 2026-11-01 · Lib-3 · Member search is an exact ERP ID lookup (a miss opens the enrol sheet); the list is paged by ERP ID per type · IDs are the only identity stored, so there is no name search.
 
 ## Open items
 

@@ -3,6 +3,7 @@ import 'package:icue_firebase/icue_firebase.dart';
 import 'package:injectable/injectable.dart';
 import 'package:school_library/src/models/lib_copies.dart';
 import 'package:school_library/src/models/lib_masters.dart';
+import 'package:school_library/src/models/lib_members.dart';
 import 'package:school_library/src/services/library_service.dart';
 
 @lazySingleton
@@ -14,6 +15,7 @@ class LibraryProvider extends ChangeNotifier {
   LibAccess access = const LibAccess();
   List<LibLibrary> libraries = [];
   List<LibCategory> categories = [];
+  List<LibPolicy> policies = [];
   bool isLoading = false;
   String? errorMessage;
 
@@ -25,6 +27,21 @@ class LibraryProvider extends ChangeNotifier {
   String? bookCategoryId;
   DocumentSnapshot<Map<String, dynamic>>? _cursor;
   int _searchOffset = 0;
+
+  // Member list (paged, one type at a time).
+  final List<LibMember> members = [];
+  bool membersLoading = false;
+  bool hasMoreMembers = false;
+  String memberType = 'student';
+  DocumentSnapshot<Map<String, dynamic>>? _memberCursor;
+
+  /// The policy a member of [category] gets in [libraryId], if one is set up.
+  LibPolicy? policyFor(String libraryId, String category) {
+    for (final p in policies) {
+      if (p.libraryId == libraryId && p.memberCategory == category) return p;
+    }
+    return null;
+  }
 
   LibCategory? category(String? id) {
     for (final c in categories) {
@@ -46,9 +63,11 @@ class LibraryProvider extends ChangeNotifier {
       final r = await Future.wait([
         _service.libraries(),
         _service.categories(),
+        if (access.can('lib.members.view')) _service.policies(),
       ]);
       libraries = r[0] as List<LibLibrary>;
       categories = r[1] as List<LibCategory>;
+      policies = r.length > 2 ? r[2] as List<LibPolicy> : [];
     } catch (e) {
       errorMessage = _message(e);
     } finally {
@@ -103,6 +122,33 @@ class LibraryProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  /// (Re)loads the first page of [type] members, or the next one when [more] is true.
+  Future<void> loadMembers({bool more = false, String? type}) async {
+    if (membersLoading || (more && !hasMoreMembers)) return;
+    if (!more) {
+      memberType = type ?? memberType;
+      _memberCursor = null;
+    }
+    membersLoading = true;
+    errorMessage = null;
+    notifyListeners();
+    try {
+      final page = await _service.members(memberType, after: _memberCursor);
+      if (!more) members.clear();
+      members.addAll(page.items);
+      _memberCursor = page.cursor;
+      hasMoreMembers = page.hasMore;
+    } catch (e) {
+      errorMessage = _message(e);
+    } finally {
+      membersLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<LibMember?> member(String type, int erpId) =>
+      _service.member(type, erpId);
 
   Future<LibBook?> book(String id) => _service.book(id);
 
@@ -180,6 +226,28 @@ class LibraryProvider extends ChangeNotifier {
 
   Future<bool> setCopyStatus(String id, String status, String? reason) =>
       _write(() => _service.setCopyStatus(id, status, reason));
+
+  Future<bool> savePolicy(Map<String, Object?> d, {String? requestId}) =>
+      _write(
+        () => _service.savePolicy(d, requestId: requestId),
+        reload: loadMasters,
+      );
+
+  Future<bool> setPolicyActive(String id, {required bool active}) => _write(
+    () => _service.setPolicyActive(id, active: active),
+    reload: loadMasters,
+  );
+
+  Future<bool> saveMember(Map<String, Object?> d, {String? requestId}) =>
+      _write(
+        () => _service.saveMember(d, requestId: requestId),
+        reload: loadMembers,
+      );
+
+  Future<bool> setMemberActive(String id, {required bool active}) => _write(
+    () => _service.setMemberActive(id, active: active),
+    reload: loadMembers,
+  );
 
   Future<bool> _write(
     Future<void> Function() call, {

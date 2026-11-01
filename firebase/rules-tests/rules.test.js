@@ -167,7 +167,8 @@ describe('library masters', () => {
       const fs = ctx.firestore();
       await setDoc(doc(fs, 'schools/12/userAccess/u_4'), { perms: ['lib.catalogue.view'], cmp: [31], all: false });
       await setDoc(doc(fs, 'schools/12/userAccess/u_5'), { perms: ['lib.catalogue.manage'], cmp: [31], all: false });
-      for (const c of ['libLibraries', 'libCategories', 'libCatalogue', 'libCopies', 'libAcquisitions']) await setDoc(doc(fs, `schools/12/${c}/a`), { name: 'a' });
+      await setDoc(doc(fs, 'schools/12/userAccess/u_6'), { perms: ['lib.members.view'], cmp: [31], all: false });
+      for (const c of ['libLibraries', 'libCategories', 'libCatalogue', 'libCopies', 'libAcquisitions', 'libMembers', 'libPolicies']) await setDoc(doc(fs, `schools/12/${c}/a`), { name: 'a' });
     }),
   );
 
@@ -184,6 +185,15 @@ describe('library masters', () => {
     await assertSucceeds(getDoc(doc(db('u_5'), 'schools/12/libAcquisitions/a')));
     await assertFails(getDoc(doc(db('u_4'), 'schools/12/libAcquisitions/a')));
     await assertFails(setDoc(doc(db('u_5'), 'schools/12/libAcquisitions/a'), { qty: 1 }));
+  });
+
+  it('members and policies: lib.members.view only, never writable', async () => {
+    for (const p of ['libMembers/a', 'libPolicies/a']) {
+      await assertSucceeds(getDoc(doc(db('u_6'), `schools/12/${p}`)));
+      await assertFails(getDoc(doc(db('u_4'), `schools/12/${p}`)));
+      await assertFails(getDoc(doc(db('u_6', { ...staff, sid: 13 }), `schools/12/${p}`)));
+      await assertFails(setDoc(doc(db('u_6'), `schools/12/${p}`), { name: 'x' }));
+    }
   });
 });
 

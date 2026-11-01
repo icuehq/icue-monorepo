@@ -2,6 +2,7 @@ import 'package:icue_firebase/icue_firebase.dart';
 import 'package:injectable/injectable.dart';
 import 'package:school_library/src/models/lib_copies.dart';
 import 'package:school_library/src/models/lib_masters.dart';
+import 'package:school_library/src/models/lib_members.dart';
 
 /// Library masters: reads from Firestore, writes through callables.
 @lazySingleton
@@ -114,6 +115,30 @@ class LibraryService {
     return [for (final d in snap.docs) LibAcquisition.fromMap(d.id, d.data())];
   }
 
+  Future<List<LibPolicy>> policies() async =>
+      (await _all('libPolicies', LibPolicy.fromMap))
+        ..sort((a, b) => a.name.compareTo(b.name));
+
+  /// A page of members of one type by ERP ID.
+  Future<PagedResult<LibMember>> members(
+    String memberType, {
+    DocumentSnapshot<Map<String, dynamic>>? after,
+  }) async => fetchPage(
+    (await _coll('libMembers'))
+        .where('memberType', isEqualTo: memberType)
+        .orderBy('erpId'),
+    (d) => LibMember.fromMap(d.id, d.data()!),
+    after: after,
+  );
+
+  /// One member by type and ERP ID (the member ID is `<type>_<erpId>`).
+  Future<LibMember?> member(String memberType, int erpId) async {
+    final d = await (await _coll('libMembers'))
+        .doc('${memberType}_$erpId')
+        .get();
+    return d.exists ? LibMember.fromMap(d.id, d.data()!) : null;
+  }
+
   // --- writes: callables, same requestId on user retry --------------------
 
   Future<void> seedDefaults() => _call('lib-seedDefaults', {});
@@ -161,6 +186,18 @@ class LibraryService {
     'lib-copy-setStatus',
     {'id': id, 'status': status, 'reason': ?reason},
   );
+
+  Future<void> savePolicy(Map<String, Object?> data, {String? requestId}) =>
+      _call('lib-policy-upsert', data, requestId);
+
+  Future<void> setPolicyActive(String id, {required bool active}) =>
+      _call('lib-policy-setStatus', _status(id, active));
+
+  Future<void> saveMember(Map<String, Object?> data, {String? requestId}) =>
+      _call('lib-member-upsert', data, requestId);
+
+  Future<void> setMemberActive(String id, {required bool active}) =>
+      _call('lib-member-setStatus', _status(id, active));
 
   Map<String, Object?> _status(String id, bool active) => {
     'id': id,

@@ -50,6 +50,18 @@ class _LibraryHomePageState extends State<LibraryHomePage> {
         AppRoutes.libraryList,
         view,
       ),
+      (
+        'assets/dashboard/library.png',
+        'Members',
+        AppRoutes.libraryMembers,
+        p.access.can('lib.members.view'),
+      ),
+      (
+        'assets/dashboard/library-categories.png',
+        'Borrowing policies',
+        AppRoutes.libraryPolicies,
+        p.access.can('lib.members.view'),
+      ),
     ];
     final visibleTiles = tiles.where((t) => t.$4).toList();
 
