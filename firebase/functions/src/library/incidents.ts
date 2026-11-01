@@ -5,6 +5,8 @@ import { todayIST } from '../inventory/stock';
 import type { Ctx } from '../shared/callable';
 import { nextNumber } from '../shared/keys';
 import { def, failed, id, missing, note } from '../shared/masters';
+import { enqueue } from '../shared/outbox';
+import { memberAndLibrarians } from './notify';
 import { release } from './reservations';
 
 const UP = () => FieldValue.serverTimestamp();
@@ -126,6 +128,11 @@ export const incidents = {
         ctx.update(mRef, { blocked: true, updatedAt: UP() });
       }
 
+      await enqueue(ctx, `lib-incident__${incRef.id}`, {
+        to: memberAndLibrarians((member?.memberType as string) ?? '', (member?.erpId as number) ?? null, copy.campusId),
+        category: 'lib.incident', title: `${i.kind === 'lost' ? 'Lost' : 'Damaged'} book recorded`,
+        body: `${copy.accessionNo} was reported ${i.kind}.`, data: { incidentId: incRef.id },
+      });
       ctx.audit({ action: 'libIncident.report', ref: incRef.path, after });
       return { id: incRef.id, number: incidentNumber };
     },

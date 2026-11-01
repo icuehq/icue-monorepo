@@ -4,6 +4,7 @@ import 'package:injectable/injectable.dart';
 import 'package:school_library/src/models/lib_copies.dart';
 import 'package:school_library/src/models/lib_fines.dart';
 import 'package:school_library/src/models/lib_incidents.dart';
+import 'package:school_library/src/models/lib_insights.dart';
 import 'package:school_library/src/models/lib_loans.dart';
 import 'package:school_library/src/models/lib_masters.dart';
 import 'package:school_library/src/models/lib_members.dart';
@@ -539,6 +540,82 @@ class LibraryProvider extends ChangeNotifier {
         () => _service.markLoanLost(d, requestId: requestId),
         reload: loadLoans,
       );
+
+  // Dashboard and reports (Lib-8).
+  Map<String, num?> dashboard = {};
+  List<LibReportRow> reportRows = [];
+  final Map<String, LibBook> _titles = {};
+  bool insightsLoading = false;
+
+  String titleName(Object? id) => _titles[id]?.title ?? '$id';
+
+  String libraryName(Object? id) =>
+      libraries.where((l) => l.id == id).firstOrNull?.name ?? '$id';
+
+  String categoryName(Object? id) =>
+      categories.where((c) => c.id == id).firstOrNull?.name ?? '$id';
+
+  Future<void> _insights(Future<void> Function() body) async {
+    insightsLoading = true;
+    errorMessage = null;
+    notifyListeners();
+    try {
+      await body();
+    } catch (e) {
+      errorMessage = _message(e);
+    } finally {
+      insightsLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> loadDashboard({LibLibrary? library}) => _insights(
+    () async => dashboard = await _service.dashboard(access, library: library),
+  );
+
+  Future<void> loadReport(
+    LibReportDef def, {
+    LibLibrary? library,
+    DateTime? from,
+    DateTime? to,
+    String? status,
+  }) => _insights(() async {
+    reportRows = await _service.report(
+      access,
+      def,
+      library: library,
+      from: from,
+      to: to,
+      status: status,
+    );
+    final need = {
+      for (final r in reportRows)
+        if (r['catalogueId'] is String &&
+            !_titles.containsKey(r['catalogueId']))
+          r['catalogueId'] as String,
+    };
+    if (need.isNotEmpty) _titles.addAll(await _service.titlesByIds(need));
+  });
+
+  /// One CSV import request (up to 200 rows); null with [errorMessage] set when the request itself fails.
+  Future<Map<String, dynamic>?> importRows(
+    String type,
+    String importId,
+    List<Map<String, String>> rows,
+  ) async {
+    errorMessage = null;
+    try {
+      final res = await callFunction(
+        'lib-import-run',
+        data: {'importId': importId, 'type': type, 'rows': rows},
+      );
+      return Map<String, dynamic>.from(res as Map);
+    } catch (e) {
+      errorMessage = _message(e);
+      notifyListeners();
+      return null;
+    }
+  }
 
   Future<bool> _write(
     Future<void> Function() call, {

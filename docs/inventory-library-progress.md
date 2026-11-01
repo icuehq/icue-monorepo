@@ -75,7 +75,7 @@ Inventory definition of done: FRS §31.
 | Lib-5 | Reservations, waiting lists (11.12) | done, not deployed | 0ab4b80 |
 | Lib-6 | Fines, lost and damaged books (11.13–11.14) | done, not deployed | 44c1383 |
 | Lib-7 | Inter-library transfers, stock verification (11.15–11.16) | done, not deployed | – |
-| Lib-8 | Reports, notifications, dashboard, import/export, parent view (11.1, 11.17–11.18) | not started | – |
+| Lib-8 | Reports, notifications, dashboard, import/export, parent view (11.1, 11.17–11.18) | done, not deployed | – |
 
 Library definition of done: FRS §32.
 
@@ -464,6 +464,27 @@ Flutter:
 - [x] `icueadmin`: Transfers page (request sheet, transfer sheet with approve/dispatch/receive) and Stock verification page (create sheet, session sheet with scan, submit, approve); routes `/layout.library/transfers` and `/layout.library/verification`; home tiles
 - [x] Lint passes (library, icueadmin); functions build, 118 emulator tests and 33 rules tests pass
 
+### Lib-8
+
+Functions (`firebase/functions/src/library/`):
+
+- [x] `notify.ts` (member recipients: a student's parents via `wards`, a teacher via `eid`); outbox events added to `loanIssue`, `loanReturn` (returned, overdue fine, damaged), `loanMarkLost` (fine, lost), `incidentReport`, transfer request / dispatch / receive and verification submit; `post` moved to `shared/outbox.ts` (used by both daily jobs)
+- [x] `dailyLibrary` (07:00 IST, every school; `runDailyLibrary` is the testable core): due soon (2 days), overdue (daily), membership ending (7 days), reservation hold ending (1 day)
+- [x] `lib-import-run` (`import.ts`; same design as `inv-import-run`: each CSV row runs the single-record callable with request ID `<importId>-<row>`; types catalogue, copies (opening-stock acquisition by ISBN-13), members; 200 rows per call)
+- [x] Tests: `test/library-insights.test.ts` (emulator); `reservations.test.ts` outbox assertion narrowed to `rsv-ready`
+
+Rules and indexes:
+
+- [x] `firestore.rules`: new `lib.reports.view` reads every report collection on the campus; parents read the catalogue (libraries, categories, titles) and their ward's `libMembers` record; loans, reservations, fines and incidents were already readable by `own()`
+- [x] `firestore.indexes.json`: campus (+ library) scoped composites for the dashboard and report queries; `libMembers` status + end for the daily job
+- [x] Rules tests (35 pass)
+
+Flutter:
+
+- [x] `features/library`: `lib_insights.dart` (15 `LibReportDef`s, dashboard stats, import columns, `libDay`), `LibraryService.dashboard/report/titlesByIds`, provider methods, `LibAccess.all`, model test
+- [x] `icueadmin` (`features/library/insights/`): dashboard with library filter, report catalogue and report view (library, date range, status, search, totals, CSV copy, PDF), import page; routes `/layout.library/{dashboard,reports,reports/view,import}`; Dashboard, Reports and Import tiles
+- [x] `melos run lint`, `melos run test`, format check pass; 121 functions tests and 35 rules tests pass (run on a separate emulator port)
+
 ## Decisions and deviations
 
 Format: `date · phase · what changed from the architecture doc · why`.
@@ -554,6 +575,11 @@ Format: `date · phase · what changed from the architecture doc · why`.
 - 2026-11-01 · Lib-7 · Transfer approval needs `lib.settings`, request/dispatch/receive need `lib.catalogue.manage`; there is no reject or cancel, and a copy not received stays `in_transit` (no lost-in-transit closure) · keeps the workflow to the four FRS steps; use `lib-copy-setStatus` after investigation once that path is needed. Copies are only locked at dispatch, so an approved transfer fails at dispatch if a copy left the shelf.
 - 2026-11-01 · Lib-7 · Verification keeps copy IDs as arrays on the session doc (expected, onLoan, scanned, missing, unexpected), capped at 2000 copies per session, and scans go through `lib-verification-scan` (not client-written lines) · no offline counting; scope by shelf for bigger libraries. Issued copies are listed apart and not expected; a scanned copy that is not expected, or is shown as issued, is `unexpected`.
 - 2026-11-01 · Lib-7 · Approving a verification can mark missing copies `lost` or `move` available unexpected copies into the library; missing copies left alone are stored as `investigate`. No rejection step; destination/source staff notifications arrive with Lib-8.
+- 2026-11-01 · Lib-8 · Dashboard filters are library and member type (the member tiles) only; no category or date-range filter · every tile is a current-state count, so a date range has nothing to filter, and copies carry no category ID. Dashboard counts and indexes are unverified against a real project (emulators do not enforce indexes).
+- 2026-11-01 · Lib-8 · Reports are 500-row client queries (library, date range and status on the server; member, author, category by the search box); Popular and Inactive books are ranked client-side over up to 5000 loans of the period · same ceiling as Inventory reports. Titles and libraries are resolved to names per page; members show as "student #id".
+- 2026-11-01 · Lib-8 · Import takes pasted CSV (catalogue, copies, members), not an uploaded file or a staged preview, and rejects existing titles and members instead of updating them · existing accession numbers cannot be imported (numbers come from one counter), so copies arrive as opening-stock acquisitions by ISBN-13. List export is the report CSV / PDF; list-level XLSX export is not built.
+- 2026-11-01 · Lib-8 · Issue, return and fine notices go to the member's parents or teacher when they happen; overdue repeats daily, due-soon / membership / hold-ending once per loan, member or reservation · deterministic outbox keys. Notifications respect the per-category mute (`lib.loan`, `lib.fine`, `lib.reservation`, `lib.member`, `lib.incident`, `lib.transfer`, `lib.verification`); no preferences screen.
+- 2026-11-01 · Lib-8 · Parent view is rules only: parents read their ward's loans, reservations, fines, incidents and membership, and browse the catalogue; the parent app screens arrive when it joins the monorepo · there is no parent UI here to build. Parents cannot see copies or availability.
 
 ## Open items
 

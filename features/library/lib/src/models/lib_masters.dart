@@ -129,15 +129,23 @@ class LibBook {
 
 /// The signed-in user's resolved permissions (`userAccess/{uid}`).
 class LibAccess {
-  const LibAccess({this.perms = const {}, this.campuses = const []});
+  const LibAccess({
+    this.perms = const {},
+    this.campuses = const [],
+    this.all = false,
+  });
 
   factory LibAccess.fromMap(Map<String, dynamic> m) => LibAccess(
     perms: _list<String>(m['perms']).toSet(),
     campuses: [for (final n in _list<num>(m['cmp'])) n.toInt()],
+    all: m['all'] == true,
   );
 
   final Set<String> perms;
   final List<int> campuses;
+
+  /// May see every campus.
+  final bool all;
 
   bool can(String perm) => perms.contains(perm);
 }

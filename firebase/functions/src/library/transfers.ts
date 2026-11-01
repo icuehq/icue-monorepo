@@ -5,6 +5,7 @@ import { todayIST } from '../inventory/stock';
 import type { Ctx } from '../shared/callable';
 import { nextNumber } from '../shared/keys';
 import { def, failed, id, missing, note, usable } from '../shared/masters';
+import { enqueue } from '../shared/outbox';
 import { holdDays, hold, nextWaiting } from './reservations';
 
 const UP = () => FieldValue.serverTimestamp();
@@ -59,6 +60,10 @@ export const transfers = {
         remarks: i.remarks ?? null,
       };
       ctx.set(ref, { ...after, requestedBy: ctx.uid, createdAt: UP(), updatedAt: UP() });
+      await enqueue(ctx, `lib-transfer-request__${ref.id}`, {
+        to: { perm: 'lib.settings', campusId: from.campusId }, category: 'lib.transfer', title: 'Transfer needs approval',
+        body: `${number}: ${i.copyIds.length} copies from ${from.name} to ${to.name}.`, data: { transferId: ref.id },
+      });
       ctx.audit({ action: 'libTransfer.request', ref: ref.path, after });
       return { id: ref.id, number };
     },
@@ -92,6 +97,10 @@ export const transfers = {
       }
       for (const s of snaps) ctx.update(s.ref, { status: 'in_transit', transferId: ref.id, updatedAt: UP() });
       ctx.update(ref, { status: 'dispatched', dispatchedBy: ctx.uid, dispatchedOn: todayIST(), updatedAt: UP() });
+      await enqueue(ctx, `lib-transfer-dispatch__${ref.id}`, {
+        to: { perm: 'lib.catalogue.manage', campusId: d.toCampusId }, category: 'lib.transfer', title: 'Books on the way',
+        body: `${d.number}: ${snaps.length} copies dispatched to your library.`, data: { transferId: ref.id },
+      });
       ctx.audit({ action: 'libTransfer.dispatch', ref: ref.path, before: { status: d.status }, after: { status: 'dispatched' } });
       return { id: ref.id };
     },
@@ -148,6 +157,10 @@ export const transfers = {
         ...(status === 'received' ? { receivedOn: todayIST() } : {}),
         ...(i.remarks ? { receiptRemarks: i.remarks } : {}),
         updatedAt: UP(),
+      });
+      await enqueue(ctx, `lib-transfer-receive__${ref.id}__${status}__${lines.filter((l) => l.received).length}`, {
+        to: { perm: 'lib.catalogue.manage', campusId: d.campusId }, category: 'lib.transfer', title: 'Transfer received',
+        body: `${d.number}: ${status === 'received' ? 'all copies' : `${ids.length} copies`} received at the destination.`, data: { transferId: ref.id },
       });
       ctx.audit({ action: 'libTransfer.receive', ref: ref.path, before: { status: d.status }, after: { status, copyIds: ids } });
       return { id: ref.id, status };

@@ -5,6 +5,7 @@ import { todayIST } from '../inventory/stock';
 import type { Ctx } from '../shared/callable';
 import { nextNumber } from '../shared/keys';
 import { def, failed, id, missing, note, usable } from '../shared/masters';
+import { enqueue } from '../shared/outbox';
 
 const UP = () => FieldValue.serverTimestamp();
 // ponytail: copy IDs live in arrays on the session doc (1 MiB limit); narrow by shelf for larger libraries.
@@ -101,6 +102,12 @@ export const verification = {
       const unexpected = list(d, 'unexpected');
       const status = missingIds.length || unexpected.length ? 'submitted' : 'approved';
       ctx.update(ref, { status, missing: missingIds, submittedBy: ctx.uid, submittedOn: todayIST(), updatedAt: UP() });
+      if (status === 'submitted') {
+        await enqueue(ctx, `lib-verification-submit__${ref.id}`, {
+          to: { perm: 'lib.settings', campusId: d.campusId }, category: 'lib.verification', title: 'Stock verification to review',
+          body: `${d.number}: ${missingIds.length} missing, ${unexpected.length} unexpected.`, data: { verificationId: ref.id },
+        });
+      }
       ctx.audit({ action: 'libVerification.submit', ref: ref.path, after: { status, missing: missingIds.length, unexpected: unexpected.length } });
       return { id: ref.id, status, missing: missingIds.length, unexpected: unexpected.length };
     },

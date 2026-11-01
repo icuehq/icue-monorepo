@@ -27,6 +27,12 @@ class _LibraryHomePageState extends State<LibraryHomePage> {
     final view = p.access.can('lib.catalogue.view');
     final tiles = <(String, String, String, bool)>[
       (
+        'assets/dashboard/library.png',
+        'Dashboard',
+        AppRoutes.libraryDashboard,
+        view,
+      ),
+      (
         'assets/dashboard/library-catalogue.png',
         'Catalogue',
         AppRoutes.libraryCatalogue,
@@ -98,6 +104,19 @@ class _LibraryHomePageState extends State<LibraryHomePage> {
         'Stock verification',
         AppRoutes.libraryVerification,
         p.access.can('lib.catalogue.manage'),
+      ),
+      (
+        'assets/dashboard/library.png',
+        'Reports',
+        AppRoutes.libraryReports,
+        p.access.can('lib.reports.view'),
+      ),
+      (
+        'assets/dashboard/library.png',
+        'Import',
+        AppRoutes.libraryImport,
+        p.access.can('lib.catalogue.manage') ||
+            p.access.can('lib.circulation.operate'),
       ),
     ];
     final visibleTiles = tiles.where((t) => t.$4).toList();

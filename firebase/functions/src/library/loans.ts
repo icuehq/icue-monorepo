@@ -5,6 +5,8 @@ import { todayIST } from '../inventory/stock';
 import type { Ctx } from '../shared/callable';
 import { nextNumber } from '../shared/keys';
 import { def, failed, id, missing, note } from '../shared/masters';
+import { enqueue } from '../shared/outbox';
+import { memberAndLibrarians, memberTo } from './notify';
 import { policyId } from './members';
 import { release, waitingQuery } from './reservations';
 
@@ -85,6 +87,10 @@ export const loans = {
       ctx.update(cRef, { status: 'issued', activeLoanId: loan.id, heldReservationId: null, updatedAt: UP() });
       if (held) ctx.update(held, { status: 'fulfilled', fulfilledLoanId: loan.id, fulfilledCopyId: c.id, fulfilledAt: UP() });
       ctx.update(mRef, { activeLoans: FieldValue.increment(1), updatedAt: UP() });
+      await enqueue(ctx, `lib-issued__${loan.id}`, {
+        to: memberTo(member.memberType, member.erpId), category: 'lib.loan', title: 'Book issued',
+        body: `${title?.title ?? copy.accessionNo}: due back ${after.dueOn}.`, data: { loanId: loan.id },
+      });
       ctx.audit({ action: 'libLoan.issue', ref: loan.path, after });
       return { id: loan.id, number, dueOn: after.dueOn };
     },
@@ -154,6 +160,10 @@ export const loans = {
           createdBy: ctx.uid,
           updatedAt: UP(),
         });
+        await enqueue(ctx, `lib-fine__${ref.id}__overdue`, {
+          to: memberTo(member.memberType, member.erpId), category: 'lib.fine', title: 'Fine recorded',
+          body: `${d.accessionNo}: overdue fine of ${fineAmount} for ${overdueDays} day(s).`, data: { fineId: fRef.id },
+        });
       }
 
       if (i.condition === 'damaged') {
@@ -188,9 +198,17 @@ export const loans = {
           createdBy: ctx.uid,
           updatedAt: UP(),
         });
+        await enqueue(ctx, `lib-incident__${incRef.id}`, {
+          to: memberAndLibrarians(member?.memberType ?? '', member?.erpId ?? null, copy.campusId), category: 'lib.incident',
+          title: 'Damaged book recorded', body: `${copy.accessionNo} was returned damaged.`, data: { incidentId: incRef.id },
+        });
       } else {
         await release(ctx, cRef, d);
       }
+      await enqueue(ctx, `lib-returned__${ref.id}`, {
+        to: memberTo(d.memberType, d.personErpId), category: 'lib.loan', title: 'Book returned',
+        body: `${d.accessionNo} was returned${overdueDays ? ` ${overdueDays} day(s) late` : ''}.`, data: { loanId: ref.id },
+      });
 
       if (m.exists) {
         const member = m.data()!;
@@ -268,10 +286,18 @@ export const loans = {
           createdBy: ctx.uid,
           updatedAt: UP(),
         });
+        await enqueue(ctx, `lib-fine__${ref.id}__lost`, {
+          to: memberTo(member.memberType, member.erpId), category: 'lib.fine', title: 'Fine recorded',
+          body: `${d.accessionNo}: replacement charge of ${charge}.`, data: { fineId: fRef.id },
+        });
       }
 
       const incidentNumber = await nextNumber(ctx, 'INC');
       const incRef = ctx.newDoc('libIncidents');
+      await enqueue(ctx, `lib-incident__${incRef.id}`, {
+        to: memberAndLibrarians(member.memberType, member.erpId, d.campusId), category: 'lib.incident',
+        title: 'Lost book recorded', body: `${d.accessionNo} was marked lost.`, data: { incidentId: incRef.id },
+      });
       ctx.set(incRef, {
         incidentNumber,
         kind: 'lost',

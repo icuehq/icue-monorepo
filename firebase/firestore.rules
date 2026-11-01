@@ -133,46 +133,58 @@ service cloud.firestore {
       allow read: if inSchool(sid) && coll in ['libLibraries', 'libCategories', 'libCatalogue', 'libCopies']
         && can(sid, 'lib.catalogue.view');
     }
-    // Acquisition records (Lib-2): librarians only.
-    match /schools/{sid}/libAcquisitions/{id} {
-      allow read: if inSchool(sid) && can(sid, 'lib.catalogue.manage');
-    }
-    // Members and borrowing policies (Lib-3).
+    // Parents (Lib-8): browse the catalogue read-only; copies stay with staff.
     match /schools/{sid}/{coll}/{id} {
-      allow read: if inSchool(sid) && coll in ['libMembers', 'libPolicies'] && can(sid, 'lib.members.view');
+      allow read: if inSchool(sid) && coll in ['libLibraries', 'libCategories', 'libCatalogue']
+        && request.auth.token.get('pt', '') == 'parent';
+    }
+    // Acquisition records (Lib-2): librarians, and report readers on the campus.
+    match /schools/{sid}/libAcquisitions/{id} {
+      allow read: if inSchool(sid) && (can(sid, 'lib.catalogue.manage')
+        || (can(sid, 'lib.reports.view') && onCampus(sid, resource.data.campusId)));
+    }
+    // Members and borrowing policies (Lib-3); report readers see them for the dashboard.
+    match /schools/{sid}/{coll}/{id} {
+      allow read: if inSchool(sid) && coll in ['libMembers', 'libPolicies']
+        && (can(sid, 'lib.members.view') || can(sid, 'lib.reports.view'));
+    }
+    // A parent reads their ward's membership (Lib-8).
+    match /schools/{sid}/libMembers/{id} {
+      allow read: if inSchool(sid) && resource.data.erpId in request.auth.token.get('wards', []);
     }
 
     // Loans (Lib-4): circulation staff on the campus, or the borrower / parent by ERP ID.
     match /schools/{sid}/libLoans/{id} {
-      allow read: if inSchool(sid) && ((can(sid, 'lib.circulation.operate') && onCampus(sid, resource.data.campusId)) || own());
+      allow read: if inSchool(sid) && (((can(sid, 'lib.circulation.operate') || can(sid, 'lib.reports.view')) && onCampus(sid, resource.data.campusId)) || own());
     }
 
     // Reservations (Lib-5): same readers as loans.
     match /schools/{sid}/libReservations/{id} {
-      allow read: if inSchool(sid) && ((can(sid, 'lib.circulation.operate') && onCampus(sid, resource.data.campusId)) || own());
+      allow read: if inSchool(sid) && (((can(sid, 'lib.circulation.operate') || can(sid, 'lib.reports.view')) && onCampus(sid, resource.data.campusId)) || own());
     }
 
     // Fines (Lib-6): circulation staff or fine waivers on the campus, or the borrower / parent by ERP ID.
     match /schools/{sid}/libFines/{id} {
       allow read: if inSchool(sid)
-        && (((can(sid, 'lib.circulation.operate') || can(sid, 'lib.fines.waive')) && onCampus(sid, resource.data.campusId)) || own());
+        && (((can(sid, 'lib.circulation.operate') || can(sid, 'lib.fines.waive') || can(sid, 'lib.reports.view')) && onCampus(sid, resource.data.campusId)) || own());
     }
 
     // Incidents (Lib-6): circulation staff on the campus, or the member / parent by ERP ID.
     match /schools/{sid}/libIncidents/{id} {
       allow read: if inSchool(sid)
-        && ((can(sid, 'lib.circulation.operate') && onCampus(sid, resource.data.campusId)) || own());
+        && (((can(sid, 'lib.circulation.operate') || can(sid, 'lib.reports.view')) && onCampus(sid, resource.data.campusId)) || own());
     }
 
     // Transfers (Lib-7): librarians at the source or the destination campus.
     match /schools/{sid}/libTransfers/{id} {
-      allow read: if inSchool(sid) && can(sid, 'lib.catalogue.manage')
+      allow read: if inSchool(sid) && (can(sid, 'lib.catalogue.manage') || can(sid, 'lib.reports.view'))
         && (onCampus(sid, resource.data.campusId) || onCampus(sid, resource.data.toCampusId));
     }
 
     // Stock verification sessions (Lib-7): librarians on the campus.
     match /schools/{sid}/libVerifications/{id} {
-      allow read: if inSchool(sid) && can(sid, 'lib.catalogue.manage') && onCampus(sid, resource.data.campusId);
+      allow read: if inSchool(sid) && (can(sid, 'lib.catalogue.manage') || can(sid, 'lib.reports.view'))
+        && onCampus(sid, resource.data.campusId);
     }
 
     match /devices/{uid} {

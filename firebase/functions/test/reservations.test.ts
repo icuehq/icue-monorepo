@@ -44,7 +44,7 @@ describe('library reservations', () => {
     expect(await get('libCopies/ACC-000001')).toMatchObject({ status: 'reserved', heldReservationId: a.id });
     expect(await get(`libReservations/${a.id}`)).toMatchObject({ status: 'ready', heldCopyId: 'ACC-000001', holdUntil: day(3) });
     expect((await get(`libReservations/${b.id}`))!.status).toBe('waiting');
-    expect((await db().collection(`schools/${SID}/outbox`).get()).size).toBe(1);
+    expect((await db().collection(`schools/${SID}/outbox`).get()).docs.filter((o) => o.id.startsWith('rsv-ready__'))).toHaveLength(1);
     await expect(issue('student_503')).rejects.toMatchObject({ code: 'failed-precondition' });
     const r = await issue('student_502');
     expect(await get(`libReservations/${a.id}`)).toMatchObject({ status: 'fulfilled', fulfilledLoanId: r.id, fulfilledCopyId: 'ACC-000001' });

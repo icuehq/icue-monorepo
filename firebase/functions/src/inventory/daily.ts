@@ -1,8 +1,8 @@
 import '../region';
-import { FieldValue, Firestore, getFirestore } from 'firebase-admin/firestore';
+import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { Ctx } from '../shared/callable';
-import { enqueue, type OutboxEvent } from '../shared/outbox';
+import { enqueue, post } from '../shared/outbox';
 import { Stock, todayIST, unavailableEntry } from './stock';
 
 /** Daily inventory job (architecture §5.2): expiry, and the FRS 10.22 date-driven notifications. */
@@ -11,16 +11,6 @@ const NEAR_DAYS = 30;
 const addDays = (d: string, n: number) => new Date(Date.parse(`${d}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
 // Reminders that stay true for days repeat weekly, not daily.
 const weekOf = (d: string) => Math.floor(Date.parse(`${d}T00:00:00Z`) / (7 * 86_400_000));
-
-/** Outbox post outside a business transaction: an existing key is left alone. */
-async function post(db: Firestore, sid: string, key: string, e: OutboxEvent): Promise<void> {
-  const ref = db.doc(`schools/${sid}/outbox/${key}`);
-  try {
-    await ref.create({ ...e, status: 'pending', createdAt: FieldValue.serverTimestamp() });
-  } catch (err) {
-    if ((err as { code?: number }).code !== 6) throw err; // 6 = ALREADY_EXISTS
-  }
-}
 
 /** Moves one expired balance's usable stock to `qtyExpired`; re-checked in the transaction, so reruns are no-ops. */
 async function expire(db: Firestore, sid: string, balanceId: string, today: string): Promise<void> {

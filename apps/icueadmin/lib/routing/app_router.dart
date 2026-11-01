@@ -73,6 +73,10 @@ import 'package:icueadmin/features/library/circulation_page.dart';
 import 'package:icueadmin/features/library/copies_page.dart';
 import 'package:icueadmin/features/library/fines_page.dart';
 import 'package:icueadmin/features/library/incidents_page.dart';
+import 'package:icueadmin/features/library/insights/lib_dashboard_page.dart';
+import 'package:icueadmin/features/library/insights/lib_import_page.dart';
+import 'package:icueadmin/features/library/insights/lib_report_page.dart';
+import 'package:icueadmin/features/library/insights/lib_reports_page.dart';
 import 'package:icueadmin/features/library/lib_categories_page.dart';
 import 'package:icueadmin/features/library/libraries_page.dart';
 import 'package:icueadmin/features/library/library_home_page.dart';
@@ -419,6 +423,27 @@ GoRouter createRouter({
         path: AppRoutes.libraryVerification,
         name: AppRoutes.libraryVerificationName,
         builder: (context, state) => const LibVerificationPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.libraryDashboard,
+        name: AppRoutes.libraryDashboardName,
+        builder: (context, state) => const LibDashboardPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.libraryReports,
+        name: AppRoutes.libraryReportsName,
+        builder: (context, state) => const LibReportsPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.libraryReport,
+        name: AppRoutes.libraryReportName,
+        builder: (context, state) =>
+            LibReportPage(def: state.extra! as LibReportDef),
+      ),
+      GoRoute(
+        path: AppRoutes.libraryImport,
+        name: AppRoutes.libraryImportName,
+        builder: (context, state) => const LibImportPage(),
       ),
       GoRoute(
         path: AppRoutes.libraryPolicies,

@@ -31,6 +31,15 @@ export async function enqueue(ctx: Ctx, key: string, event: OutboxEvent): Promis
   ctx.set(ref, { ...event, status: 'pending', createdAt: FieldValue.serverTimestamp() });
 }
 
+/** Outbox post outside a business transaction (scheduled jobs): an existing key is left alone. */
+export async function post(db: Firestore, sid: string, key: string, e: OutboxEvent): Promise<void> {
+  try {
+    await db.doc(`schools/${sid}/outbox/${key}`).create({ ...e, status: 'pending', createdAt: FieldValue.serverTimestamp() });
+  } catch (err) {
+    if ((err as { code?: number }).code !== 6) throw err; // 6 = ALREADY_EXISTS
+  }
+}
+
 const IN_LIMIT = 30;
 const chunks = <T>(a: T[], n: number) => Array.from({ length: Math.ceil(a.length / n) }, (_, i) => a.slice(i * n, i * n + n));
 

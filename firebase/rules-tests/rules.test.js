@@ -248,6 +248,58 @@ describe('library masters', () => {
   });
 });
 
+describe('library reports and parent view (Lib-8)', () => {
+  const parent = { sid: 12, pt: 'parent', wards: [501] };
+  beforeEach(() =>
+    env.withSecurityRulesDisabled(async (ctx) => {
+      const fs = ctx.firestore();
+      await setDoc(doc(fs, 'schools/12/userAccess/u_r'), { perms: ['lib.reports.view'], cmp: [31], all: false });
+      await setDoc(doc(fs, 'schools/12/userAccess/p_1'), { perms: [], cmp: [], all: false });
+      await setDoc(doc(fs, 'schools/12/libCatalogue/a'), { title: 'a' });
+      await setDoc(doc(fs, 'schools/12/libCopies/a'), { campusId: 31 });
+      await setDoc(doc(fs, 'schools/12/libMembers/student_501'), { erpId: 501 });
+      await setDoc(doc(fs, 'schools/12/libMembers/student_502'), { erpId: 502 });
+      for (const [c, d] of Object.entries({
+        libLoans: { campusId: 31, personErpId: 501 },
+        libReservations: { campusId: 31, personErpId: 501 },
+        libFines: { campusId: 31, personErpId: 501 },
+        libIncidents: { campusId: 31, personErpId: 501 },
+        libAcquisitions: { campusId: 31 },
+        libTransfers: { campusId: 31, toCampusId: 32 },
+        libVerifications: { campusId: 31 },
+      })) {
+        await setDoc(doc(fs, `schools/12/${c}/r31`), d);
+        await setDoc(doc(fs, `schools/12/${c}/r32`), { ...d, campusId: 32, toCampusId: 33 });
+      }
+    }),
+  );
+
+  it('report readers see every report collection on their campus only', async () => {
+    for (const c of ['libLoans', 'libReservations', 'libFines', 'libIncidents', 'libAcquisitions', 'libTransfers', 'libVerifications']) {
+      await assertSucceeds(getDoc(doc(db('u_r'), `schools/12/${c}/r31`)));
+      await assertFails(getDoc(doc(db('u_r'), `schools/12/${c}/r32`)));
+      await assertFails(setDoc(doc(db('u_r'), `schools/12/${c}/r31`), { x: 1 }));
+    }
+    await assertSucceeds(getDoc(doc(db('u_r'), 'schools/12/libMembers/student_501'))); // dashboard member counts
+    await assertFails(getDoc(doc(db('u_4'), 'schools/12/libLoans/r31')));
+  });
+
+  it('a parent reads only their ward\'s records, browses the catalogue, and writes nothing', async () => {
+    for (const c of ['libLoans', 'libReservations', 'libFines', 'libIncidents']) {
+      await assertSucceeds(getDoc(doc(db('p_1', parent), `schools/12/${c}/r31`)));
+      await assertFails(setDoc(doc(db('p_1', parent), `schools/12/${c}/r31`), { x: 1 }));
+    }
+    await assertFails(getDoc(doc(db('p_1', { ...parent, wards: [999] }), 'schools/12/libLoans/r31')));
+    await assertSucceeds(getDoc(doc(db('p_1', parent), 'schools/12/libMembers/student_501')));
+    await assertFails(getDoc(doc(db('p_1', parent), 'schools/12/libMembers/student_502')));
+    await assertSucceeds(getDoc(doc(db('p_1', parent), 'schools/12/libCatalogue/a')));
+    await assertFails(getDoc(doc(db('p_1', parent), 'schools/12/libCopies/a')));
+    await assertFails(getDoc(doc(db('p_1', parent), 'schools/12/libTransfers/r31')));
+    await assertFails(getDoc(doc(db('p_1', { ...parent, sid: 13 }), 'schools/12/libCatalogue/a')));
+    await assertFails(getDoc(doc(db('u_4'), 'schools/12/libMembers/student_501')));
+  });
+});
+
 describe('devices', () => {
   const token = { token: 'abc', platform: 'android', app: 'icueadmin', updatedAt: new Date() };
 

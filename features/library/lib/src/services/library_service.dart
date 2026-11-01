@@ -3,6 +3,7 @@ import 'package:injectable/injectable.dart';
 import 'package:school_library/src/models/lib_copies.dart';
 import 'package:school_library/src/models/lib_fines.dart';
 import 'package:school_library/src/models/lib_incidents.dart';
+import 'package:school_library/src/models/lib_insights.dart';
 import 'package:school_library/src/models/lib_loans.dart';
 import 'package:school_library/src/models/lib_masters.dart';
 import 'package:school_library/src/models/lib_members.dart';
@@ -379,5 +380,227 @@ class LibraryService {
     String? requestId,
   ]) async {
     await callFunction(name, data: data, requestId: requestId);
+  }
+
+  // ---- Dashboard and reports (Lib-8) ----
+
+  /// Rules need the campus filter on every list (`all` users need none); null when the user has no campus.
+  Query<Map<String, dynamic>>? _scoped(
+    Query<Map<String, dynamic>> q,
+    LibAccess a, {
+    LibLibrary? library,
+  }) {
+    final scoped = library != null
+        ? q.where('campusId', isEqualTo: library.campusId)
+        : a.all
+        ? q
+        : a.campuses.isEmpty
+        ? null
+        : q.where('campusId', whereIn: a.campuses);
+    return library == null
+        ? scoped
+        : scoped?.where('libraryId', isEqualTo: library.id);
+  }
+
+  /// Dashboard figures for the user's campuses (or one [library]). A figure the user cannot read is null.
+  Future<Map<String, num?>> dashboard(
+    LibAccess a, {
+    LibLibrary? library,
+  }) async {
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+    Future<num?> count(
+      String coll,
+      Query<Map<String, dynamic>> Function(Query<Map<String, dynamic>> q) f, {
+      bool scoped = true,
+    }) async {
+      try {
+        final base = scoped
+            ? _scoped(await _coll(coll), a, library: library)
+            : await _coll(coll);
+        return base == null ? 0 : (await f(base).count().get()).count;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    Future<num?> copies(String status) =>
+        count('libCopies', (q) => q.where('status', isEqualTo: status));
+    Future<num?> members(String type) async {
+      try {
+        var q = (await _coll('libMembers'))
+            .where('memberType', isEqualTo: type)
+            .where('status', isEqualTo: 'active');
+        if (library != null) {
+          q = q.where('libraryIds', arrayContains: library.id);
+        }
+        return (await q.count().get()).count;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    num? fines;
+    try {
+      final q = _scoped(await _coll('libFines'), a, library: library);
+      fines = q == null
+          ? 0
+          : (await q
+                    .where('status', whereIn: ['outstanding', 'partially_paid'])
+                    .aggregate(sum('outstanding'))
+                    .get())
+                .getSum('outstanding');
+    } catch (_) {}
+    return {
+      // The catalogue is school-wide; a library has no titles of its own.
+      'titles': library == null
+          ? await count('libCatalogue', (q) => q, scoped: false)
+          : null,
+      'copies': await count('libCopies', (q) => q),
+      'available': await copies('available'),
+      'issued': await copies('issued'),
+      'lost': await copies('lost'),
+      'damaged': await copies('damaged'),
+      'overdue': await count(
+        'libLoans',
+        (q) => q
+            .where('status', isEqualTo: 'active')
+            .where('dueOn', isLessThan: today),
+      ),
+      'pending': await count(
+        'libLoans',
+        (q) => q.where('status', isEqualTo: 'active'),
+      ),
+      'reserved': await count(
+        'libReservations',
+        (q) => q.where('status', whereIn: ['waiting', 'ready']),
+      ),
+      'students': await members('student'),
+      'teachers': await members('teacher'),
+      'fines': fines,
+    };
+  }
+
+  /// Titles by ID (for report cells); 30 per Firestore `whereIn`.
+  Future<Map<String, LibBook>> titlesByIds(Iterable<String> ids) async {
+    final coll = await _coll('libCatalogue');
+    final need = ids.toSet().toList();
+    final out = <String, LibBook>{};
+    for (var i = 0; i < need.length; i += 30) {
+      final snap = await coll
+          .where(
+            FieldPath.documentId,
+            whereIn: need.sublist(i, (i + 30).clamp(0, need.length)),
+          )
+          .get();
+      for (final d in snap.docs) {
+        out[d.id] = LibBook.fromMap(d.id, d.data());
+      }
+    }
+    return out;
+  }
+
+  static const reportLimit = 500;
+
+  /// Rows of [def] for the user's campuses; `popular` / `inactive` are computed over up to [rankLimit] loans.
+  Future<List<LibReportRow>> report(
+    LibAccess a,
+    LibReportDef def, {
+    LibLibrary? library,
+    DateTime? from,
+    DateTime? to,
+    String? status,
+  }) async {
+    final fromS = from?.toIso8601String().substring(0, 10);
+    final toS = to?.toIso8601String().substring(0, 10);
+    if (def.kind != LibReportKind.query) {
+      return _ranking(a, def, library, fromS, toS);
+    }
+    final coll = await _coll(def.collection);
+    final base = def.schoolWide
+        ? coll
+        : _scoped(coll, a, library: def.hasLibrary ? library : null);
+    if (base == null) return [];
+    var q = base;
+    for (final e in def.where.entries) {
+      q = q.where(e.key, isEqualTo: e.value);
+    }
+    if (status != null) {
+      q = q.where(
+        def.collection == 'libAcquisitions' ? 'type' : 'status',
+        isEqualTo: status,
+      );
+    }
+    if (def.overdue) {
+      q = q
+          .where(
+            'dueOn',
+            isLessThan: DateTime.now().toIso8601String().substring(0, 10),
+          )
+          .orderBy('dueOn');
+    } else if (def.dateField != null) {
+      final f = def.dateField!;
+      final isTimestamp = const {'createdAt'}.contains(f);
+      Object bound(String d, {bool end = false}) => isTimestamp
+          ? Timestamp.fromDate(
+              DateTime.parse(d).add(Duration(days: end ? 1 : 0)),
+            )
+          : d;
+      if (fromS != null) q = q.where(f, isGreaterThanOrEqualTo: bound(fromS));
+      if (toS != null) {
+        q = isTimestamp
+            ? q.where(f, isLessThan: bound(toS, end: true))
+            : q.where(f, isLessThanOrEqualTo: toS);
+      }
+      q = q.orderBy(f, descending: true);
+    } else if (def.schoolWide) {
+      q = q.orderBy('title');
+    }
+    final snap = await q.limit(reportLimit).get();
+    return [for (final d in snap.docs) d.data()];
+  }
+
+  static const rankLimit = 5000;
+
+  Future<List<LibReportRow>> _ranking(
+    LibAccess a,
+    LibReportDef def,
+    LibLibrary? library,
+    String? from,
+    String? to,
+  ) async {
+    Future<List<LibReportRow>> fetch(String name, {String? dateField}) async {
+      var q = _scoped(await _coll(name), a, library: library);
+      if (q == null) return [];
+      if (dateField != null) {
+        if (from != null) q = q.where(dateField, isGreaterThanOrEqualTo: from);
+        if (to != null) q = q.where(dateField, isLessThanOrEqualTo: to);
+        q = q.orderBy(dateField, descending: true);
+      }
+      return [for (final d in (await q.limit(rankLimit).get()).docs) d.data()];
+    }
+
+    final loans = await fetch('libLoans', dateField: 'issuedOn');
+    final loanCount = <String, int>{};
+    for (final l in loans) {
+      loanCount.update('${l['catalogueId']}', (n) => n + 1, ifAbsent: () => 1);
+    }
+    if (def.kind == LibReportKind.popular) {
+      return [
+        for (final e
+            in loanCount.entries.toList()
+              ..sort((x, y) => y.value.compareTo(x.value)))
+          {'catalogueId': e.key, 'count': e.value},
+      ];
+    }
+    final copyCount = <String, int>{};
+    for (final c in await fetch('libCopies')) {
+      if (c['status'] == 'withdrawn') continue;
+      copyCount.update('${c['catalogueId']}', (n) => n + 1, ifAbsent: () => 1);
+    }
+    return [
+      for (final e in copyCount.entries)
+        if (!loanCount.containsKey(e.key))
+          {'catalogueId': e.key, 'count': e.value},
+    ];
   }
 }

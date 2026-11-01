@@ -18,6 +18,7 @@ import { fines as libFines } from './library/fines';
 import { incidents as libIncidents } from './library/incidents';
 import { transfers as libTransfers } from './library/transfers';
 import { verification as libVerification } from './library/verification';
+import { importRun as libImportRun } from './library/import';
 import { catalogueSearch } from './library/search';
 import * as sessionFns from './session';
 import { callable, queryCallable } from './shared/callable';
@@ -32,6 +33,7 @@ export { syncCatalogueSearch } from './library/search';
 export { outboxSend } from './shared/outbox';
 export { dailyInventory } from './inventory/daily';
 export { holdExpiry } from './library/reservations';
+export { dailyLibrary } from './library/daily';
 
 const masterFns = {
   category: { upsert: callable(masters.categoryUpsert), setStatus: callable(masters.categorySetStatus) },
@@ -112,6 +114,7 @@ export const lib = {
     search: queryCallable(catalogueSearch),
   },
   seedDefaults: callable(libMasters.seedDefaults),
+  import: { run: libImportRun },
   acquisition: { create: callable(libCopies.acquisitionCreate) },
   copy: { update: callable(libCopies.copyUpdate), move: callable(libCopies.copyMove), setStatus: callable(libCopies.copySetStatus) },
   policy: { upsert: callable(libMembers.policyUpsert), setStatus: callable(libMembers.policySetStatus) },
