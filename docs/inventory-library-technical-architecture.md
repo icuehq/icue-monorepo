@@ -207,7 +207,7 @@ Names below are logical; they deploy as `<group>-<name>` (`session.sync` → `se
 | Procurement | `inv.pr.save/submit/decide/cancel`, `inv.quotation.save/select`, `inv.po.save/issue/revise/acknowledge/cancel/close`, `inv.invoice.save/setPayment` |
 | Assets | `inv.asset.register`, `inv.asset.assign/return/transfer/setCondition/retire`, `inv.maintenance.save/setStatus` |
 | Verification | `inv.verification.create/submit/approve` (approve creates adjustments referencing the session) |
-| Library masters | `lib.library.upsert/setStatus`, `lib.category.upsert`, `lib.catalogue.upsert/setStatus`, `lib.policy.upsert` |
+| Library masters | `lib.library.upsert/setStatus`, `lib.category.upsert/setStatus`, `lib.catalogue.upsert/setStatus/search`, `lib.seedDefaults`, `lib.policy.upsert` |
 | Copies | `lib.acquisition.create` (generates accession numbers + copies), `lib.copy.update/move` |
 | Members | `lib.member.upsert/setStatus` |
 | Circulation | `lib.loan.issue`, `lib.loan.return`, `lib.loan.renew`, `lib.loan.markLost` |
@@ -381,7 +381,7 @@ Types: inventory categories, items, opening stock, stores, assets, vendors; libr
 - **Search:** Standard Firestore has no full-text search, so searchable collections are mirrored into the Enterprise database `search` (same paths, list-row fields only, `srcUpdatedAt` guards against out-of-order deliveries) by an `onDocumentWritten` trigger (`syncItemSearch`). A read-only callable (`inv-item-search`) queries the mirror with the `search` pipeline stage, optional `where` filters (e.g. category), `sort`, `offset`/`limit`, and returns list rows; the school comes from the token. The `search` database allows no client access. Exact lookups (code, ISBN, accession, barcode, asset ID, RFID tag) stay equality queries on `(default)`.
   - Matching is whole-word, case-insensitive with stemming; **no prefix or type-ahead matching** (checked on a dev database, 2026-10-31). A mirror update is searchable in about 150 ms.
   - Needs a text index per project (`firebase/scripts/create-search-index.sh`); Flutter has no Pipelines SDK, hence the callable. The emulator has no text search, so in the emulator the callable falls back to a whole-word scan of the mirror and only the real path needs a cloud project to verify.
-  - Library catalogue and vendors reuse the same trigger/callable pattern.
+  - Library catalogue reuses the same trigger/callable pattern (`syncCatalogueSearch`, `lib-catalogue-search`; text index on title, subtitle, authors, publisher, keywords); a query that is a valid ISBN is an exact lookup on `(default)` instead. Vendors will follow.
 - **Dashboards:** Firestore aggregation queries (`count()`, `sum()`) with the same filters as the lists — e.g. low stock = `count()` where `belowReorder == true`; stock value = `sum('value')`. No pre-computed counters.
 - **Popular/inactive books:** computed client-side over the selected period's loans. Ceiling: fine for tens of thousands of loans per period; add monthly stat docs if it gets slow.
 - **Indexes:** `firebase/firestore.indexes.json`, one composite index per list filter/sort combination, added with each screen.

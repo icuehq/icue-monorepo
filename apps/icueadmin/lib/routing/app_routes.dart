@@ -185,4 +185,22 @@ abstract final class AppRoutes {
 
   static const String inventoryItemDetails = '/layout.inventory/items/details';
   static const String inventoryItemDetailsName = 'inventoryItemDetails';
+
+  static const String library = '/layout.library';
+  static const String libraryName = 'library';
+
+  static const String libraryList = '/layout.library/libraries';
+  static const String libraryListName = 'libraryList';
+
+  static const String libraryCategories = '/layout.library/categories';
+  static const String libraryCategoriesName = 'libraryCategories';
+
+  static const String libraryCatalogue = '/layout.library/catalogue';
+  static const String libraryCatalogueName = 'libraryCatalogue';
+
+  static const String libraryBookForm = '/layout.library/catalogue/form';
+  static const String libraryBookFormName = 'libraryBookForm';
+
+  static const String libraryBookDetails = '/layout.library/catalogue/details';
+  static const String libraryBookDetailsName = 'libraryBookDetails';
 }

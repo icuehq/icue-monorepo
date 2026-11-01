@@ -31,7 +31,7 @@ feature package, icueadmin screens (files under 500 lines), and DI registration.
 - [ ] Node dev: `POST /v1.0/firebaseToken` live (signs with `icueadmin-dev` service account)
 - [ ] Node prod: `POST /v1.0/firebaseToken` live
 - [ ] Node endpoints confirmed (students by class/section, staff, departments, roles, academic years)
-- [ ] `search` database (Enterprise, Native, `asia-south1`) in each project, then `firebase/scripts/create-search-index.sh <project>` (dev has both from a spike; prod has neither)
+- [ ] `search` database (Enterprise, Native, `asia-south1`) in each project, then `firebase/scripts/create-search-index.sh <project>` (creates the `invItems` and `libCatalogue` text indexes; dev has the database and the `invItems` index from a spike; prod has neither)
 - [x] Dev/prod Android and iOS flavors with separate app IDs (both build)
 
 ## Phase 0 – Shared foundation
@@ -68,7 +68,7 @@ Inventory definition of done: FRS §31.
 
 | Phase | Scope (FRS) | Status | Commit |
 | --- | --- | --- | --- |
-| Lib-1 | Libraries, categories, catalogue (11.2–11.4) | not started | – |
+| Lib-1 | Libraries, categories, catalogue (11.2–11.4) | done, not deployed | – (uncommitted) |
 | Lib-2 | Copies, accession numbers, acquisition, barcodes (11.5–11.6) | not started | – |
 | Lib-3 | Memberships, borrowing policies (11.7–11.8) | not started | – |
 | Lib-4 | Issue, return, renewal (11.9–11.11) | not started | – |
@@ -147,6 +147,31 @@ Flutter:
 - [x] `icueadmin` screens under `features/inventory/` (home, categories, units, stores, items, item form, item details with variants); routes `/layout.inventory/...`; dashboard card opens it when Node's action `routeState` contains `inventory`
 - [x] `melos run lint` passes; functions and rules tests pass
 
+### Lib-1
+
+Collections: `libLibraries`, `libCategories`, `libCatalogue` (title-level; copies arrive in Lib-2).
+
+Functions (`firebase/functions/src/library/`):
+
+- [x] `lib-library-upsert`, `lib-library-setStatus` (`lib.settings`); `lib-category-upsert`, `lib-category-setStatus`, `lib-catalogue-upsert`, `lib-catalogue-setStatus`, `lib-seedDefaults` (`lib.catalogue.manage`)
+- [x] Unique library/category codes via `uniqueKeys`; campus fixed after creation; one level of subcategories; inactive category rejected for new use
+- [x] Catalogue duplicate detection: `dupKey` = ISBN-13 (ISBN-10 converted) or normalized title + first author + edition + publisher + year, claimed in `uniqueKeys` and moved on edit; ISBN check digits validated; books without ISBN supported
+- [x] Catalogue search: `syncCatalogueSearch` mirrors into the `search` database, `lib-catalogue-search` (whole-word title/subtitle/author/publisher/keywords, category filter; a query that is a valid ISBN is an exact lookup on `(default)`)
+- [x] Shared master helpers moved to `shared/masters.ts` (used by inventory and library); `Ctx.delete` added
+- [x] Tests: `test/library.test.ts` (emulator; text search itself is emulated by a whole-word scan)
+
+Rules and indexes:
+
+- [x] `firestore.rules`: reads for libraries/categories/catalogue with `lib.catalogue.view`
+- [x] `firestore.indexes.json`: `libCatalogue` (`categoryId`, `title`); `create-search-index.sh` also creates the `libCatalogue` text index
+- [x] Rules tests
+
+Flutter:
+
+- [x] `features/library` (`school_library`): models, `LibraryService`, `LibraryProvider`, DI, model tests
+- [x] `icueadmin` screens under `features/library/` (home, libraries, categories, catalogue, book form, book details); routes `/layout.library/...`; dashboard card opens it when Node's action `routeState` contains `library`
+- [x] `melos run lint` passes; functions and rules tests pass
+
 ## Decisions and deviations
 
 Format: `date · phase · what changed from the architecture doc · why`.
@@ -171,6 +196,11 @@ Format: `date · phase · what changed from the architecture doc · why`.
 - 2026-11-01 · Inv-1 · Item search uses the Enterprise `search` database (trigger mirror + `inv-item-search`) instead of `searchTokens` · whole-word matching only, no prefix/type-ahead (verified on dev); search and category filter combine. Emulator falls back to a whole-word scan, so the real text-search path is untested locally.
 - 2026-10-31 · Inv-1 · Seeding defaults is the `inv-seedDefaults` callable (button on empty categories/units screens), not a script · works per project without credentials and is covered by emulator tests.
 - 2026-10-31 · Inv-1 · Item "stock across locations / history" (FRS 10.3) and import/export wait for Inv-2 balances and Inv-8 · nothing to show or import yet.
+- 2026-11-01 · Lib-1 · Added `lib-category-setStatus` (not in the architecture's callable list) · categories carry a status (FRS 11.3) and inactive ones are rejected for new titles, so they need a way to be deactivated.
+- 2026-11-01 · Lib-1 · Book cover upload deferred (`coverPath` stored as null) and "view physical copies" on the book page waits for Lib-2 · same reason as Inv-1 item images; no copies exist yet. Catalogue import/export waits for Lib-8.
+- 2026-11-01 · Lib-1 · A duplicate title is a hard `already-exists` error, not a warning · the identity key (ISBN-13, or title/author/edition/publisher/year) is claimed in `uniqueKeys`; editing the identity moves the key. Two genuinely different books with identical details must differ in edition or year.
+- 2026-11-01 · Lib-1 · Libraries and catalogue are readable by anyone with `lib.catalogue.view` (no campus filter) · the catalogue is school-wide and teachers need to see where books are; writes stay campus-scoped through the callable wrapper.
+- 2026-11-01 · Lib-1 · Librarian staff are entered as ERP staff IDs, campuses shown as "Campus <id>" · same as Inv-1 stores; Node staff and branch-name endpoints are not confirmed.
 
 ## Open items
 

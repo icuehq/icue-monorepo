@@ -41,6 +41,10 @@ export class Ctx {
     this.writes.push((tx) => tx.update(ref, data));
   }
 
+  delete(ref: DocumentReference): void {
+    this.writes.push((tx) => tx.delete(ref));
+  }
+
   requireCampus(campusId: number): void {
     if (!this.access.all && !this.access.cmp.includes(campusId)) {
       throw new HttpsError('permission-denied', 'Campus not allowed');

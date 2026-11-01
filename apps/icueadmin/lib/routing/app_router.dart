@@ -41,6 +41,12 @@ import 'package:icueadmin/features/inventory/item_form_page.dart';
 import 'package:icueadmin/features/inventory/items_page.dart';
 import 'package:icueadmin/features/inventory/stores_page.dart';
 import 'package:icueadmin/features/inventory/units_page.dart';
+import 'package:icueadmin/features/library/book_details_page.dart';
+import 'package:icueadmin/features/library/book_form_page.dart';
+import 'package:icueadmin/features/library/catalogue_page.dart';
+import 'package:icueadmin/features/library/lib_categories_page.dart';
+import 'package:icueadmin/features/library/libraries_page.dart';
+import 'package:icueadmin/features/library/library_home_page.dart';
 import 'package:icueadmin/features/logbook/add_complaint_page.dart';
 import 'package:icueadmin/features/logbook/alcohol_test_form_page.dart';
 import 'package:icueadmin/features/logbook/cleaning_log_page.dart';
@@ -69,6 +75,7 @@ import 'package:icueadmin/routing/app_routes.dart';
 import 'package:inventory/inventory.dart';
 import 'package:logbook/logbook.dart';
 import 'package:routes/routes.dart';
+import 'package:school_library/school_library.dart';
 import 'package:vehicles/vehicles.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>(
@@ -171,6 +178,39 @@ GoRouter createRouter({
         name: AppRoutes.inventoryItemDetailsName,
         builder: (context, state) =>
             ItemDetailsPage(itemId: state.uri.queryParameters['id'] ?? ''),
+      ),
+      GoRoute(
+        path: AppRoutes.library,
+        name: AppRoutes.libraryName,
+        builder: (context, state) => const LibraryHomePage(),
+      ),
+      GoRoute(
+        path: AppRoutes.libraryList,
+        name: AppRoutes.libraryListName,
+        builder: (context, state) => const LibrariesPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.libraryCategories,
+        name: AppRoutes.libraryCategoriesName,
+        builder: (context, state) => const LibCategoriesPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.libraryCatalogue,
+        name: AppRoutes.libraryCatalogueName,
+        builder: (context, state) =>
+            CataloguePage(categoryId: state.uri.queryParameters['category']),
+      ),
+      GoRoute(
+        path: AppRoutes.libraryBookForm,
+        name: AppRoutes.libraryBookFormName,
+        builder: (context, state) =>
+            BookFormPage(book: state.extra as LibBook?),
+      ),
+      GoRoute(
+        path: AppRoutes.libraryBookDetails,
+        name: AppRoutes.libraryBookDetailsName,
+        builder: (context, state) =>
+            BookDetailsPage(bookId: state.uri.queryParameters['id'] ?? ''),
       ),
       GoRoute(
         path: AppRoutes.drivers,

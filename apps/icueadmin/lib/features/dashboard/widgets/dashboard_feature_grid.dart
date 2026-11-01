@@ -183,6 +183,8 @@ class DashboardFeatureGrid extends StatelessWidget {
 
                     if (lowerRoute.contains('inventory')) {
                       context.push(AppRoutes.inventory);
+                    } else if (lowerRoute.contains('library')) {
+                      context.push(AppRoutes.library);
                     } else if (lowerTitle.contains('add driver') ||
                         lowerRoute.contains('add-driver')) {
                       context.push(AppRoutes.addDriver);

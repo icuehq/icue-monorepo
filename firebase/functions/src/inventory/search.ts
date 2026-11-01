@@ -19,15 +19,17 @@ const FIELDS = ['code', 'name', 'categoryId', 'status', 'stockUnit', 'tracking']
 /** The list-row fields mirrored into the search database. */
 export const projectItem = (d: DocumentData) => Object.fromEntries(FIELDS.map((f) => [f, d[f] ?? null]));
 
-/** Mirrors one item change; a delivery older than what is stored is ignored. */
-export async function applyItemChange(
+/** Mirrors one document change; a delivery older than what is stored is ignored. */
+export async function applyChange(
+  coll: string,
+  project: (d: DocumentData) => DocumentData,
   sid: string,
   id: string,
   after: DocumentData | undefined,
   at: Timestamp = Timestamp.now(),
   db: Firestore = searchDb(),
 ): Promise<void> {
-  const ref = db.doc(`schools/${sid}/invItems/${id}`);
+  const ref = db.doc(`schools/${sid}/${coll}/${id}`);
   if (!after) {
     await ref.delete();
     return;
@@ -35,19 +37,22 @@ export async function applyItemChange(
   await db.runTransaction(async (tx) => {
     const cur = (await tx.get(ref)).data()?.srcUpdatedAt as Timestamp | undefined;
     if (cur && cur.toMillis() > at.toMillis()) return;
-    tx.set(ref, { ...projectItem(after), srcUpdatedAt: at });
+    tx.set(ref, { ...project(after), srcUpdatedAt: at });
   });
 }
+
+export const applyItemChange = (sid: string, id: string, after: DocumentData | undefined, at?: Timestamp, db?: Firestore) =>
+  applyChange('invItems', projectItem, sid, id, after, at, db);
 
 export const syncItemSearch = onDocumentWritten('schools/{sid}/invItems/{id}', (e) =>
   applyItemChange(e.params.sid, e.params.id, e.data?.after.data(), e.data?.after.updateTime),
 );
 
-const words = (s: string) => s.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+export const words = (s: string) => s.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
 
-/** Emulator stand-in for text search: every query word equals a word of name or code. */
-export const matchesAll = (terms: string[], d: DocumentData) => {
-  const have = new Set(words(`${d.name ?? ''} ${d.code ?? ''}`));
+/** Emulator stand-in for text search: every query word equals a word of one of [fields]. */
+export const matchesAll = (terms: string[], d: DocumentData, fields: string[] = ['name', 'code']) => {
+  const have = new Set(words(fields.map((f) => String(d[f] ?? '')).join(' ')));
   return terms.every((t) => have.has(t));
 };
 

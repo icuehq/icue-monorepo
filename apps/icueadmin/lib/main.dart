@@ -23,6 +23,7 @@ import 'package:logbook/logbook.dart';
 import 'package:provider/provider.dart';
 import 'package:reports/reports.dart';
 import 'package:routes/routes.dart';
+import 'package:school_library/school_library.dart';
 import 'package:tracking/tracking.dart';
 import 'package:vehicles/vehicles.dart';
 
@@ -57,6 +58,7 @@ class _IcueAdminAppState extends State<IcueAdminApp> {
   late final AuthProvider _authProvider;
   late final DriverProvider _driverProvider;
   late final InventoryProvider _inventoryProvider;
+  late final LibraryProvider _libraryProvider;
   late final VehicleProvider _vehicleProvider;
   late final RoutesProvider _routesProvider;
   late final AnnouncementsProvider _announcementsProvider;
@@ -78,6 +80,7 @@ class _IcueAdminAppState extends State<IcueAdminApp> {
     _authProvider = getIt<AuthProvider>();
     _driverProvider = getIt<DriverProvider>();
     _inventoryProvider = getIt<InventoryProvider>();
+    _libraryProvider = getIt<LibraryProvider>();
     _vehicleProvider = getIt<VehicleProvider>();
     _routesProvider = getIt<RoutesProvider>();
     _announcementsProvider = getIt<AnnouncementsProvider>();
@@ -179,6 +182,7 @@ class _IcueAdminAppState extends State<IcueAdminApp> {
         ChangeNotifierProvider<InventoryProvider>.value(
           value: _inventoryProvider,
         ),
+        ChangeNotifierProvider<LibraryProvider>.value(value: _libraryProvider),
         ChangeNotifierProvider<VehicleProvider>.value(value: _vehicleProvider),
         ChangeNotifierProvider<RoutesProvider>.value(value: _routesProvider),
         ChangeNotifierProvider<AnnouncementsProvider>.value(
