@@ -7,6 +7,8 @@ import 'package:school_library/src/models/lib_loans.dart';
 import 'package:school_library/src/models/lib_masters.dart';
 import 'package:school_library/src/models/lib_members.dart';
 import 'package:school_library/src/models/lib_reservations.dart';
+import 'package:school_library/src/models/lib_transfers.dart';
+import 'package:school_library/src/models/lib_verifications.dart';
 
 /// Library masters: reads from Firestore, writes through callables.
 @lazySingleton
@@ -217,6 +219,29 @@ class LibraryService {
     );
   }
 
+  /// A page of inter-library transfers, newest first.
+  Future<PagedResult<LibTransfer>> transfers({
+    DocumentSnapshot<Map<String, dynamic>>? after,
+  }) async => fetchPage(
+    (await _coll('libTransfers')).orderBy('createdAt', descending: true),
+    (d) => LibTransfer.fromMap(d.id, d.data()!),
+    after: after,
+  );
+
+  /// A page of stock verification sessions, newest first.
+  Future<PagedResult<LibVerification>> verifications({
+    DocumentSnapshot<Map<String, dynamic>>? after,
+  }) async => fetchPage(
+    (await _coll('libVerifications')).orderBy('createdAt', descending: true),
+    (d) => LibVerification.fromMap(d.id, d.data()!),
+    after: after,
+  );
+
+  Future<LibVerification?> verification(String id) async {
+    final d = await (await _coll('libVerifications')).doc(id).get();
+    return d.exists ? LibVerification.fromMap(d.id, d.data()!) : null;
+  }
+
   // --- writes: callables, same requestId on user retry --------------------
 
   Future<void> seedDefaults() => _call('lib-seedDefaults', {});
@@ -307,6 +332,38 @@ class LibraryService {
     Map<String, Object?> data, {
     String? requestId,
   }) => _call('lib-incident-resolve', data, requestId);
+
+  Future<void> requestTransfer(
+    Map<String, Object?> data, {
+    String? requestId,
+  }) => _call('lib-transfer-request', data, requestId);
+
+  Future<void> approveTransfer(String id, {String? requestId}) =>
+      _call('lib-transfer-approve', {'id': id}, requestId);
+
+  Future<void> dispatchTransfer(String id, {String? requestId}) =>
+      _call('lib-transfer-dispatch', {'id': id}, requestId);
+
+  Future<void> receiveTransfer(
+    Map<String, Object?> data, {
+    String? requestId,
+  }) => _call('lib-transfer-receive', data, requestId);
+
+  Future<void> createVerification(
+    Map<String, Object?> data, {
+    String? requestId,
+  }) => _call('lib-verification-create', data, requestId);
+
+  Future<void> scanVerification(String id, List<String> accessionNos) =>
+      _call('lib-verification-scan', {'id': id, 'accessionNos': accessionNos});
+
+  Future<void> submitVerification(String id, {String? requestId}) =>
+      _call('lib-verification-submit', {'id': id}, requestId);
+
+  Future<void> approveVerification(
+    Map<String, Object?> data, {
+    String? requestId,
+  }) => _call('lib-verification-approve', data, requestId);
 
   Future<void> markLoanLost(Map<String, Object?> data, {String? requestId}) =>
       _call('lib-loan-markLost', data, requestId);

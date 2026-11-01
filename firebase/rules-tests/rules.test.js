@@ -225,6 +225,19 @@ describe('library masters', () => {
     await assertFails(setDoc(doc(db('u_7'), 'schools/12/libIncidents/a'), { status: 'resolved' }));
   });
 
+  it('transfers and verifications: librarians on the campus read; nobody writes', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const fs = ctx.firestore();
+      await setDoc(doc(fs, 'schools/12/libTransfers/a'), { campusId: 32, toCampusId: 31 });
+      await setDoc(doc(fs, 'schools/12/libVerifications/a'), { campusId: 31 });
+    });
+    for (const p of ['libTransfers/a', 'libVerifications/a']) {
+      await assertSucceeds(getDoc(doc(db('u_5'), `schools/12/${p}`)));
+      await assertFails(getDoc(doc(db('u_7'), `schools/12/${p}`)));
+      await assertFails(setDoc(doc(db('u_5'), `schools/12/${p}`), { status: 'received' }));
+    }
+  });
+
   it('members and policies: lib.members.view only, never writable', async () => {
     for (const p of ['libMembers/a', 'libPolicies/a']) {
       await assertSucceeds(getDoc(doc(db('u_6'), `schools/12/${p}`)));

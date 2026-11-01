@@ -74,7 +74,7 @@ Inventory definition of done: FRS §31.
 | Lib-4 | Issue, return, renewal (11.9–11.11) | done, not deployed | 04fe97f |
 | Lib-5 | Reservations, waiting lists (11.12) | done, not deployed | 0ab4b80 |
 | Lib-6 | Fines, lost and damaged books (11.13–11.14) | done, not deployed | 44c1383 |
-| Lib-7 | Inter-library transfers, stock verification (11.15–11.16) | not started | – |
+| Lib-7 | Inter-library transfers, stock verification (11.15–11.16) | done, not deployed | – |
 | Lib-8 | Reports, notifications, dashboard, import/export, parent view (11.1, 11.17–11.18) | not started | – |
 
 Library definition of done: FRS §32.
@@ -444,6 +444,26 @@ Flutter:
 - [x] `icueadmin`: Fines page (status filter: outstanding/partially_paid/paid/waived/all) and fine sheet (waive and record payment actions); Incidents page (status filter: open/resolved/all), incident sheet (resolve action) and incident report sheet; loan sheet `Mark lost` action; routes `/layout.library/fines` and `/layout.library/incidents`; home page tiles for Fines & Penalties and Lost & Damaged
 - [x] Lint passes (library, icueadmin); functions build and tests pass
 
+### Lib-7
+
+Collections: `libTransfers` (counter `LTR`), `libVerifications` (counter `LVR`).
+
+Functions (`firebase/functions/src/library/transfers.ts`, `verification.ts`):
+
+- [x] `lib-transfer-request` / `-approve` (`lib.settings`) / `-dispatch` (copies become `in_transit`) / `-receive` (per copy, partial receipts; arrived copies serve the destination waiting list first)
+- [x] `lib-verification-create` / `-scan` / `-submit` / `-approve` (`lib.settings`; `lost` and `move` corrections)
+- [x] Tests: `test/transfers.test.ts` (emulator)
+
+Rules and indexes:
+
+- [x] `firestore.rules`: both collections readable by `lib.catalogue.manage` on the campus (transfers: source or destination campus); `firestore.indexes.json`: status + createdAt for each; rules test
+
+Flutter:
+
+- [x] `features/library`: `lib_transfers.dart`, `lib_verifications.dart`, service/provider methods, unit tests
+- [x] `icueadmin`: Transfers page (request sheet, transfer sheet with approve/dispatch/receive) and Stock verification page (create sheet, session sheet with scan, submit, approve); routes `/layout.library/transfers` and `/layout.library/verification`; home tiles
+- [x] Lint passes (library, icueadmin); functions build, 118 emulator tests and 33 rules tests pass
+
 ## Decisions and deviations
 
 Format: `date · phase · what changed from the architecture doc · why`.
@@ -531,6 +551,9 @@ Format: `date · phase · what changed from the architecture doc · why`.
 - 2026-11-01 · Lib-6 · Unblocking member is evaluated when fines are settled (waived in full or paid in full) · if no other outstanding fines exist for the member, the member is unblocked immediately in the same transaction.
 - 2026-11-01 · Lib-6 · Incident resolution 'repaired' triggers reservation queue release · if reservations are waiting for that title, the repaired copy fulfills the next waiting reservation rather than going idle on the shelf.
 - 2026-11-01 · Lib-6 · `lib-incident-report` refuses a copy that is on loan or held, or that already has an open incident; `repaired` is only for damaged copies; `dismissed` (no fault, or the lost book turned up) sends a damaged or lost copy back through the reservation queue/shelf; the charge cannot be lowered on resolve (waive the fine instead) · closes orphaned-loan and duplicate-incident holes found in review. Damage on a held copy cannot be reported until the hold is released.
+- 2026-11-01 · Lib-7 · Transfer approval needs `lib.settings`, request/dispatch/receive need `lib.catalogue.manage`; there is no reject or cancel, and a copy not received stays `in_transit` (no lost-in-transit closure) · keeps the workflow to the four FRS steps; use `lib-copy-setStatus` after investigation once that path is needed. Copies are only locked at dispatch, so an approved transfer fails at dispatch if a copy left the shelf.
+- 2026-11-01 · Lib-7 · Verification keeps copy IDs as arrays on the session doc (expected, onLoan, scanned, missing, unexpected), capped at 2000 copies per session, and scans go through `lib-verification-scan` (not client-written lines) · no offline counting; scope by shelf for bigger libraries. Issued copies are listed apart and not expected; a scanned copy that is not expected, or is shown as issued, is `unexpected`.
+- 2026-11-01 · Lib-7 · Approving a verification can mark missing copies `lost` or `move` available unexpected copies into the library; missing copies left alone are stored as `investigate`. No rejection step; destination/source staff notifications arrive with Lib-8.
 
 ## Open items
 

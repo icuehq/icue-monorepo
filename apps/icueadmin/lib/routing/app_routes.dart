@@ -309,4 +309,8 @@ abstract final class AppRoutes {
 
   static const String libraryIncidents = '/layout.library/incidents';
   static const String libraryIncidentsName = 'libraryIncidents';
+  static const String libraryTransfers = '/layout.library/transfers';
+  static const String libraryTransfersName = 'libraryTransfers';
+  static const String libraryVerification = '/layout.library/verification';
+  static const String libraryVerificationName = 'libraryVerification';
 }

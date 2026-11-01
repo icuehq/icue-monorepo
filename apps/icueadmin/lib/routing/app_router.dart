@@ -79,6 +79,8 @@ import 'package:icueadmin/features/library/library_home_page.dart';
 import 'package:icueadmin/features/library/members_page.dart';
 import 'package:icueadmin/features/library/policies_page.dart';
 import 'package:icueadmin/features/library/reservations_page.dart';
+import 'package:icueadmin/features/library/transfers_page.dart';
+import 'package:icueadmin/features/library/verification_page.dart';
 import 'package:icueadmin/features/logbook/add_complaint_page.dart';
 import 'package:icueadmin/features/logbook/alcohol_test_form_page.dart';
 import 'package:icueadmin/features/logbook/cleaning_log_page.dart';
@@ -407,6 +409,16 @@ GoRouter createRouter({
         path: AppRoutes.libraryIncidents,
         name: AppRoutes.libraryIncidentsName,
         builder: (context, state) => const IncidentsPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.libraryTransfers,
+        name: AppRoutes.libraryTransfersName,
+        builder: (context, state) => const LibTransfersPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.libraryVerification,
+        name: AppRoutes.libraryVerificationName,
+        builder: (context, state) => const LibVerificationPage(),
       ),
       GoRoute(
         path: AppRoutes.libraryPolicies,

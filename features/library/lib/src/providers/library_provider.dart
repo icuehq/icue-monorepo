@@ -8,6 +8,8 @@ import 'package:school_library/src/models/lib_loans.dart';
 import 'package:school_library/src/models/lib_masters.dart';
 import 'package:school_library/src/models/lib_members.dart';
 import 'package:school_library/src/models/lib_reservations.dart';
+import 'package:school_library/src/models/lib_transfers.dart';
+import 'package:school_library/src/models/lib_verifications.dart';
 import 'package:school_library/src/services/library_service.dart';
 
 @lazySingleton
@@ -282,6 +284,58 @@ class LibraryProvider extends ChangeNotifier {
     }
   }
 
+  // Transfers and stock verifications (paged, newest first).
+  final List<LibTransfer> transfers = [];
+  bool transfersLoading = false;
+  bool hasMoreTransfers = false;
+  DocumentSnapshot<Map<String, dynamic>>? _transferCursor;
+  final List<LibVerification> verifications = [];
+  bool verificationsLoading = false;
+  bool hasMoreVerifications = false;
+  DocumentSnapshot<Map<String, dynamic>>? _verificationCursor;
+
+  Future<void> loadTransfers({bool more = false}) async {
+    if (transfersLoading || (more && !hasMoreTransfers)) return;
+    if (!more) _transferCursor = null;
+    transfersLoading = true;
+    errorMessage = null;
+    notifyListeners();
+    try {
+      final page = await _service.transfers(after: _transferCursor);
+      if (!more) transfers.clear();
+      transfers.addAll(page.items);
+      _transferCursor = page.cursor;
+      hasMoreTransfers = page.hasMore;
+    } catch (e) {
+      errorMessage = _message(e);
+    } finally {
+      transfersLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> loadVerifications({bool more = false}) async {
+    if (verificationsLoading || (more && !hasMoreVerifications)) return;
+    if (!more) _verificationCursor = null;
+    verificationsLoading = true;
+    errorMessage = null;
+    notifyListeners();
+    try {
+      final page = await _service.verifications(after: _verificationCursor);
+      if (!more) verifications.clear();
+      verifications.addAll(page.items);
+      _verificationCursor = page.cursor;
+      hasMoreVerifications = page.hasMore;
+    } catch (e) {
+      errorMessage = _message(e);
+    } finally {
+      verificationsLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<LibVerification?> verification(String id) => _service.verification(id);
+
   Future<LibLoan?> activeLoanOf(String copyId) => _service.activeLoanOf(copyId);
 
   Future<LibMember?> member(String type, int erpId) =>
@@ -447,6 +501,38 @@ class LibraryProvider extends ChangeNotifier {
         () => _service.resolveIncident(d, requestId: requestId),
         reload: loadIncidents,
       );
+
+  Future<bool> requestTransfer(Map<String, Object?> d, {String? requestId}) =>
+      _write(
+        () => _service.requestTransfer(d, requestId: requestId),
+        reload: loadTransfers,
+      );
+
+  Future<bool> approveTransfer(String id) =>
+      _write(() => _service.approveTransfer(id), reload: loadTransfers);
+
+  Future<bool> dispatchTransfer(String id) =>
+      _write(() => _service.dispatchTransfer(id), reload: loadTransfers);
+
+  Future<bool> receiveTransfer(Map<String, Object?> d) =>
+      _write(() => _service.receiveTransfer(d), reload: loadTransfers);
+
+  Future<bool> createVerification(
+    Map<String, Object?> d, {
+    String? requestId,
+  }) => _write(
+    () => _service.createVerification(d, requestId: requestId),
+    reload: loadVerifications,
+  );
+
+  Future<bool> scanVerification(String id, List<String> accessionNos) =>
+      _write(() => _service.scanVerification(id, accessionNos));
+
+  Future<bool> submitVerification(String id) =>
+      _write(() => _service.submitVerification(id), reload: loadVerifications);
+
+  Future<bool> approveVerification(Map<String, Object?> d) =>
+      _write(() => _service.approveVerification(d), reload: loadVerifications);
 
   Future<bool> markLoanLost(Map<String, Object?> d, {String? requestId}) =>
       _write(

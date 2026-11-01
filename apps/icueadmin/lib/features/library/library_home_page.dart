@@ -87,6 +87,18 @@ class _LibraryHomePageState extends State<LibraryHomePage> {
         AppRoutes.libraryIncidents,
         p.access.can('lib.circulation.operate'),
       ),
+      (
+        'assets/dashboard/library.png',
+        'Transfers',
+        AppRoutes.libraryTransfers,
+        p.access.can('lib.catalogue.manage'),
+      ),
+      (
+        'assets/dashboard/library.png',
+        'Stock verification',
+        AppRoutes.libraryVerification,
+        p.access.can('lib.catalogue.manage'),
+      ),
     ];
     final visibleTiles = tiles.where((t) => t.$4).toList();
 

@@ -16,6 +16,8 @@ import { members as libMembers } from './library/members';
 import { reservations as libReservations } from './library/reservations';
 import { fines as libFines } from './library/fines';
 import { incidents as libIncidents } from './library/incidents';
+import { transfers as libTransfers } from './library/transfers';
+import { verification as libVerification } from './library/verification';
 import { catalogueSearch } from './library/search';
 import * as sessionFns from './session';
 import { callable, queryCallable } from './shared/callable';
@@ -123,4 +125,16 @@ export const lib = {
   reservation: { create: callable(libReservations.reservationCreate), cancel: callable(libReservations.reservationCancel) },
   fine: { waive: callable(libFines.fineWaive), setPayment: callable(libFines.fineSetPayment) },
   incident: { report: callable(libIncidents.incidentReport), resolve: callable(libIncidents.resolve) },
+  transfer: {
+    request: callable(libTransfers.transferRequest),
+    approve: callable(libTransfers.transferApprove),
+    dispatch: callable(libTransfers.transferDispatch),
+    receive: callable(libTransfers.transferReceive),
+  },
+  verification: {
+    create: callable(libVerification.verificationCreate),
+    scan: callable(libVerification.verificationScan),
+    submit: callable(libVerification.verificationSubmit),
+    approve: callable(libVerification.verificationApprove),
+  },
 };

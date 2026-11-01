@@ -164,6 +164,17 @@ service cloud.firestore {
         && ((can(sid, 'lib.circulation.operate') && onCampus(sid, resource.data.campusId)) || own());
     }
 
+    // Transfers (Lib-7): librarians at the source or the destination campus.
+    match /schools/{sid}/libTransfers/{id} {
+      allow read: if inSchool(sid) && can(sid, 'lib.catalogue.manage')
+        && (onCampus(sid, resource.data.campusId) || onCampus(sid, resource.data.toCampusId));
+    }
+
+    // Stock verification sessions (Lib-7): librarians on the campus.
+    match /schools/{sid}/libVerifications/{id} {
+      allow read: if inSchool(sid) && can(sid, 'lib.catalogue.manage') && onCampus(sid, resource.data.campusId);
+    }
+
     match /devices/{uid} {
       allow read: if signedIn() && request.auth.uid == uid;
       allow write: if signedIn() && request.auth.uid == uid
