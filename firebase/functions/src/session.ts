@@ -1,53 +1,54 @@
 import './region';
-import { FieldValue, Firestore, getFirestore } from 'firebase-admin/firestore';
+import { Firestore, getFirestore } from 'firebase-admin/firestore';
 import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
-import type { Claims } from './shared/callable';
+import type { TokenClaims } from './shared/callable';
 import { resolvePerms, type RolePermissions } from './shared/permissions';
+import { serverTimestamp } from './shared/firestore';
 
-const nums = (v: unknown): number[] => (Array.isArray(v) ? v.map(Number).filter(Number.isFinite) : []);
+const numbers = (value: unknown): number[] => (Array.isArray(value) ? value.map(Number).filter(Number.isFinite) : []);
 
 /** Writes `userAccess/{uid}` from the custom-token claims (architecture §3.2). */
-export async function syncSession(db: Firestore, uid: string, token: Claims) {
-  if (token.sid == null) throw new HttpsError('permission-denied', 'No school');
-  const sid = String(token.sid);
-  const config = (await db.doc(`schools/${sid}/config/rolePermissions`).get()).data() as RolePermissions | undefined;
-  const rol = nums(token.rol);
-  const pt = typeof token.pt === 'string' ? token.pt : null;
+export async function syncSession(db: Firestore, uid: string, token: TokenClaims) {
+  if (token.schoolId == null) throw new HttpsError('permission-denied', 'No school');
+  const schoolId = String(token.schoolId);
+  const config = (await db.doc(`schools/${schoolId}/config/rolePermissions`).get()).data() as RolePermissions | undefined;
+  const roleIds = numbers(token.roleIds);
+  const personType = typeof token.personType === 'string' ? token.personType : null;
   const access = {
-    perms: pt === 'parent' ? [] : resolvePerms(config, rol),
-    cmp: nums(token.cmp),
-    all: token.all === true,
-    rol,
-    pt,
-    eid: token.eid == null ? null : Number(token.eid),
-    wards: nums(token.wards),
+    permissions: personType === 'parent' ? [] : resolvePerms(config, roleIds),
+    campusIds: numbers(token.campusIds),
+    hasAllCampuses: token.hasAllCampuses === true,
+    roleIds,
+    personType,
+    personErpId: token.personErpId == null ? null : Number(token.personErpId),
+    wardStudentIds: numbers(token.wardStudentIds),
   };
-  await db.doc(`schools/${sid}/userAccess/${uid}`).set({ ...access, updatedAt: FieldValue.serverTimestamp() });
-  return { perms: access.perms, cmp: access.cmp, all: access.all };
+  await db.doc(`schools/${schoolId}/userAccess/${uid}`).set({ ...access, updatedAt: serverTimestamp() });
+  return { permissions: access.permissions, campusIds: access.campusIds, hasAllCampuses: access.hasAllCampuses };
 }
 
-/** Recomputes `perms` of every user in [sid] from their stored role IDs. */
-export async function recomputeSchool(db: Firestore, sid: string): Promise<number> {
-  const config = (await db.doc(`schools/${sid}/config/rolePermissions`).get()).data() as RolePermissions | undefined;
+/** Recomputes `permissions` of every user in [schoolId] from their stored role IDs. */
+export async function recomputeSchool(db: Firestore, schoolId: string): Promise<number> {
+  const config = (await db.doc(`schools/${schoolId}/config/rolePermissions`).get()).data() as RolePermissions | undefined;
   const writer = db.bulkWriter();
   let changed = 0;
-  for (const d of (await db.collection(`schools/${sid}/userAccess`).get()).docs) {
-    const a = d.data();
-    const perms = a.pt === 'parent' ? [] : resolvePerms(config, a.rol ?? []);
-    if (JSON.stringify(perms) === JSON.stringify(a.perms)) continue;
-    void writer.update(d.ref, { perms, updatedAt: FieldValue.serverTimestamp() });
+  for (const snapshot of (await db.collection(`schools/${schoolId}/userAccess`).get()).docs) {
+    const userAccess = snapshot.data();
+    const permissions = userAccess.personType === 'parent' ? [] : resolvePerms(config, userAccess.roleIds ?? []);
+    if (JSON.stringify(permissions) === JSON.stringify(userAccess.permissions)) continue;
+    void writer.update(snapshot.ref, { permissions, updatedAt: serverTimestamp() });
     changed++;
   }
   await writer.close();
   return changed;
 }
 
-export const sync = onCall((req) => {
-  if (!req.auth) throw new HttpsError('unauthenticated', 'Sign in required');
-  return syncSession(getFirestore(), req.auth.uid, req.auth.token as Claims);
+export const sync = onCall((request) => {
+  if (!request.auth) throw new HttpsError('unauthenticated', 'Sign in required');
+  return syncSession(getFirestore(), request.auth.uid, request.auth.token as TokenClaims);
 });
 
-export const onRolePermissionsChange = onDocumentWritten('schools/{sid}/config/rolePermissions', async (event) => {
-  await recomputeSchool(getFirestore(), event.params.sid);
+export const onRolePermissionsChange = onDocumentWritten('schools/{schoolId}/config/rolePermissions', async (event) => {
+  await recomputeSchool(getFirestore(), event.params.schoolId);
 });

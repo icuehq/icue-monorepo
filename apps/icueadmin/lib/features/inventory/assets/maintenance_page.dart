@@ -1,9 +1,9 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icueadmin/features/inventory/assets/asset_ui.dart';
 import 'package:icueadmin/features/inventory/assets/maintenance_form_sheet.dart';
 import 'package:icueadmin/features/inventory/assets/maintenance_update_sheet.dart';
-import 'package:icueadmin/features/inventory/stock/stock_ui.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -19,13 +19,20 @@ class _MaintenancePageState extends State<MaintenancePage> {
   String? _status;
 
   Future<void> _load() async {
-    final inv = context.read<InventoryProvider>();
-    if (inv.categories.isEmpty) await inv.loadMasters();
+    final inventoryProvider = context.read<InventoryProvider>();
+    if (inventoryProvider.categories.isEmpty) {
+      await inventoryProvider.loadMasters();
+    }
     if (!mounted) return;
-    final p = context.read<AssetsProvider>();
-    await p.loadMaintenance(inv.access, status: _status);
-    await p.loadItemNames(
-      p.maintenance.expand((m) => m.parts.map((x) => x.itemId)),
+    final assetsProvider = context.read<AssetsProvider>();
+    await assetsProvider.loadMaintenance(
+      inventoryProvider.access,
+      status: _status,
+    );
+    await assetsProvider.loadItemNames(
+      assetsProvider.maintenance.expand(
+        (maintenance) => maintenance.parts.map((partUsed) => partUsed.itemId),
+      ),
     );
   }
 
@@ -37,7 +44,7 @@ class _MaintenancePageState extends State<MaintenancePage> {
 
   @override
   Widget build(BuildContext context) {
-    final p = context.watch<AssetsProvider>();
+    final assetsProvider = context.watch<AssetsProvider>();
     return Scaffold(
       appBar: AppBar(title: const Text('Maintenance')),
       body: Column(
@@ -49,36 +56,44 @@ class _MaintenancePageState extends State<MaintenancePage> {
               value: _status,
               items: [
                 const DropdownMenuItem(child: Text('All statuses')),
-                for (final s in InvMaintenance.statuses)
-                  DropdownMenuItem(value: s, child: Text(statusLabel(s))),
+                for (final status in InventoryMaintenance.statuses)
+                  DropdownMenuItem(
+                    value: status,
+                    child: Text(humanizeStatus(status)),
+                  ),
               ],
-              onChanged: (v) {
-                _status = v;
+              onChanged: (value) {
+                _status = value;
                 _load();
               },
             ),
           ),
           Expanded(
-            child: p.maintenance.isEmpty
+            child: assetsProvider.maintenance.isEmpty
                 ? Center(
-                    child: p.isLoading
+                    child: assetsProvider.isLoading
                         ? const CircularProgressIndicator()
-                        : Text(p.errorMessage ?? 'No maintenance requests'),
+                        : Text(
+                            assetsProvider.errorMessage ??
+                                'No maintenance requests',
+                          ),
                   )
                 : ListView(
                     children: [
-                      for (final m in p.maintenance)
+                      for (final maintenance in assetsProvider.maintenance)
                         ListTile(
-                          title: Text('${m.number} · ${m.assetName}'),
+                          title: Text(
+                            '${maintenance.number} · ${maintenance.assetName}',
+                          ),
                           subtitle: Text(
-                            '${m.issue}\n${m.assetCode} · ${statusLabel(m.priority)} priority · ${m.reportedDate}',
+                            '${maintenance.issue}\n${maintenance.assetCode} · ${humanizeStatus(maintenance.priority)} priority · ${maintenance.reportedDate}',
                           ),
                           isThreeLine: true,
-                          trailing: StatusChip(m.status),
+                          trailing: StatusChip(maintenance.status),
                           onTap: () async {
-                            await showInvSheet(
+                            await showFormSheet(
                               context,
-                              () => MaintenanceSheet(job: m),
+                              () => MaintenanceSheet(job: maintenance),
                             );
                             if (mounted) await _load();
                           },
@@ -96,72 +111,86 @@ class _MaintenancePageState extends State<MaintenancePage> {
 class MaintenanceSheet extends StatelessWidget {
   const MaintenanceSheet({required this.job, super.key});
 
-  final InvMaintenance job;
+  final InventoryMaintenance job;
 
   Future<void> _go(BuildContext context, Widget Function() form) async {
-    final nav = Navigator.of(context);
-    await showInvSheet(context, form);
-    nav.pop();
+    final navigator = Navigator.of(context);
+    await showFormSheet(context, form);
+    navigator.pop();
   }
 
   @override
   Widget build(BuildContext context) {
-    final m = job;
-    final p = context.read<AssetsProvider>();
+    final maintenance = job;
+    final assetsProvider = context.read<AssetsProvider>();
     final manage = context.read<InventoryProvider>().access.can(
-      'inv.assets.manage',
+      'inventory.assets.manage',
     );
-    Widget row(String k, String? v) =>
-        v == null || v.isEmpty ? const SizedBox.shrink() : Text('$k: $v');
+    Widget row(String currentValue, String? value) =>
+        value == null || value.isEmpty
+        ? const SizedBox.shrink()
+        : Text('$currentValue: $value');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(m.number, style: Theme.of(context).textTheme.titleLarge),
+        Text(maintenance.number, style: Theme.of(context).textTheme.titleLarge),
         Row(
           children: [
-            Expanded(child: Text('${m.assetName} · ${m.assetCode}')),
-            StatusChip(m.status),
+            Expanded(
+              child: Text(
+                '${maintenance.assetName} · ${maintenance.assetCode}',
+              ),
+            ),
+            StatusChip(maintenance.status),
           ],
         ),
         const SizedBox(height: 8),
-        Text(m.issue),
-        row('Priority', statusLabel(m.priority)),
-        row('Reported', m.reportedDate),
-        row('Technician', m.technician),
-        row('Repair details', m.repairDetails),
-        row('Repair cost', m.cost?.toStringAsFixed(2)),
-        row('Completed', m.completedDate),
-        row('Next service', m.nextServiceDate),
-        if (m.parts.isNotEmpty)
+        Text(maintenance.issue),
+        row('Priority', humanizeStatus(maintenance.priority)),
+        row('Reported', maintenance.reportedDate),
+        row('Technician', maintenance.technician),
+        row('Repair details', maintenance.repairDetails),
+        row('Repair cost', maintenance.cost?.toStringAsFixed(2)),
+        row('Completed', maintenance.completedDate),
+        row('Next service', maintenance.nextServiceDate),
+        if (maintenance.parts.isNotEmpty)
           row(
             'Parts',
-            m.parts.map((x) => '${p.itemName(x.itemId)} × ${x.qty}').join(', '),
+            maintenance.parts
+                .map(
+                  (partUsed) =>
+                      '${assetsProvider.itemName(partUsed.itemId)} × ${partUsed.quantity}',
+                )
+                .join(', '),
           ),
-        if (manage && m.isLive) ...[
+        if (manage && maintenance.isLive) ...[
           const SizedBox(height: 12),
           Wrap(
             spacing: 8,
             children: [
               OutlinedButton(
                 onPressed: () =>
-                    _go(context, () => MaintenanceFormSheet(job: m)),
+                    _go(context, () => MaintenanceFormSheet(job: maintenance)),
                 child: const Text('Edit'),
               ),
-              for (final s in const [
+              for (final value in const [
                 'assigned',
                 'in_progress',
                 'waiting_for_parts',
                 'completed',
                 'cancelled',
               ])
-                if (s != m.status)
+                if (value != maintenance.status)
                   OutlinedButton(
                     onPressed: () => _go(
                       context,
-                      () => MaintenanceUpdateSheet(job: m, status: s),
+                      () => MaintenanceUpdateSheet(
+                        job: maintenance,
+                        status: value,
+                      ),
                     ),
-                    child: Text(statusLabel(s)),
+                    child: Text(humanizeStatus(value)),
                   ),
             ],
           ),

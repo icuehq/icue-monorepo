@@ -1,33 +1,34 @@
 import 'package:flutter/foundation.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:injectable/injectable.dart';
-import 'package:school_library/src/models/lib_copies.dart';
-import 'package:school_library/src/models/lib_fines.dart';
-import 'package:school_library/src/models/lib_incidents.dart';
-import 'package:school_library/src/models/lib_insights.dart';
-import 'package:school_library/src/models/lib_loans.dart';
-import 'package:school_library/src/models/lib_masters.dart';
-import 'package:school_library/src/models/lib_members.dart';
-import 'package:school_library/src/models/lib_reservations.dart';
-import 'package:school_library/src/models/lib_transfers.dart';
-import 'package:school_library/src/models/lib_verifications.dart';
+import 'package:school_library/src/models/library_copies.dart';
+import 'package:school_library/src/models/library_fines.dart';
+import 'package:school_library/src/models/library_incidents.dart';
+import 'package:school_library/src/models/library_insights.dart';
+import 'package:school_library/src/models/library_loans.dart';
+import 'package:school_library/src/models/library_masters.dart';
+import 'package:school_library/src/models/library_members.dart';
+import 'package:school_library/src/models/library_reservations.dart';
+import 'package:school_library/src/models/library_transfers.dart';
+import 'package:school_library/src/models/library_verifications.dart';
 import 'package:school_library/src/services/library_service.dart';
 
 @lazySingleton
-class LibraryProvider extends ChangeNotifier {
+class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   LibraryProvider(this._service);
 
   final LibraryService _service;
 
-  LibAccess access = const LibAccess();
-  List<LibLibrary> libraries = [];
-  List<LibCategory> categories = [];
-  List<LibPolicy> policies = [];
+  ModuleAccess access = const ModuleAccess();
+  List<SchoolLibrary> libraries = [];
+  List<LibraryCategory> categories = [];
+  List<LibraryPolicy> policies = [];
   bool isLoading = false;
+  @override
   String? errorMessage;
 
   // Catalogue list (paged).
-  final List<LibBook> books = [];
+  final List<LibraryBook> books = [];
   bool booksLoading = false;
   bool hasMoreBooks = false;
   String bookSearch = '';
@@ -36,56 +37,58 @@ class LibraryProvider extends ChangeNotifier {
   int _searchOffset = 0;
 
   // Member list (paged, one type at a time).
-  final List<LibMember> members = [];
+  final List<LibraryMember> members = [];
   bool membersLoading = false;
   bool hasMoreMembers = false;
   String memberType = 'student';
   DocumentSnapshot<Map<String, dynamic>>? _memberCursor;
 
   // Active loans (paged, earliest due first).
-  final List<LibLoan> loans = [];
+  final List<LibraryLoan> loans = [];
   bool loansLoading = false;
   bool hasMoreLoans = false;
   DocumentSnapshot<Map<String, dynamic>>? _loanCursor;
 
   // Reservations (paged, by status).
-  final List<LibReservation> reservations = [];
+  final List<LibraryReservation> reservations = [];
   bool reservationsLoading = false;
   bool hasMoreReservations = false;
   String reservationStatus = 'waiting';
   DocumentSnapshot<Map<String, dynamic>>? _reservationCursor;
 
   // Fines (paged, by status: 'outstanding', 'partially_paid', 'paid', 'waived', or 'all').
-  final List<LibFine> fines = [];
+  final List<LibraryFine> fines = [];
   bool finesLoading = false;
   bool hasMoreFines = false;
   String fineStatus = 'outstanding';
   DocumentSnapshot<Map<String, dynamic>>? _fineCursor;
 
   // Incidents (paged, by status: 'open', 'resolved', or 'all').
-  final List<LibIncident> incidents = [];
+  final List<LibraryIncident> incidents = [];
   bool incidentsLoading = false;
   bool hasMoreIncidents = false;
   String incidentStatus = 'open';
   DocumentSnapshot<Map<String, dynamic>>? _incidentCursor;
 
   /// The policy a member of [category] gets in [libraryId], if one is set up.
-  LibPolicy? policyFor(String libraryId, String category) {
-    for (final p in policies) {
-      if (p.libraryId == libraryId && p.memberCategory == category) return p;
+  LibraryPolicy? policyFor(String libraryId, String category) {
+    for (final policy in policies) {
+      if (policy.libraryId == libraryId && policy.memberCategory == category) {
+        return policy;
+      }
     }
     return null;
   }
 
-  LibCategory? category(String? id) {
-    for (final c in categories) {
-      if (c.id == id) return c;
+  LibraryCategory? category(String? id) {
+    for (final category in categories) {
+      if (category.id == id) return category;
     }
     return null;
   }
 
-  List<LibCategory> get topCategories =>
-      categories.where((c) => c.parentId == null).toList();
+  List<LibraryCategory> get topCategories =>
+      categories.where((category) => category.parentId == null).toList();
 
   /// Loads the user's permissions and the small master lists.
   Future<void> loadMasters() async {
@@ -94,16 +97,18 @@ class LibraryProvider extends ChangeNotifier {
     notifyListeners();
     try {
       access = await _service.access();
-      final r = await Future.wait([
+      final masterLists = await Future.wait([
         _service.libraries(),
         _service.categories(),
-        if (access.can('lib.members.view')) _service.policies(),
+        if (access.can('library.members.view')) _service.policies(),
       ]);
-      libraries = r[0] as List<LibLibrary>;
-      categories = r[1] as List<LibCategory>;
-      policies = r.length > 2 ? r[2] as List<LibPolicy> : [];
-    } catch (e) {
-      errorMessage = _message(e);
+      libraries = masterLists[0] as List<SchoolLibrary>;
+      categories = masterLists[1] as List<LibraryCategory>;
+      policies = masterLists.length > 2
+          ? masterLists[2] as List<LibraryPolicy>
+          : [];
+    } catch (error) {
+      errorMessage = callableErrorMessage(error);
     } finally {
       isLoading = false;
       notifyListeners();
@@ -149,8 +154,8 @@ class LibraryProvider extends ChangeNotifier {
         _searchOffset += page.items.length;
         hasMoreBooks = page.hasMore;
       }
-    } catch (e) {
-      errorMessage = _message(e);
+    } catch (error) {
+      errorMessage = callableErrorMessage(error);
     } finally {
       booksLoading = false;
       notifyListeners();
@@ -173,8 +178,8 @@ class LibraryProvider extends ChangeNotifier {
       members.addAll(page.items);
       _memberCursor = page.cursor;
       hasMoreMembers = page.hasMore;
-    } catch (e) {
-      errorMessage = _message(e);
+    } catch (error) {
+      errorMessage = callableErrorMessage(error);
     } finally {
       membersLoading = false;
       notifyListeners();
@@ -194,8 +199,8 @@ class LibraryProvider extends ChangeNotifier {
       loans.addAll(page.items);
       _loanCursor = page.cursor;
       hasMoreLoans = page.hasMore;
-    } catch (e) {
-      errorMessage = _message(e);
+    } catch (error) {
+      errorMessage = callableErrorMessage(error);
     } finally {
       loansLoading = false;
       notifyListeners();
@@ -221,8 +226,8 @@ class LibraryProvider extends ChangeNotifier {
       reservations.addAll(page.items);
       _reservationCursor = page.cursor;
       hasMoreReservations = page.hasMore;
-    } catch (e) {
-      errorMessage = _message(e);
+    } catch (error) {
+      errorMessage = callableErrorMessage(error);
     } finally {
       reservationsLoading = false;
       notifyListeners();
@@ -248,15 +253,15 @@ class LibraryProvider extends ChangeNotifier {
       fines.addAll(page.items);
       _fineCursor = page.cursor;
       hasMoreFines = page.hasMore;
-    } catch (e) {
-      errorMessage = _message(e);
+    } catch (error) {
+      errorMessage = callableErrorMessage(error);
     } finally {
       finesLoading = false;
       notifyListeners();
     }
   }
 
-  Future<LibFine?> fine(String id) => _service.fine(id);
+  Future<LibraryFine?> fine(String id) => _service.fine(id);
 
   /// (Re)loads the first page of incidents, or the next one when [more] is true.
   Future<void> loadIncidents({bool more = false, String? status}) async {
@@ -277,8 +282,8 @@ class LibraryProvider extends ChangeNotifier {
       incidents.addAll(page.items);
       _incidentCursor = page.cursor;
       hasMoreIncidents = page.hasMore;
-    } catch (e) {
-      errorMessage = _message(e);
+    } catch (error) {
+      errorMessage = callableErrorMessage(error);
     } finally {
       incidentsLoading = false;
       notifyListeners();
@@ -286,11 +291,11 @@ class LibraryProvider extends ChangeNotifier {
   }
 
   // Transfers and stock verifications (paged, newest first).
-  final List<LibTransfer> transfers = [];
+  final List<LibraryTransfer> transfers = [];
   bool transfersLoading = false;
   bool hasMoreTransfers = false;
   DocumentSnapshot<Map<String, dynamic>>? _transferCursor;
-  final List<LibVerification> verifications = [];
+  final List<LibraryVerification> verifications = [];
   bool verificationsLoading = false;
   bool hasMoreVerifications = false;
   DocumentSnapshot<Map<String, dynamic>>? _verificationCursor;
@@ -307,8 +312,8 @@ class LibraryProvider extends ChangeNotifier {
       transfers.addAll(page.items);
       _transferCursor = page.cursor;
       hasMoreTransfers = page.hasMore;
-    } catch (e) {
-      errorMessage = _message(e);
+    } catch (error) {
+      errorMessage = callableErrorMessage(error);
     } finally {
       transfersLoading = false;
       notifyListeners();
@@ -327,24 +332,26 @@ class LibraryProvider extends ChangeNotifier {
       verifications.addAll(page.items);
       _verificationCursor = page.cursor;
       hasMoreVerifications = page.hasMore;
-    } catch (e) {
-      errorMessage = _message(e);
+    } catch (error) {
+      errorMessage = callableErrorMessage(error);
     } finally {
       verificationsLoading = false;
       notifyListeners();
     }
   }
 
-  Future<LibVerification?> verification(String id) => _service.verification(id);
+  Future<LibraryVerification?> verification(String id) =>
+      _service.verification(id);
 
-  Future<LibLoan?> activeLoanOf(String copyId) => _service.activeLoanOf(copyId);
+  Future<LibraryLoan?> activeLoanOf(String copyId) =>
+      _service.activeLoanOf(copyId);
 
-  Future<LibMember?> member(String type, int erpId) =>
-      _service.member(type, erpId);
+  Future<LibraryMember?> member(String type, int personErpId) =>
+      _service.member(type, personErpId);
 
-  Future<LibBook?> book(String id) => _service.book(id);
+  Future<LibraryBook?> book(String id) => _service.book(id);
 
-  Future<({List<LibBook> items, bool hasMore})> searchBooks(
+  Future<({List<LibraryBook> items, bool hasMore})> searchBooks(
     String query, {
     String? categoryId,
     int offset = 0,
@@ -356,16 +363,16 @@ class LibraryProvider extends ChangeNotifier {
     limit: limit,
   );
 
-  Future<List<LibCopy>> copiesOf(String catalogueId) =>
+  Future<List<LibraryCopy>> copiesOf(String catalogueId) =>
       _service.copiesOf(catalogueId);
 
-  Future<LibCopy?> findCopy(String code) => _service.findCopy(code);
+  Future<LibraryCopy?> findCopy(String code) => _service.findCopy(code);
 
-  Future<List<LibAcquisition>> acquisitions() => _service.acquisitions();
+  Future<List<LibraryAcquisition>> acquisitions() => _service.acquisitions();
 
-  LibLibrary? library(String? id) {
-    for (final l in libraries) {
-      if (l.id == id) return l;
+  SchoolLibrary? library(String? id) {
+    for (final schoolLibrary in libraries) {
+      if (schoolLibrary.id == id) return schoolLibrary;
     }
     return null;
   }
@@ -375,9 +382,9 @@ class LibraryProvider extends ChangeNotifier {
   Future<bool> seedDefaults() =>
       _write(_service.seedDefaults, reload: loadMasters);
 
-  Future<bool> saveLibrary(Map<String, Object?> d, {String? requestId}) =>
+  Future<bool> saveLibrary(Map<String, Object?> data, {String? requestId}) =>
       _write(
-        () => _service.saveLibrary(d, requestId: requestId),
+        () => _service.saveLibrary(data, requestId: requestId),
         reload: loadMasters,
       );
 
@@ -386,9 +393,9 @@ class LibraryProvider extends ChangeNotifier {
     reload: loadMasters,
   );
 
-  Future<bool> saveCategory(Map<String, Object?> d, {String? requestId}) =>
+  Future<bool> saveCategory(Map<String, Object?> data, {String? requestId}) =>
       _write(
-        () => _service.saveCategory(d, requestId: requestId),
+        () => _service.saveCategory(data, requestId: requestId),
         reload: loadMasters,
       );
 
@@ -397,10 +404,11 @@ class LibraryProvider extends ChangeNotifier {
     reload: loadMasters,
   );
 
-  Future<bool> saveBook(Map<String, Object?> d, {String? requestId}) => _write(
-    () => _service.saveBook(d, requestId: requestId),
-    reload: loadBooks,
-  );
+  Future<bool> saveBook(Map<String, Object?> data, {String? requestId}) =>
+      _write(
+        () => _service.saveBook(data, requestId: requestId),
+        reload: loadBooks,
+      );
 
   Future<bool> setBookActive(String id, {required bool active}) => _write(
     () => _service.setBookActive(id, active: active),
@@ -409,21 +417,21 @@ class LibraryProvider extends ChangeNotifier {
 
   /// Accession numbers of the new copies, or null (with [errorMessage]) on failure.
   Future<List<String>?> createAcquisition(
-    Map<String, Object?> d, {
+    Map<String, Object?> data, {
     String? requestId,
   }) async {
     errorMessage = null;
     try {
-      return await _service.createAcquisition(d, requestId: requestId);
-    } catch (e) {
-      errorMessage = _message(e);
+      return await _service.createAcquisition(data, requestId: requestId);
+    } catch (error) {
+      errorMessage = callableErrorMessage(error);
       notifyListeners();
       return null;
     }
   }
 
-  Future<bool> updateCopy(Map<String, Object?> d) =>
-      _write(() => _service.updateCopy(d));
+  Future<bool> updateCopy(Map<String, Object?> data) =>
+      _write(() => _service.updateCopy(data));
 
   Future<bool> moveCopy(String id, String libraryId, String? shelf) =>
       _write(() => _service.moveCopy(id, libraryId, shelf));
@@ -431,9 +439,9 @@ class LibraryProvider extends ChangeNotifier {
   Future<bool> setCopyStatus(String id, String status, String? reason) =>
       _write(() => _service.setCopyStatus(id, status, reason));
 
-  Future<bool> savePolicy(Map<String, Object?> d, {String? requestId}) =>
+  Future<bool> savePolicy(Map<String, Object?> data, {String? requestId}) =>
       _write(
-        () => _service.savePolicy(d, requestId: requestId),
+        () => _service.savePolicy(data, requestId: requestId),
         reload: loadMasters,
       );
 
@@ -442,9 +450,9 @@ class LibraryProvider extends ChangeNotifier {
     reload: loadMasters,
   );
 
-  Future<bool> saveMember(Map<String, Object?> d, {String? requestId}) =>
+  Future<bool> saveMember(Map<String, Object?> data, {String? requestId}) =>
       _write(
-        () => _service.saveMember(d, requestId: requestId),
+        () => _service.saveMember(data, requestId: requestId),
         reload: loadMembers,
       );
 
@@ -453,14 +461,15 @@ class LibraryProvider extends ChangeNotifier {
     reload: loadMembers,
   );
 
-  Future<bool> issueLoan(Map<String, Object?> d, {String? requestId}) => _write(
-    () => _service.issueLoan(d, requestId: requestId),
-    reload: loadLoans,
-  );
-
-  Future<bool> returnLoan(Map<String, Object?> d, {String? requestId}) =>
+  Future<bool> issueLoan(Map<String, Object?> data, {String? requestId}) =>
       _write(
-        () => _service.returnLoan(d, requestId: requestId),
+        () => _service.issueLoan(data, requestId: requestId),
+        reload: loadLoans,
+      );
+
+  Future<bool> returnLoan(Map<String, Object?> data, {String? requestId}) =>
+      _write(
+        () => _service.returnLoan(data, requestId: requestId),
         reload: loadLoans,
       );
 
@@ -469,45 +478,52 @@ class LibraryProvider extends ChangeNotifier {
     reload: loadLoans,
   );
 
-  Future<bool> createReservation(Map<String, Object?> d, {String? requestId}) =>
-      _write(
-        () => _service.createReservation(d, requestId: requestId),
-        reload: loadReservations,
-      );
+  Future<bool> createReservation(
+    Map<String, Object?> data, {
+    String? requestId,
+  }) => _write(
+    () => _service.createReservation(data, requestId: requestId),
+    reload: loadReservations,
+  );
 
   Future<bool> cancelReservation(String id, {String? requestId}) => _write(
     () => _service.cancelReservation(id, requestId: requestId),
     reload: loadReservations,
   );
 
-  Future<bool> waiveFine(Map<String, Object?> d, {String? requestId}) => _write(
-    () => _service.waiveFine(d, requestId: requestId),
-    reload: loadFines,
-  );
-
-  Future<bool> setFinePayment(Map<String, Object?> d, {String? requestId}) =>
+  Future<bool> waiveFine(Map<String, Object?> data, {String? requestId}) =>
       _write(
-        () => _service.setFinePayment(d, requestId: requestId),
+        () => _service.waiveFine(data, requestId: requestId),
         reload: loadFines,
       );
 
-  Future<bool> reportIncident(Map<String, Object?> d, {String? requestId}) =>
+  Future<bool> setFinePayment(Map<String, Object?> data, {String? requestId}) =>
       _write(
-        () => _service.reportIncident(d, requestId: requestId),
+        () => _service.setFinePayment(data, requestId: requestId),
+        reload: loadFines,
+      );
+
+  Future<bool> reportIncident(Map<String, Object?> data, {String? requestId}) =>
+      _write(
+        () => _service.reportIncident(data, requestId: requestId),
         reload: loadIncidents,
       );
 
-  Future<bool> resolveIncident(Map<String, Object?> d, {String? requestId}) =>
-      _write(
-        () => _service.resolveIncident(d, requestId: requestId),
-        reload: loadIncidents,
-      );
+  Future<bool> resolveIncident(
+    Map<String, Object?> data, {
+    String? requestId,
+  }) => _write(
+    () => _service.resolveIncident(data, requestId: requestId),
+    reload: loadIncidents,
+  );
 
-  Future<bool> requestTransfer(Map<String, Object?> d, {String? requestId}) =>
-      _write(
-        () => _service.requestTransfer(d, requestId: requestId),
-        reload: loadTransfers,
-      );
+  Future<bool> requestTransfer(
+    Map<String, Object?> data, {
+    String? requestId,
+  }) => _write(
+    () => _service.requestTransfer(data, requestId: requestId),
+    reload: loadTransfers,
+  );
 
   Future<bool> approveTransfer(String id) =>
       _write(() => _service.approveTransfer(id), reload: loadTransfers);
@@ -515,45 +531,52 @@ class LibraryProvider extends ChangeNotifier {
   Future<bool> dispatchTransfer(String id) =>
       _write(() => _service.dispatchTransfer(id), reload: loadTransfers);
 
-  Future<bool> receiveTransfer(Map<String, Object?> d) =>
-      _write(() => _service.receiveTransfer(d), reload: loadTransfers);
+  Future<bool> receiveTransfer(Map<String, Object?> data) =>
+      _write(() => _service.receiveTransfer(data), reload: loadTransfers);
 
   Future<bool> createVerification(
-    Map<String, Object?> d, {
+    Map<String, Object?> data, {
     String? requestId,
   }) => _write(
-    () => _service.createVerification(d, requestId: requestId),
+    () => _service.createVerification(data, requestId: requestId),
     reload: loadVerifications,
   );
 
-  Future<bool> scanVerification(String id, List<String> accessionNos) =>
-      _write(() => _service.scanVerification(id, accessionNos));
+  Future<bool> scanVerification(String id, List<String> accessionNumbers) =>
+      _write(() => _service.scanVerification(id, accessionNumbers));
 
   Future<bool> submitVerification(String id) =>
       _write(() => _service.submitVerification(id), reload: loadVerifications);
 
-  Future<bool> approveVerification(Map<String, Object?> d) =>
-      _write(() => _service.approveVerification(d), reload: loadVerifications);
+  Future<bool> approveVerification(Map<String, Object?> data) => _write(
+    () => _service.approveVerification(data),
+    reload: loadVerifications,
+  );
 
-  Future<bool> markLoanLost(Map<String, Object?> d, {String? requestId}) =>
+  Future<bool> markLoanLost(Map<String, Object?> data, {String? requestId}) =>
       _write(
-        () => _service.markLoanLost(d, requestId: requestId),
+        () => _service.markLoanLost(data, requestId: requestId),
         reload: loadLoans,
       );
 
   // Dashboard and reports (Lib-8).
   Map<String, num?> dashboard = {};
-  List<LibReportRow> reportRows = [];
-  final Map<String, LibBook> _titles = {};
+  List<ReportRow> reportRows = [];
+  final Map<String, LibraryBook> _titles = {};
   bool insightsLoading = false;
 
   String titleName(Object? id) => _titles[id]?.title ?? '$id';
 
   String libraryName(Object? id) =>
-      libraries.where((l) => l.id == id).firstOrNull?.name ?? '$id';
+      libraries
+          .where((schoolLibrary) => schoolLibrary.id == id)
+          .firstOrNull
+          ?.name ??
+      '$id';
 
   String categoryName(Object? id) =>
-      categories.where((c) => c.id == id).firstOrNull?.name ?? '$id';
+      categories.where((category) => category.id == id).firstOrNull?.name ??
+      '$id';
 
   Future<void> _insights(Future<void> Function() body) async {
     insightsLoading = true;
@@ -561,21 +584,21 @@ class LibraryProvider extends ChangeNotifier {
     notifyListeners();
     try {
       await body();
-    } catch (e) {
-      errorMessage = _message(e);
+    } catch (error) {
+      errorMessage = callableErrorMessage(error);
     } finally {
       insightsLoading = false;
       notifyListeners();
     }
   }
 
-  Future<void> loadDashboard({LibLibrary? library}) => _insights(
+  Future<void> loadDashboard({SchoolLibrary? library}) => _insights(
     () async => dashboard = await _service.dashboard(access, library: library),
   );
 
   Future<void> loadReport(
-    LibReportDef def, {
-    LibLibrary? library,
+    LibraryReportDef def, {
+    SchoolLibrary? library,
     DateTime? from,
     DateTime? to,
     String? status,
@@ -589,10 +612,10 @@ class LibraryProvider extends ChangeNotifier {
       status: status,
     );
     final need = {
-      for (final r in reportRows)
-        if (r['catalogueId'] is String &&
-            !_titles.containsKey(r['catalogueId']))
-          r['catalogueId'] as String,
+      for (final row in reportRows)
+        if (row['catalogueId'] is String &&
+            !_titles.containsKey(row['catalogueId']))
+          row['catalogueId'] as String,
     };
     if (need.isNotEmpty) _titles.addAll(await _service.titlesByIds(need));
   });
@@ -605,13 +628,13 @@ class LibraryProvider extends ChangeNotifier {
   ) async {
     errorMessage = null;
     try {
-      final res = await callFunction(
-        'lib-import-run',
+      final result = await callFunction(
+        'library-import-run',
         data: {'importId': importId, 'type': type, 'rows': rows},
       );
-      return Map<String, dynamic>.from(res as Map);
-    } catch (e) {
-      errorMessage = _message(e);
+      return Map<String, dynamic>.from(result as Map);
+    } catch (error) {
+      errorMessage = callableErrorMessage(error);
       notifyListeners();
       return null;
     }
@@ -624,15 +647,12 @@ class LibraryProvider extends ChangeNotifier {
     errorMessage = null;
     try {
       await call();
-    } catch (e) {
-      errorMessage = _message(e);
+    } catch (error) {
+      errorMessage = callableErrorMessage(error);
       notifyListeners();
       return false;
     }
     await reload?.call();
     return true;
   }
-
-  String _message(Object e) =>
-      e is FirebaseFunctionsException ? (e.message ?? e.code) : e.toString();
 }

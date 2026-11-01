@@ -1,7 +1,8 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icueadmin/features/inventory/procurement/order_widgets.dart';
-import 'package:icueadmin/features/inventory/procurement/proc_ui.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
+import 'package:icueadmin/features/inventory/procurement/procurement_ui.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -9,8 +10,8 @@ import 'package:provider/provider.dart';
 class QuotationFormPage extends StatefulWidget {
   const QuotationFormPage({required this.request, this.existing, super.key});
 
-  final InvPurchaseRequest request;
-  final InvQuotation? existing;
+  final InventoryPurchaseRequest request;
+  final InventoryQuotation? existing;
 
   @override
   State<QuotationFormPage> createState() => _QuotationFormPageState();
@@ -40,29 +41,29 @@ class _QuotationFormPageState extends State<QuotationFormPage> {
   @override
   void initState() {
     super.initState();
-    final p = context.read<ProcurementProvider>();
-    if (p.vendors.isEmpty) p.loadVendors();
-    final e = widget.existing;
-    if (e != null) {
-      for (final l in e.lines) {
+    final procurementProvider = context.read<ProcurementProvider>();
+    if (procurementProvider.vendors.isEmpty) procurementProvider.loadVendors();
+    final quotation = widget.existing;
+    if (quotation != null) {
+      for (final orderLine in quotation.lineItems) {
         _lines.add(
           OrderLineInput(
-            l.itemId,
-            l.variantId,
-            p.itemName(l.itemId),
-            qty: fmtQty(l.qty),
-            price: fmtQty(l.unitPrice),
+            orderLine.itemId,
+            orderLine.variantId,
+            procurementProvider.itemName(orderLine.itemId),
+            quantity: formatQuantity(orderLine.quantity),
+            price: formatQuantity(orderLine.unitPrice),
           ),
         );
       }
     } else {
-      for (final l in widget.request.lines) {
+      for (final purchaseRequestLine in widget.request.lineItems) {
         _lines.add(
           OrderLineInput(
-            l.itemId,
-            l.variantId,
-            p.itemName(l.itemId),
-            qty: fmtQty(l.qty),
+            purchaseRequestLine.itemId,
+            purchaseRequestLine.variantId,
+            procurementProvider.itemName(purchaseRequestLine.itemId),
+            quantity: formatQuantity(purchaseRequestLine.quantity),
           ),
         );
       }
@@ -71,7 +72,7 @@ class _QuotationFormPageState extends State<QuotationFormPage> {
 
   @override
   void dispose() {
-    for (final c in [
+    for (final controller in [
       _ref,
       _valid,
       _days,
@@ -80,36 +81,41 @@ class _QuotationFormPageState extends State<QuotationFormPage> {
       _tax,
       _delivery,
     ]) {
-      c.dispose();
+      controller.dispose();
     }
-    for (final l in _lines) {
-      l.dispose();
+    for (final orderLineInput in _lines) {
+      orderLineInput.dispose();
     }
     super.dispose();
   }
 
-  double _v(TextEditingController c) => double.tryParse(c.text.trim()) ?? 0;
+  double _v(TextEditingController controller) =>
+      double.tryParse(controller.text.trim()) ?? 0;
 
   Future<void> _save({required bool finalize}) async {
     if (!_form.currentState!.validate()) return;
-    if (_lines.isEmpty) return invSnack(context, 'Keep at least one item');
+    if (_lines.isEmpty) return showMessage(context, 'Keep at least one item');
     setState(() => _busy = true);
     await procSubmit(
       context,
-      (p) => p.act('inv-quotation-save', {
-        'id': ?widget.existing?.id,
-        'prId': widget.request.id,
-        'vendorId': _vendor,
-        'vendorRef': _ref.text.trim(),
-        'validUntil': _valid.text,
-        'deliveryDays': int.tryParse(_days.text.trim()),
-        'lines': [for (final l in _lines) l.toJson('qty')],
-        'discount': _v(_discount),
-        'tax': _v(_tax),
-        'delivery': _v(_delivery),
-        'remarks': _remarks.text.trim(),
-        'final': finalize,
-      }),
+      (procurementProvider) =>
+          procurementProvider.act('inventory-quotation-save', {
+            'id': ?widget.existing?.id,
+            'purchaseRequestId': widget.request.id,
+            'vendorId': _vendor,
+            'vendorRef': _ref.text.trim(),
+            'validUntil': _valid.text,
+            'deliveryDays': int.tryParse(_days.text.trim()),
+            'lineItems': [
+              for (final orderLineInput in _lines)
+                orderLineInput.toJson('quantity'),
+            ],
+            'discount': _v(_discount),
+            'tax': _v(_tax),
+            'delivery': _v(_delivery),
+            'remarks': _remarks.text.trim(),
+            'final': finalize,
+          }),
       done: finalize ? 'Quotation recorded' : 'Draft saved',
     );
     if (mounted) setState(() => _busy = false);
@@ -118,7 +124,7 @@ class _QuotationFormPageState extends State<QuotationFormPage> {
   @override
   Widget build(BuildContext context) {
     final vendors = context.watch<ProcurementProvider>().vendors.where(
-      (v) => v.active || v.id == _vendor,
+      (vendor) => vendor.active || vendor.id == _vendor,
     );
     return Scaffold(
       appBar: AppBar(
@@ -135,11 +141,11 @@ class _QuotationFormPageState extends State<QuotationFormPage> {
               initialValue: _vendor,
               decoration: const InputDecoration(labelText: 'Vendor *'),
               items: [
-                for (final v in vendors)
-                  DropdownMenuItem(value: v.id, child: Text(v.name)),
+                for (final vendor in vendors)
+                  DropdownMenuItem(value: vendor.id, child: Text(vendor.name)),
               ],
-              onChanged: (v) => _vendor = v,
-              validator: (v) => v == null ? 'Required' : null,
+              onChanged: (value) => _vendor = value,
+              validator: (value) => value == null ? 'Required' : null,
             ),
             TextFormField(
               controller: _ref,
@@ -167,7 +173,7 @@ class _QuotationFormPageState extends State<QuotationFormPage> {
                     : null,
               ),
             OrderTotals(
-              lines: _lines,
+              lineItems: _lines,
               discount: _discount,
               tax: _tax,
               delivery: _delivery,

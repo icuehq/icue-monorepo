@@ -1,8 +1,8 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icueadmin/features/inventory/procurement/order_widgets.dart';
 import 'package:icueadmin/features/inventory/procurement/purchase_order_sheet.dart';
-import 'package:icueadmin/features/inventory/stock/stock_ui.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -27,11 +27,13 @@ class _PurchaseOrdersPageState extends State<PurchaseOrdersPage> {
   String? _status;
 
   Future<void> _load() async {
-    final inv = context.read<InventoryProvider>();
-    if (inv.categories.isEmpty) await inv.loadMasters();
+    final inventoryProvider = context.read<InventoryProvider>();
+    if (inventoryProvider.categories.isEmpty) {
+      await inventoryProvider.loadMasters();
+    }
     if (mounted) {
       await context.read<ProcurementProvider>().loadOrders(
-        inv.access,
+        inventoryProvider.access,
         status: _status,
       );
     }
@@ -45,7 +47,7 @@ class _PurchaseOrdersPageState extends State<PurchaseOrdersPage> {
 
   @override
   Widget build(BuildContext context) {
-    final p = context.watch<ProcurementProvider>();
+    final procurementProvider = context.watch<ProcurementProvider>();
     return Scaffold(
       appBar: AppBar(title: const Text('Purchase orders')),
       body: Column(
@@ -57,41 +59,47 @@ class _PurchaseOrdersPageState extends State<PurchaseOrdersPage> {
               value: _status,
               items: [
                 const DropdownMenuItem(child: Text('All statuses')),
-                for (final s in _statuses)
-                  DropdownMenuItem(value: s, child: Text(statusLabel(s))),
+                for (final status in _statuses)
+                  DropdownMenuItem(
+                    value: status,
+                    child: Text(humanizeStatus(status)),
+                  ),
               ],
-              onChanged: (v) {
-                _status = v;
+              onChanged: (value) {
+                _status = value;
                 _load();
               },
             ),
           ),
           Expanded(
-            child: p.orders.isEmpty
+            child: procurementProvider.orders.isEmpty
                 ? Center(
-                    child: p.isLoading
+                    child: procurementProvider.isLoading
                         ? const CircularProgressIndicator()
-                        : Text(p.errorMessage ?? 'No purchase orders'),
+                        : Text(
+                            procurementProvider.errorMessage ??
+                                'No purchase orders',
+                          ),
                   )
                 : ListView(
                     children: [
-                      for (final o in p.orders)
+                      for (final purchaseOrder in procurementProvider.orders)
                         ListTile(
                           title: Text(
-                            '${o.number} · ${p.vendorName(o.vendorId)}',
+                            '${purchaseOrder.number} · ${procurementProvider.vendorName(purchaseOrder.vendorId)}',
                           ),
                           subtitle: Text(
-                            'Total ${money(o.total)} · due ${o.expectedDate}'
-                            '${o.revision > 0 ? ' · rev ${o.revision}' : ''}',
+                            'Total ${money(purchaseOrder.total)} · due ${purchaseOrder.expectedDate}'
+                            '${purchaseOrder.revision > 0 ? ' · rev ${purchaseOrder.revision}' : ''}',
                           ),
                           trailing: Chip(
-                            label: Text(statusLabel(o.status)),
+                            label: Text(humanizeStatus(purchaseOrder.status)),
                             visualDensity: VisualDensity.compact,
                           ),
                           onTap: () async {
-                            await showInvSheet(
+                            await showFormSheet(
                               context,
-                              () => PurchaseOrderSheet(order: o),
+                              () => PurchaseOrderSheet(order: purchaseOrder),
                             );
                             if (mounted) await _load();
                           },

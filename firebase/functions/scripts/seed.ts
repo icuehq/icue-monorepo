@@ -1,5 +1,5 @@
 /**
- * Seeds `schools/{sid}/config/rolePermissions` from the FRS §12 default matrix.
+ * Seeds `schools/{schoolId}/config/rolePermissions` from the FRS §12 default matrix.
  *
  *   npm run seed -- --project dev --school 12 --roles admin=4,principal=9,teacher=7
  *
@@ -21,14 +21,14 @@ const { values } = parseArgs({
   },
 });
 if (!values.project || !values.school || !values.roles) {
-  throw new Error('Usage: --project <alias|id> --school <sid> --roles name=roleId,...');
+  throw new Error('Usage: --project <alias|id> --school <schoolId> --roles name=roleId,...');
 }
 const aliases = JSON.parse(readFileSync(`${__dirname}/../../.firebaserc`, 'utf8')).projects as Record<string, string>;
 const projectId = aliases[values.project] ?? values.project;
 
 const roles: Record<string, string[]> = {};
 for (const pair of values.roles.split(',')) {
-  const [name, id] = pair.split('=').map((s) => s.trim());
+  const [name, id] = pair.split('=').map((part) => part.trim());
   if (!DEFAULT_ROLES[name] || !id) throw new Error(`Unknown role "${name}" (known: ${Object.keys(DEFAULT_ROLES)})`);
   roles[id] = [...new Set([...(roles[id] ?? []), ...DEFAULT_ROLES[name]])].sort();
 }

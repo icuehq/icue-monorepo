@@ -1,74 +1,76 @@
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:injectable/injectable.dart';
-import 'package:inventory/src/models/inv_masters.dart';
+import 'package:inventory/src/models/inventory_masters.dart';
 
 /// Inventory masters: reads from Firestore, writes through callables.
 @lazySingleton
 class InventoryService {
-  Future<CollectionReference<Map<String, dynamic>>> _coll(String path) async {
-    final user = FirebaseAuth.instance.currentUser!;
-    final sid = (await user.getIdTokenResult()).claims?['sid'];
-    return FirebaseFirestore.instance.collection('schools/$sid/$path');
-  }
-
   Future<List<T>> _all<T>(
     String path,
-    T Function(String id, Map<String, dynamic> m) parse,
+    T Function(String id, Map<String, dynamic> data) parse,
   ) async {
-    final snap = await (await _coll(path)).get();
-    return [for (final d in snap.docs) parse(d.id, d.data())];
+    final snapshot = await (await schoolCollection(path)).get();
+    return [
+      for (final document in snapshot.docs) parse(document.id, document.data()),
+    ];
   }
 
-  Future<InvAccess> access() async {
+  Future<ModuleAccess> access() async {
     final user = FirebaseAuth.instance.currentUser!;
-    final doc = await (await _coll('userAccess')).doc(user.uid).get();
-    return InvAccess.fromMap(doc.data() ?? {});
+    final doc = await (await schoolCollection('userAccess'))
+        .doc(user.uid)
+        .get();
+    return ModuleAccess.fromMap(doc.data() ?? {});
   }
 
-  Future<List<InvCategory>> categories() async =>
-      (await _all('invCategories', InvCategory.fromMap))
-        ..sort((a, b) => a.code.compareTo(b.code));
+  Future<List<InventoryCategory>> categories() async =>
+      (await _all('inventoryCategories', InventoryCategory.fromMap))
+        ..sort((left, right) => left.code.compareTo(right.code));
 
-  Future<List<InvUnit>> units() async =>
-      (await _all('invUnits', (id, m) => InvUnit.fromMap(id, m)))
-        ..sort((a, b) => a.code.compareTo(b.code));
+  Future<List<InventoryUnit>> units() async => (await _all(
+    'inventoryUnits',
+    (id, data) => InventoryUnit.fromMap(id, data),
+  ))..sort((left, right) => left.code.compareTo(right.code));
 
   /// Stores on the user's campuses (rules reject unfiltered lists).
-  Future<List<InvStore>> stores(InvAccess access) async {
-    final coll = await _coll('invStores');
-    if (!access.all && access.campuses.isEmpty) return [];
-    final snap =
-        await (access.all
-                ? coll
-                : coll.where('campusId', whereIn: access.campuses))
-            .get();
-    return [for (final d in snap.docs) InvStore.fromMap(d.id, d.data())]
-      ..sort((a, b) => a.code.compareTo(b.code));
+  Future<List<InventoryStore>> stores(ModuleAccess access) async {
+    final collection = await schoolCollection('inventoryStores');
+    final query = access.restrictToCampuses(collection);
+    if (query == null) return [];
+    final snapshot = await query.get();
+    return [
+      for (final document in snapshot.docs)
+        InventoryStore.fromMap(document.id, document.data()),
+    ]..sort((left, right) => left.code.compareTo(right.code));
   }
 
   /// A page of items by name, optionally within [categoryId] (Firestore query).
-  Future<PagedResult<InvItem>> items({
+  Future<PagedResult<InventoryItem>> items({
     String? categoryId,
     DocumentSnapshot<Map<String, dynamic>>? after,
   }) async {
-    Query<Map<String, dynamic>> q = await _coll('invItems');
-    if (categoryId != null) q = q.where('categoryId', isEqualTo: categoryId);
+    Query<Map<String, dynamic>> query = await schoolCollection(
+      'inventoryItems',
+    );
+    if (categoryId != null) {
+      query = query.where('categoryId', isEqualTo: categoryId);
+    }
     return fetchPage(
-      q.orderBy('name'),
-      (d) => InvItem.fromMap(d.id, d.data()!),
+      query.orderBy('name'),
+      (document) => InventoryItem.fromMap(document.id, document.data()!),
       after: after,
     );
   }
 
   /// Whole-word text search (Functions, `search` database); rows carry the list fields only.
-  Future<({List<InvItem> items, bool hasMore})> searchItems(
+  Future<({List<InventoryItem> items, bool hasMore})> searchItems(
     String query, {
     String? categoryId,
     int offset = 0,
     int limit = 25,
   }) async {
-    final res = await callFunction(
-      'inv-item-search',
+    final result = await callFunction(
+      'inventory-item-search',
       data: {
         'q': query,
         'categoryId': ?categoryId,
@@ -78,52 +80,56 @@ class InventoryService {
     ) as Map<Object?, Object?>;
     return (
       items: [
-        for (final r in res['items']! as List<Object?>)
-          InvItem.fromMap(
-            (r! as Map)['id'] as String,
-            Map<String, dynamic>.from(r as Map),
+        for (final row in result['items']! as List<Object?>)
+          InventoryItem.fromMap(
+            (row! as Map)['id'] as String,
+            Map<String, dynamic>.from(row as Map),
           ),
       ],
-      hasMore: res['hasMore'] == true,
+      hasMore: result['hasMore'] == true,
     );
   }
 
-  Future<InvItem?> item(String id) async {
-    final d = await (await _coll('invItems')).doc(id).get();
-    return d.exists ? InvItem.fromMap(d.id, d.data()!) : null;
+  Future<InventoryItem?> item(String id) async {
+    final document = await (await schoolCollection('inventoryItems'))
+        .doc(id)
+        .get();
+    return document.exists
+        ? InventoryItem.fromMap(document.id, document.data()!)
+        : null;
   }
 
-  Future<List<InvVariant>> variants(String itemId) async =>
-      (await _all('invItems/$itemId/variants', InvVariant.fromMap))
-        ..sort((a, b) => a.sku.compareTo(b.sku));
+  Future<List<InventoryVariant>> variants(String itemId) async =>
+      (await _all('inventoryItems/$itemId/variants', InventoryVariant.fromMap))
+        ..sort((left, right) => left.sku.compareTo(right.sku));
 
   // --- writes: callables, same requestId on user retry --------------------
 
-  Future<void> seedDefaults() => _call('inv-seedDefaults', {});
+  Future<void> seedDefaults() => _call('inventory-seedDefaults', {});
 
   Future<void> saveCategory(Map<String, Object?> data, {String? requestId}) =>
-      _call('inv-category-upsert', data, requestId);
+      _call('inventory-category-upsert', data, requestId);
 
   Future<void> setCategoryActive(String id, {required bool active}) =>
-      _call('inv-category-setStatus', _status(id, active));
+      _call('inventory-category-setStatus', _status(id, active));
 
   Future<void> saveUnit(String code, String name) =>
-      _call('inv-unit-upsert', {'code': code, 'name': name});
+      _call('inventory-unit-upsert', {'code': code, 'name': name});
 
   Future<void> saveItem(Map<String, Object?> data, {String? requestId}) =>
-      _call('inv-item-upsert', data, requestId);
+      _call('inventory-item-upsert', data, requestId);
 
   Future<void> setItemActive(String id, {required bool active}) =>
-      _call('inv-item-setStatus', _status(id, active));
+      _call('inventory-item-setStatus', _status(id, active));
 
   Future<void> saveVariant(Map<String, Object?> data, {String? requestId}) =>
-      _call('inv-variant-upsert', data, requestId);
+      _call('inventory-variant-upsert', data, requestId);
 
   Future<void> saveStore(Map<String, Object?> data, {String? requestId}) =>
-      _call('inv-store-upsert', data, requestId);
+      _call('inventory-store-upsert', data, requestId);
 
   Future<void> setStoreActive(String id, {required bool active}) =>
-      _call('inv-store-setStatus', _status(id, active));
+      _call('inventory-store-setStatus', _status(id, active));
 
   Map<String, Object?> _status(String id, bool active) => {
     'id': id,

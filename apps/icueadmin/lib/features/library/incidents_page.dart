@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icueadmin/features/library/widgets/incident_report_sheet.dart';
 import 'package:icueadmin/features/library/widgets/incident_sheet.dart';
@@ -23,15 +24,17 @@ class _IncidentsPageState extends State<IncidentsPage> {
     );
   }
 
-  void _onStatusChanged(String s) {
-    setState(() => _status = s);
-    context.read<LibraryProvider>().loadIncidents(status: s);
+  void _onStatusChanged(String value) {
+    setState(() => _status = value);
+    context.read<LibraryProvider>().loadIncidents(status: value);
   }
 
   @override
   Widget build(BuildContext context) {
-    final p = context.watch<LibraryProvider>();
-    final canOperate = p.access.can('lib.circulation.operate');
+    final libraryProvider = context.watch<LibraryProvider>();
+    final canOperate = libraryProvider.access.can(
+      'library.circulation.operate',
+    );
 
     return Scaffold(
       appBar: AppBar(title: const Text('Lost & Damaged Books')),
@@ -40,7 +43,7 @@ class _IncidentsPageState extends State<IncidentsPage> {
               onPressed: () async {
                 await IncidentReportSheet.show(context);
                 if (mounted) {
-                  await p.loadIncidents(status: _status);
+                  await libraryProvider.loadIncidents(status: _status);
                 }
               },
               icon: const Icon(Icons.report_problem_outlined),
@@ -58,52 +61,57 @@ class _IncidentsPageState extends State<IncidentsPage> {
                 ButtonSegment(value: 'all', label: Text('All')),
               ],
               selected: {_status},
-              onSelectionChanged: (s) => _onStatusChanged(s.first),
+              onSelectionChanged: (values) => _onStatusChanged(values.first),
             ),
           ),
           Expanded(
-            child: p.incidents.isEmpty
+            child: libraryProvider.incidents.isEmpty
                 ? Center(
                     child: Text(
-                      p.incidentsLoading
+                      libraryProvider.incidentsLoading
                           ? 'Loading…'
-                          : p.errorMessage ?? 'No $_status incidents',
+                          : libraryProvider.errorMessage ??
+                                'No $_status incidents',
                     ),
                   )
                 : ListView.builder(
                     itemCount:
-                        p.incidents.length + (p.hasMoreIncidents ? 1 : 0),
+                        libraryProvider.incidents.length +
+                        (libraryProvider.hasMoreIncidents ? 1 : 0),
                     itemBuilder: (context, index) {
-                      if (index >= p.incidents.length) {
+                      if (index >= libraryProvider.incidents.length) {
                         return Center(
                           child: TextButton(
-                            onPressed: p.incidentsLoading
+                            onPressed: libraryProvider.incidentsLoading
                                 ? null
-                                : () => p.loadIncidents(more: true),
+                                : () =>
+                                      libraryProvider.loadIncidents(more: true),
                             child: const Text('Load more'),
                           ),
                         );
                       }
-                      final inc = p.incidents[index];
+                      final incident = libraryProvider.incidents[index];
                       final subtitle =
-                          '${incidentKindLabel(inc.kind)}${inc.severity != null ? ' (${incidentSeverityLabel(inc.severity)})' : ''}'
-                          '${inc.memberLabel != null ? ' · ${inc.memberLabel}' : ''}'
-                          ' · ${inc.reportedDate}';
+                          '${humanizeStatus(incident.type)}${incident.severity != null ? ' (${humanizeStatus(incident.severity)})' : ''}'
+                          '${incident.memberLabel != null ? ' · ${incident.memberLabel}' : ''}'
+                          ' · ${incident.reportedDate}';
                       return ListTile(
                         title: Text(
-                          '${inc.incidentNumber} · ${inc.accessionNo}',
+                          '${incident.incidentNumber} · ${incident.accessionNumber}',
                         ),
                         subtitle: Text(subtitle),
                         trailing: Chip(
-                          label: Text(incidentStatusLabel(inc.status)),
-                          backgroundColor: inc.isOpen
+                          label: Text(humanizeStatus(incident.status)),
+                          backgroundColor: incident.isOpen
                               ? Theme.of(context).colorScheme.errorContainer
                               : null,
                         ),
                         onTap: () async {
-                          await IncidentSheet.show(context, inc);
+                          await IncidentSheet.show(context, incident);
                           if (mounted) {
-                            await p.loadIncidents(status: _status);
+                            await libraryProvider.loadIncidents(
+                              status: _status,
+                            );
                           }
                         },
                       );

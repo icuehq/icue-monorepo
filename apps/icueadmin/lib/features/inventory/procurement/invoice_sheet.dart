@@ -1,7 +1,7 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icueadmin/features/inventory/procurement/order_widgets.dart';
-import 'package:icueadmin/features/inventory/procurement/proc_ui.dart';
-import 'package:icueadmin/features/inventory/stock/stock_ui.dart';
+import 'package:icueadmin/features/inventory/procurement/procurement_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -9,7 +9,7 @@ import 'package:provider/provider.dart';
 class InvoiceSheet extends StatelessWidget {
   const InvoiceSheet({required this.invoice, super.key});
 
-  final InvInvoice invoice;
+  final InventoryInvoice invoice;
 
   Future<void> _ask(
     BuildContext context, {
@@ -19,13 +19,13 @@ class InvoiceSheet extends StatelessWidget {
     bool number = false,
     String? initial,
   }) async {
-    final c = TextEditingController(text: initial);
+    final controller = TextEditingController(text: initial);
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (context) => AlertDialog(
         title: Text(title),
         content: TextField(
-          controller: c,
+          controller: controller,
           autofocus: true,
           keyboardType: number
               ? const TextInputType.numberWithOptions(decimal: true)
@@ -34,37 +34,37 @@ class InvoiceSheet extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
+            onPressed: () => Navigator.pop(context, false),
             child: const Text('Back'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
+            onPressed: () => Navigator.pop(context, true),
             child: const Text('Save'),
           ),
         ],
       ),
     );
-    final value = c.text.trim();
-    c.dispose();
+    final value = controller.text.trim();
+    controller.dispose();
     if (ok == true && context.mounted) await then(value);
   }
 
   @override
   Widget build(BuildContext context) {
     final i = invoice;
-    final p = context.read<ProcurementProvider>();
-    final op = context.read<InventoryProvider>().access.can(
-      'inv.procure.operate',
+    final currentProcurementProvider = context.read<ProcurementProvider>();
+    final currentValue = context.read<InventoryProvider>().access.can(
+      'inventory.procure.operate',
     );
     final today = DateTime.now().toIso8601String().substring(0, 10);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(i.invoiceNo, style: Theme.of(context).textTheme.titleLarge),
+        Text(i.invoiceNumber, style: Theme.of(context).textTheme.titleLarge),
         Text(
-          '${statusLabel(i.statusOn(today))} · ${p.vendorName(i.vendorId)} · '
-          '${i.poNumber}',
+          '${humanizeStatus(i.statusOn(today))} · ${currentProcurementProvider.vendorName(i.vendorId)} · '
+          '${i.purchaseOrderNumber}',
         ),
         Text(
           'Dated ${i.invoiceDate}${i.dueDate == null ? '' : ' · due ${i.dueDate}'}',
@@ -81,7 +81,7 @@ class InvoiceSheet extends StatelessWidget {
         ),
         if (i.paymentRef != null) Text('Finance reference: ${i.paymentRef}'),
         const SizedBox(height: 12),
-        if (op && !i.isCancelled)
+        if (currentValue && !i.isCancelled)
           Wrap(
             spacing: 8,
             children: [
@@ -92,12 +92,12 @@ class InvoiceSheet extends StatelessWidget {
                   label: 'Total paid amount',
                   number: true,
                   initial: i.paidAmount.toStringAsFixed(2),
-                  then: (v) => procSubmit(
+                  then: (value) => procSubmit(
                     context,
-                    (p) => p.act('inv-invoice-setPayment', {
-                      'id': i.id,
-                      'paidAmount': double.tryParse(v) ?? -1,
-                    }),
+                    (procurementProvider) => procurementProvider.act(
+                      'inventory-invoice-setPayment',
+                      {'id': i.id, 'paidAmount': double.tryParse(value) ?? -1},
+                    ),
                     done: 'Payment status updated',
                   ),
                 ),
@@ -107,14 +107,14 @@ class InvoiceSheet extends StatelessWidget {
                 TextButton(
                   onPressed: () => _ask(
                     context,
-                    title: 'Cancel ${i.invoiceNo}',
+                    title: 'Cancel ${i.invoiceNumber}',
                     label: 'Reason *',
-                    then: (v) => procSubmit(
+                    then: (value) => procSubmit(
                       context,
-                      (p) => p.act('inv-invoice-cancel', {
-                        'id': i.id,
-                        'reason': v,
-                      }),
+                      (procurementProvider) => procurementProvider.act(
+                        'inventory-invoice-cancel',
+                        {'id': i.id, 'reason': value},
+                      ),
                       done: 'Cancelled',
                     ),
                   ),

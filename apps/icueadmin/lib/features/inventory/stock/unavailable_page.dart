@@ -1,7 +1,8 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icueadmin/features/inventory/stock/stock_ui.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -15,10 +16,12 @@ class UnavailablePage extends StatefulWidget {
 
 class _UnavailablePageState extends State<UnavailablePage> {
   Future<void> _load() async {
-    final inv = context.read<InventoryProvider>();
-    if (inv.stores.isEmpty) await inv.loadMasters();
+    final inventoryProvider = context.read<InventoryProvider>();
+    if (inventoryProvider.stores.isEmpty) await inventoryProvider.loadMasters();
     if (mounted) {
-      await context.read<StockProvider>().loadUnavailable(inv.access);
+      await context.read<StockProvider>().loadUnavailable(
+        inventoryProvider.access,
+      );
     }
   }
 
@@ -30,32 +33,37 @@ class _UnavailablePageState extends State<UnavailablePage> {
 
   @override
   Widget build(BuildContext context) {
-    final p = context.watch<StockProvider>();
+    final stockProvider = context.watch<StockProvider>();
     final operate = context.watch<InventoryProvider>().access.can(
-      'inv.stock.operate',
+      'inventory.stock.operate',
     );
     return Scaffold(
       appBar: AppBar(title: const Text('Damaged / expired stock')),
-      body: p.unavailable.isEmpty
+      body: stockProvider.unavailable.isEmpty
           ? Center(
-              child: p.isLoading
+              child: stockProvider.isLoading
                   ? const CircularProgressIndicator()
-                  : Text(p.errorMessage ?? 'Nothing outstanding'),
+                  : Text(stockProvider.errorMessage ?? 'Nothing outstanding'),
             )
           : ListView(
               children: [
-                for (final u in p.unavailable)
+                for (final unavailable in stockProvider.unavailable)
                   ListTile(
-                    title: Text('${p.itemName(u.itemId)} × ${fmtQty(u.qty)}'),
-                    subtitle: Text(
-                      '${statusLabel(u.reason)}${u.batchNo == null ? '' : ' · batch ${u.batchNo}'}'
-                      '${u.note == null ? '' : '\n${u.note}'}',
+                    title: Text(
+                      '${stockProvider.itemName(unavailable.itemId)} × ${formatQuantity(unavailable.quantity)}',
                     ),
-                    isThreeLine: u.note != null,
-                    trailing: Text(statusLabel(u.status)),
+                    subtitle: Text(
+                      '${humanizeStatus(unavailable.reason)}${unavailable.batchNumber == null ? '' : ' · batch ${unavailable.batchNumber}'}'
+                      '${unavailable.remarks == null ? '' : '\n${unavailable.remarks}'}',
+                    ),
+                    isThreeLine: unavailable.remarks != null,
+                    trailing: Text(humanizeStatus(unavailable.status)),
                     onTap: operate
                         ? () async {
-                            await showInvSheet(context, () => _Resolve(u));
+                            await showFormSheet(
+                              context,
+                              () => _Resolve(unavailable),
+                            );
                             if (mounted) await _load();
                           }
                         : null,
@@ -67,16 +75,16 @@ class _UnavailablePageState extends State<UnavailablePage> {
 }
 
 class _Resolve extends StatefulWidget {
-  const _Resolve(this.u);
+  const _Resolve(this.unavailable);
 
-  final InvUnavailable u;
+  final InventoryUnavailable unavailable;
 
   @override
   State<_Resolve> createState() => _ResolveState();
 }
 
 class _ResolveState extends State<_Resolve> {
-  final _note = TextEditingController();
+  final _remarks = TextEditingController();
   final _requestId = newRequestId();
 
   static const _choices = {
@@ -90,7 +98,7 @@ class _ResolveState extends State<_Resolve> {
 
   @override
   void dispose() {
-    _note.dispose();
+    _remarks.dispose();
     super.dispose();
   }
 
@@ -99,21 +107,23 @@ class _ResolveState extends State<_Resolve> {
     mainAxisSize: MainAxisSize.min,
     children: [
       TextField(
-        controller: _note,
+        controller: _remarks,
         decoration: const InputDecoration(labelText: 'Note'),
       ),
-      for (final e in _choices.entries)
-        if (e.key != 'repair' ||
-            (widget.u.status == 'open' && widget.u.bucket == 'damaged'))
+      for (final mapEntry in _choices.entries)
+        if (mapEntry.key != 'repair' ||
+            (widget.unavailable.status == 'open' &&
+                widget.unavailable.bucket == 'damaged'))
           ListTile(
-            title: Text(e.value),
+            title: Text(mapEntry.value),
             onTap: () => stockSubmit(
               context,
-              (p) => p.act('inv-unavailable-resolve', {
-                'id': widget.u.id,
-                'resolution': e.key,
-                'note': _note.text.trim(),
-              }, requestId: _requestId),
+              (stockProvider) =>
+                  stockProvider.act('inventory-unavailable-resolve', {
+                    'id': widget.unavailable.id,
+                    'resolution': mapEntry.key,
+                    'remarks': _remarks.text.trim(),
+                  }, requestId: _requestId),
               done: 'Resolved',
             ),
           ),

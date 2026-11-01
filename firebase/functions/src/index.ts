@@ -5,20 +5,20 @@ import { masters } from './inventory/masters';
 import { orders } from './inventory/orders';
 import { procurement } from './inventory/procurement';
 import { invoices, receiving } from './inventory/receiving';
-import { stock } from './inventory/stock-ops';
+import { stock } from './inventory/stock-operations';
 import { importRun } from './inventory/import';
 import { verification } from './inventory/verification';
 import { itemSearch } from './inventory/search';
-import { copies as libCopies } from './library/copies';
-import { masters as libMasters } from './library/masters';
-import { loans as libLoans } from './library/loans';
-import { members as libMembers } from './library/members';
-import { reservations as libReservations } from './library/reservations';
-import { fines as libFines } from './library/fines';
-import { incidents as libIncidents } from './library/incidents';
-import { transfers as libTransfers } from './library/transfers';
-import { verification as libVerification } from './library/verification';
-import { importRun as libImportRun } from './library/import';
+import { copies as libraryCopies } from './library/copies';
+import { masters as libraryMasters } from './library/masters';
+import { loans as libraryLoans } from './library/loans';
+import { members as libraryMembers } from './library/members';
+import { reservations as libraryReservations } from './library/reservations';
+import { fines as libraryFines } from './library/fines';
+import { incidents as libraryIncidents } from './library/incidents';
+import { transfers as libraryTransfers } from './library/transfers';
+import { verification as libraryVerification } from './library/verification';
+import { importRun as libraryImportRun } from './library/import';
 import { catalogueSearch } from './library/search';
 import * as sessionFns from './session';
 import { callable, queryCallable } from './shared/callable';
@@ -61,21 +61,21 @@ const stockFns = {
 };
 const procurementFns = {
   vendor: { upsert: callable(procurement.vendorUpsert), setStatus: callable(procurement.vendorSetStatus) },
-  pr: {
-    save: callable(procurement.prSave),
-    submit: callable(procurement.prSubmit),
-    decide: callable(procurement.prDecide),
-    cancel: callable(procurement.prCancel),
+  purchaseRequest: {
+    save: callable(procurement.purchaseRequestSave),
+    submit: callable(procurement.purchaseRequestSubmit),
+    decide: callable(procurement.purchaseRequestDecide),
+    cancel: callable(procurement.purchaseRequestCancel),
   },
   quotation: { save: callable(orders.quotationSave), select: callable(orders.quotationSelect) },
-  po: {
-    save: callable(orders.poSave),
-    issue: callable(orders.poIssue),
-    revise: callable(orders.poRevise),
-    acknowledge: callable(orders.poAcknowledge),
-    cancel: callable(orders.poCancel),
-    close: callable(orders.poClose),
-    receive: callable(receiving.poReceive),
+  purchaseOrder: {
+    save: callable(orders.purchaseOrderSave),
+    issue: callable(orders.purchaseOrderIssue),
+    revise: callable(orders.purchaseOrderRevise),
+    acknowledge: callable(orders.purchaseOrderAcknowledge),
+    cancel: callable(orders.purchaseOrderCancel),
+    close: callable(orders.purchaseOrderClose),
+    receive: callable(receiving.purchaseOrderReceive),
   },
   invoice: {
     save: callable(invoices.invoiceSave),
@@ -103,41 +103,41 @@ const verificationFns = {
     decide: callable(verification.decide),
   },
 };
-export const inv = { ...masterFns, ...stockFns, ...procurementFns, ...assetFns, ...verificationFns, seedDefaults: callable(masters.seedDefaults), import: { run: importRun } };
+export const inventory = { ...masterFns, ...stockFns, ...procurementFns, ...assetFns, ...verificationFns, seedDefaults: callable(masters.seedDefaults), import: { run: importRun } };
 
-export const lib = {
-  library: { upsert: callable(libMasters.libraryUpsert), setStatus: callable(libMasters.librarySetStatus) },
-  category: { upsert: callable(libMasters.categoryUpsert), setStatus: callable(libMasters.categorySetStatus) },
+export const library = {
+  library: { upsert: callable(libraryMasters.libraryUpsert), setStatus: callable(libraryMasters.librarySetStatus) },
+  category: { upsert: callable(libraryMasters.categoryUpsert), setStatus: callable(libraryMasters.categorySetStatus) },
   catalogue: {
-    upsert: callable(libMasters.catalogueUpsert),
-    setStatus: callable(libMasters.catalogueSetStatus),
+    upsert: callable(libraryMasters.catalogueUpsert),
+    setStatus: callable(libraryMasters.catalogueSetStatus),
     search: queryCallable(catalogueSearch),
   },
-  seedDefaults: callable(libMasters.seedDefaults),
-  import: { run: libImportRun },
-  acquisition: { create: callable(libCopies.acquisitionCreate) },
-  copy: { update: callable(libCopies.copyUpdate), move: callable(libCopies.copyMove), setStatus: callable(libCopies.copySetStatus) },
-  policy: { upsert: callable(libMembers.policyUpsert), setStatus: callable(libMembers.policySetStatus) },
-  member: { upsert: callable(libMembers.memberUpsert), setStatus: callable(libMembers.memberSetStatus) },
+  seedDefaults: callable(libraryMasters.seedDefaults),
+  import: { run: libraryImportRun },
+  acquisition: { create: callable(libraryCopies.acquisitionCreate) },
+  copy: { update: callable(libraryCopies.copyUpdate), move: callable(libraryCopies.copyMove), setStatus: callable(libraryCopies.copySetStatus) },
+  policy: { upsert: callable(libraryMembers.policyUpsert), setStatus: callable(libraryMembers.policySetStatus) },
+  member: { upsert: callable(libraryMembers.memberUpsert), setStatus: callable(libraryMembers.memberSetStatus) },
   loan: {
-    issue: callable(libLoans.loanIssue),
-    return: callable(libLoans.loanReturn),
-    renew: callable(libLoans.loanRenew),
-    markLost: callable(libLoans.loanMarkLost),
+    issue: callable(libraryLoans.loanIssue),
+    return: callable(libraryLoans.loanReturn),
+    renew: callable(libraryLoans.loanRenew),
+    markLost: callable(libraryLoans.loanMarkLost),
   },
-  reservation: { create: callable(libReservations.reservationCreate), cancel: callable(libReservations.reservationCancel) },
-  fine: { waive: callable(libFines.fineWaive), setPayment: callable(libFines.fineSetPayment) },
-  incident: { report: callable(libIncidents.incidentReport), resolve: callable(libIncidents.resolve) },
+  reservation: { create: callable(libraryReservations.reservationCreate), cancel: callable(libraryReservations.reservationCancel) },
+  fine: { waive: callable(libraryFines.fineWaive), setPayment: callable(libraryFines.fineSetPayment) },
+  incident: { report: callable(libraryIncidents.incidentReport), resolve: callable(libraryIncidents.resolve) },
   transfer: {
-    request: callable(libTransfers.transferRequest),
-    approve: callable(libTransfers.transferApprove),
-    dispatch: callable(libTransfers.transferDispatch),
-    receive: callable(libTransfers.transferReceive),
+    request: callable(libraryTransfers.transferRequest),
+    approve: callable(libraryTransfers.transferApprove),
+    dispatch: callable(libraryTransfers.transferDispatch),
+    receive: callable(libraryTransfers.transferReceive),
   },
   verification: {
-    create: callable(libVerification.verificationCreate),
-    scan: callable(libVerification.verificationScan),
-    submit: callable(libVerification.verificationSubmit),
-    approve: callable(libVerification.verificationApprove),
+    create: callable(libraryVerification.verificationCreate),
+    scan: callable(libraryVerification.verificationScan),
+    submit: callable(libraryVerification.verificationSubmit),
+    approve: callable(libraryVerification.verificationApprove),
   },
 };

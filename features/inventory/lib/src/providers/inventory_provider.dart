@@ -1,24 +1,25 @@
 import 'package:flutter/foundation.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:injectable/injectable.dart';
-import 'package:inventory/src/models/inv_masters.dart';
+import 'package:inventory/src/models/inventory_masters.dart';
 import 'package:inventory/src/services/inventory_service.dart';
 
 @lazySingleton
-class InventoryProvider extends ChangeNotifier {
+class InventoryProvider extends ChangeNotifier implements ErrorReporting {
   InventoryProvider(this._service);
 
   final InventoryService _service;
 
-  InvAccess access = const InvAccess();
-  List<InvCategory> categories = [];
-  List<InvUnit> units = [];
-  List<InvStore> stores = [];
+  ModuleAccess access = const ModuleAccess();
+  List<InventoryCategory> categories = [];
+  List<InventoryUnit> units = [];
+  List<InventoryStore> stores = [];
   bool isLoading = false;
+  @override
   String? errorMessage;
 
   // Item list (paged).
-  final List<InvItem> items = [];
+  final List<InventoryItem> items = [];
   bool itemsLoading = false;
   bool hasMoreItems = false;
   String itemSearch = '';
@@ -26,15 +27,15 @@ class InventoryProvider extends ChangeNotifier {
   DocumentSnapshot<Map<String, dynamic>>? _cursor;
   int _searchOffset = 0;
 
-  InvCategory? category(String? id) {
-    for (final c in categories) {
-      if (c.id == id) return c;
+  InventoryCategory? category(String? id) {
+    for (final category in categories) {
+      if (category.id == id) return category;
     }
     return null;
   }
 
-  List<InvCategory> get topCategories =>
-      categories.where((c) => c.parentId == null).toList();
+  List<InventoryCategory> get topCategories =>
+      categories.where((category) => category.parentId == null).toList();
 
   /// Loads the user's permissions and the small master lists.
   Future<void> loadMasters() async {
@@ -43,16 +44,16 @@ class InventoryProvider extends ChangeNotifier {
     notifyListeners();
     try {
       access = await _service.access();
-      final r = await Future.wait([
+      final masterLists = await Future.wait([
         _service.categories(),
         _service.units(),
         _service.stores(access),
       ]);
-      categories = r[0] as List<InvCategory>;
-      units = r[1] as List<InvUnit>;
-      stores = r[2] as List<InvStore>;
-    } catch (e) {
-      errorMessage = _message(e);
+      categories = masterLists[0] as List<InventoryCategory>;
+      units = masterLists[1] as List<InventoryUnit>;
+      stores = masterLists[2] as List<InventoryStore>;
+    } catch (error) {
+      errorMessage = callableErrorMessage(error);
     } finally {
       isLoading = false;
       notifyListeners();
@@ -98,26 +99,27 @@ class InventoryProvider extends ChangeNotifier {
         _searchOffset += page.items.length;
         hasMoreItems = page.hasMore;
       }
-    } catch (e) {
-      errorMessage = _message(e);
+    } catch (error) {
+      errorMessage = callableErrorMessage(error);
     } finally {
       itemsLoading = false;
       notifyListeners();
     }
   }
 
-  Future<InvItem?> item(String id) => _service.item(id);
+  Future<InventoryItem?> item(String id) => _service.item(id);
 
-  Future<List<InvVariant>> variants(String itemId) => _service.variants(itemId);
+  Future<List<InventoryVariant>> variants(String itemId) =>
+      _service.variants(itemId);
 
   // Writes return true on success, else set [errorMessage].
 
   Future<bool> seedDefaults() =>
       _write(_service.seedDefaults, reload: loadMasters);
 
-  Future<bool> saveCategory(Map<String, Object?> d, {String? requestId}) =>
+  Future<bool> saveCategory(Map<String, Object?> data, {String? requestId}) =>
       _write(
-        () => _service.saveCategory(d, requestId: requestId),
+        () => _service.saveCategory(data, requestId: requestId),
         reload: loadMasters,
       );
 
@@ -129,23 +131,25 @@ class InventoryProvider extends ChangeNotifier {
   Future<bool> saveUnit(String code, String name) =>
       _write(() => _service.saveUnit(code, name), reload: loadMasters);
 
-  Future<bool> saveItem(Map<String, Object?> d, {String? requestId}) => _write(
-    () => _service.saveItem(d, requestId: requestId),
-    reload: loadItems,
-  );
+  Future<bool> saveItem(Map<String, Object?> data, {String? requestId}) =>
+      _write(
+        () => _service.saveItem(data, requestId: requestId),
+        reload: loadItems,
+      );
 
   Future<bool> setItemActive(String id, {required bool active}) => _write(
     () => _service.setItemActive(id, active: active),
     reload: loadItems,
   );
 
-  Future<bool> saveVariant(Map<String, Object?> d, {String? requestId}) =>
-      _write(() => _service.saveVariant(d, requestId: requestId));
+  Future<bool> saveVariant(Map<String, Object?> data, {String? requestId}) =>
+      _write(() => _service.saveVariant(data, requestId: requestId));
 
-  Future<bool> saveStore(Map<String, Object?> d, {String? requestId}) => _write(
-    () => _service.saveStore(d, requestId: requestId),
-    reload: loadMasters,
-  );
+  Future<bool> saveStore(Map<String, Object?> data, {String? requestId}) =>
+      _write(
+        () => _service.saveStore(data, requestId: requestId),
+        reload: loadMasters,
+      );
 
   Future<bool> setStoreActive(String id, {required bool active}) => _write(
     () => _service.setStoreActive(id, active: active),
@@ -159,15 +163,12 @@ class InventoryProvider extends ChangeNotifier {
     errorMessage = null;
     try {
       await call();
-    } catch (e) {
-      errorMessage = _message(e);
+    } catch (error) {
+      errorMessage = callableErrorMessage(error);
       notifyListeners();
       return false;
     }
     await reload?.call();
     return true;
   }
-
-  String _message(Object e) =>
-      e is FirebaseFunctionsException ? (e.message ?? e.code) : e.toString();
 }

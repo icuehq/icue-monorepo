@@ -1,8 +1,9 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icueadmin/features/inventory/stock/balance_sheets.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
 import 'package:icueadmin/routing/app_routes.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -22,12 +23,15 @@ class _StockPageState extends State<StockPage> {
   @override
   void initState() {
     super.initState();
-    final inv = context.read<InventoryProvider>();
+    final inventoryProvider = context.read<InventoryProvider>();
     final stock = context.read<StockProvider>();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (inv.stores.isEmpty) await inv.loadMasters();
+      if (inventoryProvider.stores.isEmpty) {
+        await inventoryProvider.loadMasters();
+      }
       final first =
-          stock.store ?? inv.stores.where((s) => s.active).firstOrNull;
+          stock.store ??
+          inventoryProvider.stores.where((store) => store.active).firstOrNull;
       if (first != null) await stock.loadBalances(first);
     });
     _scroll.addListener(() {
@@ -45,23 +49,23 @@ class _StockPageState extends State<StockPage> {
 
   @override
   Widget build(BuildContext context) {
-    final inv = context.watch<InventoryProvider>();
-    final p = context.watch<StockProvider>();
-    final a = inv.access;
-    final rows = p.balances.where((b) {
-      final name = p.itemName(b.itemId).toLowerCase();
-      return (!_lowOnly || b.belowReorder) &&
+    final inventoryProvider = context.watch<InventoryProvider>();
+    final stockProvider = context.watch<StockProvider>();
+    final access = inventoryProvider.access;
+    final rows = stockProvider.balances.where((balance) {
+      final name = stockProvider.itemName(balance.itemId).toLowerCase();
+      return (!_lowOnly || balance.isBelowReorderLevel) &&
           (name.contains(_query) ||
-              (b.batchNo ?? '').toLowerCase().contains(_query));
+              (balance.batchNumber ?? '').toLowerCase().contains(_query));
     }).toList();
     return Scaffold(
       appBar: AppBar(
         title: const Text('Stock'),
         actions: [
           PopupMenuButton<String>(
-            onSelected: (r) => context.push(r),
+            onSelected: (value) => context.push(value),
             itemBuilder: (_) => [
-              if (a.can('inv.stock.operate'))
+              if (access.can('inventory.stock.operate'))
                 const PopupMenuItem(
                   value: AppRoutes.inventoryReceive,
                   child: Text('Receive stock'),
@@ -88,17 +92,20 @@ class _StockPageState extends State<StockPage> {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
             child: DropdownButton<String>(
               isExpanded: true,
-              value: p.store?.id,
+              value: stockProvider.store?.id,
               hint: const Text('Select a store'),
               items: [
-                for (final s in inv.stores.where((s) => s.active))
+                for (final store in inventoryProvider.stores.where(
+                  (store) => store.active,
+                ))
                   DropdownMenuItem(
-                    value: s.id,
-                    child: Text('${s.name} (${s.code})'),
+                    value: store.id,
+                    child: Text('${store.name} (${store.code})'),
                   ),
               ],
-              onChanged: (id) =>
-                  p.loadBalances(inv.stores.firstWhere((s) => s.id == id)),
+              onChanged: (id) => stockProvider.loadBalances(
+                inventoryProvider.stores.firstWhere((store) => store.id == id),
+              ),
             ),
           ),
           Padding(
@@ -107,8 +114,8 @@ class _StockPageState extends State<StockPage> {
               children: [
                 Expanded(
                   child: TextField(
-                    onChanged: (v) =>
-                        setState(() => _query = v.trim().toLowerCase()),
+                    onChanged: (value) =>
+                        setState(() => _query = value.trim().toLowerCase()),
                     decoration: const InputDecoration(
                       hintText: 'Filter loaded rows by item or batch',
                       prefixIcon: Icon(Icons.search),
@@ -119,7 +126,7 @@ class _StockPageState extends State<StockPage> {
                 FilterChip(
                   label: const Text('Low'),
                   selected: _lowOnly,
-                  onSelected: (v) => setState(() => _lowOnly = v),
+                  onSelected: (value) => setState(() => _lowOnly = value),
                 ),
               ],
             ),
@@ -127,11 +134,13 @@ class _StockPageState extends State<StockPage> {
           Expanded(
             child: rows.isEmpty
                 ? Center(
-                    child: p.isLoading
+                    child: stockProvider.isLoading
                         ? const CircularProgressIndicator()
                         : Text(
-                            p.errorMessage ??
-                                (p.store == null ? 'No store' : 'No stock'),
+                            stockProvider.errorMessage ??
+                                (stockProvider.store == null
+                                    ? 'No store'
+                                    : 'No stock'),
                           ),
                   )
                 : ListView.builder(
@@ -147,38 +156,39 @@ class _StockPageState extends State<StockPage> {
 }
 
 class _BalanceTile extends StatelessWidget {
-  const _BalanceTile(this.b);
+  const _BalanceTile(this.balance);
 
-  final InvBalance b;
+  final InventoryBalance balance;
 
   @override
   Widget build(BuildContext context) {
-    final p = context.read<StockProvider>();
-    final unit = p.items[b.itemId]?.stockUnit ?? '';
+    final stockProvider = context.read<StockProvider>();
+    final unit = stockProvider.items[balance.itemId]?.stockUnit ?? '';
     final extra = [
-      if (b.batchNo != null) 'Batch ${b.batchNo}',
-      if (b.expiryDate != null) 'exp ${b.expiryDate}',
+      if (balance.batchNumber != null) 'Batch ${balance.batchNumber}',
+      if (balance.expiryDate != null) 'exp ${balance.expiryDate}',
     ].join(' · ');
     return ListTile(
-      title: Text(p.itemName(b.itemId)),
+      title: Text(stockProvider.itemName(balance.itemId)),
       subtitle: Text(
         [
           if (extra.isNotEmpty) extra,
-          'Out ${fmtQty(b.issuedTotal)} · In ${fmtQty(b.receivedTotal)}'
-              '${b.damaged > 0 ? ' · Damaged ${fmtQty(b.damaged)}' : ''}'
-              '${b.expired > 0 ? ' · Expired ${fmtQty(b.expired)}' : ''}'
-              ' · ₹${b.value.toStringAsFixed(2)}',
+          'Out ${formatQuantity(balance.issuedTotal)} · In ${formatQuantity(balance.receivedTotal)}'
+              '${balance.damaged > 0 ? ' · Damaged ${formatQuantity(balance.damaged)}' : ''}'
+              '${balance.expired > 0 ? ' · Expired ${formatQuantity(balance.expired)}' : ''}'
+              ' · ₹${balance.value.toStringAsFixed(2)}',
         ].join('\n'),
       ),
       isThreeLine: extra.isNotEmpty,
-      leading: b.belowReorder
+      leading: balance.isBelowReorderLevel
           ? const Icon(Icons.warning_amber_rounded, color: Colors.orange)
           : null,
       trailing: Text(
-        '${fmtQty(b.available)} $unit',
+        '${formatQuantity(balance.available)} $unit',
         style: Theme.of(context).textTheme.titleMedium,
       ),
-      onTap: () => showInvSheet(context, () => BalanceActions(balance: b)),
+      onTap: () =>
+          showFormSheet(context, () => BalanceActions(balance: balance)),
     );
   }
 }

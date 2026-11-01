@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
-import 'package:icueadmin/features/library/widgets/lib_ui.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
@@ -10,19 +9,19 @@ import 'package:school_library/school_library.dart';
 class AcquisitionSheet extends StatefulWidget {
   const AcquisitionSheet({super.key, required this.book});
 
-  final LibBook book;
+  final LibraryBook book;
 
-  static Future<List<String>?> show(BuildContext context, LibBook book) =>
+  static Future<List<String>?> show(BuildContext context, LibraryBook book) =>
       showModalBottomSheet<List<String>>(
         context: context,
         isScrollControlled: true,
         showDragHandle: true,
-        builder: (ctx) => Padding(
+        builder: (context) => Padding(
           padding: EdgeInsets.fromLTRB(
             20,
             0,
             20,
-            MediaQuery.viewInsetsOf(ctx).bottom + 20,
+            MediaQuery.viewInsetsOf(context).bottom + 20,
           ),
           child: SingleChildScrollView(child: AcquisitionSheet(book: book)),
         ),
@@ -41,7 +40,7 @@ class _AcquisitionSheetState extends State<AcquisitionSheet> {
 
   final _form = GlobalKey<FormState>();
   final _requestId = newRequestId();
-  final _qty = TextEditingController(text: '1');
+  final _quantity = TextEditingController(text: '1');
   final _price = TextEditingController();
   final _vendor = TextEditingController();
   final _ref = TextEditingController();
@@ -53,8 +52,8 @@ class _AcquisitionSheetState extends State<AcquisitionSheet> {
 
   @override
   void dispose() {
-    for (final c in [_qty, _price, _vendor, _ref, _shelf]) {
-      c.dispose();
+    for (final controller in [_quantity, _price, _vendor, _ref, _shelf]) {
+      controller.dispose();
     }
     super.dispose();
   }
@@ -62,13 +61,13 @@ class _AcquisitionSheetState extends State<AcquisitionSheet> {
   Future<void> _save() async {
     if (!_form.currentState!.validate()) return;
     setState(() => _busy = true);
-    final p = context.read<LibraryProvider>();
-    final nav = Navigator.of(context);
-    final ids = await p.createAcquisition({
+    final libraryProvider = context.read<LibraryProvider>();
+    final navigator = Navigator.of(context);
+    final ids = await libraryProvider.createAcquisition({
       'type': _type,
       'catalogueId': widget.book.id,
       'libraryId': _libraryId,
-      'qty': int.parse(_qty.text.trim()),
+      'quantity': int.parse(_quantity.text.trim()),
       'price': double.tryParse(_price.text.trim()) ?? 0,
       'vendorOrDonor': blankToNull(_vendor),
       'reference': blankToNull(_ref),
@@ -78,18 +77,20 @@ class _AcquisitionSheetState extends State<AcquisitionSheet> {
     if (!mounted) return;
     if (ids == null) {
       setState(() => _busy = false);
-      invSnack(context, p.errorMessage ?? 'Could not save');
+      showMessage(context, libraryProvider.errorMessage ?? 'Could not save');
     } else {
-      nav.pop(ids);
+      navigator.pop(ids);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final p = context.read<LibraryProvider>();
-    final libs = [
-      for (final l in p.libraries)
-        if (l.active && p.access.campuses.contains(l.campusId)) l,
+    final libraryProvider = context.read<LibraryProvider>();
+    final libraries = [
+      for (final schoolLibrary in libraryProvider.libraries)
+        if (schoolLibrary.active &&
+            libraryProvider.access.campusIds.contains(schoolLibrary.campusId))
+          schoolLibrary,
     ];
     return Form(
       key: _form,
@@ -104,28 +105,36 @@ class _AcquisitionSheetState extends State<AcquisitionSheet> {
             initialValue: _type,
             decoration: const InputDecoration(labelText: 'Source *'),
             items: [
-              for (final e in _types.entries)
-                DropdownMenuItem(value: e.key, child: Text(e.value)),
+              for (final mapEntry in _types.entries)
+                DropdownMenuItem(
+                  value: mapEntry.key,
+                  child: Text(mapEntry.value),
+                ),
             ],
-            onChanged: (v) => setState(() => _type = v!),
+            onChanged: (value) => setState(() => _type = value!),
           ),
           DropdownButtonFormField<String>(
             initialValue: _libraryId,
             decoration: const InputDecoration(labelText: 'Library *'),
             items: [
-              for (final l in libs)
-                DropdownMenuItem(value: l.id, child: Text(l.name)),
+              for (final schoolLibrary in libraries)
+                DropdownMenuItem(
+                  value: schoolLibrary.id,
+                  child: Text(schoolLibrary.name),
+                ),
             ],
-            onChanged: (v) => _libraryId = v,
-            validator: (v) => v == null ? 'Required' : null,
+            onChanged: (value) => _libraryId = value,
+            validator: (value) => value == null ? 'Required' : null,
           ),
           TextFormField(
-            controller: _qty,
+            controller: _quantity,
             keyboardType: TextInputType.number,
             decoration: const InputDecoration(labelText: 'Number of copies *'),
-            validator: (v) {
-              final n = int.tryParse(v?.trim() ?? '');
-              return n == null || n < 1 || n > 100 ? '1 to 100' : null;
+            validator: (value) {
+              final number = int.tryParse(value?.trim() ?? '');
+              return number == null || number < 1 || number > 100
+                  ? '1 to 100'
+                  : null;
             },
           ),
           TextFormField(
@@ -136,12 +145,13 @@ class _AcquisitionSheetState extends State<AcquisitionSheet> {
                   ? 'Price per copy *'
                   : 'Price per copy',
             ),
-            validator: (v) {
-              final n = double.tryParse(v?.trim() ?? '');
+            validator: (value) {
+              final number = double.tryParse(value?.trim() ?? '');
               if (_type == 'purchase') {
-                return n == null || n <= 0 ? 'Enter the price' : null;
+                return number == null || number <= 0 ? 'Enter the price' : null;
               }
-              return (v ?? '').trim().isNotEmpty && (n == null || n < 0)
+              return (value ?? '').trim().isNotEmpty &&
+                      (number == null || number < 0)
                   ? 'Invalid'
                   : null;
             },
@@ -164,10 +174,13 @@ class _AcquisitionSheetState extends State<AcquisitionSheet> {
             initialValue: _condition,
             decoration: const InputDecoration(labelText: 'Condition'),
             items: [
-              for (final c in copyConditions)
-                DropdownMenuItem(value: c, child: Text(c)),
+              for (final copyCondition in copyConditions)
+                DropdownMenuItem(
+                  value: copyCondition,
+                  child: Text(copyCondition),
+                ),
             ],
-            onChanged: (v) => _condition = v!,
+            onChanged: (value) => _condition = value!,
           ),
           const SizedBox(height: 16),
           FilledButton(

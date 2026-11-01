@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icueadmin/features/inventory/procurement/order_widgets.dart';
-import 'package:icueadmin/features/inventory/procurement/proc_ui.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
+import 'package:icueadmin/features/inventory/procurement/procurement_ui.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -10,10 +10,12 @@ import 'package:provider/provider.dart';
 class InvoiceFormSheet extends StatefulWidget {
   const InvoiceFormSheet({required this.order, super.key});
 
-  final InvPurchaseOrder order;
+  final InventoryPurchaseOrder order;
 
-  static Future<void> show(BuildContext context, InvPurchaseOrder order) =>
-      showInvSheet(context, () => InvoiceFormSheet(order: order));
+  static Future<void> show(
+    BuildContext context,
+    InventoryPurchaseOrder order,
+  ) => showFormSheet(context, () => InvoiceFormSheet(order: order));
 
   @override
   State<InvoiceFormSheet> createState() => _InvoiceFormSheetState();
@@ -22,7 +24,7 @@ class InvoiceFormSheet extends StatefulWidget {
 class _InvoiceFormSheetState extends State<InvoiceFormSheet> {
   final _form = GlobalKey<FormState>();
   final _requestId = newRequestId();
-  final _no = TextEditingController();
+  final _invoiceNumber = TextEditingController();
   final _date = TextEditingController();
   final _due = TextEditingController();
   late final _subtotal = TextEditingController(
@@ -50,47 +52,57 @@ class _InvoiceFormSheetState extends State<InvoiceFormSheet> {
 
   @override
   void dispose() {
-    for (final c in [_no, _date, _due, _subtotal, _tax, _discount]) {
-      c.dispose();
+    for (final controller in [
+      _invoiceNumber,
+      _date,
+      _due,
+      _subtotal,
+      _tax,
+      _discount,
+    ]) {
+      controller.dispose();
     }
     super.dispose();
   }
 
-  double _v(TextEditingController c) => double.tryParse(c.text.trim()) ?? 0;
+  double _v(TextEditingController controller) =>
+      double.tryParse(controller.text.trim()) ?? 0;
 
   Future<void> _save() async {
     if (!_form.currentState!.validate()) return;
     setState(() => _busy = true);
     await procSubmit(
       context,
-      (p) => p.act('inv-invoice-save', {
-        'poId': widget.order.id,
-        'invoiceNo': _no.text.trim(),
-        'invoiceDate': _date.text,
-        'dueDate': _due.text,
-        'subtotal': _v(_subtotal),
-        'tax': _v(_tax),
-        'discount': _v(_discount),
-        'receiptIds': _receipts.toList(),
-      }, requestId: _requestId),
+      (procurementProvider) =>
+          procurementProvider.act('inventory-invoice-save', {
+            'purchaseOrderId': widget.order.id,
+            'invoiceNumber': _invoiceNumber.text.trim(),
+            'invoiceDate': _date.text,
+            'dueDate': _due.text,
+            'subtotal': _v(_subtotal),
+            'tax': _v(_tax),
+            'discount': _v(_discount),
+            'receiptIds': _receipts.toList(),
+          }, requestId: _requestId),
       done: 'Invoice recorded',
     );
     if (mounted) setState(() => _busy = false);
   }
 
-  Widget _amount(TextEditingController c, String label) => TextFormField(
-    controller: c,
-    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-    decoration: InputDecoration(labelText: label),
-    validator: (v) {
-      final n = double.tryParse((v ?? '').trim());
-      return n == null || n < 0 ? 'Invalid' : null;
-    },
-  );
+  Widget _amount(TextEditingController controller, String label) =>
+      TextFormField(
+        controller: controller,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        decoration: InputDecoration(labelText: label),
+        validator: (value) {
+          final number = double.tryParse((value ?? '').trim());
+          return number == null || number < 0 ? 'Invalid' : null;
+        },
+      );
 
   @override
   Widget build(BuildContext context) {
-    final grns = context.watch<ProcurementProvider>().receipts;
+    final goodsReceipts = context.watch<ProcurementProvider>().receipts;
     final today = DateTime.now();
     return Form(
       key: _form,
@@ -103,7 +115,7 @@ class _InvoiceFormSheetState extends State<InvoiceFormSheet> {
             style: Theme.of(context).textTheme.titleLarge,
           ),
           TextFormField(
-            controller: _no,
+            controller: _invoiceNumber,
             decoration: const InputDecoration(labelText: 'Invoice number *'),
             validator: requiredText,
           ),
@@ -122,18 +134,20 @@ class _InvoiceFormSheetState extends State<InvoiceFormSheet> {
           _amount(_subtotal, 'Subtotal'),
           _amount(_tax, 'Tax'),
           _amount(_discount, 'Discount'),
-          if (grns.isNotEmpty) ...[
+          if (goodsReceipts.isNotEmpty) ...[
             const SizedBox(height: 8),
             const Text('Receiving references'),
             Wrap(
               spacing: 8,
               children: [
-                for (final g in grns)
+                for (final goodsReceipt in goodsReceipts)
                   FilterChip(
-                    label: Text(g.number),
-                    selected: _receipts.contains(g.id),
-                    onSelected: (on) => setState(
-                      () => on ? _receipts.add(g.id) : _receipts.remove(g.id),
+                    label: Text(goodsReceipt.number),
+                    selected: _receipts.contains(goodsReceipt.id),
+                    onSelected: (isSelected) => setState(
+                      () => isSelected
+                          ? _receipts.add(goodsReceipt.id)
+                          : _receipts.remove(goodsReceipt.id),
                     ),
                   ),
               ],

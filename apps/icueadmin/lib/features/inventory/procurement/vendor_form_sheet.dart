@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
-import 'package:icueadmin/features/inventory/procurement/proc_ui.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
+import 'package:icueadmin/features/inventory/procurement/procurement_ui.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
 class VendorFormSheet extends StatefulWidget {
   const VendorFormSheet({super.key, this.vendor});
 
-  final InvVendor? vendor;
+  final InventoryVendor? vendor;
 
-  static Future<void> show(BuildContext context, {InvVendor? vendor}) =>
-      showInvSheet(context, () => VendorFormSheet(vendor: vendor));
+  static Future<void> show(BuildContext context, {InventoryVendor? vendor}) =>
+      showFormSheet(context, () => VendorFormSheet(vendor: vendor));
 
   @override
   State<VendorFormSheet> createState() => _VendorFormSheetState();
@@ -28,15 +28,15 @@ class _VendorFormSheetState extends State<VendorFormSheet> {
   late final _phone = TextEditingController(text: widget.vendor?.phone);
   late final _email = TextEditingController(text: widget.vendor?.email);
   late final _address = TextEditingController(text: widget.vendor?.address);
-  late final _tax = TextEditingController(text: widget.vendor?.taxNo);
+  late final _tax = TextEditingController(text: widget.vendor?.taxNumber);
   late final _website = TextEditingController(text: widget.vendor?.website);
-  late final _notes = TextEditingController(text: widget.vendor?.notes);
+  late final _remarks = TextEditingController(text: widget.vendor?.remarks);
   late final Set<String> _categories = {...?widget.vendor?.categoryIds};
   bool _busy = false;
 
   @override
   void dispose() {
-    for (final c in [
+    for (final controller in [
       _code,
       _name,
       _contact,
@@ -45,9 +45,9 @@ class _VendorFormSheetState extends State<VendorFormSheet> {
       _address,
       _tax,
       _website,
-      _notes,
+      _remarks,
     ]) {
-      c.dispose();
+      controller.dispose();
     }
     super.dispose();
   }
@@ -55,37 +55,38 @@ class _VendorFormSheetState extends State<VendorFormSheet> {
   Future<void> _save() async {
     if (!_form.currentState!.validate()) return;
     setState(() => _busy = true);
-    final v = widget.vendor;
-    String? blank(TextEditingController c) =>
-        c.text.trim().isEmpty ? null : c.text.trim();
+    final vendor = widget.vendor;
+    String? blank(TextEditingController controller) =>
+        controller.text.trim().isEmpty ? null : controller.text.trim();
     await procSubmit(
       context,
-      (p) => p.act('inv-vendor-upsert', {
-        if (v != null) 'id': v.id else 'code': _code.text.trim(),
-        'name': _name.text.trim(),
-        'contactPerson': blank(_contact),
-        'phone': blank(_phone),
-        'email': blank(_email),
-        'address': blank(_address),
-        'taxNo': blank(_tax),
-        'website': blank(_website),
-        'categoryIds': _categories.toList(),
-        'notes': blank(_notes),
-      }, requestId: _requestId),
+      (procurementProvider) =>
+          procurementProvider.act('inventory-vendor-upsert', {
+            if (vendor != null) 'id': vendor.id else 'code': _code.text.trim(),
+            'name': _name.text.trim(),
+            'contactPerson': blank(_contact),
+            'phone': blank(_phone),
+            'email': blank(_email),
+            'address': blank(_address),
+            'taxNumber': blank(_tax),
+            'website': blank(_website),
+            'categoryIds': _categories.toList(),
+            'notes': blank(_remarks),
+          }, requestId: _requestId),
     );
     if (mounted) setState(() => _busy = false);
   }
 
   @override
   Widget build(BuildContext context) {
-    final cats = context.read<InventoryProvider>().topCategories;
+    final categories = context.read<InventoryProvider>().topCategories;
     TextFormField field(
-      TextEditingController c,
+      TextEditingController controller,
       String label, {
       bool required = false,
       TextInputType? type,
     }) => TextFormField(
-      controller: c,
+      controller: controller,
       keyboardType: type,
       decoration: InputDecoration(labelText: required ? '$label *' : label),
       validator: required ? requiredText : null,
@@ -109,20 +110,21 @@ class _VendorFormSheetState extends State<VendorFormSheet> {
           field(_address, 'Address'),
           field(_tax, 'Tax registration no.'),
           field(_website, 'Website', type: TextInputType.url),
-          field(_notes, 'Notes'),
+          field(_remarks, 'Notes'),
           const SizedBox(height: 8),
           Align(
             alignment: Alignment.centerLeft,
             child: Wrap(
               spacing: 8,
               children: [
-                for (final c in cats)
+                for (final category in categories)
                   FilterChip(
-                    label: Text(c.name),
-                    selected: _categories.contains(c.id),
-                    onSelected: (on) => setState(
-                      () =>
-                          on ? _categories.add(c.id) : _categories.remove(c.id),
+                    label: Text(category.name),
+                    selected: _categories.contains(category.id),
+                    onSelected: (isSelected) => setState(
+                      () => isSelected
+                          ? _categories.add(category.id)
+                          : _categories.remove(category.id),
                     ),
                   ),
               ],

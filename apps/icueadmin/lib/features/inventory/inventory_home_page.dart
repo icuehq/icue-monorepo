@@ -23,114 +23,118 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final p = context.watch<InventoryProvider>();
-    final a = p.access;
+    final inventoryProvider = context.watch<InventoryProvider>();
+    final access = inventoryProvider.access;
     final tiles = <(String, String, String, bool)>[
       (
         'assets/dashboard/inventory-dashboard.png',
         'Dashboard',
         AppRoutes.inventoryDashboard,
-        a.can('inv.stock.view') || a.can('inv.reports.view'),
+        access.can('inventory.stock.view') ||
+            access.can('inventory.reports.view'),
       ),
       (
         'assets/dashboard/inventory-stock-verification.png',
         'Stock verification',
         AppRoutes.inventoryVerifications,
-        a.can('inv.stock.view'),
+        access.can('inventory.stock.view'),
       ),
       (
         'assets/dashboard/inventory-import.png',
         'Import',
         AppRoutes.inventoryImport,
-        a.can('inv.settings') ||
-            a.can('inv.items.manage') ||
-            a.can('inv.vendors.manage'),
+        access.can('inventory.settings') ||
+            access.can('inventory.items.manage') ||
+            access.can('inventory.vendors.manage'),
       ),
       (
         'assets/dashboard/reports.png',
         'Reports',
         AppRoutes.inventoryReports,
-        a.can('inv.reports.view'),
+        access.can('inventory.reports.view'),
       ),
       (
         'assets/dashboard/inventory-items.png',
         'Items',
         AppRoutes.inventoryItems,
-        a.can('inv.items.view'),
+        access.can('inventory.items.view'),
       ),
       (
         'assets/dashboard/inventory-categories.png',
         'Categories',
         AppRoutes.inventoryCategories,
-        a.can('inv.items.view'),
+        access.can('inventory.items.view'),
       ),
       (
         'assets/dashboard/inventory-units.png',
         'Units',
         AppRoutes.inventoryUnits,
-        a.can('inv.items.view'),
+        access.can('inventory.items.view'),
       ),
       (
         'assets/dashboard/inventory-stock.png',
         'Stock',
         AppRoutes.inventoryStock,
-        a.can('inv.stock.view'),
+        access.can('inventory.stock.view'),
       ),
       (
         'assets/dashboard/inventory-issue-requests.png',
         'Issue requests',
         AppRoutes.inventoryRequests,
-        a.can('inv.issue.request') ||
-            a.can('inv.issue.approve') ||
-            a.can('inv.stock.view'),
+        access.can('inventory.issue.request') ||
+            access.can('inventory.issue.approve') ||
+            access.can('inventory.stock.view'),
       ),
       (
         'assets/dashboard/inventory-purchase-requests.png',
         'Purchase requests',
         AppRoutes.inventoryPurchaseRequests,
-        a.can('inv.pr.request') ||
-            a.can('inv.pr.approve') ||
-            a.can('inv.procure.operate'),
+        access.can('inventory.purchaseRequest.request') ||
+            access.can('inventory.purchaseRequest.approve') ||
+            access.can('inventory.procure.operate'),
       ),
       (
         'assets/dashboard/inventory-purchase-orders.png',
         'Purchase orders',
         AppRoutes.inventoryPurchaseOrders,
-        a.can('inv.procure.operate') || a.can('inv.stock.operate'),
+        access.can('inventory.procure.operate') ||
+            access.can('inventory.stock.operate'),
       ),
       (
         'assets/dashboard/inventory-invoices.png',
         'Vendor invoices',
         AppRoutes.inventoryInvoices,
-        a.can('inv.procure.operate'),
+        access.can('inventory.procure.operate'),
       ),
       (
         'assets/dashboard/inventory-assets.png',
         'Assets',
         AppRoutes.inventoryAssets,
-        a.can('inv.assets.view') || a.can('inv.assets.manage'),
+        access.can('inventory.assets.view') ||
+            access.can('inventory.assets.manage'),
       ),
       (
         'assets/dashboard/inventory-vendors.png',
         'Vendors',
         AppRoutes.inventoryVendors,
-        a.can('inv.vendors.manage') || a.can('inv.procure.operate'),
+        access.can('inventory.vendors.manage') ||
+            access.can('inventory.procure.operate'),
       ),
       (
         'assets/dashboard/inventory-stores.png',
         'Stores',
         AppRoutes.inventoryStores,
-        a.can('inv.stock.view') || a.can('inv.settings'),
+        access.can('inventory.stock.view') || access.can('inventory.settings'),
       ),
     ];
-    final visibleTiles = tiles.where((t) => t.$4).toList();
+    final visibleTiles = tiles.where((tile) => tile.$4).toList();
 
     return Scaffold(
       appBar: AppBar(title: const Text('Inventory')),
-      body: p.isLoading
+      body: inventoryProvider.isLoading
           ? const Center(child: CircularProgressIndicator())
-          : p.errorMessage != null
-          ? Center(child: Text(p.errorMessage!))
+          : inventoryProvider.errorMessage != null
+          ? Center(child: Text(inventoryProvider.errorMessage!))
           : LayoutBuilder(
               builder: (context, constraints) {
                 final width = constraints.maxWidth;

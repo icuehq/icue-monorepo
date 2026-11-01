@@ -1,7 +1,7 @@
 {
   "indexes": [
     {
-      "collectionGroup": "invItems",
+      "collectionGroup": "inventoryItems",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -15,7 +15,7 @@
       ]
     },
     {
-      "collectionGroup": "libCatalogue",
+      "collectionGroup": "libraryCatalogue",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -29,7 +29,7 @@
       ]
     },
     {
-      "collectionGroup": "invReceipts",
+      "collectionGroup": "inventoryReceipts",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -43,7 +43,7 @@
       ]
     },
     {
-      "collectionGroup": "invIssues",
+      "collectionGroup": "inventoryIssues",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -57,7 +57,7 @@
       ]
     },
     {
-      "collectionGroup": "invReturns",
+      "collectionGroup": "inventoryReturns",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -71,7 +71,7 @@
       ]
     },
     {
-      "collectionGroup": "invAdjustments",
+      "collectionGroup": "inventoryAdjustments",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -85,7 +85,7 @@
       ]
     },
     {
-      "collectionGroup": "invIssueRequests",
+      "collectionGroup": "inventoryIssueRequests",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -103,7 +103,7 @@
       ]
     },
     {
-      "collectionGroup": "invIssueRequests",
+      "collectionGroup": "inventoryIssueRequests",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -117,7 +117,7 @@
       ]
     },
     {
-      "collectionGroup": "invTransfers",
+      "collectionGroup": "inventoryTransfers",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -131,7 +131,7 @@
       ]
     },
     {
-      "collectionGroup": "invTransfers",
+      "collectionGroup": "inventoryTransfers",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -145,7 +145,7 @@
       ]
     },
     {
-      "collectionGroup": "invUnavailable",
+      "collectionGroup": "inventoryUnavailableStock",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -163,7 +163,7 @@
       ]
     },
     {
-      "collectionGroup": "invBalances",
+      "collectionGroup": "inventoryBalances",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -181,7 +181,7 @@
       ]
     },
     {
-      "collectionGroup": "invMovements",
+      "collectionGroup": "inventoryMovements",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -199,7 +199,7 @@
       ]
     },
     {
-      "collectionGroup": "invMovements",
+      "collectionGroup": "inventoryMovements",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -217,7 +217,7 @@
       ]
     },
     {
-      "collectionGroup": "invPurchaseRequests",
+      "collectionGroup": "inventoryPurchaseRequests",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -235,7 +235,7 @@
       ]
     },
     {
-      "collectionGroup": "invPurchaseRequests",
+      "collectionGroup": "inventoryPurchaseRequests",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -249,7 +249,7 @@
       ]
     },
     {
-      "collectionGroup": "invPurchaseOrders",
+      "collectionGroup": "inventoryPurchaseOrders",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -267,7 +267,7 @@
       ]
     },
     {
-      "collectionGroup": "invInvoices",
+      "collectionGroup": "inventoryInvoices",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -281,7 +281,7 @@
       ]
     },
     {
-      "collectionGroup": "invPurchaseOrders",
+      "collectionGroup": "inventoryPurchaseOrders",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -299,7 +299,7 @@
       ]
     },
     {
-      "collectionGroup": "invInvoices",
+      "collectionGroup": "inventoryInvoices",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -307,7 +307,7 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "poId",
+          "fieldPath": "purchaseOrderId",
           "order": "ASCENDING"
         },
         {
@@ -317,7 +317,7 @@
       ]
     },
     {
-      "collectionGroup": "invInvoices",
+      "collectionGroup": "inventoryInvoices",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -335,7 +335,7 @@
       ]
     },
     {
-      "collectionGroup": "invAssets",
+      "collectionGroup": "inventoryAssets",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -349,39 +349,7 @@
       ]
     },
     {
-      "collectionGroup": "invAssets",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "invMaintenance",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "invMaintenance",
+      "collectionGroup": "inventoryAssets",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -399,7 +367,39 @@
       ]
     },
     {
-      "collectionGroup": "invMaintenance",
+      "collectionGroup": "inventoryMaintenanceJobs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "campusId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "inventoryMaintenanceJobs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "campusId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "inventoryMaintenanceJobs",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -413,7 +413,7 @@
       ]
     },
     {
-      "collectionGroup": "invAssetAssignments",
+      "collectionGroup": "inventoryAssetAssignments",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -427,7 +427,7 @@
       ]
     },
     {
-      "collectionGroup": "invAssetAssignments",
+      "collectionGroup": "inventoryAssetAssignments",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -441,7 +441,7 @@
       ]
     },
     {
-      "collectionGroup": "invBalances",
+      "collectionGroup": "inventoryBalances",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -449,13 +449,13 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "expKey",
+          "fieldPath": "earliestExpiryDate",
           "order": "ASCENDING"
         }
       ]
     },
     {
-      "collectionGroup": "invBalances",
+      "collectionGroup": "inventoryBalances",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -467,13 +467,13 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "expKey",
+          "fieldPath": "earliestExpiryDate",
           "order": "ASCENDING"
         }
       ]
     },
     {
-      "collectionGroup": "invPurchaseRequests",
+      "collectionGroup": "inventoryPurchaseRequests",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -487,7 +487,7 @@
       ]
     },
     {
-      "collectionGroup": "invPurchaseOrders",
+      "collectionGroup": "inventoryPurchaseOrders",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -501,7 +501,7 @@
       ]
     },
     {
-      "collectionGroup": "invAssetAssignments",
+      "collectionGroup": "inventoryAssetAssignments",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -515,7 +515,7 @@
       ]
     },
     {
-      "collectionGroup": "invVerifications",
+      "collectionGroup": "inventoryVerifications",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -529,7 +529,7 @@
       ]
     },
     {
-      "collectionGroup": "invIssueRequests",
+      "collectionGroup": "inventoryIssueRequests",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -543,7 +543,7 @@
       ]
     },
     {
-      "collectionGroup": "invUnavailable",
+      "collectionGroup": "inventoryUnavailableStock",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -557,7 +557,7 @@
       ]
     },
     {
-      "collectionGroup": "invMovements",
+      "collectionGroup": "inventoryMovements",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -571,7 +571,7 @@
       ]
     },
     {
-      "collectionGroup": "invPurchaseOrders",
+      "collectionGroup": "inventoryPurchaseOrders",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -585,7 +585,7 @@
       ]
     },
     {
-      "collectionGroup": "libMembers",
+      "collectionGroup": "libraryMembers",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -593,13 +593,13 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "erpId",
+          "fieldPath": "personErpId",
           "order": "ASCENDING"
         }
       ]
     },
     {
-      "collectionGroup": "libLoans",
+      "collectionGroup": "libraryLoans",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -607,13 +607,13 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "dueOn",
+          "fieldPath": "dueDate",
           "order": "ASCENDING"
         }
       ]
     },
     {
-      "collectionGroup": "libLoans",
+      "collectionGroup": "libraryLoans",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -621,13 +621,13 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "issuedOn",
+          "fieldPath": "issuedDate",
           "order": "DESCENDING"
         }
       ]
     },
     {
-      "collectionGroup": "libLoans",
+      "collectionGroup": "libraryLoans",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -635,13 +635,13 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "issuedOn",
+          "fieldPath": "issuedDate",
           "order": "DESCENDING"
         }
       ]
     },
     {
-      "collectionGroup": "libLoans",
+      "collectionGroup": "libraryLoans",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -649,13 +649,13 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "issuedOn",
+          "fieldPath": "issuedDate",
           "order": "DESCENDING"
         }
       ]
     },
     {
-      "collectionGroup": "libReservations",
+      "collectionGroup": "libraryReservations",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -677,7 +677,7 @@
       ]
     },
     {
-      "collectionGroup": "libReservations",
+      "collectionGroup": "libraryReservations",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -691,7 +691,7 @@
       ]
     },
     {
-      "collectionGroup": "libReservations",
+      "collectionGroup": "libraryReservations",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -705,7 +705,7 @@
       ]
     },
     {
-      "collectionGroup": "libReservations",
+      "collectionGroup": "libraryReservations",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -719,7 +719,7 @@
       ]
     },
     {
-      "collectionGroup": "libFines",
+      "collectionGroup": "libraryFines",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -733,7 +733,7 @@
       ]
     },
     {
-      "collectionGroup": "libFines",
+      "collectionGroup": "libraryFines",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -751,7 +751,7 @@
       ]
     },
     {
-      "collectionGroup": "libFines",
+      "collectionGroup": "libraryFines",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -765,7 +765,7 @@
       ]
     },
     {
-      "collectionGroup": "libFines",
+      "collectionGroup": "libraryFines",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -779,7 +779,7 @@
       ]
     },
     {
-      "collectionGroup": "libIncidents",
+      "collectionGroup": "libraryIncidents",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -793,7 +793,7 @@
       ]
     },
     {
-      "collectionGroup": "libIncidents",
+      "collectionGroup": "libraryIncidents",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -811,7 +811,7 @@
       ]
     },
     {
-      "collectionGroup": "libIncidents",
+      "collectionGroup": "libraryIncidents",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -825,7 +825,7 @@
       ]
     },
     {
-      "collectionGroup": "libIncidents",
+      "collectionGroup": "libraryIncidents",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -839,7 +839,7 @@
       ]
     },
     {
-      "collectionGroup": "libTransfers",
+      "collectionGroup": "libraryTransfers",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -853,7 +853,7 @@
       ]
     },
     {
-      "collectionGroup": "libVerifications",
+      "collectionGroup": "libraryVerifications",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -867,7 +867,7 @@
       ]
     },
     {
-      "collectionGroup": "libLoans",
+      "collectionGroup": "libraryLoans",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -879,13 +879,13 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "dueOn",
+          "fieldPath": "dueDate",
           "order": "ASCENDING"
         }
       ]
     },
     {
-      "collectionGroup": "libLoans",
+      "collectionGroup": "libraryLoans",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -901,13 +901,13 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "dueOn",
+          "fieldPath": "dueDate",
           "order": "ASCENDING"
         }
       ]
     },
     {
-      "collectionGroup": "libLoans",
+      "collectionGroup": "libraryLoans",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -919,13 +919,13 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "issuedOn",
+          "fieldPath": "issuedDate",
           "order": "DESCENDING"
         }
       ]
     },
     {
-      "collectionGroup": "libLoans",
+      "collectionGroup": "libraryLoans",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -941,13 +941,13 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "issuedOn",
+          "fieldPath": "issuedDate",
           "order": "DESCENDING"
         }
       ]
     },
     {
-      "collectionGroup": "libLoans",
+      "collectionGroup": "libraryLoans",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -955,45 +955,13 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "issuedOn",
+          "fieldPath": "issuedDate",
           "order": "DESCENDING"
         }
       ]
     },
     {
-      "collectionGroup": "libLoans",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "libraryId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "issuedOn",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "libCopies",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "acquiredOn",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "libCopies",
+      "collectionGroup": "libraryLoans",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -1005,13 +973,45 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "acquiredOn",
+          "fieldPath": "issuedDate",
           "order": "DESCENDING"
         }
       ]
     },
     {
-      "collectionGroup": "libFines",
+      "collectionGroup": "libraryCopies",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "campusId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "acquiredDate",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "libraryCopies",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "campusId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "libraryId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "acquiredDate",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "libraryFines",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -1025,7 +1025,7 @@
       ]
     },
     {
-      "collectionGroup": "libFines",
+      "collectionGroup": "libraryFines",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -1043,7 +1043,7 @@
       ]
     },
     {
-      "collectionGroup": "libFines",
+      "collectionGroup": "libraryFines",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -1065,7 +1065,7 @@
       ]
     },
     {
-      "collectionGroup": "libFines",
+      "collectionGroup": "libraryFines",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -1083,7 +1083,7 @@
       ]
     },
     {
-      "collectionGroup": "libFines",
+      "collectionGroup": "libraryFines",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -1105,7 +1105,7 @@
       ]
     },
     {
-      "collectionGroup": "libIncidents",
+      "collectionGroup": "libraryIncidents",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -1113,7 +1113,7 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "kind",
+          "fieldPath": "type",
           "order": "ASCENDING"
         },
         {
@@ -1123,7 +1123,7 @@
       ]
     },
     {
-      "collectionGroup": "libIncidents",
+      "collectionGroup": "libraryIncidents",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -1135,7 +1135,7 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "kind",
+          "fieldPath": "type",
           "order": "ASCENDING"
         },
         {
@@ -1145,7 +1145,7 @@
       ]
     },
     {
-      "collectionGroup": "libAcquisitions",
+      "collectionGroup": "libraryAcquisitions",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -1159,7 +1159,7 @@
       ]
     },
     {
-      "collectionGroup": "libAcquisitions",
+      "collectionGroup": "libraryAcquisitions",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -1177,7 +1177,7 @@
       ]
     },
     {
-      "collectionGroup": "libAcquisitions",
+      "collectionGroup": "libraryAcquisitions",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -1195,7 +1195,7 @@
       ]
     },
     {
-      "collectionGroup": "libAcquisitions",
+      "collectionGroup": "libraryAcquisitions",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -1217,7 +1217,7 @@
       ]
     },
     {
-      "collectionGroup": "libVerifications",
+      "collectionGroup": "libraryVerifications",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -1231,7 +1231,7 @@
       ]
     },
     {
-      "collectionGroup": "libVerifications",
+      "collectionGroup": "libraryVerifications",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -1249,7 +1249,7 @@
       ]
     },
     {
-      "collectionGroup": "libTransfers",
+      "collectionGroup": "libraryTransfers",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -1263,7 +1263,7 @@
       ]
     },
     {
-      "collectionGroup": "libMembers",
+      "collectionGroup": "libraryMembers",
       "queryScope": "COLLECTION",
       "fields": [
         {

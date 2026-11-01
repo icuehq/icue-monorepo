@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
 import 'package:icueadmin/features/inventory/widgets/scan_field.dart';
-import 'package:icueadmin/features/library/widgets/lib_ui.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
@@ -10,7 +9,7 @@ class TransferRequestSheet extends StatefulWidget {
   const TransferRequestSheet({super.key});
 
   static Future<void> show(BuildContext context) =>
-      showInvSheet(context, () => const TransferRequestSheet());
+      showFormSheet(context, () => const TransferRequestSheet());
 
   @override
   State<TransferRequestSheet> createState() => _TransferRequestSheetState();
@@ -30,32 +29,35 @@ class _TransferRequestSheetState extends State<TransferRequestSheet> {
   }
 
   Future<void> _add(String code) async {
-    final c = await context.read<LibraryProvider>().findCopy(code);
+    final copy = await context.read<LibraryProvider>().findCopy(code);
     if (!mounted) return;
-    if (c == null) {
-      invSnack(context, 'No copy found for "$code"');
-    } else if (_from != null && c.libraryId != _from) {
-      invSnack(context, '${c.accessionNo} is not in the source library');
-    } else if (c.status != 'available') {
-      invSnack(context, '${c.accessionNo} is ${c.status}');
-    } else if (!_copyIds.contains(c.id)) {
+    if (copy == null) {
+      showMessage(context, 'No copy found for "$code"');
+    } else if (_from != null && copy.libraryId != _from) {
+      showMessage(
+        context,
+        '${copy.accessionNumber} is not in the source library',
+      );
+    } else if (copy.status != 'available') {
+      showMessage(context, '${copy.accessionNumber} is ${copy.status}');
+    } else if (!_copyIds.contains(copy.id)) {
       setState(() {
-        _from ??= c.libraryId;
-        _copyIds.add(c.id);
+        _from ??= copy.libraryId;
+        _copyIds.add(copy.id);
       });
     }
   }
 
   Future<void> _submit() async {
     if (_from == null || _to == null || _copyIds.isEmpty) {
-      invSnack(context, 'Pick the destination and scan at least one copy');
+      showMessage(context, 'Pick the destination and scan at least one copy');
       return;
     }
     setState(() => _busy = true);
-    final p = context.read<LibraryProvider>();
-    await libSubmit(
+    final libraryProvider = context.read<LibraryProvider>();
+    await submitAndClose<LibraryProvider>(
       context,
-      () => p.requestTransfer({
+      () => libraryProvider.requestTransfer({
         'fromLibraryId': _from,
         'toLibraryId': _to,
         'copyIds': _copyIds,
@@ -67,10 +69,10 @@ class _TransferRequestSheetState extends State<TransferRequestSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final libs = context
+    final libraries = context
         .watch<LibraryProvider>()
         .libraries
-        .where((l) => l.active)
+        .where((schoolLibrary) => schoolLibrary.active)
         .toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -86,11 +88,11 @@ class _TransferRequestSheetState extends State<TransferRequestSheet> {
         Wrap(
           spacing: 6,
           children: [
-            for (final c in _copyIds)
+            for (final copyId in _copyIds)
               InputChip(
-                label: Text(c),
+                label: Text(copyId),
                 onDeleted: () => setState(() {
-                  _copyIds.remove(c);
+                  _copyIds.remove(copyId);
                   if (_copyIds.isEmpty) _from = null;
                 }),
               ),
@@ -101,11 +103,14 @@ class _TransferRequestSheetState extends State<TransferRequestSheet> {
           initialValue: _to,
           decoration: const InputDecoration(labelText: 'Destination library'),
           items: [
-            for (final l in libs)
-              if (l.id != _from)
-                DropdownMenuItem(value: l.id, child: Text(l.name)),
+            for (final schoolLibrary in libraries)
+              if (schoolLibrary.id != _from)
+                DropdownMenuItem(
+                  value: schoolLibrary.id,
+                  child: Text(schoolLibrary.name),
+                ),
           ],
-          onChanged: (v) => setState(() => _to = v),
+          onChanged: (value) => setState(() => _to = value),
         ),
         const SizedBox(height: 8),
         TextField(

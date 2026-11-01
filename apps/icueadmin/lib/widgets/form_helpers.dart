@@ -1,0 +1,102 @@
+import 'package:flutter/material.dart';
+import 'package:icue_firebase/icue_firebase.dart' show ErrorReporting;
+import 'package:provider/provider.dart';
+
+void showMessage(BuildContext context, String message) {
+  ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(SnackBar(content: Text(message)));
+}
+
+/// Runs [save]; closes the sheet or page on success, else shows the error of provider [P].
+Future<void> submitAndClose<P extends ErrorReporting>(
+  BuildContext context,
+  Future<bool> Function() save,
+) async {
+  final provider = context.read<P>();
+  final navigator = Navigator.of(context);
+  final saved = await save();
+  if (!context.mounted) return;
+  if (saved) {
+    navigator.pop();
+  } else {
+    showMessage(context, provider.errorMessage ?? 'Could not save');
+  }
+}
+
+Future<void> showFormSheet(BuildContext context, Widget Function() form) =>
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (context) => Padding(
+        padding: EdgeInsets.fromLTRB(
+          20,
+          0,
+          20,
+          MediaQuery.viewInsetsOf(context).bottom + 20,
+        ),
+        child: SingleChildScrollView(child: form()),
+      ),
+    );
+
+String? requiredText(String? value) =>
+    (value == null || value.trim().isEmpty) ? 'Required' : null;
+
+String? optionalNumber(String? value) =>
+    (value == null ||
+        value.trim().isEmpty ||
+        double.tryParse(value.trim()) != null)
+    ? null
+    : 'Enter a number';
+
+String? blankToNull(TextEditingController controller) =>
+    controller.text.trim().isEmpty ? null : controller.text.trim();
+
+/// Comma-separated list → trimmed non-empty parts.
+List<String> splitList(String value) => [
+  for (final part in value.split(','))
+    if (part.trim().isNotEmpty) part.trim(),
+];
+
+class InactiveBadge extends StatelessWidget {
+  const InactiveBadge({super.key});
+
+  @override
+  Widget build(BuildContext context) => Chip(
+    label: const Text('Inactive'),
+    visualDensity: VisualDensity.compact,
+    backgroundColor: Colors.grey.shade200,
+    labelStyle: const TextStyle(fontSize: 11),
+  );
+}
+
+/// Empty-state action that creates a module's default master data (categories, units…).
+class SeedDefaultsButton<P extends ErrorReporting> extends StatelessWidget {
+  const SeedDefaultsButton({
+    required this.label,
+    required this.canSeed,
+    required this.seed,
+    super.key,
+  });
+
+  final String label;
+  final bool Function(P provider) canSeed;
+  final Future<bool> Function(P provider) seed;
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.read<P>();
+    if (!canSeed(provider)) return const SizedBox.shrink();
+    return FilledButton.icon(
+      icon: const Icon(Icons.auto_fix_high_rounded),
+      label: Text(label),
+      onPressed: () async {
+        final seeded = await seed(provider);
+        if (context.mounted && !seeded) {
+          showMessage(context, provider.errorMessage ?? 'Failed');
+        }
+      },
+    );
+  }
+}

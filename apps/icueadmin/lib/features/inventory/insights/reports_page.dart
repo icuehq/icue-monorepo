@@ -12,11 +12,12 @@ class InventoryReportsPage extends StatelessWidget {
     appBar: AppBar(title: const Text('Reports')),
     body: ListView(
       children: [
-        for (final r in inventoryReports)
+        for (final reportDef in inventoryReports)
           ListTile(
-            title: Text(r.title),
+            title: Text(reportDef.title),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => context.push(AppRoutes.inventoryReport, extra: r),
+            onTap: () =>
+                context.push(AppRoutes.inventoryReport, extra: reportDef),
           ),
       ],
     ),

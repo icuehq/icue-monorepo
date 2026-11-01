@@ -1,7 +1,7 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
 import 'package:icueadmin/features/library/widgets/copy_labels.dart';
-import 'package:icueadmin/features/library/widgets/lib_ui.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
@@ -9,11 +9,14 @@ import 'package:school_library/school_library.dart';
 class CopySheet extends StatefulWidget {
   const CopySheet({super.key, required this.copy, required this.title});
 
-  final LibCopy copy;
+  final LibraryCopy copy;
   final String title;
 
-  static Future<void> show(BuildContext context, LibCopy copy, String title) =>
-      showInvSheet(context, () => CopySheet(copy: copy, title: title));
+  static Future<void> show(
+    BuildContext context,
+    LibraryCopy copy,
+    String title,
+  ) => showFormSheet(context, () => CopySheet(copy: copy, title: title));
 
   @override
   State<CopySheet> createState() => _CopySheetState();
@@ -28,52 +31,52 @@ class _CopySheetState extends State<CopySheet> {
 
   @override
   void dispose() {
-    for (final c in [_shelf, _remarks, _rfid]) {
-      c.dispose();
+    for (final controller in [_shelf, _remarks, _rfid]) {
+      controller.dispose();
     }
     super.dispose();
   }
 
   Future<void> _run(Future<bool> Function() action) async {
     setState(() => _busy = true);
-    final p = context.read<LibraryProvider>();
-    final nav = Navigator.of(context);
+    final libraryProvider = context.read<LibraryProvider>();
+    final navigator = Navigator.of(context);
     final ok = await action();
     if (!mounted) return;
     if (ok) {
-      nav.pop();
+      navigator.pop();
     } else {
       setState(() => _busy = false);
-      invSnack(context, p.errorMessage ?? 'Failed');
+      showMessage(context, libraryProvider.errorMessage ?? 'Failed');
     }
   }
 
   Future<void> _move() async {
-    final p = context.read<LibraryProvider>();
-    final c = widget.copy;
-    final libs = [
-      for (final l in p.libraries)
-        if (l.active &&
-            l.id != c.libraryId &&
-            p.access.campuses.contains(l.campusId))
-          l,
+    final libraryProvider = context.read<LibraryProvider>();
+    final copy = widget.copy;
+    final libraries = [
+      for (final schoolLibrary in libraryProvider.libraries)
+        if (schoolLibrary.active &&
+            schoolLibrary.id != copy.libraryId &&
+            libraryProvider.access.campusIds.contains(schoolLibrary.campusId))
+          schoolLibrary,
     ];
     final shelf = TextEditingController();
     final to = await showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (context) => AlertDialog(
         title: const Text('Move to another library'),
         content: SizedBox(
           width: 320,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              for (final l in libs)
+              for (final schoolLibrary in libraries)
                 ListTile(
-                  title: Text(l.name),
-                  onTap: () => Navigator.pop(ctx, l.id),
+                  title: Text(schoolLibrary.name),
+                  onTap: () => Navigator.pop(context, schoolLibrary.id),
                 ),
-              if (libs.isEmpty) const Text('No other library available'),
+              if (libraries.isEmpty) const Text('No other library available'),
               TextField(
                 controller: shelf,
                 decoration: const InputDecoration(labelText: 'New shelf'),
@@ -86,26 +89,26 @@ class _CopySheetState extends State<CopySheet> {
     final newShelf = blankToNull(shelf);
     shelf.dispose();
     if (to == null || !mounted) return;
-    await _run(() => p.moveCopy(c.id, to, newShelf));
+    await _run(() => libraryProvider.moveCopy(copy.id, to, newShelf));
   }
 
   Future<void> _status() async {
-    final p = context.read<LibraryProvider>();
+    final libraryProvider = context.read<LibraryProvider>();
     final reason = TextEditingController();
-    final s = await showDialog<String>(
+    final value = await showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (context) => AlertDialog(
         title: const Text('Change status'),
         content: SizedBox(
           width: 320,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              for (final s in copyManualStatuses)
-                if (s != widget.copy.status)
+              for (final copyManualStatus in copyManualStatuses)
+                if (copyManualStatus != widget.copy.status)
                   ListTile(
-                    title: Text(copyStatusLabel(s)),
-                    onTap: () => Navigator.pop(ctx, s),
+                    title: Text(humanizeStatus(copyManualStatus)),
+                    onTap: () => Navigator.pop(context, copyManualStatus),
                   ),
               TextField(
                 controller: reason,
@@ -118,41 +121,50 @@ class _CopySheetState extends State<CopySheet> {
         ),
       ),
     );
-    final why = blankToNull(reason);
+    final reasonText = blankToNull(reason);
     reason.dispose();
-    if (s == null || !mounted) return;
-    await _run(() => p.setCopyStatus(widget.copy.id, s, why));
+    if (value == null || !mounted) return;
+    await _run(
+      () => libraryProvider.setCopyStatus(widget.copy.id, value, reasonText),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final p = context.read<LibraryProvider>();
-    final c = widget.copy;
-    final canEdit = p.access.can('lib.catalogue.manage');
+    final libraryProvider = context.read<LibraryProvider>();
+    final copy = widget.copy;
+    final canEdit = libraryProvider.access.can('library.catalogue.manage');
     final facts = <(String, String?)>[
-      ('Status', copyStatusLabel(c.status)),
-      ('Library', p.library(c.libraryId)?.name),
-      ('Source', c.source),
-      ('Vendor / donor', c.vendorOrDonor),
-      ('Acquired', c.acquiredOn),
-      ('Price', c.price.toStringAsFixed(2)),
+      ('Status', humanizeStatus(copy.status)),
+      ('Library', libraryProvider.library(copy.libraryId)?.name),
+      ('Source', copy.source),
+      ('Vendor / donor', copy.vendorOrDonor),
+      ('Acquired', copy.acquiredDate),
+      ('Price', copy.price.toStringAsFixed(2)),
     ];
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(c.accessionNo, style: Theme.of(context).textTheme.titleLarge),
+        Text(
+          copy.accessionNumber,
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
         Text(widget.title),
         const SizedBox(height: 8),
-        for (final f in facts)
-          if (f.$2 != null && f.$2!.isNotEmpty)
-            ListTile(dense: true, title: Text(f.$1), subtitle: Text(f.$2!)),
+        for (final fact in facts)
+          if (fact.$2 != null && fact.$2!.isNotEmpty)
+            ListTile(
+              dense: true,
+              title: Text(fact.$1),
+              subtitle: Text(fact.$2!),
+            ),
         Align(
           alignment: Alignment.centerLeft,
           child: TextButton.icon(
             icon: const Icon(Icons.qr_code_2_rounded),
             label: const Text('Print label'),
-            onPressed: () => shareCopyLabels(widget.title, [c]),
+            onPressed: () => shareCopyLabels(widget.title, [copy]),
           ),
         ),
         if (canEdit) ...[
@@ -165,10 +177,13 @@ class _CopySheetState extends State<CopySheet> {
             initialValue: _condition,
             decoration: const InputDecoration(labelText: 'Condition'),
             items: [
-              for (final x in copyConditions)
-                DropdownMenuItem(value: x, child: Text(x)),
+              for (final copyCondition in copyConditions)
+                DropdownMenuItem(
+                  value: copyCondition,
+                  child: Text(copyCondition),
+                ),
             ],
-            onChanged: (v) => _condition = v!,
+            onChanged: (value) => _condition = value!,
           ),
           TextField(
             controller: _rfid,
@@ -183,8 +198,8 @@ class _CopySheetState extends State<CopySheet> {
             onPressed: _busy
                 ? null
                 : () => _run(
-                    () => p.updateCopy({
-                      'id': c.id,
+                    () => libraryProvider.updateCopy({
+                      'id': copy.id,
                       'shelf': blankToNull(_shelf),
                       'condition': _condition,
                       'rfidTag': blankToNull(_rfid),
@@ -193,12 +208,12 @@ class _CopySheetState extends State<CopySheet> {
                   ),
             child: const Text('Save'),
           ),
-          if (c.status == 'available')
+          if (copy.status == 'available')
             TextButton(
               onPressed: _busy ? null : _move,
               child: const Text('Move to another library'),
             ),
-          if (c.canChangeStatus)
+          if (copy.canChangeStatus)
             TextButton(
               onPressed: _busy ? null : _status,
               child: const Text('Change status'),

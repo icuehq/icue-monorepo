@@ -1,9 +1,9 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icueadmin/features/inventory/procurement/order_widgets.dart';
-import 'package:icueadmin/features/inventory/stock/stock_ui.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
 import 'package:icueadmin/routing/app_routes.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -11,7 +11,7 @@ import 'package:provider/provider.dart';
 class QuotationsPage extends StatefulWidget {
   const QuotationsPage({required this.request, super.key});
 
-  final InvPurchaseRequest request;
+  final InventoryPurchaseRequest request;
 
   @override
   State<QuotationsPage> createState() => _QuotationsPageState();
@@ -27,12 +27,12 @@ class _QuotationsPageState extends State<QuotationsPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
-  Future<void> _select(InvQuotation q) async {
+  Future<void> _select(InventoryQuotation quotation) async {
     final reason = TextEditingController();
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Select ${q.number}'),
+      builder: (context) => AlertDialog(
+        title: Text('Select ${quotation.number}'),
         content: TextField(
           controller: reason,
           autofocus: true,
@@ -40,11 +40,11 @@ class _QuotationsPageState extends State<QuotationsPage> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
+            onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
+            onPressed: () => Navigator.pop(context, true),
             child: const Text('Select'),
           ),
         ],
@@ -53,14 +53,17 @@ class _QuotationsPageState extends State<QuotationsPage> {
     final text = reason.text.trim();
     reason.dispose();
     if (ok != true || !mounted) return;
-    final p = context.read<ProcurementProvider>();
-    final res = await p.act('inv-quotation-select', {
-      'id': q.id,
+    final procurementProvider = context.read<ProcurementProvider>();
+    final result = await procurementProvider.act('inventory-quotation-select', {
+      'id': quotation.id,
       'reason': text,
     });
     if (!mounted) return;
-    if (res == null) {
-      invSnack(context, p.errorMessage ?? 'Could not select');
+    if (result == null) {
+      showMessage(
+        context,
+        procurementProvider.errorMessage ?? 'Could not select',
+      );
     } else {
       await _load();
     }
@@ -73,22 +76,28 @@ class _QuotationsPageState extends State<QuotationsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final p = context.watch<ProcurementProvider>();
-    final qs = p.quotations;
-    final r = widget.request;
-    final items = [for (final l in r.lines) l.itemId];
+    final procurementProvider = context.watch<ProcurementProvider>();
+    final quotations = procurementProvider.quotations;
+    final purchaseRequest = widget.request;
+    final items = [
+      for (final purchaseRequestLine in purchaseRequest.lineItems)
+        purchaseRequestLine.itemId,
+    ];
     return Scaffold(
-      appBar: AppBar(title: Text('Quotations · ${r.number}')),
+      appBar: AppBar(title: Text('Quotations · ${purchaseRequest.number}')),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _open(AppRoutes.inventoryQuotationForm, (r, null)),
+        onPressed: () =>
+            _open(AppRoutes.inventoryQuotationForm, (purchaseRequest, null)),
         icon: const Icon(Icons.add_rounded),
         label: const Text('Quotation'),
       ),
-      body: qs.isEmpty
+      body: quotations.isEmpty
           ? Center(
-              child: p.isLoading
+              child: procurementProvider.isLoading
                   ? const CircularProgressIndicator()
-                  : Text(p.errorMessage ?? 'No quotations yet'),
+                  : Text(
+                      procurementProvider.errorMessage ?? 'No quotations yet',
+                    ),
             )
           : ListView(
               padding: const EdgeInsets.all(16),
@@ -98,20 +107,29 @@ class _QuotationsPageState extends State<QuotationsPage> {
                   child: DataTable(
                     columns: [
                       const DataColumn(label: Text('Unit price')),
-                      for (final q in qs)
-                        DataColumn(label: Text(p.vendorName(q.vendorId))),
+                      for (final quotation in quotations)
+                        DataColumn(
+                          label: Text(
+                            procurementProvider.vendorName(quotation.vendorId),
+                          ),
+                        ),
                     ],
                     rows: [
                       for (final id in items)
                         DataRow(
                           cells: [
-                            DataCell(Text(p.itemName(id))),
-                            for (final q in qs)
+                            DataCell(Text(procurementProvider.itemName(id))),
+                            for (final quotation in quotations)
                               DataCell(
                                 Text(
-                                  q.lines
-                                      .where((l) => l.itemId == id)
-                                      .map((l) => money(l.unitPrice))
+                                  quotation.lineItems
+                                      .where(
+                                        (orderLine) => orderLine.itemId == id,
+                                      )
+                                      .map(
+                                        (orderLine) =>
+                                            money(orderLine.unitPrice),
+                                      )
                                       .join(),
                                 ),
                               ),
@@ -120,58 +138,60 @@ class _QuotationsPageState extends State<QuotationsPage> {
                       DataRow(
                         cells: [
                           const DataCell(Text('Final price')),
-                          for (final q in qs) DataCell(Text(money(q.total))),
+                          for (final quotation in quotations)
+                            DataCell(Text(money(quotation.total))),
                         ],
                       ),
                       DataRow(
                         cells: [
                           const DataCell(Text('Delivery (days)')),
-                          for (final q in qs)
-                            DataCell(Text('${q.deliveryDays ?? '-'}')),
+                          for (final quotation in quotations)
+                            DataCell(Text('${quotation.deliveryDays ?? '-'}')),
                         ],
                       ),
                       DataRow(
                         cells: [
                           const DataCell(Text('Valid until')),
-                          for (final q in qs) DataCell(Text(q.validUntil)),
+                          for (final quotation in quotations)
+                            DataCell(Text(quotation.validUntil)),
                         ],
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 8),
-                for (final q in qs)
+                for (final quotation in quotations)
                   Card(
                     child: ListTile(
                       title: Text(
-                        '${q.number} · ${p.vendorName(q.vendorId)}'
-                        '${q.selected ? ' · SELECTED' : ''}',
+                        '${quotation.number} · ${procurementProvider.vendorName(quotation.vendorId)}'
+                        '${quotation.selected ? ' · SELECTED' : ''}',
                       ),
                       subtitle: Text(
-                        '${statusLabel(q.status)} · total ${money(q.total)}'
-                        '${q.selectionReason == null ? '' : '\n${q.selectionReason}'}',
+                        '${humanizeStatus(quotation.status)} · total ${money(quotation.total)}'
+                        '${quotation.selectionReason == null ? '' : '\n${quotation.selectionReason}'}',
                       ),
                       trailing: Wrap(
                         children: [
-                          if (q.isDraft)
+                          if (quotation.isDraft)
                             IconButton(
                               tooltip: 'Edit draft',
                               icon: const Icon(Icons.edit_rounded),
                               onPressed: () => _open(
                                 AppRoutes.inventoryQuotationForm,
-                                (r, q),
+                                (purchaseRequest, quotation),
                               ),
                             )
-                          else if (!q.selected)
+                          else if (!quotation.selected)
                             TextButton(
-                              onPressed: () => _select(q),
+                              onPressed: () => _select(quotation),
                               child: const Text('Select'),
                             )
                           else
                             TextButton(
                               onPressed: () => _open(
                                 AppRoutes.inventoryPurchaseOrderForm,
-                                (r, q, null),
+                                (purchaseRequest, quotation, null),
                               ),
                               child: const Text('Create PO'),
                             ),

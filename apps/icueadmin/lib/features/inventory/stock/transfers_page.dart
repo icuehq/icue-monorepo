@@ -1,9 +1,10 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icueadmin/features/inventory/stock/stock_ui.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
 import 'package:icueadmin/routing/app_routes.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -17,12 +18,12 @@ class TransfersPage extends StatefulWidget {
 
 class _TransfersPageState extends State<TransfersPage> {
   Future<void> _load() async {
-    final inv = context.read<InventoryProvider>();
-    if (inv.stores.isEmpty) await inv.loadMasters();
+    final inventoryProvider = context.read<InventoryProvider>();
+    if (inventoryProvider.stores.isEmpty) await inventoryProvider.loadMasters();
     if (!mounted) return;
-    final p = context.read<StockProvider>();
-    await p.loadAllStores();
-    if (mounted) await p.loadTransfers(inv.access);
+    final stockProvider = context.read<StockProvider>();
+    await stockProvider.loadAllStores();
+    if (mounted) await stockProvider.loadTransfers(inventoryProvider.access);
   }
 
   @override
@@ -33,11 +34,15 @@ class _TransfersPageState extends State<TransfersPage> {
 
   @override
   Widget build(BuildContext context) {
-    final p = context.watch<StockProvider>();
-    final a = context.watch<InventoryProvider>().access;
-    final canOperate = a.can('inv.stock.operate');
+    final stockProvider = context.watch<StockProvider>();
+    final access = context.watch<InventoryProvider>().access;
+    final canOperate = access.can('inventory.stock.operate');
     String store(String id) =>
-        p.allStores.where((s) => s.id == id).firstOrNull?.name ?? id;
+        stockProvider.allStores
+            .where((currentStore) => currentStore.id == id)
+            .firstOrNull
+            ?.name ??
+        id;
     return Scaffold(
       appBar: AppBar(title: const Text('Transfers')),
       floatingActionButton: canOperate
@@ -50,34 +55,34 @@ class _TransfersPageState extends State<TransfersPage> {
               label: const Text('Transfer'),
             )
           : null,
-      body: p.transfers.isEmpty
+      body: stockProvider.transfers.isEmpty
           ? Center(
-              child: p.isLoading
+              child: stockProvider.isLoading
                   ? const CircularProgressIndicator()
-                  : Text(p.errorMessage ?? 'No transfers'),
+                  : Text(stockProvider.errorMessage ?? 'No transfers'),
             )
           : ListView(
               children: [
-                for (final t in p.transfers)
+                for (final transfer in stockProvider.transfers)
                   ListTile(
                     title: Text(
-                      '${t.number} · ${store(t.fromStoreId)} → ${store(t.toStoreId)}',
+                      '${transfer.number} · ${store(transfer.fromStoreId)} → ${store(transfer.toStoreId)}',
                     ),
                     subtitle: Text(
                       [
-                        for (final l in t.requested)
-                          '${p.itemName(l.itemId)} × ${fmtQty(l.qty)}',
+                        for (final line in transfer.requested)
+                          '${stockProvider.itemName(line.itemId)} × ${formatQuantity(line.quantity)}',
                       ].join(', '),
                     ),
                     trailing: Chip(
-                      label: Text(statusLabel(t.status)),
+                      label: Text(humanizeStatus(transfer.status)),
                       visualDensity: VisualDensity.compact,
                     ),
                     onTap: canOperate
                         ? () async {
-                            await showInvSheet(
+                            await showFormSheet(
                               context,
-                              () => _TransferSheet(t),
+                              () => _TransferSheet(transfer),
                             );
                             if (mounted) await _load();
                           }
@@ -90,107 +95,112 @@ class _TransfersPageState extends State<TransfersPage> {
 }
 
 class _TransferSheet extends StatefulWidget {
-  const _TransferSheet(this.t);
+  const _TransferSheet(this.transfer);
 
-  final InvTransfer t;
+  final InventoryTransfer transfer;
 
   @override
   State<_TransferSheet> createState() => _TransferSheetState();
 }
 
 class _TransferSheetState extends State<_TransferSheet> {
-  late final _qty = [
-    for (final l in widget.t.lines)
-      TextEditingController(text: fmtQty(l.dispatched - l.received)),
+  late final _quantityControllers = [
+    for (final transferLine in widget.transfer.lineItems)
+      TextEditingController(
+        text: formatQuantity(transferLine.dispatched - transferLine.received),
+      ),
   ];
   final _requestId = newRequestId();
   var _final = false;
 
   @override
   void dispose() {
-    for (final c in _qty) {
-      c.dispose();
+    for (final controller in _quantityControllers) {
+      controller.dispose();
     }
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final t = widget.t;
-    final p = context.read<StockProvider>();
+    final transfer = widget.transfer;
+    final currentStockProvider = context.read<StockProvider>();
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(t.number, style: Theme.of(context).textTheme.titleLarge),
-        Text(statusLabel(t.status)),
+        Text(transfer.number, style: Theme.of(context).textTheme.titleLarge),
+        Text(humanizeStatus(transfer.status)),
         const SizedBox(height: 8),
-        if (t.status == 'requested') ...[
-          for (final l in t.requested)
+        if (transfer.status == 'requested') ...[
+          for (final line in transfer.requested)
             ListTile(
               dense: true,
-              title: Text(p.itemName(l.itemId)),
-              trailing: Text(fmtQty(l.qty)),
+              title: Text(currentStockProvider.itemName(line.itemId)),
+              trailing: Text(formatQuantity(line.quantity)),
             ),
           FilledButton(
             onPressed: () => stockSubmit(
               context,
-              (p) => p.act('inv-transfer-dispatch', {
-                'id': t.id,
-              }, requestId: _requestId),
+              (stockProvider) => stockProvider.act(
+                'inventory-transfer-dispatch',
+                {'id': transfer.id},
+                requestId: _requestId,
+              ),
               done: 'Dispatched',
             ),
             child: const Text('Dispatch (reduces source stock)'),
           ),
         ] else ...[
-          for (final (i, l) in t.lines.indexed)
-            t.inTransit
+          for (final (i, l) in transfer.lineItems.indexed)
+            transfer.inTransit
                 ? Padding(
                     padding: const EdgeInsets.only(bottom: 8),
                     child: TextField(
-                      controller: _qty[i],
+                      controller: _quantityControllers[i],
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
                       decoration: InputDecoration(
                         labelText:
-                            '${p.itemName(l.itemId)}${l.batchNo == null ? '' : ' · ${l.batchNo}'}'
-                            ' – receive (sent ${fmtQty(l.dispatched)}, got ${fmtQty(l.received)})',
+                            '${currentStockProvider.itemName(l.itemId)}${l.batchNumber == null ? '' : ' · ${l.batchNumber}'}'
+                            ' – receive (sent ${formatQuantity(l.dispatched)}, got ${formatQuantity(l.received)})',
                       ),
                     ),
                   )
                 : ListTile(
                     dense: true,
-                    title: Text(p.itemName(l.itemId)),
+                    title: Text(currentStockProvider.itemName(l.itemId)),
                     subtitle: l.discrepancy > 0
-                        ? Text('Short by ${fmtQty(l.discrepancy)}')
+                        ? Text('Short by ${formatQuantity(l.discrepancy)}')
                         : null,
                     trailing: Text(
-                      '${fmtQty(l.received)} / ${fmtQty(l.dispatched)}',
+                      '${formatQuantity(l.received)} / ${formatQuantity(l.dispatched)}',
                     ),
                   ),
-          if (t.inTransit) ...[
+          if (transfer.inTransit) ...[
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               title: const Text('Close transfer; record any shortfall'),
               value: _final,
-              onChanged: (v) => setState(() => _final = v),
+              onChanged: (value) => setState(() => _final = value),
             ),
             FilledButton(
               onPressed: () => stockSubmit(
                 context,
-                (p) => p.act('inv-transfer-receive', {
-                  'id': t.id,
-                  'final': _final,
-                  'lines': [
-                    for (final (i, c) in _qty.indexed)
-                      if ((double.tryParse(c.text.trim()) ?? 0) > 0)
-                        {
-                          'index': i,
-                          'qtyReceived': double.parse(c.text.trim()),
-                        },
-                  ],
-                }, requestId: _requestId),
+                (stockProvider) =>
+                    stockProvider.act('inventory-transfer-receive', {
+                      'id': transfer.id,
+                      'final': _final,
+                      'lineItems': [
+                        for (final (i, c) in _quantityControllers.indexed)
+                          if ((double.tryParse(c.text.trim()) ?? 0) > 0)
+                            {
+                              'index': i,
+                              'quantityReceived': double.parse(c.text.trim()),
+                            },
+                      ],
+                    }, requestId: _requestId),
                 done: 'Receipt recorded',
               ),
               child: const Text('Confirm receipt'),

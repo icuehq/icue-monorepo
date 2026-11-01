@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icueadmin/routing/app_routes.dart';
+import 'package:icueadmin/widgets/stat_tile_grid.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -28,12 +29,14 @@ class _InventoryDashboardPageState extends State<InventoryDashboardPage> {
   };
 
   Future<void> _load() async {
-    final inv = context.read<InventoryProvider>();
-    if (inv.stores.isEmpty) await inv.loadMasters();
+    final inventoryProvider = context.read<InventoryProvider>();
+    if (inventoryProvider.stores.isEmpty) await inventoryProvider.loadMasters();
     if (!mounted) return;
-    final store = inv.stores.where((s) => s.id == _storeId).firstOrNull;
+    final store = inventoryProvider.stores
+        .where((currentStore) => currentStore.id == _storeId)
+        .firstOrNull;
     await context.read<InsightsProvider>().loadDashboard(
-      inv.access,
+      inventoryProvider.access,
       store: store,
     );
   }
@@ -46,18 +49,24 @@ class _InventoryDashboardPageState extends State<InventoryDashboardPage> {
 
   @override
   Widget build(BuildContext context) {
-    final p = context.watch<InsightsProvider>();
-    final inv = context.watch<InventoryProvider>();
+    final insightsProvider = context.watch<InsightsProvider>();
+    final inventoryProvider = context.watch<InventoryProvider>();
     final tiles = [
-      for (final (key, label, perms) in dashboardStats)
-        if (perms.any(inv.access.can) && p.dashboard[key] != null)
-          (key, label, p.dashboard[key]!),
+      for (final (key, label, permissions) in dashboardStats)
+        if (permissions.any(inventoryProvider.access.can) &&
+            insightsProvider.dashboard[key] != null)
+          StatTile(
+            label: label,
+            value: insightsProvider.dashboard[key]!,
+            route: _targets[key],
+            isAmount: key == 'value',
+          ),
     ];
     return Scaffold(
       appBar: AppBar(
         title: const Text('Dashboard'),
         actions: [
-          if (inv.access.can('inv.reports.view'))
+          if (inventoryProvider.access.can('inventory.reports.view'))
             IconButton(
               tooltip: 'Reports',
               icon: const Icon(Icons.assessment_outlined),
@@ -75,55 +84,25 @@ class _InventoryDashboardPageState extends State<InventoryDashboardPage> {
               decoration: const InputDecoration(labelText: 'Store'),
               items: [
                 const DropdownMenuItem(child: Text('All stores')),
-                for (final s in inv.stores.where((s) => s.active))
-                  DropdownMenuItem(value: s.id, child: Text(s.name)),
+                for (final store in inventoryProvider.stores.where(
+                  (store) => store.active,
+                ))
+                  DropdownMenuItem(value: store.id, child: Text(store.name)),
               ],
-              onChanged: (v) {
-                _storeId = v;
+              onChanged: (value) {
+                _storeId = value;
                 _load();
               },
             ),
             const SizedBox(height: 16),
-            if (p.isLoading && tiles.isEmpty)
+            if (insightsProvider.isLoading && tiles.isEmpty)
               const Center(child: CircularProgressIndicator())
             else if (tiles.isEmpty)
-              Center(child: Text(p.errorMessage ?? 'Nothing to show'))
+              Center(
+                child: Text(insightsProvider.errorMessage ?? 'Nothing to show'),
+              )
             else
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  for (final (key, label, value) in tiles)
-                    SizedBox(
-                      width: 160,
-                      child: Card(
-                        child: InkWell(
-                          onTap: _targets[key] == null
-                              ? null
-                              : () => context.push(_targets[key]!),
-                          child: Padding(
-                            padding: const EdgeInsets.all(14),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  key == 'value'
-                                      ? value.toStringAsFixed(2)
-                                      : '${value.round()}',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .headlineSmall,
-                                ),
-                                const SizedBox(height: 4),
-                                Text(label),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
+              StatTileGrid(tiles: tiles),
           ],
         ),
       ),

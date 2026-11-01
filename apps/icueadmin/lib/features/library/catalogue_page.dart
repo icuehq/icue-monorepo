@@ -20,17 +20,21 @@ class _CataloguePageState extends State<CataloguePage> {
   @override
   void initState() {
     super.initState();
-    final p = context.read<LibraryProvider>();
+    final libraryProvider = context.read<LibraryProvider>();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (p.categories.isEmpty) await p.loadMasters();
-      await p.loadBooks(
+      if (libraryProvider.categories.isEmpty) {
+        await libraryProvider.loadMasters();
+      }
+      await libraryProvider.loadBooks(
         search: '',
         categoryId: widget.categoryId,
         clearCategory: widget.categoryId == null,
       );
     });
     _scroll.addListener(() {
-      if (_scroll.position.extentAfter < 300) p.loadBooks(more: true);
+      if (_scroll.position.extentAfter < 300) {
+        libraryProvider.loadBooks(more: true);
+      }
     });
   }
 
@@ -43,11 +47,12 @@ class _CataloguePageState extends State<CataloguePage> {
 
   @override
   Widget build(BuildContext context) {
-    final p = context.watch<LibraryProvider>();
-    final searching = p.bookSearch.trim().isNotEmpty;
+    final libraryProvider = context.watch<LibraryProvider>();
+    final searching = libraryProvider.bookSearch.trim().isNotEmpty;
     return Scaffold(
       appBar: AppBar(title: const Text('Catalogue')),
-      floatingActionButton: p.access.can('lib.catalogue.manage')
+      floatingActionButton:
+          libraryProvider.access.can('library.catalogue.manage')
           ? FloatingActionButton.extended(
               onPressed: () => context.push(AppRoutes.libraryBookForm),
               icon: const Icon(Icons.add_rounded),
@@ -61,7 +66,7 @@ class _CataloguePageState extends State<CataloguePage> {
             child: TextField(
               controller: _search,
               textInputAction: TextInputAction.search,
-              onSubmitted: (v) => p.loadBooks(search: v),
+              onSubmitted: (value) => libraryProvider.loadBooks(search: value),
               decoration: InputDecoration(
                 hintText: 'Search title, author, publisher or ISBN',
                 prefixIcon: const Icon(Icons.search),
@@ -70,7 +75,7 @@ class _CataloguePageState extends State<CataloguePage> {
                         icon: const Icon(Icons.clear),
                         onPressed: () {
                           _search.clear();
-                          p.loadBooks(search: '');
+                          libraryProvider.loadBooks(search: '');
                         },
                       )
                     : null,
@@ -81,48 +86,55 @@ class _CataloguePageState extends State<CataloguePage> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: DropdownButton<String?>(
               isExpanded: true,
-              value: p.bookCategoryId,
+              value: libraryProvider.bookCategoryId,
               items: [
                 const DropdownMenuItem(child: Text('All categories')),
-                for (final c in p.topCategories)
-                  DropdownMenuItem(value: c.id, child: Text(c.name)),
+                for (final category in libraryProvider.topCategories)
+                  DropdownMenuItem(
+                    value: category.id,
+                    child: Text(category.name),
+                  ),
               ],
-              onChanged: (v) =>
-                  p.loadBooks(categoryId: v, clearCategory: v == null),
+              onChanged: (value) => libraryProvider.loadBooks(
+                categoryId: value,
+                clearCategory: value == null,
+              ),
             ),
           ),
           Expanded(
-            child: p.books.isEmpty
+            child: libraryProvider.books.isEmpty
                 ? Center(
-                    child: p.booksLoading
+                    child: libraryProvider.booksLoading
                         ? const CircularProgressIndicator()
-                        : Text(p.errorMessage ?? 'No books'),
+                        : Text(libraryProvider.errorMessage ?? 'No books'),
                   )
                 : ListView.builder(
                     controller: _scroll,
-                    itemCount: p.books.length + (p.hasMoreBooks ? 1 : 0),
+                    itemCount:
+                        libraryProvider.books.length +
+                        (libraryProvider.hasMoreBooks ? 1 : 0),
                     itemBuilder: (context, i) {
-                      if (i == p.books.length) {
+                      if (i == libraryProvider.books.length) {
                         return const Padding(
                           padding: EdgeInsets.all(16),
                           child: Center(child: CircularProgressIndicator()),
                         );
                       }
-                      final b = p.books[i];
+                      final book = libraryProvider.books[i];
                       return ListTile(
-                        title: Text(b.title),
+                        title: Text(book.title),
                         subtitle: Text(
-                          '${b.authorLine} · '
-                          '${p.category(b.categoryId)?.name ?? '—'}',
+                          '${book.authorLine} · '
+                          '${libraryProvider.category(book.categoryId)?.name ?? '—'}',
                         ),
-                        trailing: b.active
+                        trailing: book.active
                             ? null
                             : const Text(
                                 'Inactive',
                                 style: TextStyle(color: Colors.grey),
                               ),
                         onTap: () => context.push(
-                          '${AppRoutes.libraryBookDetails}?id=${b.id}',
+                          '${AppRoutes.libraryBookDetails}?id=${book.id}',
                         ),
                       );
                     },

@@ -22,6 +22,7 @@ export 'src/backend.dart';
 export 'src/crashlytics_service.dart';
 export 'src/emulator.dart' show emulatorCustomToken, emulatorHost, usesEmulator;
 export 'src/notification_service.dart' show NotificationService;
+export 'src/school_data.dart';
 
 /// Single entry point for every app: pass its generated `DefaultFirebaseOptions`.
 /// Add new Firebase services here once.

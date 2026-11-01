@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:injectable/injectable.dart';
-import 'package:inventory/src/models/inv_masters.dart';
-import 'package:inventory/src/models/inv_stock.dart';
+import 'package:inventory/src/models/inventory_masters.dart';
+import 'package:inventory/src/models/inventory_stock.dart';
 import 'package:inventory/src/services/stock_service.dart';
 
 /// Stock lists and actions. Needs `InventoryProvider.loadMasters()` first (access, stores).
@@ -13,19 +13,19 @@ class StockProvider extends ChangeNotifier {
   final StockService _service;
 
   /// Item names for every id seen in a list (balances, requests, transfers…).
-  final Map<String, InvItem> items = {};
+  final Map<String, InventoryItem> items = {};
   String? errorMessage;
   bool isLoading = false;
 
-  InvStore? store;
-  final List<InvBalance> balances = [];
+  InventoryStore? store;
+  final List<InventoryBalance> balances = [];
   bool hasMoreBalances = false;
   DocumentSnapshot<Map<String, dynamic>>? _cursor;
 
-  List<InvIssueRequest> requests = [];
-  List<InvTransfer> transfers = [];
-  List<InvUnavailable> unavailable = [];
-  List<InvStore> allStores = [];
+  List<InventoryIssueRequest> requests = [];
+  List<InventoryTransfer> transfers = [];
+  List<InventoryUnavailable> unavailable = [];
+  List<InventoryStore> allStores = [];
 
   String get uid => _service.uid;
 
@@ -37,8 +37,8 @@ class StockProvider extends ChangeNotifier {
     notifyListeners();
     try {
       return await body();
-    } catch (e) {
-      errorMessage = _message(e);
+    } catch (error) {
+      errorMessage = callableErrorMessage(error);
       return null;
     } finally {
       isLoading = false;
@@ -51,64 +51,72 @@ class StockProvider extends ChangeNotifier {
     if (need.isNotEmpty) items.addAll(await _service.itemsByIds(need));
   }
 
-  Future<void> loadBalances(InvStore s, {bool more = false}) async {
+  Future<void> loadBalances(InventoryStore store, {bool more = false}) async {
     if (isLoading || (more && !hasMoreBalances)) return;
     if (!more) {
-      store = s;
+      store = store;
       _cursor = null;
     }
     await _load(() async {
-      final page = await _service.balances(s, after: _cursor);
+      final page = await _service.balances(store, after: _cursor);
       if (!more) balances.clear();
       balances.addAll(page.items);
       _cursor = page.cursor;
       hasMoreBalances = page.hasMore;
-      await _names(page.items.map((b) => b.itemId));
+      await _names(page.items.map((balance) => balance.itemId));
     });
   }
 
-  Future<List<InvMovement>> movements(InvBalance b) async =>
-      (await _load(() => _service.movements(b, store!.campusId))) ?? [];
+  Future<List<InventoryMovement>> movements(InventoryBalance balance) async =>
+      (await _load(() => _service.movements(balance, store!.campusId))) ?? [];
 
-  Future<void> loadRequests(InvAccess a, {String? status}) => _load(() async {
-    requests = await _service.requests(a, status: status);
-    await _names(requests.expand((r) => r.lines.map((l) => l.itemId)));
-  });
+  Future<void> loadRequests(ModuleAccess access, {String? status}) =>
+      _load(() async {
+        requests = await _service.requests(access, status: status);
+        await _names(
+          requests.expand(
+            (issueRequest) =>
+                issueRequest.lineItems.map((requestLine) => requestLine.itemId),
+          ),
+        );
+      });
 
   Future<void> loadAllStores() async {
     if (allStores.isNotEmpty) return;
     await _load(() async => allStores = await _service.allStores());
   }
 
-  Future<List<InvIssue>> issuesOf(InvIssueRequest r) async =>
-      (await _load(() => _service.issuesOf(r))) ?? [];
+  Future<List<InventoryIssue>> issuesOf(
+    InventoryIssueRequest issueRequest,
+  ) async => (await _load(() => _service.issuesOf(issueRequest))) ?? [];
 
-  Future<void> loadTransfers(InvAccess a) => _load(() async {
-    transfers = await _service.transfers(a);
-    await _names(transfers.expand((t) => t.requested.map((l) => l.itemId)));
+  Future<void> loadTransfers(ModuleAccess access) => _load(() async {
+    transfers = await _service.transfers(access);
+    await _names(
+      transfers.expand(
+        (transfer) => transfer.requested.map((line) => line.itemId),
+      ),
+    );
   });
 
-  Future<void> loadUnavailable(InvAccess a) => _load(() async {
-    unavailable = await _service.unavailable(a);
-    await _names(unavailable.map((u) => u.itemId));
+  Future<void> loadUnavailable(ModuleAccess access) => _load(() async {
+    unavailable = await _service.unavailable(access);
+    await _names(unavailable.map((unavailable) => unavailable.itemId));
   });
 
   /// Runs a callable; returns its result (`id`, `number`) or null with [errorMessage] set.
   Future<Map<String, dynamic>?> act(
-    String fn,
+    String value,
     Map<String, Object?> data, {
     String? requestId,
   }) async {
     errorMessage = null;
     try {
-      return await _service.call(fn, data, requestId: requestId);
-    } catch (e) {
-      errorMessage = _message(e);
+      return await _service.call(value, data, requestId: requestId);
+    } catch (error) {
+      errorMessage = callableErrorMessage(error);
       notifyListeners();
       return null;
     }
   }
-
-  String _message(Object e) =>
-      e is FirebaseFunctionsException ? (e.message ?? e.code) : e.toString();
 }

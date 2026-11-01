@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
-import 'package:icueadmin/features/library/widgets/lib_ui.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
 class LibraryFormSheet extends StatefulWidget {
   const LibraryFormSheet({super.key, this.library});
 
-  final LibLibrary? library;
+  final SchoolLibrary? library;
 
-  static Future<void> show(BuildContext context, {LibLibrary? library}) =>
-      showInvSheet(context, () => LibraryFormSheet(library: library));
+  static Future<void> show(BuildContext context, {SchoolLibrary? library}) =>
+      showFormSheet(context, () => LibraryFormSheet(library: library));
 
   @override
   State<LibraryFormSheet> createState() => _LibraryFormSheetState();
@@ -22,7 +21,9 @@ class _LibraryFormSheetState extends State<LibraryFormSheet> {
   final _requestId = newRequestId();
   late final _code = TextEditingController(text: widget.library?.code);
   late final _name = TextEditingController(text: widget.library?.name);
-  late final _desc = TextEditingController(text: widget.library?.description);
+  late final _description = TextEditingController(
+    text: widget.library?.description,
+  );
   late final _location = TextEditingController(text: widget.library?.location);
   late final _contact = TextEditingController(text: widget.library?.contact);
   late final _hours = TextEditingController(text: widget.library?.hours);
@@ -35,40 +36,46 @@ class _LibraryFormSheetState extends State<LibraryFormSheet> {
 
   @override
   void dispose() {
-    for (final c in [
+    for (final controller in [
       _code,
       _name,
-      _desc,
+      _description,
       _location,
       _contact,
       _hours,
       _staff,
     ]) {
-      c.dispose();
+      controller.dispose();
     }
     super.dispose();
   }
 
-  String? _staffError(String? v) =>
-      splitList(v ?? '').every((s) => int.tryParse(s) != null)
+  String? _staffError(String? currentValue) =>
+      splitList(currentValue ?? '')
+          .every((value) => int.tryParse(value) != null)
       ? null
       : 'Comma-separated staff IDs';
 
   Future<void> _save() async {
     if (!_form.currentState!.validate()) return;
     setState(() => _busy = true);
-    final l = widget.library;
-    await libSubmit(
+    final schoolLibrary = widget.library;
+    await submitAndClose<LibraryProvider>(
       context,
       () => context.read<LibraryProvider>().saveLibrary({
-        if (l != null) 'id': l.id else 'code': _code.text.trim(),
+        if (schoolLibrary != null)
+          'id': schoolLibrary.id
+        else
+          'code': _code.text.trim(),
         'name': _name.text.trim(),
         'campusId': _campus,
-        'description': blankToNull(_desc),
+        'description': blankToNull(_description),
         'location': blankToNull(_location),
         'contact': blankToNull(_contact),
         'hours': blankToNull(_hours),
-        'staffIds': [for (final s in splitList(_staff.text)) int.parse(s)],
+        'staffIds': [
+          for (final value in splitList(_staff.text)) int.parse(value),
+        ],
       }, requestId: _requestId),
     );
     if (mounted) setState(() => _busy = false);
@@ -78,7 +85,7 @@ class _LibraryFormSheetState extends State<LibraryFormSheet> {
   Widget build(BuildContext context) {
     final access = context.read<LibraryProvider>().access;
     final editing = widget.library != null;
-    final campuses = {...access.campuses, ?_campus}.toList();
+    final campuses = {...access.campusIds, ?_campus}.toList();
     return Form(
       key: _form,
       child: Column(
@@ -100,11 +107,11 @@ class _LibraryFormSheetState extends State<LibraryFormSheet> {
             initialValue: _campus,
             decoration: const InputDecoration(labelText: 'Campus *'),
             items: [
-              for (final c in campuses)
-                DropdownMenuItem(value: c, child: Text('Campus $c')),
+              for (final value in campuses)
+                DropdownMenuItem(value: value, child: Text('Campus $value')),
             ],
-            onChanged: editing ? null : (v) => _campus = v,
-            validator: (v) => v == null ? 'Required' : null,
+            onChanged: editing ? null : (value) => _campus = value,
+            validator: (value) => value == null ? 'Required' : null,
           ),
           TextFormField(
             controller: _location,
@@ -119,7 +126,7 @@ class _LibraryFormSheetState extends State<LibraryFormSheet> {
             decoration: const InputDecoration(labelText: 'Contact details'),
           ),
           TextFormField(
-            controller: _desc,
+            controller: _description,
             decoration: const InputDecoration(labelText: 'Description'),
           ),
           TextFormField(

@@ -8,37 +8,37 @@ import { members } from '../src/library/members';
 import { runCallable, type CallableDef } from '../src/shared/callable';
 import { clearFirestore, db } from './setup';
 
-const SID = '12';
-let n = 0;
+const SCHOOL_ID = '12';
+let requestSequence = 0;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const run = (d: CallableDef<any, any>, data: Record<string, unknown>, uid = 'u_1') =>
-  runCallable(d, { uid, token: { sid: 12, pt: 'staff' } }, { requestId: `req-${String(++n).padStart(6, '0')}`, ...data });
-const get = async (path: string) => (await db().doc(`schools/${SID}/${path}`).get()).data();
-const set = (path: string, data: Record<string, unknown>) => db().doc(`schools/${SID}/${path}`).update(data);
+const run = (definition: CallableDef<any, any>, data: Record<string, unknown>, uid = '1') =>
+  runCallable(definition, { uid, token: { schoolId: 12, personType: 'staff' } }, { requestId: `req-${String(++requestSequence).padStart(6, '0')}`, ...data });
+const get = async (path: string) => (await db().doc(`schools/${SCHOOL_ID}/${path}`).get()).data();
+const set = (path: string, data: Record<string, unknown>) => db().doc(`schools/${SCHOOL_ID}/${path}`).update(data);
 
 describe('library fines and incidents', () => {
-  let l1: string, cat: string, title: string;
+  let mainLibrary: string, category: string, title: string;
   const issue = (copyId = 'ACC-000001', memberId = 'student_501') => run(loans.loanIssue, { memberId, copyId });
   const day = (offset: number) => new Date(Date.now() + 330 * 60_000 + offset * 86_400_000).toISOString().slice(0, 10);
 
   beforeEach(async () => {
     await clearFirestore();
-    await db().doc(`schools/${SID}/userAccess/u_1`).set({
-      perms: ['lib.settings', 'lib.catalogue.manage', 'lib.circulation.operate', 'lib.fines.waive'],
-      cmp: [31, 32],
-      all: false,
+    await db().doc(`schools/${SCHOOL_ID}/userAccess/1`).set({
+      permissions: ['library.settings', 'library.catalogue.manage', 'library.circulation.operate', 'library.fines.waive'],
+      campusIds: [31, 32],
+      hasAllCampuses: false,
     });
-    await db().doc(`schools/${SID}/userAccess/u_no_waive`).set({
-      perms: ['lib.circulation.operate'],
-      cmp: [31],
-      all: false,
+    await db().doc(`schools/${SCHOOL_ID}/userAccess/no_waive`).set({
+      permissions: ['library.circulation.operate'],
+      campusIds: [31],
+      hasAllCampuses: false,
     });
-    cat = (await run(masters.categoryUpsert, { code: 'GEN', name: 'General' })).id;
-    title = (await run(masters.catalogueUpsert, { title: 'Wings of Fire', authors: ['Kalam'], categoryId: cat })).id;
-    l1 = (await run(masters.libraryUpsert, { code: 'L1', name: 'Main', campusId: 31 })).id;
-    await run(copies.acquisitionCreate, { type: 'purchase', catalogueId: title, libraryId: l1, qty: 3, price: 500 });
+    category = (await run(masters.categoryUpsert, { code: 'GEN', name: 'General' })).id;
+    title = (await run(masters.catalogueUpsert, { title: 'Wings of Fire', authors: ['Kalam'], categoryId: category })).id;
+    mainLibrary = (await run(masters.libraryUpsert, { code: 'L1', name: 'Main', campusId: 31 })).id;
+    await run(copies.acquisitionCreate, { type: 'purchase', catalogueId: title, libraryId: mainLibrary, quantity: 3, price: 500 });
     await run(members.policyUpsert, {
-      libraryId: l1,
+      libraryId: mainLibrary,
       memberCategory: 'primary',
       name: 'Primary',
       maxBooks: 2,
@@ -50,19 +50,19 @@ describe('library fines and incidents', () => {
       maxFine: 50,
       canReserve: true,
     });
-    await run(members.memberUpsert, { memberType: 'student', erpId: 501, memberCategory: 'primary', libraryIds: [l1], start: '2020-01-01' });
+    await run(members.memberUpsert, { memberType: 'student', personErpId: 501, memberCategory: 'primary', libraryIds: [mainLibrary], start: '2020-01-01' });
   });
 
-  it('overdue return calculates fine per policySnapshot, blocks member, writes libFines doc', async () => {
-    const r = await issue();
+  it('overdue return calculates fine per policySnapshot, blocks member, writes libraryFines doc', async () => {
+    const issued = await issue();
     // 5 days overdue: grace 2 days -> 3 fine days * 5/day = 15
-    await set(`libLoans/${r.id}`, { dueOn: day(-5) });
-    const ret = await run(loans.loanReturn, { id: r.id, condition: 'good' });
+    await set(`libraryLoans/${issued.id}`, { dueDate: day(-5) });
+    const ret = await run(loans.loanReturn, { id: issued.id, condition: 'good' });
     expect(ret.overdueDays).toBe(5);
 
-    const fine = await get(`libFines/${r.id}__overdue`);
+    const fine = await get(`libraryFines/${issued.id}__overdue`);
     expect(fine).toMatchObject({
-      loanId: r.id,
+      loanId: issued.id,
       memberId: 'student_501',
       personErpId: 501,
       type: 'overdue',
@@ -72,24 +72,24 @@ describe('library fines and incidents', () => {
       paid: 0,
       status: 'outstanding',
     });
-    expect((await get('libMembers/student_501'))!.blocked).toBe(true);
+    expect((await get('libraryMembers/student_501'))!.blocked).toBe(true);
   });
 
   it('fine waiver: permission check, partial waive, full waive unblocks member', async () => {
-    const r = await issue();
-    await set(`libLoans/${r.id}`, { dueOn: day(-5) });
-    await run(loans.loanReturn, { id: r.id, condition: 'good' });
-    const fineId = `${r.id}__overdue`;
+    const issued = await issue();
+    await set(`libraryLoans/${issued.id}`, { dueDate: day(-5) });
+    await run(loans.loanReturn, { id: issued.id, condition: 'good' });
+    const fineId = `${issued.id}__overdue`;
 
     // Without lib.fines.waive
-    await expect(run(fines.fineWaive, { id: fineId, amount: 5, reason: 'Valid reason' }, 'u_no_waive')).rejects.toMatchObject({
+    await expect(run(fines.fineWaive, { id: fineId, amount: 5, reason: 'Valid reason' }, 'no_waive')).rejects.toMatchObject({
       code: 'permission-denied',
     });
 
     // Partial waive: 5 out of 15
-    const w1 = await run(fines.fineWaive, { id: fineId, amount: 5, reason: 'Discretionary' });
-    expect(w1).toMatchObject({ outstanding: 10, status: 'outstanding' });
-    expect((await get('libMembers/student_501'))!.blocked).toBe(true);
+    const firstWaiver = await run(fines.fineWaive, { id: fineId, amount: 5, reason: 'Discretionary' });
+    expect(firstWaiver).toMatchObject({ outstanding: 10, status: 'outstanding' });
+    expect((await get('libraryMembers/student_501'))!.blocked).toBe(true);
 
     // Cannot waive more than outstanding
     await expect(run(fines.fineWaive, { id: fineId, amount: 20, reason: 'Too much' })).rejects.toMatchObject({
@@ -97,38 +97,38 @@ describe('library fines and incidents', () => {
     });
 
     // Full waive remainder: 10
-    const w2 = await run(fines.fineWaive, { id: fineId, amount: 10, reason: 'Principal waiver' });
-    expect(w2).toMatchObject({ outstanding: 0, status: 'waived' });
-    expect((await get(`libFines/${fineId}`))!.status).toBe('waived');
+    const secondWaiver = await run(fines.fineWaive, { id: fineId, amount: 10, reason: 'Principal waiver' });
+    expect(secondWaiver).toMatchObject({ outstanding: 0, status: 'waived' });
+    expect((await get(`libraryFines/${fineId}`))!.status).toBe('waived');
     // Member is now unblocked
-    expect((await get('libMembers/student_501'))!.blocked).toBe(false);
+    expect((await get('libraryMembers/student_501'))!.blocked).toBe(false);
   });
 
   it('payment recording: partial payment, full payment unblocks member', async () => {
-    const r = await issue();
-    await set(`libLoans/${r.id}`, { dueOn: day(-5) });
-    await run(loans.loanReturn, { id: r.id, condition: 'good' });
-    const fineId = `${r.id}__overdue`;
+    const issued = await issue();
+    await set(`libraryLoans/${issued.id}`, { dueDate: day(-5) });
+    await run(loans.loanReturn, { id: issued.id, condition: 'good' });
+    const fineId = `${issued.id}__overdue`;
 
-    const p1 = await run(fines.fineSetPayment, { id: fineId, paidAmount: 10, reference: 'REC-123' });
-    expect(p1).toMatchObject({ outstanding: 5, status: 'partially_paid' });
-    expect((await get('libMembers/student_501'))!.blocked).toBe(true);
+    const firstPayment = await run(fines.fineSetPayment, { id: fineId, paidAmount: 10, reference: 'REC-123' });
+    expect(firstPayment).toMatchObject({ outstanding: 5, status: 'partially_paid' });
+    expect((await get('libraryMembers/student_501'))!.blocked).toBe(true);
 
-    const p2 = await run(fines.fineSetPayment, { id: fineId, paidAmount: 5, reference: 'REC-124' });
-    expect(p2).toMatchObject({ outstanding: 0, status: 'paid' });
-    expect((await get('libMembers/student_501'))!.blocked).toBe(false);
+    const secondPayment = await run(fines.fineSetPayment, { id: fineId, paidAmount: 5, reference: 'REC-124' });
+    expect(secondPayment).toMatchObject({ outstanding: 0, status: 'paid' });
+    expect((await get('libraryMembers/student_501'))!.blocked).toBe(false);
   });
 
   it('mark lost: updates loan and copy, fines replacement cost, creates incident, blocks member', async () => {
-    const r = await issue();
-    const lost = await run(loans.loanMarkLost, { id: r.id, reason: 'Lost on bus', charge: 500 });
+    const issued = await issue();
+    const lost = await run(loans.loanMarkLost, { id: issued.id, reason: 'Lost on bus', charge: 500 });
     expect(lost.charge).toBe(500);
 
-    expect(await get(`libLoans/${r.id}`)).toMatchObject({ status: 'lost', lostRemarks: 'Lost on bus' });
-    expect(await get('libCopies/ACC-000001')).toMatchObject({ status: 'lost', activeLoanId: null });
-    expect((await get('libMembers/student_501'))!.blocked).toBe(true);
+    expect(await get(`libraryLoans/${issued.id}`)).toMatchObject({ status: 'lost', lostRemarks: 'Lost on bus' });
+    expect(await get('libraryCopies/ACC-000001')).toMatchObject({ status: 'lost', activeLoanId: null });
+    expect((await get('libraryMembers/student_501'))!.blocked).toBe(true);
 
-    const fine = await get(`libFines/${r.id}__lost`);
+    const fine = await get(`libraryFines/${issued.id}__lost`);
     expect(fine).toMatchObject({
       type: 'lost',
       amount: 500,
@@ -136,10 +136,10 @@ describe('library fines and incidents', () => {
       status: 'outstanding',
     });
 
-    const incs = (await db().collection(`schools/${SID}/libIncidents`).where('loanId', '==', r.id).get()).docs;
+    const incs = (await db().collection(`schools/${SCHOOL_ID}/libraryIncidents`).where('loanId', '==', issued.id).get()).docs;
     expect(incs).toHaveLength(1);
     expect(incs[0].data()).toMatchObject({
-      kind: 'lost',
+      type: 'lost',
       copyId: 'ACC-000001',
       charge: 500,
       status: 'open',
@@ -147,16 +147,16 @@ describe('library fines and incidents', () => {
   });
 
   it('damaged return creates incident; resolving repaired releases copy to available', async () => {
-    const r = await issue();
-    await run(loans.loanReturn, { id: r.id, condition: 'damaged', remarks: 'Torn spine' });
+    const issued = await issue();
+    await run(loans.loanReturn, { id: issued.id, condition: 'damaged', remarks: 'Torn spine' });
 
-    expect(await get('libCopies/ACC-000001')).toMatchObject({ status: 'damaged' });
+    expect(await get('libraryCopies/ACC-000001')).toMatchObject({ status: 'damaged' });
 
-    const incs = (await db().collection(`schools/${SID}/libIncidents`).where('loanId', '==', r.id).get()).docs;
+    const incs = (await db().collection(`schools/${SCHOOL_ID}/libraryIncidents`).where('loanId', '==', issued.id).get()).docs;
     expect(incs).toHaveLength(1);
     const incId = incs[0].id;
     expect(incs[0].data()).toMatchObject({
-      kind: 'damaged',
+      type: 'damaged',
       severity: 'moderate',
       description: 'Torn spine',
       status: 'open',
@@ -164,38 +164,38 @@ describe('library fines and incidents', () => {
 
     // Resolve as repaired
     await run(incidents.resolve, { id: incId, resolution: 'repaired', remarks: 'Rebound with tape' });
-    expect(await get(`libIncidents/${incId}`)).toMatchObject({ status: 'resolved', resolution: 'repaired', repairStatus: 'repaired' });
-    expect(await get('libCopies/ACC-000001')).toMatchObject({ status: 'available' });
+    expect(await get(`libraryIncidents/${incId}`)).toMatchObject({ status: 'resolved', resolution: 'repaired', repairStatus: 'repaired' });
+    expect(await get('libraryCopies/ACC-000001')).toMatchObject({ status: 'available' });
   });
 
   it('reporting direct incident on shelf copy', async () => {
-    const res = await run(incidents.incidentReport, {
+    const result = await run(incidents.incidentReport, {
       copyId: 'ACC-000002',
-      kind: 'damaged',
+      type: 'damaged',
       severity: 'severe',
       description: 'Water damaged on shelf',
     });
-    expect(res.number).toMatch(/^INC\//);
-    expect(await get('libCopies/ACC-000002')).toMatchObject({ status: 'damaged' });
+    expect(result.number).toMatch(/^INC\//);
+    expect(await get('libraryCopies/ACC-000002')).toMatchObject({ status: 'damaged' });
 
     // Resolve as written_off
-    await run(incidents.resolve, { id: res.id, resolution: 'written_off', remarks: 'Pages ruined' });
-    expect(await get('libCopies/ACC-000002')).toMatchObject({ status: 'withdrawn' });
+    await run(incidents.resolve, { id: result.id, resolution: 'written_off', remarks: 'Pages ruined' });
+    expect(await get('libraryCopies/ACC-000002')).toMatchObject({ status: 'withdrawn' });
   });
 
   it('incident guards: on-loan copy, duplicate open incident, repair of lost, charge reduction; dismissed restores copy', async () => {
-    const r = await issue();
-    await expect(run(incidents.incidentReport, { copyId: 'ACC-000001', kind: 'lost' })).rejects.toThrow(/on loan/);
+    const issued = await issue();
+    await expect(run(incidents.incidentReport, { copyId: 'ACC-000001', type: 'lost' })).rejects.toThrow(/on loan/);
 
-    const inc = await run(incidents.incidentReport, { copyId: 'ACC-000002', kind: 'damaged', charge: 40, memberId: 'student_501' });
-    await expect(run(incidents.incidentReport, { copyId: 'ACC-000002', kind: 'damaged' })).rejects.toThrow(/open incident/);
+    const inc = await run(incidents.incidentReport, { copyId: 'ACC-000002', type: 'damaged', charge: 40, memberId: 'student_501' });
+    await expect(run(incidents.incidentReport, { copyId: 'ACC-000002', type: 'damaged' })).rejects.toThrow(/open incident/);
     await expect(run(incidents.resolve, { id: inc.id, resolution: 'dismissed', charge: 10 })).rejects.toThrow(/lowered/);
 
     await run(incidents.resolve, { id: inc.id, resolution: 'dismissed' });
-    expect(await get('libCopies/ACC-000002')).toMatchObject({ status: 'available' });
+    expect(await get('libraryCopies/ACC-000002')).toMatchObject({ status: 'available' });
 
-    await run(loans.loanMarkLost, { id: r.id });
-    const lost = (await db().collection(`schools/${SID}/libIncidents`).where('kind', '==', 'lost').get()).docs[0];
+    await run(loans.loanMarkLost, { id: issued.id });
+    const lost = (await db().collection(`schools/${SCHOOL_ID}/libraryIncidents`).where('type', '==', 'lost').get()).docs[0];
     await expect(run(incidents.resolve, { id: lost.id, resolution: 'repaired' })).rejects.toThrow(/damaged copy/);
   });
 });

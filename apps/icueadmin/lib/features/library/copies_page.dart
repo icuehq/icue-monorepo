@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
 import 'package:icueadmin/features/inventory/widgets/scan_field.dart';
 import 'package:icueadmin/features/library/widgets/copy_sheet.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
@@ -14,26 +14,26 @@ class CopiesPage extends StatefulWidget {
 }
 
 class _CopiesPageState extends State<CopiesPage> {
-  late final Future<List<LibAcquisition>> _acquisitions = context
+  late final Future<List<LibraryAcquisition>> _acquisitions = context
       .read<LibraryProvider>()
       .acquisitions();
 
   Future<void> _find(String code) async {
-    final p = context.read<LibraryProvider>();
-    final copy = await p.findCopy(code);
+    final libraryProvider = context.read<LibraryProvider>();
+    final copy = await libraryProvider.findCopy(code);
     if (!mounted) return;
     if (copy == null) {
-      invSnack(context, 'No copy found for "$code"');
+      showMessage(context, 'No copy found for "$code"');
       return;
     }
-    final book = await p.book(copy.catalogueId);
+    final book = await libraryProvider.book(copy.catalogueId);
     if (!mounted) return;
     await CopySheet.show(context, copy, book?.title ?? '');
   }
 
   @override
   Widget build(BuildContext context) {
-    final p = context.read<LibraryProvider>();
+    final libraryProvider = context.read<LibraryProvider>();
     return Scaffold(
       appBar: AppBar(title: const Text('Copies & acquisitions')),
       body: Column(
@@ -47,13 +47,13 @@ class _CopiesPageState extends State<CopiesPage> {
             ),
           ),
           Expanded(
-            child: FutureBuilder<List<LibAcquisition>>(
+            child: FutureBuilder<List<LibraryAcquisition>>(
               future: _acquisitions,
-              builder: (context, snap) {
-                if (snap.hasError) {
-                  return Center(child: Text('${snap.error}'));
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(child: Text('${snapshot.error}'));
                 }
-                final rows = snap.data;
+                final rows = snapshot.data;
                 if (rows == null) {
                   return const Center(child: CircularProgressIndicator());
                 }
@@ -64,15 +64,19 @@ class _CopiesPageState extends State<CopiesPage> {
                 }
                 return ListView(
                   children: [
-                    for (final a in rows)
+                    for (final acquisition in rows)
                       ListTile(
-                        title: Text('${a.number} · ${a.qty} copies'),
+                        title: Text(
+                          '${acquisition.number} · ${acquisition.quantity} copies',
+                        ),
                         subtitle: Text(
                           [
-                            a.type,
-                            p.library(a.libraryId)?.name,
-                            a.vendorOrDonor,
-                            a.date,
+                            acquisition.type,
+                            libraryProvider
+                                .library(acquisition.libraryId)
+                                ?.name,
+                            acquisition.vendorOrDonor,
+                            acquisition.date,
                           ].whereType<String>().join(' · '),
                         ),
                       ),

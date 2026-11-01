@@ -1,48 +1,46 @@
 import '../region';
 import { FieldValue, type DocumentReference } from 'firebase-admin/firestore';
 import { z } from 'zod';
-import { todayIST } from '../inventory/stock';
-import type { Ctx } from '../shared/callable';
+import type { CallableContext } from '../shared/callable';
 import { nextNumber } from '../shared/keys';
-import { def, failed, id, missing, note } from '../shared/masters';
+import { defineCallable, failed, id, missing, optionalText } from '../shared/masters';
 import { enqueue } from '../shared/outbox';
 import { memberAndLibrarians, memberTo } from './notify';
 import { policyId } from './members';
 import { release, waitingQuery } from './reservations';
+import { todayIST, addDays, daysBetween } from '../shared/dates';
+import { serverTimestamp } from '../shared/firestore';
 
-const UP = () => FieldValue.serverTimestamp();
-const addDays = (d: string, n: number) => new Date(Date.parse(`${d}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
-const daysBetween = (from: string, to: string) => Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000);
 
 /** Policy values copied onto the loan so later policy edits never move its due date (FRS 11.8). */
 const SNAPSHOT = ['name', 'maxBooks', 'loanDays', 'maxRenewals', 'fineType', 'fineAmount', 'graceDays', 'maxFine', 'overdueRenewal'] as const;
 
-async function loadLoan(ctx: Ctx, loanId: string) {
-  const ref = ctx.doc(`libLoans/${loanId}`);
-  const snap = await ctx.tx.get(ref);
-  if (!snap.exists) throw missing('libLoan');
-  const d = snap.data()!;
-  ctx.requireCampus(d.campusId);
-  if (d.status !== 'active') throw failed(`Loan is ${d.status}`);
-  return { ref, d };
+async function loadLoan(context: CallableContext, loanId: string) {
+  const ref = context.doc(`libraryLoans/${loanId}`);
+  const snapshot = await context.transaction.get(ref);
+  if (!snapshot.exists) throw missing('libraryLoan');
+  const loan = snapshot.data()!;
+  context.requireCampus(loan.campusId);
+  if (loan.status !== 'active') throw failed(`Loan is ${loan.status}`);
+  return { ref, loan };
 }
 
 export const loans = {
   /** Issues one copy to a member (FRS 11.9). Checks member, policy, limit, restriction and copy in one transaction. */
-  loanIssue: def({
-    name: 'lib.loan.issue',
-    perm: 'lib.circulation.operate',
-    input: z.object({ memberId: id, copyId: id, remarks: note }),
-    handler: async (ctx, i) => {
+  loanIssue: defineCallable({
+    name: 'library.loan.issue',
+    permission: 'library.circulation.operate',
+    input: z.object({ memberId: id, copyId: id, remarks: optionalText }),
+    handler: async (context, i) => {
       const today = todayIST();
-      const mRef = ctx.doc(`libMembers/${i.memberId}`);
-      const cRef = ctx.doc(`libCopies/${i.copyId}`);
-      const [m, c] = await Promise.all([ctx.tx.get(mRef), ctx.tx.get(cRef)]);
-      if (!m.exists) throw missing('libMember');
-      if (!c.exists) throw missing('libCopy');
-      const member = m.data()!;
-      const copy = c.data()!;
-      ctx.requireCampus(copy.campusId);
+      const mRef = context.doc(`libraryMembers/${i.memberId}`);
+      const cRef = context.doc(`libraryCopies/${i.copyId}`);
+      const [memberSnapshot, copySnapshot] = await Promise.all([context.transaction.get(mRef), context.transaction.get(cRef)]);
+      if (!memberSnapshot.exists) throw missing('libraryMember');
+      if (!copySnapshot.exists) throw missing('libraryCopy');
+      const member = memberSnapshot.data()!;
+      const copy = copySnapshot.data()!;
+      context.requireCampus(copy.campusId);
 
       if (member.status !== 'active') throw failed('Member is inactive');
       if (member.blocked) throw failed('Member is blocked');
@@ -51,48 +49,48 @@ export const loans = {
       // A held copy goes only to the member it is held for, within the hold period (FRS 11.12).
       let held: DocumentReference | undefined;
       if (copy.status === 'reserved') {
-        held = ctx.doc(`libReservations/${copy.heldReservationId}`);
-        const r = (await ctx.tx.get(held)).data();
-        if (r?.memberId !== m.id || r.status !== 'ready') throw failed('Copy is held for another member');
-        if (r.holdUntil < today) throw failed('The hold on this copy has expired');
+        held = context.doc(`libraryReservations/${copy.heldReservationId}`);
+        const reservation = (await context.transaction.get(held)).data();
+        if (reservation?.memberId !== memberSnapshot.id || reservation.status !== 'ready') throw failed('Copy is held for another member');
+        if (reservation.holdUntil < today) throw failed('The hold on this copy has expired');
       } else if (copy.status !== 'available' || copy.activeLoanId) throw failed(`Copy is ${copy.status}`);
 
-      const policy = (await ctx.tx.get(ctx.doc(`libPolicies/${policyId(copy.libraryId, member.memberCategory)}`))).data();
+      const policy = (await context.transaction.get(context.doc(`libraryBorrowingPolicies/${policyId(copy.libraryId, member.memberCategory)}`))).data();
       if (!policy || policy.status !== 'active') throw failed('No active borrowing policy for this member');
       if (member.activeLoans >= policy.maxBooks) throw failed(`Borrowing limit of ${policy.maxBooks} reached`);
-      const title = (await ctx.tx.get(ctx.doc(`libCatalogue/${copy.catalogueId}`))).data();
+      const title = (await context.transaction.get(context.doc(`libraryCatalogue/${copy.catalogueId}`))).data();
       if (title && policy.restrictedCategoryIds.includes(title.categoryId)) throw failed('This category is restricted for the member');
 
-      const loan = ctx.newDoc('libLoans');
-      const number = await nextNumber(ctx, 'ISS');
-      const snapshot = Object.fromEntries(SNAPSHOT.map((k) => [k, policy[k] ?? null]));
+      const loan = context.newDoc('libraryLoans');
+      const number = await nextNumber(context, 'ISS');
+      const snapshot = Object.fromEntries(SNAPSHOT.map((field) => [field, policy[field] ?? null]));
       const after = {
         number,
-        memberId: m.id,
+        memberId: memberSnapshot.id,
         memberType: member.memberType,
-        personErpId: member.erpId,
-        copyId: c.id,
-        accessionNo: copy.accessionNo,
+        personErpId: member.personErpId,
+        copyId: copySnapshot.id,
+        accessionNumber: copy.accessionNumber,
         catalogueId: copy.catalogueId,
         libraryId: copy.libraryId,
         campusId: copy.campusId,
-        issuedOn: today,
-        dueOn: addDays(today, policy.loanDays),
+        issuedDate: today,
+        dueDate: addDays(today, policy.loanDays),
         remarks: i.remarks ?? null,
         renewals: [],
         policySnapshot: snapshot,
         status: 'active',
       };
-      ctx.set(loan, { ...after, issuedBy: ctx.uid, issuedAt: UP() });
-      ctx.update(cRef, { status: 'issued', activeLoanId: loan.id, heldReservationId: null, updatedAt: UP() });
-      if (held) ctx.update(held, { status: 'fulfilled', fulfilledLoanId: loan.id, fulfilledCopyId: c.id, fulfilledAt: UP() });
-      ctx.update(mRef, { activeLoans: FieldValue.increment(1), updatedAt: UP() });
-      await enqueue(ctx, `lib-issued__${loan.id}`, {
-        to: memberTo(member.memberType, member.erpId), category: 'lib.loan', title: 'Book issued',
-        body: `${title?.title ?? copy.accessionNo}: due back ${after.dueOn}.`, data: { loanId: loan.id },
+      context.set(loan, { ...after, issuedBy: context.uid, issuedAt: serverTimestamp() });
+      context.update(cRef, { status: 'issued', activeLoanId: loan.id, heldReservationId: null, updatedAt: serverTimestamp() });
+      if (held) context.update(held, { status: 'fulfilled', fulfilledLoanId: loan.id, fulfilledCopyId: copySnapshot.id, fulfilledAt: serverTimestamp() });
+      context.update(mRef, { activeLoans: FieldValue.increment(1), updatedAt: serverTimestamp() });
+      await enqueue(context, `library-issued__${loan.id}`, {
+        to: memberTo(member.memberType, member.personErpId), category: 'library.loan', title: 'Book issued',
+        body: `${title?.title ?? copy.accessionNumber}: due back ${after.dueDate}.`, data: { loanId: loan.id },
       });
-      ctx.audit({ action: 'libLoan.issue', ref: loan.path, after });
-      return { id: loan.id, number, dueOn: after.dueOn };
+      context.audit({ action: 'libraryLoan.issue', documentPath: loan.path, after });
+      return { id: loan.id, number, dueDate: after.dueDate };
     },
   }),
 
@@ -100,92 +98,92 @@ export const loans = {
    * Returns a book against its active loan (FRS 11.10). A damaged copy is never made available;
    * overdue days are stored and the fine is raised by Lib-6.
    */
-  loanReturn: def({
-    name: 'lib.loan.return',
-    perm: 'lib.circulation.operate',
-    input: z.object({ id, condition: z.enum(['good', 'damaged']), remarks: note }),
-    handler: async (ctx, i) => {
-      const { ref, d } = await loadLoan(ctx, i.id);
-      const cRef = ctx.doc(`libCopies/${d.copyId}`);
-      const mRef = ctx.doc(`libMembers/${d.memberId}`);
-      const [c, m] = await Promise.all([ctx.tx.get(cRef), ctx.tx.get(mRef)]);
-      if (c.data()?.activeLoanId !== ref.id) throw failed('Copy is not on this loan');
+  loanReturn: defineCallable({
+    name: 'library.loan.return',
+    permission: 'library.circulation.operate',
+    input: z.object({ id, condition: z.enum(['good', 'damaged']), remarks: optionalText }),
+    handler: async (context, i) => {
+      const { ref, loan } = await loadLoan(context, i.id);
+      const cRef = context.doc(`libraryCopies/${loan.copyId}`);
+      const mRef = context.doc(`libraryMembers/${loan.memberId}`);
+      const [snapshot, memberSnapshot] = await Promise.all([context.transaction.get(cRef), context.transaction.get(mRef)]);
+      if (snapshot.data()?.activeLoanId !== ref.id) throw failed('Copy is not on this loan');
       const today = todayIST();
-      const overdueDays = Math.max(0, daysBetween(d.dueOn, today));
-      const returnNumber = await nextNumber(ctx, 'RET');
-      const after = { status: 'returned', returnNumber, returnedOn: today, condition: i.condition, overdueDays, returnRemarks: i.remarks ?? null };
-      ctx.update(ref, { ...after, receivedBy: ctx.uid, returnedAt: UP() });
+      const overdueDays = Math.max(0, daysBetween(loan.dueDate, today));
+      const returnNumber = await nextNumber(context, 'RET');
+      const after = { status: 'returned', returnNumber, returnedDate: today, condition: i.condition, overdueDays, returnRemarks: i.remarks ?? null };
+      context.update(ref, { ...after, receivedBy: context.uid, returnedAt: serverTimestamp() });
 
-      const p = d.policySnapshot ?? {};
-      const grace = (p.graceDays as number) ?? 0;
+      const policy = loan.policySnapshot ?? {};
+      const grace = (policy.graceDays as number) ?? 0;
       let fineAmount = 0;
       if (overdueDays > grace) {
-        const rate = (p.fineAmount as number) ?? 0;
-        if (p.fineType === 'per_day') {
+        const rate = (policy.fineAmount as number) ?? 0;
+        if (policy.fineType === 'per_day') {
           fineAmount = (overdueDays - grace) * rate;
-        } else if (p.fineType === 'flat') {
+        } else if (policy.fineType === 'flat') {
           fineAmount = rate;
         }
-        const max = p.maxFine as number | null | undefined;
+        const max = policy.maxFine as number | null | undefined;
         if (typeof max === 'number' && max > 0 && fineAmount > max) {
           fineAmount = max;
         }
         fineAmount = Math.round(fineAmount * 100) / 100;
       }
 
-      if (fineAmount > 0 && m.exists) {
-        const member = m.data()!;
-        const fineNumber = await nextNumber(ctx, 'FIN');
-        const fRef = ctx.doc(`libFines/${ref.id}__overdue`);
-        ctx.set(fRef, {
+      if (fineAmount > 0 && memberSnapshot.exists) {
+        const member = memberSnapshot.data()!;
+        const fineNumber = await nextNumber(context, 'FIN');
+        const fRef = context.doc(`libraryFines/${ref.id}__overdue`);
+        context.set(fRef, {
           fineNumber,
           loanId: ref.id,
-          memberId: m.id,
+          memberId: memberSnapshot.id,
           memberType: member.memberType,
-          personErpId: member.erpId,
-          catalogueId: d.catalogueId,
-          accessionNo: d.accessionNo,
-          libraryId: d.libraryId,
-          campusId: d.campusId,
+          personErpId: member.personErpId,
+          catalogueId: loan.catalogueId,
+          accessionNumber: loan.accessionNumber,
+          libraryId: loan.libraryId,
+          campusId: loan.campusId,
           type: 'overdue',
           amount: fineAmount,
           waived: 0,
           paid: 0,
           outstanding: fineAmount,
           status: 'outstanding',
-          calc: { overdueDays, graceDays: grace, fineType: p.fineType, fineAmount: p.fineAmount, maxFine: p.maxFine },
-          waivals: [],
+          fineCalculation: { overdueDays, graceDays: grace, fineType: policy.fineType, fineAmount: policy.fineAmount, maxFine: policy.maxFine },
+          waivers: [],
           payments: [],
-          createdAt: UP(),
-          createdBy: ctx.uid,
-          updatedAt: UP(),
+          createdAt: serverTimestamp(),
+          createdBy: context.uid,
+          updatedAt: serverTimestamp(),
         });
-        await enqueue(ctx, `lib-fine__${ref.id}__overdue`, {
-          to: memberTo(member.memberType, member.erpId), category: 'lib.fine', title: 'Fine recorded',
-          body: `${d.accessionNo}: overdue fine of ${fineAmount} for ${overdueDays} day(s).`, data: { fineId: fRef.id },
+        await enqueue(context, `library-fine__${ref.id}__overdue`, {
+          to: memberTo(member.memberType, member.personErpId), category: 'library.fine', title: 'Fine recorded',
+          body: `${loan.accessionNumber}: overdue fine of ${fineAmount} for ${overdueDays} day(s).`, data: { fineId: fRef.id },
         });
       }
 
       if (i.condition === 'damaged') {
-        ctx.update(cRef, { status: 'damaged', activeLoanId: null, updatedAt: UP() });
-        const incidentNumber = await nextNumber(ctx, 'INC');
-        const incRef = ctx.newDoc('libIncidents');
-        const member = m.exists ? m.data()! : null;
-        const copy = c.data()!;
-        ctx.set(incRef, {
+        context.update(cRef, { status: 'damaged', activeLoanId: null, updatedAt: serverTimestamp() });
+        const incidentNumber = await nextNumber(context, 'INC');
+        const incRef = context.newDoc('libraryIncidents');
+        const member = memberSnapshot.exists ? memberSnapshot.data()! : null;
+        const copy = snapshot.data()!;
+        context.set(incRef, {
           incidentNumber,
-          kind: 'damaged',
-          copyId: c.id,
-          accessionNo: copy.accessionNo,
+          type: 'damaged',
+          copyId: snapshot.id,
+          accessionNumber: copy.accessionNumber,
           catalogueId: copy.catalogueId,
           libraryId: copy.libraryId,
           campusId: copy.campusId,
-          memberId: m.exists ? m.id : null,
+          memberId: memberSnapshot.exists ? memberSnapshot.id : null,
           memberType: member ? member.memberType : null,
-          personErpId: member ? member.erpId : null,
+          personErpId: member ? member.personErpId : null,
           loanId: ref.id,
           reportedDate: today,
-          reportedBy: ctx.uid,
+          reportedBy: context.uid,
           severity: 'moderate',
           description: i.remarks ?? 'Returned in damaged condition',
           photos: [],
@@ -194,30 +192,30 @@ export const loans = {
           status: 'open',
           resolution: null,
           resolvedAt: null,
-          createdAt: UP(),
-          createdBy: ctx.uid,
-          updatedAt: UP(),
+          createdAt: serverTimestamp(),
+          createdBy: context.uid,
+          updatedAt: serverTimestamp(),
         });
-        await enqueue(ctx, `lib-incident__${incRef.id}`, {
-          to: memberAndLibrarians(member?.memberType ?? '', member?.erpId ?? null, copy.campusId), category: 'lib.incident',
-          title: 'Damaged book recorded', body: `${copy.accessionNo} was returned damaged.`, data: { incidentId: incRef.id },
+        await enqueue(context, `library-incident__${incRef.id}`, {
+          to: memberAndLibrarians(member?.memberType ?? '', member?.personErpId ?? null, copy.campusId), category: 'library.incident',
+          title: 'Damaged book recorded', body: `${copy.accessionNumber} was returned damaged.`, data: { incidentId: incRef.id },
         });
       } else {
-        await release(ctx, cRef, d);
+        await release(context, cRef, loan);
       }
-      await enqueue(ctx, `lib-returned__${ref.id}`, {
-        to: memberTo(d.memberType, d.personErpId), category: 'lib.loan', title: 'Book returned',
-        body: `${d.accessionNo} was returned${overdueDays ? ` ${overdueDays} day(s) late` : ''}.`, data: { loanId: ref.id },
+      await enqueue(context, `library-returned__${ref.id}`, {
+        to: memberTo(loan.memberType, loan.personErpId), category: 'library.loan', title: 'Book returned',
+        body: `${loan.accessionNumber} was returned${overdueDays ? ` ${overdueDays} day(s) late` : ''}.`, data: { loanId: ref.id },
       });
 
-      if (m.exists) {
-        const member = m.data()!;
+      if (memberSnapshot.exists) {
+        const member = memberSnapshot.data()!;
         const activeLoans = Math.max(0, (member.activeLoans ?? 0) - 1);
         const blocked = fineAmount > 0 ? true : member.blocked;
-        ctx.update(mRef, { activeLoans, blocked, updatedAt: UP() });
+        context.update(mRef, { activeLoans, blocked, updatedAt: serverTimestamp() });
       }
 
-      ctx.audit({ action: 'libLoan.return', ref: ref.path, before: { status: 'active' }, after });
+      context.audit({ action: 'libraryLoan.return', documentPath: ref.path, before: { status: 'active' }, after });
       return { id: ref.id, returnNumber, overdueDays };
     },
   }),
@@ -226,92 +224,92 @@ export const loans = {
    * Marks a book lost during loan (FRS 11.14). The loan and copy are marked lost,
    * replacement charge is fined to the member, member is blocked, and an incident is recorded.
    */
-  loanMarkLost: def({
-    name: 'lib.loan.markLost',
-    perm: 'lib.circulation.operate',
+  loanMarkLost: defineCallable({
+    name: 'library.loan.markLost',
+    permission: 'library.circulation.operate',
     input: z.object({
       id,
-      reason: note,
+      reason: optionalText,
       charge: z.number().min(0).max(10_000_000).nullish(),
     }),
-    handler: async (ctx, i) => {
-      const { ref, d } = await loadLoan(ctx, i.id);
-      const cRef = ctx.doc(`libCopies/${d.copyId}`);
-      const mRef = ctx.doc(`libMembers/${d.memberId}`);
-      const [c, m] = await Promise.all([ctx.tx.get(cRef), ctx.tx.get(mRef)]);
-      if (!c.exists) throw missing('libCopy');
-      if (!m.exists) throw missing('libMember');
-      const copy = c.data()!;
-      const member = m.data()!;
+    handler: async (context, i) => {
+      const { ref, loan } = await loadLoan(context, i.id);
+      const cRef = context.doc(`libraryCopies/${loan.copyId}`);
+      const mRef = context.doc(`libraryMembers/${loan.memberId}`);
+      const [snapshot, memberSnapshot] = await Promise.all([context.transaction.get(cRef), context.transaction.get(mRef)]);
+      if (!snapshot.exists) throw missing('libraryCopy');
+      if (!memberSnapshot.exists) throw missing('libraryMember');
+      const copy = snapshot.data()!;
+      const member = memberSnapshot.data()!;
       if (copy.activeLoanId !== ref.id) throw failed('Copy is not on this loan');
 
       const today = todayIST();
       const charge = i.charge ?? copy.price ?? 0;
       const after = {
         status: 'lost',
-        lostOn: today,
+        lostDate: today,
         lostRemarks: i.reason ?? null,
         charge,
       };
-      ctx.update(ref, { ...after, receivedBy: ctx.uid, returnedAt: UP() });
-      ctx.update(cRef, { status: 'lost', activeLoanId: null, updatedAt: UP() });
+      context.update(ref, { ...after, receivedBy: context.uid, returnedAt: serverTimestamp() });
+      context.update(cRef, { status: 'lost', activeLoanId: null, updatedAt: serverTimestamp() });
 
       const activeLoans = Math.max(0, (member.activeLoans ?? 0) - 1);
       const blocked = charge > 0 ? true : member.blocked;
-      ctx.update(mRef, { activeLoans, blocked, updatedAt: UP() });
+      context.update(mRef, { activeLoans, blocked, updatedAt: serverTimestamp() });
 
       if (charge > 0) {
-        const fineNumber = await nextNumber(ctx, 'FIN');
-        const fRef = ctx.doc(`libFines/${ref.id}__lost`);
-        ctx.set(fRef, {
+        const fineNumber = await nextNumber(context, 'FIN');
+        const fRef = context.doc(`libraryFines/${ref.id}__lost`);
+        context.set(fRef, {
           fineNumber,
           loanId: ref.id,
-          memberId: m.id,
+          memberId: memberSnapshot.id,
           memberType: member.memberType,
-          personErpId: member.erpId,
-          catalogueId: d.catalogueId,
-          accessionNo: d.accessionNo,
-          libraryId: d.libraryId,
-          campusId: d.campusId,
+          personErpId: member.personErpId,
+          catalogueId: loan.catalogueId,
+          accessionNumber: loan.accessionNumber,
+          libraryId: loan.libraryId,
+          campusId: loan.campusId,
           type: 'lost',
           amount: charge,
           waived: 0,
           paid: 0,
           outstanding: charge,
           status: 'outstanding',
-          calc: { copyPrice: copy.price, charge },
-          waivals: [],
+          fineCalculation: { copyPrice: copy.price, charge },
+          waivers: [],
           payments: [],
-          createdAt: UP(),
-          createdBy: ctx.uid,
-          updatedAt: UP(),
+          createdAt: serverTimestamp(),
+          createdBy: context.uid,
+          updatedAt: serverTimestamp(),
         });
-        await enqueue(ctx, `lib-fine__${ref.id}__lost`, {
-          to: memberTo(member.memberType, member.erpId), category: 'lib.fine', title: 'Fine recorded',
-          body: `${d.accessionNo}: replacement charge of ${charge}.`, data: { fineId: fRef.id },
+        await enqueue(context, `library-fine__${ref.id}__lost`, {
+          to: memberTo(member.memberType, member.personErpId), category: 'library.fine', title: 'Fine recorded',
+          body: `${loan.accessionNumber}: replacement charge of ${charge}.`, data: { fineId: fRef.id },
         });
       }
 
-      const incidentNumber = await nextNumber(ctx, 'INC');
-      const incRef = ctx.newDoc('libIncidents');
-      await enqueue(ctx, `lib-incident__${incRef.id}`, {
-        to: memberAndLibrarians(member.memberType, member.erpId, d.campusId), category: 'lib.incident',
-        title: 'Lost book recorded', body: `${d.accessionNo} was marked lost.`, data: { incidentId: incRef.id },
+      const incidentNumber = await nextNumber(context, 'INC');
+      const incRef = context.newDoc('libraryIncidents');
+      await enqueue(context, `library-incident__${incRef.id}`, {
+        to: memberAndLibrarians(member.memberType, member.personErpId, loan.campusId), category: 'library.incident',
+        title: 'Lost book recorded', body: `${loan.accessionNumber} was marked lost.`, data: { incidentId: incRef.id },
       });
-      ctx.set(incRef, {
+      context.set(incRef, {
         incidentNumber,
-        kind: 'lost',
-        copyId: c.id,
-        accessionNo: copy.accessionNo,
+        type: 'lost',
+        copyId: snapshot.id,
+        accessionNumber: copy.accessionNumber,
         catalogueId: copy.catalogueId,
         libraryId: copy.libraryId,
         campusId: copy.campusId,
-        memberId: m.id,
+        memberId: memberSnapshot.id,
         memberType: member.memberType,
-        personErpId: member.erpId,
+        personErpId: member.personErpId,
         loanId: ref.id,
         reportedDate: today,
-        reportedBy: ctx.uid,
+        reportedBy: context.uid,
         severity: null,
         description: i.reason ?? 'Marked lost during loan',
         photos: [],
@@ -320,35 +318,35 @@ export const loans = {
         status: 'open',
         resolution: null,
         resolvedAt: null,
-        createdAt: UP(),
-        createdBy: ctx.uid,
-        updatedAt: UP(),
+        createdAt: serverTimestamp(),
+        createdBy: context.uid,
+        updatedAt: serverTimestamp(),
       });
 
-      ctx.audit({ action: 'libLoan.markLost', ref: ref.path, before: { status: 'active' }, after });
+      context.audit({ action: 'libraryLoan.markLost', documentPath: ref.path, before: { status: 'active' }, after });
       return { id: ref.id, charge };
     },
   }),
 
   /** Extends the due date by the loan's own `loanDays` (FRS 11.11), counted from the later of due date and today. */
-  loanRenew: def({
-    name: 'lib.loan.renew',
-    perm: 'lib.circulation.operate',
+  loanRenew: defineCallable({
+    name: 'library.loan.renew',
+    permission: 'library.circulation.operate',
     input: z.object({ id }),
-    handler: async (ctx, i) => {
-      const { ref, d } = await loadLoan(ctx, i.id);
-      const member = (await ctx.tx.get(ctx.doc(`libMembers/${d.memberId}`))).data();
+    handler: async (context, i) => {
+      const { ref, loan } = await loadLoan(context, i.id);
+      const member = (await context.transaction.get(context.doc(`libraryMembers/${loan.memberId}`))).data();
       if (member?.status !== 'active' || member.blocked) throw failed('Member cannot renew');
-      const p = d.policySnapshot;
+      const policy = loan.policySnapshot;
       const today = todayIST();
-      if (d.renewals.length >= p.maxRenewals) throw failed(`Renewal limit of ${p.maxRenewals} reached`);
-      if (d.dueOn < today && !p.overdueRenewal) throw failed('Overdue loans cannot be renewed');
-      if (!(await waitingQuery(ctx, d.catalogueId, d.libraryId, 1)).empty) throw failed('Another member is waiting for this title');
-      const dueOn = addDays(d.dueOn > today ? d.dueOn : today, p.loanDays);
-      const renewals = [...d.renewals, { on: today, from: d.dueOn, to: dueOn, by: ctx.uid }];
-      ctx.update(ref, { dueOn, renewals, updatedAt: UP() });
-      ctx.audit({ action: 'libLoan.renew', ref: ref.path, before: { dueOn: d.dueOn }, after: { dueOn, count: renewals.length } });
-      return { id: ref.id, dueOn };
+      if (loan.renewals.length >= policy.maxRenewals) throw failed(`Renewal limit of ${policy.maxRenewals} reached`);
+      if (loan.dueDate < today && !policy.overdueRenewal) throw failed('Overdue loans cannot be renewed');
+      if (!(await waitingQuery(context, loan.catalogueId, loan.libraryId, 1)).empty) throw failed('Another member is waiting for this title');
+      const dueDate = addDays(loan.dueDate > today ? loan.dueDate : today, policy.loanDays);
+      const renewals = [...loan.renewals, { renewedDate: today, previousDueDate: loan.dueDate, newDueDate: dueDate, performedBy: context.uid }];
+      context.update(ref, { dueDate, renewals, updatedAt: serverTimestamp() });
+      context.audit({ action: 'libraryLoan.renew', documentPath: ref.path, before: { dueDate: loan.dueDate }, after: { dueDate, count: renewals.length } });
+      return { id: ref.id, dueDate };
     },
   }),
 };

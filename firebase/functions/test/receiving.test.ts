@@ -6,110 +6,110 @@ import { invoices as inv, receiving as r } from '../src/inventory/receiving';
 import { runCallable, type CallableDef } from '../src/shared/callable';
 import { clearFirestore, db } from './setup';
 
-const SID = '12';
-let n = 0;
+const SCHOOL_ID = '12';
+let requestSequence = 0;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const run = (d: CallableDef<any, any>, data: Record<string, unknown>, uid = 'u_proc') =>
-  runCallable(d, { uid, token: { sid: 12, pt: 'staff' } }, { requestId: `req-${String(++n).padStart(6, '0')}`, ...data });
-const get = async (path: string) => (await db().doc(`schools/${SID}/${path}`).get()).data();
+const run = (definition: CallableDef<any, any>, data: Record<string, unknown>, uid = 'proc') =>
+  runCallable(definition, { uid, token: { schoolId: 12, personType: 'staff' } }, { requestId: `req-${String(++requestSequence).padStart(6, '0')}`, ...data });
+const get = async (path: string) => (await db().doc(`schools/${SCHOOL_ID}/${path}`).get()).data();
 const day = (offset: number) => new Date(Date.now() + 330 * 60_000 + offset * 86_400_000).toISOString().slice(0, 10);
-const code = (d: Promise<unknown>) => d.then(() => 'ok', (e) => e.code);
+const code = (promise: Promise<unknown>) => promise.then(() => 'ok', (error) => error.code);
 
 describe('goods receiving and invoices', () => {
-  let pen: string, ink: string, v1: string, pr: string, po: string, store: string;
-  const receive = (lines: Array<Record<string, unknown>>, extra: Record<string, unknown> = {}, uid = 'u_store') =>
-    run(r.poReceive, { poId: po, storeId: store, lines, ...extra }, uid);
-  const bal = async (item: string) => (await get(`invBalances/${store}__${item}__-__-`))!;
+  let pen: string, ink: string, firstVendor: string, purchaseRequest: string, purchaseOrder: string, store: string;
+  const receive = (lineItems: Array<Record<string, unknown>>, extra: Record<string, unknown> = {}, uid = 'store') =>
+    run(r.purchaseOrderReceive, { purchaseOrderId: purchaseOrder, storeId: store, lineItems, ...extra }, uid);
+  const balance = async (item: string) => (await get(`inventoryBalances/${store}__${item}__-__-`))!;
 
   beforeEach(async () => {
     await clearFirestore();
-    const acc = (perms: string[], cmp = [31]) => ({ perms, cmp, all: false, eid: 5 });
-    await db().doc(`schools/${SID}/userAccess/u_1`).set(acc(['inv.settings', 'inv.items.manage', 'inv.vendors.manage']));
-    await db().doc(`schools/${SID}/userAccess/u_proc`).set(acc(['inv.procure.operate']));
-    await db().doc(`schools/${SID}/userAccess/u_far`).set(acc(['inv.procure.operate'], [99]));
-    await db().doc(`schools/${SID}/userAccess/u_store`).set(acc(['inv.stock.operate']));
-    await db().doc(`schools/${SID}/userAccess/u_req`).set(acc(['inv.pr.request']));
-    await db().doc(`schools/${SID}/userAccess/u_apr`).set(acc(['inv.pr.approve']));
-    await run(masters.seedDefaults, {}, 'u_1');
-    const cat = (await run(masters.categoryUpsert, { code: 'GEN', name: 'General', suggestedTracking: 'qty' }, 'u_1')).id;
-    const item = (c: string) => run(masters.itemUpsert, { code: c, name: c, categoryId: cat, stockUnit: 'pcs', tracking: 'qty' }, 'u_1').then((x) => x.id as string);
+    const permissionsList = (permissions: string[], campusIds = [31]) => ({ permissions, campusIds, hasAllCampuses: false, personErpId: 5 });
+    await db().doc(`schools/${SCHOOL_ID}/userAccess/1`).set(permissionsList(['inventory.settings', 'inventory.items.manage', 'inventory.vendors.manage']));
+    await db().doc(`schools/${SCHOOL_ID}/userAccess/proc`).set(permissionsList(['inventory.procure.operate']));
+    await db().doc(`schools/${SCHOOL_ID}/userAccess/far`).set(permissionsList(['inventory.procure.operate'], [99]));
+    await db().doc(`schools/${SCHOOL_ID}/userAccess/store`).set(permissionsList(['inventory.stock.operate']));
+    await db().doc(`schools/${SCHOOL_ID}/userAccess/req`).set(permissionsList(['inventory.purchaseRequest.request']));
+    await db().doc(`schools/${SCHOOL_ID}/userAccess/apr`).set(permissionsList(['inventory.purchaseRequest.approve']));
+    await run(masters.seedDefaults, {}, '1');
+    const category = (await run(masters.categoryUpsert, { code: 'GEN', name: 'General', suggestedTracking: 'quantity' }, '1')).id;
+    const item = (itemCode: string) => run(masters.itemUpsert, { code: itemCode, name: itemCode, categoryId: category, stockUnit: 'pcs', tracking: 'quantity' }, '1').then((extra) => extra.id as string);
     [pen, ink] = [await item('PEN'), await item('INK')];
-    store = (await run(masters.storeUpsert, { code: 'S1', name: 'Main', campusId: 31 }, 'u_1')).id;
-    v1 = (await run(p.vendorUpsert, { code: 'V1', name: 'Acme' }, 'u_1')).id;
-    pr = (await run(p.prSave, {
-      campusId: 31, requiredDate: day(7), purpose: 'Term', submit: true, lines: [{ itemId: pen, qty: 100, estPrice: 5 }, { itemId: ink, qty: 20, estPrice: 10 }],
-    }, 'u_req')).id;
-    await run(p.prDecide, { id: pr, decision: 'approve' }, 'u_apr');
-    po = (await run(o.poSave, {
-      prId: pr, vendorId: v1, expectedDate: day(7), deliveryCampusId: 31,
-      lines: [{ itemId: pen, qtyOrdered: 100, unitPrice: 5 }, { itemId: ink, qtyOrdered: 20, unitPrice: 10 }],
+    store = (await run(masters.storeUpsert, { code: 'S1', name: 'Main', campusId: 31 }, '1')).id;
+    firstVendor = (await run(p.vendorUpsert, { code: 'V1', name: 'Acme' }, '1')).id;
+    purchaseRequest = (await run(p.purchaseRequestSave, {
+      campusId: 31, requiredDate: day(7), purpose: 'Term', submit: true, lineItems: [{ itemId: pen, quantity: 100, estimatedPrice: 5 }, { itemId: ink, quantity: 20, estimatedPrice: 10 }],
+    }, 'req')).id;
+    await run(p.purchaseRequestDecide, { id: purchaseRequest, decision: 'approve' }, 'apr');
+    purchaseOrder = (await run(o.purchaseOrderSave, {
+      purchaseRequestId: purchaseRequest, vendorId: firstVendor, expectedDate: day(7), deliveryCampusId: 31,
+      lineItems: [{ itemId: pen, quantityOrdered: 100, unitPrice: 5 }, { itemId: ink, quantityOrdered: 20, unitPrice: 10 }],
     })).id;
   });
 
   it('receives in several deliveries, validates quantities and moves the order and request to done', async () => {
-    expect(await code(receive([{ itemId: pen, qtyAccepted: 1 }]))).toBe('failed-precondition'); // draft
-    await run(o.poIssue, { id: po });
-    expect(await code(receive([{ itemId: pen, qtyAccepted: 101 }]))).toBe('failed-precondition');
-    expect(await code(receive([{ itemId: pen, qtyAccepted: 0 }]))).toBe('failed-precondition');
-    expect(await code(receive([{ itemId: 'zz', qtyAccepted: 1 }]))).toBe('failed-precondition');
-    expect(await code(receive([{ itemId: pen, qtyAccepted: 1 }], {}, 'u_far'))).toBe('permission-denied');
+    expect(await code(receive([{ itemId: pen, quantityAccepted: 1 }]))).toBe('failed-precondition'); // draft
+    await run(o.purchaseOrderIssue, { id: purchaseOrder });
+    expect(await code(receive([{ itemId: pen, quantityAccepted: 101 }]))).toBe('failed-precondition');
+    expect(await code(receive([{ itemId: pen, quantityAccepted: 0 }]))).toBe('failed-precondition');
+    expect(await code(receive([{ itemId: 'zz', quantityAccepted: 1 }]))).toBe('failed-precondition');
+    expect(await code(receive([{ itemId: pen, quantityAccepted: 1 }], {}, 'far'))).toBe('permission-denied');
 
-    const g1 = await receive([{ itemId: pen, qtyAccepted: 40, qtyRejected: 10, condition: 'dented' }], { deliveryRef: 'DC-1' });
-    expect(g1.poStatus).toBe('partially_received');
-    expect((await bal(pen)).qtyAvailable).toBe(40);
-    expect((await bal(pen)).unitCost).toBe(5);
-    expect(await get(`invReceipts/${g1.id}`)).toMatchObject({ source: 'purchase_order', poId: po, reference: 'DC-1', inspection: { result: 'partial' }, lines: [{ qtyReceived: 50, result: 'partial' }] });
-    expect(await get(`invPurchaseOrders/${po}`)).toMatchObject({ status: 'partially_received', lines: [{ qtyReceived: 50, qtyAccepted: 40, qtyRejected: 10 }, { qtyReceived: 0 }] });
-    expect(await code(receive([{ itemId: pen, qtyAccepted: 51 }]))).toBe('failed-precondition'); // 50 still due
-    expect(await code(run(o.poCancel, { id: po, reason: 'x' }))).toBe('failed-precondition');
+    const firstReceipt = await receive([{ itemId: pen, quantityAccepted: 40, quantityRejected: 10, condition: 'dented' }], { deliveryRef: 'DC-1' });
+    expect(firstReceipt.purchaseOrderStatus).toBe('partially_received');
+    expect((await balance(pen)).quantityAvailable).toBe(40);
+    expect((await balance(pen)).unitCost).toBe(5);
+    expect(await get(`inventoryReceipts/${firstReceipt.id}`)).toMatchObject({ source: 'purchase_order', purchaseOrderId: purchaseOrder, reference: 'DC-1', inspection: { result: 'partial' }, lineItems: [{ quantityReceived: 50, result: 'partial' }] });
+    expect(await get(`inventoryPurchaseOrders/${purchaseOrder}`)).toMatchObject({ status: 'partially_received', lineItems: [{ quantityReceived: 50, quantityAccepted: 40, quantityRejected: 10 }, { quantityReceived: 0 }] });
+    expect(await code(receive([{ itemId: pen, quantityAccepted: 51 }]))).toBe('failed-precondition'); // 50 still due
+    expect(await code(run(o.purchaseOrderCancel, { id: purchaseOrder, reason: 'x' }))).toBe('failed-precondition');
 
-    const g2 = await receive([{ itemId: pen, qtyAccepted: 50 }, { itemId: ink, qtyAccepted: 0, qtyRejected: 20 }]);
-    expect(g2.poStatus).toBe('fully_received');
-    expect((await bal(pen)).qtyAvailable).toBe(90);
-    expect(await get(`invBalances/${store}__${ink}__-__-`)).toBeUndefined(); // rejected stock never enters the store
-    expect((await get(`invPurchaseRequests/${pr}`))!.status).toBe('completed');
-    expect(await code(receive([{ itemId: pen, qtyAccepted: 1 }]))).toBe('failed-precondition'); // fully received
+    const secondReceipt = await receive([{ itemId: pen, quantityAccepted: 50 }, { itemId: ink, quantityAccepted: 0, quantityRejected: 20 }]);
+    expect(secondReceipt.purchaseOrderStatus).toBe('fully_received');
+    expect((await balance(pen)).quantityAvailable).toBe(90);
+    expect(await get(`inventoryBalances/${store}__${ink}__-__-`)).toBeUndefined(); // rejected stock never enters the store
+    expect((await get(`inventoryPurchaseRequests/${purchaseRequest}`))!.status).toBe('completed');
+    expect(await code(receive([{ itemId: pen, quantityAccepted: 1 }]))).toBe('failed-precondition'); // fully received
   });
 
   it('batch items need a batch; asset units are counted on the order but never enter stock', async () => {
-    await run(o.poIssue, { id: po });
-    await run(masters.itemUpsert, { code: 'MILK', name: 'Milk', categoryId: (await get(`invItems/${pen}`))!.categoryId, stockUnit: 'pcs', tracking: 'batch' }, 'u_1');
-    await db().doc(`schools/${SID}/invItems/${ink}`).update({ tracking: 'asset' });
-    expect(await code(receive([{ itemId: ink, qtyAccepted: 1.5 }]))).toBe('failed-precondition');
-    const g = await receive([{ itemId: ink, qtyAccepted: 5, qtyRejected: 1 }]);
-    expect(g.poStatus).toBe('partially_received');
-    expect(await get(`invBalances/${store}__${ink}__-__-`)).toBeUndefined();
-    expect(await get(`invPurchaseOrders/${po}`)).toMatchObject({ lines: [{ qtyReceived: 0 }, { qtyAccepted: 5, qtyRejected: 1 }] });
+    await run(o.purchaseOrderIssue, { id: purchaseOrder });
+    await run(masters.itemUpsert, { code: 'MILK', name: 'Milk', categoryId: (await get(`inventoryItems/${pen}`))!.categoryId, stockUnit: 'pcs', tracking: 'batch' }, '1');
+    await db().doc(`schools/${SCHOOL_ID}/inventoryItems/${ink}`).update({ tracking: 'asset' });
+    expect(await code(receive([{ itemId: ink, quantityAccepted: 1.5 }]))).toBe('failed-precondition');
+    const receipt = await receive([{ itemId: ink, quantityAccepted: 5, quantityRejected: 1 }]);
+    expect(receipt.purchaseOrderStatus).toBe('partially_received');
+    expect(await get(`inventoryBalances/${store}__${ink}__-__-`)).toBeUndefined();
+    expect(await get(`inventoryPurchaseOrders/${purchaseOrder}`)).toMatchObject({ lineItems: [{ quantityReceived: 0 }, { quantityAccepted: 5, quantityRejected: 1 }] });
   });
 
   it('invoices: traceable to a live order, unique per vendor, payment recorded, cancel frees the number', async () => {
-    const save = (x: Record<string, unknown> = {}, uid = 'u_proc') =>
-      run(inv.invoiceSave, { poId: po, invoiceNo: 'INV-1', invoiceDate: day(0), subtotal: 1000, tax: 50, discount: 20, ...x }, uid);
+    const save = (result: Record<string, unknown> = {}, uid = 'proc') =>
+      run(inv.invoiceSave, { purchaseOrderId: purchaseOrder, invoiceNumber: 'INV-1', invoiceDate: day(0), subtotal: 1000, tax: 50, discount: 20, ...result }, uid);
     expect(await code(save())).toBe('failed-precondition'); // draft order
-    await run(o.poIssue, { id: po });
-    const g = (await receive([{ itemId: pen, qtyAccepted: 10 }])).id;
+    await run(o.purchaseOrderIssue, { id: purchaseOrder });
+    const receipt = (await receive([{ itemId: pen, quantityAccepted: 10 }])).id;
     expect(await code(save({ receiptIds: ['nope'] }))).toBe('failed-precondition');
-    expect(await code(save({}, 'u_far'))).toBe('permission-denied');
+    expect(await code(save({}, 'far'))).toBe('permission-denied');
     expect(await code(save({ discount: 5000 }))).toBe('failed-precondition');
     expect(await code(save({ dueDate: day(-3) }))).toBe('failed-precondition');
-    const a = await save({ receiptIds: [g], dueDate: day(10) });
-    expect(await get(`invInvoices/${a.id}`)).toMatchObject({ vendorId: v1, total: 1030, outstanding: 1030, paymentStatus: 'unpaid', poNumber: expect.any(String) });
+    const first = await save({ receiptIds: [receipt], dueDate: day(10) });
+    expect(await get(`inventoryInvoices/${first.id}`)).toMatchObject({ vendorId: firstVendor, total: 1030, outstanding: 1030, paymentStatus: 'unpaid', purchaseOrderNumber: expect.any(String) });
     expect(await code(save())).toBe('already-exists');
-    await run(inv.invoiceSave, { id: a.id, poId: po, invoiceNo: 'INV-1', invoiceDate: day(0), subtotal: 2000 });
-    expect((await get(`invInvoices/${a.id}`))!.total).toBe(2000);
+    await run(inv.invoiceSave, { id: first.id, purchaseOrderId: purchaseOrder, invoiceNumber: 'INV-1', invoiceDate: day(0), subtotal: 2000 });
+    expect((await get(`inventoryInvoices/${first.id}`))!.total).toBe(2000);
 
-    expect(await code(run(inv.invoiceSetPayment, { id: a.id, paidAmount: 2001 }))).toBe('failed-precondition');
-    await run(inv.invoiceSetPayment, { id: a.id, paidAmount: 500, reference: 'UTR9' });
-    expect(await get(`invInvoices/${a.id}`)).toMatchObject({ paymentStatus: 'partially_paid', outstanding: 1500, payment: { reference: 'UTR9' } });
-    expect(await code(run(inv.invoiceSave, { id: a.id, poId: po, invoiceNo: 'INV-1', invoiceDate: day(0), subtotal: 1 }))).toBe('failed-precondition');
-    expect(await code(run(inv.invoiceCancel, { id: a.id, reason: 'x' }))).toBe('failed-precondition');
-    await run(inv.invoiceSetPayment, { id: a.id, paidAmount: 2000 });
-    expect((await get(`invInvoices/${a.id}`))!.paymentStatus).toBe('paid');
+    expect(await code(run(inv.invoiceSetPayment, { id: first.id, paidAmount: 2001 }))).toBe('failed-precondition');
+    await run(inv.invoiceSetPayment, { id: first.id, paidAmount: 500, reference: 'UTR9' });
+    expect(await get(`inventoryInvoices/${first.id}`)).toMatchObject({ paymentStatus: 'partially_paid', outstanding: 1500, payment: { reference: 'UTR9' } });
+    expect(await code(run(inv.invoiceSave, { id: first.id, purchaseOrderId: purchaseOrder, invoiceNumber: 'INV-1', invoiceDate: day(0), subtotal: 1 }))).toBe('failed-precondition');
+    expect(await code(run(inv.invoiceCancel, { id: first.id, reason: 'x' }))).toBe('failed-precondition');
+    await run(inv.invoiceSetPayment, { id: first.id, paidAmount: 2000 });
+    expect((await get(`inventoryInvoices/${first.id}`))!.paymentStatus).toBe('paid');
 
-    const b = await save({ invoiceNo: 'INV-2' });
-    await run(inv.invoiceCancel, { id: b.id, reason: 'typo' });
-    expect((await get(`invInvoices/${b.id}`))!.paymentStatus).toBe('cancelled');
-    expect(await code(run(inv.invoiceSetPayment, { id: b.id, paidAmount: 1 }))).toBe('failed-precondition');
-    await save({ invoiceNo: 'INV-2' }); // number reusable
+    const second = await save({ invoiceNumber: 'INV-2' });
+    await run(inv.invoiceCancel, { id: second.id, reason: 'typo' });
+    expect((await get(`inventoryInvoices/${second.id}`))!.paymentStatus).toBe('cancelled');
+    expect(await code(run(inv.invoiceSetPayment, { id: second.id, paidAmount: 1 }))).toBe('failed-precondition');
+    await save({ invoiceNumber: 'INV-2' }); // number reusable
   });
 });

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:icueadmin/features/inventory/procurement/vendor_form_sheet.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -17,28 +17,32 @@ class _VendorsPageState extends State<VendorsPage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final inv = context.read<InventoryProvider>();
-      if (inv.categories.isEmpty) await inv.loadMasters();
+      final inventoryProvider = context.read<InventoryProvider>();
+      if (inventoryProvider.categories.isEmpty) {
+        await inventoryProvider.loadMasters();
+      }
       if (mounted) await context.read<ProcurementProvider>().loadVendors();
     });
   }
 
-  Future<void> _toggle(InvVendor v) async {
-    final p = context.read<ProcurementProvider>();
-    final res = await p.act('inv-vendor-setStatus', {
-      'id': v.id,
-      'status': v.active ? 'inactive' : 'active',
+  Future<void> _toggle(InventoryVendor vendor) async {
+    final procurementProvider = context.read<ProcurementProvider>();
+    final result = await procurementProvider.act('inventory-vendor-setStatus', {
+      'id': vendor.id,
+      'status': vendor.active ? 'inactive' : 'active',
     });
     if (!mounted) return;
-    if (res == null) return invSnack(context, p.errorMessage ?? 'Failed');
-    await p.loadVendors();
+    if (result == null) {
+      return showMessage(context, procurementProvider.errorMessage ?? 'Failed');
+    }
+    await procurementProvider.loadVendors();
   }
 
   @override
   Widget build(BuildContext context) {
-    final p = context.watch<ProcurementProvider>();
+    final procurementProvider = context.watch<ProcurementProvider>();
     final canEdit = context.read<InventoryProvider>().access.can(
-      'inv.vendors.manage',
+      'inventory.vendors.manage',
     );
     return Scaffold(
       appBar: AppBar(title: const Text('Vendors')),
@@ -46,35 +50,44 @@ class _VendorsPageState extends State<VendorsPage> {
           ? FloatingActionButton.extended(
               onPressed: () async {
                 await VendorFormSheet.show(context);
-                if (mounted) await p.loadVendors();
+                if (mounted) await procurementProvider.loadVendors();
               },
               icon: const Icon(Icons.add_rounded),
               label: const Text('Vendor'),
             )
           : null,
-      body: p.vendors.isEmpty
+      body: procurementProvider.vendors.isEmpty
           ? Center(
-              child: p.isLoading
+              child: procurementProvider.isLoading
                   ? const CircularProgressIndicator()
-                  : Text(p.errorMessage ?? 'No vendors yet'),
+                  : Text(procurementProvider.errorMessage ?? 'No vendors yet'),
             )
           : ListView(
               children: [
-                for (final v in p.vendors)
+                for (final vendor in procurementProvider.vendors)
                   ListTile(
-                    title: Text(v.name),
+                    title: Text(vendor.name),
                     subtitle: Text(
-                      [v.code, ?v.contactPerson, ?v.phone].join(' · '),
+                      [
+                        vendor.code,
+                        ?vendor.contactPerson,
+                        ?vendor.phone,
+                      ].join(' · '),
                     ),
-                    leading: v.active ? null : const InactiveBadge(),
+                    leading: vendor.active ? null : const InactiveBadge(),
                     trailing: canEdit
                         ? PopupMenuButton<String>(
-                            onSelected: (a) async {
-                              if (a == 'edit') {
-                                await VendorFormSheet.show(context, vendor: v);
-                                if (mounted) await p.loadVendors();
+                            onSelected: (value) async {
+                              if (value == 'edit') {
+                                await VendorFormSheet.show(
+                                  context,
+                                  vendor: vendor,
+                                );
+                                if (mounted) {
+                                  await procurementProvider.loadVendors();
+                                }
                               } else {
-                                await _toggle(v);
+                                await _toggle(vendor);
                               }
                             },
                             itemBuilder: (_) => [
@@ -85,7 +98,7 @@ class _VendorsPageState extends State<VendorsPage> {
                               PopupMenuItem(
                                 value: 'toggle',
                                 child: Text(
-                                  v.active ? 'Deactivate' : 'Activate',
+                                  vendor.active ? 'Deactivate' : 'Activate',
                                 ),
                               ),
                             ],

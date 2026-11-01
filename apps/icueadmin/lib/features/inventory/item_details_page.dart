@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
 import 'package:icueadmin/features/inventory/widgets/variant_dialog.dart';
 import 'package:icueadmin/routing/app_routes.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -16,8 +16,8 @@ class ItemDetailsPage extends StatefulWidget {
 }
 
 class _ItemDetailsPageState extends State<ItemDetailsPage> {
-  InvItem? _item;
-  List<InvVariant> _variants = [];
+  InventoryItem? _item;
+  List<InventoryVariant> _variants = [];
   bool _loaded = false;
 
   @override
@@ -27,9 +27,9 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
   }
 
   Future<void> _load() async {
-    final p = context.read<InventoryProvider>();
-    final item = await p.item(widget.itemId);
-    final variants = await p.variants(widget.itemId);
+    final inventoryProvider = context.read<InventoryProvider>();
+    final item = await inventoryProvider.item(widget.itemId);
+    final variants = await inventoryProvider.variants(widget.itemId);
     if (!mounted) return;
     setState(() {
       _item = item;
@@ -40,9 +40,9 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final p = context.watch<InventoryProvider>();
+    final inventoryProvider = context.watch<InventoryProvider>();
     final item = _item;
-    final canEdit = p.access.can('inv.items.manage');
+    final canEdit = inventoryProvider.access.can('inventory.items.manage');
     if (item == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Item')),
@@ -55,12 +55,12 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
     }
     final rows = <(String, String?)>[
       ('Code', item.code),
-      ('Category', p.category(item.categoryId)?.name),
-      ('Subcategory', p.category(item.subcategoryId)?.name),
+      ('Category', inventoryProvider.category(item.categoryId)?.name),
+      ('Subcategory', inventoryProvider.category(item.subcategoryId)?.name),
       ('Tracking', item.tracking.label),
       ('Stock unit', item.stockUnit),
-      for (final u in item.purchaseUnits)
-        ('1 ${u.unit}', '${u.factor} ${item.stockUnit}'),
+      for (final purchaseUnit in item.purchaseUnits)
+        ('1 ${purchaseUnit.unit}', '${purchaseUnit.factor} ${item.stockUnit}'),
       ('Minimum level', item.minLevel?.toString()),
       ('Reorder level', item.reorderLevel?.toString()),
       ('Default price', item.defaultPrice?.toString()),
@@ -83,18 +83,28 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
       ),
       body: ListView(
         children: [
-          for (final r in rows)
-            if (r.$2 != null && r.$2!.isNotEmpty)
-              ListTile(dense: true, title: Text(r.$1), trailing: Text(r.$2!)),
+          for (final row in rows)
+            if (row.$2 != null && row.$2!.isNotEmpty)
+              ListTile(
+                dense: true,
+                title: Text(row.$1),
+                trailing: Text(row.$2!),
+              ),
           if (canEdit)
             SwitchListTile(
               title: const Text('Active'),
               value: item.active,
-              onChanged: (v) async {
-                if (await p.setItemActive(item.id, active: v)) {
+              onChanged: (value) async {
+                if (await inventoryProvider.setItemActive(
+                  item.id,
+                  active: value,
+                )) {
                   await _load();
                 } else if (context.mounted) {
-                  invSnack(context, p.errorMessage ?? 'Failed');
+                  showMessage(
+                    context,
+                    inventoryProvider.errorMessage ?? 'Failed',
+                  );
                 }
               },
             ),
@@ -112,20 +122,22 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
                     )
                   : null,
             ),
-            for (final v in _variants)
+            for (final variant in _variants)
               ListTile(
                 dense: true,
-                title: Text(v.sku),
+                title: Text(variant.sku),
                 subtitle: Text(
-                  v.attrs.entries.map((e) => '${e.key}: ${e.value}').join(', '),
+                  variant.attrs.entries
+                      .map((mapEntry) => '${mapEntry.key}: ${mapEntry.value}')
+                      .join(', '),
                 ),
-                trailing: v.active ? null : const InactiveBadge(),
+                trailing: variant.active ? null : const InactiveBadge(),
                 onTap: canEdit
                     ? () async {
                         if (await VariantDialog.show(
                           context,
                           item,
-                          variant: v,
+                          variant: variant,
                         )) {
                           await _load();
                         }

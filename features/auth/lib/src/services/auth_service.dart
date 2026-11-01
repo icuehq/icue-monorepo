@@ -86,7 +86,7 @@ class AuthService {
     if (user == null || Firebase.apps.isEmpty) return false;
     // Web restores the Firebase user asynchronously.
     final current = await FirebaseAuth.instance.authStateChanges().first;
-    if (!refresh && current?.uid == 'u_${user.id}') return true;
+    if (!refresh && current?.uid == user.id.toString()) return true;
     return _firebaseSignIn ??= _exchangeFirebaseToken().whenComplete(
       () => _firebaseSignIn = null,
     );
@@ -118,18 +118,18 @@ class AuthService {
 
   /// Local runs against the emulators: claims built from the Node user, as
   /// the Node endpoint will (architecture §2). Replace with the real endpoint
-  /// once it is live; wards/parents are not covered.
+  /// once it is live; wardStudentIds/parents are not covered.
   String? _emulatorToken() {
     final user = userLocalStorage.getUser();
     if (user == null) return null;
     final branch = userLocalStorage.getSelectedBranch()?.id ?? user.branchId;
-    return emulatorCustomToken('u_${user.id}', <String, Object?>{
-      'sid': user.organizationId,
-      'cmp': <int>[if (branch != 0) branch],
-      'all': false,
-      'rol': [for (final r in user.roles) r.id],
-      'pt': 'staff',
-      'eid': user.id,
+    return emulatorCustomToken(user.id.toString(), <String, Object?>{
+      'schoolId': user.organizationId,
+      'campusIds': <int>[if (branch != 0) branch],
+      'hasAllCampuses': false,
+      'roleIds': [for (final r in user.roles) r.id],
+      'personType': 'staff',
+      'personErpId': user.id,
     });
   }
 

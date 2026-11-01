@@ -5,7 +5,7 @@ import { getBytes, ref, uploadString } from 'firebase/storage';
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
 
 let env;
-const staff = { sid: 12, pt: 'staff', eid: 884 };
+const staff = { schoolId: 12, personType: 'staff', personErpId: 884 };
 const db = (uid, claims = staff) => env.authenticatedContext(uid, claims).firestore();
 const anon = () => env.unauthenticatedContext().firestore();
 
@@ -21,282 +21,282 @@ afterAll(() => env.cleanup());
 beforeEach(async () => {
   await env.clearFirestore();
   await env.clearStorage();
-  await env.withSecurityRulesDisabled(async (ctx) => {
-    const fs = ctx.firestore();
-    await setDoc(doc(fs, 'schools/12/userAccess/u_1'), { perms: ['inv.items.view'], cmp: [31], all: false });
-    await setDoc(doc(fs, 'schools/12/userAccess/u_2'), { perms: [], cmp: [31], all: false });
-    await setDoc(doc(fs, 'schools/12/config/rolePermissions'), { roles: {} });
-    await setDoc(doc(fs, 'schools/12/notifications/e__u_1'), { uid: 'u_1', title: 't' });
-    await setDoc(doc(fs, 'schools/12/notifications/e__u_2'), { uid: 'u_2', title: 't' });
-    for (const c of ['auditLogs', 'requests', 'uniqueKeys', 'outbox', 'counters']) {
-      await setDoc(doc(fs, `schools/12/${c}/x`), { a: 1 });
+  await env.withSecurityRulesDisabled(async (context) => {
+    const firestore = context.firestore();
+    await setDoc(doc(firestore, 'schools/12/userAccess/1'), { permissions: ['inventory.items.view'], campusIds: [31], hasAllCampuses: false });
+    await setDoc(doc(firestore, 'schools/12/userAccess/2'), { permissions: [], campusIds: [31], hasAllCampuses: false });
+    await setDoc(doc(firestore, 'schools/12/config/rolePermissions'), { roles: {} });
+    await setDoc(doc(firestore, 'schools/12/notifications/e__1'), { uid: '1', title: 't' });
+    await setDoc(doc(firestore, 'schools/12/notifications/e__2'), { uid: '2', title: 't' });
+    for (const collectionName of ['auditLogs', 'requests', 'uniqueKeys', 'outbox', 'counters']) {
+      await setDoc(doc(firestore, `schools/12/${collectionName}/x`), { a: 1 });
     }
-    await setDoc(doc(fs, 'devices/u_2/tokens/t'), { token: 't' });
-    await uploadString(ref(ctx.storage(), 'schools/12/inv/invItems/i1/a.png'), 'x');
+    await setDoc(doc(firestore, 'devices/2/tokens/t'), { token: 't' });
+    await uploadString(ref(context.storage(), 'schools/12/inv/inventoryItems/i1/a.png'), 'x');
   });
 });
 
 describe('school data', () => {
   it('userAccess: own only, same school only, never writable', async () => {
-    await assertSucceeds(getDoc(doc(db('u_1'), 'schools/12/userAccess/u_1')));
-    await assertFails(getDoc(doc(db('u_1'), 'schools/12/userAccess/u_2')));
-    await assertFails(getDoc(doc(db('u_1', { ...staff, sid: 13 }), 'schools/12/userAccess/u_1')));
-    await assertFails(getDoc(doc(anon(), 'schools/12/userAccess/u_1')));
-    await assertFails(setDoc(doc(db('u_1'), 'schools/12/userAccess/u_1'), { perms: ['inv.settings'] }));
+    await assertSucceeds(getDoc(doc(db('1'), 'schools/12/userAccess/1')));
+    await assertFails(getDoc(doc(db('1'), 'schools/12/userAccess/2')));
+    await assertFails(getDoc(doc(db('1', { ...staff, schoolId: 13 }), 'schools/12/userAccess/1')));
+    await assertFails(getDoc(doc(anon(), 'schools/12/userAccess/1')));
+    await assertFails(setDoc(doc(db('1'), 'schools/12/userAccess/1'), { permissions: ['inventory.settings'] }));
   });
 
   it('config: readable in own school only', async () => {
-    await assertSucceeds(getDoc(doc(db('u_2'), 'schools/12/config/rolePermissions')));
-    await assertFails(getDoc(doc(db('u_2', { ...staff, sid: 13 }), 'schools/12/config/rolePermissions')));
-    await assertFails(setDoc(doc(db('u_1'), 'schools/12/config/rolePermissions'), { roles: {} }));
+    await assertSucceeds(getDoc(doc(db('2'), 'schools/12/config/rolePermissions')));
+    await assertFails(getDoc(doc(db('2', { ...staff, schoolId: 13 }), 'schools/12/config/rolePermissions')));
+    await assertFails(setDoc(doc(db('1'), 'schools/12/config/rolePermissions'), { roles: {} }));
   });
 
   it('notifications: own only, list must filter by uid', async () => {
-    const fs = db('u_1');
-    await assertSucceeds(getDoc(doc(fs, 'schools/12/notifications/e__u_1')));
-    await assertFails(getDoc(doc(fs, 'schools/12/notifications/e__u_2')));
-    await assertSucceeds(getDocs(query(collection(fs, 'schools/12/notifications'), where('uid', '==', 'u_1'))));
-    await assertFails(getDocs(collection(fs, 'schools/12/notifications')));
+    const firestore = db('1');
+    await assertSucceeds(getDoc(doc(firestore, 'schools/12/notifications/e__1')));
+    await assertFails(getDoc(doc(firestore, 'schools/12/notifications/e__2')));
+    await assertSucceeds(getDocs(query(collection(firestore, 'schools/12/notifications'), where('uid', '==', '1'))));
+    await assertFails(getDocs(collection(firestore, 'schools/12/notifications')));
   });
 
   it('internal collections: no client read or write', async () => {
-    for (const c of ['auditLogs', 'requests', 'uniqueKeys', 'outbox', 'counters']) {
-      await assertFails(getDoc(doc(db('u_1'), `schools/12/${c}/x`)));
-      await assertFails(setDoc(doc(db('u_1'), `schools/12/${c}/y`), { a: 1 }));
+    for (const collectionName of ['auditLogs', 'requests', 'uniqueKeys', 'outbox', 'counters']) {
+      await assertFails(getDoc(doc(db('1'), `schools/12/${collectionName}/x`)));
+      await assertFails(setDoc(doc(db('1'), `schools/12/${collectionName}/y`), { a: 1 }));
     }
   });
 
   it('module collections: no client writes, no reads without a rule', async () => {
-    await assertFails(setDoc(doc(db('u_1'), 'schools/12/invBalances/b1'), { campusId: 31 }));
-    await assertFails(getDoc(doc(db('u_1'), 'schools/12/invBalances/b1')));
+    await assertFails(setDoc(doc(db('1'), 'schools/12/inventoryBalances/b1'), { campusId: 31 }));
+    await assertFails(getDoc(doc(db('1'), 'schools/12/inventoryBalances/b1')));
   });
 });
 
 describe('inventory masters', () => {
   beforeEach(() =>
-    env.withSecurityRulesDisabled(async (ctx) => {
-      const fs = ctx.firestore();
-      await setDoc(doc(fs, 'schools/12/userAccess/u_3'), { perms: ['inv.settings'], cmp: [31], all: false });
-      for (const c of ['invCategories', 'invUnits', 'invItems']) await setDoc(doc(fs, `schools/12/${c}/a`), { name: 'a' });
-      await setDoc(doc(fs, 'schools/12/invItems/a/variants/v'), { sku: 'v' });
-      await setDoc(doc(fs, 'schools/12/invStores/s31'), { campusId: 31 });
-      await setDoc(doc(fs, 'schools/12/invStores/s32'), { campusId: 32 });
+    env.withSecurityRulesDisabled(async (context) => {
+      const firestore = context.firestore();
+      await setDoc(doc(firestore, 'schools/12/userAccess/3'), { permissions: ['inventory.settings'], campusIds: [31], hasAllCampuses: false });
+      for (const collectionName of ['inventoryCategories', 'inventoryUnits', 'inventoryItems']) await setDoc(doc(firestore, `schools/12/${collectionName}/a`), { name: 'a' });
+      await setDoc(doc(firestore, 'schools/12/inventoryItems/a/variants/v'), { sku: 'v' });
+      await setDoc(doc(firestore, 'schools/12/inventoryStores/s31'), { campusId: 31 });
+      await setDoc(doc(firestore, 'schools/12/inventoryStores/s32'), { campusId: 32 });
     }),
   );
 
   it('categories, units, items, variants: readable with inv.items.view, never writable', async () => {
-    for (const p of ['invCategories/a', 'invUnits/a', 'invItems/a', 'invItems/a/variants/v']) {
-      await assertSucceeds(getDoc(doc(db('u_1'), `schools/12/${p}`)));
-      await assertFails(getDoc(doc(db('u_2'), `schools/12/${p}`)));
-      await assertFails(getDoc(doc(db('u_1', { ...staff, sid: 13 }), `schools/12/${p}`)));
-      await assertFails(setDoc(doc(db('u_1'), `schools/12/${p}`), { name: 'x' }));
+    for (const documentPath of ['inventoryCategories/a', 'inventoryUnits/a', 'inventoryItems/a', 'inventoryItems/a/variants/v']) {
+      await assertSucceeds(getDoc(doc(db('1'), `schools/12/${documentPath}`)));
+      await assertFails(getDoc(doc(db('2'), `schools/12/${documentPath}`)));
+      await assertFails(getDoc(doc(db('1', { ...staff, schoolId: 13 }), `schools/12/${documentPath}`)));
+      await assertFails(setDoc(doc(db('1'), `schools/12/${documentPath}`), { name: 'x' }));
     }
   });
 
   it('stores: school-wide reads for stock viewers and settings users', async () => {
-    await assertSucceeds(getDoc(doc(db('u_3'), 'schools/12/invStores/s31')));
-    await assertSucceeds(getDoc(doc(db('u_3'), 'schools/12/invStores/s32')));
-    await assertFails(getDoc(doc(db('u_1'), 'schools/12/invStores/s31')));
-    await assertFails(getDoc(doc(db('u_3', { ...staff, sid: 13 }), 'schools/12/invStores/s31')));
-    await assertSucceeds(getDocs(collection(db('u_3'), 'schools/12/invStores')));
-    await assertFails(setDoc(doc(db('u_3'), 'schools/12/invStores/s31'), { campusId: 31 }));
+    await assertSucceeds(getDoc(doc(db('3'), 'schools/12/inventoryStores/s31')));
+    await assertSucceeds(getDoc(doc(db('3'), 'schools/12/inventoryStores/s32')));
+    await assertFails(getDoc(doc(db('1'), 'schools/12/inventoryStores/s31')));
+    await assertFails(getDoc(doc(db('3', { ...staff, schoolId: 13 }), 'schools/12/inventoryStores/s31')));
+    await assertSucceeds(getDocs(collection(db('3'), 'schools/12/inventoryStores')));
+    await assertFails(setDoc(doc(db('3'), 'schools/12/inventoryStores/s31'), { campusId: 31 }));
   });
 });
 
 describe('inventory stock', () => {
-  const STOCK = ['invBalances', 'invMovements', 'invReceipts', 'invIssues', 'invReturns', 'invAdjustments', 'invUnavailable'];
+  const STOCK = ['inventoryBalances', 'inventoryMovements', 'inventoryReceipts', 'inventoryIssues', 'inventoryReturns', 'inventoryAdjustments', 'inventoryUnavailableStock'];
   beforeEach(() =>
-    env.withSecurityRulesDisabled(async (ctx) => {
-      const fs = ctx.firestore();
-      const acc = (perms, cmp = [31]) => ({ perms, cmp, all: false });
-      await setDoc(doc(fs, 'schools/12/userAccess/s_view'), acc(['inv.stock.view']));
-      await setDoc(doc(fs, 'schools/12/userAccess/s_req'), acc(['inv.issue.request']));
-      await setDoc(doc(fs, 'schools/12/userAccess/s_apr'), acc(['inv.issue.approve']));
-      await setDoc(doc(fs, 'schools/12/userAccess/s_32'), acc(['inv.stock.view'], [32]));
-      for (const c of STOCK) {
-        await setDoc(doc(fs, `schools/12/${c}/a31`), { campusId: 31 });
-        await setDoc(doc(fs, `schools/12/${c}/a32`), { campusId: 32 });
+    env.withSecurityRulesDisabled(async (context) => {
+      const firestore = context.firestore();
+      const access = (permissions, campusIds = [31]) => ({ permissions, campusIds, hasAllCampuses: false });
+      await setDoc(doc(firestore, 'schools/12/userAccess/view'), access(['inventory.stock.view']));
+      await setDoc(doc(firestore, 'schools/12/userAccess/req'), access(['inventory.issue.request']));
+      await setDoc(doc(firestore, 'schools/12/userAccess/apr'), access(['inventory.issue.approve']));
+      await setDoc(doc(firestore, 'schools/12/userAccess/32'), access(['inventory.stock.view'], [32]));
+      for (const collectionName of STOCK) {
+        await setDoc(doc(firestore, `schools/12/${collectionName}/a31`), { campusId: 31 });
+        await setDoc(doc(firestore, `schools/12/${collectionName}/a32`), { campusId: 32 });
       }
-      await setDoc(doc(fs, 'schools/12/invIssueRequests/r1'), { campusId: 31, createdBy: 's_req' });
-      await setDoc(doc(fs, 'schools/12/invTransfers/t1'), { campusId: 31, toCampusId: 32 });
-      await setDoc(doc(fs, 'schools/12/invItems/i'), { name: 'i' });
-      await setDoc(doc(fs, 'schools/12/invStores/s31'), { campusId: 31 });
+      await setDoc(doc(firestore, 'schools/12/inventoryIssueRequests/r1'), { campusId: 31, createdBy: 'req' });
+      await setDoc(doc(firestore, 'schools/12/inventoryTransfers/t1'), { campusId: 31, toCampusId: 32 });
+      await setDoc(doc(firestore, 'schools/12/inventoryItems/i'), { name: 'i' });
+      await setDoc(doc(firestore, 'schools/12/inventoryStores/s31'), { campusId: 31 });
     }),
   );
 
   it('balances, ledger and documents: stock viewers on the campus only, never writable', async () => {
-    for (const c of STOCK) {
-      await assertSucceeds(getDoc(doc(db('s_view'), `schools/12/${c}/a31`)));
-      await assertFails(getDoc(doc(db('s_view'), `schools/12/${c}/a32`)));
-      await assertFails(getDoc(doc(db('s_req'), `schools/12/${c}/a31`)));
-      await assertFails(getDoc(doc(db('s_view', { ...staff, sid: 13 }), `schools/12/${c}/a31`)));
-      await assertFails(setDoc(doc(db('s_view'), `schools/12/${c}/a31`), { campusId: 31 }));
+    for (const collectionName of STOCK) {
+      await assertSucceeds(getDoc(doc(db('view'), `schools/12/${collectionName}/a31`)));
+      await assertFails(getDoc(doc(db('view'), `schools/12/${collectionName}/a32`)));
+      await assertFails(getDoc(doc(db('req'), `schools/12/${collectionName}/a31`)));
+      await assertFails(getDoc(doc(db('view', { ...staff, schoolId: 13 }), `schools/12/${collectionName}/a31`)));
+      await assertFails(setDoc(doc(db('view'), `schools/12/${collectionName}/a31`), { campusId: 31 }));
     }
-    const list = (cmp) => getDocs(query(collection(db('s_view'), 'schools/12/invBalances'), where('campusId', 'in', cmp)));
+    const list = (campusIds) => getDocs(query(collection(db('view'), 'schools/12/inventoryBalances'), where('campusId', 'in', campusIds)));
     await assertSucceeds(list([31]));
     await assertFails(list([31, 32]));
   });
 
   it('issue requests: requester sees own, approvers see the campus', async () => {
-    await assertSucceeds(getDoc(doc(db('s_req'), 'schools/12/invIssueRequests/r1')));
-    await assertSucceeds(getDoc(doc(db('s_apr'), 'schools/12/invIssueRequests/r1')));
-    await assertSucceeds(getDoc(doc(db('s_view'), 'schools/12/invIssueRequests/r1')));
-    await assertFails(getDoc(doc(db('s_32'), 'schools/12/invIssueRequests/r1')));
-    await assertFails(getDoc(doc(db('u_2'), 'schools/12/invIssueRequests/r1')));
-    await assertSucceeds(getDocs(query(collection(db('s_req'), 'schools/12/invIssueRequests'), where('createdBy', '==', 's_req'))));
-    await assertFails(setDoc(doc(db('s_req'), 'schools/12/invIssueRequests/r1'), { status: 'approved' }));
+    await assertSucceeds(getDoc(doc(db('req'), 'schools/12/inventoryIssueRequests/r1')));
+    await assertSucceeds(getDoc(doc(db('apr'), 'schools/12/inventoryIssueRequests/r1')));
+    await assertSucceeds(getDoc(doc(db('view'), 'schools/12/inventoryIssueRequests/r1')));
+    await assertFails(getDoc(doc(db('32'), 'schools/12/inventoryIssueRequests/r1')));
+    await assertFails(getDoc(doc(db('2'), 'schools/12/inventoryIssueRequests/r1')));
+    await assertSucceeds(getDocs(query(collection(db('req'), 'schools/12/inventoryIssueRequests'), where('createdBy', '==', 'req'))));
+    await assertFails(setDoc(doc(db('req'), 'schools/12/inventoryIssueRequests/r1'), { status: 'approved' }));
   });
 
   it('transfers: visible to both campuses', async () => {
-    await assertSucceeds(getDoc(doc(db('s_view'), 'schools/12/invTransfers/t1')));
-    await assertSucceeds(getDoc(doc(db('s_32'), 'schools/12/invTransfers/t1')));
-    await assertSucceeds(getDocs(query(collection(db('s_32'), 'schools/12/invTransfers'), where('toCampusId', 'in', [32]))));
-    await assertFails(getDoc(doc(db('s_req'), 'schools/12/invTransfers/t1')));
+    await assertSucceeds(getDoc(doc(db('view'), 'schools/12/inventoryTransfers/t1')));
+    await assertSucceeds(getDoc(doc(db('32'), 'schools/12/inventoryTransfers/t1')));
+    await assertSucceeds(getDocs(query(collection(db('32'), 'schools/12/inventoryTransfers'), where('toCampusId', 'in', [32]))));
+    await assertFails(getDoc(doc(db('req'), 'schools/12/inventoryTransfers/t1')));
   });
 
   it('requesters can browse items and stores to build a request', async () => {
-    await assertSucceeds(getDoc(doc(db('s_req'), 'schools/12/invItems/i')));
-    await assertSucceeds(getDoc(doc(db('s_req'), 'schools/12/invStores/s31')));
-    await assertFails(getDoc(doc(db('s_32'), 'schools/12/invItems/i')));
+    await assertSucceeds(getDoc(doc(db('req'), 'schools/12/inventoryItems/i')));
+    await assertSucceeds(getDoc(doc(db('req'), 'schools/12/inventoryStores/s31')));
+    await assertFails(getDoc(doc(db('32'), 'schools/12/inventoryItems/i')));
   });
 });
 
 describe('library masters', () => {
   beforeEach(() =>
-    env.withSecurityRulesDisabled(async (ctx) => {
-      const fs = ctx.firestore();
-      await setDoc(doc(fs, 'schools/12/userAccess/u_4'), { perms: ['lib.catalogue.view'], cmp: [31], all: false });
-      await setDoc(doc(fs, 'schools/12/userAccess/u_5'), { perms: ['lib.catalogue.manage'], cmp: [31], all: false });
-      await setDoc(doc(fs, 'schools/12/libLoans/a'), { campusId: 31, personErpId: 501 });
-      await setDoc(doc(fs, 'schools/12/userAccess/u_7'), { perms: ['lib.circulation.operate'], cmp: [31], all: false });
-      await setDoc(doc(fs, 'schools/12/userAccess/u_6'), { perms: ['lib.members.view'], cmp: [31], all: false });
-      for (const c of ['libLibraries', 'libCategories', 'libCatalogue', 'libCopies', 'libAcquisitions', 'libMembers', 'libPolicies']) await setDoc(doc(fs, `schools/12/${c}/a`), { name: 'a' });
+    env.withSecurityRulesDisabled(async (context) => {
+      const firestore = context.firestore();
+      await setDoc(doc(firestore, 'schools/12/userAccess/4'), { permissions: ['library.catalogue.view'], campusIds: [31], hasAllCampuses: false });
+      await setDoc(doc(firestore, 'schools/12/userAccess/5'), { permissions: ['library.catalogue.manage'], campusIds: [31], hasAllCampuses: false });
+      await setDoc(doc(firestore, 'schools/12/libraryLoans/a'), { campusId: 31, personErpId: 501 });
+      await setDoc(doc(firestore, 'schools/12/userAccess/7'), { permissions: ['library.circulation.operate'], campusIds: [31], hasAllCampuses: false });
+      await setDoc(doc(firestore, 'schools/12/userAccess/6'), { permissions: ['library.members.view'], campusIds: [31], hasAllCampuses: false });
+      for (const collectionName of ['libraries', 'libraryCategories', 'libraryCatalogue', 'libraryCopies', 'libraryAcquisitions', 'libraryMembers', 'libraryBorrowingPolicies']) await setDoc(doc(firestore, `schools/12/${collectionName}/a`), { name: 'a' });
     }),
   );
 
   it('libraries, categories, catalogue: readable with lib.catalogue.view, never writable', async () => {
-    for (const p of ['libLibraries/a', 'libCategories/a', 'libCatalogue/a', 'libCopies/a']) {
-      await assertSucceeds(getDoc(doc(db('u_4'), `schools/12/${p}`)));
-      await assertFails(getDoc(doc(db('u_1'), `schools/12/${p}`))); // inv.items.view is not enough
-      await assertFails(getDoc(doc(db('u_4', { ...staff, sid: 13 }), `schools/12/${p}`)));
-      await assertFails(setDoc(doc(db('u_4'), `schools/12/${p}`), { name: 'x' }));
+    for (const documentPath of ['libraries/a', 'libraryCategories/a', 'libraryCatalogue/a', 'libraryCopies/a']) {
+      await assertSucceeds(getDoc(doc(db('4'), `schools/12/${documentPath}`)));
+      await assertFails(getDoc(doc(db('1'), `schools/12/${documentPath}`))); // inv.items.view is not enough
+      await assertFails(getDoc(doc(db('4', { ...staff, schoolId: 13 }), `schools/12/${documentPath}`)));
+      await assertFails(setDoc(doc(db('4'), `schools/12/${documentPath}`), { name: 'x' }));
     }
   });
 
   it('acquisitions: librarians (lib.catalogue.manage) only, never writable', async () => {
-    await assertSucceeds(getDoc(doc(db('u_5'), 'schools/12/libAcquisitions/a')));
-    await assertFails(getDoc(doc(db('u_4'), 'schools/12/libAcquisitions/a')));
-    await assertFails(setDoc(doc(db('u_5'), 'schools/12/libAcquisitions/a'), { qty: 1 }));
+    await assertSucceeds(getDoc(doc(db('5'), 'schools/12/libraryAcquisitions/a')));
+    await assertFails(getDoc(doc(db('4'), 'schools/12/libraryAcquisitions/a')));
+    await assertFails(setDoc(doc(db('5'), 'schools/12/libraryAcquisitions/a'), { quantity: 1 }));
   });
 
   it('circulation staff on the campus or the borrower read; nobody writes', async () => {
-    await assertSucceeds(getDoc(doc(db('u_7'), 'schools/12/libLoans/a')));
-    await assertFails(getDoc(doc(db('u_6'), 'schools/12/libLoans/a')));
-    await assertFails(getDoc(doc(db('u_7', { ...staff, sid: 13 }), 'schools/12/libLoans/a')));
-    await assertFails(setDoc(doc(db('u_7'), 'schools/12/libLoans/a'), { status: 'returned' }));
+    await assertSucceeds(getDoc(doc(db('7'), 'schools/12/libraryLoans/a')));
+    await assertFails(getDoc(doc(db('6'), 'schools/12/libraryLoans/a')));
+    await assertFails(getDoc(doc(db('7', { ...staff, schoolId: 13 }), 'schools/12/libraryLoans/a')));
+    await assertFails(setDoc(doc(db('7'), 'schools/12/libraryLoans/a'), { status: 'returned' }));
   });
 
   it('reservations: circulation staff on the campus or the member read; nobody writes', async () => {
-    await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), 'schools/12/libReservations/a'), { campusId: 31, personErpId: 501 }));
-    await assertSucceeds(getDoc(doc(db('u_7'), 'schools/12/libReservations/a')));
-    await assertFails(getDoc(doc(db('u_6'), 'schools/12/libReservations/a')));
-    await assertFails(setDoc(doc(db('u_7'), 'schools/12/libReservations/a'), { status: 'cancelled' }));
+    await env.withSecurityRulesDisabled((context) => setDoc(doc(context.firestore(), 'schools/12/libraryReservations/a'), { campusId: 31, personErpId: 501 }));
+    await assertSucceeds(getDoc(doc(db('7'), 'schools/12/libraryReservations/a')));
+    await assertFails(getDoc(doc(db('6'), 'schools/12/libraryReservations/a')));
+    await assertFails(setDoc(doc(db('7'), 'schools/12/libraryReservations/a'), { status: 'cancelled' }));
   });
 
   it('fines: circulation staff, fine waivers, or borrower read; nobody writes', async () => {
-    await env.withSecurityRulesDisabled(async (ctx) => {
-      const fs = ctx.firestore();
-      await setDoc(doc(fs, 'schools/12/userAccess/u_w'), { perms: ['lib.fines.waive'], cmp: [31], all: false });
-      await setDoc(doc(fs, 'schools/12/libFines/a'), { campusId: 31, personErpId: 501 });
+    await env.withSecurityRulesDisabled(async (context) => {
+      const firestore = context.firestore();
+      await setDoc(doc(firestore, 'schools/12/userAccess/w'), { permissions: ['library.fines.waive'], campusIds: [31], hasAllCampuses: false });
+      await setDoc(doc(firestore, 'schools/12/libraryFines/a'), { campusId: 31, personErpId: 501 });
     });
-    await assertSucceeds(getDoc(doc(db('u_7'), 'schools/12/libFines/a')));
-    await assertSucceeds(getDoc(doc(db('u_w'), 'schools/12/libFines/a')));
-    await assertFails(getDoc(doc(db('u_6'), 'schools/12/libFines/a')));
-    await assertFails(setDoc(doc(db('u_7'), 'schools/12/libFines/a'), { status: 'waived' }));
+    await assertSucceeds(getDoc(doc(db('7'), 'schools/12/libraryFines/a')));
+    await assertSucceeds(getDoc(doc(db('w'), 'schools/12/libraryFines/a')));
+    await assertFails(getDoc(doc(db('6'), 'schools/12/libraryFines/a')));
+    await assertFails(setDoc(doc(db('7'), 'schools/12/libraryFines/a'), { status: 'waived' }));
   });
 
   it('incidents: circulation staff or member read; nobody writes', async () => {
-    await env.withSecurityRulesDisabled(async (ctx) => {
-      const fs = ctx.firestore();
-      await setDoc(doc(fs, 'schools/12/libIncidents/a'), { campusId: 31, personErpId: 501 });
+    await env.withSecurityRulesDisabled(async (context) => {
+      const firestore = context.firestore();
+      await setDoc(doc(firestore, 'schools/12/libraryIncidents/a'), { campusId: 31, personErpId: 501 });
     });
-    await assertSucceeds(getDoc(doc(db('u_7'), 'schools/12/libIncidents/a')));
-    await assertFails(getDoc(doc(db('u_6'), 'schools/12/libIncidents/a')));
-    await assertFails(setDoc(doc(db('u_7'), 'schools/12/libIncidents/a'), { status: 'resolved' }));
+    await assertSucceeds(getDoc(doc(db('7'), 'schools/12/libraryIncidents/a')));
+    await assertFails(getDoc(doc(db('6'), 'schools/12/libraryIncidents/a')));
+    await assertFails(setDoc(doc(db('7'), 'schools/12/libraryIncidents/a'), { status: 'resolved' }));
   });
 
   it('transfers and verifications: librarians on the campus read; nobody writes', async () => {
-    await env.withSecurityRulesDisabled(async (ctx) => {
-      const fs = ctx.firestore();
-      await setDoc(doc(fs, 'schools/12/libTransfers/a'), { campusId: 32, toCampusId: 31 });
-      await setDoc(doc(fs, 'schools/12/libVerifications/a'), { campusId: 31 });
+    await env.withSecurityRulesDisabled(async (context) => {
+      const firestore = context.firestore();
+      await setDoc(doc(firestore, 'schools/12/libraryTransfers/a'), { campusId: 32, toCampusId: 31 });
+      await setDoc(doc(firestore, 'schools/12/libraryVerifications/a'), { campusId: 31 });
     });
-    for (const p of ['libTransfers/a', 'libVerifications/a']) {
-      await assertSucceeds(getDoc(doc(db('u_5'), `schools/12/${p}`)));
-      await assertFails(getDoc(doc(db('u_7'), `schools/12/${p}`)));
-      await assertFails(setDoc(doc(db('u_5'), `schools/12/${p}`), { status: 'received' }));
+    for (const documentPath of ['libraryTransfers/a', 'libraryVerifications/a']) {
+      await assertSucceeds(getDoc(doc(db('5'), `schools/12/${documentPath}`)));
+      await assertFails(getDoc(doc(db('7'), `schools/12/${documentPath}`)));
+      await assertFails(setDoc(doc(db('5'), `schools/12/${documentPath}`), { status: 'received' }));
     }
   });
 
   it('members and policies: lib.members.view only, never writable', async () => {
-    for (const p of ['libMembers/a', 'libPolicies/a']) {
-      await assertSucceeds(getDoc(doc(db('u_6'), `schools/12/${p}`)));
-      await assertFails(getDoc(doc(db('u_4'), `schools/12/${p}`)));
-      await assertFails(getDoc(doc(db('u_6', { ...staff, sid: 13 }), `schools/12/${p}`)));
-      await assertFails(setDoc(doc(db('u_6'), `schools/12/${p}`), { name: 'x' }));
+    for (const documentPath of ['libraryMembers/a', 'libraryBorrowingPolicies/a']) {
+      await assertSucceeds(getDoc(doc(db('6'), `schools/12/${documentPath}`)));
+      await assertFails(getDoc(doc(db('4'), `schools/12/${documentPath}`)));
+      await assertFails(getDoc(doc(db('6', { ...staff, schoolId: 13 }), `schools/12/${documentPath}`)));
+      await assertFails(setDoc(doc(db('6'), `schools/12/${documentPath}`), { name: 'x' }));
     }
   });
 });
 
 describe('library reports and parent view (Lib-8)', () => {
-  const parent = { sid: 12, pt: 'parent', wards: [501] };
+  const parent = { schoolId: 12, personType: 'parent', wardStudentIds: [501] };
   beforeEach(() =>
-    env.withSecurityRulesDisabled(async (ctx) => {
-      const fs = ctx.firestore();
-      await setDoc(doc(fs, 'schools/12/userAccess/u_r'), { perms: ['lib.reports.view'], cmp: [31], all: false });
-      await setDoc(doc(fs, 'schools/12/userAccess/p_1'), { perms: [], cmp: [], all: false });
-      await setDoc(doc(fs, 'schools/12/libCatalogue/a'), { title: 'a' });
-      await setDoc(doc(fs, 'schools/12/libCopies/a'), { campusId: 31 });
-      await setDoc(doc(fs, 'schools/12/libMembers/student_501'), { erpId: 501 });
-      await setDoc(doc(fs, 'schools/12/libMembers/student_502'), { erpId: 502 });
-      for (const [c, d] of Object.entries({
-        libLoans: { campusId: 31, personErpId: 501 },
-        libReservations: { campusId: 31, personErpId: 501 },
-        libFines: { campusId: 31, personErpId: 501 },
-        libIncidents: { campusId: 31, personErpId: 501 },
-        libAcquisitions: { campusId: 31 },
-        libTransfers: { campusId: 31, toCampusId: 32 },
-        libVerifications: { campusId: 31 },
+    env.withSecurityRulesDisabled(async (context) => {
+      const firestore = context.firestore();
+      await setDoc(doc(firestore, 'schools/12/userAccess/r'), { permissions: ['library.reports.view'], campusIds: [31], hasAllCampuses: false });
+      await setDoc(doc(firestore, 'schools/12/userAccess/parent-1'), { permissions: [], campusIds: [], hasAllCampuses: false });
+      await setDoc(doc(firestore, 'schools/12/libraryCatalogue/a'), { title: 'a' });
+      await setDoc(doc(firestore, 'schools/12/libraryCopies/a'), { campusId: 31 });
+      await setDoc(doc(firestore, 'schools/12/libraryMembers/student_501'), { personErpId: 501 });
+      await setDoc(doc(firestore, 'schools/12/libraryMembers/student_502'), { personErpId: 502 });
+      for (const [collectionName, d] of Object.entries({
+        libraryLoans: { campusId: 31, personErpId: 501 },
+        libraryReservations: { campusId: 31, personErpId: 501 },
+        libraryFines: { campusId: 31, personErpId: 501 },
+        libraryIncidents: { campusId: 31, personErpId: 501 },
+        libraryAcquisitions: { campusId: 31 },
+        libraryTransfers: { campusId: 31, toCampusId: 32 },
+        libraryVerifications: { campusId: 31 },
       })) {
-        await setDoc(doc(fs, `schools/12/${c}/r31`), d);
-        await setDoc(doc(fs, `schools/12/${c}/r32`), { ...d, campusId: 32, toCampusId: 33 });
+        await setDoc(doc(firestore, `schools/12/${collectionName}/r31`), d);
+        await setDoc(doc(firestore, `schools/12/${collectionName}/r32`), { ...d, campusId: 32, toCampusId: 33 });
       }
     }),
   );
 
   it('report readers see every report collection on their campus only', async () => {
-    for (const c of ['libLoans', 'libReservations', 'libFines', 'libIncidents', 'libAcquisitions', 'libTransfers', 'libVerifications']) {
-      await assertSucceeds(getDoc(doc(db('u_r'), `schools/12/${c}/r31`)));
-      await assertFails(getDoc(doc(db('u_r'), `schools/12/${c}/r32`)));
-      await assertFails(setDoc(doc(db('u_r'), `schools/12/${c}/r31`), { x: 1 }));
+    for (const collectionName of ['libraryLoans', 'libraryReservations', 'libraryFines', 'libraryIncidents', 'libraryAcquisitions', 'libraryTransfers', 'libraryVerifications']) {
+      await assertSucceeds(getDoc(doc(db('r'), `schools/12/${collectionName}/r31`)));
+      await assertFails(getDoc(doc(db('r'), `schools/12/${collectionName}/r32`)));
+      await assertFails(setDoc(doc(db('r'), `schools/12/${collectionName}/r31`), { x: 1 }));
     }
-    await assertSucceeds(getDoc(doc(db('u_r'), 'schools/12/libMembers/student_501'))); // dashboard member counts
-    await assertFails(getDoc(doc(db('u_4'), 'schools/12/libLoans/r31')));
+    await assertSucceeds(getDoc(doc(db('r'), 'schools/12/libraryMembers/student_501'))); // dashboard member counts
+    await assertFails(getDoc(doc(db('4'), 'schools/12/libraryLoans/r31')));
   });
 
   it('a parent reads only their ward\'s records, browses the catalogue, and writes nothing', async () => {
-    for (const c of ['libLoans', 'libReservations', 'libFines', 'libIncidents']) {
-      await assertSucceeds(getDoc(doc(db('p_1', parent), `schools/12/${c}/r31`)));
-      await assertFails(setDoc(doc(db('p_1', parent), `schools/12/${c}/r31`), { x: 1 }));
+    for (const collectionName of ['libraryLoans', 'libraryReservations', 'libraryFines', 'libraryIncidents']) {
+      await assertSucceeds(getDoc(doc(db('parent-1', parent), `schools/12/${collectionName}/r31`)));
+      await assertFails(setDoc(doc(db('parent-1', parent), `schools/12/${collectionName}/r31`), { x: 1 }));
     }
-    await assertFails(getDoc(doc(db('p_1', { ...parent, wards: [999] }), 'schools/12/libLoans/r31')));
-    await assertSucceeds(getDoc(doc(db('p_1', parent), 'schools/12/libMembers/student_501')));
-    await assertFails(getDoc(doc(db('p_1', parent), 'schools/12/libMembers/student_502')));
-    await assertSucceeds(getDoc(doc(db('p_1', parent), 'schools/12/libCatalogue/a')));
-    await assertFails(getDoc(doc(db('p_1', parent), 'schools/12/libCopies/a')));
-    await assertFails(getDoc(doc(db('p_1', parent), 'schools/12/libTransfers/r31')));
-    await assertFails(getDoc(doc(db('p_1', { ...parent, sid: 13 }), 'schools/12/libCatalogue/a')));
-    await assertFails(getDoc(doc(db('u_4'), 'schools/12/libMembers/student_501')));
+    await assertFails(getDoc(doc(db('parent-1', { ...parent, wardStudentIds: [999] }), 'schools/12/libraryLoans/r31')));
+    await assertSucceeds(getDoc(doc(db('parent-1', parent), 'schools/12/libraryMembers/student_501')));
+    await assertFails(getDoc(doc(db('parent-1', parent), 'schools/12/libraryMembers/student_502')));
+    await assertSucceeds(getDoc(doc(db('parent-1', parent), 'schools/12/libraryCatalogue/a')));
+    await assertFails(getDoc(doc(db('parent-1', parent), 'schools/12/libraryCopies/a')));
+    await assertFails(getDoc(doc(db('parent-1', parent), 'schools/12/libraryTransfers/r31')));
+    await assertFails(getDoc(doc(db('parent-1', { ...parent, schoolId: 13 }), 'schools/12/libraryCatalogue/a')));
+    await assertFails(getDoc(doc(db('4'), 'schools/12/libraryMembers/student_501')));
   });
 });
 
@@ -304,195 +304,195 @@ describe('devices', () => {
   const token = { token: 'abc', platform: 'android', app: 'icueadmin', updatedAt: new Date() };
 
   it('owner manages own tokens with the allowed shape', async () => {
-    await assertSucceeds(setDoc(doc(db('u_1'), 'devices/u_1/tokens/h1'), token));
-    await assertSucceeds(getDoc(doc(db('u_1'), 'devices/u_1/tokens/h1')));
-    await assertSucceeds(deleteDoc(doc(db('u_1'), 'devices/u_1/tokens/h1')));
-    await assertFails(setDoc(doc(db('u_1'), 'devices/u_1/tokens/h2'), { ...token, extra: 1 }));
-    await assertFails(setDoc(doc(db('u_1'), 'devices/u_1/tokens/h3'), { ...token, token: 5 }));
+    await assertSucceeds(setDoc(doc(db('1'), 'devices/1/tokens/h1'), token));
+    await assertSucceeds(getDoc(doc(db('1'), 'devices/1/tokens/h1')));
+    await assertSucceeds(deleteDoc(doc(db('1'), 'devices/1/tokens/h1')));
+    await assertFails(setDoc(doc(db('1'), 'devices/1/tokens/h2'), { ...token, extra: 1 }));
+    await assertFails(setDoc(doc(db('1'), 'devices/1/tokens/h3'), { ...token, token: 5 }));
   });
 
   it('nobody else touches them', async () => {
-    await assertFails(getDoc(doc(db('u_1'), 'devices/u_2/tokens/t')));
-    await assertFails(deleteDoc(doc(db('u_1'), 'devices/u_2/tokens/t')));
-    await assertFails(setDoc(doc(db('u_1'), 'devices/u_2/tokens/h'), token));
-    await assertFails(setDoc(doc(anon(), 'devices/u_1/tokens/h'), token));
+    await assertFails(getDoc(doc(db('1'), 'devices/2/tokens/t')));
+    await assertFails(deleteDoc(doc(db('1'), 'devices/2/tokens/t')));
+    await assertFails(setDoc(doc(db('1'), 'devices/2/tokens/h'), token));
+    await assertFails(setDoc(doc(anon(), 'devices/1/tokens/h'), token));
   });
 
   it('device doc holds only mute', async () => {
-    await assertSucceeds(setDoc(doc(db('u_1'), 'devices/u_1'), { mute: { 'inv.lowStock': true } }));
-    await assertFails(setDoc(doc(db('u_1'), 'devices/u_1'), { mute: {}, perms: ['x'] }));
-    await assertFails(setDoc(doc(db('u_1'), 'devices/u_2'), { mute: {} }));
+    await assertSucceeds(setDoc(doc(db('1'), 'devices/1'), { mute: { 'inventory.lowStock': true } }));
+    await assertFails(setDoc(doc(db('1'), 'devices/1'), { mute: {}, permissions: ['x'] }));
+    await assertFails(setDoc(doc(db('1'), 'devices/2'), { mute: {} }));
   });
 });
 
 describe('storage', () => {
-  const st = (uid, claims = staff) => env.authenticatedContext(uid, claims).storage();
-  const path = 'schools/12/inv/invItems/i1/a.png';
+  const storageFor = (uid, claims = staff) => env.authenticatedContext(uid, claims).storage();
+  const path = 'schools/12/inv/inventoryItems/i1/a.png';
 
   it('reads need same school and module view permission', async () => {
-    await assertSucceeds(getBytes(ref(st('u_1'), path)));
-    await assertFails(getBytes(ref(st('u_2'), path)));
-    await assertFails(getBytes(ref(st('u_1', { ...staff, sid: 13 }), path)));
+    await assertSucceeds(getBytes(ref(storageFor('1'), path)));
+    await assertFails(getBytes(ref(storageFor('2'), path)));
+    await assertFails(getBytes(ref(storageFor('1', { ...staff, schoolId: 13 }), path)));
     await assertFails(getBytes(ref(env.unauthenticatedContext().storage(), path)));
   });
 
   it('writes are denied until upload registration exists', async () => {
-    await assertFails(uploadString(ref(st('u_1'), 'schools/12/inv/invItems/i1/b.png'), 'x'));
+    await assertFails(uploadString(ref(storageFor('1'), 'schools/12/inv/inventoryItems/i1/b.png'), 'x'));
   });
 });
 
 describe('procurement (Inv-3)', () => {
   beforeEach(() =>
-    env.withSecurityRulesDisabled(async (ctx) => {
-      const fs = ctx.firestore();
-      const acc = (perms, cmp = [31]) => ({ perms, cmp, all: false });
-      await setDoc(doc(fs, 'schools/12/userAccess/p_req'), acc(['inv.pr.request']));
-      await setDoc(doc(fs, 'schools/12/userAccess/p_apr'), acc(['inv.pr.approve']));
-      await setDoc(doc(fs, 'schools/12/userAccess/p_proc'), acc(['inv.procure.operate']));
-      await setDoc(doc(fs, 'schools/12/userAccess/p_ven'), acc(['inv.vendors.manage']));
-      await setDoc(doc(fs, 'schools/12/userAccess/p_32'), acc(['inv.pr.approve'], [32]));
-      await setDoc(doc(fs, 'schools/12/invPurchaseRequests/pr1'), { campusId: 31, createdBy: 'p_req' });
-      await setDoc(doc(fs, 'schools/12/invVendors/v1'), { name: 'v' });
-      await setDoc(doc(fs, 'schools/12/invItems/i'), { name: 'i' });
+    env.withSecurityRulesDisabled(async (context) => {
+      const firestore = context.firestore();
+      const access = (permissions, campusIds = [31]) => ({ permissions, campusIds, hasAllCampuses: false });
+      await setDoc(doc(firestore, 'schools/12/userAccess/parent-req'), access(['inventory.purchaseRequest.request']));
+      await setDoc(doc(firestore, 'schools/12/userAccess/parent-apr'), access(['inventory.purchaseRequest.approve']));
+      await setDoc(doc(firestore, 'schools/12/userAccess/proc'), access(['inventory.procure.operate']));
+      await setDoc(doc(firestore, 'schools/12/userAccess/ven'), access(['inventory.vendors.manage']));
+      await setDoc(doc(firestore, 'schools/12/userAccess/parent-32'), access(['inventory.purchaseRequest.approve'], [32]));
+      await setDoc(doc(firestore, 'schools/12/inventoryPurchaseRequests/pr1'), { campusId: 31, createdBy: 'parent-req' });
+      await setDoc(doc(firestore, 'schools/12/inventoryVendors/v1'), { name: 'v' });
+      await setDoc(doc(firestore, 'schools/12/inventoryItems/i'), { name: 'i' });
     }),
   );
 
   it('purchase requests: requester sees own, approvers and procurement the campus', async () => {
-    const pr = (u) => getDoc(doc(db(u), 'schools/12/invPurchaseRequests/pr1'));
-    await assertSucceeds(pr('p_req'));
-    await assertSucceeds(pr('p_apr'));
-    await assertSucceeds(pr('p_proc'));
-    await assertFails(pr('p_32'));
-    await assertFails(pr('p_ven'));
-    await assertFails(getDoc(doc(db('p_apr', { ...staff, sid: 13 }), 'schools/12/invPurchaseRequests/pr1')));
-    await assertSucceeds(getDocs(query(collection(db('p_req'), 'schools/12/invPurchaseRequests'), where('createdBy', '==', 'p_req'))));
-    await assertFails(setDoc(doc(db('p_req'), 'schools/12/invPurchaseRequests/pr1'), { status: 'approved' }));
+    const readPurchaseRequest = (userId) => getDoc(doc(db(userId), 'schools/12/inventoryPurchaseRequests/pr1'));
+    await assertSucceeds(readPurchaseRequest('parent-req'));
+    await assertSucceeds(readPurchaseRequest('parent-apr'));
+    await assertSucceeds(readPurchaseRequest('proc'));
+    await assertFails(readPurchaseRequest('parent-32'));
+    await assertFails(readPurchaseRequest('ven'));
+    await assertFails(getDoc(doc(db('parent-apr', { ...staff, schoolId: 13 }), 'schools/12/inventoryPurchaseRequests/pr1')));
+    await assertSucceeds(getDocs(query(collection(db('parent-req'), 'schools/12/inventoryPurchaseRequests'), where('createdBy', '==', 'parent-req'))));
+    await assertFails(setDoc(doc(db('parent-req'), 'schools/12/inventoryPurchaseRequests/pr1'), { status: 'approved' }));
   });
 
   it('vendors: vendor managers and procurement only, never writable; requesters can browse items', async () => {
-    await assertSucceeds(getDoc(doc(db('p_ven'), 'schools/12/invVendors/v1')));
-    await assertSucceeds(getDoc(doc(db('p_proc'), 'schools/12/invVendors/v1')));
-    await assertFails(getDoc(doc(db('p_req'), 'schools/12/invVendors/v1')));
-    await assertFails(setDoc(doc(db('p_ven'), 'schools/12/invVendors/v1'), { name: 'x' }));
-    await assertSucceeds(getDoc(doc(db('p_req'), 'schools/12/invItems/i')));
+    await assertSucceeds(getDoc(doc(db('ven'), 'schools/12/inventoryVendors/v1')));
+    await assertSucceeds(getDoc(doc(db('proc'), 'schools/12/inventoryVendors/v1')));
+    await assertFails(getDoc(doc(db('parent-req'), 'schools/12/inventoryVendors/v1')));
+    await assertFails(setDoc(doc(db('ven'), 'schools/12/inventoryVendors/v1'), { name: 'x' }));
+    await assertSucceeds(getDoc(doc(db('parent-req'), 'schools/12/inventoryItems/i')));
   });
 });
 
 describe('quotations and purchase orders (Inv-4)', () => {
   beforeEach(() =>
-    env.withSecurityRulesDisabled(async (ctx) => {
-      const fs = ctx.firestore();
-      const acc = (perms, cmp = [31]) => ({ perms, cmp, all: false });
-      await setDoc(doc(fs, 'schools/12/userAccess/p_proc'), acc(['inv.procure.operate']));
-      await setDoc(doc(fs, 'schools/12/userAccess/p_far'), acc(['inv.procure.operate'], [99]));
-      await setDoc(doc(fs, 'schools/12/userAccess/p_apr'), acc(['inv.pr.approve']));
-      await setDoc(doc(fs, 'schools/12/invQuotations/q1'), { campusId: 31, prId: 'pr1' });
-      await setDoc(doc(fs, 'schools/12/invPurchaseOrders/po1'), { campusId: 31, deliveryCampusId: 31 });
-      await setDoc(doc(fs, 'schools/12/invPurchaseOrders/po1/revisions/r1'), { reason: 'x' });
-      await setDoc(doc(fs, 'schools/12/userAccess/p_store'), acc(['inv.stock.operate']));
-      await setDoc(doc(fs, 'schools/12/userAccess/p_store_far'), acc(['inv.stock.operate'], [99]));
-      await setDoc(doc(fs, 'schools/12/invInvoices/i1'), { campusId: 31, poId: 'po1' });
+    env.withSecurityRulesDisabled(async (context) => {
+      const firestore = context.firestore();
+      const access = (permissions, campusIds = [31]) => ({ permissions, campusIds, hasAllCampuses: false });
+      await setDoc(doc(firestore, 'schools/12/userAccess/proc'), access(['inventory.procure.operate']));
+      await setDoc(doc(firestore, 'schools/12/userAccess/far'), access(['inventory.procure.operate'], [99]));
+      await setDoc(doc(firestore, 'schools/12/userAccess/parent-apr'), access(['inventory.purchaseRequest.approve']));
+      await setDoc(doc(firestore, 'schools/12/inventoryQuotations/q1'), { campusId: 31, purchaseRequestId: 'pr1' });
+      await setDoc(doc(firestore, 'schools/12/inventoryPurchaseOrders/po1'), { campusId: 31, deliveryCampusId: 31 });
+      await setDoc(doc(firestore, 'schools/12/inventoryPurchaseOrders/po1/revisions/r1'), { reason: 'x' });
+      await setDoc(doc(firestore, 'schools/12/userAccess/store'), access(['inventory.stock.operate']));
+      await setDoc(doc(firestore, 'schools/12/userAccess/store_far'), access(['inventory.stock.operate'], [99]));
+      await setDoc(doc(firestore, 'schools/12/inventoryInvoices/i1'), { campusId: 31, purchaseOrderId: 'po1' });
     }),
   );
 
   it('procurement on the campus reads; others and writes are denied', async () => {
-    for (const path of ['invQuotations/q1', 'invPurchaseOrders/po1', 'invPurchaseOrders/po1/revisions/r1']) {
-      await assertSucceeds(getDoc(doc(db('p_proc'), `schools/12/${path}`)));
-      await assertFails(getDoc(doc(db('p_apr'), `schools/12/${path}`)));
+    for (const path of ['inventoryQuotations/q1', 'inventoryPurchaseOrders/po1', 'inventoryPurchaseOrders/po1/revisions/r1']) {
+      await assertSucceeds(getDoc(doc(db('proc'), `schools/12/${path}`)));
+      await assertFails(getDoc(doc(db('parent-apr'), `schools/12/${path}`)));
     }
-    await assertFails(getDoc(doc(db('p_far'), 'schools/12/invQuotations/q1')));
-    await assertFails(getDoc(doc(db('p_far'), 'schools/12/invPurchaseOrders/po1')));
-    await assertFails(setDoc(doc(db('p_proc'), 'schools/12/invPurchaseOrders/po1'), { status: 'issued' }));
+    await assertFails(getDoc(doc(db('far'), 'schools/12/inventoryQuotations/q1')));
+    await assertFails(getDoc(doc(db('far'), 'schools/12/inventoryPurchaseOrders/po1')));
+    await assertFails(setDoc(doc(db('proc'), 'schools/12/inventoryPurchaseOrders/po1'), { status: 'issued' }));
   });
 
   it('invoices follow procurement; receiving staff read orders due at their campus only', async () => {
-    await assertSucceeds(getDoc(doc(db('p_proc'), 'schools/12/invInvoices/i1')));
-    await assertFails(getDoc(doc(db('p_far'), 'schools/12/invInvoices/i1')));
-    await assertFails(getDoc(doc(db('p_store'), 'schools/12/invInvoices/i1')));
-    await assertFails(setDoc(doc(db('p_proc'), 'schools/12/invInvoices/i1'), { paymentStatus: 'paid' }));
-    await assertSucceeds(getDoc(doc(db('p_store'), 'schools/12/invPurchaseOrders/po1')));
-    await assertFails(getDoc(doc(db('p_store_far'), 'schools/12/invPurchaseOrders/po1')));
-    await assertFails(getDoc(doc(db('p_store'), 'schools/12/invQuotations/q1')));
+    await assertSucceeds(getDoc(doc(db('proc'), 'schools/12/inventoryInvoices/i1')));
+    await assertFails(getDoc(doc(db('far'), 'schools/12/inventoryInvoices/i1')));
+    await assertFails(getDoc(doc(db('store'), 'schools/12/inventoryInvoices/i1')));
+    await assertFails(setDoc(doc(db('proc'), 'schools/12/inventoryInvoices/i1'), { paymentStatus: 'paid' }));
+    await assertSucceeds(getDoc(doc(db('store'), 'schools/12/inventoryPurchaseOrders/po1')));
+    await assertFails(getDoc(doc(db('store_far'), 'schools/12/inventoryPurchaseOrders/po1')));
+    await assertFails(getDoc(doc(db('store'), 'schools/12/inventoryQuotations/q1')));
   });
 });
 
 describe('assets and maintenance (Inv-6)', () => {
   beforeEach(() =>
-    env.withSecurityRulesDisabled(async (ctx) => {
-      const fs = ctx.firestore();
-      const acc = (perms, cmp = [31]) => ({ perms, cmp, all: false });
-      await setDoc(doc(fs, 'schools/12/userAccess/p_view'), acc(['inv.assets.view']));
-      await setDoc(doc(fs, 'schools/12/userAccess/p_far'), acc(['inv.assets.view'], [99]));
-      await setDoc(doc(fs, 'schools/12/userAccess/p_none'), acc(['inv.stock.view']));
-      await setDoc(doc(fs, 'schools/12/invAssets/a1'), { campusId: 31, status: 'available' });
-      await setDoc(doc(fs, 'schools/12/invAssets/a1/history/h1'), { campusId: 31, type: 'registered' });
-      await setDoc(doc(fs, 'schools/12/invMaintenance/m1'), { campusId: 31, assetId: 'a1' });
-      await setDoc(doc(fs, 'schools/12/invAssetAssignments/g1'), { campusId: 31, assetId: 'a1', personErpId: 884 });
+    env.withSecurityRulesDisabled(async (context) => {
+      const firestore = context.firestore();
+      const access = (permissions, campusIds = [31]) => ({ permissions, campusIds, hasAllCampuses: false });
+      await setDoc(doc(firestore, 'schools/12/userAccess/parent-view'), access(['inventory.assets.view']));
+      await setDoc(doc(firestore, 'schools/12/userAccess/far'), access(['inventory.assets.view'], [99]));
+      await setDoc(doc(firestore, 'schools/12/userAccess/none'), access(['inventory.stock.view']));
+      await setDoc(doc(firestore, 'schools/12/inventoryAssets/a1'), { campusId: 31, status: 'available' });
+      await setDoc(doc(firestore, 'schools/12/inventoryAssets/a1/history/h1'), { campusId: 31, type: 'registered' });
+      await setDoc(doc(firestore, 'schools/12/inventoryMaintenanceJobs/m1'), { campusId: 31, assetId: 'a1' });
+      await setDoc(doc(firestore, 'schools/12/inventoryAssetAssignments/g1'), { campusId: 31, assetId: 'a1', personErpId: 884 });
     }),
   );
 
   it('asset viewers on the campus read; others and every write are denied', async () => {
-    for (const path of ['invAssets/a1', 'invAssets/a1/history/h1', 'invMaintenance/m1']) {
-      await assertSucceeds(getDoc(doc(db('p_view'), `schools/12/${path}`)));
-      await assertFails(getDoc(doc(db('p_far'), `schools/12/${path}`)));
+    for (const path of ['inventoryAssets/a1', 'inventoryAssets/a1/history/h1', 'inventoryMaintenanceJobs/m1']) {
+      await assertSucceeds(getDoc(doc(db('parent-view'), `schools/12/${path}`)));
+      await assertFails(getDoc(doc(db('far'), `schools/12/${path}`)));
     }
-    await assertSucceeds(getDoc(doc(db('p_view'), 'schools/12/invAssetAssignments/g1')));
-    await assertFails(getDoc(doc(db('p_far', { sid: 12, pt: 'staff', eid: 1 }), 'schools/12/invAssetAssignments/g1')));
-    await assertFails(getDoc(doc(db('p_none'), 'schools/12/invAssets/a1')));
-    await assertFails(setDoc(doc(db('p_view'), 'schools/12/invAssets/a1'), { status: 'lost' }));
-    await assertFails(setDoc(doc(db('p_view'), 'schools/12/invMaintenance/m1'), { cost: 0 }));
+    await assertSucceeds(getDoc(doc(db('parent-view'), 'schools/12/inventoryAssetAssignments/g1')));
+    await assertFails(getDoc(doc(db('far', { schoolId: 12, personType: 'staff', personErpId: 1 }), 'schools/12/inventoryAssetAssignments/g1')));
+    await assertFails(getDoc(doc(db('none'), 'schools/12/inventoryAssets/a1')));
+    await assertFails(setDoc(doc(db('parent-view'), 'schools/12/inventoryAssets/a1'), { status: 'lost' }));
+    await assertFails(setDoc(doc(db('parent-view'), 'schools/12/inventoryMaintenanceJobs/m1'), { cost: 0 }));
   });
 
   it('a custodian reads their own assignment only', async () => {
-    await assertSucceeds(getDoc(doc(db('p_none'), 'schools/12/invAssetAssignments/g1'))); // eid 884
-    await assertFails(getDoc(doc(db('p_none', { sid: 12, pt: 'staff', eid: 1 }), 'schools/12/invAssetAssignments/g1')));
-    await assertFails(getDoc(doc(db('p_none'), 'schools/12/invAssets/a1')));
+    await assertSucceeds(getDoc(doc(db('none'), 'schools/12/inventoryAssetAssignments/g1'))); // personErpId 884
+    await assertFails(getDoc(doc(db('none', { schoolId: 12, personType: 'staff', personErpId: 1 }), 'schools/12/inventoryAssetAssignments/g1')));
+    await assertFails(getDoc(doc(db('none'), 'schools/12/inventoryAssets/a1')));
   });
 });
 
 describe('verification and reports (Inv-7)', () => {
   beforeEach(() =>
-    env.withSecurityRulesDisabled(async (ctx) => {
-      const fs = ctx.firestore();
-      const acc = (perms, cmp = [31]) => ({ perms, cmp, all: false });
-      await setDoc(doc(fs, 'schools/12/userAccess/p_count'), acc(['inv.stock.view', 'inv.stock.operate']));
-      await setDoc(doc(fs, 'schools/12/invVerifications/v2'), { campusId: 31, status: 'submitted' });
-      await setDoc(doc(fs, 'schools/12/invVerifications/v2/lines/l1'), { campusId: 31, expected: 3 });
-      await setDoc(doc(fs, 'schools/12/userAccess/p_stock'), acc(['inv.stock.view']));
-      await setDoc(doc(fs, 'schools/12/userAccess/p_rep'), acc(['inv.reports.view']));
-      await setDoc(doc(fs, 'schools/12/userAccess/p_far'), acc(['inv.stock.view', 'inv.reports.view'], [99]));
-      await setDoc(doc(fs, 'schools/12/invVerifications/v1'), { campusId: 31, status: 'counting' });
-      await setDoc(doc(fs, 'schools/12/invVerifications/v1/lines/l1'), { campusId: 31, expected: 3 });
-      await setDoc(doc(fs, 'schools/12/invPurchaseOrders/po1'), { campusId: 31, deliveryCampusId: 31 });
-      await setDoc(doc(fs, 'schools/12/invVendors/ven1'), { name: 'Acme' });
+    env.withSecurityRulesDisabled(async (context) => {
+      const firestore = context.firestore();
+      const access = (permissions, campusIds = [31]) => ({ permissions, campusIds, hasAllCampuses: false });
+      await setDoc(doc(firestore, 'schools/12/userAccess/count'), access(['inventory.stock.view', 'inventory.stock.operate']));
+      await setDoc(doc(firestore, 'schools/12/inventoryVerifications/v2'), { campusId: 31, status: 'submitted' });
+      await setDoc(doc(firestore, 'schools/12/inventoryVerifications/v2/lineItems/l1'), { campusId: 31, expected: 3 });
+      await setDoc(doc(firestore, 'schools/12/userAccess/stock'), access(['inventory.stock.view']));
+      await setDoc(doc(firestore, 'schools/12/userAccess/rep'), access(['inventory.reports.view']));
+      await setDoc(doc(firestore, 'schools/12/userAccess/far'), access(['inventory.stock.view', 'inventory.reports.view'], [99]));
+      await setDoc(doc(firestore, 'schools/12/inventoryVerifications/v1'), { campusId: 31, status: 'counting' });
+      await setDoc(doc(firestore, 'schools/12/inventoryVerifications/v1/lineItems/l1'), { campusId: 31, expected: 3 });
+      await setDoc(doc(firestore, 'schools/12/inventoryPurchaseOrders/po1'), { campusId: 31, deliveryCampusId: 31 });
+      await setDoc(doc(firestore, 'schools/12/inventoryVendors/ven1'), { name: 'Acme' });
     }),
   );
 
   it('stock viewers on the campus read sessions and lines; stock viewers cannot count', async () => {
-    for (const path of ['invVerifications/v1', 'invVerifications/v1/lines/l1']) {
-      await assertSucceeds(getDoc(doc(db('p_stock'), `schools/12/${path}`)));
-      await assertFails(getDoc(doc(db('p_far'), `schools/12/${path}`)));
+    for (const path of ['inventoryVerifications/v1', 'inventoryVerifications/v1/lineItems/l1']) {
+      await assertSucceeds(getDoc(doc(db('stock'), `schools/12/${path}`)));
+      await assertFails(getDoc(doc(db('far'), `schools/12/${path}`)));
     }
-    await assertFails(updateDoc(doc(db('p_stock'), 'schools/12/invVerifications/v1/lines/l1'), { counted: 3, diff: 0, countedBy: 'p_stock' }));
+    await assertFails(updateDoc(doc(db('stock'), 'schools/12/inventoryVerifications/v1/lineItems/l1'), { counted: 3, difference: 0, countedBy: 'stock' }));
   });
 
   it('operators count lines of a counting session (offline-queued writes), nothing else', async () => {
-    const line = (uid, v = 'v1') => doc(db(uid), `schools/12/invVerifications/${v}/lines/l1`);
-    const count = { counted: 5, diff: 2, reason: 'excess', countedBy: 'p_count' };
-    await assertSucceeds(updateDoc(line('p_count'), count));
-    await assertFails(updateDoc(line('p_count'), { ...count, diff: 1 })); // diff must match expected
-    await assertFails(updateDoc(line('p_count'), { ...count, countedBy: 'p_stock' }));
-    await assertFails(updateDoc(line('p_count'), { ...count, expected: 99 })); // snapshot is not editable
-    await assertFails(updateDoc(line('p_count'), { ...count, reason: 'because' }));
-    await assertFails(updateDoc(line('p_count', 'v2'), count)); // session no longer counting
-    await assertFails(updateDoc(line('p_far'), count));
+    const line = (uid, v = 'v1') => doc(db(uid), `schools/12/inventoryVerifications/${v}/lineItems/l1`);
+    const count = { counted: 5, difference: 2, reason: 'excess', countedBy: 'count' };
+    await assertSucceeds(updateDoc(line('count'), count));
+    await assertFails(updateDoc(line('count'), { ...count, difference: 1 })); // difference must match expected
+    await assertFails(updateDoc(line('count'), { ...count, countedBy: 'stock' }));
+    await assertFails(updateDoc(line('count'), { ...count, expected: 99 })); // snapshot is not editable
+    await assertFails(updateDoc(line('count'), { ...count, reason: 'because' }));
+    await assertFails(updateDoc(line('count', 'v2'), count)); // session no longer counting
+    await assertFails(updateDoc(line('far'), count));
   });
 
   it('report viewers read the campus records of every report collection and the vendors', async () => {
-    await assertSucceeds(getDoc(doc(db('p_rep'), 'schools/12/invPurchaseOrders/po1')));
-    await assertSucceeds(getDoc(doc(db('p_rep'), 'schools/12/invVerifications/v1')));
-    await assertSucceeds(getDoc(doc(db('p_rep'), 'schools/12/invVendors/ven1')));
-    await assertFails(getDoc(doc(db('p_far'), 'schools/12/invPurchaseOrders/po1')));
-    await assertFails(getDoc(doc(db('p_stock'), 'schools/12/invPurchaseOrders/po1')));
+    await assertSucceeds(getDoc(doc(db('rep'), 'schools/12/inventoryPurchaseOrders/po1')));
+    await assertSucceeds(getDoc(doc(db('rep'), 'schools/12/inventoryVerifications/v1')));
+    await assertSucceeds(getDoc(doc(db('rep'), 'schools/12/inventoryVendors/ven1')));
+    await assertFails(getDoc(doc(db('far'), 'schools/12/inventoryPurchaseOrders/po1')));
+    await assertFails(getDoc(doc(db('stock'), 'schools/12/inventoryPurchaseOrders/po1')));
   });
 });

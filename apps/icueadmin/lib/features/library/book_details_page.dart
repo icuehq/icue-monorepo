@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
 import 'package:icueadmin/features/library/widgets/book_copies_section.dart';
 import 'package:icueadmin/features/library/widgets/reservation_sheet.dart';
 import 'package:icueadmin/routing/app_routes.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
@@ -17,7 +17,7 @@ class BookDetailsPage extends StatefulWidget {
 }
 
 class _BookDetailsPageState extends State<BookDetailsPage> {
-  LibBook? _book;
+  LibraryBook? _book;
   bool _loaded = false;
 
   @override
@@ -37,9 +37,9 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final p = context.watch<LibraryProvider>();
-    final b = _book;
-    if (b == null) {
+    final libraryProvider = context.watch<LibraryProvider>();
+    final book = _book;
+    if (book == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Book')),
         body: Center(
@@ -49,37 +49,37 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
         ),
       );
     }
-    final canEdit = p.access.can('lib.catalogue.manage');
+    final canEdit = libraryProvider.access.can('library.catalogue.manage');
     final rows = <(String, String?)>[
-      ('Subtitle', b.subtitle),
-      ('Authors', b.authorLine),
-      ('Category', p.category(b.categoryId)?.name),
-      ('ISBN-13', b.isbn13),
-      ('ISBN-10', b.isbn10),
-      ('Publisher', b.publisher),
-      ('Edition', b.edition),
-      ('Year', b.year?.toString()),
-      ('Language', b.language),
-      ('Pages', b.pages?.toString()),
-      ('Classification no.', b.classNo),
-      ('Keywords', b.keywords.join(', ')),
-      ('Description', b.description),
+      ('Subtitle', book.subtitle),
+      ('Authors', book.authorLine),
+      ('Category', libraryProvider.category(book.categoryId)?.name),
+      ('ISBN-13', book.isbn13),
+      ('ISBN-10', book.isbn10),
+      ('Publisher', book.publisher),
+      ('Edition', book.edition),
+      ('Year', book.year?.toString()),
+      ('Language', book.language),
+      ('Pages', book.pages?.toString()),
+      ('Classification no.', book.classificationNumber),
+      ('Keywords', book.keywords.join(', ')),
+      ('Description', book.description),
     ];
     return Scaffold(
       appBar: AppBar(
-        title: Text(b.title),
+        title: Text(book.title),
         actions: [
-          if (p.access.can('lib.circulation.operate'))
+          if (libraryProvider.access.can('library.circulation.operate'))
             IconButton(
               icon: const Icon(Icons.bookmark_add_outlined),
               tooltip: 'Reserve book',
-              onPressed: () => ReservationSheet.show(context, book: b),
+              onPressed: () => ReservationSheet.show(context, book: book),
             ),
           if (canEdit)
             IconButton(
               icon: const Icon(Icons.edit_outlined),
               onPressed: () async {
-                await context.push(AppRoutes.libraryBookForm, extra: b);
+                await context.push(AppRoutes.libraryBookForm, extra: book);
                 await _load();
               },
             ),
@@ -87,22 +87,32 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
       ),
       body: ListView(
         children: [
-          for (final r in rows)
-            if (r.$2 != null && r.$2!.isNotEmpty)
-              ListTile(dense: true, title: Text(r.$1), subtitle: Text(r.$2!)),
+          for (final row in rows)
+            if (row.$2 != null && row.$2!.isNotEmpty)
+              ListTile(
+                dense: true,
+                title: Text(row.$1),
+                subtitle: Text(row.$2!),
+              ),
           if (canEdit)
             SwitchListTile(
               title: const Text('Active'),
-              value: b.active,
-              onChanged: (v) async {
-                if (await p.setBookActive(b.id, active: v)) {
+              value: book.active,
+              onChanged: (value) async {
+                if (await libraryProvider.setBookActive(
+                  book.id,
+                  active: value,
+                )) {
                   await _load();
                 } else if (context.mounted) {
-                  invSnack(context, p.errorMessage ?? 'Failed');
+                  showMessage(
+                    context,
+                    libraryProvider.errorMessage ?? 'Failed',
+                  );
                 }
               },
             ),
-          BookCopiesSection(book: b),
+          BookCopiesSection(book: book),
         ],
       ),
     );

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icueadmin/features/inventory/stock/line_editor.dart';
 import 'package:icueadmin/features/inventory/stock/stock_ui.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 
 class IssueRequestFormPage extends StatefulWidget {
   const IssueRequestFormPage({super.key});
@@ -30,23 +30,23 @@ class _IssueRequestFormPageState extends State<IssueRequestFormPage> {
   void dispose() {
     _purpose.dispose();
     _destination.dispose();
-    for (final l in _lines) {
-      l.dispose();
+    for (final lineDraft in _lines) {
+      lineDraft.dispose();
     }
     super.dispose();
   }
 
   Future<void> _save() async {
     if (!_form.currentState!.validate()) return;
-    if (_lines.isEmpty) return invSnack(context, 'Add at least one item');
+    if (_lines.isEmpty) return showMessage(context, 'Add at least one item');
     setState(() => _busy = true);
     await stockSubmit(
       context,
-      (p) => p.act('inv-issueRequest-submit', {
+      (stockProvider) => stockProvider.act('inventory-issueRequest-submit', {
         'storeId': _store,
         'purpose': _purpose.text.trim(),
         'destination': _destination.text.trim(),
-        'lines': [for (final l in _lines) l.toMap()],
+        'lineItems': [for (final lineDraft in _lines) lineDraft.toMap()],
       }, requestId: _requestId),
       done: 'Request sent',
     );
@@ -64,7 +64,7 @@ class _IssueRequestFormPageState extends State<IssueRequestFormPage> {
           StoreDropdown(
             label: 'Issue from store',
             value: _store,
-            onChanged: (v) => setState(() => _store = v),
+            onChanged: (value) => setState(() => _store = value),
           ),
           const SizedBox(height: 12),
           TextFormField(
@@ -80,7 +80,7 @@ class _IssueRequestFormPageState extends State<IssueRequestFormPage> {
             ),
           ),
           const SizedBox(height: 12),
-          LineEditor(lines: _lines, onChanged: () => setState(() {})),
+          LineEditor(lineItems: _lines, onChanged: () => setState(() {})),
           const SizedBox(height: 20),
           FilledButton(
             onPressed: _busy ? null : _save,

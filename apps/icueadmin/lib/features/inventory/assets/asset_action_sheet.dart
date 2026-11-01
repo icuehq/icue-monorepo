@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icueadmin/features/inventory/assets/asset_ui.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 
 enum AssetAction {
-  assign('Assign', 'inv-asset-assign'),
-  transfer('Transfer', 'inv-asset-transfer'),
-  giveBack('Return', 'inv-asset-return'),
-  condition('Update condition', 'inv-asset-setCondition'),
-  retire('Retire / dispose', 'inv-asset-retire');
+  assign('Assign', 'inventory-asset-assign'),
+  transfer('Transfer', 'inventory-asset-transfer'),
+  giveBack('Return', 'inventory-asset-return'),
+  condition('Update condition', 'inventory-asset-setCondition'),
+  retire('Retire / dispose', 'inventory-asset-retire');
 
-  const AssetAction(this.title, this.fn);
+  const AssetAction(this.title, this.value);
 
   final String title;
-  final String fn;
+  final String value;
 }
 
 /// One form for the custody and lifecycle actions of an asset (FRS 10.19).
@@ -25,7 +25,7 @@ class AssetActionSheet extends StatefulWidget {
     super.key,
   });
 
-  final InvAsset asset;
+  final InventoryAsset asset;
   final AssetAction action;
 
   @override
@@ -51,19 +51,22 @@ class _AssetActionSheetState extends State<AssetActionSheet> {
 
   @override
   void dispose() {
-    for (final c in [_erpId, _location, _expected, _text]) {
-      c.dispose();
+    for (final controller in [_erpId, _location, _expected, _text]) {
+      controller.dispose();
     }
     super.dispose();
   }
 
   Map<String, Object?> _body() {
-    String? opt(TextEditingController c) =>
-        c.text.trim().isEmpty ? null : c.text.trim();
+    String? opt(TextEditingController controller) =>
+        controller.text.trim().isEmpty ? null : controller.text.trim();
     return {
       'id': widget.asset.id,
       if (_custody) ...{
-        'assignee': {'type': _type, 'erpId': int.parse(_erpId.text.trim())},
+        'assignee': {
+          'type': _type,
+          'personErpId': int.parse(_erpId.text.trim()),
+        },
         'expectedReturn': opt(_expected),
         'acknowledged': _ack,
       },
@@ -74,7 +77,7 @@ class _AssetActionSheetState extends State<AssetActionSheet> {
         'remarks': opt(_text),
       if (_a == AssetAction.condition) 'status': _status,
       if (_a == AssetAction.retire) ...{
-        'kind': _kind,
+        'status': _kind,
         'reason': _text.text.trim(),
       },
     };
@@ -85,7 +88,8 @@ class _AssetActionSheetState extends State<AssetActionSheet> {
     setState(() => _busy = true);
     await assetSubmit(
       context,
-      (p) => p.act(_a.fn, _body(), requestId: _requestId),
+      (assetsProvider) =>
+          assetsProvider.act(_a.value, _body(), requestId: _requestId),
       done: '${_a.title} done',
     );
     if (mounted) setState(() => _busy = false);
@@ -109,13 +113,13 @@ class _AssetActionSheetState extends State<AssetActionSheet> {
               'Custodian type',
               const ['staff', 'student', 'department'],
               _type,
-              (v) => setState(() => _type = v!),
+              (value) => setState(() => _type = value!),
             ),
             TextFormField(
               controller: _erpId,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(labelText: 'ERP ID *'),
-              validator: (v) => int.tryParse((v ?? '').trim()) == null
+              validator: (value) => int.tryParse((value ?? '').trim()) == null
                   ? 'Enter a number'
                   : null,
             ),
@@ -130,7 +134,7 @@ class _AssetActionSheetState extends State<AssetActionSheet> {
               contentPadding: EdgeInsets.zero,
               title: const Text('Custodian acknowledged receipt'),
               value: _ack,
-              onChanged: (v) => setState(() => _ack = v),
+              onChanged: (value) => setState(() => _ack = value),
             ),
           ],
           if (_a != AssetAction.retire)
@@ -140,9 +144,9 @@ class _AssetActionSheetState extends State<AssetActionSheet> {
                   : _a == AssetAction.giveBack
                   ? 'Condition at return'
                   : 'Condition',
-              InvAsset.conditions,
+              InventoryAsset.conditions,
               _condition,
-              (v) => setState(() => _condition = v!),
+              (value) => setState(() => _condition = value!),
             ),
           if (_a != AssetAction.condition && _a != AssetAction.retire)
             TextFormField(
@@ -154,14 +158,14 @@ class _AssetActionSheetState extends State<AssetActionSheet> {
               'Mark as',
               const ['available', 'damaged', 'lost'],
               _status,
-              (v) => setState(() => _status = v),
+              (value) => setState(() => _status = value),
             ),
           if (_a == AssetAction.retire)
             labelled(
               'Outcome',
               const ['retired', 'disposed'],
               _kind,
-              (v) => setState(() => _kind = v!),
+              (value) => setState(() => _kind = value!),
             ),
           if (_a == AssetAction.giveBack ||
               _a == AssetAction.condition ||

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
-typedef PickedItem = ({InvItem item, InvVariant? variant});
+typedef PickedItem = ({InventoryItem item, InventoryVariant? variant});
 
 /// Search-and-pick dialog for stock lines. Asset-tracked items are managed in Assets, so they are hidden
 /// unless [assets] (purchase requests can ask for them).
@@ -10,21 +10,23 @@ Future<PickedItem?> pickItem(
   BuildContext context, {
   bool assets = false,
 }) async {
-  final p = context.read<InventoryProvider>();
-  await p.loadItems(search: '', clearCategory: true);
+  final inventoryProvider = context.read<InventoryProvider>();
+  await inventoryProvider.loadItems(search: '', clearCategory: true);
   if (!context.mounted) return null;
-  final item = await showDialog<InvItem>(
+  final item = await showDialog<InventoryItem>(
     context: context,
     builder: (_) => _PickerDialog(assets: assets),
   );
   if (item == null || item.variantAttrs.isEmpty || !context.mounted) {
     return item == null ? null : (item: item, variant: null);
   }
-  final variants = (await p.variants(item.id)).where((v) => v.active).toList();
+  final variants = (await inventoryProvider.variants(item.id))
+      .where((variant) => variant.active)
+      .toList();
   if (!context.mounted) return null;
-  final v = await showDialog<InvVariant>(
+  final currentVariant = await showDialog<InventoryVariant>(
     context: context,
-    builder: (ctx) => SimpleDialog(
+    builder: (context) => SimpleDialog(
       title: Text('${item.name} – variant'),
       children: [
         if (variants.isEmpty)
@@ -32,15 +34,15 @@ Future<PickedItem?> pickItem(
             padding: EdgeInsets.all(24),
             child: Text('No active variants. Add one on the item page.'),
           ),
-        for (final v in variants)
+        for (final variant in variants)
           SimpleDialogOption(
-            onPressed: () => Navigator.pop(ctx, v),
-            child: Text('${v.sku} · ${v.attrs.values.join(' / ')}'),
+            onPressed: () => Navigator.pop(context, variant),
+            child: Text('${variant.sku} · ${variant.attrs.values.join(' / ')}'),
           ),
       ],
     ),
   );
-  return v == null ? null : (item: item, variant: v);
+  return currentVariant == null ? null : (item: item, variant: currentVariant);
 }
 
 class _PickerDialog extends StatelessWidget {
@@ -50,8 +52,8 @@ class _PickerDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final p = context.watch<InventoryProvider>();
-    final items = p.items
+    final inventoryProvider = context.watch<InventoryProvider>();
+    final items = inventoryProvider.items
         .where((i) => i.active && (assets || i.tracking != Tracking.asset))
         .toList();
     return Dialog(
@@ -64,7 +66,8 @@ class _PickerDialog extends StatelessWidget {
               child: TextField(
                 autofocus: true,
                 textInputAction: TextInputAction.search,
-                onSubmitted: (v) => p.loadItems(search: v),
+                onSubmitted: (value) =>
+                    inventoryProvider.loadItems(search: value),
                 decoration: const InputDecoration(
                   hintText: 'Search items (whole word)',
                   prefixIcon: Icon(Icons.search),
@@ -74,7 +77,7 @@ class _PickerDialog extends StatelessWidget {
             Expanded(
               child: items.isEmpty
                   ? Center(
-                      child: p.itemsLoading
+                      child: inventoryProvider.itemsLoading
                           ? const CircularProgressIndicator()
                           : const Text('No items'),
                     )
@@ -86,9 +89,10 @@ class _PickerDialog extends StatelessWidget {
                             subtitle: Text('${i.code} · ${i.stockUnit}'),
                             onTap: () => Navigator.pop(context, i),
                           ),
-                        if (p.hasMoreItems)
+                        if (inventoryProvider.hasMoreItems)
                           TextButton(
-                            onPressed: () => p.loadItems(more: true),
+                            onPressed: () =>
+                                inventoryProvider.loadItems(more: true),
                             child: const Text('Load more'),
                           ),
                       ],

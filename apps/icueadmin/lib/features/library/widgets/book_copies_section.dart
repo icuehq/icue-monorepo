@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icueadmin/features/library/widgets/acquisition_sheet.dart';
 import 'package:icueadmin/features/library/widgets/copy_labels.dart';
@@ -9,14 +10,14 @@ import 'package:school_library/school_library.dart';
 class BookCopiesSection extends StatefulWidget {
   const BookCopiesSection({super.key, required this.book});
 
-  final LibBook book;
+  final LibraryBook book;
 
   @override
   State<BookCopiesSection> createState() => _BookCopiesSectionState();
 }
 
 class _BookCopiesSectionState extends State<BookCopiesSection> {
-  List<LibCopy>? _copies;
+  List<LibraryCopy>? _copies;
   String? _error;
 
   @override
@@ -27,10 +28,12 @@ class _BookCopiesSectionState extends State<BookCopiesSection> {
 
   Future<void> _load() async {
     try {
-      final c = await context.read<LibraryProvider>().copiesOf(widget.book.id);
-      if (mounted) setState(() => _copies = c);
-    } catch (e) {
-      if (mounted) setState(() => _error = e.toString());
+      final copies = await context.read<LibraryProvider>().copiesOf(
+        widget.book.id,
+      );
+      if (mounted) setState(() => _copies = copies);
+    } catch (error) {
+      if (mounted) setState(() => _error = error.toString());
     }
   }
 
@@ -40,8 +43,8 @@ class _BookCopiesSectionState extends State<BookCopiesSection> {
     await _load();
     if (!mounted) return;
     final added = [
-      for (final c in _copies ?? <LibCopy>[])
-        if (ids.contains(c.accessionNo)) c,
+      for (final copy in _copies ?? <LibraryCopy>[])
+        if (ids.contains(copy.accessionNumber)) copy,
     ];
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -58,9 +61,11 @@ class _BookCopiesSectionState extends State<BookCopiesSection> {
 
   @override
   Widget build(BuildContext context) {
-    final p = context.watch<LibraryProvider>();
+    final libraryProvider = context.watch<LibraryProvider>();
     final copies = _copies;
-    final available = copies?.where((c) => c.status == 'available').length;
+    final available = copies
+        ?.where((copy) => copy.status == 'available')
+        .length;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -71,7 +76,9 @@ class _BookCopiesSectionState extends State<BookCopiesSection> {
                 ? 'Copies'
                 : 'Copies (${copies.length}, $available available)',
           ),
-          trailing: p.access.can('lib.catalogue.manage') && widget.book.active
+          trailing:
+              libraryProvider.access.can('library.catalogue.manage') &&
+                  widget.book.active
               ? FilledButton.tonalIcon(
                   icon: const Icon(Icons.add),
                   label: const Text('Add copies'),
@@ -89,19 +96,19 @@ class _BookCopiesSectionState extends State<BookCopiesSection> {
         else if (copies.isEmpty)
           const ListTile(dense: true, title: Text('No copies yet'))
         else
-          for (final c in copies)
+          for (final copy in copies)
             ListTile(
               dense: true,
-              title: Text(c.accessionNo),
+              title: Text(copy.accessionNumber),
               subtitle: Text(
                 [
-                  p.library(c.libraryId)?.name,
-                  c.shelf,
+                  libraryProvider.library(copy.libraryId)?.name,
+                  copy.shelf,
                 ].whereType<String>().join(' · '),
               ),
-              trailing: Text(copyStatusLabel(c.status)),
+              trailing: Text(humanizeStatus(copy.status)),
               onTap: () async {
-                await CopySheet.show(context, c, widget.book.title);
+                await CopySheet.show(context, copy, widget.book.title);
                 await _load();
               },
             ),

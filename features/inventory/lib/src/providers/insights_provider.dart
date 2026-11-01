@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:injectable/injectable.dart';
-import 'package:inventory/src/models/inv_insights.dart';
-import 'package:inventory/src/models/inv_masters.dart';
+import 'package:inventory/src/models/inventory_insights.dart';
+import 'package:inventory/src/models/inventory_masters.dart';
 import 'package:inventory/src/services/insights_service.dart';
 import 'package:inventory/src/services/stock_service.dart';
 
@@ -14,11 +14,11 @@ class InsightsProvider extends ChangeNotifier {
   final InsightsService _service;
   final StockService _stock;
 
-  List<InvVerification> verifications = [];
-  List<VerificationLine> lines = [];
+  List<InventoryVerification> verifications = [];
+  List<VerificationLine> lineItems = [];
   Map<String, num?> dashboard = {};
   List<ReportRow> rows = [];
-  final Map<String, InvItem> items = {};
+  final Map<String, InventoryItem> items = {};
   String? errorMessage;
   bool isLoading = false;
 
@@ -30,8 +30,8 @@ class InsightsProvider extends ChangeNotifier {
     notifyListeners();
     try {
       await body();
-    } catch (e) {
-      errorMessage = _message(e);
+    } catch (error) {
+      errorMessage = callableErrorMessage(error);
     } finally {
       isLoading = false;
       notifyListeners();
@@ -46,53 +46,62 @@ class InsightsProvider extends ChangeNotifier {
     if (need.isNotEmpty) items.addAll(await _stock.itemsByIds(need));
   }
 
-  Future<void> loadVerifications(InvAccess a) =>
-      _load(() async => verifications = await _service.verifications(a));
+  Future<void> loadVerifications(ModuleAccess access) =>
+      _load(() async => verifications = await _service.verifications(access));
 
-  Future<void> loadLines(InvVerification v) => _load(() async {
-    lines = await _service.lines(v);
-    await _names(lines.map((l) => l.itemId));
+  Future<void> loadLines(InventoryVerification verification) => _load(() async {
+    lineItems = await _service.lineItems(verification);
+    await _names(lineItems.map((verificationLine) => verificationLine.itemId));
   });
 
-  Future<InvVerification?> verification(String id) async {
+  Future<InventoryVerification?> verification(String id) async {
     try {
       return await _service.verification(id);
-    } catch (e) {
-      errorMessage = _message(e);
+    } catch (error) {
+      errorMessage = callableErrorMessage(error);
       return null;
     }
   }
 
-  Future<void> loadDashboard(InvAccess a, {InvStore? store}) =>
-      _load(() async => dashboard = await _service.dashboard(a, store: store));
+  Future<void> loadDashboard(ModuleAccess access, {InventoryStore? store}) =>
+      _load(
+        () async => dashboard = await _service.dashboard(access, store: store),
+      );
 
   /// Loads [def]; balance reports come back sorted by item name.
   Future<void> loadReport(
-    InvAccess a,
+    ModuleAccess access,
     ReportDef def, {
     DateTime? from,
     DateTime? to,
     String? status,
   }) => _load(() async {
-    rows = await _service.report(a, def, from: from, to: to, status: status);
-    await _names(rows.map((r) => r['itemId']));
-    if (def.collection == 'invBalances') {
+    rows = await _service.report(
+      access,
+      def,
+      from: from,
+      to: to,
+      status: status,
+    );
+    await _names(rows.map((row) => row['itemId']));
+    if (def.collection == 'inventoryBalances') {
       rows.sort(
-        (x, y) => itemName(x['itemId']).compareTo(itemName(y['itemId'])),
+        (currentData, data) =>
+            itemName(currentData['itemId']).compareTo(itemName(data['itemId'])),
       );
     }
   });
 
   /// Saves counts directly to Firestore; false with [errorMessage] set on failure, false without it when only queued offline.
   Future<bool> saveCounts(
-    InvVerification v,
+    InventoryVerification verification,
     List<(VerificationLine, num, String?)> counts,
   ) async {
     errorMessage = null;
     try {
-      return await _service.saveCounts(v, counts);
-    } catch (e) {
-      errorMessage = _message(e);
+      return await _service.saveCounts(verification, counts);
+    } catch (error) {
+      errorMessage = callableErrorMessage(error);
       notifyListeners();
       return false;
     }
@@ -100,20 +109,17 @@ class InsightsProvider extends ChangeNotifier {
 
   /// Runs a callable; returns its result or null with [errorMessage] set.
   Future<Map<String, dynamic>?> act(
-    String fn,
+    String value,
     Map<String, Object?> data, {
     String? requestId,
   }) async {
     errorMessage = null;
     try {
-      return await _stock.call(fn, data, requestId: requestId);
-    } catch (e) {
-      errorMessage = _message(e);
+      return await _stock.call(value, data, requestId: requestId);
+    } catch (error) {
+      errorMessage = callableErrorMessage(error);
       notifyListeners();
       return null;
     }
   }
-
-  String _message(Object e) =>
-      e is FirebaseFunctionsException ? (e.message ?? e.code) : e.toString();
 }

@@ -1,7 +1,7 @@
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:injectable/injectable.dart';
-import 'package:inventory/src/models/inv_masters.dart';
-import 'package:inventory/src/models/inv_stock.dart';
+import 'package:inventory/src/models/inventory_masters.dart';
+import 'package:inventory/src/models/inventory_stock.dart';
 
 /// Stock (Inv-2): reads from Firestore, every write is a callable.
 @lazySingleton
@@ -10,7 +10,7 @@ class StockService {
     final claims =
         (await FirebaseAuth.instance.currentUser!.getIdTokenResult()).claims;
     return FirebaseFirestore.instance.collection(
-      'schools/${claims?['sid']}/$path',
+      'schools/${claims?['schoolId']}/$path',
     );
   }
 
@@ -18,121 +18,152 @@ class StockService {
 
   /// Rules require the campus filter on every list (`all` users need none).
   Query<Map<String, dynamic>>? _scoped(
-    Query<Map<String, dynamic>> q,
-    InvAccess a, [
+    Query<Map<String, dynamic>> query,
+    ModuleAccess access, [
     String field = 'campusId',
   ]) {
-    if (a.all) return q;
-    return a.campuses.isEmpty ? null : q.where(field, whereIn: a.campuses);
+    return access.restrictToCampuses(query, field: field);
   }
 
-  Future<PagedResult<InvBalance>> balances(
-    InvStore store, {
+  Future<PagedResult<InventoryBalance>> balances(
+    InventoryStore store, {
     DocumentSnapshot<Map<String, dynamic>>? after,
   }) async => fetchPage(
-    (await _q('invBalances'))
+    (await _q('inventoryBalances'))
         .where('campusId', isEqualTo: store.campusId)
         .where('storeId', isEqualTo: store.id)
         .orderBy('itemId'),
-    (d) => InvBalance.fromMap(d.id, d.data()!),
+    (document) => InventoryBalance.fromMap(document.id, document.data()!),
     after: after,
     limit: 50,
   );
 
-  Future<List<InvMovement>> movements(InvBalance b, int campusId) async {
-    final snap = await (await _q('invMovements'))
+  Future<List<InventoryMovement>> movements(
+    InventoryBalance balance,
+    int campusId,
+  ) async {
+    final snapshot = await (await _q('inventoryMovements'))
         .where('campusId', isEqualTo: campusId)
-        .where('balanceId', isEqualTo: b.id)
+        .where('balanceId', isEqualTo: balance.id)
         .orderBy('createdAt', descending: true)
         .limit(100)
         .get();
-    return [for (final d in snap.docs) InvMovement.fromMap(d.data())];
+    return [
+      for (final document in snapshot.docs)
+        InventoryMovement.fromMap(document.data()),
+    ];
   }
 
   /// Approvers and stock users see the campus's requests; everyone else their own.
-  Future<List<InvIssueRequest>> requests(InvAccess a, {String? status}) async {
-    final base = await _q('invIssueRequests');
-    final wide = a.can('inv.stock.view') || a.can('inv.issue.approve');
-    var q = wide ? _scoped(base, a) : base.where('createdBy', isEqualTo: uid);
-    if (q == null) return [];
-    if (status != null) q = q.where('status', isEqualTo: status);
-    final snap = await q.orderBy('createdAt', descending: true).limit(50).get();
-    return [for (final d in snap.docs) InvIssueRequest.fromMap(d.id, d.data())];
+  Future<List<InventoryIssueRequest>> requests(
+    ModuleAccess access, {
+    String? status,
+  }) async {
+    final base = await _q('inventoryIssueRequests');
+    final wide =
+        access.can('inventory.stock.view') ||
+        access.can('inventory.issue.approve');
+    var query = wide
+        ? _scoped(base, access)
+        : base.where('createdBy', isEqualTo: uid);
+    if (query == null) return [];
+    if (status != null) query = query.where('status', isEqualTo: status);
+    final snapshot = await query
+        .orderBy('createdAt', descending: true)
+        .limit(50)
+        .get();
+    return [
+      for (final document in snapshot.docs)
+        InventoryIssueRequest.fromMap(document.id, document.data()),
+    ];
   }
 
-  Future<List<InvIssue>> issuesOf(InvIssueRequest r) async {
-    final snap = await (await _q('invIssues'))
-        .where('campusId', isEqualTo: r.campusId)
-        .where('issueRequestId', isEqualTo: r.id)
+  Future<List<InventoryIssue>> issuesOf(
+    InventoryIssueRequest issueRequest,
+  ) async {
+    final snapshot = await (await _q('inventoryIssues'))
+        .where('campusId', isEqualTo: issueRequest.campusId)
+        .where('issueRequestId', isEqualTo: issueRequest.id)
         .get();
-    return [for (final d in snap.docs) InvIssue.fromMap(d.id, d.data())];
+    return [
+      for (final document in snapshot.docs)
+        InventoryIssue.fromMap(document.id, document.data()),
+    ];
   }
 
   /// Transfers leaving or arriving on the user's campuses.
-  Future<List<InvTransfer>> transfers(InvAccess a) async {
-    final base = await _q('invTransfers');
+  Future<List<InventoryTransfer>> transfers(ModuleAccess access) async {
+    final base = await _q('inventoryTransfers');
     final queries = [
-      _scoped(base, a),
-      if (!a.all) _scoped(base, a, 'toCampusId'),
+      _scoped(base, access),
+      if (!access.hasAllCampuses) _scoped(base, access, 'toCampusId'),
     ];
-    final byId = <String, InvTransfer>{};
-    for (final q in queries.whereType<Query<Map<String, dynamic>>>()) {
-      final snap = await q
+    final byId = <String, InventoryTransfer>{};
+    for (final query in queries.whereType<Query<Map<String, dynamic>>>()) {
+      final snapshot = await query
           .orderBy('createdAt', descending: true)
           .limit(50)
           .get();
-      for (final d in snap.docs) {
-        byId[d.id] = InvTransfer.fromMap(d.id, d.data());
+      for (final document in snapshot.docs) {
+        byId[document.id] = InventoryTransfer.fromMap(
+          document.id,
+          document.data(),
+        );
       }
     }
     return byId.values.toList()..sort(
-      (x, y) =>
-          (y.createdAt ?? DateTime(0)).compareTo(x.createdAt ?? DateTime(0)),
+      (currentTransfer, transfer) => (transfer.createdAt ?? DateTime(0))
+          .compareTo(currentTransfer.createdAt ?? DateTime(0)),
     );
   }
 
-  Future<List<InvUnavailable>> unavailable(InvAccess a) async {
-    final q = _scoped(
-      await _q('invUnavailable'),
-      a,
+  Future<List<InventoryUnavailable>> unavailable(ModuleAccess access) async {
+    final query = _scoped(
+      await _q('inventoryUnavailableStock'),
+      access,
     )?.where('status', whereIn: ['open', 'in_repair']);
-    if (q == null) return [];
-    final snap = await q
+    if (query == null) return [];
+    final snapshot = await query
         .orderBy('createdAt', descending: true)
         .limit(100)
         .get();
-    return [for (final d in snap.docs) InvUnavailable.fromMap(d.id, d.data())];
+    return [
+      for (final document in snapshot.docs)
+        InventoryUnavailable.fromMap(document.id, document.data()),
+    ];
   }
 
   /// Every store in the school (transfer destinations may be on another campus).
-  Future<List<InvStore>> allStores() async {
-    final snap = await (await _q('invStores')).get();
-    return [for (final d in snap.docs) InvStore.fromMap(d.id, d.data())]
-      ..sort((a, b) => a.code.compareTo(b.code));
+  Future<List<InventoryStore>> allStores() async {
+    final snapshot = await (await _q('inventoryStores')).get();
+    return [
+      for (final document in snapshot.docs)
+        InventoryStore.fromMap(document.id, document.data()),
+    ]..sort((left, right) => left.code.compareTo(right.code));
   }
 
   /// Item docs by id (30 per Firestore `in` query).
-  Future<Map<String, InvItem>> itemsByIds(Iterable<String> ids) async {
-    final out = <String, InvItem>{};
+  Future<Map<String, InventoryItem>> itemsByIds(Iterable<String> ids) async {
+    final out = <String, InventoryItem>{};
     final list = ids.toSet().toList();
     for (var i = 0; i < list.length; i += 30) {
-      final snap = await (await _q('invItems'))
+      final snapshot = await (await _q('inventoryItems'))
           .where(FieldPath.documentId, whereIn: list.skip(i).take(30).toList())
           .get();
-      for (final d in snap.docs) {
-        out[d.id] = InvItem.fromMap(d.id, d.data());
+      for (final document in snapshot.docs) {
+        out[document.id] = InventoryItem.fromMap(document.id, document.data());
       }
     }
     return out;
   }
 
-  /// Calls [fn] (e.g. `inv-receipt-confirm`); [requestId] makes a retry idempotent.
+  /// Calls [value] (e.g. `inventory-receipt-confirm`); [requestId] makes a retry idempotent.
   Future<Map<String, dynamic>> call(
-    String fn,
+    String value,
     Map<String, Object?> data, {
     String? requestId,
   }) async {
-    final res = await callFunction(fn, data: data, requestId: requestId);
-    return res is Map ? Map<String, dynamic>.from(res) : {};
+    final result = await callFunction(value, data: data, requestId: requestId);
+    return result is Map ? Map<String, dynamic>.from(result) : {};
   }
 }

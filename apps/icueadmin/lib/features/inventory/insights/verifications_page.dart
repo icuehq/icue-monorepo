@@ -1,8 +1,9 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icueadmin/features/inventory/stock/stock_ui.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
 import 'package:icueadmin/routing/app_routes.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -16,10 +17,12 @@ class VerificationsPage extends StatefulWidget {
 
 class _VerificationsPageState extends State<VerificationsPage> {
   Future<void> _load() async {
-    final inv = context.read<InventoryProvider>();
-    if (inv.stores.isEmpty) await inv.loadMasters();
+    final inventoryProvider = context.read<InventoryProvider>();
+    if (inventoryProvider.stores.isEmpty) await inventoryProvider.loadMasters();
     if (mounted) {
-      await context.read<InsightsProvider>().loadVerifications(inv.access);
+      await context.read<InsightsProvider>().loadVerifications(
+        inventoryProvider.access,
+      );
     }
   }
 
@@ -31,9 +34,9 @@ class _VerificationsPageState extends State<VerificationsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final p = context.watch<InsightsProvider>();
+    final insightsProvider = context.watch<InsightsProvider>();
     final operate = context.read<InventoryProvider>().access.can(
-      'inv.stock.operate',
+      'inventory.stock.operate',
     );
     return Scaffold(
       appBar: AppBar(title: const Text('Stock verification')),
@@ -42,7 +45,7 @@ class _VerificationsPageState extends State<VerificationsPage> {
               icon: const Icon(Icons.add),
               label: const Text('New'),
               onPressed: () async {
-                await showInvSheet(
+                await showFormSheet(
                   context,
                   () => const _NewVerificationSheet(),
                 );
@@ -50,26 +53,33 @@ class _VerificationsPageState extends State<VerificationsPage> {
               },
             )
           : null,
-      body: p.verifications.isEmpty
+      body: insightsProvider.verifications.isEmpty
           ? Center(
-              child: p.isLoading
+              child: insightsProvider.isLoading
                   ? const CircularProgressIndicator()
-                  : Text(p.errorMessage ?? 'No verification sessions'),
+                  : Text(
+                      insightsProvider.errorMessage ??
+                          'No verification sessions',
+                    ),
             )
           : ListView(
               children: [
-                for (final v in p.verifications)
+                for (final verification in insightsProvider.verifications)
                   ListTile(
-                    title: Text('${v.number} · ${v.storeName}'),
-                    subtitle: Text(
-                      '${v.date} · ${v.lineCount} lines'
-                      '${v.diffCount == null ? '' : ' · ${v.diffCount} differences'}',
+                    title: Text(
+                      '${verification.number} · ${verification.storeName}',
                     ),
-                    trailing: Chip(label: Text(statusLabel(v.status))),
+                    subtitle: Text(
+                      '${verification.date} · ${verification.lineCount} lines'
+                      '${verification.differenceCount == null ? '' : ' · ${verification.differenceCount} differences'}',
+                    ),
+                    trailing: Chip(
+                      label: Text(humanizeStatus(verification.status)),
+                    ),
                     onTap: () async {
                       await context.push(
                         AppRoutes.inventoryVerification,
-                        extra: v,
+                        extra: verification,
                       );
                       if (mounted) await _load();
                     },
@@ -89,30 +99,33 @@ class _NewVerificationSheet extends StatefulWidget {
 
 class _NewVerificationSheetState extends State<_NewVerificationSheet> {
   String? _storeId;
-  final _cats = <String>{};
+  final _categories = <String>{};
   var _busy = false;
 
   Future<void> _create() async {
-    if (_storeId == null) return invSnack(context, 'Choose a store');
+    if (_storeId == null) return showMessage(context, 'Choose a store');
     setState(() => _busy = true);
-    final p = context.read<InsightsProvider>();
-    final nav = Navigator.of(context);
-    final res = await p.act('inv-verification-create', {
+    final insightsProvider = context.read<InsightsProvider>();
+    final navigator = Navigator.of(context);
+    final result = await insightsProvider.act('inventory-verification-create', {
       'storeId': _storeId,
-      'categoryIds': _cats.toList(),
+      'categoryIds': _categories.toList(),
     });
     if (!mounted) return;
     setState(() => _busy = false);
-    if (res == null) {
-      return invSnack(context, p.errorMessage ?? 'Could not create');
+    if (result == null) {
+      return showMessage(
+        context,
+        insightsProvider.errorMessage ?? 'Could not create',
+      );
     }
-    nav.pop();
-    invSnack(context, 'Created · ${res['number']}');
+    navigator.pop();
+    showMessage(context, 'Created · ${result['number']}');
   }
 
   @override
   Widget build(BuildContext context) {
-    final cats = context.watch<InventoryProvider>().topCategories;
+    final categories = context.watch<InventoryProvider>().topCategories;
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -124,19 +137,22 @@ class _NewVerificationSheetState extends State<_NewVerificationSheet> {
         const SizedBox(height: 12),
         StoreDropdown(
           value: _storeId,
-          onChanged: (v) => setState(() => _storeId = v),
+          onChanged: (value) => setState(() => _storeId = value),
         ),
         const SizedBox(height: 12),
         const Text('Categories (none = whole store)'),
         Wrap(
           spacing: 8,
           children: [
-            for (final c in cats)
+            for (final category in categories)
               FilterChip(
-                label: Text(c.name),
-                selected: _cats.contains(c.id),
-                onSelected: (on) =>
-                    setState(() => on ? _cats.add(c.id) : _cats.remove(c.id)),
+                label: Text(category.name),
+                selected: _categories.contains(category.id),
+                onSelected: (isSelected) => setState(
+                  () => isSelected
+                      ? _categories.add(category.id)
+                      : _categories.remove(category.id),
+                ),
               ),
           ],
         ),

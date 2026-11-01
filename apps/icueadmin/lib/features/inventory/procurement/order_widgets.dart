@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 
 /// One editable quotation / PO line: item label, quantity and unit price.
 class OrderLineInput {
@@ -7,31 +7,31 @@ class OrderLineInput {
     this.itemId,
     this.variantId,
     this.name, {
-    String qty = '',
+    String quantity = '',
     String price = '',
     this.priceLocked = false,
-  }) : qty = TextEditingController(text: qty),
+  }) : quantity = TextEditingController(text: quantity),
        price = TextEditingController(text: price);
 
   final String itemId;
   final String? variantId;
   final String name;
   final bool priceLocked;
-  final TextEditingController qty;
+  final TextEditingController quantity;
   final TextEditingController price;
 
-  double get qtyValue => double.tryParse(qty.text.trim()) ?? 0;
+  double get quantityValue => double.tryParse(quantity.text.trim()) ?? 0;
   double get priceValue => double.tryParse(price.text.trim()) ?? 0;
 
-  Map<String, Object?> toJson(String qtyKey) => {
+  Map<String, Object?> toJson(String quantityKey) => {
     'itemId': itemId,
     'variantId': ?variantId,
-    qtyKey: qtyValue,
+    quantityKey: quantityValue,
     'unitPrice': priceValue,
   };
 
   void dispose() {
-    qty.dispose();
+    quantity.dispose();
     price.dispose();
   }
 }
@@ -75,13 +75,13 @@ class OrderLineCard extends StatelessWidget {
             children: [
               Expanded(
                 child: TextFormField(
-                  controller: line.qty,
+                  controller: line.quantity,
                   keyboardType: _num,
                   decoration: const InputDecoration(labelText: 'Quantity'),
                   onChanged: (_) => onChanged(),
-                  validator: (v) {
-                    final q = double.tryParse((v ?? '').trim());
-                    return q == null || q <= 0 ? 'Invalid' : null;
+                  validator: (value) {
+                    final quantity = double.tryParse((value ?? '').trim());
+                    return quantity == null || quantity <= 0 ? 'Invalid' : null;
                   },
                 ),
               ),
@@ -111,7 +111,7 @@ class OrderLineCard extends StatelessWidget {
 /// Discount / tax / delivery amounts with the computed total underneath.
 class OrderTotals extends StatelessWidget {
   const OrderTotals({
-    required this.lines,
+    required this.lineItems,
     required this.discount,
     required this.tax,
     required this.delivery,
@@ -119,7 +119,7 @@ class OrderTotals extends StatelessWidget {
     super.key,
   });
 
-  final List<OrderLineInput> lines;
+  final List<OrderLineInput> lineItems;
   final TextEditingController discount;
   final TextEditingController tax;
   final TextEditingController delivery;
@@ -127,12 +127,17 @@ class OrderTotals extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    double v(TextEditingController c) => double.tryParse(c.text.trim()) ?? 0;
-    final sub = lines.fold<double>(0, (n, l) => n + l.qtyValue * l.priceValue);
+    double v(TextEditingController controller) =>
+        double.tryParse(controller.text.trim()) ?? 0;
+    final sub = lineItems.fold<double>(
+      0,
+      (number, orderLineInput) =>
+          number + orderLineInput.quantityValue * orderLineInput.priceValue,
+    );
     final total = sub - v(discount) + v(tax) + v(delivery);
-    Widget field(TextEditingController c, String label) => Expanded(
+    Widget field(TextEditingController controller, String label) => Expanded(
       child: TextFormField(
-        controller: c,
+        controller: controller,
         keyboardType: OrderLineCard._num,
         decoration: InputDecoration(labelText: label),
         onChanged: (_) => onChanged(),
@@ -161,14 +166,14 @@ class OrderTotals extends StatelessWidget {
   }
 }
 
-/// Read-only date field that opens a picker and writes `yyyy-MM-dd` into [c].
+/// Read-only date field that opens a picker and writes `yyyy-MM-dd` into [controller].
 Widget dateField(
   BuildContext context,
-  TextEditingController c,
+  TextEditingController controller,
   String label, {
   DateTime? first,
 }) => TextFormField(
-  controller: c,
+  controller: controller,
   readOnly: true,
   decoration: InputDecoration(
     labelText: label,
@@ -177,13 +182,13 @@ Widget dateField(
   validator: requiredText,
   onTap: () async {
     final from = first ?? DateTime.now();
-    final d = await showDatePicker(
+    final date = await showDatePicker(
       context: context,
       firstDate: from,
       lastDate: from.add(const Duration(days: 730)),
       initialDate: from,
     );
-    if (d != null) c.text = d.toIso8601String().substring(0, 10);
+    if (date != null) controller.text = date.toIso8601String().substring(0, 10);
   },
 );
 

@@ -1,7 +1,7 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
-import 'package:icueadmin/features/inventory/stock/stock_ui.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
 import 'package:icueadmin/features/inventory/widgets/scan_field.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -9,31 +9,32 @@ import 'package:provider/provider.dart';
 class VerificationPage extends StatefulWidget {
   const VerificationPage({required this.verification, super.key});
 
-  final InvVerification verification;
+  final InventoryVerification verification;
 
   @override
   State<VerificationPage> createState() => _VerificationPageState();
 }
 
 class _VerificationPageState extends State<VerificationPage> {
-  late InvVerification _v = widget.verification;
+  late InventoryVerification _v = widget.verification;
   final _counts = <String, TextEditingController>{};
   final _reasons = <String, String?>{};
   var _busy = false;
 
   Future<void> _load() async {
-    final p = context.read<InsightsProvider>();
-    final fresh = await p.verification(_v.id);
+    final insightsProvider = context.read<InsightsProvider>();
+    final fresh = await insightsProvider.verification(_v.id);
     if (fresh != null) _v = fresh;
-    await p.loadLines(_v);
+    await insightsProvider.loadLines(_v);
     if (!mounted) return;
     setState(() {
-      for (final l in p.lines) {
+      for (final verificationLine in insightsProvider.lineItems) {
         _counts.putIfAbsent(
-          l.balanceId,
-          () => TextEditingController(text: '${l.counted ?? ''}'),
+          verificationLine.balanceId,
+          () =>
+              TextEditingController(text: '${verificationLine.counted ?? ''}'),
         );
-        _reasons[l.balanceId] = l.reason;
+        _reasons[verificationLine.balanceId] = verificationLine.reason;
       }
     });
   }
@@ -46,103 +47,120 @@ class _VerificationPageState extends State<VerificationPage> {
 
   @override
   void dispose() {
-    for (final c in _counts.values) {
-      c.dispose();
+    for (final controller in _counts.values) {
+      controller.dispose();
     }
     super.dispose();
   }
 
-  num? _counted(VerificationLine l) =>
-      num.tryParse(_counts[l.balanceId]?.text.trim() ?? '');
+  num? _counted(VerificationLine verificationLine) =>
+      num.tryParse(_counts[verificationLine.balanceId]?.text.trim() ?? '');
 
-  /// Calls [fn]; reloads on success, else shows the error.
-  Future<void> _act(String fn, Map<String, Object?> data, String done) async {
+  /// Calls [value]; reloads on success, else shows the error.
+  Future<void> _act(
+    String value,
+    Map<String, Object?> data,
+    String done,
+  ) async {
     setState(() => _busy = true);
-    final p = context.read<InsightsProvider>();
-    final res = await p.act(fn, {'id': _v.id, ...data});
+    final insightsProvider = context.read<InsightsProvider>();
+    final result = await insightsProvider.act(value, {'id': _v.id, ...data});
     if (!mounted) return;
     setState(() => _busy = false);
-    invSnack(context, res == null ? (p.errorMessage ?? 'Failed') : done);
-    if (res != null) await _load();
+    showMessage(
+      context,
+      result == null ? (insightsProvider.errorMessage ?? 'Failed') : done,
+    );
+    if (result != null) await _load();
   }
 
   /// Counts go straight to Firestore, so they are kept on the device while offline.
   /// True only when the server has them (submitting needs that).
-  Future<bool> _save(List<VerificationLine> lines) async {
+  Future<bool> _save(List<VerificationLine> lineItems) async {
     setState(() => _busy = true);
-    final p = context.read<InsightsProvider>();
-    final synced = await p.saveCounts(_v, [
-      for (final l in lines)
-        if (_counted(l) case final c?) (l, c, _reasons[l.balanceId]),
+    final insightsProvider = context.read<InsightsProvider>();
+    final synced = await insightsProvider.saveCounts(_v, [
+      for (final verificationLine in lineItems)
+        if (_counted(verificationLine) case final c?)
+          (verificationLine, c, _reasons[verificationLine.balanceId]),
     ]);
     if (!mounted) return false;
     setState(() => _busy = false);
-    invSnack(
+    showMessage(
       context,
-      p.errorMessage ??
+      insightsProvider.errorMessage ??
           (synced ? 'Counts saved' : 'Saved on this device; syncs when online'),
     );
     return synced;
   }
 
   /// A scanned item code adds one to the first line of that item that still needs it.
-  void _scanned(String code, List<VerificationLine> lines) {
-    final p = context.read<InsightsProvider>();
+  void _scanned(String code, List<VerificationLine> lineItems) {
+    final insightsProvider = context.read<InsightsProvider>();
     final hits = [
-      for (final l in lines)
-        if (p.items[l.itemId]?.code.toLowerCase() == code.toLowerCase()) l,
+      for (final verificationLine in lineItems)
+        if (insightsProvider.items[verificationLine.itemId]?.code
+                .toLowerCase() ==
+            code.toLowerCase())
+          verificationLine,
     ];
-    if (hits.isEmpty) return invSnack(context, 'No line for "$code"');
-    final l = hits.firstWhere(
-      (l) => _counted(l) == null,
+    if (hits.isEmpty) return showMessage(context, 'No line for "$code"');
+    final currentVerificationLine = hits.firstWhere(
+      (verificationLine) => _counted(verificationLine) == null,
       orElse: () => hits.first,
     );
-    setState(() => _counts[l.balanceId]!.text = '${(_counted(l) ?? 0) + 1}');
-    invSnack(context, '${p.itemName(l.itemId)}: ${_counted(l)}');
+    setState(
+      () => _counts[currentVerificationLine.balanceId]!.text =
+          '${(_counted(currentVerificationLine) ?? 0) + 1}',
+    );
+    showMessage(
+      context,
+      '${insightsProvider.itemName(currentVerificationLine.itemId)}: ${_counted(currentVerificationLine)}',
+    );
   }
 
   Future<void> _decide(String decision) async {
-    final c = TextEditingController();
+    final controller = TextEditingController();
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (context) => AlertDialog(
         title: Text(
           decision == 'approve'
               ? 'Apply adjustments?'
               : 'Send back for recount',
         ),
         content: TextField(
-          controller: c,
+          controller: controller,
           decoration: InputDecoration(
             labelText: decision == 'approve' ? 'Comment (optional)' : 'Reason',
           ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
+            onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
+            onPressed: () => Navigator.pop(context, true),
             child: const Text('Confirm'),
           ),
         ],
       ),
     );
     if (ok ?? false) {
-      await _act('inv-verification-decide', {
+      await _act('inventory-verification-decide', {
         'decision': decision,
-        'comment': c.text.trim(),
+        'comment': controller.text.trim(),
       }, 'Done');
     }
-    c.dispose();
+    controller.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final p = context.watch<InsightsProvider>();
+    final insightsProvider = context.watch<InsightsProvider>();
     final access = context.read<InventoryProvider>().access;
-    final editable = _v.counting && access.can('inv.stock.operate');
+    final editable = _v.counting && access.can('inventory.stock.operate');
     return Scaffold(
       appBar: AppBar(title: Text(_v.number)),
       bottomNavigationBar: SafeArea(
@@ -153,7 +171,9 @@ class _VerificationPageState extends State<VerificationPage> {
               if (editable) ...[
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: _busy ? null : () => _save(p.lines),
+                    onPressed: _busy
+                        ? null
+                        : () => _save(insightsProvider.lineItems),
                     child: const Text('Save counts'),
                   ),
                 ),
@@ -163,9 +183,10 @@ class _VerificationPageState extends State<VerificationPage> {
                     onPressed: _busy
                         ? null
                         : () async {
-                            if (await _save(p.lines) && mounted) {
+                            if (await _save(insightsProvider.lineItems) &&
+                                mounted) {
                               await _act(
-                                'inv-verification-submit',
+                                'inventory-verification-submit',
                                 {},
                                 'Submitted',
                               );
@@ -175,7 +196,8 @@ class _VerificationPageState extends State<VerificationPage> {
                   ),
                 ),
               ],
-              if (_v.submitted && access.can('inv.adjustment.approve')) ...[
+              if (_v.submitted &&
+                  access.can('inventory.adjustment.approve')) ...[
                 Expanded(
                   child: OutlinedButton(
                     onPressed: _busy ? null : () => _decide('reject'),
@@ -194,16 +216,16 @@ class _VerificationPageState extends State<VerificationPage> {
           ),
         ),
       ),
-      body: p.lines.isEmpty
+      body: insightsProvider.lineItems.isEmpty
           ? Center(
-              child: p.isLoading
+              child: insightsProvider.isLoading
                   ? const CircularProgressIndicator()
-                  : Text(p.errorMessage ?? 'No lines'),
+                  : Text(insightsProvider.errorMessage ?? 'No lines'),
             )
           : ListView(
               children: [
                 ListTile(
-                  title: Text('${_v.storeName} · ${statusLabel(_v.status)}'),
+                  title: Text('${_v.storeName} · ${humanizeStatus(_v.status)}'),
                   subtitle: Text(
                     [
                       if (_v.remarks != null) _v.remarks!,
@@ -218,18 +240,28 @@ class _VerificationPageState extends State<VerificationPage> {
                     child: ScanField(
                       hint: 'Scan item code to count',
                       clearOnScan: true,
-                      onScan: (c) => _scanned(c, p.lines),
+                      onScan: (value) =>
+                          _scanned(value, insightsProvider.lineItems),
                     ),
                   ),
-                for (final l in p.lines) _line(l, p, editable),
+                for (final verificationLine in insightsProvider.lineItems)
+                  _line(verificationLine, insightsProvider, editable),
               ],
             ),
     );
   }
 
-  Widget _line(VerificationLine l, InsightsProvider p, bool editable) {
-    final counted = editable ? _counted(l) : l.counted;
-    final diff = counted == null ? null : counted - l.expected;
+  Widget _line(
+    VerificationLine verificationLine,
+    InsightsProvider insightsProvider,
+    bool editable,
+  ) {
+    final counted = editable
+        ? _counted(verificationLine)
+        : verificationLine.counted;
+    final difference = counted == null
+        ? null
+        : counted - verificationLine.expected;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: Row(
@@ -238,26 +270,31 @@ class _VerificationPageState extends State<VerificationPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(p.itemName(l.itemId)),
+                Text(insightsProvider.itemName(verificationLine.itemId)),
                 Text(
-                  'Expected ${l.expected}${l.batchNo == null ? '' : ' · batch ${l.batchNo}'}'
-                  '${diff == null || diff == 0 ? '' : ' · diff ${diff > 0 ? '+' : ''}$diff'}',
+                  'Expected ${verificationLine.expected}${verificationLine.batchNumber == null ? '' : ' · batch ${verificationLine.batchNumber}'}'
+                  '${difference == null || difference == 0 ? '' : ' · difference ${difference > 0 ? '+' : ''}$difference'}',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
-                if (editable && diff != null && diff != 0)
+                if (editable && difference != null && difference != 0)
                   DropdownButton<String?>(
                     isDense: true,
-                    value: _reasons[l.balanceId],
+                    value: _reasons[verificationLine.balanceId],
                     hint: const Text('Reason'),
                     items: [
-                      for (final r in VerificationLine.reasons)
-                        DropdownMenuItem(value: r, child: Text(statusLabel(r))),
+                      for (final reason in VerificationLine.reasons)
+                        DropdownMenuItem(
+                          value: reason,
+                          child: Text(humanizeStatus(reason)),
+                        ),
                     ],
-                    onChanged: (v) => setState(() => _reasons[l.balanceId] = v),
+                    onChanged: (value) => setState(
+                      () => _reasons[verificationLine.balanceId] = value,
+                    ),
                   )
-                else if (l.reason != null)
+                else if (verificationLine.reason != null)
                   Text(
-                    statusLabel(l.reason!),
+                    humanizeStatus(verificationLine.reason!),
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
               ],
@@ -267,12 +304,15 @@ class _VerificationPageState extends State<VerificationPage> {
             width: 90,
             child: editable
                 ? TextField(
-                    controller: _counts[l.balanceId],
+                    controller: _counts[verificationLine.balanceId],
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(labelText: 'Counted'),
                     onChanged: (_) => setState(() {}),
                   )
-                : Text('${l.counted ?? '–'}', textAlign: TextAlign.end),
+                : Text(
+                    '${verificationLine.counted ?? '–'}',
+                    textAlign: TextAlign.end,
+                  ),
           ),
         ],
       ),

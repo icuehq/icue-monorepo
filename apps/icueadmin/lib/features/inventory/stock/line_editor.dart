@@ -6,36 +6,37 @@ import 'package:inventory/inventory.dart';
 class LineDraft {
   LineDraft(this.item, this.variant);
 
-  final InvItem item;
-  final InvVariant? variant;
-  final qty = TextEditingController();
+  final InventoryItem item;
+  final InventoryVariant? variant;
+  final quantity = TextEditingController();
   final rejected = TextEditingController();
-  final batchNo = TextEditingController();
+  final batchNumber = TextEditingController();
   final expiry = TextEditingController();
   final cost = TextEditingController();
 
   void dispose() {
-    for (final c in [qty, rejected, batchNo, expiry, cost]) {
-      c.dispose();
+    for (final controller in [quantity, rejected, batchNumber, expiry, cost]) {
+      controller.dispose();
     }
   }
 
   /// Request payload; only the fields the screen asked for are sent.
   Map<String, Object?> toMap({
-    String qtyKey = 'qty',
+    String quantityKey = 'quantity',
     bool batch = false,
     bool receipt = false,
   }) {
-    String? text(TextEditingController c) =>
-        c.text.trim().isEmpty ? null : c.text.trim();
+    String? text(TextEditingController controller) =>
+        controller.text.trim().isEmpty ? null : controller.text.trim();
     return {
       'itemId': item.id,
       'variantId': ?variant?.id,
-      qtyKey: double.tryParse(qty.text.trim()) ?? 0,
-      if (receipt) 'qtyRejected': double.tryParse(rejected.text.trim()) ?? 0,
+      quantityKey: double.tryParse(quantity.text.trim()) ?? 0,
+      if (receipt)
+        'quantityRejected': double.tryParse(rejected.text.trim()) ?? 0,
       if (receipt) 'unitCost': ?double.tryParse(cost.text.trim()),
       if (batch && item.tracking == Tracking.batch) ...{
-        'batchNo': text(batchNo),
+        'batchNumber': text(batchNumber),
         'expiryDate': text(expiry),
       },
     };
@@ -45,16 +46,16 @@ class LineDraft {
 /// Add/remove item lines with quantity (and optionally receipt/batch fields).
 class LineEditor extends StatelessWidget {
   const LineEditor({
-    required this.lines,
+    required this.lineItems,
     required this.onChanged,
-    this.qtyLabel = 'Quantity',
+    this.quantityLabel = 'Quantity',
     this.receipt = false,
     super.key,
   });
 
-  final List<LineDraft> lines;
+  final List<LineDraft> lineItems;
   final VoidCallback onChanged;
-  final String qtyLabel;
+  final String quantityLabel;
 
   /// Show rejected quantity, unit cost, batch number and expiry.
   final bool receipt;
@@ -64,7 +65,7 @@ class LineEditor extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (final (n, l) in lines.indexed)
+        for (final (n, l) in lineItems.indexed)
           Card(
             child: Padding(
               padding: const EdgeInsets.all(12),
@@ -84,7 +85,7 @@ class LineEditor extends StatelessWidget {
                       IconButton(
                         icon: const Icon(Icons.close_rounded),
                         onPressed: () {
-                          lines.removeAt(n).dispose();
+                          lineItems.removeAt(n).dispose();
                           onChanged();
                         },
                       ),
@@ -93,7 +94,10 @@ class LineEditor extends StatelessWidget {
                   Row(
                     children: [
                       Expanded(
-                        child: _num(l.qty, receipt ? 'Accepted' : qtyLabel),
+                        child: _num(
+                          l.quantity,
+                          receipt ? 'Accepted' : quantityLabel,
+                        ),
                       ),
                       if (receipt) ...[
                         const SizedBox(width: 8),
@@ -108,12 +112,13 @@ class LineEditor extends StatelessWidget {
                       children: [
                         Expanded(
                           child: TextFormField(
-                            controller: l.batchNo,
+                            controller: l.batchNumber,
                             decoration: const InputDecoration(
                               labelText: 'Batch no.',
                             ),
-                            validator: (v) =>
-                                (v ?? '').trim().isEmpty ? 'Required' : null,
+                            validator: (value) => (value ?? '').trim().isEmpty
+                                ? 'Required'
+                                : null,
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -126,17 +131,16 @@ class LineEditor extends StatelessWidget {
                               suffixIcon: Icon(Icons.event_rounded),
                             ),
                             onTap: () async {
-                              final d = await showDatePicker(
+                              final date = await showDatePicker(
                                 context: context,
                                 firstDate: DateTime(2000),
                                 lastDate: DateTime(2100),
                                 initialDate: DateTime.now(),
                               );
-                              if (d != null) {
-                                l.expiry.text = d.toIso8601String().substring(
-                                  0,
-                                  10,
-                                );
+                              if (date != null) {
+                                l.expiry.text = date
+                                    .toIso8601String()
+                                    .substring(0, 10);
                               }
                             },
                           ),
@@ -155,7 +159,7 @@ class LineEditor extends StatelessWidget {
             onPressed: () async {
               final picked = await pickItem(context);
               if (picked == null) return;
-              lines.add(LineDraft(picked.item, picked.variant));
+              lineItems.add(LineDraft(picked.item, picked.variant));
               onChanged();
             },
           ),
@@ -164,17 +168,17 @@ class LineEditor extends StatelessWidget {
     );
   }
 
-  Widget _num(TextEditingController c, String label) => TextFormField(
-    controller: c,
+  Widget _num(TextEditingController controller, String label) => TextFormField(
+    controller: controller,
     keyboardType: const TextInputType.numberWithOptions(decimal: true),
     decoration: InputDecoration(labelText: label),
-    validator: (v) {
-      final t = (v ?? '').trim();
-      if (t.isEmpty) {
+    validator: (currentValue) {
+      final value = (currentValue ?? '').trim();
+      if (value.isEmpty) {
         return label == 'Rejected' || label == 'Unit cost' ? null : 'Required';
       }
-      final n = double.tryParse(t);
-      return n == null || n < 0 ? 'Invalid' : null;
+      final number = double.tryParse(value);
+      return number == null || number < 0 ? 'Invalid' : null;
     },
   );
 }

@@ -1,37 +1,37 @@
 import '../region';
-import { FieldValue } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { uniqueKeyRef } from '../shared/keys';
-import { code, def, failed, id, missing, name, note, saveMaster, setStatusDef, status, usable } from '../shared/masters';
+import { code, defineCallable, failed, id, missing, name, optionalText, saveMaster, defineSetStatus, status, usable } from '../shared/masters';
 import { DEFAULT_CATEGORIES, DEFAULT_UNITS } from './defaults';
+import { serverTimestamp } from '../shared/firestore';
 
-export type Tracking = 'qty' | 'batch' | 'asset';
+export type Tracking = 'quantity' | 'batch' | 'asset';
 
-const tracking = z.enum(['qty', 'batch', 'asset']);
+const tracking = z.enum(['quantity', 'batch', 'asset']);
 const amount = z.number().min(0).nullish();
 
 export const masters = {
-  categoryUpsert: def({
-    name: 'inv.category.upsert',
-    perm: 'inv.settings',
+  categoryUpsert: defineCallable({
+    name: 'inventory.category.upsert',
+    permission: 'inventory.settings',
     input: z.object({
       id: id.optional(),
       code: code.optional(),
       name,
-      description: note,
+      description: optionalText,
       parentId: id.nullish(),
       suggestedTracking: tracking,
     }),
-    handler: (ctx, i) =>
-      saveMaster(ctx, {
-        coll: 'invCategories',
-        kind: 'invCategory',
+    handler: (context, i) =>
+      saveMaster(context, {
+        coll: 'inventoryCategories',
+        entityType: 'inventoryCategory',
         id: i.id,
         code: i.code,
         build: async (before) => {
           if (i.parentId) {
             if (i.parentId === i.id) throw failed('A category cannot be its own parent');
-            const parent = usable(await ctx.tx.get(ctx.doc(`invCategories/${i.parentId}`)), 'Parent category', before?.parentId === i.parentId);
+            const parent = usable(await context.transaction.get(context.doc(`inventoryCategories/${i.parentId}`)), 'Parent category', before?.parentId === i.parentId);
             if (parent.parentId) throw failed('Only one level of subcategories is supported');
           }
           return {
@@ -43,33 +43,33 @@ export const masters = {
         },
       }),
   }),
-  categorySetStatus: setStatusDef('inv.category.setStatus', 'inv.settings', 'invCategories', 'invCategory'),
+  categorySetStatus: defineSetStatus('inventory.category.setStatus', 'inventory.settings', 'inventoryCategories', 'inventoryCategory'),
 
-  unitUpsert: def({
-    name: 'inv.unit.upsert',
-    perm: 'inv.settings',
+  unitUpsert: defineCallable({
+    name: 'inventory.unit.upsert',
+    permission: 'inventory.settings',
     input: z.object({ code: z.string().trim().toLowerCase().regex(/^[a-z0-9_-]{1,10}$/), name }),
-    handler: async (ctx, i) => {
-      const ref = ctx.doc(`invUnits/${i.code}`);
-      const snap = await ctx.tx.get(ref);
-      const now = FieldValue.serverTimestamp();
-      if (snap.exists) ctx.update(ref, { name: i.name, updatedAt: now });
-      else ctx.set(ref, { code: i.code, name: i.name, status: 'active', createdAt: now, createdBy: ctx.uid, updatedAt: now });
-      ctx.audit({ action: snap.exists ? 'invUnit.update' : 'invUnit.create', ref: ref.path, before: snap.data(), after: i });
+    handler: async (context, i) => {
+      const ref = context.doc(`inventoryUnits/${i.code}`);
+      const snapshot = await context.transaction.get(ref);
+      const now = serverTimestamp();
+      if (snapshot.exists) context.update(ref, { name: i.name, updatedAt: now });
+      else context.set(ref, { code: i.code, name: i.name, status: 'active', createdAt: now, createdBy: context.uid, updatedAt: now });
+      context.audit({ action: snapshot.exists ? 'inventoryUnit.update' : 'inventoryUnit.create', documentPath: ref.path, before: snapshot.data(), after: i });
       return { id: ref.id };
     },
   }),
 
-  itemUpsert: def({
-    name: 'inv.item.upsert',
-    perm: 'inv.items.manage',
+  itemUpsert: defineCallable({
+    name: 'inventory.item.upsert',
+    permission: 'inventory.items.manage',
     input: z.object({
       id: id.optional(),
       code: code.optional(),
       name,
       categoryId: id,
       subcategoryId: id.nullish(),
-      description: note,
+      description: optionalText,
       stockUnit: z.string().min(1).max(10),
       purchaseUnits: z.array(z.object({ unit: z.string().min(1).max(10), factor: z.number().positive() })).max(10).default([]),
       tracking,
@@ -78,31 +78,31 @@ export const masters = {
       reorderLevel: amount,
       defaultPrice: amount,
       preferredVendorId: id.nullish(),
-      defaultLocation: note,
+      defaultLocation: optionalText,
     }),
-    handler: (ctx, i) =>
-      saveMaster(ctx, {
-        coll: 'invItems',
-        kind: 'invItem',
+    handler: (context, i) =>
+      saveMaster(context, {
+        coll: 'inventoryItems',
+        entityType: 'inventoryItem',
         id: i.id,
         code: i.code,
         build: async (before) => {
-          const category = usable(await ctx.tx.get(ctx.doc(`invCategories/${i.categoryId}`)), 'Category', before?.categoryId === i.categoryId);
+          const category = usable(await context.transaction.get(context.doc(`inventoryCategories/${i.categoryId}`)), 'Category', before?.categoryId === i.categoryId);
           if (category.parentId) throw failed('Pick a top-level category; use subcategory for the child');
           if (i.subcategoryId) {
-            const sub = usable(await ctx.tx.get(ctx.doc(`invCategories/${i.subcategoryId}`)), 'Subcategory', before?.subcategoryId === i.subcategoryId);
+            const sub = usable(await context.transaction.get(context.doc(`inventoryCategories/${i.subcategoryId}`)), 'Subcategory', before?.subcategoryId === i.subcategoryId);
             if (sub.parentId !== i.categoryId) throw failed('Subcategory does not belong to the category');
           }
           if (i.preferredVendorId) {
-            usable(await ctx.tx.get(ctx.doc(`invVendors/${i.preferredVendorId}`)), 'Vendor', before?.preferredVendorId === i.preferredVendorId);
+            usable(await context.transaction.get(context.doc(`inventoryVendors/${i.preferredVendorId}`)), 'Vendor', before?.preferredVendorId === i.preferredVendorId);
           }
-          const units = new Set([i.stockUnit, ...i.purchaseUnits.map((p) => p.unit)]);
-          if (i.purchaseUnits.some((p) => p.unit === i.stockUnit)) throw failed('Purchase unit equals the stock unit');
-          for (const u of units) {
-            if (!(await ctx.tx.get(ctx.doc(`invUnits/${u}`))).exists) throw failed(`Unit "${u}" not found`);
+          const units = new Set([i.stockUnit, ...i.purchaseUnits.map((purchaseUnit) => purchaseUnit.unit)]);
+          if (i.purchaseUnits.some((purchaseUnit) => purchaseUnit.unit === i.stockUnit)) throw failed('Purchase unit equals the stock unit');
+          for (const unit of units) {
+            if (!(await context.transaction.get(context.doc(`inventoryUnits/${unit}`))).exists) throw failed(`Unit "${unit}" not found`);
           }
           if (before && (before.stockUnit !== i.stockUnit || before.tracking !== i.tracking)) {
-            const used = await ctx.tx.get(ctx.coll('invMovements').where('itemId', '==', i.id).limit(1));
+            const used = await context.transaction.get(context.coll('inventoryMovements').where('itemId', '==', i.id).limit(1));
             if (!used.empty) throw failed('Stock unit and tracking cannot change once stock has moved');
           }
           return {
@@ -124,11 +124,11 @@ export const masters = {
         },
       }),
   }),
-  itemSetStatus: setStatusDef('inv.item.setStatus', 'inv.items.manage', 'invItems', 'invItem'),
+  itemSetStatus: defineSetStatus('inventory.item.setStatus', 'inventory.items.manage', 'inventoryItems', 'inventoryItem'),
 
-  variantUpsert: def({
-    name: 'inv.variant.upsert',
-    perm: 'inv.items.manage',
+  variantUpsert: defineCallable({
+    name: 'inventory.variant.upsert',
+    permission: 'inventory.items.manage',
     input: z.object({
       itemId: id,
       id: id.optional(),
@@ -136,18 +136,18 @@ export const masters = {
       attrs: z.record(z.string().min(1).max(30), z.string().trim().min(1).max(50)),
       status: status.optional(),
     }),
-    handler: (ctx, i) =>
-      saveMaster(ctx, {
-        coll: `invItems/${i.itemId}/variants`,
-        kind: 'invSku',
+    handler: (context, i) =>
+      saveMaster(context, {
+        coll: `inventoryItems/${i.itemId}/variants`,
+        entityType: 'inventorySku',
         id: i.id,
         code: i.code,
         build: async (_before, sku) => {
-          const item = (await ctx.tx.get(ctx.doc(`invItems/${i.itemId}`))).data();
-          if (!item) throw missing('invItem');
+          const item = (await context.transaction.get(context.doc(`inventoryItems/${i.itemId}`))).data();
+          if (!item) throw missing('inventoryItem');
           const allowed = new Set<string>(item.variantAttrs);
           const keys = Object.keys(i.attrs);
-          if (!keys.length || keys.some((k) => !allowed.has(k))) {
+          if (!keys.length || keys.some((key) => !allowed.has(key))) {
             throw failed(`Attributes must be among: ${[...allowed].join(', ') || '(none defined)'}`);
           }
           return { itemId: i.itemId, sku, attrs: i.attrs, ...(i.status ? { status: i.status } : {}) };
@@ -155,22 +155,22 @@ export const masters = {
       }),
   }),
 
-  storeUpsert: def({
-    name: 'inv.store.upsert',
-    perm: 'inv.settings',
+  storeUpsert: defineCallable({
+    name: 'inventory.store.upsert',
+    permission: 'inventory.settings',
     input: z.object({
       id: id.optional(),
       code: code.optional(),
       name,
       campusId: z.number().int(),
-      description: note,
-      location: note,
+      description: optionalText,
+      location: optionalText,
       storekeeperIds: z.array(z.number().int()).max(20).default([]),
     }),
-    handler: (ctx, i) =>
-      saveMaster(ctx, {
-        coll: 'invStores',
-        kind: 'invStore',
+    handler: (context, i) =>
+      saveMaster(context, {
+        coll: 'inventoryStores',
+        entityType: 'inventoryStore',
         id: i.id,
         code: i.code,
         build: async (before) => {
@@ -185,36 +185,36 @@ export const masters = {
         },
       }),
   }),
-  storeSetStatus: setStatusDef('inv.store.setStatus', 'inv.settings', 'invStores', 'invStore'),
+  storeSetStatus: defineSetStatus('inventory.store.setStatus', 'inventory.settings', 'inventoryStores', 'inventoryStore'),
 
   /** Adds the FRS default categories and units that do not exist yet. Safe to repeat. */
-  seedDefaults: def({
-    name: 'inv.seedDefaults',
-    perm: 'inv.settings',
+  seedDefaults: defineCallable({
+    name: 'inventory.seedDefaults',
+    permission: 'inventory.settings',
     input: z.object({}),
-    handler: async (ctx) => {
-      const now = FieldValue.serverTimestamp();
-      const keys = DEFAULT_CATEGORIES.map((c) => uniqueKeyRef(ctx, 'invCategory', c.code));
-      const unitRefs = DEFAULT_UNITS.map((u) => ctx.doc(`invUnits/${u.code}`));
-      const [keySnaps, unitSnaps] = await Promise.all([ctx.tx.getAll(...keys), ctx.tx.getAll(...unitRefs)]);
+    handler: async (context) => {
+      const now = serverTimestamp();
+      const keys = DEFAULT_CATEGORIES.map((category) => uniqueKeyRef(context, 'inventoryCategory', category.code));
+      const unitRefs = DEFAULT_UNITS.map((unit) => context.doc(`inventoryUnits/${unit.code}`));
+      const [keySnaps, unitSnaps] = await Promise.all([context.transaction.getAll(...keys), context.transaction.getAll(...unitRefs)]);
       let categories = 0;
       let units = 0;
-      DEFAULT_CATEGORIES.forEach((c, n) => {
-        if (keySnaps[n].exists) return;
-        const ref = ctx.newDoc('invCategories');
-        ctx.set(keys[n], { kind: 'invCategory', value: c.code.toLowerCase(), ref: ref.path });
-        ctx.set(ref, {
-          code: c.code, name: c.name, description: null, parentId: null, suggestedTracking: c.tracking,
-          status: 'active', createdAt: now, createdBy: ctx.uid, updatedAt: now,
+      DEFAULT_CATEGORIES.forEach((category, index) => {
+        if (keySnaps[index].exists) return;
+        const ref = context.newDoc('inventoryCategories');
+        context.set(keys[index], { keyType: 'inventoryCategory', value: category.code.toLowerCase(), documentPath: ref.path });
+        context.set(ref, {
+          code: category.code, name: category.name, description: null, parentId: null, suggestedTracking: category.tracking,
+          status: 'active', createdAt: now, createdBy: context.uid, updatedAt: now,
         });
         categories++;
       });
-      DEFAULT_UNITS.forEach((u, n) => {
-        if (unitSnaps[n].exists) return;
-        ctx.set(unitRefs[n], { ...u, status: 'active', createdAt: now, createdBy: ctx.uid, updatedAt: now });
+      DEFAULT_UNITS.forEach((unit, index) => {
+        if (unitSnaps[index].exists) return;
+        context.set(unitRefs[index], { ...unit, status: 'active', createdAt: now, createdBy: context.uid, updatedAt: now });
         units++;
       });
-      ctx.audit({ action: 'inv.seedDefaults', ref: `schools/${ctx.sid}`, after: { categories, units } });
+      context.audit({ action: 'inventory.seedDefaults', documentPath: `schools/${context.schoolId}`, after: { categories, units } });
       return { categories, units };
     },
   }),

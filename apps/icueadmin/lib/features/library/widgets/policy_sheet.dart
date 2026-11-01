@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
-import 'package:icueadmin/features/library/widgets/lib_ui.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
@@ -9,10 +8,10 @@ import 'package:school_library/school_library.dart';
 class PolicySheet extends StatefulWidget {
   const PolicySheet({super.key, this.policy});
 
-  final LibPolicy? policy;
+  final LibraryPolicy? policy;
 
-  static Future<void> show(BuildContext context, {LibPolicy? policy}) =>
-      showInvSheet(context, () => PolicySheet(policy: policy));
+  static Future<void> show(BuildContext context, {LibraryPolicy? policy}) =>
+      showFormSheet(context, () => PolicySheet(policy: policy));
 
   @override
   State<PolicySheet> createState() => _PolicySheetState();
@@ -56,7 +55,7 @@ class _PolicySheetState extends State<PolicySheet> {
 
   @override
   void dispose() {
-    for (final c in [
+    for (final controller in [
       _category,
       _name,
       _books,
@@ -66,21 +65,23 @@ class _PolicySheetState extends State<PolicySheet> {
       _maxFine,
       _grace,
     ]) {
-      c.dispose();
+      controller.dispose();
     }
     super.dispose();
   }
 
-  String? _whole(String? v, {int min = 0}) {
-    final n = int.tryParse(v?.trim() ?? '');
-    return n == null || n < min ? 'Whole number, at least $min' : null;
+  String? _whole(String? value, {int min = 0}) {
+    final number = int.tryParse(value?.trim() ?? '');
+    return number == null || number < min
+        ? 'Whole number, at least $min'
+        : null;
   }
 
   Future<void> _save() async {
     if (!_form.currentState!.validate()) return;
     setState(() => _busy = true);
     final fines = _fineType != 'none';
-    await libSubmit(
+    await submitAndClose<LibraryProvider>(
       context,
       () => context.read<LibraryProvider>().savePolicy({
         'libraryId': _libraryId,
@@ -103,11 +104,12 @@ class _PolicySheetState extends State<PolicySheet> {
 
   @override
   Widget build(BuildContext context) {
-    final p = context.read<LibraryProvider>();
+    final libraryProvider = context.read<LibraryProvider>();
     final editing = widget.policy != null;
-    final libs = [
-      for (final l in p.libraries)
-        if (l.active || l.id == _libraryId) l,
+    final libraries = [
+      for (final schoolLibrary in libraryProvider.libraries)
+        if (schoolLibrary.active || schoolLibrary.id == _libraryId)
+          schoolLibrary,
     ];
     return Form(
       key: _form,
@@ -118,11 +120,14 @@ class _PolicySheetState extends State<PolicySheet> {
             initialValue: _libraryId,
             decoration: const InputDecoration(labelText: 'Library *'),
             items: [
-              for (final l in libs)
-                DropdownMenuItem(value: l.id, child: Text(l.name)),
+              for (final schoolLibrary in libraries)
+                DropdownMenuItem(
+                  value: schoolLibrary.id,
+                  child: Text(schoolLibrary.name),
+                ),
             ],
-            onChanged: editing ? null : (v) => _libraryId = v,
-            validator: (v) => v == null ? 'Required' : null,
+            onChanged: editing ? null : (value) => _libraryId = value,
+            validator: (value) => value == null ? 'Required' : null,
           ),
           TextFormField(
             controller: _category,
@@ -131,8 +136,8 @@ class _PolicySheetState extends State<PolicySheet> {
               labelText: 'Member category *',
               helperText: 'e.g. primary, secondary, teacher',
             ),
-            validator: (v) =>
-                RegExp(r'^[a-zA-Z0-9_-]{1,30}$').hasMatch(v?.trim() ?? '')
+            validator: (value) =>
+                RegExp(r'^[a-zA-Z0-9_-]{1,30}$').hasMatch(value?.trim() ?? '')
                 ? null
                 : 'Letters, digits, - or _',
           ),
@@ -143,17 +148,17 @@ class _PolicySheetState extends State<PolicySheet> {
           ),
           Row(
             children: [
-              for (final f in [
+              for (final field in [
                 (_books, 'Max books *', 1),
                 (_days, 'Loan days *', 1),
                 (_renewals, 'Renewals *', 0),
               ])
                 Expanded(
                   child: TextFormField(
-                    controller: f.$1,
+                    controller: field.$1,
                     keyboardType: TextInputType.number,
-                    decoration: InputDecoration(labelText: f.$2),
-                    validator: (v) => _whole(v, min: f.$3),
+                    decoration: InputDecoration(labelText: field.$2),
+                    validator: (value) => _whole(value, min: field.$3),
                   ),
                 ),
             ],
@@ -162,10 +167,13 @@ class _PolicySheetState extends State<PolicySheet> {
             initialValue: _fineType,
             decoration: const InputDecoration(labelText: 'Fine'),
             items: [
-              for (final e in fineTypes.entries)
-                DropdownMenuItem(value: e.key, child: Text(e.value)),
+              for (final mapEntry in fineTypes.entries)
+                DropdownMenuItem(
+                  value: mapEntry.key,
+                  child: Text(mapEntry.value),
+                ),
             ],
-            onChanged: (v) => setState(() => _fineType = v!),
+            onChanged: (value) => setState(() => _fineType = value!),
           ),
           if (_fineType != 'none')
             Row(
@@ -175,8 +183,8 @@ class _PolicySheetState extends State<PolicySheet> {
                     controller: _fine,
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(labelText: 'Amount *'),
-                    validator: (v) =>
-                        (double.tryParse(v?.trim() ?? '') ?? 0) > 0
+                    validator: (value) =>
+                        (double.tryParse(value?.trim() ?? '') ?? 0) > 0
                         ? null
                         : 'Enter an amount',
                   ),
@@ -201,13 +209,13 @@ class _PolicySheetState extends State<PolicySheet> {
             contentPadding: EdgeInsets.zero,
             title: const Text('May reserve books'),
             value: _canReserve,
-            onChanged: (v) => setState(() => _canReserve = v),
+            onChanged: (value) => setState(() => _canReserve = value),
           ),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
             title: const Text('May renew when overdue'),
             value: _overdueRenewal,
-            onChanged: (v) => setState(() => _overdueRenewal = v),
+            onChanged: (value) => setState(() => _overdueRenewal = value),
           ),
           const Align(
             alignment: Alignment.centerLeft,
@@ -216,12 +224,14 @@ class _PolicySheetState extends State<PolicySheet> {
           Wrap(
             spacing: 8,
             children: [
-              for (final c in p.categories)
+              for (final category in libraryProvider.categories)
                 FilterChip(
-                  label: Text(c.name),
-                  selected: _restricted.contains(c.id),
-                  onSelected: (v) => setState(
-                    () => v ? _restricted.add(c.id) : _restricted.remove(c.id),
+                  label: Text(category.name),
+                  selected: _restricted.contains(category.id),
+                  onSelected: (value) => setState(
+                    () => value
+                        ? _restricted.add(category.id)
+                        : _restricted.remove(category.id),
                   ),
                 ),
             ],

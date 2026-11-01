@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
 import 'package:icueadmin/features/inventory/widgets/scan_field.dart';
 import 'package:icueadmin/features/library/widgets/loan_sheet.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
@@ -32,45 +32,49 @@ class _CirculationPageState extends State<CirculationPage> {
   }
 
   Future<void> _issue(String code) async {
-    final p = context.read<LibraryProvider>();
-    final erp = int.tryParse(_erpId.text.trim());
-    if (erp == null) return invSnack(context, 'Enter the member ERP ID first');
-    final copy = await p.findCopy(code);
+    final libraryProvider = context.read<LibraryProvider>();
+    final personErpId = int.tryParse(_erpId.text.trim());
+    if (personErpId == null) {
+      return showMessage(context, 'Enter the member ERP ID first');
+    }
+    final copy = await libraryProvider.findCopy(code);
     if (!mounted) return;
-    if (copy == null) return invSnack(context, 'No copy found for "$code"');
-    final ok = await p.issueLoan({
-      'memberId': '${_type}_$erp',
+    if (copy == null) return showMessage(context, 'No copy found for "$code"');
+    final ok = await libraryProvider.issueLoan({
+      'memberId': '${_type}_$personErpId',
       'copyId': copy.id,
     });
     if (!mounted) return;
-    invSnack(
+    showMessage(
       context,
-      ok ? '${copy.accessionNo} issued' : p.errorMessage ?? 'Failed',
+      ok
+          ? '${copy.accessionNumber} issued'
+          : libraryProvider.errorMessage ?? 'Failed',
     );
   }
 
   Future<void> _find(String code) async {
-    final p = context.read<LibraryProvider>();
-    final copy = await p.findCopy(code);
+    final libraryProvider = context.read<LibraryProvider>();
+    final copy = await libraryProvider.findCopy(code);
     if (!mounted) return;
-    if (copy == null) return invSnack(context, 'No copy found for "$code"');
-    final loan = await p.activeLoanOf(copy.id);
+    if (copy == null) return showMessage(context, 'No copy found for "$code"');
+    final loan = await libraryProvider.activeLoanOf(copy.id);
     if (!mounted) return;
     if (loan == null) {
-      return invSnack(context, '${copy.accessionNo} is not on loan');
+      return showMessage(context, '${copy.accessionNumber} is not on loan');
     }
     await _open(loan);
   }
 
-  Future<void> _open(LibLoan loan) async {
+  Future<void> _open(LibraryLoan loan) async {
     final book = await context.read<LibraryProvider>().book(loan.catalogueId);
     if (!mounted) return;
-    await LoanSheet.show(context, loan, book?.title ?? loan.accessionNo);
+    await LoanSheet.show(context, loan, book?.title ?? loan.accessionNumber);
   }
 
   @override
   Widget build(BuildContext context) {
-    final p = context.watch<LibraryProvider>();
+    final libraryProvider = context.watch<LibraryProvider>();
     final today = DateTime.now().toIso8601String().substring(0, 10);
     return Scaffold(
       appBar: AppBar(title: const Text('Circulation')),
@@ -88,8 +92,8 @@ class _CirculationPageState extends State<CirculationPage> {
                         ButtonSegment(value: 'teacher', label: Text('Teacher')),
                       ],
                       selected: {_type},
-                      onSelectionChanged: (s) =>
-                          setState(() => _type = s.first),
+                      onSelectionChanged: (values) =>
+                          setState(() => _type = values.first),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
@@ -117,35 +121,39 @@ class _CirculationPageState extends State<CirculationPage> {
             ),
           ),
           Expanded(
-            child: p.loans.isEmpty
+            child: libraryProvider.loans.isEmpty
                 ? Center(
                     child: Text(
-                      p.loansLoading
+                      libraryProvider.loansLoading
                           ? 'Loading…'
-                          : p.errorMessage ?? 'Nothing on loan',
+                          : libraryProvider.errorMessage ?? 'Nothing on loan',
                     ),
                   )
                 : ListView(
                     children: [
-                      for (final l in p.loans)
+                      for (final loan in libraryProvider.loans)
                         ListTile(
-                          title: Text('${l.accessionNo} · ${l.memberLabel}'),
-                          subtitle: Text('Due ${l.dueOn} · ${l.number}'),
-                          trailing: l.overdueOn(today) > 0
+                          title: Text(
+                            '${loan.accessionNumber} · ${loan.memberLabel}',
+                          ),
+                          subtitle: Text(
+                            'Due ${loan.dueDate} · ${loan.number}',
+                          ),
+                          trailing: loan.overdueOn(today) > 0
                               ? Text(
-                                  '${l.overdueOn(today)}d late',
+                                  '${loan.overdueOn(today)}d late',
                                   style: TextStyle(
                                     color: Theme.of(context).colorScheme.error,
                                   ),
                                 )
                               : null,
-                          onTap: () => _open(l),
+                          onTap: () => _open(loan),
                         ),
-                      if (p.hasMoreLoans)
+                      if (libraryProvider.hasMoreLoans)
                         TextButton(
-                          onPressed: p.loansLoading
+                          onPressed: libraryProvider.loansLoading
                               ? null
-                              : () => p.loadLoans(more: true),
+                              : () => libraryProvider.loadLoans(more: true),
                           child: const Text('Load more'),
                         ),
                     ],

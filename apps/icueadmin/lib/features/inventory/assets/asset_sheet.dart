@@ -1,11 +1,11 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icueadmin/features/inventory/assets/asset_action_sheet.dart';
 import 'package:icueadmin/features/inventory/assets/asset_label.dart';
 import 'package:icueadmin/features/inventory/assets/asset_ui.dart';
 import 'package:icueadmin/features/inventory/assets/maintenance_form_sheet.dart';
 import 'package:icueadmin/features/inventory/assets/rfid_sheet.dart';
-import 'package:icueadmin/features/inventory/stock/stock_ui.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -13,7 +13,7 @@ import 'package:provider/provider.dart';
 class AssetSheet extends StatefulWidget {
   const AssetSheet({required this.asset, super.key});
 
-  final InvAsset asset;
+  final InventoryAsset asset;
 
   @override
   State<AssetSheet> createState() => _AssetSheetState();
@@ -33,12 +33,13 @@ class _AssetSheetState extends State<AssetSheet> {
 
   /// Opens [then] over this sheet, then closes this one so the list reloads with fresh data.
   Future<void> _open(Widget Function() then) async {
-    final nav = Navigator.of(context);
-    await showInvSheet(context, then);
-    if (mounted) nav.pop();
+    final navigator = Navigator.of(context);
+    await showFormSheet(context, then);
+    if (mounted) navigator.pop();
   }
 
-  Widget _row(String k, String? v) => v == null || v.isEmpty
+  Widget _row(String currentValue, String? value) =>
+      value == null || value.isEmpty
       ? const SizedBox.shrink()
       : Padding(
           padding: const EdgeInsets.symmetric(vertical: 2),
@@ -46,10 +47,10 @@ class _AssetSheetState extends State<AssetSheet> {
             TextSpan(
               children: [
                 TextSpan(
-                  text: '$k: ',
+                  text: '$currentValue: ',
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
-                TextSpan(text: v),
+                TextSpan(text: value),
               ],
             ),
           ),
@@ -57,75 +58,85 @@ class _AssetSheetState extends State<AssetSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final a = widget.asset;
-    final p = context.watch<AssetsProvider>();
+    final asset = widget.asset;
+    final assetsProvider = context.watch<AssetsProvider>();
     final manage = context.read<InventoryProvider>().access.can(
-      'inv.assets.manage',
+      'inventory.assets.manage',
     );
     final actions = <(String, Widget Function())>[
-      if (manage && !a.isRetired && !a.inMaintenance) ...[
-        if (a.status == 'available')
+      if (manage && !asset.isRetired && !asset.inMaintenance) ...[
+        if (asset.status == 'available')
           (
             'Assign',
-            () => AssetActionSheet(asset: a, action: AssetAction.assign),
+            () => AssetActionSheet(asset: asset, action: AssetAction.assign),
           ),
-        if (a.status == 'assigned') ...[
+        if (asset.status == 'assigned') ...[
           (
             'Transfer',
-            () => AssetActionSheet(asset: a, action: AssetAction.transfer),
+            () => AssetActionSheet(asset: asset, action: AssetAction.transfer),
           ),
           (
             'Return',
-            () => AssetActionSheet(asset: a, action: AssetAction.giveBack),
+            () => AssetActionSheet(asset: asset, action: AssetAction.giveBack),
           ),
         ],
       ],
-      if (manage && !a.isRetired)
+      if (manage && !asset.isRetired)
         (
           'Condition',
-          () => AssetActionSheet(asset: a, action: AssetAction.condition),
+          () => AssetActionSheet(asset: asset, action: AssetAction.condition),
         ),
-      if (manage && !a.isRetired && !a.inMaintenance && a.status != 'assigned')
+      if (manage &&
+          !asset.isRetired &&
+          !asset.inMaintenance &&
+          asset.status != 'assigned')
         (
           'Retire',
-          () => AssetActionSheet(asset: a, action: AssetAction.retire),
+          () => AssetActionSheet(asset: asset, action: AssetAction.retire),
         ),
-      if (manage && a.status == 'retired')
+      if (manage && asset.status == 'retired')
         (
           'Dispose',
-          () => AssetActionSheet(asset: a, action: AssetAction.retire),
+          () => AssetActionSheet(asset: asset, action: AssetAction.retire),
         ),
-      if (manage && !a.isRetired) ('RFID tag', () => RfidSheet(asset: a)),
-      if (manage && !a.isRetired && a.status != 'lost' && !a.inMaintenance)
-        ('Report fault', () => MaintenanceFormSheet(asset: a)),
+      if (manage && !asset.isRetired)
+        ('RFID tag', () => RfidSheet(asset: asset)),
+      if (manage &&
+          !asset.isRetired &&
+          asset.status != 'lost' &&
+          !asset.inMaintenance)
+        ('Report fault', () => MaintenanceFormSheet(asset: asset)),
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(a.name, style: Theme.of(context).textTheme.titleLarge),
+        Text(asset.name, style: Theme.of(context).textTheme.titleLarge),
         Row(
           children: [
-            Expanded(child: SelectableText(a.assetId)),
-            StatusChip(a.status),
+            Expanded(child: SelectableText(asset.assetId)),
+            StatusChip(asset.status),
           ],
         ),
         const SizedBox(height: 8),
-        _row('Condition', statusLabel(a.condition)),
-        _row('Serial', a.serialNo),
-        _row('RFID tag', a.rfidTag),
-        _row('Make / model', [a.make, a.model].whereType<String>().join(' ')),
-        _row('Location', a.location),
-        _row('Held by', a.assignedTo?.label),
-        _row('Purchased', a.purchaseDate),
-        _row('Price', a.price?.toStringAsFixed(2)),
+        _row('Condition', humanizeStatus(asset.condition)),
+        _row('Serial', asset.serialNumber),
+        _row('RFID tag', asset.rfidTag),
+        _row(
+          'Make / model',
+          [asset.make, asset.model].whereType<String>().join(' '),
+        ),
+        _row('Location', asset.location),
+        _row('Held by', asset.assignedTo?.label),
+        _row('Purchased', asset.purchaseDate),
+        _row('Price', asset.price?.toStringAsFixed(2)),
         _row(
           'Warranty',
-          a.warrantyEnd == null
+          asset.warrantyEnd == null
               ? null
-              : '${a.warrantyStart ?? ''} → ${a.warrantyEnd}',
+              : '${asset.warrantyStart ?? ''} → ${asset.warrantyEnd}',
         ),
-        _row('Next service', a.nextServiceDate),
+        _row('Next service', asset.nextServiceDate),
         const SizedBox(height: 12),
         Wrap(
           spacing: 8,
@@ -135,46 +146,54 @@ class _AssetSheetState extends State<AssetSheet> {
             OutlinedButton.icon(
               icon: const Icon(Icons.qr_code_2_rounded),
               label: const Text('Label'),
-              onPressed: () => shareAssetLabel(a),
+              onPressed: () => shareAssetLabel(asset),
             ),
           ],
         ),
-        if (p.isLoading)
+        if (assetsProvider.isLoading)
           const Padding(
             padding: EdgeInsets.all(16),
             child: Center(child: CircularProgressIndicator()),
           )
         else ...[
-          if (p.assignments.isNotEmpty) ...[
+          if (assetsProvider.assignments.isNotEmpty) ...[
             const Divider(height: 24),
             Text('Custody', style: Theme.of(context).textTheme.titleMedium),
-            for (final g in p.assignments)
+            for (final assignment in assetsProvider.assignments)
               ListTile(
                 dense: true,
                 contentPadding: EdgeInsets.zero,
-                title: Text(g.assignee.label),
+                title: Text(assignment.assignee.label),
                 subtitle: Text(
-                  '${g.assignedDate} → ${g.returnedDate ?? 'now'}'
-                  '${g.closedAs == null ? '' : ' · ${g.closedAs}'}'
-                  '${g.conditionOut == null ? '' : ' · out ${g.conditionOut}'}'
-                  '${g.conditionIn == null ? '' : ' · in ${g.conditionIn}'}'
-                  '${g.acknowledged ? ' · acknowledged' : ''}',
+                  '${assignment.assignedDate} → ${assignment.returnedDate ?? 'now'}'
+                  '${assignment.closedAs == null ? '' : ' · ${assignment.closedAs}'}'
+                  '${assignment.conditionOut == null ? '' : ' · out ${assignment.conditionOut}'}'
+                  '${assignment.conditionIn == null ? '' : ' · in ${assignment.conditionIn}'}'
+                  '${assignment.acknowledged ? ' · acknowledged' : ''}',
                 ),
               ),
           ],
-          if (p.history.isNotEmpty) ...[
+          if (assetsProvider.history.isNotEmpty) ...[
             const Divider(height: 24),
             Text('History', style: Theme.of(context).textTheme.titleMedium),
-            for (final e in p.history)
+            for (final assetEvent in assetsProvider.history)
               ListTile(
                 dense: true,
                 contentPadding: EdgeInsets.zero,
-                title: Text(statusLabel(e.type.replaceAll('.', ' '))),
+                title: Text(
+                  humanizeStatus(assetEvent.type.replaceAll('.', ' ')),
+                ),
                 subtitle: Text(
                   [
-                    e.at?.toLocal().toString().substring(0, 16),
-                    e.detail,
-                  ].whereType<String>().where((s) => s.isNotEmpty).join(' · '),
+                        assetEvent.performedAt?.toLocal().toString().substring(
+                          0,
+                          16,
+                        ),
+                        assetEvent.detail,
+                      ]
+                      .whereType<String>()
+                      .where((value) => value.isNotEmpty)
+                      .join(' · '),
                 ),
               ),
           ],

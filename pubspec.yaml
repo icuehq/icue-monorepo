@@ -40,6 +40,10 @@ melos:
       description: Format all Dart code.
       run: dart format .
 
+    naming:check:
+      description: Fail on abbreviated names, module prefixes and uid prefixes in Inventory and Library code (docs/naming-map.md).
+      run: node tool/check-naming.mjs
+
     format:check:
       description: Fail if any file is unformatted.
       run: dart format --set-exit-if-changed .

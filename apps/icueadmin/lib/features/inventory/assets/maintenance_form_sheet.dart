@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icueadmin/features/inventory/assets/asset_ui.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 
 /// Reports a fault on [asset], or edits a live request [job] (FRS 10.20).
@@ -9,8 +9,8 @@ class MaintenanceFormSheet extends StatefulWidget {
   const MaintenanceFormSheet({this.asset, this.job, super.key})
     : assert(asset != null || job != null);
 
-  final InvAsset? asset;
-  final InvMaintenance? job;
+  final InventoryAsset? asset;
+  final InventoryMaintenance? job;
 
   @override
   State<MaintenanceFormSheet> createState() => _MaintenanceFormSheetState();
@@ -20,15 +20,15 @@ class _MaintenanceFormSheetState extends State<MaintenanceFormSheet> {
   final _form = GlobalKey<FormState>();
   final _requestId = newRequestId();
   late final _issue = TextEditingController(text: widget.job?.issue);
-  late final _tech = TextEditingController(text: widget.job?.technician);
+  late final _technician = TextEditingController(text: widget.job?.technician);
   late final _next = TextEditingController(text: widget.job?.nextServiceDate);
   late var _priority = widget.job?.priority ?? 'medium';
   var _busy = false;
 
   @override
   void dispose() {
-    for (final c in [_issue, _tech, _next]) {
-      c.dispose();
+    for (final controller in [_issue, _technician, _next]) {
+      controller.dispose();
     }
     super.dispose();
   }
@@ -36,16 +36,16 @@ class _MaintenanceFormSheetState extends State<MaintenanceFormSheet> {
   Future<void> _save() async {
     if (!_form.currentState!.validate()) return;
     setState(() => _busy = true);
-    String? opt(TextEditingController c) =>
-        c.text.trim().isEmpty ? null : c.text.trim();
+    String? opt(TextEditingController controller) =>
+        controller.text.trim().isEmpty ? null : controller.text.trim();
     await assetSubmit(
       context,
-      (p) => p.act('inv-maintenance-save', {
+      (assetsProvider) => assetsProvider.act('inventory-maintenance-save', {
         'id': widget.job?.id,
         'assetId': widget.job?.assetId ?? widget.asset!.id,
         'issue': _issue.text.trim(),
         'priority': _priority,
-        'technician': opt(_tech),
+        'technician': opt(_technician),
         'nextServiceDate': opt(_next),
       }, requestId: _requestId),
       done: widget.job == null ? 'Fault reported' : 'Updated',
@@ -75,12 +75,12 @@ class _MaintenanceFormSheetState extends State<MaintenanceFormSheet> {
           ),
           labelled(
             'Priority',
-            InvMaintenance.priorities,
+            InventoryMaintenance.priorities,
             _priority,
-            (v) => setState(() => _priority = v!),
+            (value) => setState(() => _priority = value!),
           ),
           TextFormField(
-            controller: _tech,
+            controller: _technician,
             decoration: const InputDecoration(
               labelText: 'Technician / service provider',
             ),

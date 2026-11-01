@@ -1,9 +1,10 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icueadmin/features/inventory/assets/asset_ui.dart';
 import 'package:icueadmin/features/inventory/stock/item_picker.dart';
 import 'package:icueadmin/features/inventory/stock/stock_ui.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -15,7 +16,7 @@ class MaintenanceUpdateSheet extends StatefulWidget {
     super.key,
   });
 
-  final InvMaintenance job;
+  final InventoryMaintenance job;
   final String status;
 
   @override
@@ -25,12 +26,19 @@ class MaintenanceUpdateSheet extends StatefulWidget {
 class _MaintenanceUpdateSheetState extends State<MaintenanceUpdateSheet> {
   final _form = GlobalKey<FormState>();
   final _requestId = newRequestId();
-  late final _tech = TextEditingController(text: widget.job.technician);
+  late final _technician = TextEditingController(text: widget.job.technician);
   late final _details = TextEditingController(text: widget.job.repairDetails);
   late final _cost = TextEditingController(text: widget.job.cost?.toString());
   late final _next = TextEditingController(text: widget.job.nextServiceDate);
   final _parts =
-      <({InvItem item, InvVariant? variant, String store, double qty})>[];
+      <
+        ({
+          InventoryItem item,
+          InventoryVariant? variant,
+          String store,
+          double quantity,
+        })
+      >[];
   String? _condition;
   var _busy = false;
 
@@ -45,8 +53,8 @@ class _MaintenanceUpdateSheetState extends State<MaintenanceUpdateSheet> {
 
   @override
   void dispose() {
-    for (final c in [_tech, _details, _cost, _next]) {
-      c.dispose();
+    for (final controller in [_technician, _details, _cost, _next]) {
+      controller.dispose();
     }
     super.dispose();
   }
@@ -54,22 +62,22 @@ class _MaintenanceUpdateSheetState extends State<MaintenanceUpdateSheet> {
   Future<void> _addPart() async {
     final pick = await pickItem(context);
     if (pick == null || !mounted) return;
-    final qty = TextEditingController(text: '1');
+    final quantity = TextEditingController(text: '1');
     String? store;
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, set) => AlertDialog(
+      builder: (context) => StatefulBuilder(
+        builder: (context, set) => AlertDialog(
           title: Text(pick.item.name),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               StoreDropdown(
                 value: store,
-                onChanged: (v) => set(() => store = v),
+                onChanged: (value) => set(() => store = value),
               ),
               TextField(
-                controller: qty,
+                controller: quantity,
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
@@ -81,26 +89,30 @@ class _MaintenanceUpdateSheetState extends State<MaintenanceUpdateSheet> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
+              onPressed: () => Navigator.pop(context, false),
               child: const Text('Back'),
             ),
             FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
+              onPressed: () => Navigator.pop(context, true),
               child: const Text('Add'),
             ),
           ],
         ),
       ),
     );
-    final q = double.tryParse(qty.text.trim());
-    qty.dispose();
-    if (ok == true && store != null && q != null && q > 0 && mounted) {
+    final currentQuantity = double.tryParse(quantity.text.trim());
+    quantity.dispose();
+    if (ok == true &&
+        store != null &&
+        currentQuantity != null &&
+        currentQuantity > 0 &&
+        mounted) {
       setState(
         () => _parts.add((
           item: pick.item,
           variant: pick.variant,
           store: store!,
-          qty: q,
+          quantity: currentQuantity,
         )),
       );
     }
@@ -109,29 +121,30 @@ class _MaintenanceUpdateSheetState extends State<MaintenanceUpdateSheet> {
   Future<void> _save() async {
     if (!_form.currentState!.validate()) return;
     setState(() => _busy = true);
-    String? opt(TextEditingController c) =>
-        c.text.trim().isEmpty ? null : c.text.trim();
+    String? opt(TextEditingController controller) =>
+        controller.text.trim().isEmpty ? null : controller.text.trim();
     await assetSubmit(
       context,
-      (p) => p.act('inv-maintenance-setStatus', {
-        'id': widget.job.id,
-        'status': widget.status,
-        'technician': opt(_tech),
-        'repairDetails': opt(_details),
-        'cost': double.tryParse(_cost.text.trim()),
-        'nextServiceDate': opt(_next),
-        'condition': _done ? _condition : null,
-        'parts': [
-          for (final x in _parts)
-            {
-              'itemId': x.item.id,
-              'variantId': x.variant?.id,
-              'storeId': x.store,
-              'qty': x.qty,
-            },
-        ],
-      }, requestId: _requestId),
-      done: statusLabel(widget.status),
+      (assetsProvider) =>
+          assetsProvider.act('inventory-maintenance-setStatus', {
+            'id': widget.job.id,
+            'status': widget.status,
+            'technician': opt(_technician),
+            'repairDetails': opt(_details),
+            'cost': double.tryParse(_cost.text.trim()),
+            'nextServiceDate': opt(_next),
+            'condition': _done ? _condition : null,
+            'parts': [
+              for (final part in _parts)
+                {
+                  'itemId': part.item.id,
+                  'variantId': part.variant?.id,
+                  'storeId': part.store,
+                  'quantity': part.quantity,
+                },
+            ],
+          }, requestId: _requestId),
+      done: humanizeStatus(widget.status),
     );
     if (mounted) setState(() => _busy = false);
   }
@@ -146,12 +159,12 @@ class _MaintenanceUpdateSheetState extends State<MaintenanceUpdateSheet> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            '${widget.job.number} → ${statusLabel(widget.status)}',
+            '${widget.job.number} → ${humanizeStatus(widget.status)}',
             style: Theme.of(context).textTheme.titleLarge,
           ),
           if (!_cancel) ...[
             TextFormField(
-              controller: _tech,
+              controller: _technician,
               decoration: InputDecoration(
                 labelText: widget.status == 'assigned'
                     ? 'Technician / service provider *'
@@ -175,7 +188,7 @@ class _MaintenanceUpdateSheetState extends State<MaintenanceUpdateSheet> {
                     : 'Repair cost so far',
               ),
               validator: _done
-                  ? (v) => double.tryParse((v ?? '').trim()) == null
+                  ? (value) => double.tryParse((value ?? '').trim()) == null
                         ? 'Enter the cost'
                         : null
                   : optionalNumber,
@@ -183,9 +196,9 @@ class _MaintenanceUpdateSheetState extends State<MaintenanceUpdateSheet> {
             if (_done) ...[
               labelled(
                 'Condition after repair',
-                InvAsset.conditions,
+                InventoryAsset.conditions,
                 _condition,
-                (v) => _condition = v,
+                (value) => _condition = value,
               ),
               optionalDate(
                 context,
@@ -197,18 +210,18 @@ class _MaintenanceUpdateSheetState extends State<MaintenanceUpdateSheet> {
             ],
             const SizedBox(height: 8),
             Text('Parts used', style: Theme.of(context).textTheme.titleSmall),
-            for (final x in _parts)
+            for (final part in _parts)
               ListTile(
                 dense: true,
                 contentPadding: EdgeInsets.zero,
-                title: Text('${x.item.name} × ${x.qty}'),
+                title: Text('${part.item.name} × ${part.quantity}'),
                 trailing: IconButton(
                   icon: const Icon(Icons.close),
-                  onPressed: () => setState(() => _parts.remove(x)),
+                  onPressed: () => setState(() => _parts.remove(part)),
                 ),
               ),
             if (context.read<InventoryProvider>().access.can(
-              'inv.stock.operate',
+              'inventory.stock.operate',
             ))
               TextButton.icon(
                 icon: const Icon(Icons.add),
@@ -219,7 +232,7 @@ class _MaintenanceUpdateSheetState extends State<MaintenanceUpdateSheet> {
           const SizedBox(height: 16),
           FilledButton(
             onPressed: _busy ? null : _save,
-            child: Text(_busy ? 'Saving…' : statusLabel(widget.status)),
+            child: Text(_busy ? 'Saving…' : humanizeStatus(widget.status)),
           ),
         ],
       ),

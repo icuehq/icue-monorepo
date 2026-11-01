@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:injectable/injectable.dart';
-import 'package:inventory/src/models/inv_masters.dart';
-import 'package:inventory/src/models/inv_orders.dart';
-import 'package:inventory/src/models/inv_procurement.dart';
-import 'package:inventory/src/models/inv_receiving.dart';
+import 'package:inventory/src/models/inventory_masters.dart';
+import 'package:inventory/src/models/inventory_orders.dart';
+import 'package:inventory/src/models/inventory_procurement.dart';
+import 'package:inventory/src/models/inventory_receiving.dart';
 import 'package:inventory/src/services/procurement_service.dart';
 import 'package:inventory/src/services/stock_service.dart';
 
@@ -16,13 +16,13 @@ class ProcurementProvider extends ChangeNotifier {
   final ProcurementService _service;
   final StockService _stock;
 
-  final Map<String, InvItem> items = {};
-  List<InvVendor> vendors = [];
-  List<InvPurchaseRequest> requests = [];
-  List<InvQuotation> quotations = [];
-  List<InvPurchaseOrder> orders = [];
-  List<InvGrn> receipts = [];
-  List<InvInvoice> invoices = [];
+  final Map<String, InventoryItem> items = {};
+  List<InventoryVendor> vendors = [];
+  List<InventoryPurchaseRequest> requests = [];
+  List<InventoryQuotation> quotations = [];
+  List<InventoryPurchaseOrder> orders = [];
+  List<InventoryGoodsReceipt> receipts = [];
+  List<InventoryInvoice> invoices = [];
   String? errorMessage;
   bool isLoading = false;
 
@@ -31,8 +31,8 @@ class ProcurementProvider extends ChangeNotifier {
   String itemName(String id) => items[id]?.name ?? id;
 
   String vendorName(String id) {
-    for (final v in vendors) {
-      if (v.id == id) return v.name;
+    for (final vendor in vendors) {
+      if (vendor.id == id) return vendor.name;
     }
     return id;
   }
@@ -44,39 +44,69 @@ class ProcurementProvider extends ChangeNotifier {
   }
 
   /// One request by ID (item names are loaded for its lines); null with [errorMessage] on failure.
-  Future<InvPurchaseRequest?> request(String id) async {
+  Future<InventoryPurchaseRequest?> request(String id) async {
     try {
-      final r = await _service.request(id);
-      if (r != null) await _loadNames(r.lines.map((l) => l.itemId));
-      return r;
-    } catch (e) {
-      errorMessage = _message(e);
+      final purchaseRequest = await _service.request(id);
+      if (purchaseRequest != null) {
+        await _loadNames(
+          purchaseRequest.lineItems.map(
+            (purchaseRequestLine) => purchaseRequestLine.itemId,
+          ),
+        );
+      }
+      return purchaseRequest;
+    } catch (error) {
+      errorMessage = callableErrorMessage(error);
       notifyListeners();
       return null;
     }
   }
 
-  Future<void> loadQuotations(String prId) => _load(() async {
-    quotations = await _service.quotations(prId)
-      ..sort((a, b) => a.total.compareTo(b.total));
-    await _loadNames(quotations.expand((q) => q.lines.map((l) => l.itemId)));
+  Future<void> loadQuotations(String purchaseRequestId) => _load(() async {
+    quotations = await _service.quotations(purchaseRequestId)
+      ..sort((left, right) => left.total.compareTo(right.total));
+    await _loadNames(
+      quotations.expand(
+        (quotation) => quotation.lineItems.map((orderLine) => orderLine.itemId),
+      ),
+    );
   });
 
-  Future<void> loadOrders(InvAccess a, {String? status}) => _load(() async {
-    orders = await _service.orders(a, status: status);
-    await _loadNames(orders.expand((o) => o.lines.map((l) => l.itemId)));
-  });
-
-  Future<void> loadReceipts(InvAccess a, String poId) => _load(() async {
-    receipts = await _service.receipts(a, poId);
-    await _loadNames(receipts.expand((g) => g.lines.map((l) => l.itemId)));
-  });
-
-  Future<void> loadInvoices(InvAccess a, {String? poId, String? status}) =>
+  Future<void> loadOrders(ModuleAccess access, {String? status}) =>
       _load(() async {
-        invoices = await _service.invoices(a, poId: poId, status: status);
-        await _loadNames(const []);
+        orders = await _service.orders(access, status: status);
+        await _loadNames(
+          orders.expand(
+            (purchaseOrder) =>
+                purchaseOrder.lineItems.map((orderLine) => orderLine.itemId),
+          ),
+        );
       });
+
+  Future<void> loadReceipts(ModuleAccess access, String purchaseOrderId) =>
+      _load(() async {
+        receipts = await _service.receipts(access, purchaseOrderId);
+        await _loadNames(
+          receipts.expand(
+            (goodsReceipt) => goodsReceipt.lineItems.map(
+              (goodsReceiptLine) => goodsReceiptLine.itemId,
+            ),
+          ),
+        );
+      });
+
+  Future<void> loadInvoices(
+    ModuleAccess access, {
+    String? purchaseOrderId,
+    String? status,
+  }) => _load(() async {
+    invoices = await _service.invoices(
+      access,
+      purchaseOrderId: purchaseOrderId,
+      status: status,
+    );
+    await _loadNames(const []);
+  });
 
   Future<void> _load(Future<void> Function() body) async {
     isLoading = true;
@@ -84,8 +114,8 @@ class ProcurementProvider extends ChangeNotifier {
     notifyListeners();
     try {
       await body();
-    } catch (e) {
-      errorMessage = _message(e);
+    } catch (error) {
+      errorMessage = callableErrorMessage(error);
     } finally {
       isLoading = false;
       notifyListeners();
@@ -96,30 +126,32 @@ class ProcurementProvider extends ChangeNotifier {
     vendors = await _service.vendors();
   });
 
-  Future<void> loadRequests(InvAccess a, {String? status}) => _load(() async {
-    requests = await _service.requests(a, status: status);
-    final need = requests
-        .expand((r) => r.lines.map((l) => l.itemId))
-        .where((i) => !items.containsKey(i));
-    if (need.isNotEmpty) items.addAll(await _stock.itemsByIds(need));
-  });
+  Future<void> loadRequests(ModuleAccess access, {String? status}) =>
+      _load(() async {
+        requests = await _service.requests(access, status: status);
+        final need = requests
+            .expand(
+              (purchaseRequest) => purchaseRequest.lineItems.map(
+                (purchaseRequestLine) => purchaseRequestLine.itemId,
+              ),
+            )
+            .where((i) => !items.containsKey(i));
+        if (need.isNotEmpty) items.addAll(await _stock.itemsByIds(need));
+      });
 
   /// Runs a callable; returns its result (`id`, `number`) or null with [errorMessage] set.
   Future<Map<String, dynamic>?> act(
-    String fn,
+    String value,
     Map<String, Object?> data, {
     String? requestId,
   }) async {
     errorMessage = null;
     try {
-      return await _stock.call(fn, data, requestId: requestId);
-    } catch (e) {
-      errorMessage = _message(e);
+      return await _stock.call(value, data, requestId: requestId);
+    } catch (error) {
+      errorMessage = callableErrorMessage(error);
       notifyListeners();
       return null;
     }
   }
-
-  String _message(Object e) =>
-      e is FirebaseFunctionsException ? (e.message ?? e.code) : e.toString();
 }

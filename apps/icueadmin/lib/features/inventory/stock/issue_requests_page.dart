@@ -1,9 +1,9 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icueadmin/features/inventory/stock/request_sheet.dart';
-import 'package:icueadmin/features/inventory/stock/stock_ui.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
 import 'package:icueadmin/routing/app_routes.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -19,11 +19,11 @@ class _IssueRequestsPageState extends State<IssueRequestsPage> {
   String? _status;
 
   Future<void> _load() async {
-    final inv = context.read<InventoryProvider>();
-    if (inv.stores.isEmpty) await inv.loadMasters();
+    final inventoryProvider = context.read<InventoryProvider>();
+    if (inventoryProvider.stores.isEmpty) await inventoryProvider.loadMasters();
     if (mounted) {
       await context.read<StockProvider>().loadRequests(
-        inv.access,
+        inventoryProvider.access,
         status: _status,
       );
     }
@@ -37,11 +37,11 @@ class _IssueRequestsPageState extends State<IssueRequestsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final p = context.watch<StockProvider>();
-    final a = context.watch<InventoryProvider>().access;
+    final stockProvider = context.watch<StockProvider>();
+    final access = context.watch<InventoryProvider>().access;
     return Scaffold(
       appBar: AppBar(title: const Text('Issue requests')),
-      floatingActionButton: a.can('inv.issue.request')
+      floatingActionButton: access.can('inventory.issue.request')
           ? FloatingActionButton.extended(
               onPressed: () async {
                 await context.push(AppRoutes.inventoryRequestForm);
@@ -60,51 +60,56 @@ class _IssueRequestsPageState extends State<IssueRequestsPage> {
               value: _status,
               items: [
                 const DropdownMenuItem(child: Text('All statuses')),
-                for (final s in [
+                for (final value in [
                   'pending',
                   'approved',
                   'partially_issued',
                   'issued',
                   'rejected',
                 ])
-                  DropdownMenuItem(value: s, child: Text(statusLabel(s))),
+                  DropdownMenuItem(
+                    value: value,
+                    child: Text(humanizeStatus(value)),
+                  ),
               ],
-              onChanged: (v) {
-                _status = v;
+              onChanged: (value) {
+                _status = value;
                 _load();
               },
             ),
           ),
           Expanded(
-            child: p.requests.isEmpty
+            child: stockProvider.requests.isEmpty
                 ? Center(
-                    child: p.isLoading
+                    child: stockProvider.isLoading
                         ? const CircularProgressIndicator()
-                        : Text(p.errorMessage ?? 'No requests'),
+                        : Text(stockProvider.errorMessage ?? 'No requests'),
                   )
                 : ListView(
                     children: [
-                      for (final r in p.requests)
+                      for (final issueRequest in stockProvider.requests)
                         ListTile(
-                          title: Text('${r.number} · ${r.purpose}'),
+                          title: Text(
+                            '${issueRequest.number} · ${issueRequest.purpose}',
+                          ),
                           subtitle: Text(
-                            r.lines
+                            issueRequest.lineItems
                                 .map(
-                                  (l) =>
-                                      '${p.itemName(l.itemId)} × ${fmtQty(l.requested)}',
+                                  (requestLine) =>
+                                      '${stockProvider.itemName(requestLine.itemId)} × ${formatQuantity(requestLine.requested)}',
                                 )
                                 .join(', '),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
                           trailing: Chip(
-                            label: Text(statusLabel(r.status)),
+                            label: Text(humanizeStatus(issueRequest.status)),
                             visualDensity: VisualDensity.compact,
                           ),
                           onTap: () async {
-                            await showInvSheet(
+                            await showFormSheet(
                               context,
-                              () => RequestSheet(request: r),
+                              () => RequestSheet(request: issueRequest),
                             );
                             if (mounted) await _load();
                           },

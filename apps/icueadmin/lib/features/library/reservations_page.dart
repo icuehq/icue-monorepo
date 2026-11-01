@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
 import 'package:icueadmin/features/library/widgets/reservation_sheet.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
@@ -23,49 +23,53 @@ class _ReservationsPageState extends State<ReservationsPage> {
     );
   }
 
-  void _onStatusChanged(String s) {
-    setState(() => _status = s);
-    context.read<LibraryProvider>().loadReservations(status: s);
+  void _onStatusChanged(String value) {
+    setState(() => _status = value);
+    context.read<LibraryProvider>().loadReservations(status: value);
   }
 
-  Future<void> _cancel(LibReservation r) async {
+  Future<void> _cancel(LibraryReservation reservation) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (context) => AlertDialog(
         title: const Text('Cancel reservation'),
-        content: Text('Cancel reservation ${r.number} for "${r.title}"?'),
+        content: Text(
+          'Cancel reservation ${reservation.number} for "${reservation.title}"?',
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
+            onPressed: () => Navigator.of(context).pop(false),
             child: const Text('No'),
           ),
           FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
+            onPressed: () => Navigator.of(context).pop(true),
             child: const Text('Cancel reservation'),
           ),
         ],
       ),
     );
     if (confirmed != true || !mounted) return;
-    final p = context.read<LibraryProvider>();
-    final ok = await p.cancelReservation(r.id);
+    final libraryProvider = context.read<LibraryProvider>();
+    final ok = await libraryProvider.cancelReservation(reservation.id);
     if (!mounted) return;
-    invSnack(
+    showMessage(
       context,
-      ok ? 'Reservation cancelled' : p.errorMessage ?? 'Could not cancel',
+      ok
+          ? 'Reservation cancelled'
+          : libraryProvider.errorMessage ?? 'Could not cancel',
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final p = context.watch<LibraryProvider>();
+    final libraryProvider = context.watch<LibraryProvider>();
     return Scaffold(
       appBar: AppBar(title: const Text('Reservations')),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
           await ReservationSheet.show(context);
           if (mounted) {
-            await p.loadReservations(status: _status);
+            await libraryProvider.loadReservations(status: _status);
           }
         },
         icon: const Icon(Icons.bookmark_add_outlined),
@@ -84,61 +88,71 @@ class _ReservationsPageState extends State<ReservationsPage> {
                 ButtonSegment(value: 'expired', label: Text('Expired')),
               ],
               selected: {_status},
-              onSelectionChanged: (s) => _onStatusChanged(s.first),
+              onSelectionChanged: (values) => _onStatusChanged(values.first),
             ),
           ),
           Expanded(
-            child: p.reservations.isEmpty
+            child: libraryProvider.reservations.isEmpty
                 ? Center(
                     child: Text(
-                      p.reservationsLoading
+                      libraryProvider.reservationsLoading
                           ? 'Loading…'
-                          : p.errorMessage ?? 'No $_status reservations',
+                          : libraryProvider.errorMessage ??
+                                'No $_status reservations',
                     ),
                   )
                 : ListView.builder(
                     itemCount:
-                        p.reservations.length + (p.hasMoreReservations ? 1 : 0),
+                        libraryProvider.reservations.length +
+                        (libraryProvider.hasMoreReservations ? 1 : 0),
                     itemBuilder: (context, index) {
-                      if (index >= p.reservations.length) {
+                      if (index >= libraryProvider.reservations.length) {
                         return Center(
                           child: TextButton(
-                            onPressed: p.reservationsLoading
+                            onPressed: libraryProvider.reservationsLoading
                                 ? null
-                                : () => p.loadReservations(more: true),
+                                : () => libraryProvider.loadReservations(
+                                    more: true,
+                                  ),
                             child: const Text('Load more'),
                           ),
                         );
                       }
-                      final r = p.reservations[index];
+                      final currentReservation =
+                          libraryProvider.reservations[index];
                       // Position within the same title and library; the list is oldest first.
                       final position =
-                          p.reservations
+                          libraryProvider.reservations
                               .take(index)
                               .where(
-                                (o) =>
-                                    o.catalogueId == r.catalogueId &&
-                                    o.libraryId == r.libraryId,
+                                (reservation) =>
+                                    reservation.catalogueId ==
+                                        currentReservation.catalogueId &&
+                                    reservation.libraryId ==
+                                        currentReservation.libraryId,
                               )
                               .length +
                           1;
-                      final subtitle = switch (r.status) {
-                        'waiting' => 'Queue: #$position · ${r.number}',
+                      final subtitle = switch (currentReservation.status) {
+                        'waiting' =>
+                          'Queue: #$position · ${currentReservation.number}',
                         'ready' =>
-                          'Held: ${r.heldCopyId ?? '-'} · Hold until ${r.holdUntil ?? '-'} · ${r.number}',
+                          'Held: ${currentReservation.heldCopyId ?? '-'} · Hold until ${currentReservation.holdUntil ?? '-'} · ${currentReservation.number}',
                         'fulfilled' =>
-                          'Fulfilled: copy ${r.fulfilledCopyId ?? '-'} · ${r.number}',
+                          'Fulfilled: copy ${currentReservation.fulfilledCopyId ?? '-'} · ${currentReservation.number}',
                         _ =>
-                          '${reservationStatusLabel(r.status)} · ${r.number}',
+                          '${reservationStatusLabel(currentReservation.status)} · ${currentReservation.number}',
                       };
                       return ListTile(
-                        title: Text('${r.title} · ${r.memberLabel}'),
+                        title: Text(
+                          '${currentReservation.title} · ${currentReservation.memberLabel}',
+                        ),
                         subtitle: Text(subtitle),
-                        trailing: r.isLive
+                        trailing: currentReservation.isLive
                             ? IconButton(
                                 icon: const Icon(Icons.cancel_outlined),
                                 tooltip: 'Cancel reservation',
-                                onPressed: () => _cancel(r),
+                                onPressed: () => _cancel(currentReservation),
                               )
                             : null,
                       );

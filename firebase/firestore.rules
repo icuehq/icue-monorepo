@@ -5,186 +5,186 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{db}/documents {
     function signedIn() { return request.auth != null; }
-    function inSchool(sid) { return signedIn() && string(request.auth.token.sid) == sid; }
-    function access(sid) { return get(/databases/$(db)/documents/schools/$(sid)/userAccess/$(request.auth.uid)).data; }
-    function can(sid, p) { return p in access(sid).perms; }
-    function onCampus(sid, c) { return access(sid).all == true || c in access(sid).cmp; }
+    function inSchool(schoolId) { return signedIn() && string(request.auth.token.schoolId) == schoolId; }
+    function access(schoolId) { return get(/databases/$(db)/documents/schools/$(schoolId)/userAccess/$(request.auth.uid)).data; }
+    function can(schoolId, p) { return p in access(schoolId).permissions; }
+    function onCampus(schoolId, c) { return access(schoolId).hasAllCampuses == true || c in access(schoolId).campusIds; }
     function own() {
-      return resource.data.personErpId == request.auth.token.get('eid', null)
-          || resource.data.personErpId in request.auth.token.get('wards', []);
+      return resource.data.personErpId == request.auth.token.get('personErpId', null)
+          || resource.data.personErpId in request.auth.token.get('wardStudentIds', []);
     }
 
     // Default: no client writes anywhere under a school. Reads need an explicit rule below.
     // auditLogs, requests, uniqueKeys, outbox, counters have no client access at all.
-    match /schools/{sid}/{coll}/{id} {
+    match /schools/{schoolId}/{coll}/{id} {
       allow write: if false;
     }
 
-    match /schools/{sid}/userAccess/{uid} {
-      allow read: if inSchool(sid) && request.auth.uid == uid;
+    match /schools/{schoolId}/userAccess/{uid} {
+      allow read: if inSchool(schoolId) && request.auth.uid == uid;
     }
-    match /schools/{sid}/config/{doc} {
-      allow read: if inSchool(sid);
+    match /schools/{schoolId}/config/{doc} {
+      allow read: if inSchool(schoolId);
     }
-    match /schools/{sid}/notifications/{id} {
-      allow read: if inSchool(sid) && resource.data.uid == request.auth.uid;
+    match /schools/{schoolId}/notifications/{id} {
+      allow read: if inSchool(schoolId) && resource.data.uid == request.auth.uid;
     }
 
     // Inventory masters (Inv-1).
-    match /schools/{sid}/{coll}/{id} {
-      allow read: if inSchool(sid) && coll in ['invCategories', 'invUnits', 'invItems']
-        && (can(sid, 'inv.items.view') || can(sid, 'inv.issue.request') || can(sid, 'inv.pr.request'));
+    match /schools/{schoolId}/{coll}/{id} {
+      allow read: if inSchool(schoolId) && coll in ['inventoryCategories', 'inventoryUnits', 'inventoryItems']
+        && (can(schoolId, 'inventory.items.view') || can(schoolId, 'inventory.issue.request') || can(schoolId, 'inventory.purchaseRequest.request'));
     }
-    match /schools/{sid}/invItems/{itemId}/variants/{id} {
-      allow read: if inSchool(sid) && (can(sid, 'inv.items.view') || can(sid, 'inv.issue.request') || can(sid, 'inv.pr.request'));
+    match /schools/{schoolId}/inventoryItems/{itemId}/variants/{id} {
+      allow read: if inSchool(schoolId) && (can(schoolId, 'inventory.items.view') || can(schoolId, 'inventory.issue.request') || can(schoolId, 'inventory.purchaseRequest.request'));
     }
     // Stores are readable school-wide so a transfer can name a destination on another campus.
-    match /schools/{sid}/invStores/{id} {
-      allow read: if inSchool(sid)
-        && (can(sid, 'inv.stock.view') || can(sid, 'inv.settings') || can(sid, 'inv.issue.request'));
+    match /schools/{schoolId}/inventoryStores/{id} {
+      allow read: if inSchool(schoolId)
+        && (can(schoolId, 'inventory.stock.view') || can(schoolId, 'inventory.settings') || can(schoolId, 'inventory.issue.request'));
     }
 
     // Stock (Inv-2): campus-scoped, written only by Functions.
-    match /schools/{sid}/{coll}/{id} {
-      allow read: if inSchool(sid)
-        && coll in ['invBalances', 'invMovements', 'invReceipts', 'invIssues', 'invReturns', 'invAdjustments', 'invUnavailable']
-        && can(sid, 'inv.stock.view') && onCampus(sid, resource.data.campusId);
+    match /schools/{schoolId}/{coll}/{id} {
+      allow read: if inSchool(schoolId)
+        && coll in ['inventoryBalances', 'inventoryMovements', 'inventoryReceipts', 'inventoryIssues', 'inventoryReturns', 'inventoryAdjustments', 'inventoryUnavailableStock']
+        && can(schoolId, 'inventory.stock.view') && onCampus(schoolId, resource.data.campusId);
     }
     // Requesters see their own requests; approvers and stock users see the campus's.
-    match /schools/{sid}/invIssueRequests/{id} {
-      allow read: if inSchool(sid) && (resource.data.createdBy == request.auth.uid
-        || ((can(sid, 'inv.stock.view') || can(sid, 'inv.issue.approve')) && onCampus(sid, resource.data.campusId)));
+    match /schools/{schoolId}/inventoryIssueRequests/{id} {
+      allow read: if inSchool(schoolId) && (resource.data.createdBy == request.auth.uid
+        || ((can(schoolId, 'inventory.stock.view') || can(schoolId, 'inventory.issue.approve')) && onCampus(schoolId, resource.data.campusId)));
     }
     // Either end of a transfer may read it.
-    match /schools/{sid}/invTransfers/{id} {
-      allow read: if inSchool(sid) && can(sid, 'inv.stock.view')
-        && (onCampus(sid, resource.data.campusId) || onCampus(sid, resource.data.toCampusId));
+    match /schools/{schoolId}/inventoryTransfers/{id} {
+      allow read: if inSchool(schoolId) && can(schoolId, 'inventory.stock.view')
+        && (onCampus(schoolId, resource.data.campusId) || onCampus(schoolId, resource.data.toCampusId));
     }
 
     // Procurement (Inv-3). Vendors are school-wide; requesters see their own requests,
     // approvers and procurement the campus's.
-    match /schools/{sid}/invVendors/{id} {
-      allow read: if inSchool(sid) && (can(sid, 'inv.vendors.manage') || can(sid, 'inv.procure.operate'));
+    match /schools/{schoolId}/inventoryVendors/{id} {
+      allow read: if inSchool(schoolId) && (can(schoolId, 'inventory.vendors.manage') || can(schoolId, 'inventory.procure.operate'));
     }
-    match /schools/{sid}/invPurchaseRequests/{id} {
-      allow read: if inSchool(sid) && (resource.data.createdBy == request.auth.uid
-        || ((can(sid, 'inv.pr.approve') || can(sid, 'inv.procure.operate')) && onCampus(sid, resource.data.campusId)));
+    match /schools/{schoolId}/inventoryPurchaseRequests/{id} {
+      allow read: if inSchool(schoolId) && (resource.data.createdBy == request.auth.uid
+        || ((can(schoolId, 'inventory.purchaseRequest.approve') || can(schoolId, 'inventory.procure.operate')) && onCampus(schoolId, resource.data.campusId)));
     }
 
     // Quotations and purchase orders (Inv-4): procurement on the campus.
-    match /schools/{sid}/invQuotations/{id} {
-      allow read: if inSchool(sid) && can(sid, 'inv.procure.operate') && onCampus(sid, resource.data.campusId);
+    match /schools/{schoolId}/inventoryQuotations/{id} {
+      allow read: if inSchool(schoolId) && can(schoolId, 'inventory.procure.operate') && onCampus(schoolId, resource.data.campusId);
     }
     // Receiving staff read orders due at their campus; invoices (Inv-5) follow procurement.
-    match /schools/{sid}/invPurchaseOrders/{id} {
-      allow read: if inSchool(sid) && ((can(sid, 'inv.procure.operate')
-        && (onCampus(sid, resource.data.campusId) || onCampus(sid, resource.data.deliveryCampusId)))
-        || (can(sid, 'inv.stock.operate') && onCampus(sid, resource.data.deliveryCampusId)));
+    match /schools/{schoolId}/inventoryPurchaseOrders/{id} {
+      allow read: if inSchool(schoolId) && ((can(schoolId, 'inventory.procure.operate')
+        && (onCampus(schoolId, resource.data.campusId) || onCampus(schoolId, resource.data.deliveryCampusId)))
+        || (can(schoolId, 'inventory.stock.operate') && onCampus(schoolId, resource.data.deliveryCampusId)));
     }
-    match /schools/{sid}/invInvoices/{id} {
-      allow read: if inSchool(sid) && can(sid, 'inv.procure.operate') && onCampus(sid, resource.data.campusId);
+    match /schools/{schoolId}/inventoryInvoices/{id} {
+      allow read: if inSchool(schoolId) && can(schoolId, 'inventory.procure.operate') && onCampus(schoolId, resource.data.campusId);
     }
-    match /schools/{sid}/invPurchaseOrders/{id}/revisions/{rev} {
-      allow read: if inSchool(sid) && can(sid, 'inv.procure.operate');
+    match /schools/{schoolId}/inventoryPurchaseOrders/{id}/revisions/{rev} {
+      allow read: if inSchool(schoolId) && can(schoolId, 'inventory.procure.operate');
     }
 
     // Assets and maintenance (Inv-6). Assignees also read their own custody records.
-    match /schools/{sid}/{coll}/{id} {
-      allow read: if inSchool(sid) && coll in ['invAssets', 'invMaintenance']
-        && can(sid, 'inv.assets.view') && onCampus(sid, resource.data.campusId);
+    match /schools/{schoolId}/{coll}/{id} {
+      allow read: if inSchool(schoolId) && coll in ['inventoryAssets', 'inventoryMaintenanceJobs']
+        && can(schoolId, 'inventory.assets.view') && onCampus(schoolId, resource.data.campusId);
     }
-    match /schools/{sid}/invAssets/{id}/history/{h} {
-      allow read: if inSchool(sid) && can(sid, 'inv.assets.view') && onCampus(sid, resource.data.campusId);
+    match /schools/{schoolId}/inventoryAssets/{id}/history/{h} {
+      allow read: if inSchool(schoolId) && can(schoolId, 'inventory.assets.view') && onCampus(schoolId, resource.data.campusId);
     }
-    match /schools/{sid}/invAssetAssignments/{id} {
-      allow read: if inSchool(sid) && ((can(sid, 'inv.assets.view') && onCampus(sid, resource.data.campusId)) || own());
+    match /schools/{schoolId}/inventoryAssetAssignments/{id} {
+      allow read: if inSchool(schoolId) && ((can(schoolId, 'inventory.assets.view') && onCampus(schoolId, resource.data.campusId)) || own());
     }
 
     // Verification sessions (Inv-7): stock users on the campus; counting is also a direct line update so it queues offline.
-    match /schools/{sid}/invVerifications/{id} {
-      allow read: if inSchool(sid) && can(sid, 'inv.stock.view') && onCampus(sid, resource.data.campusId);
+    match /schools/{schoolId}/inventoryVerifications/{id} {
+      allow read: if inSchool(schoolId) && can(schoolId, 'inventory.stock.view') && onCampus(schoolId, resource.data.campusId);
     }
-    match /schools/{sid}/invVerifications/{id}/lines/{l} {
-      allow read: if inSchool(sid) && can(sid, 'inv.stock.view') && onCampus(sid, resource.data.campusId);
-      // Count only: the same fields `inv-verification-count` writes, while the session is still `counting`.
-      allow update: if inSchool(sid) && can(sid, 'inv.stock.operate') && onCampus(sid, resource.data.campusId)
-        && get(/databases/$(db)/documents/schools/$(sid)/invVerifications/$(id)).data.status == 'counting'
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['counted', 'diff', 'reason', 'note', 'countedBy', 'countedAt'])
+    match /schools/{schoolId}/inventoryVerifications/{id}/lineItems/{l} {
+      allow read: if inSchool(schoolId) && can(schoolId, 'inventory.stock.view') && onCampus(schoolId, resource.data.campusId);
+      // Count only: the same fields `inventory-verification-count` writes, while the session is still `counting`.
+      allow update: if inSchool(schoolId) && can(schoolId, 'inventory.stock.operate') && onCampus(schoolId, resource.data.campusId)
+        && get(/databases/$(db)/documents/schools/$(schoolId)/inventoryVerifications/$(id)).data.status == 'counting'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['counted', 'difference', 'reason', 'note', 'countedBy', 'countedAt'])
         && request.resource.data.counted is number && request.resource.data.counted >= 0
-        && request.resource.data['diff'] == request.resource.data.counted - resource.data.expected
+        && request.resource.data['difference'] == request.resource.data.counted - resource.data.expected
         && request.resource.data.countedBy == request.auth.uid
         && (request.resource.data.reason == null
             || request.resource.data.reason in ['count_correction', 'missing', 'excess', 'other']);
     }
 
     // Reports and the dashboard (Inv-7): report viewers read the campus's records in every report collection.
-    match /schools/{sid}/{coll}/{id} {
-      allow read: if inSchool(sid) && can(sid, 'inv.reports.view') && onCampus(sid, resource.data.campusId)
-        && coll in ['invBalances', 'invMovements', 'invReceipts', 'invIssues', 'invReturns', 'invAdjustments', 'invUnavailable',
-          'invIssueRequests', 'invTransfers', 'invPurchaseRequests', 'invQuotations', 'invPurchaseOrders', 'invInvoices',
-          'invAssets', 'invAssetAssignments', 'invMaintenance', 'invVerifications'];
+    match /schools/{schoolId}/{coll}/{id} {
+      allow read: if inSchool(schoolId) && can(schoolId, 'inventory.reports.view') && onCampus(schoolId, resource.data.campusId)
+        && coll in ['inventoryBalances', 'inventoryMovements', 'inventoryReceipts', 'inventoryIssues', 'inventoryReturns', 'inventoryAdjustments', 'inventoryUnavailableStock',
+          'inventoryIssueRequests', 'inventoryTransfers', 'inventoryPurchaseRequests', 'inventoryQuotations', 'inventoryPurchaseOrders', 'inventoryInvoices',
+          'inventoryAssets', 'inventoryAssetAssignments', 'inventoryMaintenanceJobs', 'inventoryVerifications'];
     }
-    match /schools/{sid}/invVendors/{id} {
-      allow read: if inSchool(sid) && can(sid, 'inv.reports.view');
+    match /schools/{schoolId}/inventoryVendors/{id} {
+      allow read: if inSchool(schoolId) && can(schoolId, 'inventory.reports.view');
     }
 
     // Library masters (Lib-1): catalogue is school-wide, readable by anyone who may browse it.
-    match /schools/{sid}/{coll}/{id} {
-      allow read: if inSchool(sid) && coll in ['libLibraries', 'libCategories', 'libCatalogue', 'libCopies']
-        && can(sid, 'lib.catalogue.view');
+    match /schools/{schoolId}/{coll}/{id} {
+      allow read: if inSchool(schoolId) && coll in ['libraries', 'libraryCategories', 'libraryCatalogue', 'libraryCopies']
+        && can(schoolId, 'library.catalogue.view');
     }
     // Parents (Lib-8): browse the catalogue read-only; copies stay with staff.
-    match /schools/{sid}/{coll}/{id} {
-      allow read: if inSchool(sid) && coll in ['libLibraries', 'libCategories', 'libCatalogue']
-        && request.auth.token.get('pt', '') == 'parent';
+    match /schools/{schoolId}/{coll}/{id} {
+      allow read: if inSchool(schoolId) && coll in ['libraries', 'libraryCategories', 'libraryCatalogue']
+        && request.auth.token.get('personType', '') == 'parent';
     }
     // Acquisition records (Lib-2): librarians, and report readers on the campus.
-    match /schools/{sid}/libAcquisitions/{id} {
-      allow read: if inSchool(sid) && (can(sid, 'lib.catalogue.manage')
-        || (can(sid, 'lib.reports.view') && onCampus(sid, resource.data.campusId)));
+    match /schools/{schoolId}/libraryAcquisitions/{id} {
+      allow read: if inSchool(schoolId) && (can(schoolId, 'library.catalogue.manage')
+        || (can(schoolId, 'library.reports.view') && onCampus(schoolId, resource.data.campusId)));
     }
     // Members and borrowing policies (Lib-3); report readers see them for the dashboard.
-    match /schools/{sid}/{coll}/{id} {
-      allow read: if inSchool(sid) && coll in ['libMembers', 'libPolicies']
-        && (can(sid, 'lib.members.view') || can(sid, 'lib.reports.view'));
+    match /schools/{schoolId}/{coll}/{id} {
+      allow read: if inSchool(schoolId) && coll in ['libraryMembers', 'libraryBorrowingPolicies']
+        && (can(schoolId, 'library.members.view') || can(schoolId, 'library.reports.view'));
     }
     // A parent reads their ward's membership (Lib-8).
-    match /schools/{sid}/libMembers/{id} {
-      allow read: if inSchool(sid) && resource.data.erpId in request.auth.token.get('wards', []);
+    match /schools/{schoolId}/libraryMembers/{id} {
+      allow read: if inSchool(schoolId) && resource.data.personErpId in request.auth.token.get('wardStudentIds', []);
     }
 
     // Loans (Lib-4): circulation staff on the campus, or the borrower / parent by ERP ID.
-    match /schools/{sid}/libLoans/{id} {
-      allow read: if inSchool(sid) && (((can(sid, 'lib.circulation.operate') || can(sid, 'lib.reports.view')) && onCampus(sid, resource.data.campusId)) || own());
+    match /schools/{schoolId}/libraryLoans/{id} {
+      allow read: if inSchool(schoolId) && (((can(schoolId, 'library.circulation.operate') || can(schoolId, 'library.reports.view')) && onCampus(schoolId, resource.data.campusId)) || own());
     }
 
     // Reservations (Lib-5): same readers as loans.
-    match /schools/{sid}/libReservations/{id} {
-      allow read: if inSchool(sid) && (((can(sid, 'lib.circulation.operate') || can(sid, 'lib.reports.view')) && onCampus(sid, resource.data.campusId)) || own());
+    match /schools/{schoolId}/libraryReservations/{id} {
+      allow read: if inSchool(schoolId) && (((can(schoolId, 'library.circulation.operate') || can(schoolId, 'library.reports.view')) && onCampus(schoolId, resource.data.campusId)) || own());
     }
 
     // Fines (Lib-6): circulation staff or fine waivers on the campus, or the borrower / parent by ERP ID.
-    match /schools/{sid}/libFines/{id} {
-      allow read: if inSchool(sid)
-        && (((can(sid, 'lib.circulation.operate') || can(sid, 'lib.fines.waive') || can(sid, 'lib.reports.view')) && onCampus(sid, resource.data.campusId)) || own());
+    match /schools/{schoolId}/libraryFines/{id} {
+      allow read: if inSchool(schoolId)
+        && (((can(schoolId, 'library.circulation.operate') || can(schoolId, 'library.fines.waive') || can(schoolId, 'library.reports.view')) && onCampus(schoolId, resource.data.campusId)) || own());
     }
 
     // Incidents (Lib-6): circulation staff on the campus, or the member / parent by ERP ID.
-    match /schools/{sid}/libIncidents/{id} {
-      allow read: if inSchool(sid)
-        && (((can(sid, 'lib.circulation.operate') || can(sid, 'lib.reports.view')) && onCampus(sid, resource.data.campusId)) || own());
+    match /schools/{schoolId}/libraryIncidents/{id} {
+      allow read: if inSchool(schoolId)
+        && (((can(schoolId, 'library.circulation.operate') || can(schoolId, 'library.reports.view')) && onCampus(schoolId, resource.data.campusId)) || own());
     }
 
     // Transfers (Lib-7): librarians at the source or the destination campus.
-    match /schools/{sid}/libTransfers/{id} {
-      allow read: if inSchool(sid) && (can(sid, 'lib.catalogue.manage') || can(sid, 'lib.reports.view'))
-        && (onCampus(sid, resource.data.campusId) || onCampus(sid, resource.data.toCampusId));
+    match /schools/{schoolId}/libraryTransfers/{id} {
+      allow read: if inSchool(schoolId) && (can(schoolId, 'library.catalogue.manage') || can(schoolId, 'library.reports.view'))
+        && (onCampus(schoolId, resource.data.campusId) || onCampus(schoolId, resource.data.toCampusId));
     }
 
     // Stock verification sessions (Lib-7): librarians on the campus.
-    match /schools/{sid}/libVerifications/{id} {
-      allow read: if inSchool(sid) && (can(sid, 'lib.catalogue.manage') || can(sid, 'lib.reports.view'))
-        && onCampus(sid, resource.data.campusId);
+    match /schools/{schoolId}/libraryVerifications/{id} {
+      allow read: if inSchool(schoolId) && (can(schoolId, 'library.catalogue.manage') || can(schoolId, 'library.reports.view'))
+        && onCampus(schoolId, resource.data.campusId);
     }
 
     match /devices/{uid} {

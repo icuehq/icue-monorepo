@@ -1,19 +1,19 @@
 rules_version = '2';
 
-// Paths: schools/{sid}/{module}/{collection}/{docId}/{file}.
+// Paths: schools/{schoolId}/{module}/{collection}/{docId}/{file}.
 // Reads: same school + module view permission. Ceiling: per-module, not per-record (architecture §8.2).
 // Writes: denied until `files-getUploadPath` registers pending uploads (first phase with uploads).
 service firebase.storage {
   match /b/{bucket}/o {
-    function canView(sid, module) {
-      let perm = module == 'inv' ? 'inv.items.view' : (module == 'lib' ? 'lib.catalogue.view' : '');
+    function canView(schoolId, module) {
+      let permission = module == 'inv' ? 'inventory.items.view' : (module == 'lib' ? 'library.catalogue.view' : '');
       return request.auth != null
-        && string(request.auth.token.sid) == sid
-        && perm in firestore.get(/databases/(default)/documents/schools/$(sid)/userAccess/$(request.auth.uid)).data.perms;
+        && string(request.auth.token.schoolId) == schoolId
+        && permission in firestore.get(/databases/(default)/documents/schools/$(schoolId)/userAccess/$(request.auth.uid)).data.permissions;
     }
 
-    match /schools/{sid}/{module}/{rest=**} {
-      allow read: if canView(sid, module);
+    match /schools/{schoolId}/{module}/{rest=**} {
+      allow read: if canView(schoolId, module);
       allow write: if false;
     }
   }

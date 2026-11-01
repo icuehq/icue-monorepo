@@ -1,7 +1,8 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icueadmin/features/inventory/procurement/order_widgets.dart';
-import 'package:icueadmin/features/inventory/procurement/proc_ui.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
+import 'package:icueadmin/features/inventory/procurement/procurement_ui.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -15,9 +16,9 @@ class PurchaseOrderFormPage extends StatefulWidget {
     super.key,
   });
 
-  final InvPurchaseRequest request;
-  final InvQuotation? quotation;
-  final InvPurchaseOrder? existing;
+  final InventoryPurchaseRequest request;
+  final InventoryQuotation? quotation;
+  final InventoryPurchaseOrder? existing;
 
   @override
   State<PurchaseOrderFormPage> createState() => _PurchaseOrderFormPageState();
@@ -52,37 +53,74 @@ class _PurchaseOrderFormPageState extends State<PurchaseOrderFormPage> {
   @override
   void initState() {
     super.initState();
-    final p = context.read<ProcurementProvider>();
-    if (p.vendors.isEmpty) p.loadVendors();
+    final procurementProvider = context.read<ProcurementProvider>();
+    if (procurementProvider.vendors.isEmpty) procurementProvider.loadVendors();
     final locked = _quotationId != null;
-    OrderLineInput add(String item, String? variant, double q, double price) =>
-        OrderLineInput(
-          item,
-          variant,
-          p.itemName(item),
-          qty: fmtQty(q),
-          price: price == 0 ? '' : fmtQty(price),
-          priceLocked: locked,
-        );
-    final e = widget.existing;
+    OrderLineInput add(
+      String item,
+      String? variant,
+      double quantity,
+      double price,
+    ) => OrderLineInput(
+      item,
+      variant,
+      procurementProvider.itemName(item),
+      quantity: formatQuantity(quantity),
+      price: price == 0 ? '' : formatQuantity(price),
+      priceLocked: locked,
+    );
+    final purchaseOrder = widget.existing;
     final quote = widget.quotation;
-    if (e != null) {
-      for (final l in e.lines) {
-        _lines.add(add(l.itemId, l.variantId, l.qty, l.unitPrice));
+    if (purchaseOrder != null) {
+      for (final orderLine in purchaseOrder.lineItems) {
+        _lines.add(
+          add(
+            orderLine.itemId,
+            orderLine.variantId,
+            orderLine.quantity,
+            orderLine.unitPrice,
+          ),
+        );
       }
     } else if (quote != null) {
-      for (final l in quote.lines) {
-        final left = widget.request.lines
-            .where((x) => x.itemId == l.itemId && x.variantId == l.variantId)
-            .map((x) => x.qty - x.qtyOrdered);
-        final q = left.isEmpty || left.first > l.qty ? l.qty : left.first;
-        if (q > 0) _lines.add(add(l.itemId, l.variantId, q, l.unitPrice));
+      for (final orderLine in quote.lineItems) {
+        final left = widget.request.lineItems
+            .where(
+              (purchaseRequestLine) =>
+                  purchaseRequestLine.itemId == orderLine.itemId &&
+                  purchaseRequestLine.variantId == orderLine.variantId,
+            )
+            .map(
+              (purchaseRequestLine) =>
+                  purchaseRequestLine.quantity -
+                  purchaseRequestLine.quantityOrdered,
+            );
+        final quantity = left.isEmpty || left.first > orderLine.quantity
+            ? orderLine.quantity
+            : left.first;
+        if (quantity > 0) {
+          _lines.add(
+            add(
+              orderLine.itemId,
+              orderLine.variantId,
+              quantity,
+              orderLine.unitPrice,
+            ),
+          );
+        }
       }
     } else {
-      for (final l in widget.request.lines) {
-        if (l.qty > l.qtyOrdered) {
+      for (final purchaseRequestLine in widget.request.lineItems) {
+        if (purchaseRequestLine.quantity >
+            purchaseRequestLine.quantityOrdered) {
           _lines.add(
-            add(l.itemId, l.variantId, l.qty - l.qtyOrdered, l.estPrice),
+            add(
+              purchaseRequestLine.itemId,
+              purchaseRequestLine.variantId,
+              purchaseRequestLine.quantity -
+                  purchaseRequestLine.quantityOrdered,
+              purchaseRequestLine.estimatedPrice,
+            ),
           );
         }
       }
@@ -91,38 +129,54 @@ class _PurchaseOrderFormPageState extends State<PurchaseOrderFormPage> {
 
   @override
   void dispose() {
-    for (final c in [_expected, _terms, _remarks, _discount, _tax, _delivery]) {
-      c.dispose();
+    for (final controller in [
+      _expected,
+      _terms,
+      _remarks,
+      _discount,
+      _tax,
+      _delivery,
+    ]) {
+      controller.dispose();
     }
-    for (final l in _lines) {
-      l.dispose();
+    for (final orderLineInput in _lines) {
+      orderLineInput.dispose();
     }
     super.dispose();
   }
 
-  double _v(TextEditingController c) => double.tryParse(c.text.trim()) ?? 0;
+  double _v(TextEditingController controller) =>
+      double.tryParse(controller.text.trim()) ?? 0;
 
   Future<void> _save({required bool issue}) async {
     if (!_form.currentState!.validate()) return;
-    if (_lines.isEmpty) return invSnack(context, 'Nothing left to order');
+    if (_lines.isEmpty) return showMessage(context, 'Nothing left to order');
     setState(() => _busy = true);
-    await procSubmit(context, (p) async {
-      final saved = await p.act('inv-po-save', {
-        'id': ?widget.existing?.id,
-        'prId': widget.request.id,
-        'quotationId': ?_quotationId,
-        'vendorId': _vendor,
-        'deliveryCampusId': _campus,
-        'expectedDate': _expected.text,
-        'terms': _terms.text.trim(),
-        'remarks': _remarks.text.trim(),
-        'lines': [for (final l in _lines) l.toJson('qtyOrdered')],
-        'discount': _v(_discount),
-        'tax': _v(_tax),
-        'delivery': _v(_delivery),
-      });
+    await procSubmit(context, (procurementProvider) async {
+      final saved = await procurementProvider.act(
+        'inventory-purchaseOrder-save',
+        {
+          'id': ?widget.existing?.id,
+          'purchaseRequestId': widget.request.id,
+          'quotationId': ?_quotationId,
+          'vendorId': _vendor,
+          'deliveryCampusId': _campus,
+          'expectedDate': _expected.text,
+          'terms': _terms.text.trim(),
+          'remarks': _remarks.text.trim(),
+          'lineItems': [
+            for (final orderLineInput in _lines)
+              orderLineInput.toJson('quantityOrdered'),
+          ],
+          'discount': _v(_discount),
+          'tax': _v(_tax),
+          'delivery': _v(_delivery),
+        },
+      );
       if (saved == null || !issue) return saved;
-      return p.act('inv-po-issue', {'id': saved['id']});
+      return procurementProvider.act('inventory-purchaseOrder-issue', {
+        'id': saved['id'],
+      });
     }, done: issue ? 'Issued' : 'Draft saved');
     if (mounted) setState(() => _busy = false);
   }
@@ -130,9 +184,9 @@ class _PurchaseOrderFormPageState extends State<PurchaseOrderFormPage> {
   @override
   Widget build(BuildContext context) {
     final access = context.read<InventoryProvider>().access;
-    final campuses = {...access.campuses, _campus}.toList();
+    final campuses = {...access.campusIds, _campus}.toList();
     final vendors = context.watch<ProcurementProvider>().vendors.where(
-      (v) => v.active || v.id == _vendor,
+      (vendor) => vendor.active || vendor.id == _vendor,
     );
     return Scaffold(
       appBar: AppBar(
@@ -147,20 +201,22 @@ class _PurchaseOrderFormPageState extends State<PurchaseOrderFormPage> {
               initialValue: _vendor,
               decoration: const InputDecoration(labelText: 'Vendor *'),
               items: [
-                for (final v in vendors)
-                  DropdownMenuItem(value: v.id, child: Text(v.name)),
+                for (final vendor in vendors)
+                  DropdownMenuItem(value: vendor.id, child: Text(vendor.name)),
               ],
-              onChanged: _quotationId == null ? (v) => _vendor = v : null,
-              validator: (v) => v == null ? 'Required' : null,
+              onChanged: _quotationId == null
+                  ? (value) => _vendor = value
+                  : null,
+              validator: (value) => value == null ? 'Required' : null,
             ),
             DropdownButtonFormField<int>(
               initialValue: _campus,
               decoration: const InputDecoration(labelText: 'Deliver to *'),
               items: [
-                for (final c in campuses)
-                  DropdownMenuItem(value: c, child: Text('Campus $c')),
+                for (final value in campuses)
+                  DropdownMenuItem(value: value, child: Text('Campus $value')),
               ],
-              onChanged: (v) => _campus = v ?? _campus,
+              onChanged: (value) => _campus = value ?? _campus,
             ),
             dateField(context, _expected, 'Expected delivery *'),
             TextFormField(
@@ -184,7 +240,7 @@ class _PurchaseOrderFormPageState extends State<PurchaseOrderFormPage> {
                     : null,
               ),
             OrderTotals(
-              lines: _lines,
+              lineItems: _lines,
               discount: _discount,
               tax: _tax,
               delivery: _delivery,

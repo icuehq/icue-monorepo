@@ -1,7 +1,8 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icueadmin/features/inventory/stock/stock_ui.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -9,7 +10,7 @@ import 'package:provider/provider.dart';
 class IssueReturnSheet extends StatefulWidget {
   const IssueReturnSheet({required this.issue, super.key});
 
-  final InvIssue issue;
+  final InventoryIssue issue;
 
   @override
   State<IssueReturnSheet> createState() => _IssueReturnSheetState();
@@ -17,10 +18,10 @@ class IssueReturnSheet extends StatefulWidget {
 
 class _IssueReturnSheetState extends State<IssueReturnSheet> {
   late final _usable = [
-    for (final _ in widget.issue.lines) TextEditingController(),
+    for (final _ in widget.issue.lineItems) TextEditingController(),
   ];
   late final _damaged = [
-    for (final _ in widget.issue.lines) TextEditingController(),
+    for (final _ in widget.issue.lineItems) TextEditingController(),
   ];
   final _returnedBy = TextEditingController();
   final _requestId = newRequestId();
@@ -28,35 +29,38 @@ class _IssueReturnSheetState extends State<IssueReturnSheet> {
   @override
   void dispose() {
     _returnedBy.dispose();
-    for (final c in [..._usable, ..._damaged]) {
-      c.dispose();
+    for (final controller in [..._usable, ..._damaged]) {
+      controller.dispose();
     }
     super.dispose();
   }
 
-  double _v(TextEditingController c) => double.tryParse(c.text.trim()) ?? 0;
+  double _v(TextEditingController controller) =>
+      double.tryParse(controller.text.trim()) ?? 0;
 
   Future<void> _return() async {
-    final erpId = int.tryParse(_returnedBy.text.trim());
-    if (erpId == null) {
-      return invSnack(context, 'Enter the returning person\'s ERP ID');
+    final personErpId = int.tryParse(_returnedBy.text.trim());
+    if (personErpId == null) {
+      return showMessage(context, 'Enter the returning person\'s ERP ID');
     }
-    final lines = [
-      for (final (i, l) in widget.issue.lines.indexed)
+    final lineItems = [
+      for (final (i, l) in widget.issue.lineItems.indexed)
         if (_v(_usable[i]) + _v(_damaged[i]) > 0)
           {
             'balanceId': l.balanceId,
-            'qtyUsable': _v(_usable[i]),
-            'qtyDamaged': _v(_damaged[i]),
+            'quantityUsable': _v(_usable[i]),
+            'quantityDamaged': _v(_damaged[i]),
           },
     ];
-    if (lines.isEmpty) return invSnack(context, 'Enter a returned quantity');
+    if (lineItems.isEmpty) {
+      return showMessage(context, 'Enter a returned quantity');
+    }
     await stockSubmit(
       context,
-      (p) => p.act('inv-return-create', {
+      (stockProvider) => stockProvider.act('inventory-return-create', {
         'issueId': widget.issue.id,
-        'returnedBy': {'type': 'staff', 'erpId': erpId},
-        'lines': lines,
+        'returnedBy': {'type': 'staff', 'personErpId': personErpId},
+        'lineItems': lineItems,
       }, requestId: _requestId),
       done: 'Return recorded',
     );
@@ -64,7 +68,7 @@ class _IssueReturnSheetState extends State<IssueReturnSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final p = context.read<StockProvider>();
+    final currentStockProvider = context.read<StockProvider>();
     final issue = widget.issue;
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -77,13 +81,16 @@ class _IssueReturnSheetState extends State<IssueReturnSheet> {
             label: const Text('Recipient has received the items'),
             onPressed: () => stockSubmit(
               context,
-              (p) => p.act('inv-issue-acknowledge', {'id': issue.id}),
+              (stockProvider) => stockProvider.act(
+                'inventory-issue-acknowledge',
+                {'id': issue.id},
+              ),
               done: 'Receipt confirmed',
             ),
           ),
         const Divider(),
         const Text('Return (inspect: usable vs damaged)'),
-        for (final (i, l) in issue.lines.indexed)
+        for (final (i, l) in issue.lineItems.indexed)
           if (l.outstanding > 0)
             Padding(
               padding: const EdgeInsets.only(top: 8),
@@ -92,7 +99,7 @@ class _IssueReturnSheetState extends State<IssueReturnSheet> {
                   Expanded(
                     flex: 3,
                     child: Text(
-                      '${p.itemName(l.itemId)}${l.batchNo == null ? '' : ' · ${l.batchNo}'}\nOutstanding ${fmtQty(l.outstanding)}',
+                      '${currentStockProvider.itemName(l.itemId)}${l.batchNumber == null ? '' : ' · ${l.batchNumber}'}\nOutstanding ${formatQuantity(l.outstanding)}',
                     ),
                   ),
                   Expanded(

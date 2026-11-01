@@ -31,7 +31,7 @@ feature package, icueadmin screens (files under 500 lines), and DI registration.
 - [ ] Node dev: `POST /v1.0/firebaseToken` live (signs with `icueadmin-dev` service account)
 - [ ] Node prod: `POST /v1.0/firebaseToken` live
 - [ ] Node endpoints confirmed (students by class/section, staff, departments, roles, academic years)
-- [ ] `search` database (Enterprise, Native, `asia-south1`) in each project, then `firebase/scripts/create-search-index.sh <project>` (creates the `invItems` and `libCatalogue` text indexes; dev has the database and the `invItems` index from a spike; prod has neither)
+- [ ] `search` database (Enterprise, Native, `asia-south1`) in each project, then `firebase/scripts/create-search-index.sh <project>` (creates the `inventoryItems` and `libraryCatalogue` text indexes; dev has the database and the `inventoryItems` index from a spike; prod has neither)
 - [x] Dev/prod Android and iOS flavors with separate app IDs (both build)
 
 ## Phase 0 – Shared foundation
@@ -86,10 +86,10 @@ rules, indexes, screens) so the list is concrete before coding begins.
 
 ### Phase 0
 
-Collections (all under `schools/{sid}/` unless noted):
+Collections (all under `schools/{schoolId}/` unless noted):
 
-- [x] `config/rolePermissions` `{roles: {"<roleId>": [perm…]}}`, seeded by `firebase/functions/scripts/seed.ts --project dev --school <sid> --roles admin=<id>,principal=<id>,…` from the §3.1 default table
-- [x] `userAccess/{uid}` `{perms, cmp, all, rol, pt, eid, wards, updatedAt}`
+- [x] `config/rolePermissions` `{roles: {"<roleId>": [permission…]}}`, seeded by `firebase/functions/scripts/seed.ts --project dev --school <schoolId> --roles admin=<id>,principal=<id>,…` from the §3.1 default table
+- [x] `userAccess/{uid}` `{permissions, campusIds, all, roleIds, personType, personErpId, wardStudentIds, updatedAt}`
 - [x] `requests/{requestId}` `{uid, fn, result, expireAt}`, TTL on `expireAt` (7 days) in `firestore.indexes.json`
 - [x] `auditLogs/{auto}`, `counters/{type_fy}`, `uniqueKeys/{kind_value}`, `outbox/{eventKey}`, `notifications/{eventKey__uid}`
 - [x] `devices/{uid}` (`mute`) and `devices/{uid}/tokens/{sha256(token)}` `{token, platform, app, updatedAt}` (root level)
@@ -99,14 +99,14 @@ Functions (`firebase/functions`, TypeScript, Node 22, `asia-south1`, zod):
 - [x] `src/shared/callable.ts`: wrapper — auth, reject parents, load `userAccess`, permission + campus check, zod input, `requests` replay, one transaction with queued writes, audit helper
 - [x] `src/shared/permissions.ts`: permission keys, default role table, `resolvePerms(rolePermissions, roleIds)`
 - [x] `src/shared/keys.ts`: `fyOf(date)`, `nextNumber` (counters), `claimUniqueKey` (uniqueKeys)
-- [x] `src/shared/outbox.ts`: `enqueue` (in-transaction, skips existing key) and `outboxSend` trigger (recipients by perm+campus / eid / wards, mute, `notifications` copy, `sendEach`, dead-token cleanup)
+- [x] `src/shared/outbox.ts`: `enqueue` (in-transaction, skips existing key) and `outboxSend` trigger (recipients by permission+campus / personErpId / wardStudentIds, mute, `notifications` copy, `sendEach`, dead-token cleanup)
 - [x] `src/session.ts`: `session-sync` callable, `onRolePermissionsChange` trigger
 - [x] Tests (vitest): unit for `resolvePerms`, `fyOf`; emulator for wrapper (idempotent replay, rollback on failure, permission/campus/parent rejection), counters, uniqueKeys, outbox enqueue + recipient resolution, session-sync, onRolePermissionsChange recompute
 
 Rules:
 
 - [x] `firestore.rules`: helpers (§8.1), deny all client writes, own `userAccess` / `notifications` read, `config` read in school, `devices` owner read/write (token doc keys checked)
-- [x] `storage.rules`: `schools/{sid}/{module}/…` read by school + module view permission; writes denied until `files.getUploadPath` exists
+- [x] `storage.rules`: `schools/{schoolId}/{module}/…` read by school + module view permission; writes denied until `files.getUploadPath` exists
 - [x] `firebase/rules-tests` (vitest + `@firebase/rules-unit-testing`): cross-school, cross-user, internal collections, client writes, devices, storage
 
 Scaffold:
@@ -125,20 +125,20 @@ Flutter:
 
 ### Inv-1
 
-Collections: `invCategories`, `invUnits` (doc ID = code), `invItems` (+ `variants`), `invStores`.
+Collections: `inventoryCategories`, `inventoryUnits` (doc ID = code), `inventoryItems` (+ `variants`), `inventoryStores`.
 
 Functions (`firebase/functions/src/inventory/masters.ts`):
 
-- [x] `inv-category-upsert`, `inv-category-setStatus`, `inv-unit-upsert`, `inv-item-upsert`, `inv-item-setStatus`, `inv-variant-upsert`, `inv-store-upsert`, `inv-store-setStatus`
-- [x] `inv-seedDefaults` (FRS default categories and units, idempotent)
-- [x] Unique codes via `uniqueKeys`; inactive category/subcategory rejected for new use; stock unit/tracking locked once `invMovements` exist
-- [x] Item search: `syncItemSearch` trigger mirrors items into the `search` database, `inv-item-search` callable (`inventory/search.ts`, `runQuery` in `shared/callable.ts`)
+- [x] `inventory-category-upsert`, `inventory-category-setStatus`, `inventory-unit-upsert`, `inventory-item-upsert`, `inventory-item-setStatus`, `inventory-variant-upsert`, `inventory-store-upsert`, `inventory-store-setStatus`
+- [x] `inventory-seedDefaults` (FRS default categories and units, idempotent)
+- [x] Unique codes via `uniqueKeys`; inactive category/subcategory rejected for new use; stock unit/tracking locked once `inventoryMovements` exist
+- [x] Item search: `syncItemSearch` trigger mirrors items into the `search` database, `inventory-item-search` callable (`inventory/search.ts`, `runQuery` in `shared/callable.ts`)
 - [x] Tests: `test/masters.test.ts`, `test/search.test.ts` (emulator; text search itself is emulated by a whole-word scan)
 
 Rules and indexes:
 
-- [x] `firestore.rules`: reads for categories/units/items/variants (`inv.items.view`), stores (`inv.stock.view` or `inv.settings`, campus-scoped)
-- [x] `firestore.indexes.json`: `invItems` (`categoryId`, `name`); `search.rules` denies all client access to the `search` database
+- [x] `firestore.rules`: reads for categories/units/items/variants (`inventory.items.view`), stores (`inventory.stock.view` or `inventory.settings`, campus-scoped)
+- [x] `firestore.indexes.json`: `inventoryItems` (`categoryId`, `name`); `search.rules` denies all client access to the `search` database
 - [x] Rules tests for all of the above
 
 Flutter:
@@ -149,18 +149,18 @@ Flutter:
 
 ### Inv-2
 
-Collections: `invBalances`, `invMovements`, `invReceipts`, `invIssueRequests`, `invIssues`, `invReturns`, `invTransfers`, `invAdjustments`, `invUnavailable`.
+Collections: `inventoryBalances`, `inventoryMovements`, `inventoryReceipts`, `inventoryIssueRequests`, `inventoryIssues`, `inventoryReturns`, `inventoryTransfers`, `inventoryAdjustments`, `inventoryUnavailableStock`.
 
 Functions (`firebase/functions/src/inventory/stock.ts` ledger helper, `stock-ops.ts` callables):
 
-- [x] `inv-receipt-confirm`; `inv-issueRequest-submit` / `-decide`; `inv-issue-create` / `-acknowledge`; `inv-return-create`; `inv-transfer-request` / `-dispatch` / `-receive`; `inv-adjustment-create`; `inv-unavailable-report` / `-resolve`
-- [x] One balance per store × item × variant × batch; append-only `invMovements`; never below zero; expired batches never issued; FEFO allocation; weighted-average cost; low-stock outbox event
+- [x] `inventory-receipt-confirm`; `inventory-issueRequest-submit` / `-decide`; `inventory-issue-create` / `-acknowledge`; `inventory-return-create`; `inventory-transfer-request` / `-dispatch` / `-receive`; `inventory-adjustment-create`; `inventory-unavailable-report` / `-resolve`
+- [x] One balance per store × item × variant × batch; append-only `inventoryMovements`; never below zero; expired batches never issued; FEFO allocation; weighted-average cost; low-stock outbox event
 - [x] Returns bounded by outstanding issued quantity, damaged goes to the register; transfers track in-transit, partial receipt, discrepancy
 - [x] Tests: `test/stock.test.ts` (emulator)
 
 Rules and indexes:
 
-- [x] `firestore.rules`: stock collections read with `inv.stock.view` on the campus; issue requests also by their requester; transfers by either campus; requesters (`inv.issue.request`) may read items and stores; stores readable school-wide
+- [x] `firestore.rules`: stock collections read with `inventory.stock.view` on the campus; issue requests also by their requester; transfers by either campus; requesters (`inventory.issue.request`) may read items and stores; stores readable school-wide
 - [x] `firestore.indexes.json`: balances, movements, documents by campus + `createdAt`, requests, transfers, unavailable
 - [x] Rules tests
 
@@ -172,18 +172,18 @@ Flutter:
 
 ### Inv-3
 
-Collections: `invVendors`, `invPurchaseRequests` (approval history kept in `history`).
+Collections: `inventoryVendors`, `inventoryPurchaseRequests` (approval history kept in `history`).
 
 Functions (`firebase/functions/src/inventory/procurement.ts`):
 
-- [x] `inv-vendor-upsert`, `inv-vendor-setStatus` (`inv.vendors.manage`); unique code via `uniqueKeys`; deactivated vendors rejected as an item's preferred vendor
-- [x] `inv-pr-save` (create / edit draft or returned request, optional `submit`), `inv-pr-submit`, `inv-pr-decide` (approve / reject / revise; comment required unless approving), `inv-pr-cancel` (request is kept; blocked once quantity is ordered)
-- [x] Numbering `PR/<fy>/<seq>`; only the requester edits, submits and cancels; campus scoped; outbox events to approvers (on submit), requester (on decision) and procurement (on approval)
+- [x] `inventory-vendor-upsert`, `inventory-vendor-setStatus` (`inventory.vendors.manage`); unique code via `uniqueKeys`; deactivated vendors rejected as an item's preferred vendor
+- [x] `inventory-purchaseRequest-save` (create / edit draft or returned request, optional `submit`), `inventory-purchaseRequest-submit`, `inventory-purchaseRequest-decide` (approve / reject / revise; comment required unless approving), `inventory-purchaseRequest-cancel` (request is kept; blocked once quantity is ordered)
+- [x] Numbering `PR/<financialYear>/<seq>`; only the requester edits, submits and cancels; campus scoped; outbox events to approvers (on submit), requester (on decision) and procurement (on approval)
 - [x] Tests: `test/procurement.test.ts` (emulator)
 
 Rules and indexes:
 
-- [x] `firestore.rules`: vendors readable with `inv.vendors.manage` or `inv.procure.operate`; purchase requests by their requester, or by approvers / procurement on the campus; `inv.pr.request` may browse items
+- [x] `firestore.rules`: vendors readable with `inventory.vendors.manage` or `inventory.procure.operate`; purchase requests by their requester, or by approvers / procurement on the campus; `inventory.purchaseRequest.request` may browse items
 - [x] `firestore.indexes.json`: purchase requests by campus + status + `createdAt`, by `createdBy` + `createdAt`
 - [x] Rules tests
 
@@ -195,17 +195,17 @@ Flutter:
 
 ### Inv-4
 
-Collections: `invQuotations`, `invPurchaseOrders` (+ `revisions` subcollection).
+Collections: `inventoryQuotations`, `inventoryPurchaseOrders` (+ `revisions` subcollection).
 
-Functions (`firebase/functions/src/inventory/orders.ts`, all `inv.procure.operate`, campus scoped):
+Functions (`firebase/functions/src/inventory/orders.ts`, all `inventory.procure.operate`, campus scoped):
 
-- [x] `inv-quotation-save` (draft or final; lines must be approved-request lines, qty within the request, totals computed; numbering `QT/<fy>/<seq>`), `inv-quotation-select` (final, unexpired, reason required; one selected per request, blocked while a live PO uses the previous one)
-- [x] `inv-po-save` (draft against an approved / partially ordered request; with a quotation the vendor and unit prices come from it; numbering `PO/<fy>/<seq>`), `inv-po-issue` (reserves `qtyOrdered` on the request, sets `partially_ordered` / `ordered`), `inv-po-revise` (header and unit prices; previous version kept in `revisions`; resets acknowledgement), `inv-po-acknowledge`, `inv-po-cancel` (releases ordered quantity), `inv-po-close` (reason unless fully received)
+- [x] `inventory-quotation-save` (draft or final; lines must be approved-request lines, quantity within the request, totals computed; numbering `QT/<financialYear>/<seq>`), `inventory-quotation-select` (final, unexpired, reason required; one selected per request, blocked while a live PO uses the previous one)
+- [x] `inventory-purchaseOrder-save` (draft against an approved / partially ordered request; with a quotation the vendor and unit prices come from it; numbering `PO/<financialYear>/<seq>`), `inventory-purchaseOrder-issue` (reserves `quantityOrdered` on the request, sets `partially_ordered` / `ordered`), `inventory-purchaseOrder-revise` (header and unit prices; previous version kept in `revisions`; resets acknowledgement), `inventory-purchaseOrder-acknowledge`, `inventory-purchaseOrder-cancel` (releases ordered quantity), `inventory-purchaseOrder-close` (reason unless fully received)
 - [x] Tests: `test/orders.test.ts` (emulator)
 
 Rules and indexes:
 
-- [x] `firestore.rules`: quotations, POs and revisions readable with `inv.procure.operate` on the campus (POs also by delivery campus)
+- [x] `firestore.rules`: quotations, POs and revisions readable with `inventory.procure.operate` on the campus (POs also by delivery campus)
 - [x] `firestore.indexes.json`: POs by campus + status + `createdAt`
 - [x] Rules tests
 
@@ -217,18 +217,18 @@ Flutter:
 
 ### Inv-5
 
-Collections: `invReceipts` (PO deliveries, `source: purchase_order`), `invInvoices`.
+Collections: `inventoryReceipts` (PO deliveries, `source: purchase_order`), `inventoryInvoices`.
 
 Functions (`firebase/functions/src/inventory/receiving.ts`):
 
-- [x] `inv-po-receive` (`inv.stock.operate`, store on the PO's delivery campus): one delivery per call, accepted ≤ still due per line, accepted enters stock at the PO unit price (batch rules as Inv-2), rejected is recorded only; PO becomes `partially_received` / `fully_received`; request becomes `completed` when its last live PO is fully received; cancelled / closed / draft / fully received POs reject
-- [x] `inv-invoice-save` (against a non-draft, non-cancelled PO; vendor from the PO; `receiptIds` must belong to it; invoice number unique per vendor via `uniqueKeys`; editable while unpaid), `inv-invoice-setPayment` (cumulative paid amount ≤ total; `unpaid` / `partially_paid` / `paid`), `inv-invoice-cancel` (unpaid only, releases the number) — all `inv.procure.operate`, campus scoped
+- [x] `inventory-purchaseOrder-receive` (`inventory.stock.operate`, store on the PO's delivery campus): one delivery per call, accepted ≤ still due per line, accepted enters stock at the PO unit price (batch rules as Inv-2), rejected is recorded only; PO becomes `partially_received` / `fully_received`; request becomes `completed` when its last live PO is fully received; cancelled / closed / draft / fully received POs reject
+- [x] `inventory-invoice-save` (against a non-draft, non-cancelled PO; vendor from the PO; `receiptIds` must belong to it; invoice number unique per vendor via `uniqueKeys`; editable while unpaid), `inventory-invoice-setPayment` (cumulative paid amount ≤ total; `unpaid` / `partially_paid` / `paid`), `inventory-invoice-cancel` (unpaid only, releases the number) — all `inventory.procure.operate`, campus scoped
 - [x] Tests: `test/receiving.test.ts` (emulator)
 
 Rules and indexes:
 
-- [x] `firestore.rules`: POs also readable with `inv.stock.operate` on the delivery campus; invoices with `inv.procure.operate` on the campus
-- [x] `firestore.indexes.json`: POs by delivery campus + status, invoices by campus + `createdAt` / `poId` / `paymentStatus`
+- [x] `firestore.rules`: POs also readable with `inventory.stock.operate` on the delivery campus; invoices with `inventory.procure.operate` on the campus
+- [x] `firestore.indexes.json`: POs by delivery campus + status, invoices by campus + `createdAt` / `purchaseOrderId` / `paymentStatus`
 - [x] Rules tests
 
 Flutter:
@@ -239,18 +239,18 @@ Flutter:
 
 ### Inv-6
 
-Collections: `invAssets` (+ `history` subcollection), `invAssetAssignments`, `invMaintenance`.
+Collections: `inventoryAssets` (+ `history` subcollection), `inventoryAssetAssignments`, `inventoryMaintenanceJobs`.
 
-Functions (`firebase/functions/src/inventory/assets.ts`, all `inv.assets.manage`, campus scoped):
+Functions (`firebase/functions/src/inventory/assets.ts`, all `inventory.assets.manage`, campus scoped):
 
-- [x] `inv-asset-register` (asset-tracked item, active store; ID `AST/<fy>/<seq>` claimed in `uniqueKeys`; with a PO the vendor and price come from the order and units are capped at the line's accepted quantity), `inv-asset-assign` (only `available`), `inv-asset-transfer` (custodian to custodian; closes and keeps the previous assignment), `inv-asset-return` (damaged return makes it `damaged`), `inv-asset-setCondition` (also `available` / `damaged` / `lost`; lost closes an active assignment), `inv-asset-retire` (`retired`, then `disposed`; never from assigned or in maintenance)
-- [x] `inv-maintenance-save` (one live request per asset; asset becomes `under_maintenance`), `inv-maintenance-setStatus` (status drives asset status: `in_progress` → `under_repair`, completed / cancelled restore it; completing needs the repair cost; parts drawn from a store as `issue` movements, needs `inv.stock.operate`)
-- [x] `inv-po-receive` accepts asset-tracked lines: counted on the order, no stock
+- [x] `inventory-asset-register` (asset-tracked item, active store; ID `AST/<financialYear>/<seq>` claimed in `uniqueKeys`; with a PO the vendor and price come from the order and units are capped at the line's accepted quantity), `inventory-asset-assign` (only `available`), `inventory-asset-transfer` (custodian to custodian; closes and keeps the previous assignment), `inventory-asset-return` (damaged return makes it `damaged`), `inventory-asset-setCondition` (also `available` / `damaged` / `lost`; lost closes an active assignment), `inventory-asset-retire` (`retired`, then `disposed`; never from assigned or in maintenance)
+- [x] `inventory-maintenance-save` (one live request per asset; asset becomes `under_maintenance`), `inventory-maintenance-setStatus` (status drives asset status: `in_progress` → `under_repair`, completed / cancelled restore it; completing needs the repair cost; parts drawn from a store as `issue` movements, needs `inventory.stock.operate`)
+- [x] `inventory-purchaseOrder-receive` accepts asset-tracked lines: counted on the order, no stock
 - [x] Tests: `test/assets.test.ts`, `test/receiving.test.ts` (emulator)
 
 Rules and indexes:
 
-- [x] `firestore.rules`: assets, history and maintenance with `inv.assets.view` on the campus; assignments also to the assignee (`personErpId`)
+- [x] `firestore.rules`: assets, history and maintenance with `inventory.assets.view` on the campus; assignments also to the assignee (`personErpId`)
 - [x] `firestore.indexes.json`: assets and maintenance by campus (+ status) + `createdAt`, maintenance by asset, assignments by asset / person + `assignedAt`
 - [x] Rules tests
 
@@ -262,19 +262,19 @@ Flutter:
 
 ### Inv-7
 
-Collections: `invVerifications` (+ `lines/{balanceId}`); `invBalances.expKey` (expiry of usable stock, null when empty).
+Collections: `inventoryVerifications` (+ `lineItems/{balanceId}`); `inventoryBalances.earliestExpiryDate` (expiry of usable stock, null when empty).
 
 Functions (`firebase/functions/src/inventory/verification.ts`, `daily.ts`):
 
-- [x] `inv-verification-create` (`inv.stock.operate`; store + optional categories, expected = `qtyAvailable` snapshot, max 150 lines), `inv-verification-count` (counts and reasons, repeatable while `counting`), `inv-verification-submit` (all lines counted, every difference has a matching reason; no differences closes the session), `inv-verification-decide` (new `inv.adjustment.approve`: approve writes one `invAdjustments` per difference with `verificationId` plus `adjust` movements, reject reopens counting)
-- [x] `dailyInventory` (06:00 IST, every school; `runDailyInventory` is the testable core): expired batches to `qtyExpired` with `expire` movements and an `invUnavailable` entry, near-expiry digest per store (weekly), expired stock, overdue PO delivery (weekly), warranty ending (30 days), maintenance due (7 days)
-- [x] Out-of-stock event from `Stock.finish`; `expKey` maintained there; new permission `inv.adjustment.approve` (admin, principal, inventory manager)
+- [x] `inventory-verification-create` (`inventory.stock.operate`; store + optional categories, expected = `quantityAvailable` snapshot, max 150 lines), `inventory-verification-count` (counts and reasons, repeatable while `counting`), `inventory-verification-submit` (all lines counted, every difference has a matching reason; no differences closes the session), `inventory-verification-decide` (new `inventory.adjustment.approve`: approve writes one `inventoryAdjustments` per difference with `verificationId` plus `adjust` movements, reject reopens counting)
+- [x] `dailyInventory` (06:00 IST, every school; `runDailyInventory` is the testable core): expired batches to `quantityExpired` with `expire` movements and an `inventoryUnavailableStock` entry, near-expiry digest per store (weekly), expired stock, overdue PO delivery (weekly), warranty ending (30 days), maintenance due (7 days)
+- [x] Out-of-stock event from `Stock.finish`; `earliestExpiryDate` maintained there; new permission `inventory.adjustment.approve` (admin, principal, inventory manager)
 - [x] Tests: `test/verification.test.ts` (emulator)
 
 Rules and indexes:
 
-- [x] `firestore.rules`: verifications and lines with `inv.stock.view` on the campus; `inv.reports.view` reads every report collection on the campus and vendors
-- [x] `firestore.indexes.json`: balances by campus (+ store) + `expKey`, PRs / POs / issue requests / unavailable / movements / verifications by campus + `createdAt`, assignments by campus + `assignedAt`, POs by status + `expectedDate` (daily job)
+- [x] `firestore.rules`: verifications and lines with `inventory.stock.view` on the campus; `inventory.reports.view` reads every report collection on the campus and vendors
+- [x] `firestore.indexes.json`: balances by campus (+ store) + `earliestExpiryDate`, PRs / POs / issue requests / unavailable / movements / verifications by campus + `createdAt`, assignments by campus + `assignedAt`, POs by status + `expectedDate` (daily job)
 - [x] Rules tests
 
 Flutter:
@@ -287,13 +287,13 @@ Flutter:
 
 Functions (`firebase/functions/src/inventory/`):
 
-- [x] `inv-asset-setRfid` (`inv.assets.manage`; tag unique per school via `uniqueKeys` `invRfid`, moving or clearing releases the old one)
-- [x] `inv-import-run` (`import.ts`; plain callable: each CSV row runs the single-record callable with request ID `<importId>-<row>`, so every rule and permission applies; types categories, stores, items, vendors; 200 rows per call)
+- [x] `inventory-asset-setRfid` (`inventory.assets.manage`; tag unique per school via `uniqueKeys` `inventoryRfid`, moving or clearing releases the old one)
+- [x] `inventory-import-run` (`import.ts`; plain callable: each CSV row runs the single-record callable with request ID `<importId>-<row>`, so every rule and permission applies; types categories, stores, items, vendors; 200 rows per call)
 - [x] Tests: `test/import.test.ts` (emulator)
 
 Rules:
 
-- [x] `firestore.rules`: operators with `inv.stock.operate` update verification lines directly (count fields only, session `counting`, `diff` = counted − expected, `countedBy` = caller) so counts queue offline
+- [x] `firestore.rules`: operators with `inventory.stock.operate` update verification lines directly (count fields only, session `counting`, `diff` = counted − expected, `countedBy` = caller) so counts queue offline
 - [x] Rules tests
 
 Flutter:
@@ -304,21 +304,21 @@ Flutter:
 
 ### Lib-1
 
-Collections: `libLibraries`, `libCategories`, `libCatalogue` (title-level; copies arrive in Lib-2).
+Collections: `libraries`, `libraryCategories`, `libraryCatalogue` (title-level; copies arrive in Lib-2).
 
 Functions (`firebase/functions/src/library/`):
 
-- [x] `lib-library-upsert`, `lib-library-setStatus` (`lib.settings`); `lib-category-upsert`, `lib-category-setStatus`, `lib-catalogue-upsert`, `lib-catalogue-setStatus`, `lib-seedDefaults` (`lib.catalogue.manage`)
+- [x] `library-library-upsert`, `library-library-setStatus` (`library.settings`); `library-category-upsert`, `library-category-setStatus`, `library-catalogue-upsert`, `library-catalogue-setStatus`, `library-seedDefaults` (`library.catalogue.manage`)
 - [x] Unique library/category codes via `uniqueKeys`; campus fixed after creation; one level of subcategories; inactive category rejected for new use
-- [x] Catalogue duplicate detection: `dupKey` = ISBN-13 (ISBN-10 converted) or normalized title + first author + edition + publisher + year, claimed in `uniqueKeys` and moved on edit; ISBN check digits validated; books without ISBN supported
-- [x] Catalogue search: `syncCatalogueSearch` mirrors into the `search` database, `lib-catalogue-search` (whole-word title/subtitle/author/publisher/keywords, category filter; a query that is a valid ISBN is an exact lookup on `(default)`)
+- [x] Catalogue duplicate detection: `identityKey` = ISBN-13 (ISBN-10 converted) or normalized title + first author + edition + publisher + year, claimed in `uniqueKeys` and moved on edit; ISBN check digits validated; books without ISBN supported
+- [x] Catalogue search: `syncCatalogueSearch` mirrors into the `search` database, `library-catalogue-search` (whole-word title/subtitle/author/publisher/keywords, category filter; a query that is a valid ISBN is an exact lookup on `(default)`)
 - [x] Shared master helpers moved to `shared/masters.ts` (used by inventory and library); `Ctx.delete` added
 - [x] Tests: `test/library.test.ts` (emulator; text search itself is emulated by a whole-word scan)
 
 Rules and indexes:
 
-- [x] `firestore.rules`: reads for libraries/categories/catalogue with `lib.catalogue.view`
-- [x] `firestore.indexes.json`: `libCatalogue` (`categoryId`, `title`); `create-search-index.sh` also creates the `libCatalogue` text index
+- [x] `firestore.rules`: reads for libraries/categories/catalogue with `library.catalogue.view`
+- [x] `firestore.indexes.json`: `libraryCatalogue` (`categoryId`, `title`); `create-search-index.sh` also creates the `libraryCatalogue` text index
 - [x] Rules tests
 
 Flutter:
@@ -329,17 +329,17 @@ Flutter:
 
 ### Lib-2
 
-Collections: `libCopies` (doc ID = accession number), `libAcquisitions`.
+Collections: `libraryCopies` (doc ID = accession number), `libraryAcquisitions`.
 
-Functions (`firebase/functions/src/library/copies.ts`, all `lib.catalogue.manage`, campus scoped through the library / copy):
+Functions (`firebase/functions/src/library/copies.ts`, all `library.catalogue.manage`, campus scoped through the library / copy):
 
-- [x] `lib-acquisition-create` (purchase, donation or opening stock; 1–100 copies per call; purchase needs a price, donation may be 0; active title and library only; numbering `ACQ/<fy>/<seq>`; creates one copy per unit with school-wide sequential accession numbers `ACC-000001` from `counters/ACC`, used as doc ID and barcode)
-- [x] `lib-copy-update` (shelf, condition, remarks, RFID tag unique per school via `uniqueKeys` `libRfid`), `lib-copy-move` (available copies only, to another active library on an allowed campus), `lib-copy-setStatus` (available / under maintenance / damaged / lost / withdrawn; reason for damaged, lost, withdrawn; lost and withdrawn are final; issued, reserved, in-transit untouchable)
+- [x] `library-acquisition-create` (purchase, donation or opening stock; 1–100 copies per call; purchase needs a price, donation may be 0; active title and library only; numbering `ACQ/<financialYear>/<seq>`; creates one copy per unit with school-wide sequential accession numbers `ACC-000001` from `counters/ACC`, used as doc ID and barcode)
+- [x] `library-copy-update` (shelf, condition, remarks, RFID tag unique per school via `uniqueKeys` `libraryRfid`), `library-copy-move` (available copies only, to another active library on an allowed campus), `library-copy-setStatus` (available / under maintenance / damaged / lost / withdrawn; reason for damaged, lost, withdrawn; lost and withdrawn are final; issued, reserved, in-transit untouchable)
 - [x] Tests: `test/copies.test.ts` (emulator)
 
 Rules and indexes:
 
-- [x] `firestore.rules`: `libCopies` readable with `lib.catalogue.view`; `libAcquisitions` with `lib.catalogue.manage`
+- [x] `firestore.rules`: `libraryCopies` readable with `library.catalogue.view`; `libraryAcquisitions` with `library.catalogue.manage`
 - [x] Indexes: none needed (copies by `catalogueId`, barcode and RFID tag are single-field queries; acquisitions by `createdAt`)
 - [x] Rules tests
 
@@ -351,18 +351,18 @@ Flutter:
 
 ### Lib-3
 
-Collections: `libMembers` (doc ID `<student|teacher>_<erpId>`), `libPolicies` (doc ID `<libraryId>_<memberCategory>`).
+Collections: `libraryMembers` (doc ID `<student|teacher>_<personErpId>`), `libraryBorrowingPolicies` (doc ID `<libraryId>_<memberCategory>`).
 
 Functions (`firebase/functions/src/library/members.ts`):
 
-- [x] `lib-policy-upsert`, `lib-policy-setStatus` (`lib.settings`; one policy per library and member category; library campus scoped; fine needs an amount; restricted categories must exist; inactive library only for existing policies)
-- [x] `lib-member-upsert`, `lib-member-setStatus` (`lib.circulation.operate`; deterministic ID so no duplicate members; every library active and on an allowed campus; `campusIds` derived; `activeLoans` and `blocked` kept on edit)
+- [x] `library-policy-upsert`, `library-policy-setStatus` (`library.settings`; one policy per library and member category; library campus scoped; fine needs an amount; restricted categories must exist; inactive library only for existing policies)
+- [x] `library-member-upsert`, `library-member-setStatus` (`library.circulation.operate`; deterministic ID so no duplicate members; every library active and on an allowed campus; `campusIds` derived; `activeLoans` and `blocked` kept on edit)
 - [x] Tests: `test/members.test.ts` (emulator)
 
 Rules and indexes:
 
-- [x] `firestore.rules`: `libMembers` and `libPolicies` readable with `lib.members.view`
-- [x] `firestore.indexes.json`: `libMembers` by `memberType` + `erpId`
+- [x] `firestore.rules`: `libraryMembers` and `libraryBorrowingPolicies` readable with `library.members.view`
+- [x] `firestore.indexes.json`: `libraryMembers` by `memberType` + `personErpId`
 - [x] Rules tests
 
 Flutter:
@@ -373,19 +373,19 @@ Flutter:
 
 ### Lib-4
 
-Collection: `libLoans` (`personErpId` is the flat owner field for rules). Counters `ISS`, `RET`.
+Collection: `libraryLoans` (`personErpId` is the flat owner field for rules). Counters `ISS`, `RET`.
 
-Functions (`firebase/functions/src/library/loans.ts`, all `lib.circulation.operate`, campus scoped through the copy / loan):
+Functions (`firebase/functions/src/library/loans.ts`, all `library.circulation.operate`, campus scoped through the copy / loan):
 
-- [x] `lib-loan-issue` (member active, not blocked, within dates, library access; active policy; limit; restricted category; copy `available`; policy frozen as `policySnapshot`)
-- [x] `lib-loan-return` (only an active loan; `good` → `available`, `damaged` → `damaged`; overdue days stored; `activeLoans` decremented)
-- [x] `lib-loan-renew` (snapshot `maxRenewals`, `overdueRenewal`, `loanDays`)
+- [x] `library-loan-issue` (member active, not blocked, within dates, library access; active policy; limit; restricted category; copy `available`; policy frozen as `policySnapshot`)
+- [x] `library-loan-return` (only an active loan; `good` → `available`, `damaged` → `damaged`; overdue days stored; `activeLoans` decremented)
+- [x] `library-loan-renew` (snapshot `maxRenewals`, `overdueRenewal`, `loanDays`)
 - [x] Tests: `test/loans.test.ts` (emulator)
 
 Rules and indexes:
 
-- [x] `firestore.rules`: `libLoans` readable by circulation staff on the campus or the borrower / parent (`own()`)
-- [x] `firestore.indexes.json`: `libLoans` by `status`+`dueOn`, and `memberId` / `copyId` / `personErpId` + `issuedOn`
+- [x] `firestore.rules`: `libraryLoans` readable by circulation staff on the campus or the borrower / parent (`own()`)
+- [x] `firestore.indexes.json`: `libraryLoans` by `status`+`dueDate`, and `memberId` / `copyId` / `personErpId` + `issuedDate`
 - [x] Rules test
 
 Flutter:
@@ -396,20 +396,20 @@ Flutter:
 
 ### Lib-5
 
-Collection: `libReservations` (`personErpId` is the flat owner field for rules). Counter `RSV`.
+Collection: `libraryReservations` (`personErpId` is the flat owner field for rules). Counter `RSV`.
 
-Functions (`firebase/functions/src/library/reservations.ts`, all `lib.circulation.operate`, campus scoped through the library):
+Functions (`firebase/functions/src/library/reservations.ts`, all `library.circulation.operate`, campus scoped through the library):
 
-- [x] `lib-reservation-create` (only when no shelf copy; eligible member; active policy allows reserve; category not restricted; one live reservation per title/member)
-- [x] `lib-reservation-cancel` (waiting or ready; held copy released to next in queue)
+- [x] `library-reservation-create` (only when no shelf copy; eligible member; active policy allows reserve; category not restricted; one live reservation per title/member)
+- [x] `library-reservation-cancel` (waiting or ready; held copy released to next in queue)
 - [x] `holdExpiry` scheduled job (hourly; expires holds past `holdUntil`, passes copy to next in queue or releases to available)
 - [x] Waiting list integrated into `acquisitionCreate`, `loanReturn`, `loanRenew`, `copySetStatus` (copies freeing up serve the waiting queue)
 - [x] Tests: `test/reservations.test.ts` (emulator)
 
 Rules and indexes:
 
-- [x] `firestore.rules`: `libReservations` readable by circulation staff on the campus or the member / parent (`own()`)
-- [x] `firestore.indexes.json`: `libReservations` composite indexes (status + catalogueId + libraryId + createdAt, status + holdUntil, status + createdAt, personErpId + createdAt)
+- [x] `firestore.rules`: `libraryReservations` readable by circulation staff on the campus or the member / parent (`own()`)
+- [x] `firestore.indexes.json`: `libraryReservations` composite indexes (status + catalogueId + libraryId + createdAt, status + holdUntil, status + createdAt, personErpId + createdAt)
 - [x] Rules test in `rules-tests/rules.test.js`
 
 Flutter:
@@ -420,22 +420,22 @@ Flutter:
 
 ### Lib-6
 
-Collections: `libFines` (`{loanId__type}` or `inc_{incidentId}__{type}`), `libIncidents`. Counters `FIN`, `INC`.
+Collections: `libraryFines` (`{loanId__type}` or `inc_{incidentId}__{type}`), `libraryIncidents`. Counters `FIN`, `INC`.
 
 Functions (`firebase/functions/src/library/fines.ts`, `incidents.ts`, `loans.ts`):
 
-- [x] `lib-fine-waive` (waives partial or full fine; unblocks member when balance is settled; `lib.fines.waive`)
-- [x] `lib-fine-setPayment` (records fine payment reference; unblocks member when balance is settled; `lib.circulation.operate`)
-- [x] `lib-incident-report` (reports lost or damaged copy; updates copy status; assesses penalty/fine if member responsible; `lib.circulation.operate`)
-- [x] `lib-incident-resolve` (resolves incident: repaired releases copy to shelf/reservation queue, replaced, written off marks withdrawn; assesses charge; `lib.circulation.operate`)
-- [x] `lib-loan-markLost` (marks loan and copy lost, assesses replacement charge, blocks member, creates incident; `lib.circulation.operate`)
+- [x] `library-fine-waive` (waives partial or full fine; unblocks member when balance is settled; `library.fines.waive`)
+- [x] `library-fine-setPayment` (records fine payment reference; unblocks member when balance is settled; `library.circulation.operate`)
+- [x] `library-incident-report` (reports lost or damaged copy; updates copy status; assesses penalty/fine if member responsible; `library.circulation.operate`)
+- [x] `library-incident-resolve` (resolves incident: repaired releases copy to shelf/reservation queue, replaced, written off marks withdrawn; assesses charge; `library.circulation.operate`)
+- [x] `library-loan-markLost` (marks loan and copy lost, assesses replacement charge, blocks member, creates incident; `library.circulation.operate`)
 - [x] Overdue fine and damaged incident integrated into `loanReturn` (calculates overdue fine per loan snapshot policy, creates fine doc, blocks member; damaged return creates open incident)
 - [x] Tests: `test/fines.test.ts` (emulator)
 
 Rules and indexes:
 
-- [x] `firestore.rules`: `libFines` readable by circulation staff or fine waivers on campus, or borrower / parent (`own()`). `libIncidents` readable by circulation staff on campus or member (`own()`)
-- [x] `firestore.indexes.json`: `libFines` composite indexes (status + createdAt, campusId + status + createdAt, personErpId + createdAt, memberId + status), `libIncidents` composite indexes (status + createdAt, campusId + status + createdAt, personErpId + createdAt, copyId + createdAt)
+- [x] `firestore.rules`: `libraryFines` readable by circulation staff or fine waivers on campus, or borrower / parent (`own()`). `libraryIncidents` readable by circulation staff on campus or member (`own()`)
+- [x] `firestore.indexes.json`: `libraryFines` composite indexes (status + createdAt, campusId + status + createdAt, personErpId + createdAt, memberId + status), `libraryIncidents` composite indexes (status + createdAt, campusId + status + createdAt, personErpId + createdAt, copyId + createdAt)
 - [x] Rules test in `rules-tests/rules.test.js`
 
 Flutter:
@@ -446,17 +446,17 @@ Flutter:
 
 ### Lib-7
 
-Collections: `libTransfers` (counter `LTR`), `libVerifications` (counter `LVR`).
+Collections: `libraryTransfers` (counter `LTR`), `libraryVerifications` (counter `LVR`).
 
 Functions (`firebase/functions/src/library/transfers.ts`, `verification.ts`):
 
-- [x] `lib-transfer-request` / `-approve` (`lib.settings`) / `-dispatch` (copies become `in_transit`) / `-receive` (per copy, partial receipts; arrived copies serve the destination waiting list first)
-- [x] `lib-verification-create` / `-scan` / `-submit` / `-approve` (`lib.settings`; `lost` and `move` corrections)
+- [x] `library-transfer-request` / `-approve` (`library.settings`) / `-dispatch` (copies become `in_transit`) / `-receive` (per copy, partial receipts; arrived copies serve the destination waiting list first)
+- [x] `library-verification-create` / `-scan` / `-submit` / `-approve` (`library.settings`; `lost` and `move` corrections)
 - [x] Tests: `test/transfers.test.ts` (emulator)
 
 Rules and indexes:
 
-- [x] `firestore.rules`: both collections readable by `lib.catalogue.manage` on the campus (transfers: source or destination campus); `firestore.indexes.json`: status + createdAt for each; rules test
+- [x] `firestore.rules`: both collections readable by `library.catalogue.manage` on the campus (transfers: source or destination campus); `firestore.indexes.json`: status + createdAt for each; rules test
 
 Flutter:
 
@@ -468,20 +468,20 @@ Flutter:
 
 Functions (`firebase/functions/src/library/`):
 
-- [x] `notify.ts` (member recipients: a student's parents via `wards`, a teacher via `eid`); outbox events added to `loanIssue`, `loanReturn` (returned, overdue fine, damaged), `loanMarkLost` (fine, lost), `incidentReport`, transfer request / dispatch / receive and verification submit; `post` moved to `shared/outbox.ts` (used by both daily jobs)
+- [x] `notify.ts` (member recipients: a student's parents via `wardStudentIds`, a teacher via `personErpId`); outbox events added to `loanIssue`, `loanReturn` (returned, overdue fine, damaged), `loanMarkLost` (fine, lost), `incidentReport`, transfer request / dispatch / receive and verification submit; `post` moved to `shared/outbox.ts` (used by both daily jobs)
 - [x] `dailyLibrary` (07:00 IST, every school; `runDailyLibrary` is the testable core): due soon (2 days), overdue (daily), membership ending (7 days), reservation hold ending (1 day)
-- [x] `lib-import-run` (`import.ts`; same design as `inv-import-run`: each CSV row runs the single-record callable with request ID `<importId>-<row>`; types catalogue, copies (opening-stock acquisition by ISBN-13), members; 200 rows per call)
+- [x] `library-import-run` (`import.ts`; same design as `inventory-import-run`: each CSV row runs the single-record callable with request ID `<importId>-<row>`; types catalogue, copies (opening-stock acquisition by ISBN-13), members; 200 rows per call)
 - [x] Tests: `test/library-insights.test.ts` (emulator); `reservations.test.ts` outbox assertion narrowed to `rsv-ready`
 
 Rules and indexes:
 
-- [x] `firestore.rules`: new `lib.reports.view` reads every report collection on the campus; parents read the catalogue (libraries, categories, titles) and their ward's `libMembers` record; loans, reservations, fines and incidents were already readable by `own()`
-- [x] `firestore.indexes.json`: campus (+ library) scoped composites for the dashboard and report queries; `libMembers` status + end for the daily job
+- [x] `firestore.rules`: new `library.reports.view` reads every report collection on the campus; parents read the catalogue (libraries, categories, titles) and their ward's `libraryMembers` record; loans, reservations, fines and incidents were already readable by `own()`
+- [x] `firestore.indexes.json`: campus (+ library) scoped composites for the dashboard and report queries; `libraryMembers` status + end for the daily job
 - [x] Rules tests (35 pass)
 
 Flutter:
 
-- [x] `features/library`: `lib_insights.dart` (15 `LibReportDef`s, dashboard stats, import columns, `libDay`), `LibraryService.dashboard/report/titlesByIds`, provider methods, `LibAccess.all`, model test
+- [x] `features/library`: `lib_insights.dart` (15 `LibReportDef`s, dashboard stats, import columns, `libraryDay`), `LibraryService.dashboard/report/titlesByIds`, provider methods, `ModuleAccess.all`, model test
 - [x] `icueadmin` (`features/library/insights/`): dashboard with library filter, report catalogue and report view (library, date range, status, search, totals, CSV copy, PDF), import page; routes `/layout.library/{dashboard,reports,reports/view,import}`; Dashboard, Reports and Import tiles
 - [x] `melos run lint`, `melos run test`, format check pass; 121 functions tests and 35 rules tests pass (run on a separate emulator port)
 
@@ -494,7 +494,7 @@ Format: `date · phase · what changed from the architecture doc · why`.
 - 2026-10-31 · 0 · Firestore uses the `(default)` database, not a database named `icueadmin` · prod already has only `(default)`; Storage rules' `firestore.get()` reads `(default)`.
 - 2026-10-31 · 0 · Storage writes are denied until `files-getUploadPath` (pending-upload registration) exists; arrives with the first upload (Inv-1 item images) · the design allows uploads only to registered paths.
 - 2026-10-31 · 0 · `config.setRolePermissions` deferred to the permission-editor screen; until then the seed script (audited) is the only writer of `rolePermissions` · no caller yet.
-- 2026-10-31 · 0 · `userAccess` also stores `rol`, `pt`, `eid`, `wards` · recompute on role-map change needs role IDs; outbox person-based recipients resolve by `eid`/`wards`.
+- 2026-10-31 · 0 · `userAccess` also stores `roleIds`, `personType`, `personErpId`, `wardStudentIds` · recompute on role-map change needs role IDs; outbox person-based recipients resolve by `personErpId`/`wardStudentIds`.
 - 2026-10-31 · 0 · Library Dart package is `school_library` (directory stays `features/library`) · `library` is a Dart reserved word.
 - 2026-10-31 · 0 · Callable wrapper queues writes and applies them after the handler · Firestore transactions require all reads before writes; helpers (counters, uniqueKeys, outbox) read lazily. Ceiling: `nextNumber` gives one number per type per transaction.
 - 2026-10-31 · 0 · Mute keys are read with `data().mute[category]`, never `get('mute.<category>')` · categories contain dots, which `get()` treats as nested paths.
@@ -504,37 +504,37 @@ Format: `date · phase · what changed from the architecture doc · why`.
 - 2026-10-31 · 0 · Emulator ports moved off the defaults (Firestore 8190, Auth 9109, Functions 5011, Storage 9209, UI 4010) · avoids clashing with other local emulator suites.
 - 2026-10-31 · Inv-1 · Item image upload and `files-getUploadPath` deferred (`imagePath` is stored as null) · no item screen needs it yet; arrives with the first mandatory upload (Inv-5 attachments) or earlier on request.
 - 2026-10-31 · Inv-1 · Codes (category, item, SKU, store) cannot change after creation · their `uniqueKeys` entry is never released; renaming is a new record plus deactivating the old one.
-- 2026-10-31 · Inv-1 · Preferred vendor is not set from the item form · `invVendors` arrives in Inv-3.
+- 2026-10-31 · Inv-1 · Preferred vendor is not set from the item form · `inventoryVendors` arrives in Inv-3.
 - 2026-10-31 · Inv-1 · Store storekeepers are entered as ERP staff IDs, campuses shown as "Campus <id>" · the Node staff and branch-name endpoints are not confirmed yet.
-- 2026-11-01 · Inv-1 · Item search uses the Enterprise `search` database (trigger mirror + `inv-item-search`) instead of `searchTokens` · whole-word matching only, no prefix/type-ahead (verified on dev); search and category filter combine. Emulator falls back to a whole-word scan, so the real text-search path is untested locally.
-- 2026-10-31 · Inv-1 · Seeding defaults is the `inv-seedDefaults` callable (button on empty categories/units screens), not a script · works per project without credentials and is covered by emulator tests.
+- 2026-11-01 · Inv-1 · Item search uses the Enterprise `search` database (trigger mirror + `inventory-item-search`) instead of `searchTokens` · whole-word matching only, no prefix/type-ahead (verified on dev); search and category filter combine. Emulator falls back to a whole-word scan, so the real text-search path is untested locally.
+- 2026-10-31 · Inv-1 · Seeding defaults is the `inventory-seedDefaults` callable (button on empty categories/units screens), not a script · works per project without credentials and is covered by emulator tests.
 - 2026-10-31 · Inv-1 · Item "stock across locations / history" (FRS 10.3) and import/export wait for Inv-2 balances and Inv-8 · nothing to show or import yet.
-- 2026-11-01 · Lib-1 · Added `lib-category-setStatus` (not in the architecture's callable list) · categories carry a status (FRS 11.3) and inactive ones are rejected for new titles, so they need a way to be deactivated.
+- 2026-11-01 · Lib-1 · Added `library-category-setStatus` (not in the architecture's callable list) · categories carry a status (FRS 11.3) and inactive ones are rejected for new titles, so they need a way to be deactivated.
 - 2026-11-01 · Lib-1 · Book cover upload deferred (`coverPath` stored as null) and "view physical copies" on the book page waits for Lib-2 · same reason as Inv-1 item images; no copies exist yet. Catalogue import/export waits for Lib-8.
 - 2026-11-01 · Lib-1 · A duplicate title is a hard `already-exists` error, not a warning · the identity key (ISBN-13, or title/author/edition/publisher/year) is claimed in `uniqueKeys`; editing the identity moves the key. Two genuinely different books with identical details must differ in edition or year.
-- 2026-11-01 · Lib-1 · Libraries and catalogue are readable by anyone with `lib.catalogue.view` (no campus filter) · the catalogue is school-wide and teachers need to see where books are; writes stay campus-scoped through the callable wrapper.
+- 2026-11-01 · Lib-1 · Libraries and catalogue are readable by anyone with `library.catalogue.view` (no campus filter) · the catalogue is school-wide and teachers need to see where books are; writes stay campus-scoped through the callable wrapper.
 - 2026-11-01 · Lib-1 · Librarian staff are entered as ERP staff IDs, campuses shown as "Campus <id>" · same as Inv-1 stores; Node staff and branch-name endpoints are not confirmed.
 - 2026-11-01 · Inv-2 · Receiving sources exclude purchase orders; PO-linked receiving with quantity validation arrives in Inv-5 · POs do not exist yet. Attachments on receipts are stored as an empty list until uploads exist.
 - 2026-11-01 · Inv-2 · Asset-tracked items are rejected by every stock callable · individual assets, serials and assignment belong to Inv-6.
-- 2026-11-01 · Inv-2 · Adjustments apply immediately; no `inv.adjustment.approve` yet, and damage/expiry are reported under `inv-unavailable-report` instead of adjustment reasons · count-driven approval arrives with Inv-7 verification; `approval` is stored as null.
-- 2026-11-01 · Inv-2 · The `dailyInventory` job that moves expired batches to `qtyExpired` is not built; expired stock is reported manually and is never issuable regardless · the issue check does not depend on the job; the job arrives with Inv-7 notifications.
+- 2026-11-01 · Inv-2 · Adjustments apply immediately; no `inventory.adjustment.approve` yet, and damage/expiry are reported under `inventory-unavailable-report` instead of adjustment reasons · count-driven approval arrives with Inv-7 verification; `approval` is stored as null.
+- 2026-11-01 · Inv-2 · The `dailyInventory` job that moves expired batches to `quantityExpired` is not built; expired stock is reported manually and is never issuable regardless · the issue check does not depend on the job; the job arrives with Inv-7 notifications.
 - 2026-11-01 · Inv-2 · Issue requests cannot be cancelled and transfers cannot be cancelled before dispatch · not in the callable list; add when users ask.
-- 2026-11-01 · Inv-2 · `belowReorder` compares one balance's available quantity with the item's reorder level (per batch, not per item) · ceiling; Inv-7 dashboards can aggregate per item.
-- 2026-11-01 · Inv-2 · `invStores` is readable school-wide (no campus filter) · a transfer must name a destination store on another campus; writes stay campus-scoped.
+- 2026-11-01 · Inv-2 · `isBelowReorderLevel` compares one balance's available quantity with the item's reorder level (per batch, not per item) · ceiling; Inv-7 dashboards can aggregate per item.
+- 2026-11-01 · Inv-2 · `inventoryStores` is readable school-wide (no campus filter) · a transfer must name a destination store on another campus; writes stay campus-scoped.
 - 2026-11-01 · Inv-2 · Recipients, returning persons and requesters are entered as ERP IDs; receipts, returns and adjustments have no list screen (their movements show in stock history) · Node person pickers are not confirmed; documents are retained in Firestore.
 - 2026-11-01 · Inv-3 · Vendor purchase history, quotations, POs and invoices (FRS 10.14 "view") wait for Inv-4/5 · those records do not exist yet. Vendor documents are stored as an empty list until uploads exist; vendors are listed and filtered client-side (no `search` mirror) · the list is small.
-- 2026-11-01 · Inv-3 · Requesting department and request attachments are not captured in the app (`departmentId` is accepted by `inv-pr-save`, `attachments` stored empty) · no department picker (Node endpoint unconfirmed) and no uploads yet.
-- 2026-11-01 · Inv-3 · The item form does not set the preferred vendor yet; `inv-item-upsert` validates it when sent · deferred from Inv-1, add a vendor dropdown when asked.
+- 2026-11-01 · Inv-3 · Requesting department and request attachments are not captured in the app (`departmentId` is accepted by `inventory-purchaseRequest-save`, `attachments` stored empty) · no department picker (Node endpoint unconfirmed) and no uploads yet.
+- 2026-11-01 · Inv-3 · The item form does not set the preferred vendor yet; `inventory-item-upsert` validates it when sent · deferred from Inv-1, add a vendor dropdown when asked.
 - 2026-11-01 · Inv-3 · An approver may decide a request they raised themselves; there is no second approval level · matches the single-level issue approval; add a self-approval block if the school asks.
-- 2026-11-01 · Inv-3 · Purchase requests may include asset-tracked items (unlike stock callables) · assets are bought like anything else; only stock movements reject them. Statuses `partially_ordered`, `ordered`, `completed` are set by Inv-4/5 (`qtyOrdered` per line).
+- 2026-11-01 · Inv-3 · Purchase requests may include asset-tracked items (unlike stock callables) · assets are bought like anything else; only stock movements reject them. Statuses `partially_ordered`, `ordered`, `completed` are set by Inv-4/5 (`quantityOrdered` per line).
 - 2026-11-01 · Inv-4 · Quotation attachments are stored empty and the quotation "number" is the system number with the vendor's own number in `vendorRef` · no uploads yet.
-- 2026-11-01 · Inv-4 · A PO covers one request (`prIds` holds one ID) and may be raised without a quotation (vendor and prices entered) · FRS requires only an approved request; multi-request POs wait for a need.
-- 2026-11-01 · Inv-4 · Post-issue revisions change header terms and unit prices only; quantities are fixed (cancel and re-issue) · quantity changes would have to re-balance the request's `qtyOrdered`.
-- 2026-11-01 · Inv-4 · Closing a PO short does not release its unreceived quantity on the request · decide with Inv-5 receiving. Receiving history, `partially_received` / `fully_received` and `qtyReceived` updates arrive with Inv-5; the PO screen already shows received vs ordered.
-- 2026-11-01 · Inv-4 · Purchase orders and quotations are readable only by `inv.procure.operate`; approvers and receiving staff get read access in Inv-5 if needed.
+- 2026-11-01 · Inv-4 · A PO covers one request (`purchaseRequestIds` holds one ID) and may be raised without a quotation (vendor and prices entered) · FRS requires only an approved request; multi-request POs wait for a need.
+- 2026-11-01 · Inv-4 · Post-issue revisions change header terms and unit prices only; quantities are fixed (cancel and re-issue) · quantity changes would have to re-balance the request's `quantityOrdered`.
+- 2026-11-01 · Inv-4 · Closing a PO short does not release its unreceived quantity on the request · decide with Inv-5 receiving. Receiving history, `partially_received` / `fully_received` and `quantityReceived` updates arrive with Inv-5; the PO screen already shows received vs ordered.
+- 2026-11-01 · Inv-4 · Purchase orders and quotations are readable only by `inventory.procure.operate`; approvers and receiving staff get read access in Inv-5 if needed.
 - 2026-11-01 · Inv-4 · PO PDF is built in the app with `pdf` + `printing` (`layoutPdf`: preview, print, share, save); no school letterhead until the ERP school profile is available.
-- 2026-11-01 · Inv-5 · Receiving uses `inv-po-receive`, not `inv-receipt-confirm` with a PO source · PO validation and PO status updates need their own callable; both write `invReceipts` and share the `GRN` numbering.
-- 2026-11-01 · Inv-5 · Rejected goods are recorded on the receipt and PO line only (no `invUnavailable` entry, no stock) · they never entered the store; returns to the vendor are not tracked. Stock cost is the PO unit price, with no discount/tax/delivery apportioned.
+- 2026-11-01 · Inv-5 · Receiving uses `inventory-purchaseOrder-receive`, not `inventory-receipt-confirm` with a PO source · PO validation and PO status updates need their own callable; both write `inventoryReceipts` and share the `GRN` numbering.
+- 2026-11-01 · Inv-5 · Rejected goods are recorded on the receipt and PO line only (no `inventoryUnavailableStock` entry, no stock) · they never entered the store; returns to the vendor are not tracked. Stock cost is the PO unit price, with no discount/tax/delivery apportioned.
 - 2026-11-01 · Inv-5 · Asset-tracked PO lines are received (counted on the order, no stock) from Inv-6 · stock callables still reject assets; units are registered individually.
 - 2026-11-01 · Inv-5 · Closing a PO short still leaves its unreceived quantity counted as ordered on the request (carried from Inv-4) · decide with the first user complaint.
 - 2026-11-01 · Inv-5 · `overdue` payment status is derived in the app from `dueDate` (unpaid or partially paid), not stored · no scheduled job to flip it; invoice and receipt attachments and the Finance payment reference input are deferred until uploads exist (payment reference is accepted by the callable and shown when present).
@@ -544,41 +544,41 @@ Format: `date · phase · what changed from the architecture doc · why`.
 - 2026-11-01 · Inv-6 · An asset in maintenance keeps its custodian and cannot be returned, transferred or retired until the job ends · maintenance status drives asset status (architecture §6). Maintenance attachments are stored empty (no uploads yet) and the technician is free text.
 - 2026-11-01 · Inv-6 · Maintenance parts are drawn once per status update and never reversed; part cost is not added to the repair cost · keep the repair cost as the all-in figure.
 - 2026-11-01 · Inv-6 · QR label (asset ID) is built in the app with `pdf` + `printing`; barcode scanning, `rfidTag` and `imagePath` stay null until Inv-8. Warranty / next-service notifications arrive with Inv-7 (`dailyInventory`). The Assets tile reuses the stock artwork.
-- 2026-11-01 · Inv-6 · Teachers with `inv.assets.view` see the whole campus register; a "my assets" view is not built (rules already let an assignee read their own assignments).
-- 2026-11-01 · Inv-7 · Counting is the callable `inv-verification-count`, not client writes to `lines` · offline counting and scanning arrive with Inv-8; rules keep lines read-only. Asset verification is not built (stock balances only); sessions are capped at 150 lines (apply is one transaction), narrow by category.
+- 2026-11-01 · Inv-6 · Teachers with `inventory.assets.view` see the whole campus register; a "my assets" view is not built (rules already let an assignee read their own assignments).
+- 2026-11-01 · Inv-7 · Counting is the callable `inventory-verification-count`, not client writes to `lineItems` · offline counting and scanning arrive with Inv-8; rules keep lines read-only. Asset verification is not built (stock balances only); sessions are capped at 150 lines (apply is one transaction), narrow by category.
 - 2026-11-01 · Inv-7 · Approval applies the counted-minus-expected difference, not "set to counted" · stock moved after the snapshot is kept; a difference that would take a balance below zero fails the approval and the store must be recounted. Approver may be the counter (no second person check).
 - 2026-11-01 · Inv-7 · Dashboard has store filter only (campus follows the store); category, date range and academic year filters are not built · balances carry no category and counts are live aggregation queries. Low / out-of-stock count balance lines (item × batch), not items; expiring is the next 30 days. "Pending approvals" = pending purchase requests + issue requests; "pending goods receipts" = orders issued / acknowledged with nothing received.
 - 2026-11-01 · Inv-7 · Reports are one generic screen over the campus-scoped collection: server filters are date range (`createdAt`; expiry uses the expiry date) and status, other filters (item, store, vendor, person, type) are the search box over the loaded rows (500 max) · avoids a composite index per filter. Export is CSV copied to the clipboard and PDF through the print dialog; no Excel file. Vendors and recipients show IDs where documents store no name. Item-wise stock is a per-balance view, not a date-pinned snapshot.
-- 2026-11-01 · Inv-7 · Notifications: "inventory manager" and "storekeeper" are everyone with `inv.stock.operate` on the campus, "asset manager" `inv.assets.manage`, "procurement officer" `inv.procure.operate` · permissions, not role names. Near-expiry and overdue-PO reminders repeat weekly, warranty once per end date, service-due once per date. The 60-day token cleanup from §7.2 is not built.
-- 2026-11-01 · Inv-8 · Import is `inv-import-run` over CSV rows pasted in the app, not `import.validate` / `import.commit` + `importWorker` + xlsx · no staged preview, import history or overwrite; existing codes are rejected per row. Types: categories, stores, items (by `categoryCode`), vendors; opening stock, assets and library types are not importable. Re-run safety comes from the per-row request ID.
-- 2026-11-01 · Inv-8 · Offline is for verification counts only (direct `lines` updates, saved on the device with a "syncs when online" message); submit and every other callable still need a connection. `inv-verification-count` stays for online use. Web persistent cache was not enabled.
+- 2026-11-01 · Inv-7 · Notifications: "inventory manager" and "storekeeper" are everyone with `inventory.stock.operate` on the campus, "asset manager" `inventory.assets.manage`, "procurement officer" `inventory.procure.operate` · permissions, not role names. Near-expiry and overdue-PO reminders repeat weekly, warranty once per end date, service-due once per date. The 60-day token cleanup from §7.2 is not built.
+- 2026-11-01 · Inv-8 · Import is `inventory-import-run` over CSV rows pasted in the app, not `import.validate` / `import.commit` + `importWorker` + xlsx · no staged preview, import history or overwrite; existing codes are rejected per row. Types: categories, stores, items (by `categoryCode`), vendors; opening stock, assets and library types are not importable. Re-run safety comes from the per-row request ID.
+- 2026-11-01 · Inv-8 · Offline is for verification counts only (direct `lineItems` updates, saved on the device with a "syncs when online" message); submit and every other callable still need a connection. `inventory-verification-count` stays for online use. Web persistent cache was not enabled.
 - 2026-11-01 · Inv-8 · Scanning resolves item code (counting) and asset ID / RFID tag (asset list); items have no separate barcode field, and library copies wait for Lib-2. Fixed RFID gate readers and RFID inventory-by-reader are not built (tags are read as keyboard input). Camera scanning is untested on a device (no native build run).
 - 2026-11-01 · Inv-8 · Export is unchanged from Inv-7 (report CSV / PDF); list-level CSV/XLSX export and downloadable import templates are not built (the import page copies the header row).
 - 2026-11-01 · Lib-2 · A copy's document ID is its accession number, generated from one school-wide counter (`ACC-000001`), not an auto ID plus a `uniqueKeys` claim · uniqueness is structural and bulk numbering needs one counter write; accession numbers cannot be typed in, and importing existing numbers waits for Lib-8 import. Barcode equals the accession number.
 - 2026-11-01 · Lib-2 · Acquisition types are purchase, donation and opening stock; transfer arrives with Lib-7 · transfers create no acquisition record. Acquisition attachments are not stored (no uploads) and a new acquisition starts from a book's page, not from the Copies page.
-- 2026-11-01 · Lib-2 · `lib-copy-setStatus` is not in the architecture's callable list; damage, loss and withdrawal can be set by hand here, while incidents and fines arrive with Lib-6 · FRS 11.5 needs these statuses now.
+- 2026-11-01 · Lib-2 · `library-copy-setStatus` is not in the architecture's callable list; damage, loss and withdrawal can be set by hand here, while incidents and fines arrive with Lib-6 · FRS 11.5 needs these statuses now.
 - 2026-11-01 · Lib-2 · Copy issue and transfer history are not shown on the copy sheet · loans arrive with Lib-4, transfers with Lib-7; changes are in `auditLogs`.
-- 2026-11-01 · Lib-2 · Copies are readable school-wide with `lib.catalogue.view` (like the catalogue) so teachers can see where a book is; writes are campus scoped. Camera scanning of labels uses the Inventory `ScanField` and is untested on a device (no native build run).
+- 2026-11-01 · Lib-2 · Copies are readable school-wide with `library.catalogue.view` (like the catalogue) so teachers can see where a book is; writes are campus scoped. Camera scanning of labels uses the Inventory `ScanField` and is untested on a device (no native build run).
 - 2026-11-01 · Lib-3 · Member category is a free key (`primary`, `teacher`) matched to a policy by `<libraryId>_<category>`, not a separate master · FRS lists categories only as policy keys; a member without a matching active policy is flagged in the list and refused at issue in Lib-4. Policy library and category cannot change after creation (make a new policy and deactivate the old one).
 - 2026-11-01 · Lib-3 · Members are enrolled by typing the ERP ID (class ID optional), shown as "Student #id" · only IDs are stored; no student/staff pickers until the Node endpoints are confirmed. There is no bulk enrolment from a class list (Lib-8 import).
 - 2026-11-01 · Lib-3 · Borrowing history, outstanding books and outstanding fines (FRS 11.7) are not shown yet · loans arrive with Lib-4 and fines with Lib-6; the list shows `activeLoans` only. `blocked` is stored false and set by fines in Lib-6. The membership end date is stored but not enforced until issue (Lib-4); the expiring-membership notification arrives with `dailyLibrary`.
-- 2026-11-01 · Lib-3 · Members and policies are readable school-wide with `lib.members.view` (librarian, principal, admin); writes are campus scoped through the library · teachers do not see the member list.
+- 2026-11-01 · Lib-3 · Members and policies are readable school-wide with `library.members.view` (librarian, principal, admin); writes are campus scoped through the library · teachers do not see the member list.
 - 2026-11-01 · Lib-3 · Member search is an exact ERP ID lookup (a miss opens the enrol sheet); the list is paged by ERP ID per type · IDs are the only identity stored, so there is no name search.
 - 2026-11-01 · Lib-4 · Return stores `overdueDays` but raises no fine · fines, lost/damaged incidents and the damage penalty arrive with Lib-6, which reads the loan's frozen `policySnapshot`. A damaged return sets the copy `damaged` and creates no incident yet.
 - 2026-11-01 · Lib-4 · Renewal does not check reservations, and a returned copy goes straight to `available` · reservations and the hold queue arrive with Lib-5. A copy `reserved` for the member cannot be issued until then.
-- 2026-11-01 · Lib-4 · `lib.loan.markLost` is not built (Lib-6). Renewal extends from the later of the due date and today by the loan's snapshot `loanDays`; inactive or blocked members cannot renew. Issue/return numbers are `ISS/…` and `RET/…`; no printable issue slip yet.
+- 2026-11-01 · Lib-4 · `library.loan.markLost` is not built (Lib-6). Renewal extends from the later of the due date and today by the loan's snapshot `loanDays`; inactive or blocked members cannot renew. Issue/return numbers are `ISS/…` and `RET/…`; no printable issue slip yet.
 - 2026-11-01 · Lib-4 · The circulation screen lists active loans only (earliest due first); borrowing history on the member sheet (FRS 11.7) is not shown yet. Camera scanning is untested on a device (no native build run).
 - 2026-11-01 · Lib-5 · Reservations can only be placed when all copies are unavailable (issued, reserved, under maintenance or damaged); available copies must be issued directly · prevents members queuing when a book is ready on the shelf. Queue position is computed as index in the created-ordered waiting list, not stored.
 - 2026-11-01 · Lib-6 · Unblocking member is evaluated when fines are settled (waived in full or paid in full) · if no other outstanding fines exist for the member, the member is unblocked immediately in the same transaction.
 - 2026-11-01 · Lib-6 · Incident resolution 'repaired' triggers reservation queue release · if reservations are waiting for that title, the repaired copy fulfills the next waiting reservation rather than going idle on the shelf.
-- 2026-11-01 · Lib-6 · `lib-incident-report` refuses a copy that is on loan or held, or that already has an open incident; `repaired` is only for damaged copies; `dismissed` (no fault, or the lost book turned up) sends a damaged or lost copy back through the reservation queue/shelf; the charge cannot be lowered on resolve (waive the fine instead) · closes orphaned-loan and duplicate-incident holes found in review. Damage on a held copy cannot be reported until the hold is released.
-- 2026-11-01 · Lib-7 · Transfer approval needs `lib.settings`, request/dispatch/receive need `lib.catalogue.manage`; there is no reject or cancel, and a copy not received stays `in_transit` (no lost-in-transit closure) · keeps the workflow to the four FRS steps; use `lib-copy-setStatus` after investigation once that path is needed. Copies are only locked at dispatch, so an approved transfer fails at dispatch if a copy left the shelf.
-- 2026-11-01 · Lib-7 · Verification keeps copy IDs as arrays on the session doc (expected, onLoan, scanned, missing, unexpected), capped at 2000 copies per session, and scans go through `lib-verification-scan` (not client-written lines) · no offline counting; scope by shelf for bigger libraries. Issued copies are listed apart and not expected; a scanned copy that is not expected, or is shown as issued, is `unexpected`.
+- 2026-11-01 · Lib-6 · `library-incident-report` refuses a copy that is on loan or held, or that already has an open incident; `repaired` is only for damaged copies; `dismissed` (no fault, or the lost book turned up) sends a damaged or lost copy back through the reservation queue/shelf; the charge cannot be lowered on resolve (waive the fine instead) · closes orphaned-loan and duplicate-incident holes found in review. Damage on a held copy cannot be reported until the hold is released.
+- 2026-11-01 · Lib-7 · Transfer approval needs `library.settings`, request/dispatch/receive need `library.catalogue.manage`; there is no reject or cancel, and a copy not received stays `in_transit` (no lost-in-transit closure) · keeps the workflow to the four FRS steps; use `library-copy-setStatus` after investigation once that path is needed. Copies are only locked at dispatch, so an approved transfer fails at dispatch if a copy left the shelf.
+- 2026-11-01 · Lib-7 · Verification keeps copy IDs as arrays on the session doc (expected, onLoanCopyIds, scanned, missing, unexpected), capped at 2000 copies per session, and scans go through `library-verification-scan` (not client-written lines) · no offline counting; scope by shelf for bigger libraries. Issued copies are listed apart and not expected; a scanned copy that is not expected, or is shown as issued, is `unexpected`.
 - 2026-11-01 · Lib-7 · Approving a verification can mark missing copies `lost` or `move` available unexpected copies into the library; missing copies left alone are stored as `investigate`. No rejection step; destination/source staff notifications arrive with Lib-8.
 - 2026-11-01 · Lib-8 · Dashboard filters are library and member type (the member tiles) only; no category or date-range filter · every tile is a current-state count, so a date range has nothing to filter, and copies carry no category ID. Dashboard counts and indexes are unverified against a real project (emulators do not enforce indexes).
 - 2026-11-01 · Lib-8 · Reports are 500-row client queries (library, date range and status on the server; member, author, category by the search box); Popular and Inactive books are ranked client-side over up to 5000 loans of the period · same ceiling as Inventory reports. Titles and libraries are resolved to names per page; members show as "student #id".
 - 2026-11-01 · Lib-8 · Import takes pasted CSV (catalogue, copies, members), not an uploaded file or a staged preview, and rejects existing titles and members instead of updating them · existing accession numbers cannot be imported (numbers come from one counter), so copies arrive as opening-stock acquisitions by ISBN-13. List export is the report CSV / PDF; list-level XLSX export is not built.
-- 2026-11-01 · Lib-8 · Issue, return and fine notices go to the member's parents or teacher when they happen; overdue repeats daily, due-soon / membership / hold-ending once per loan, member or reservation · deterministic outbox keys. Notifications respect the per-category mute (`lib.loan`, `lib.fine`, `lib.reservation`, `lib.member`, `lib.incident`, `lib.transfer`, `lib.verification`); no preferences screen.
+- 2026-11-01 · Lib-8 · Issue, return and fine notices go to the member's parents or teacher when they happen; overdue repeats daily, due-soon / membership / hold-ending once per loan, member or reservation · deterministic outbox keys. Notifications respect the per-category mute (`library.loan`, `library.fine`, `library.reservation`, `library.member`, `library.incident`, `library.transfer`, `library.verification`); no preferences screen.
 - 2026-11-01 · Lib-8 · Parent view is rules only: parents read their ward's loans, reservations, fines, incidents and membership, and browse the catalogue; the parent app screens arrive when it joins the monorepo · there is no parent UI here to build. Parents cannot see copies or availability.
 
 ## Open items
@@ -587,6 +587,6 @@ Format: `date · phase · what changed from the architecture doc · why`.
 - iOS now builds for both flavors (CocoaPods only, SPM off). To get there: Firebase plugins pinned to `firebase_core 5.0.0` / `firebase_analytics 13.0.0` / `firebase_crashlytics 6.0.0` / `firebase_messaging 17.0.0` (iOS SDK 12.19.0, the newest on CocoaPods trunk; `5.1.0` needs 12.19.3), `icue_face_sdk` on ML Kit 7, iOS minimum raised to 15.5, pods linked statically, and flavor xcconfigs fixed. Unpin Firebase once trunk has 12.19.3. Re-test face recognition on a device after the ML Kit 6→7 upgrade.
 - `ios/Podfile.lock` is untracked; decide whether to commit it.
 - Dev Node push credentials must be switched to `icueadmin-dev`; APNs key must be uploaded to `icueadmin-dev`.
-- Node `POST /v1.0/firebaseToken`: the app assumes response `{ "token": "<custom token>" }`, uid `u_<userId>`, claims per architecture §2. Until it is live the exchange fails silently, and `registerPushToken` re-calls Node `updateRegTokens` on each launch (its "already registered" mark is set only after both writes).
-- `icueadmin-dev`: enable Firestore (`(default)`, Standard, Native, `asia-south1`) and Blaze, then deploy rules, indexes (incl. `requests.expireAt` TTL) and functions (`firebase deploy --project dev` from `firebase/`), then seed: `npm --prefix firebase/functions run seed -- --project dev --school <sid> --roles admin=<id>,…` (needs Node role IDs per school).
-- Parent app: when it joins the monorepo (or in its current repo before then) it needs the same custom-token exchange (uid `p_<parentId>`, `pt: parent`, `wards`), `session-sync`, and token dual-write to `devices/{uid}/tokens`.
+- Node `POST /v1.0/firebaseToken`: the app assumes response `{ "token": "<custom token>" }`, uid = the ERP user ID as a string, no prefix, claims per architecture §2. Until it is live the exchange fails silently, and `registerPushToken` re-calls Node `updateRegTokens` on each launch (its "already registered" mark is set only after both writes).
+- `icueadmin-dev`: enable Firestore (`(default)`, Standard, Native, `asia-south1`) and Blaze, then deploy rules, indexes (incl. `requests.expireAt` TTL) and functions (`firebase deploy --project dev` from `firebase/`), then seed: `npm --prefix firebase/functions run seed -- --project dev --school <schoolId> --roles admin=<id>,…` (needs Node role IDs per school).
+- Parent app: when it joins the monorepo (or in its current repo before then) it needs the same custom-token exchange (uid = the parent ID as a string, no prefix, `personType: parent`, `wardStudentIds`), `session-sync`, and token dual-write to `devices/{uid}/tokens`.

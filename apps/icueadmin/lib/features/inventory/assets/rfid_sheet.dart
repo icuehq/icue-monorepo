@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
 import 'package:icueadmin/features/inventory/widgets/scan_field.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -8,7 +8,7 @@ import 'package:provider/provider.dart';
 class RfidSheet extends StatefulWidget {
   const RfidSheet({required this.asset, super.key});
 
-  final InvAsset asset;
+  final InventoryAsset asset;
 
   @override
   State<RfidSheet> createState() => _RfidSheetState();
@@ -19,18 +19,18 @@ class _RfidSheetState extends State<RfidSheet> {
 
   Future<void> _save(String? tag) async {
     setState(() => _busy = true);
-    final p = context.read<AssetsProvider>();
-    final nav = Navigator.of(context);
-    final res = await p.act('inv-asset-setRfid', {
+    final assetsProvider = context.read<AssetsProvider>();
+    final navigator = Navigator.of(context);
+    final result = await assetsProvider.act('inventory-asset-setRfid', {
       'id': widget.asset.id,
       'rfidTag': tag,
     });
     if (!mounted) return;
     setState(() => _busy = false);
-    if (res == null) {
-      invSnack(context, p.errorMessage ?? 'Could not save');
+    if (result == null) {
+      showMessage(context, assetsProvider.errorMessage ?? 'Could not save');
     } else {
-      nav.pop();
+      navigator.pop();
     }
   }
 

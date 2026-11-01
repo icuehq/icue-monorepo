@@ -5,14 +5,14 @@ import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
 /// Inter-library transfers (FRS 11.15).
-class LibTransfersPage extends StatefulWidget {
-  const LibTransfersPage({super.key});
+class LibraryTransfersPage extends StatefulWidget {
+  const LibraryTransfersPage({super.key});
 
   @override
-  State<LibTransfersPage> createState() => _LibTransfersPageState();
+  State<LibraryTransfersPage> createState() => _LibTransfersPageState();
 }
 
-class _LibTransfersPageState extends State<LibTransfersPage> {
+class _LibTransfersPageState extends State<LibraryTransfersPage> {
   @override
   void initState() {
     super.initState();
@@ -23,11 +23,11 @@ class _LibTransfersPageState extends State<LibTransfersPage> {
 
   @override
   Widget build(BuildContext context) {
-    final p = context.watch<LibraryProvider>();
-    String lib(String id) => p.libraries
+    final libraryProvider = context.watch<LibraryProvider>();
+    String lib(String id) => libraryProvider.libraries
         .firstWhere(
-          (l) => l.id == id,
-          orElse: () => LibLibrary(
+          (schoolLibrary) => schoolLibrary.id == id,
+          orElse: () => SchoolLibrary(
             id: id,
             code: '',
             name: id,
@@ -40,43 +40,48 @@ class _LibTransfersPageState extends State<LibTransfersPage> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Library Transfers')),
-      floatingActionButton: p.access.can('lib.catalogue.manage')
+      floatingActionButton:
+          libraryProvider.access.can('library.catalogue.manage')
           ? FloatingActionButton.extended(
               onPressed: () => TransferRequestSheet.show(context),
               icon: const Icon(Icons.swap_horiz),
               label: const Text('New transfer'),
             )
           : null,
-      body: p.transfers.isEmpty
+      body: libraryProvider.transfers.isEmpty
           ? Center(
               child: Text(
-                p.transfersLoading
+                libraryProvider.transfersLoading
                     ? 'Loading…'
-                    : p.errorMessage ?? 'No transfers yet',
+                    : libraryProvider.errorMessage ?? 'No transfers yet',
               ),
             )
           : ListView.builder(
-              itemCount: p.transfers.length + (p.hasMoreTransfers ? 1 : 0),
+              itemCount:
+                  libraryProvider.transfers.length +
+                  (libraryProvider.hasMoreTransfers ? 1 : 0),
               itemBuilder: (context, i) {
-                if (i >= p.transfers.length) {
+                if (i >= libraryProvider.transfers.length) {
                   return Center(
                     child: TextButton(
-                      onPressed: p.transfersLoading
+                      onPressed: libraryProvider.transfersLoading
                           ? null
-                          : () => p.loadTransfers(more: true),
+                          : () => libraryProvider.loadTransfers(more: true),
                       child: const Text('Load more'),
                     ),
                   );
                 }
-                final t = p.transfers[i];
+                final transfer = libraryProvider.transfers[i];
                 return ListTile(
-                  title: Text(t.number),
+                  title: Text(transfer.number),
                   subtitle: Text(
-                    '${lib(t.fromLibraryId)} → ${lib(t.toLibraryId)} · '
-                    '${t.lines.length} copies',
+                    '${lib(transfer.fromLibraryId)} → ${lib(transfer.toLibraryId)} · '
+                    '${transfer.lineItems.length} copies',
                   ),
-                  trailing: Chip(label: Text(transferStatusLabel(t.status))),
-                  onTap: () => TransferSheet.show(context, t),
+                  trailing: Chip(
+                    label: Text(transferStatusLabel(transfer.status)),
+                  ),
+                  onTap: () => TransferSheet.show(context, transfer),
                 );
               },
             ),

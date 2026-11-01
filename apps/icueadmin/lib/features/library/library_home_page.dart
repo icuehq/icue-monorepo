@@ -23,8 +23,8 @@ class _LibraryHomePageState extends State<LibraryHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final p = context.watch<LibraryProvider>();
-    final view = p.access.can('lib.catalogue.view');
+    final libraryProvider = context.watch<LibraryProvider>();
+    final view = libraryProvider.access.can('library.catalogue.view');
     final tiles = <(String, String, String, bool)>[
       (
         'assets/dashboard/library-dashboard.png',
@@ -42,7 +42,7 @@ class _LibraryHomePageState extends State<LibraryHomePage> {
         'assets/dashboard/library-copies.png',
         'Copies',
         AppRoutes.libraryCopies,
-        p.access.can('lib.catalogue.manage'),
+        libraryProvider.access.can('library.catalogue.manage'),
       ),
       (
         'assets/dashboard/library-categories.png',
@@ -60,73 +60,73 @@ class _LibraryHomePageState extends State<LibraryHomePage> {
         'assets/dashboard/library-circulation.png',
         'Circulation',
         AppRoutes.libraryCirculation,
-        p.access.can('lib.circulation.operate'),
+        libraryProvider.access.can('library.circulation.operate'),
       ),
       (
         'assets/dashboard/library-reservations.png',
         'Reservations',
         AppRoutes.libraryReservations,
-        p.access.can('lib.circulation.operate'),
+        libraryProvider.access.can('library.circulation.operate'),
       ),
       (
         'assets/dashboard/library-members.png',
         'Members',
         AppRoutes.libraryMembers,
-        p.access.can('lib.members.view'),
+        libraryProvider.access.can('library.members.view'),
       ),
       (
         'assets/dashboard/library-policies.png',
         'Borrowing policies',
         AppRoutes.libraryPolicies,
-        p.access.can('lib.members.view'),
+        libraryProvider.access.can('library.members.view'),
       ),
       (
         'assets/dashboard/library-fines.png',
         'Fines & Penalties',
         AppRoutes.libraryFines,
-        p.access.can('lib.circulation.operate') ||
-            p.access.can('lib.fines.waive'),
+        libraryProvider.access.can('library.circulation.operate') ||
+            libraryProvider.access.can('library.fines.waive'),
       ),
       (
         'assets/dashboard/library-incidents.png',
         'Lost & Damaged',
         AppRoutes.libraryIncidents,
-        p.access.can('lib.circulation.operate'),
+        libraryProvider.access.can('library.circulation.operate'),
       ),
       (
         'assets/dashboard/library-transfers.png',
         'Transfers',
         AppRoutes.libraryTransfers,
-        p.access.can('lib.catalogue.manage'),
+        libraryProvider.access.can('library.catalogue.manage'),
       ),
       (
         'assets/dashboard/library-stock-verification.png',
         'Stock verification',
         AppRoutes.libraryVerification,
-        p.access.can('lib.catalogue.manage'),
+        libraryProvider.access.can('library.catalogue.manage'),
       ),
       (
         'assets/dashboard/reports.png',
         'Reports',
         AppRoutes.libraryReports,
-        p.access.can('lib.reports.view'),
+        libraryProvider.access.can('library.reports.view'),
       ),
       (
         'assets/dashboard/library-import.png',
         'Import',
         AppRoutes.libraryImport,
-        p.access.can('lib.catalogue.manage') ||
-            p.access.can('lib.circulation.operate'),
+        libraryProvider.access.can('library.catalogue.manage') ||
+            libraryProvider.access.can('library.circulation.operate'),
       ),
     ];
-    final visibleTiles = tiles.where((t) => t.$4).toList();
+    final visibleTiles = tiles.where((tile) => tile.$4).toList();
 
     return Scaffold(
       appBar: AppBar(title: const Text('Library')),
-      body: p.isLoading
+      body: libraryProvider.isLoading
           ? const Center(child: CircularProgressIndicator())
-          : p.errorMessage != null
-          ? Center(child: Text(p.errorMessage!))
+          : libraryProvider.errorMessage != null
+          ? Center(child: Text(libraryProvider.errorMessage!))
           : LayoutBuilder(
               builder: (context, constraints) {
                 final width = constraints.maxWidth;

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icueadmin/features/inventory/stock/line_editor.dart';
 import 'package:icueadmin/features/inventory/stock/stock_ui.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 
 const _sources = {
   'opening': 'Opening stock',
@@ -42,26 +42,30 @@ class _ReceivePageState extends State<ReceivePage> {
   void dispose() {
     _reference.dispose();
     _remarks.dispose();
-    for (final l in _lines) {
-      l.dispose();
+    for (final lineDraft in _lines) {
+      lineDraft.dispose();
     }
     super.dispose();
   }
 
   Future<void> _save() async {
     if (!_form.currentState!.validate()) return;
-    if (_lines.isEmpty) return invSnack(context, 'Add at least one item');
+    if (_lines.isEmpty) return showMessage(context, 'Add at least one item');
     setState(() => _busy = true);
     await stockSubmit(
       context,
-      (p) => p.act('inv-receipt-confirm', {
+      (stockProvider) => stockProvider.act('inventory-receipt-confirm', {
         'storeId': _store,
         'source': _source,
         'reference': _reference.text.trim(),
         'remarks': _remarks.text.trim(),
-        'lines': [
-          for (final l in _lines)
-            l.toMap(qtyKey: 'qtyAccepted', batch: true, receipt: true),
+        'lineItems': [
+          for (final lineDraft in _lines)
+            lineDraft.toMap(
+              quantityKey: 'quantityAccepted',
+              batch: true,
+              receipt: true,
+            ),
         ],
       }, requestId: _requestId),
       done: 'Received',
@@ -79,17 +83,20 @@ class _ReceivePageState extends State<ReceivePage> {
         children: [
           StoreDropdown(
             value: _store,
-            onChanged: (v) => setState(() => _store = v),
+            onChanged: (value) => setState(() => _store = value),
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             initialValue: _source,
             decoration: const InputDecoration(labelText: 'Source'),
             items: [
-              for (final e in _sources.entries)
-                DropdownMenuItem(value: e.key, child: Text(e.value)),
+              for (final mapEntry in _sources.entries)
+                DropdownMenuItem(
+                  value: mapEntry.key,
+                  child: Text(mapEntry.value),
+                ),
             ],
-            onChanged: (v) => setState(() => _source = v!),
+            onChanged: (value) => setState(() => _source = value!),
           ),
           const SizedBox(height: 12),
           TextFormField(
@@ -100,7 +107,7 @@ class _ReceivePageState extends State<ReceivePage> {
           ),
           const SizedBox(height: 12),
           LineEditor(
-            lines: _lines,
+            lineItems: _lines,
             receipt: true,
             onChanged: () => setState(() {}),
           ),

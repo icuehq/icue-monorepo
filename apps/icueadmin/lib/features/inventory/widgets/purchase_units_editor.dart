@@ -11,7 +11,7 @@ class PurchaseUnitsEditor extends StatefulWidget {
     required this.onChanged,
   });
 
-  final List<InvUnit> units;
+  final List<InventoryUnit> units;
   final String? stockUnit;
   final List<PurchaseUnit> initial;
   final ValueChanged<List<PurchaseUnit>> onChanged;
@@ -31,8 +31,8 @@ class _PurchaseUnitsEditorState extends State<PurchaseUnitsEditor> {
   @override
   Widget build(BuildContext context) {
     final options = [
-      for (final u in widget.units)
-        if (u.code != widget.stockUnit) u,
+      for (final unit in widget.units)
+        if (unit.code != widget.stockUnit) unit,
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -60,13 +60,16 @@ class _PurchaseUnitsEditorState extends State<PurchaseUnitsEditor> {
                 child: DropdownButtonFormField<String>(
                   initialValue: _rows[i].unit,
                   items: [
-                    for (final u in options)
-                      DropdownMenuItem(value: u.code, child: Text(u.name)),
+                    for (final unit in options)
+                      DropdownMenuItem(
+                        value: unit.code,
+                        child: Text(unit.name),
+                      ),
                   ],
-                  onChanged: (v) => _set(
+                  onChanged: (value) => _set(
                     i,
                     PurchaseUnit(
-                      unit: v ?? _rows[i].unit,
+                      unit: value ?? _rows[i].unit,
                       factor: _rows[i].factor,
                     ),
                   ),
@@ -83,14 +86,17 @@ class _PurchaseUnitsEditorState extends State<PurchaseUnitsEditor> {
                   decoration: InputDecoration(
                     labelText: 'x ${widget.stockUnit ?? 'stock'}',
                   ),
-                  validator: (v) {
-                    final n = double.tryParse(v ?? '');
-                    return n == null || n <= 0 ? '> 0' : null;
+                  validator: (value) {
+                    final number = double.tryParse(value ?? '');
+                    return number == null || number <= 0 ? '> 0' : null;
                   },
-                  onChanged: (v) {
-                    final n = double.tryParse(v);
-                    if (n != null && n > 0) {
-                      _rows[i] = PurchaseUnit(unit: _rows[i].unit, factor: n);
+                  onChanged: (value) {
+                    final number = double.tryParse(value);
+                    if (number != null && number > 0) {
+                      _rows[i] = PurchaseUnit(
+                        unit: _rows[i].unit,
+                        factor: number,
+                      );
                       widget.onChanged(List.of(_rows));
                     }
                   },

@@ -1,8 +1,8 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icueadmin/features/inventory/procurement/invoice_sheet.dart';
 import 'package:icueadmin/features/inventory/procurement/order_widgets.dart';
-import 'package:icueadmin/features/inventory/stock/stock_ui.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -28,11 +28,13 @@ class _InvoicesPageState extends State<InvoicesPage> {
   String get _today => DateTime.now().toIso8601String().substring(0, 10);
 
   Future<void> _load() async {
-    final inv = context.read<InventoryProvider>();
-    if (inv.categories.isEmpty) await inv.loadMasters();
+    final inventoryProvider = context.read<InventoryProvider>();
+    if (inventoryProvider.categories.isEmpty) {
+      await inventoryProvider.loadMasters();
+    }
     if (mounted) {
       await context.read<ProcurementProvider>().loadInvoices(
-        inv.access,
+        inventoryProvider.access,
         status: _status == 'overdue' ? null : _status,
       );
     }
@@ -46,9 +48,9 @@ class _InvoicesPageState extends State<InvoicesPage> {
 
   @override
   Widget build(BuildContext context) {
-    final p = context.watch<ProcurementProvider>();
+    final procurementProvider = context.watch<ProcurementProvider>();
     final shown = [
-      for (final i in p.invoices)
+      for (final i in procurementProvider.invoices)
         if (_status != 'overdue' || i.statusOn(_today) == 'overdue') i,
     ];
     return Scaffold(
@@ -62,11 +64,14 @@ class _InvoicesPageState extends State<InvoicesPage> {
               value: _status,
               items: [
                 const DropdownMenuItem(child: Text('All statuses')),
-                for (final s in _statuses)
-                  DropdownMenuItem(value: s, child: Text(statusLabel(s))),
+                for (final status in _statuses)
+                  DropdownMenuItem(
+                    value: status,
+                    child: Text(humanizeStatus(status)),
+                  ),
               ],
-              onChanged: (v) {
-                _status = v;
+              onChanged: (value) {
+                _status = value;
                 _load();
               },
             ),
@@ -74,28 +79,30 @@ class _InvoicesPageState extends State<InvoicesPage> {
           Expanded(
             child: shown.isEmpty
                 ? Center(
-                    child: p.isLoading
+                    child: procurementProvider.isLoading
                         ? const CircularProgressIndicator()
-                        : Text(p.errorMessage ?? 'No invoices'),
+                        : Text(
+                            procurementProvider.errorMessage ?? 'No invoices',
+                          ),
                   )
                 : ListView(
                     children: [
                       for (final i in shown)
                         ListTile(
                           title: Text(
-                            '${i.invoiceNo} · ${p.vendorName(i.vendorId)}',
+                            '${i.invoiceNumber} · ${procurementProvider.vendorName(i.vendorId)}',
                           ),
                           subtitle: Text(
-                            '${i.poNumber} · total ${money(i.total)} · '
+                            '${i.purchaseOrderNumber} · total ${money(i.total)} · '
                             'outstanding ${money(i.outstanding)}'
                             '${i.dueDate == null ? '' : ' · due ${i.dueDate}'}',
                           ),
                           trailing: Chip(
-                            label: Text(statusLabel(i.statusOn(_today))),
+                            label: Text(humanizeStatus(i.statusOn(_today))),
                             visualDensity: VisualDensity.compact,
                           ),
                           onTap: () async {
-                            await showInvSheet(
+                            await showFormSheet(
                               context,
                               () => InvoiceSheet(invoice: i),
                             );

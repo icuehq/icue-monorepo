@@ -53,7 +53,8 @@ Run from the repo root (`dart pub get` first; `melos bootstrap` is not needed wi
 - `melos run format` / `melos run format:check` — Dart formatting.
 - `melos run test` — tests in every package with a `test/` dir.
 - `melos run firebase:test` — Cloud Functions (`firebase/functions`) and Security Rules (`firebase/rules-tests`) tests on the emulator. Firebase deploys default to `icueadmin-dev`; prod needs `--project prod`.
-- `melos run emulators` — local Firebase emulators (run as `icueadmin-dev` because the mobile apps take their project ID from `google-services.json`; all services are emulated and `outboxSend` never sends real FCM there). Loads `firebase/.emulator-data` on start and saves it on Ctrl-C; `melos run emulators:reset` wipes it, `melos run emulators:seed -- --school <sid> --roles admin=<id>` seeds role permissions. To run the app against them use the `icueadmin [Dev + Emulators · Android|iOS]` launch configs (`--dart-define=FIREBASE_EMULATOR=<host>`; debug/profile builds only), which sign in with a locally built unsigned custom token instead of Node's `/v1.0/firebaseToken`.
+- `melos run emulators` — local Firebase emulators (run as `icueadmin-dev` because the mobile apps take their project ID from `google-services.json`; all services are emulated and `outboxSend` never sends real FCM there). Loads `firebase/.emulator-data` on start and saves it on Ctrl-C; `melos run emulators:reset` wipes it, `melos run emulators:seed -- --school <schoolId> --roles admin=<id>` seeds role permissions. To run the app against them use the `icueadmin [Dev + Emulators · Android|iOS]` launch configs (`--dart-define=FIREBASE_EMULATOR=<host>`; debug/profile builds only), which sign in with a locally built unsigned custom token instead of Node's `/v1.0/firebaseToken`.
+- `melos run naming:check` — fails on abbreviated names, `inv`/`lib` prefixes and `u_`/`p_` uid prefixes in Inventory and Library code.
 - `melos run gen` — `build_runner` (injectable DI config). Re-run after changing any `@injectable`/annotated class or adding a package module.
 
 Never hand-edit `*.g.dart`, `*.module.dart`, `injection.config.dart` or other generated files.
@@ -62,6 +63,7 @@ Never hand-edit `*.g.dart`, `*.module.dart`, `injection.config.dart` or other ge
 
 - Lints are defined in the root `analysis_options.yaml` (strict casts/inference/raw types, single quotes, trailing commas, `always_use_package_imports`, `prefer_final_locals`). Follow them; do not add `// ignore:` without a documented reason (`document_ignores` is on).
 - Use package imports, never relative `../` imports.
+- Names follow `docs/naming-map.md`: full words (no `qty`, `cmp`, `inv`, `lib`…), dates end in `Date` and timestamps in `At`, locals say what they hold. `melos run naming:check` enforces it for Inventory and Library. A Firebase uid is the ERP ID as a string, with no prefix.
 
 ## Code structure & screen size limits
 

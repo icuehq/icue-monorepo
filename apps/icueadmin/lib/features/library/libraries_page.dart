@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
 import 'package:icueadmin/features/library/widgets/library_form_sheet.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
@@ -9,8 +9,8 @@ class LibrariesPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final p = context.watch<LibraryProvider>();
-    final canEdit = p.access.can('lib.settings');
+    final libraryProvider = context.watch<LibraryProvider>();
+    final canEdit = libraryProvider.access.can('library.settings');
     return Scaffold(
       appBar: AppBar(title: const Text('Libraries')),
       floatingActionButton: canEdit
@@ -20,34 +20,44 @@ class LibrariesPage extends StatelessWidget {
               label: const Text('Library'),
             )
           : null,
-      body: p.libraries.isEmpty
-          ? Center(child: Text(p.isLoading ? 'Loading…' : 'No libraries yet'))
+      body: libraryProvider.libraries.isEmpty
+          ? Center(
+              child: Text(
+                libraryProvider.isLoading ? 'Loading…' : 'No libraries yet',
+              ),
+            )
           : ListView(
               children: [
-                for (final l in p.libraries)
+                for (final schoolLibrary in libraryProvider.libraries)
                   ListTile(
-                    title: Text(l.name),
+                    title: Text(schoolLibrary.name),
                     subtitle: Text(
-                      '${l.code} · Campus ${l.campusId}'
-                      '${l.location == null ? '' : ' · ${l.location}'}'
-                      '${l.hours == null ? '' : '\n${l.hours}'}',
+                      '${schoolLibrary.code} · Campus ${schoolLibrary.campusId}'
+                      '${schoolLibrary.location == null ? '' : ' · ${schoolLibrary.location}'}'
+                      '${schoolLibrary.hours == null ? '' : '\n${schoolLibrary.hours}'}',
                     ),
-                    isThreeLine: l.hours != null,
-                    leading: l.active ? null : const InactiveBadge(),
+                    isThreeLine: schoolLibrary.hours != null,
+                    leading: schoolLibrary.active
+                        ? null
+                        : const InactiveBadge(),
                     trailing: canEdit
                         ? PopupMenuButton<String>(
-                            onSelected: (v) async {
-                              if (v == 'edit') {
+                            onSelected: (value) async {
+                              if (value == 'edit') {
                                 await LibraryFormSheet.show(
                                   context,
-                                  library: l,
+                                  library: schoolLibrary,
                                 );
-                              } else if (!await p.setLibraryActive(
-                                    l.id,
-                                    active: !l.active,
-                                  ) &&
+                              } else if (!await libraryProvider
+                                      .setLibraryActive(
+                                        schoolLibrary.id,
+                                        active: !schoolLibrary.active,
+                                      ) &&
                                   context.mounted) {
-                                invSnack(context, p.errorMessage ?? 'Failed');
+                                showMessage(
+                                  context,
+                                  libraryProvider.errorMessage ?? 'Failed',
+                                );
                               }
                             },
                             itemBuilder: (_) => [
@@ -58,7 +68,9 @@ class LibrariesPage extends StatelessWidget {
                               PopupMenuItem(
                                 value: 'toggle',
                                 child: Text(
-                                  l.active ? 'Deactivate' : 'Activate',
+                                  schoolLibrary.active
+                                      ? 'Deactivate'
+                                      : 'Activate',
                                 ),
                               ),
                             ],

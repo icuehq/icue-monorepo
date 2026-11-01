@@ -1,8 +1,9 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icueadmin/features/inventory/stock/issue_return_sheet.dart';
 import 'package:icueadmin/features/inventory/stock/stock_ui.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -10,7 +11,7 @@ import 'package:provider/provider.dart';
 class RequestSheet extends StatefulWidget {
   const RequestSheet({required this.request, super.key});
 
-  final InvIssueRequest request;
+  final InventoryIssueRequest request;
 
   @override
   State<RequestSheet> createState() => _RequestSheetState();
@@ -20,12 +21,12 @@ class _RequestSheetState extends State<RequestSheet> {
   final _comment = TextEditingController();
   final _recipient = TextEditingController();
   late final _approve = [
-    for (final l in widget.request.lines)
-      TextEditingController(text: fmtQty(l.requested)),
+    for (final requestLine in widget.request.lineItems)
+      TextEditingController(text: formatQuantity(requestLine.requested)),
   ];
   final _requestId = newRequestId();
   var _recipientType = 'staff';
-  late final Future<List<InvIssue>> _issues = widget.request.isPending
+  late final Future<List<InventoryIssue>> _issues = widget.request.isPending
       ? Future.value([])
       : context.read<StockProvider>().issuesOf(widget.request);
 
@@ -33,42 +34,47 @@ class _RequestSheetState extends State<RequestSheet> {
   void dispose() {
     _comment.dispose();
     _recipient.dispose();
-    for (final c in _approve) {
-      c.dispose();
+    for (final controller in _approve) {
+      controller.dispose();
     }
     super.dispose();
   }
 
   Future<void> _decide(bool approve) => stockSubmit(
     context,
-    (p) => p.act('inv-issueRequest-decide', {
+    (stockProvider) => stockProvider.act('inventory-issueRequest-decide', {
       'id': widget.request.id,
       'decision': approve ? 'approve' : 'reject',
       'comment': _comment.text.trim(),
       if (approve)
-        'lines': [
+        'lineItems': [
           for (final (i, c) in _approve.indexed)
-            {'index': i, 'qtyApproved': double.tryParse(c.text.trim()) ?? 0},
+            {
+              'index': i,
+              'quantityApproved': double.tryParse(c.text.trim()) ?? 0,
+            },
         ],
     }, requestId: _requestId),
     done: approve ? 'Approved' : 'Rejected',
   );
 
   Future<void> _issue() async {
-    final erpId = int.tryParse(_recipient.text.trim());
-    if (erpId == null) return invSnack(context, 'Enter the recipient ERP ID');
+    final personErpId = int.tryParse(_recipient.text.trim());
+    if (personErpId == null) {
+      return showMessage(context, 'Enter the recipient ERP ID');
+    }
     await stockSubmit(
       context,
-      (p) => p.act('inv-issue-create', {
+      (stockProvider) => stockProvider.act('inventory-issue-create', {
         'issueRequestId': widget.request.id,
-        'recipient': {'type': _recipientType, 'erpId': erpId},
-        'lines': [
-          for (final l in widget.request.lines)
-            if ((l.approved ?? 0) - l.issued > 0)
+        'recipient': {'type': _recipientType, 'personErpId': personErpId},
+        'lineItems': [
+          for (final requestLine in widget.request.lineItems)
+            if ((requestLine.approved ?? 0) - requestLine.issued > 0)
               {
-                'itemId': l.itemId,
-                'variantId': ?l.variantId,
-                'qty': (l.approved ?? 0) - l.issued,
+                'itemId': requestLine.itemId,
+                'variantId': ?requestLine.variantId,
+                'quantity': (requestLine.approved ?? 0) - requestLine.issued,
               },
         ],
       }, requestId: _requestId),
@@ -78,20 +84,26 @@ class _RequestSheetState extends State<RequestSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final r = widget.request;
-    final p = context.read<StockProvider>();
-    final a = context.read<InventoryProvider>().access;
+    final issueRequest = widget.request;
+    final stockProvider = context.read<StockProvider>();
+    final access = context.read<InventoryProvider>().access;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(r.number, style: Theme.of(context).textTheme.titleLarge),
-        Text('${statusLabel(r.status)} · ${r.purpose}'),
-        if (r.approvalComment != null && r.approvalComment!.isNotEmpty)
-          Text('Comment: ${r.approvalComment}'),
+        Text(
+          issueRequest.number,
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        Text(
+          '${humanizeStatus(issueRequest.status)} · ${issueRequest.purpose}',
+        ),
+        if (issueRequest.approvalComment != null &&
+            issueRequest.approvalComment!.isNotEmpty)
+          Text('Comment: ${issueRequest.approvalComment}'),
         const SizedBox(height: 8),
-        for (final (i, l) in r.lines.indexed)
-          r.isPending && a.can('inv.issue.approve')
+        for (final (i, l) in issueRequest.lineItems.indexed)
+          issueRequest.isPending && access.can('inventory.issue.approve')
               ? Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: TextField(
@@ -101,20 +113,21 @@ class _RequestSheetState extends State<RequestSheet> {
                     ),
                     decoration: InputDecoration(
                       labelText:
-                          '${p.itemName(l.itemId)} – approve (requested ${fmtQty(l.requested)})',
+                          '${stockProvider.itemName(l.itemId)} – approve (requested ${formatQuantity(l.requested)})',
                     ),
                   ),
                 )
               : ListTile(
                   dense: true,
-                  title: Text(p.itemName(l.itemId)),
+                  title: Text(stockProvider.itemName(l.itemId)),
                   trailing: Text(
-                    'Req ${fmtQty(l.requested)}'
-                    '${l.approved == null ? '' : ' · Appr ${fmtQty(l.approved!)}'}'
-                    '${l.issued > 0 ? ' · Issued ${fmtQty(l.issued)}' : ''}',
+                    'Req ${formatQuantity(l.requested)}'
+                    '${l.approved == null ? '' : ' · Appr ${formatQuantity(l.approved!)}'}'
+                    '${l.issued > 0 ? ' · Issued ${formatQuantity(l.issued)}' : ''}',
                   ),
                 ),
-        if (r.isPending && a.can('inv.issue.approve')) ...[
+        if (issueRequest.isPending &&
+            access.can('inventory.issue.approve')) ...[
           TextField(
             controller: _comment,
             decoration: const InputDecoration(
@@ -140,7 +153,8 @@ class _RequestSheetState extends State<RequestSheet> {
             ],
           ),
         ],
-        if (r.isIssuable && a.can('inv.stock.operate')) ...[
+        if (issueRequest.isIssuable &&
+            access.can('inventory.stock.operate')) ...[
           const Divider(),
           Row(
             children: [
@@ -151,7 +165,7 @@ class _RequestSheetState extends State<RequestSheet> {
                   DropdownMenuItem(value: 'student', child: Text('Student')),
                   DropdownMenuItem(value: 'department', child: Text('Dept')),
                 ],
-                onChanged: (v) => setState(() => _recipientType = v!),
+                onChanged: (value) => setState(() => _recipientType = value!),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -171,14 +185,14 @@ class _RequestSheetState extends State<RequestSheet> {
             child: const Text('Issue remaining approved quantity'),
           ),
         ],
-        if (!r.isPending && a.can('inv.stock.operate'))
-          FutureBuilder<List<InvIssue>>(
+        if (!issueRequest.isPending && access.can('inventory.stock.operate'))
+          FutureBuilder<List<InventoryIssue>>(
             future: _issues,
-            builder: (context, snap) => Column(
+            builder: (context, snapshot) => Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if ((snap.data ?? []).isNotEmpty) const Divider(),
-                for (final i in snap.data ?? <InvIssue>[])
+                if ((snapshot.data ?? []).isNotEmpty) const Divider(),
+                for (final i in snapshot.data ?? <InventoryIssue>[])
                   ListTile(
                     dense: true,
                     title: Text(i.number),
@@ -188,7 +202,7 @@ class _RequestSheetState extends State<RequestSheet> {
                           : 'Awaiting recipient confirmation',
                     ),
                     trailing: TextButton(
-                      onPressed: () => showInvSheet(
+                      onPressed: () => showFormSheet(
                         context,
                         () => IssueReturnSheet(issue: i),
                       ),

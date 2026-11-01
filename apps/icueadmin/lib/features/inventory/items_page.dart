@@ -20,17 +20,21 @@ class _ItemsPageState extends State<ItemsPage> {
   @override
   void initState() {
     super.initState();
-    final p = context.read<InventoryProvider>();
+    final inventoryProvider = context.read<InventoryProvider>();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (p.categories.isEmpty) await p.loadMasters();
-      await p.loadItems(
+      if (inventoryProvider.categories.isEmpty) {
+        await inventoryProvider.loadMasters();
+      }
+      await inventoryProvider.loadItems(
         search: '',
         categoryId: widget.categoryId,
         clearCategory: widget.categoryId == null,
       );
     });
     _scroll.addListener(() {
-      if (_scroll.position.extentAfter < 300) p.loadItems(more: true);
+      if (_scroll.position.extentAfter < 300) {
+        inventoryProvider.loadItems(more: true);
+      }
     });
   }
 
@@ -43,11 +47,12 @@ class _ItemsPageState extends State<ItemsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final p = context.watch<InventoryProvider>();
-    final searching = p.itemSearch.trim().isNotEmpty;
+    final inventoryProvider = context.watch<InventoryProvider>();
+    final searching = inventoryProvider.itemSearch.trim().isNotEmpty;
     return Scaffold(
       appBar: AppBar(title: const Text('Items')),
-      floatingActionButton: p.access.can('inv.items.manage')
+      floatingActionButton:
+          inventoryProvider.access.can('inventory.items.manage')
           ? FloatingActionButton.extended(
               onPressed: () => context.push(AppRoutes.inventoryItemForm),
               icon: const Icon(Icons.add_rounded),
@@ -61,7 +66,8 @@ class _ItemsPageState extends State<ItemsPage> {
             child: TextField(
               controller: _search,
               textInputAction: TextInputAction.search,
-              onSubmitted: (v) => p.loadItems(search: v),
+              onSubmitted: (value) =>
+                  inventoryProvider.loadItems(search: value),
               decoration: InputDecoration(
                 hintText: 'Search by whole word in name or code',
                 prefixIcon: const Icon(Icons.search),
@@ -70,7 +76,7 @@ class _ItemsPageState extends State<ItemsPage> {
                         icon: const Icon(Icons.clear),
                         onPressed: () {
                           _search.clear();
-                          p.loadItems(search: '');
+                          inventoryProvider.loadItems(search: '');
                         },
                       )
                     : null,
@@ -81,38 +87,45 @@ class _ItemsPageState extends State<ItemsPage> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: DropdownButton<String?>(
               isExpanded: true,
-              value: p.itemCategoryId,
+              value: inventoryProvider.itemCategoryId,
               items: [
                 const DropdownMenuItem(child: Text('All categories')),
-                for (final c in p.topCategories)
-                  DropdownMenuItem(value: c.id, child: Text(c.name)),
+                for (final category in inventoryProvider.topCategories)
+                  DropdownMenuItem(
+                    value: category.id,
+                    child: Text(category.name),
+                  ),
               ],
-              onChanged: (v) =>
-                  p.loadItems(categoryId: v, clearCategory: v == null),
+              onChanged: (value) => inventoryProvider.loadItems(
+                categoryId: value,
+                clearCategory: value == null,
+              ),
             ),
           ),
           Expanded(
-            child: p.items.isEmpty
+            child: inventoryProvider.items.isEmpty
                 ? Center(
-                    child: p.itemsLoading
+                    child: inventoryProvider.itemsLoading
                         ? const CircularProgressIndicator()
-                        : Text(p.errorMessage ?? 'No items'),
+                        : Text(inventoryProvider.errorMessage ?? 'No items'),
                   )
                 : ListView.builder(
                     controller: _scroll,
-                    itemCount: p.items.length + (p.hasMoreItems ? 1 : 0),
+                    itemCount:
+                        inventoryProvider.items.length +
+                        (inventoryProvider.hasMoreItems ? 1 : 0),
                     itemBuilder: (context, i) {
-                      if (i == p.items.length) {
+                      if (i == inventoryProvider.items.length) {
                         return const Padding(
                           padding: EdgeInsets.all(16),
                           child: Center(child: CircularProgressIndicator()),
                         );
                       }
-                      final item = p.items[i];
+                      final item = inventoryProvider.items[i];
                       return ListTile(
                         title: Text(item.name),
                         subtitle: Text(
-                          '${item.code} · ${p.category(item.categoryId)?.name ?? '—'}'
+                          '${item.code} · ${inventoryProvider.category(item.categoryId)?.name ?? '—'}'
                           ' · ${item.stockUnit}',
                         ),
                         trailing: item.active

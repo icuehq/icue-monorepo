@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
 import 'package:icueadmin/features/inventory/widgets/store_form_sheet.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -9,8 +9,8 @@ class StoresPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final p = context.watch<InventoryProvider>();
-    final canEdit = p.access.can('inv.settings');
+    final inventoryProvider = context.watch<InventoryProvider>();
+    final canEdit = inventoryProvider.access.can('inventory.settings');
     return Scaffold(
       appBar: AppBar(title: const Text('Stores')),
       floatingActionButton: canEdit
@@ -20,29 +20,40 @@ class StoresPage extends StatelessWidget {
               label: const Text('Store'),
             )
           : null,
-      body: p.stores.isEmpty
-          ? Center(child: Text(p.isLoading ? 'Loading…' : 'No stores yet'))
+      body: inventoryProvider.stores.isEmpty
+          ? Center(
+              child: Text(
+                inventoryProvider.isLoading ? 'Loading…' : 'No stores yet',
+              ),
+            )
           : ListView(
               children: [
-                for (final s in p.stores)
+                for (final store in inventoryProvider.stores)
                   ListTile(
-                    title: Text(s.name),
+                    title: Text(store.name),
                     subtitle: Text(
-                      '${s.code} · Campus ${s.campusId}'
-                      '${s.location == null ? '' : ' · ${s.location}'}',
+                      '${store.code} · Campus ${store.campusId}'
+                      '${store.location == null ? '' : ' · ${store.location}'}',
                     ),
-                    leading: s.active ? null : const InactiveBadge(),
+                    leading: store.active ? null : const InactiveBadge(),
                     trailing: canEdit
                         ? PopupMenuButton<String>(
-                            onSelected: (v) async {
-                              if (v == 'edit') {
-                                await StoreFormSheet.show(context, store: s);
-                              } else if (!await p.setStoreActive(
-                                    s.id,
-                                    active: !s.active,
-                                  ) &&
+                            onSelected: (value) async {
+                              if (value == 'edit') {
+                                await StoreFormSheet.show(
+                                  context,
+                                  store: store,
+                                );
+                              } else if (!await inventoryProvider
+                                      .setStoreActive(
+                                        store.id,
+                                        active: !store.active,
+                                      ) &&
                                   context.mounted) {
-                                invSnack(context, p.errorMessage ?? 'Failed');
+                                showMessage(
+                                  context,
+                                  inventoryProvider.errorMessage ?? 'Failed',
+                                );
                               }
                             },
                             itemBuilder: (_) => [
@@ -53,7 +64,7 @@ class StoresPage extends StatelessWidget {
                               PopupMenuItem(
                                 value: 'toggle',
                                 child: Text(
-                                  s.active ? 'Deactivate' : 'Activate',
+                                  store.active ? 'Deactivate' : 'Activate',
                                 ),
                               ),
                             ],

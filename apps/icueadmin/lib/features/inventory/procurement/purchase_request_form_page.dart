@@ -1,8 +1,9 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
-import 'package:icueadmin/features/inventory/procurement/proc_ui.dart';
+import 'package:icueadmin/features/inventory/procurement/procurement_ui.dart';
 import 'package:icueadmin/features/inventory/stock/item_picker.dart';
 import 'package:icueadmin/features/inventory/stock/stock_ui.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -11,19 +12,19 @@ class _Line {
     this.itemId,
     this.name,
     this.variantId, {
-    String qty = '',
+    String quantity = '',
     String price = '',
-  }) : qty = TextEditingController(text: qty),
+  }) : quantity = TextEditingController(text: quantity),
        price = TextEditingController(text: price);
 
   final String itemId;
   final String name;
   final String? variantId;
-  final TextEditingController qty;
+  final TextEditingController quantity;
   final TextEditingController price;
 
   void dispose() {
-    qty.dispose();
+    quantity.dispose();
     price.dispose();
   }
 }
@@ -32,7 +33,7 @@ class _Line {
 class PurchaseRequestFormPage extends StatefulWidget {
   const PurchaseRequestFormPage({super.key, this.existing});
 
-  final InvPurchaseRequest? existing;
+  final InventoryPurchaseRequest? existing;
 
   @override
   State<PurchaseRequestFormPage> createState() =>
@@ -53,17 +54,18 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
   void initState() {
     super.initState();
     ensureMasters(context);
-    final r = widget.existing;
-    if (r != null) {
+    final purchaseRequest = widget.existing;
+    if (purchaseRequest != null) {
       final items = context.read<ProcurementProvider>().items;
-      for (final l in r.lines) {
+      for (final purchaseRequestLine in purchaseRequest.lineItems) {
         _lines.add(
           _Line(
-            l.itemId,
-            items[l.itemId]?.name ?? l.itemId,
-            l.variantId,
-            qty: fmtQty(l.qty),
-            price: fmtQty(l.estPrice),
+            purchaseRequestLine.itemId,
+            items[purchaseRequestLine.itemId]?.name ??
+                purchaseRequestLine.itemId,
+            purchaseRequestLine.variantId,
+            quantity: formatQuantity(purchaseRequestLine.quantity),
+            price: formatQuantity(purchaseRequestLine.estimatedPrice),
           ),
         );
       }
@@ -72,39 +74,42 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
 
   @override
   void dispose() {
-    for (final c in [_purpose, _remarks, _date]) {
-      c.dispose();
+    for (final controller in [_purpose, _remarks, _date]) {
+      controller.dispose();
     }
-    for (final l in _lines) {
-      l.dispose();
+    for (final line in _lines) {
+      line.dispose();
     }
     super.dispose();
   }
 
   Future<void> _save({required bool submit}) async {
     if (!_form.currentState!.validate()) return;
-    if (_lines.isEmpty) return invSnack(context, 'Add at least one item');
+    if (_lines.isEmpty) return showMessage(context, 'Add at least one item');
     setState(() => _busy = true);
     await procSubmit(
       context,
-      (p) => p.act('inv-pr-save', {
-        'id': ?widget.existing?.id,
-        'campusId': _campus,
-        'requiredDate': _date.text,
-        'priority': _priority,
-        'purpose': _purpose.text.trim(),
-        'remarks': _remarks.text.trim(),
-        'lines': [
-          for (final l in _lines)
-            {
-              'itemId': l.itemId,
-              'variantId': ?l.variantId,
-              'qty': double.parse(l.qty.text.trim()),
-              'estPrice': double.tryParse(l.price.text.trim()) ?? 0,
-            },
-        ],
-        'submit': submit,
-      }),
+      (procurementProvider) => procurementProvider.act(
+        'inventory-purchaseRequest-save',
+        {
+          'id': ?widget.existing?.id,
+          'campusId': _campus,
+          'requiredDate': _date.text,
+          'priority': _priority,
+          'purpose': _purpose.text.trim(),
+          'remarks': _remarks.text.trim(),
+          'lineItems': [
+            for (final line in _lines)
+              {
+                'itemId': line.itemId,
+                'variantId': ?line.variantId,
+                'quantity': double.parse(line.quantity.text.trim()),
+                'estimatedPrice': double.tryParse(line.price.text.trim()) ?? 0,
+              },
+          ],
+          'submit': submit,
+        },
+      ),
       done: submit ? 'Submitted' : 'Draft saved',
     );
     if (mounted) setState(() => _busy = false);
@@ -124,7 +129,7 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
           picked.variant?.id,
           price: picked.item.defaultPrice == null
               ? ''
-              : fmtQty(picked.item.defaultPrice!),
+              : formatQuantity(picked.item.defaultPrice!),
         ),
       );
     });
@@ -133,7 +138,7 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
   @override
   Widget build(BuildContext context) {
     final access = context.read<InventoryProvider>().access;
-    final campuses = {...access.campuses, ?_campus}.toList();
+    final campuses = {...access.campusIds, ?_campus}.toList();
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -151,11 +156,13 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
               initialValue: _campus,
               decoration: const InputDecoration(labelText: 'Campus *'),
               items: [
-                for (final c in campuses)
-                  DropdownMenuItem(value: c, child: Text('Campus $c')),
+                for (final value in campuses)
+                  DropdownMenuItem(value: value, child: Text('Campus $value')),
               ],
-              onChanged: widget.existing == null ? (v) => _campus = v : null,
-              validator: (v) => v == null ? 'Required' : null,
+              onChanged: widget.existing == null
+                  ? (value) => _campus = value
+                  : null,
+              validator: (value) => value == null ? 'Required' : null,
             ),
             TextFormField(
               controller: _purpose,
@@ -171,14 +178,14 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
               ),
               validator: requiredText,
               onTap: () async {
-                final d = await showDatePicker(
+                final date = await showDatePicker(
                   context: context,
                   firstDate: DateTime.now(),
                   lastDate: DateTime.now().add(const Duration(days: 730)),
                   initialDate: DateTime.now(),
                 );
-                if (d != null) {
-                  _date.text = d.toIso8601String().substring(0, 10);
+                if (date != null) {
+                  _date.text = date.toIso8601String().substring(0, 10);
                 }
               },
             ),
@@ -186,10 +193,13 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
               initialValue: _priority,
               decoration: const InputDecoration(labelText: 'Priority'),
               items: [
-                for (final s in ['low', 'normal', 'high', 'urgent'])
-                  DropdownMenuItem(value: s, child: Text(statusLabel(s))),
+                for (final value in ['low', 'normal', 'high', 'urgent'])
+                  DropdownMenuItem(
+                    value: value,
+                    child: Text(humanizeStatus(value)),
+                  ),
               ],
-              onChanged: (v) => _priority = v ?? 'normal',
+              onChanged: (value) => _priority = value ?? 'normal',
             ),
             TextFormField(
               controller: _remarks,
@@ -221,7 +231,7 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
                         children: [
                           Expanded(
                             child: TextFormField(
-                              controller: l.qty,
+                              controller: l.quantity,
                               keyboardType:
                                   const TextInputType.numberWithOptions(
                                     decimal: true,
@@ -229,9 +239,13 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
                               decoration: const InputDecoration(
                                 labelText: 'Quantity',
                               ),
-                              validator: (v) {
-                                final q = double.tryParse((v ?? '').trim());
-                                return q == null || q <= 0 ? 'Invalid' : null;
+                              validator: (value) {
+                                final quantity = double.tryParse(
+                                  (value ?? '').trim(),
+                                );
+                                return quantity == null || quantity <= 0
+                                    ? 'Invalid'
+                                    : null;
                               },
                             ),
                           ),

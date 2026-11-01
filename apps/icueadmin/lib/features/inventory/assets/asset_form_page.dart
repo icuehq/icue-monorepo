@@ -3,7 +3,7 @@ import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icueadmin/features/inventory/assets/asset_ui.dart';
 import 'package:icueadmin/features/inventory/stock/item_picker.dart';
 import 'package:icueadmin/features/inventory/stock/stock_ui.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -25,9 +25,9 @@ class _AssetFormPageState extends State<AssetFormPage> {
   final _price = TextEditingController();
   final _location = TextEditingController();
   final _purchased = TextEditingController();
-  final _wStart = TextEditingController();
-  final _wEnd = TextEditingController();
-  InvItem? _item;
+  final _warrantyStart = TextEditingController();
+  final _warrantyEnd = TextEditingController();
+  InventoryItem? _item;
   String? _poId;
   String? _store;
   var _condition = 'new';
@@ -46,7 +46,7 @@ class _AssetFormPageState extends State<AssetFormPage> {
 
   @override
   void dispose() {
-    for (final c in [
+    for (final controller in [
       _name,
       _serial,
       _make,
@@ -54,52 +54,55 @@ class _AssetFormPageState extends State<AssetFormPage> {
       _price,
       _location,
       _purchased,
-      _wStart,
-      _wEnd,
+      _warrantyStart,
+      _warrantyEnd,
     ]) {
-      c.dispose();
+      controller.dispose();
     }
     super.dispose();
   }
 
   Future<void> _pick() async {
-    final r = await pickItem(context, assets: true);
-    if (r == null || !mounted) return;
-    if (r.item.tracking != Tracking.asset) {
-      invSnack(context, '${r.item.name} is not tracked as an individual asset');
+    final picked = await pickItem(context, assets: true);
+    if (picked == null || !mounted) return;
+    if (picked.item.tracking != Tracking.asset) {
+      showMessage(
+        context,
+        '${picked.item.name} is not tracked as an individual asset',
+      );
       return;
     }
     setState(() {
-      _item = r.item;
+      _item = picked.item;
       _poId = null;
-      if (_name.text.isEmpty) _name.text = r.item.name;
+      if (_name.text.isEmpty) _name.text = picked.item.name;
     });
   }
 
-  String? _opt(TextEditingController c) =>
-      c.text.trim().isEmpty ? null : c.text.trim();
+  String? _opt(TextEditingController controller) =>
+      controller.text.trim().isEmpty ? null : controller.text.trim();
 
   Future<void> _save() async {
     if (!_form.currentState!.validate()) return;
     if (_item == null) {
-      invSnack(context, 'Choose an asset item');
+      showMessage(context, 'Choose an asset item');
       return;
     }
     setState(() => _busy = true);
     await assetSubmit(
       context,
-      (p) => p.act('inv-asset-register', {
+      (assetsProvider) => assetsProvider.act('inventory-asset-register', {
         'itemId': _item!.id,
         'storeId': _store,
         'name': _opt(_name),
-        'serialNo': _opt(_serial),
+        'serialNumber': _opt(_serial),
         'make': _opt(_make),
         'model': _opt(_model),
-        'poId': _poId,
+        'purchaseOrderId': _poId,
         'purchaseDate': _opt(_purchased),
         'price': double.tryParse(_price.text.trim()),
-        'warrantyStart': _opt(_wStart),
-        'warrantyEnd': _opt(_wEnd),
+        'warrantyStart': _opt(_warrantyStart),
+        'warrantyEnd': _opt(_warrantyEnd),
         'condition': _condition,
         'location': _opt(_location),
       }, requestId: _requestId),
@@ -113,10 +116,15 @@ class _AssetFormPageState extends State<AssetFormPage> {
     final now = DateTime.now();
     final past = now.subtract(const Duration(days: 3650));
     final orders = [
-      for (final o in context.watch<ProcurementProvider>().orders)
-        if (const ['partially_received', 'fully_received'].contains(o.status) &&
-            o.lines.any((l) => l.itemId == _item?.id))
-          o,
+      for (final purchaseOrder in context.watch<ProcurementProvider>().orders)
+        if (const [
+              'partially_received',
+              'fully_received',
+            ].contains(purchaseOrder.status) &&
+            purchaseOrder.lineItems.any(
+              (orderLine) => orderLine.itemId == _item?.id,
+            ))
+          purchaseOrder,
     ];
     return Scaffold(
       appBar: AppBar(title: const Text('Register asset')),
@@ -138,7 +146,7 @@ class _AssetFormPageState extends State<AssetFormPage> {
             ),
             StoreDropdown(
               value: _store,
-              onChanged: (v) => setState(() => _store = v),
+              onChanged: (value) => setState(() => _store = value),
             ),
             TextFormField(
               controller: _serial,
@@ -154,9 +162,9 @@ class _AssetFormPageState extends State<AssetFormPage> {
             ),
             labelled(
               'Condition',
-              InvAsset.conditions,
+              InventoryAsset.conditions,
               _condition,
-              (v) => setState(() => _condition = v!),
+              (value) => setState(() => _condition = value!),
             ),
             TextFormField(
               controller: _location,
@@ -181,14 +189,14 @@ class _AssetFormPageState extends State<AssetFormPage> {
             ),
             optionalDate(
               context,
-              _wStart,
+              _warrantyStart,
               'Warranty start',
               first: past,
               last: now.add(const Duration(days: 3650)),
             ),
             optionalDate(
               context,
-              _wEnd,
+              _warrantyEnd,
               'Warranty end',
               first: past,
               last: now.add(const Duration(days: 3650)),
@@ -202,10 +210,13 @@ class _AssetFormPageState extends State<AssetFormPage> {
               ),
               items: [
                 const DropdownMenuItem(child: Text('None')),
-                for (final o in orders)
-                  DropdownMenuItem(value: o.id, child: Text(o.number)),
+                for (final purchaseOrder in orders)
+                  DropdownMenuItem(
+                    value: purchaseOrder.id,
+                    child: Text(purchaseOrder.number),
+                  ),
               ],
-              onChanged: (v) => setState(() => _poId = v),
+              onChanged: (value) => setState(() => _poId = value),
             ),
             const SizedBox(height: 16),
             FilledButton(

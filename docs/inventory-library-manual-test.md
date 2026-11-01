@@ -25,16 +25,16 @@ Leave it running (Ctrl-C saves data to `firebase/.emulator-data`). Emulator UI: 
 Use the role IDs your test login really has from Node (it is in the login response). One command per extra role is not needed; pass several:
 
 ```bash
-melos run emulators:seed -- --school <sid> --roles admin=<roleId>
+melos run emulators:seed -- --school <schoolId> --roles admin=<roleId>
 ```
 
 To test other roles later, re-run with `--force` and a different mapping, for example `--roles librarian=<roleId> --force`. Role names: `admin`, `principal`, `inventoryManager`, `storekeeper`, `procurement`, `librarian`, `teacher`.
 
 ### 0.3 Run the app
 
-Launch config **icueadmin [Dev + Emulators · Android]** (or iOS). It signs in with a locally built unsigned token. Open Emulator UI → Firestore → `schools/<sid>/userAccess/<your uid>`.
+Launch config **icueadmin [Dev + Emulators · Android]** (or iOS). It signs in with a locally built unsigned token. Open Emulator UI → Firestore → `schools/<schoolId>/userAccess/<your uid>`.
 
-- [ ] 0.3.1 `perms` is non-empty, `cmp` lists your campus IDs (or `all: true`). **Expect** the app shows Inventory and Library tiles. If not, the role ID in the seed does not match your login.
+- [ ] 0.3.1 `permissions` is non-empty, `campusIds` lists your campus IDs (or `hasAllCampuses: true`). **Expect** the app shows Inventory and Library tiles. If not, the role ID in the seed does not match your login.
 
 ### 0.4 Test data you will type
 
@@ -46,9 +46,9 @@ Use two campuses (31 and 32 below; use your real campus IDs). Keep a scratch lis
 
 ### 0.6 What to watch in the Emulator UI during the whole run
 
-- `schools/<sid>/auditLogs`: one entry per change.
-- `schools/<sid>/outbox` and `notifications`: what would have been pushed. Push itself is never sent from the emulator. **[EMU]**
-- `schools/<sid>/requests`: repeating the same action (double tap) must not create a second record.
+- `schools/<schoolId>/auditLogs`: one entry per change.
+- `schools/<schoolId>/outbox` and `notifications`: what would have been pushed. Push itself is never sent from the emulator. **[EMU]**
+- `schools/<schoolId>/requests`: repeating the same action (double tap) must not create a second record.
 
 ---
 
@@ -89,12 +89,12 @@ Open **Stock**.
 ### 1.3 Procurement (Inv-3, 4, 5)
 
 - [ ] 1.3.1 **Vendors** → add `V1`. Deactivate and try to set it as an item's preferred vendor. **Expect** rejected.
-- [ ] 1.3.2 **Purchase requests** → new request: 10 LAP and 50 PEN, priority high. Save as draft, edit, submit. **Expect** number `PR/<fy>/<seq>`; approvers get an outbox event.
+- [ ] 1.3.2 **Purchase requests** → new request: 10 LAP and 50 PEN, priority high. Save as draft, edit, submit. **Expect** number `PR/<financialYear>/<seq>`; approvers get an outbox event.
 - [ ] 1.3.3 Only the requester can edit/cancel: open as another user. **Expect** no edit actions.
 - [ ] 1.3.4 Approver → **revise** with a comment. **Expect** returned to requester. Resubmit, then approve. **Expect** procurement gets an outbox event.
 - [ ] 1.3.5 **Quotations** → add two quotations from two vendors for the approved request. **Expect** comparison view; totals computed; quantities cannot exceed the request.
 - [ ] 1.3.6 Select one quotation with a reason. **Expect** one selected per request.
-- [ ] 1.3.7 **Purchase orders** → create from the quotation (vendor and prices come from it), issue it. **Expect** number `PO/<fy>/<seq>`; request shows quantity ordered; status partially ordered or ordered.
+- [ ] 1.3.7 **Purchase orders** → create from the quotation (vendor and prices come from it), issue it. **Expect** number `PO/<financialYear>/<seq>`; request shows quantity ordered; status partially ordered or ordered.
 - [ ] 1.3.8 Revise the PO unit price. **Expect** previous version kept in revisions; acknowledgement resets. Acknowledge it.
 - [ ] 1.3.9 Open the PO → PDF. **Expect** preview/print/share opens.
 - [ ] 1.3.10 **Receive goods** against the PO: accept 30 PEN, reject 5 now, leave the rest. **Expect** PO `partially_received`; PEN stock +30 at the PO unit price; rejected quantity recorded but not in stock.
@@ -106,7 +106,7 @@ Open **Stock**.
 
 ### 1.4 Assets (Inv-6)
 
-- [ ] 1.4.1 **Assets** → register two LAP units linked to the PO. **Expect** IDs `AST/<fy>/<seq>`; cannot register more than the accepted PO quantity.
+- [ ] 1.4.1 **Assets** → register two LAP units linked to the PO. **Expect** IDs `AST/<financialYear>/<seq>`; cannot register more than the accepted PO quantity.
 - [ ] 1.4.2 Open an asset → QR label. **Expect** PDF label preview.
 - [ ] 1.4.3 Assign to staff 884. **Expect** status assigned; custody history shows it. Try assigning again. **Expect** refused (only available assets).
 - [ ] 1.4.4 Transfer custody to another staff ID. **Expect** previous assignment closed and kept.
@@ -122,7 +122,7 @@ Open **Stock**.
 - [ ] 1.5.1 **Stock verification** → create for S31 (pick up to 150 lines). **Expect** expected quantities snapshotted.
 - [ ] 1.5.2 Count every line; make one differ without a reason, then submit. **Expect** refused until each difference has a reason.
 - [ ] 1.5.3 Submit with reasons. **Expect** status submitted.
-- [ ] 1.5.4 As approver (`inv.adjustment.approve`) reject once. **Expect** back to counting. Resubmit and approve. **Expect** adjustments written, stock matches counts.
+- [ ] 1.5.4 As approver (`inventory.adjustment.approve`) reject once. **Expect** back to counting. Resubmit and approve. **Expect** adjustments written, stock matches counts.
 - [ ] 1.5.5 Type an item code into the scan field of the counting page. **Expect** the line is found. **[EMU]** Camera scanning is untested on a device.
 - [ ] 1.5.6 Turn the emulator off (stop it), save a count, restart it. **Expect** count saved locally then synced. Optional.
 - [ ] 1.5.7 **Import** → items CSV with a header row `code,name,categoryCode,stockUnit,tracking` and three rows: one good, one with an unknown `categoryCode`, one duplicate code. **Expect** summary "1 of 3 imported" with row-level errors; re-running the same file adds nothing new.
@@ -178,12 +178,12 @@ Open **Library** from the dashboard. Use the librarian role for most steps.
 
 ### 2.4 Circulation (Lib-4)
 
-- [ ] 2.4.1 **Circulation** → issue `ACC-000001` to student 501. **Expect** issue number `ISS/…`, due date = today + 7, copy `issued`, member active loans = 1. Outbox: `lib-issued__…` to ward 501.
+- [ ] 2.4.1 **Circulation** → issue `ACC-000001` to student 501. **Expect** issue number `ISS/…`, due date = today + 7, copy `issued`, member active loans = 1. Outbox: `library-issued__…` to ward 501.
 - [ ] 2.4.2 Issue a second and a third book to 501. **Expect** third refused: limit of 2.
 - [ ] 2.4.3 Issue to the teacher with no policy. **Expect** refused.
 - [ ] 2.4.4 Try issuing an already issued copy. **Expect** refused.
 - [ ] 2.4.5 Renew a loan. **Expect** due date moves by the loan's days; renew again. **Expect** refused (limit 1).
-- [ ] 2.4.6 Return a copy in good condition. **Expect** copy available, loans −1, `lib-returned__…` in outbox.
+- [ ] 2.4.6 Return a copy in good condition. **Expect** copy available, loans −1, `library-returned__…` in outbox.
 - [ ] 2.4.7 Enrol a member whose end date is yesterday, then try to issue. **Expect** refused (membership not valid).
 
 ### 2.5 Reservations (Lib-5)
@@ -201,11 +201,11 @@ Setup: one title with a single copy, issued to 501.
 
 ### 2.6 Fines, lost and damaged (Lib-6)
 
-- [ ] 2.6.1 In Emulator UI set a loan's `dueOn` to 3 days ago, then return it. **Expect** fine = 3 × 2 = 6 (grace 0); fine row `outstanding`; member `blocked`; `lib-fine__…` in outbox.
+- [ ] 2.6.1 In Emulator UI set a loan's `dueDate` to 3 days ago, then return it. **Expect** fine = 3 × 2 = 6 (grace 0); fine row `outstanding`; member `blocked`; `library-fine__…` in outbox.
 - [ ] 2.6.2 Try issuing to the blocked member. **Expect** refused.
 - [ ] 2.6.3 **Fines & Penalties** → waive part of the fine with a reason. **Expect** status `partially_paid`/outstanding reduced; waive the rest. **Expect** `waived`, member unblocked.
 - [ ] 2.6.4 Create another overdue fine; record a payment with a reference until fully paid. **Expect** `paid`; member unblocked. Overpaying is refused.
-- [ ] 2.6.5 Return a book as **damaged**. **Expect** copy `damaged`, an open incident, `lib-incident__…` to ward and librarians.
+- [ ] 2.6.5 Return a book as **damaged**. **Expect** copy `damaged`, an open incident, `library-incident__…` to ward and librarians.
 - [ ] 2.6.6 **Lost & Damaged** → resolve it as `repaired`. **Expect** copy goes to the next waiting reservation or shelf.
 - [ ] 2.6.7 Loan sheet → **Mark lost** with a charge. **Expect** loan `lost`, copy `lost`, replacement fine, member blocked, incident created.
 - [ ] 2.6.8 Report an incident on a copy that is on loan or on hold. **Expect** refused; report one on an available copy with a charge and a responsible member. **Expect** copy off circulation, fine raised.
@@ -214,7 +214,7 @@ Setup: one title with a single copy, issued to 501.
 ### 2.7 Transfers and verification (Lib-7)
 
 - [ ] 2.7.1 **Transfers** → request 2 available copies from L1 to L2. **Expect** number `LTR/…`; approvers get an outbox event.
-- [ ] 2.7.2 Dispatch before approval. **Expect** refused. Approve (needs `lib.settings`), then dispatch. **Expect** copies `in_transit`; destination staff get an event.
+- [ ] 2.7.2 Dispatch before approval. **Expect** refused. Approve (needs `library.settings`), then dispatch. **Expect** copies `in_transit`; destination staff get an event.
 - [ ] 2.7.3 Try issuing an in-transit copy. **Expect** refused.
 - [ ] 2.7.4 Receive one copy at L2 (as campus 32 staff) with a shelf. **Expect** status `partially_received`; that copy now belongs to L2 and is available. Receive the other. **Expect** `received`.
 - [ ] 2.7.5 **Stock verification** → create for L1 (optionally one shelf). **Expect** expected list excludes issued copies (they are shown as on loan).
@@ -230,9 +230,9 @@ Setup: one title with a single copy, issued to 501.
 - [ ] 2.8.4 Popular books after several issues of one title. **Expect** it is first with the right loan count. Inactive books. **Expect** titles with copies and no loan in the period.
 - [ ] 2.8.5 **Copy CSV** and **PDF** on two reports. **Expect** both work; totals row on Fine and Overdue.
 - [ ] 2.8.6 **Import** → catalogue CSV (header `title,authors,categoryCode,isbn13`) with a good row, a duplicate ISBN and an unknown category. **Expect** "1 of 3 imported" with row errors. Authors separated by `;`.
-- [ ] 2.8.7 Import copies (`isbn13,libraryCode,qty,price`) for the imported title. **Expect** copies with generated accession numbers. Import members (`memberType,erpId,memberCategory,libraryCodes,start`). **Expect** members created; existing member rejected.
-- [ ] 2.8.8 Open the import page as a role without `lib.catalogue.manage`. **Expect** only the types you may run.
-- [ ] 2.8.9 [JOB] After `runDailyLibrary`: a loan due in 2 days gets `lib-due-soon__…`, a past-due loan gets `lib-overdue__…__<date>`, a membership ending within 7 days gets `lib-member-expiring__…`, a hold ending within 1 day gets `lib-rsv-expiring__…`. Running it twice adds nothing.
+- [ ] 2.8.7 Import copies (`isbn13,libraryCode,quantity,price`) for the imported title. **Expect** copies with generated accession numbers. Import members (`memberType,personErpId,memberCategory,libraryCodes,start`). **Expect** members created; existing member rejected.
+- [ ] 2.8.8 Open the import page as a role without `library.catalogue.manage`. **Expect** only the types you may run.
+- [ ] 2.8.9 [JOB] After `runDailyLibrary`: a loan due in 2 days gets `library-due-soon__…`, a past-due loan gets `library-overdue__…__<date>`, a membership ending within 7 days gets `library-member-expiring__…`, a hold ending within 1 day gets `library-rsv-expiring__…`. Running it twice adds nothing.
 
 ### 2.9 Permissions and parent view (Library)
 

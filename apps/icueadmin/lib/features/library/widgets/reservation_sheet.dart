@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
@@ -7,10 +7,10 @@ import 'package:school_library/school_library.dart';
 class ReservationSheet extends StatefulWidget {
   const ReservationSheet({super.key, this.book});
 
-  final LibBook? book;
+  final LibraryBook? book;
 
-  static Future<void> show(BuildContext context, {LibBook? book}) =>
-      showInvSheet(context, () => ReservationSheet(book: book));
+  static Future<void> show(BuildContext context, {LibraryBook? book}) =>
+      showFormSheet(context, () => ReservationSheet(book: book));
 
   @override
   State<ReservationSheet> createState() => _ReservationSheetState();
@@ -20,7 +20,7 @@ class _ReservationSheetState extends State<ReservationSheet> {
   final _erpId = TextEditingController();
   final _bookSearch = TextEditingController();
   String _memberType = 'student';
-  LibBook? _selectedBook;
+  LibraryBook? _selectedBook;
   String? _libraryId;
   bool _busy = false;
 
@@ -38,40 +38,47 @@ class _ReservationSheetState extends State<ReservationSheet> {
   }
 
   Future<void> _submit() async {
-    final erp = int.tryParse(_erpId.text.trim());
-    if (erp == null) return invSnack(context, 'Enter the member ERP ID');
+    final personErpId = int.tryParse(_erpId.text.trim());
+    if (personErpId == null) {
+      return showMessage(context, 'Enter the member ERP ID');
+    }
     final book = _selectedBook;
-    if (book == null) return invSnack(context, 'Select a book to reserve');
-    final libId = _libraryId;
-    if (libId == null) return invSnack(context, 'Select a library');
+    if (book == null) return showMessage(context, 'Select a book to reserve');
+    final libraryId = _libraryId;
+    if (libraryId == null) return showMessage(context, 'Select a library');
 
     setState(() => _busy = true);
-    final p = context.read<LibraryProvider>();
-    final nav = Navigator.of(context);
-    final ok = await p.createReservation({
-      'memberId': '${_memberType}_$erp',
+    final libraryProvider = context.read<LibraryProvider>();
+    final navigator = Navigator.of(context);
+    final ok = await libraryProvider.createReservation({
+      'memberId': '${_memberType}_$personErpId',
       'catalogueId': book.id,
-      'libraryId': libId,
+      'libraryId': libraryId,
     });
     if (!mounted) return;
     if (ok) {
-      nav.pop(true);
-      invSnack(context, 'Reservation placed');
+      navigator.pop(true);
+      showMessage(context, 'Reservation placed');
     } else {
       setState(() => _busy = false);
-      invSnack(context, p.errorMessage ?? 'Could not place reservation');
+      showMessage(
+        context,
+        libraryProvider.errorMessage ?? 'Could not place reservation',
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final p = context.watch<LibraryProvider>();
-    final libs = [
-      for (final l in p.libraries)
-        if (l.active && p.access.campuses.contains(l.campusId)) l,
+    final libraryProvider = context.watch<LibraryProvider>();
+    final libraries = [
+      for (final schoolLibrary in libraryProvider.libraries)
+        if (schoolLibrary.active &&
+            libraryProvider.access.campusIds.contains(schoolLibrary.campusId))
+          schoolLibrary,
     ];
-    if (_libraryId == null && libs.isNotEmpty) {
-      _libraryId = libs.first.id;
+    if (_libraryId == null && libraries.isNotEmpty) {
+      _libraryId = libraries.first.id;
     }
 
     return Column(
@@ -88,7 +95,8 @@ class _ReservationSheetState extends State<ReservationSheet> {
                 ButtonSegment(value: 'teacher', label: Text('Teacher')),
               ],
               selected: {_memberType},
-              onSelectionChanged: (s) => setState(() => _memberType = s.first),
+              onSelectionChanged: (values) =>
+                  setState(() => _memberType = values.first),
             ),
             const SizedBox(width: 8),
             Expanded(
@@ -109,16 +117,19 @@ class _ReservationSheetState extends State<ReservationSheet> {
             subtitle: Text(widget.book!.authorLine),
           )
         else
-          Autocomplete<LibBook>(
-            displayStringForOption: (b) => b.title,
+          Autocomplete<LibraryBook>(
+            displayStringForOption: (book) => book.title,
             optionsBuilder: (val) async {
-              final q = val.text.trim();
-              if (q.isEmpty) return const [];
-              final res = await p.searchBooks(q, limit: 10);
-              return res.items;
+              final value = val.text.trim();
+              if (value.isEmpty) return const [];
+              final result = await libraryProvider.searchBooks(
+                value,
+                limit: 10,
+              );
+              return result.items;
             },
-            onSelected: (b) => setState(() => _selectedBook = b),
-            fieldViewBuilder: (ctx, controller, focus, onFieldSubmitted) =>
+            onSelected: (book) => setState(() => _selectedBook = book),
+            fieldViewBuilder: (context, controller, focus, onFieldSubmitted) =>
                 TextField(
                   controller: controller,
                   focusNode: focus,
@@ -132,10 +143,13 @@ class _ReservationSheetState extends State<ReservationSheet> {
           initialValue: _libraryId,
           decoration: const InputDecoration(labelText: 'Preferred library'),
           items: [
-            for (final l in libs)
-              DropdownMenuItem(value: l.id, child: Text(l.name)),
+            for (final schoolLibrary in libraries)
+              DropdownMenuItem(
+                value: schoolLibrary.id,
+                child: Text(schoolLibrary.name),
+              ),
           ],
-          onChanged: (v) => setState(() => _libraryId = v),
+          onChanged: (value) => setState(() => _libraryId = value),
         ),
         const SizedBox(height: 16),
         FilledButton(

@@ -1,96 +1,37 @@
 import '../region';
-import { Pipelines } from '@google-cloud/firestore';
-import { DocumentData, Firestore, getFirestore, Timestamp } from 'firebase-admin/firestore';
+import { DocumentData, Firestore, Timestamp } from 'firebase-admin/firestore';
 import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { HttpsError } from 'firebase-functions/v2/https';
-import { z } from 'zod';
+import type { z } from 'zod';
 import type { QueryDef } from '../shared/callable';
+import { applyChange, searchDb, searchInput, searchMirror, words } from '../shared/searchMirror';
 
-/**
- * Item search lives in a second, Enterprise-edition database (`search`) that only
- * Functions touch: `(default)` stays the source of truth, `syncItemSearch` mirrors a
- * small projection into it, `searchItems` queries it (architecture §10).
- */
-export const SEARCH_DB = 'search';
-export const searchDb = () => getFirestore(SEARCH_DB);
-
+/** Item search (architecture §10): `syncItemSearch` mirrors a small projection, `searchItems` queries it. */
 const FIELDS = ['code', 'name', 'categoryId', 'status', 'stockUnit', 'tracking'] as const;
 
 /** The list-row fields mirrored into the search database. */
-export const projectItem = (d: DocumentData) => Object.fromEntries(FIELDS.map((f) => [f, d[f] ?? null]));
+export const projectItem = (data: DocumentData) => Object.fromEntries(FIELDS.map((field) => [field, data[field] ?? null]));
 
-/** Mirrors one document change; a delivery older than what is stored is ignored. */
-export async function applyChange(
-  coll: string,
-  project: (d: DocumentData) => DocumentData,
-  sid: string,
-  id: string,
-  after: DocumentData | undefined,
-  at: Timestamp = Timestamp.now(),
-  db: Firestore = searchDb(),
-): Promise<void> {
-  const ref = db.doc(`schools/${sid}/${coll}/${id}`);
-  if (!after) {
-    await ref.delete();
-    return;
-  }
-  await db.runTransaction(async (tx) => {
-    const cur = (await tx.get(ref)).data()?.srcUpdatedAt as Timestamp | undefined;
-    if (cur && cur.toMillis() > at.toMillis()) return;
-    tx.set(ref, { ...project(after), srcUpdatedAt: at });
-  });
-}
+export const applyItemChange = (schoolId: string, itemId: string, after: DocumentData | undefined, changedAt?: Timestamp, db?: Firestore) =>
+  applyChange('inventoryItems', projectItem, schoolId, itemId, after, changedAt, db);
 
-export const applyItemChange = (sid: string, id: string, after: DocumentData | undefined, at?: Timestamp, db?: Firestore) =>
-  applyChange('invItems', projectItem, sid, id, after, at, db);
-
-export const syncItemSearch = onDocumentWritten('schools/{sid}/invItems/{id}', (e) =>
-  applyItemChange(e.params.sid, e.params.id, e.data?.after.data(), e.data?.after.updateTime),
+export const syncItemSearch = onDocumentWritten('schools/{schoolId}/inventoryItems/{id}', (event) =>
+  applyItemChange(event.params.schoolId, event.params.id, event.data?.after.data(), event.data?.after.updateTime),
 );
 
-export const words = (s: string) => s.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
-
-/** Emulator stand-in for text search: every query word equals a word of one of [fields]. */
-export const matchesAll = (terms: string[], d: DocumentData, fields: string[] = ['name', 'code']) => {
-  const have = new Set(words(fields.map((f) => String(d[f] ?? '')).join(' ')));
-  return terms.every((t) => have.has(t));
-};
-
-const input = z.object({
-  q: z.string().max(100),
-  categoryId: z.string().min(1).max(100).optional(),
-  offset: z.number().int().min(0).max(5000).default(0),
-  limit: z.number().int().min(1).max(50).default(25),
-});
-
-export async function searchItems(sid: string, i: z.infer<typeof input>, db: Firestore = searchDb()) {
+export async function searchItems(schoolId: string, query: z.infer<typeof searchInput>, db: Firestore = searchDb()) {
   // Punctuation is dropped so users cannot inject search-DSL operators (quotes, -, *, OR).
-  const terms = words(i.q);
+  const terms = words(query.q);
   if (!terms.length) throw new HttpsError('invalid-argument', 'Enter a word to search for');
-  const path = `schools/${sid}/invItems`;
-  let rows: Array<{ id: string; data: DocumentData }>;
-  if (process.env.FIRESTORE_EMULATOR_HOST) {
-    // ponytail: the emulator has no text search (`document_matches`); whole-word scan of
-    // one school's mirror instead. Real search is covered by the dev spike, not by tests.
-    const all = (await db.collection(path).get()).docs
-      .filter((d) => matchesAll(terms, d.data()) && (!i.categoryId || d.data().categoryId === i.categoryId))
-      .sort((a, b) => String(a.data().name).localeCompare(String(b.data().name)));
-    rows = all.slice(i.offset, i.offset + i.limit + 1).map((d) => ({ id: d.id, data: d.data() }));
-  } else {
-    const { documentMatches, field } = Pipelines;
-    let p = db.pipeline().collection(path).search({ query: documentMatches(terms.join(' ')) });
-    if (i.categoryId) p = p.where(field('categoryId').equal(i.categoryId));
-    const res = await p.sort(field('name').ascending()).offset(i.offset).limit(i.limit + 1).execute();
-    rows = res.results.map((r) => ({ id: r.id!, data: r.data() }));
-  }
+  const rows = await searchMirror(schoolId, 'inventoryItems', query, { terms, textFields: ['name', 'code'], sortField: 'name' }, db);
   return {
-    items: rows.slice(0, i.limit).map((r) => ({ id: r.id, ...projectItem(r.data) })),
-    hasMore: rows.length > i.limit,
+    items: rows.slice(0, query.limit).map((row) => ({ id: row.id, ...projectItem(row.data) })),
+    hasMore: rows.length > query.limit,
   };
 }
 
-export const itemSearch: QueryDef<typeof input, Awaited<ReturnType<typeof searchItems>>> = {
-  perm: 'inv.items.view',
-  input,
+export const itemSearch: QueryDef<typeof searchInput, Awaited<ReturnType<typeof searchItems>>> = {
+  permission: 'inventory.items.view',
+  input: searchInput,
   handler: searchItems,
 };

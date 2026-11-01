@@ -1,7 +1,8 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icueadmin/features/inventory/stock/stock_ui.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -9,18 +10,18 @@ import 'package:provider/provider.dart';
 class BalanceActions extends StatelessWidget {
   const BalanceActions({required this.balance, super.key});
 
-  final InvBalance balance;
+  final InventoryBalance balance;
 
   @override
   Widget build(BuildContext context) {
     final operate = context.read<InventoryProvider>().access.can(
-      'inv.stock.operate',
+      'inventory.stock.operate',
     );
     final name = context.read<StockProvider>().itemName(balance.itemId);
-    final nav = Navigator.of(context);
+    final navigator = Navigator.of(context);
     Future<void> open(Widget Function() form) async {
-      nav.pop();
-      await showInvSheet(nav.context, form);
+      navigator.pop();
+      await showFormSheet(navigator.context, form);
     }
 
     return Column(
@@ -50,36 +51,42 @@ class BalanceActions extends StatelessWidget {
 }
 
 class _History extends StatelessWidget {
-  const _History(this.b);
+  const _History(this.balance);
 
-  final InvBalance b;
+  final InventoryBalance balance;
 
   @override
-  Widget build(BuildContext context) => FutureBuilder<List<InvMovement>>(
-    future: context.read<StockProvider>().movements(b),
-    builder: (context, snap) {
-      if (!snap.hasData) {
+  Widget build(BuildContext context) => FutureBuilder<List<InventoryMovement>>(
+    future: context.read<StockProvider>().movements(balance),
+    builder: (context, snapshot) {
+      if (!snapshot.hasData) {
         return const SizedBox(
           height: 160,
           child: Center(child: CircularProgressIndicator()),
         );
       }
-      final rows = snap.data!;
+      final rows = snapshot.data!;
       return SizedBox(
         height: 420,
         child: rows.isEmpty
             ? const Center(child: Text('No movements'))
             : ListView(
                 children: [
-                  for (final m in rows)
+                  for (final movement in rows)
                     ListTile(
                       dense: true,
-                      title: Text('${statusLabel(m.type)} · ${m.bucket}'),
-                      subtitle: Text('${m.txnDate} · ${m.refType}'),
+                      title: Text(
+                        '${humanizeStatus(movement.type)} · ${movement.bucket}',
+                      ),
+                      subtitle: Text(
+                        '${movement.transactionDate} · ${movement.referenceType}',
+                      ),
                       trailing: Text(
-                        '${m.qty > 0 ? '+' : ''}${fmtQty(m.qty)}',
+                        '${movement.quantity > 0 ? '+' : ''}${formatQuantity(movement.quantity)}',
                         style: TextStyle(
-                          color: m.qty < 0 ? Colors.red : Colors.green,
+                          color: movement.quantity < 0
+                              ? Colors.red
+                              : Colors.green,
                         ),
                       ),
                     ),
@@ -91,36 +98,41 @@ class _History extends StatelessWidget {
 }
 
 abstract class _BalanceForm extends StatefulWidget {
-  const _BalanceForm(this.b);
+  const _BalanceForm(this.balance);
 
-  final InvBalance b;
+  final InventoryBalance balance;
 }
 
 mixin _Submit<T extends _BalanceForm> on State<T> {
   final form = GlobalKey<FormState>();
-  final qty = TextEditingController();
+  final quantity = TextEditingController();
   final note = TextEditingController();
   final requestId = newRequestId();
 
   Map<String, Object?> get key => {
-    'storeId': widget.b.storeId,
-    'itemId': widget.b.itemId,
-    'variantId': ?widget.b.variantId,
-    'batchNo': ?widget.b.batchNo,
+    'storeId': widget.balance.storeId,
+    'itemId': widget.balance.itemId,
+    'variantId': ?widget.balance.variantId,
+    'batchNumber': ?widget.balance.batchNumber,
   };
 
-  Future<void> send(String fn, Map<String, Object?> extra) async {
+  Future<void> send(String value, Map<String, Object?> extra) async {
     if (!form.currentState!.validate()) return;
-    await stockSubmit(context, (p) async {
-      final r = await p.act(fn, {...key, ...extra}, requestId: requestId);
-      if (r != null && p.store != null) await p.loadBalances(p.store!);
-      return r;
+    await stockSubmit(context, (stockProvider) async {
+      final row = await stockProvider.act(value, {
+        ...key,
+        ...extra,
+      }, requestId: requestId);
+      if (row != null && stockProvider.store != null) {
+        await stockProvider.loadBalances(stockProvider.store!);
+      }
+      return row;
     });
   }
 
   @override
   void dispose() {
-    qty.dispose();
+    quantity.dispose();
     note.dispose();
     super.dispose();
   }
@@ -149,9 +161,9 @@ class _AdjustState extends State<_Adjust> with _Submit {
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text('Currently ${fmtQty(widget.b.available)} available'),
+        Text('Currently ${formatQuantity(widget.balance.available)} available'),
         TextFormField(
-          controller: qty,
+          controller: quantity,
           keyboardType: const TextInputType.numberWithOptions(
             decimal: true,
             signed: true,
@@ -159,31 +171,36 @@ class _AdjustState extends State<_Adjust> with _Submit {
           decoration: const InputDecoration(
             labelText: 'Change (+ adds, − removes)',
           ),
-          validator: (v) {
-            final n = double.tryParse((v ?? '').trim());
-            return n == null || n == 0 ? 'Enter a non-zero number' : null;
+          validator: (value) {
+            final number = double.tryParse((value ?? '').trim());
+            return number == null || number == 0
+                ? 'Enter a non-zero number'
+                : null;
           },
         ),
         DropdownButtonFormField<String>(
           initialValue: _reason,
           decoration: const InputDecoration(labelText: 'Reason'),
           items: [
-            for (final e in _reasons.entries)
-              DropdownMenuItem(value: e.key, child: Text(e.value)),
+            for (final mapEntry in _reasons.entries)
+              DropdownMenuItem(
+                value: mapEntry.key,
+                child: Text(mapEntry.value),
+              ),
           ],
-          onChanged: (v) => setState(() => _reason = v!),
+          onChanged: (value) => setState(() => _reason = value!),
         ),
         TextFormField(
           controller: note,
           decoration: const InputDecoration(labelText: 'Note'),
-          validator: (v) => _reason == 'other' ? requiredText(v) : null,
+          validator: (value) => _reason == 'other' ? requiredText(value) : null,
         ),
         const SizedBox(height: 12),
         FilledButton(
-          onPressed: () => send('inv-adjustment-create', {
-            'delta': double.parse(qty.text.trim()),
+          onPressed: () => send('inventory-adjustment-create', {
+            'delta': double.parse(quantity.text.trim()),
             'reason': _reason,
-            'note': note.text.trim(),
+            'remarks': note.text.trim(),
           }),
           child: const Text('Apply adjustment'),
         ),
@@ -216,17 +233,18 @@ class _ReportState extends State<_Report> with _Submit {
             DropdownMenuItem(value: 'expired', child: Text('Expired')),
             DropdownMenuItem(value: 'lost', child: Text('Lost (written off)')),
           ],
-          onChanged: (v) => setState(() => _reason = v!),
+          onChanged: (value) => setState(() => _reason = value!),
         ),
         TextFormField(
-          controller: qty,
+          controller: quantity,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: InputDecoration(
-            labelText: 'Quantity (max ${fmtQty(widget.b.available)})',
+            labelText:
+                'Quantity (max ${formatQuantity(widget.balance.available)})',
           ),
-          validator: (v) {
-            final n = double.tryParse((v ?? '').trim());
-            return n == null || n <= 0 ? 'Enter a quantity' : null;
+          validator: (value) {
+            final number = double.tryParse((value ?? '').trim());
+            return number == null || number <= 0 ? 'Enter a quantity' : null;
           },
         ),
         TextFormField(
@@ -236,10 +254,10 @@ class _ReportState extends State<_Report> with _Submit {
         ),
         const SizedBox(height: 12),
         FilledButton(
-          onPressed: () => send('inv-unavailable-report', {
-            'qty': double.parse(qty.text.trim()),
+          onPressed: () => send('inventory-unavailable-report', {
+            'quantity': double.parse(quantity.text.trim()),
             'reason': _reason,
-            'note': note.text.trim(),
+            'remarks': note.text.trim(),
           }),
           child: const Text('Report'),
         ),

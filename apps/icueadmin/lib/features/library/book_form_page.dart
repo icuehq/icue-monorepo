@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
-import 'package:icueadmin/features/library/widgets/lib_ui.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
 class BookFormPage extends StatefulWidget {
   const BookFormPage({super.key, this.book});
 
-  final LibBook? book;
+  final LibraryBook? book;
 
   @override
   State<BookFormPage> createState() => _BookFormPageState();
@@ -17,26 +16,38 @@ class BookFormPage extends StatefulWidget {
 class _BookFormPageState extends State<BookFormPage> {
   final _form = GlobalKey<FormState>();
   final _requestId = newRequestId();
-  late final LibBook? _b = widget.book;
-  late final _title = TextEditingController(text: _b?.title);
-  late final _subtitle = TextEditingController(text: _b?.subtitle);
-  late final _authors = TextEditingController(text: _b?.authors.join(', '));
-  late final _isbn10 = TextEditingController(text: _b?.isbn10);
-  late final _isbn13 = TextEditingController(text: _b?.isbn13);
-  late final _publisher = TextEditingController(text: _b?.publisher);
-  late final _edition = TextEditingController(text: _b?.edition);
-  late final _year = TextEditingController(text: _b?.year?.toString());
-  late final _language = TextEditingController(text: _b?.language);
-  late final _pages = TextEditingController(text: _b?.pages?.toString());
-  late final _classNo = TextEditingController(text: _b?.classNo);
-  late final _keywords = TextEditingController(text: _b?.keywords.join(', '));
-  late final _desc = TextEditingController(text: _b?.description);
-  late String? _categoryId = _b?.categoryId;
+  late final LibraryBook? _existingBook = widget.book;
+  late final _title = TextEditingController(text: _existingBook?.title);
+  late final _subtitle = TextEditingController(text: _existingBook?.subtitle);
+  late final _authors = TextEditingController(
+    text: _existingBook?.authors.join(', '),
+  );
+  late final _isbn10 = TextEditingController(text: _existingBook?.isbn10);
+  late final _isbn13 = TextEditingController(text: _existingBook?.isbn13);
+  late final _publisher = TextEditingController(text: _existingBook?.publisher);
+  late final _edition = TextEditingController(text: _existingBook?.edition);
+  late final _year = TextEditingController(
+    text: _existingBook?.year?.toString(),
+  );
+  late final _language = TextEditingController(text: _existingBook?.language);
+  late final _pages = TextEditingController(
+    text: _existingBook?.pages?.toString(),
+  );
+  late final _classNo = TextEditingController(
+    text: _existingBook?.classificationNumber,
+  );
+  late final _keywords = TextEditingController(
+    text: _existingBook?.keywords.join(', '),
+  );
+  late final _description = TextEditingController(
+    text: _existingBook?.description,
+  );
+  late String? _categoryId = _existingBook?.categoryId;
   bool _busy = false;
 
   @override
   void dispose() {
-    for (final c in [
+    for (final controller in [
       _title,
       _subtitle,
       _authors,
@@ -49,25 +60,27 @@ class _BookFormPageState extends State<BookFormPage> {
       _pages,
       _classNo,
       _keywords,
-      _desc,
+      _description,
     ]) {
-      c.dispose();
+      controller.dispose();
     }
     super.dispose();
   }
 
-  String? _optionalInt(String? v) =>
-      (v == null || v.trim().isEmpty || int.tryParse(v.trim()) != null)
+  String? _optionalInt(String? value) =>
+      (value == null ||
+          value.trim().isEmpty ||
+          int.tryParse(value.trim()) != null)
       ? null
       : 'Enter a whole number';
 
   Future<void> _save() async {
     if (!_form.currentState!.validate()) return;
     setState(() => _busy = true);
-    await libSubmit(
+    await submitAndClose<LibraryProvider>(
       context,
       () => context.read<LibraryProvider>().saveBook({
-        'id': ?_b?.id,
+        'id': ?_existingBook?.id,
         'title': _title.text.trim(),
         'subtitle': blankToNull(_subtitle),
         'authors': splitList(_authors.text),
@@ -78,9 +91,9 @@ class _BookFormPageState extends State<BookFormPage> {
         'year': int.tryParse(_year.text.trim()),
         'language': blankToNull(_language),
         'categoryId': _categoryId,
-        'description': blankToNull(_desc),
+        'description': blankToNull(_description),
         'pages': int.tryParse(_pages.text.trim()),
-        'classNo': blankToNull(_classNo),
+        'classificationNumber': blankToNull(_classNo),
         'keywords': splitList(_keywords.text),
       }, requestId: _requestId),
     );
@@ -89,13 +102,18 @@ class _BookFormPageState extends State<BookFormPage> {
 
   @override
   Widget build(BuildContext context) {
-    final p = context.read<LibraryProvider>();
+    final libraryProvider = context.read<LibraryProvider>();
     // Inactive categories stay selectable only when the book already uses one.
-    final cats = p.categories
-        .where((c) => c.active || c.id == _b?.categoryId)
+    final categories = libraryProvider.categories
+        .where(
+          (category) =>
+              category.active || category.id == _existingBook?.categoryId,
+        )
         .toList();
     return Scaffold(
-      appBar: AppBar(title: Text(_b == null ? 'New book' : 'Edit book')),
+      appBar: AppBar(
+        title: Text(_existingBook == null ? 'New book' : 'Edit book'),
+      ),
       body: Form(
         key: _form,
         child: ListView(
@@ -115,25 +133,25 @@ class _BookFormPageState extends State<BookFormPage> {
               decoration: const InputDecoration(
                 labelText: 'Authors * (comma-separated)',
               ),
-              validator: (v) =>
-                  splitList(v ?? '').isEmpty ? 'At least one author' : null,
+              validator: (value) =>
+                  splitList(value ?? '').isEmpty ? 'At least one author' : null,
             ),
             DropdownButtonFormField<String>(
               initialValue: _categoryId,
               decoration: const InputDecoration(labelText: 'Category *'),
               items: [
-                for (final c in cats)
+                for (final category in categories)
                   DropdownMenuItem(
-                    value: c.id,
+                    value: category.id,
                     child: Text(
-                      c.parentId == null
-                          ? c.name
-                          : '${p.category(c.parentId)?.name ?? ''} › ${c.name}',
+                      category.parentId == null
+                          ? category.name
+                          : '${libraryProvider.category(category.parentId)?.name ?? ''} › ${category.name}',
                     ),
                   ),
               ],
-              onChanged: (v) => _categoryId = v,
-              validator: (v) => v == null ? 'Required' : null,
+              onChanged: (value) => _categoryId = value,
+              validator: (value) => value == null ? 'Required' : null,
             ),
             TextFormField(
               controller: _isbn13,
@@ -181,7 +199,7 @@ class _BookFormPageState extends State<BookFormPage> {
               ),
             ),
             TextFormField(
-              controller: _desc,
+              controller: _description,
               maxLines: 3,
               decoration: const InputDecoration(labelText: 'Description'),
             ),

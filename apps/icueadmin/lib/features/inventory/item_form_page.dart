@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
 import 'package:icueadmin/features/inventory/widgets/purchase_units_editor.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
 class ItemFormPage extends StatefulWidget {
   const ItemFormPage({super.key, this.item});
 
-  final InvItem? item;
+  final InventoryItem? item;
 
   @override
   State<ItemFormPage> createState() => _ItemFormPageState();
@@ -17,20 +17,30 @@ class ItemFormPage extends StatefulWidget {
 class _ItemFormPageState extends State<ItemFormPage> {
   final _form = GlobalKey<FormState>();
   final _requestId = newRequestId();
-  late final InvItem? _i = widget.item;
-  late final _code = TextEditingController(text: _i?.code);
-  late final _name = TextEditingController(text: _i?.name);
-  late final _desc = TextEditingController(text: _i?.description);
-  late final _attrs = TextEditingController(text: _i?.variantAttrs.join(', '));
-  late final _min = TextEditingController(text: _num(_i?.minLevel));
-  late final _reorder = TextEditingController(text: _num(_i?.reorderLevel));
-  late final _price = TextEditingController(text: _num(_i?.defaultPrice));
-  late final _location = TextEditingController(text: _i?.defaultLocation);
-  late String? _categoryId = _i?.categoryId;
-  late String? _subcategoryId = _i?.subcategoryId;
-  late String? _stockUnit = _i?.stockUnit;
-  late Tracking _tracking = _i?.tracking ?? Tracking.qty;
-  late List<PurchaseUnit> _purchaseUnits = _i?.purchaseUnits ?? [];
+  late final InventoryItem? _existingItem = widget.item;
+  late final _code = TextEditingController(text: _existingItem?.code);
+  late final _name = TextEditingController(text: _existingItem?.name);
+  late final _description = TextEditingController(
+    text: _existingItem?.description,
+  );
+  late final _attrs = TextEditingController(
+    text: _existingItem?.variantAttrs.join(', '),
+  );
+  late final _min = TextEditingController(text: _num(_existingItem?.minLevel));
+  late final _reorder = TextEditingController(
+    text: _num(_existingItem?.reorderLevel),
+  );
+  late final _price = TextEditingController(
+    text: _num(_existingItem?.defaultPrice),
+  );
+  late final _location = TextEditingController(
+    text: _existingItem?.defaultLocation,
+  );
+  late String? _categoryId = _existingItem?.categoryId;
+  late String? _subcategoryId = _existingItem?.subcategoryId;
+  late String? _stockUnit = _existingItem?.stockUnit;
+  late Tracking _tracking = _existingItem?.tracking ?? Tracking.quantity;
+  late List<PurchaseUnit> _purchaseUnits = _existingItem?.purchaseUnits ?? [];
   bool _busy = false;
 
   static String _num(double? v) =>
@@ -38,43 +48,49 @@ class _ItemFormPageState extends State<ItemFormPage> {
 
   @override
   void dispose() {
-    for (final c in [
+    for (final controller in [
       _code,
       _name,
-      _desc,
+      _description,
       _attrs,
       _min,
       _reorder,
       _price,
       _location,
     ]) {
-      c.dispose();
+      controller.dispose();
     }
     super.dispose();
   }
 
-  double? _d(TextEditingController c) => double.tryParse(c.text.trim());
+  double? _d(TextEditingController controller) =>
+      double.tryParse(controller.text.trim());
 
-  String? _blank(TextEditingController c) =>
-      c.text.trim().isEmpty ? null : c.text.trim();
+  String? _blank(TextEditingController controller) =>
+      controller.text.trim().isEmpty ? null : controller.text.trim();
 
   Future<void> _save() async {
     if (!_form.currentState!.validate()) return;
     setState(() => _busy = true);
-    await invSubmit(
+    await submitAndClose<InventoryProvider>(
       context,
       () => context.read<InventoryProvider>().saveItem({
-        if (_i != null) 'id': _i.id else 'code': _code.text.trim(),
+        if (_existingItem != null)
+          'id': _existingItem.id
+        else
+          'code': _code.text.trim(),
         'name': _name.text.trim(),
         'categoryId': _categoryId,
         'subcategoryId': _subcategoryId,
-        'description': _blank(_desc),
+        'description': _blank(_description),
         'stockUnit': _stockUnit,
-        'purchaseUnits': [for (final p in _purchaseUnits) p.toMap()],
+        'purchaseUnits': [
+          for (final purchaseUnit in _purchaseUnits) purchaseUnit.toMap(),
+        ],
         'tracking': _tracking.name,
         'variantAttrs': [
-          for (final a in _attrs.text.split(','))
-            if (a.trim().isNotEmpty) a.trim(),
+          for (final value in _attrs.text.split(','))
+            if (value.trim().isNotEmpty) value.trim(),
         ],
         'minLevel': _d(_min),
         'reorderLevel': _d(_reorder),
@@ -87,17 +103,18 @@ class _ItemFormPageState extends State<ItemFormPage> {
 
   @override
   Widget build(BuildContext context) {
-    final p = context.watch<InventoryProvider>();
-    final editing = _i != null;
+    final inventoryProvider = context.watch<InventoryProvider>();
+    final editing = _existingItem != null;
     final tops = [
-      for (final c in p.topCategories)
-        if (c.active || c.id == _i?.categoryId) c,
+      for (final category in inventoryProvider.topCategories)
+        if (category.active || category.id == _existingItem?.categoryId)
+          category,
     ];
     final subs = [
-      for (final c in p.categories)
-        if (c.parentId == _categoryId &&
-            (c.active || c.id == _i?.subcategoryId))
-          c,
+      for (final category in inventoryProvider.categories)
+        if (category.parentId == _categoryId &&
+            (category.active || category.id == _existingItem?.subcategoryId))
+          category,
     ];
     return Scaffold(
       appBar: AppBar(title: Text(editing ? 'Edit item' : 'Add item')),
@@ -122,14 +139,19 @@ class _ItemFormPageState extends State<ItemFormPage> {
               initialValue: _categoryId,
               decoration: const InputDecoration(labelText: 'Category *'),
               items: [
-                for (final c in tops)
-                  DropdownMenuItem(value: c.id, child: Text(c.name)),
+                for (final category in tops)
+                  DropdownMenuItem(
+                    value: category.id,
+                    child: Text(category.name),
+                  ),
               ],
-              validator: (v) => v == null ? 'Required' : null,
-              onChanged: (v) => setState(() {
-                _categoryId = v;
+              validator: (value) => value == null ? 'Required' : null,
+              onChanged: (value) => setState(() {
+                _categoryId = value;
                 _subcategoryId = null;
-                final suggested = p.category(v)?.suggestedTracking;
+                final suggested = inventoryProvider
+                    .category(value)
+                    ?.suggestedTracking;
                 if (!editing && suggested != null) _tracking = suggested;
               }),
             ),
@@ -140,44 +162,50 @@ class _ItemFormPageState extends State<ItemFormPage> {
                 decoration: const InputDecoration(labelText: 'Subcategory'),
                 items: [
                   const DropdownMenuItem(child: Text('None')),
-                  for (final c in subs)
-                    DropdownMenuItem(value: c.id, child: Text(c.name)),
+                  for (final category in subs)
+                    DropdownMenuItem(
+                      value: category.id,
+                      child: Text(category.name),
+                    ),
                 ],
-                onChanged: (v) => _subcategoryId = v,
+                onChanged: (value) => _subcategoryId = value,
               ),
             TextFormField(
-              controller: _desc,
+              controller: _description,
               decoration: const InputDecoration(labelText: 'Description'),
             ),
             DropdownButtonFormField<String>(
               initialValue: _stockUnit,
               decoration: const InputDecoration(labelText: 'Stock unit *'),
               items: [
-                for (final u in p.units)
+                for (final unit in inventoryProvider.units)
                   DropdownMenuItem(
-                    value: u.code,
-                    child: Text('${u.name} (${u.code})'),
+                    value: unit.code,
+                    child: Text('${unit.name} (${unit.code})'),
                   ),
               ],
-              validator: (v) => v == null ? 'Required' : null,
-              onChanged: (v) => setState(() => _stockUnit = v),
+              validator: (value) => value == null ? 'Required' : null,
+              onChanged: (value) => setState(() => _stockUnit = value),
             ),
             DropdownButtonFormField<Tracking>(
               key: ValueKey(_tracking),
               initialValue: _tracking,
               decoration: const InputDecoration(labelText: 'Tracking method *'),
               items: [
-                for (final t in Tracking.values)
-                  DropdownMenuItem(value: t, child: Text(t.label)),
+                for (final tracking in Tracking.values)
+                  DropdownMenuItem(
+                    value: tracking,
+                    child: Text(tracking.label),
+                  ),
               ],
-              onChanged: (v) => _tracking = v ?? _tracking,
+              onChanged: (tracking) => _tracking = tracking ?? _tracking,
             ),
             const SizedBox(height: 8),
             PurchaseUnitsEditor(
-              units: p.units,
+              units: inventoryProvider.units,
               stockUnit: _stockUnit,
               initial: _purchaseUnits,
-              onChanged: (v) => _purchaseUnits = v,
+              onChanged: (purchaseUnits) => _purchaseUnits = purchaseUnits,
             ),
             TextFormField(
               controller: _attrs,

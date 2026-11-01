@@ -1,7 +1,7 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:icueadmin/features/inventory/procurement/proc_ui.dart';
-import 'package:icueadmin/features/inventory/stock/stock_ui.dart';
+import 'package:icueadmin/features/inventory/procurement/procurement_ui.dart';
 import 'package:icueadmin/routing/app_routes.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
@@ -10,7 +10,7 @@ import 'package:provider/provider.dart';
 class PurchaseRequestSheet extends StatefulWidget {
   const PurchaseRequestSheet({required this.request, super.key});
 
-  final InvPurchaseRequest request;
+  final InventoryPurchaseRequest request;
 
   @override
   State<PurchaseRequestSheet> createState() => _PurchaseRequestSheetState();
@@ -25,17 +25,19 @@ class _PurchaseRequestSheetState extends State<PurchaseRequestSheet> {
     super.dispose();
   }
 
-  Future<void> _act(String fn, Map<String, Object?> extra, String done) =>
+  Future<void> _act(String value, Map<String, Object?> extra, String done) =>
       procSubmit(
         context,
-        (p) => p.act(fn, {'id': widget.request.id, ...extra}),
+        (procurementProvider) =>
+            procurementProvider.act(value, {'id': widget.request.id, ...extra}),
         done: done,
       );
 
-  Future<void> _decide(String decision, String done) => _act('inv-pr-decide', {
-    'decision': decision,
-    'comment': _comment.text.trim(),
-  }, done);
+  Future<void> _decide(String decision, String done) => _act(
+    'inventory-purchaseRequest-decide',
+    {'decision': decision, 'comment': _comment.text.trim()},
+    done,
+  );
 
   Future<void> _go(String route, Object extra) async {
     final router = GoRouter.of(context);
@@ -45,43 +47,53 @@ class _PurchaseRequestSheetState extends State<PurchaseRequestSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final r = widget.request;
-    final p = context.read<ProcurementProvider>();
-    final a = context.read<InventoryProvider>().access;
-    final mine = r.createdBy == p.uid;
-    final decides = r.isPending && a.can('inv.pr.approve');
-    final cancel = mine && r.isCancellable;
-    final buy = a.can('inv.procure.operate') && r.isOrderable;
+    final purchaseRequest = widget.request;
+    final procurementProvider = context.read<ProcurementProvider>();
+    final access = context.read<InventoryProvider>().access;
+    final isOwnRequest = purchaseRequest.createdBy == procurementProvider.uid;
+    final decides =
+        purchaseRequest.isPending &&
+        access.can('inventory.purchaseRequest.approve');
+    final cancel = isOwnRequest && purchaseRequest.isCancellable;
+    final buy =
+        access.can('inventory.procure.operate') && purchaseRequest.isOrderable;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(r.number, style: Theme.of(context).textTheme.titleLarge),
         Text(
-          '${statusLabel(r.status)} · ${statusLabel(r.priority)} priority · '
-          'needed by ${r.requiredDate}',
+          purchaseRequest.number,
+          style: Theme.of(context).textTheme.titleLarge,
         ),
-        Text(r.purpose),
-        if (r.remarks != null && r.remarks!.isNotEmpty) Text(r.remarks!),
+        Text(
+          '${humanizeStatus(purchaseRequest.status)} · ${humanizeStatus(purchaseRequest.priority)} priority · '
+          'needed by ${purchaseRequest.requiredDate}',
+        ),
+        Text(purchaseRequest.purpose),
+        if (purchaseRequest.remarks != null &&
+            purchaseRequest.remarks!.isNotEmpty)
+          Text(purchaseRequest.remarks!),
         const SizedBox(height: 8),
-        for (final l in r.lines)
+        for (final purchaseRequestLine in purchaseRequest.lineItems)
           ListTile(
             dense: true,
             contentPadding: EdgeInsets.zero,
-            title: Text(p.itemName(l.itemId)),
+            title: Text(
+              procurementProvider.itemName(purchaseRequestLine.itemId),
+            ),
             trailing: Text(
-              '${fmtQty(l.qty)} × ${fmtQty(l.estPrice)}'
-              '${l.qtyOrdered > 0 ? ' · ordered ${fmtQty(l.qtyOrdered)}' : ''}',
+              '${formatQuantity(purchaseRequestLine.quantity)} × ${formatQuantity(purchaseRequestLine.estimatedPrice)}'
+              '${purchaseRequestLine.quantityOrdered > 0 ? ' · ordered ${formatQuantity(purchaseRequestLine.quantityOrdered)}' : ''}',
             ),
           ),
-        Text('Estimated total: ${fmtQty(r.total)}'),
-        if (r.history.isNotEmpty) ...[
+        Text('Estimated total: ${formatQuantity(purchaseRequest.total)}'),
+        if (purchaseRequest.history.isNotEmpty) ...[
           const Divider(),
-          for (final h in r.history)
+          for (final purchaseRequestHistory in purchaseRequest.history)
             Text(
-              '${h.at?.toString().substring(0, 16) ?? ''} · '
-              '${statusLabel(h.action)}'
-              '${h.comment == null ? '' : ': ${h.comment}'}',
+              '${purchaseRequestHistory.performedAt?.toString().substring(0, 16) ?? ''} · '
+              '${humanizeStatus(purchaseRequestHistory.action)}'
+              '${purchaseRequestHistory.comment == null ? '' : ': ${purchaseRequestHistory.comment}'}',
               style: Theme.of(context).textTheme.bodySmall,
             ),
         ],
@@ -114,16 +126,17 @@ class _PurchaseRequestSheetState extends State<PurchaseRequestSheet> {
                 child: const Text('Reject'),
               ),
             ],
-            if (mine && r.isEditable) ...[
+            if (isOwnRequest && purchaseRequest.isEditable) ...[
               FilledButton(
-                onPressed: () => _act('inv-pr-submit', {}, 'Submitted'),
+                onPressed: () =>
+                    _act('inventory-purchaseRequest-submit', {}, 'Submitted'),
                 child: const Text('Submit for approval'),
               ),
               OutlinedButton(
                 onPressed: () async {
                   await context.push(
                     AppRoutes.inventoryPurchaseRequestForm,
-                    extra: r,
+                    extra: purchaseRequest,
                   );
                   if (context.mounted) Navigator.pop(context);
                 },
@@ -132,18 +145,22 @@ class _PurchaseRequestSheetState extends State<PurchaseRequestSheet> {
             ],
             if (buy) ...[
               OutlinedButton(
-                onPressed: () => _go(AppRoutes.inventoryQuotations, r),
+                onPressed: () =>
+                    _go(AppRoutes.inventoryQuotations, purchaseRequest),
                 child: const Text('Quotations'),
               ),
               OutlinedButton(
-                onPressed: () =>
-                    _go(AppRoutes.inventoryPurchaseOrderForm, (r, null, null)),
+                onPressed: () => _go(AppRoutes.inventoryPurchaseOrderForm, (
+                  purchaseRequest,
+                  null,
+                  null,
+                )),
                 child: const Text('Create PO'),
               ),
             ],
             if (cancel)
               TextButton(
-                onPressed: () => _act('inv-pr-cancel', {
+                onPressed: () => _act('inventory-purchaseRequest-cancel', {
                   'reason': _comment.text.trim(),
                 }, 'Cancelled'),
                 child: const Text('Cancel request'),

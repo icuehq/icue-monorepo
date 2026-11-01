@@ -1,9 +1,9 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icueadmin/features/inventory/procurement/purchase_request_sheet.dart';
-import 'package:icueadmin/features/inventory/stock/stock_ui.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
 import 'package:icueadmin/routing/app_routes.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -27,11 +27,13 @@ class _PurchaseRequestsPageState extends State<PurchaseRequestsPage> {
   String? _status;
 
   Future<void> _load() async {
-    final inv = context.read<InventoryProvider>();
-    if (inv.categories.isEmpty) await inv.loadMasters();
+    final inventoryProvider = context.read<InventoryProvider>();
+    if (inventoryProvider.categories.isEmpty) {
+      await inventoryProvider.loadMasters();
+    }
     if (mounted) {
       await context.read<ProcurementProvider>().loadRequests(
-        inv.access,
+        inventoryProvider.access,
         status: _status,
       );
     }
@@ -45,11 +47,11 @@ class _PurchaseRequestsPageState extends State<PurchaseRequestsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final p = context.watch<ProcurementProvider>();
-    final a = context.watch<InventoryProvider>().access;
+    final procurementProvider = context.watch<ProcurementProvider>();
+    final access = context.watch<InventoryProvider>().access;
     return Scaffold(
       appBar: AppBar(title: const Text('Purchase requests')),
-      floatingActionButton: a.can('inv.pr.request')
+      floatingActionButton: access.can('inventory.purchaseRequest.request')
           ? FloatingActionButton.extended(
               onPressed: () async {
                 await context.push(AppRoutes.inventoryPurchaseRequestForm);
@@ -68,45 +70,56 @@ class _PurchaseRequestsPageState extends State<PurchaseRequestsPage> {
               value: _status,
               items: [
                 const DropdownMenuItem(child: Text('All statuses')),
-                for (final s in _statuses)
-                  DropdownMenuItem(value: s, child: Text(statusLabel(s))),
+                for (final status in _statuses)
+                  DropdownMenuItem(
+                    value: status,
+                    child: Text(humanizeStatus(status)),
+                  ),
               ],
-              onChanged: (v) {
-                _status = v;
+              onChanged: (value) {
+                _status = value;
                 _load();
               },
             ),
           ),
           Expanded(
-            child: p.requests.isEmpty
+            child: procurementProvider.requests.isEmpty
                 ? Center(
-                    child: p.isLoading
+                    child: procurementProvider.isLoading
                         ? const CircularProgressIndicator()
-                        : Text(p.errorMessage ?? 'No purchase requests'),
+                        : Text(
+                            procurementProvider.errorMessage ??
+                                'No purchase requests',
+                          ),
                   )
                 : ListView(
                     children: [
-                      for (final r in p.requests)
+                      for (final purchaseRequest
+                          in procurementProvider.requests)
                         ListTile(
-                          title: Text('${r.number} · ${r.purpose}'),
+                          title: Text(
+                            '${purchaseRequest.number} · ${purchaseRequest.purpose}',
+                          ),
                           subtitle: Text(
-                            r.lines
+                            purchaseRequest.lineItems
                                 .map(
-                                  (l) =>
-                                      '${p.itemName(l.itemId)} × ${fmtQty(l.qty)}',
+                                  (purchaseRequestLine) =>
+                                      '${procurementProvider.itemName(purchaseRequestLine.itemId)} × ${formatQuantity(purchaseRequestLine.quantity)}',
                                 )
                                 .join(', '),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
                           trailing: Chip(
-                            label: Text(statusLabel(r.status)),
+                            label: Text(humanizeStatus(purchaseRequest.status)),
                             visualDensity: VisualDensity.compact,
                           ),
                           onTap: () async {
-                            await showInvSheet(
+                            await showFormSheet(
                               context,
-                              () => PurchaseRequestSheet(request: r),
+                              () => PurchaseRequestSheet(
+                                request: purchaseRequest,
+                              ),
                             );
                             if (mounted) await _load();
                           },

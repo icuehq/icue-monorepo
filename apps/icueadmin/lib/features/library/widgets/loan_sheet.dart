@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
-import 'package:icueadmin/features/library/widgets/lib_ui.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
@@ -8,11 +7,14 @@ import 'package:school_library/school_library.dart';
 class LoanSheet extends StatefulWidget {
   const LoanSheet({super.key, required this.loan, required this.title});
 
-  final LibLoan loan;
+  final LibraryLoan loan;
   final String title;
 
-  static Future<void> show(BuildContext context, LibLoan loan, String title) =>
-      showInvSheet(context, () => LoanSheet(loan: loan, title: title));
+  static Future<void> show(
+    BuildContext context,
+    LibraryLoan loan,
+    String title,
+  ) => showFormSheet(context, () => LoanSheet(loan: loan, title: title));
 
   @override
   State<LoanSheet> createState() => _LoanSheetState();
@@ -28,25 +30,27 @@ class _LoanSheetState extends State<LoanSheet> {
     super.dispose();
   }
 
-  Future<void> _run(Future<bool> Function(LibraryProvider p) action) async {
+  Future<void> _run(
+    Future<bool> Function(LibraryProvider libraryProvider) action,
+  ) async {
     setState(() => _busy = true);
-    final p = context.read<LibraryProvider>();
-    final nav = Navigator.of(context);
-    final ok = await action(p);
+    final libraryProvider = context.read<LibraryProvider>();
+    final navigator = Navigator.of(context);
+    final ok = await action(libraryProvider);
     if (!mounted) return;
     if (ok) {
-      nav.pop();
+      navigator.pop();
     } else {
       setState(() => _busy = false);
-      invSnack(context, p.errorMessage ?? 'Failed');
+      showMessage(context, libraryProvider.errorMessage ?? 'Failed');
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final l = widget.loan;
+    final loan = widget.loan;
     final today = DateTime.now().toIso8601String().substring(0, 10);
-    final late = l.overdueOn(today);
+    final late = loan.overdueOn(today);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -54,10 +58,10 @@ class _LoanSheetState extends State<LoanSheet> {
         Text(widget.title, style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 4),
         Text(
-          '${l.accessionNo} · ${l.memberLabel} · ${l.number}\n'
-          'Issued ${l.issuedOn} · due ${l.dueOn}'
+          '${loan.accessionNumber} · ${loan.memberLabel} · ${loan.number}\n'
+          'Issued ${loan.issuedDate} · due ${loan.dueDate}'
           '${late > 0 ? ' · $late day${late == 1 ? '' : 's'} overdue' : ''}\n'
-          'Renewed ${l.renewals} of ${l.maxRenewals}',
+          'Renewed ${loan.renewals} of ${loan.maxRenewals}',
         ),
         const SizedBox(height: 12),
         TextField(
@@ -72,8 +76,8 @@ class _LoanSheetState extends State<LoanSheet> {
               onPressed: _busy
                   ? null
                   : () => _run(
-                      (p) => p.returnLoan({
-                        'id': l.id,
+                      (libraryProvider) => libraryProvider.returnLoan({
+                        'id': loan.id,
                         'condition': 'good',
                         'remarks': ?blankToNull(_remarks),
                       }),
@@ -84,8 +88,8 @@ class _LoanSheetState extends State<LoanSheet> {
               onPressed: _busy
                   ? null
                   : () => _run(
-                      (p) => p.returnLoan({
-                        'id': l.id,
+                      (libraryProvider) => libraryProvider.returnLoan({
+                        'id': loan.id,
                         'condition': 'damaged',
                         'remarks': ?blankToNull(_remarks),
                       }),
@@ -93,9 +97,11 @@ class _LoanSheetState extends State<LoanSheet> {
               child: const Text('Return damaged'),
             ),
             OutlinedButton(
-              onPressed: _busy || !l.canRenew
+              onPressed: _busy || !loan.canRenew
                   ? null
-                  : () => _run((p) => p.renewLoan(l.id)),
+                  : () => _run(
+                      (libraryProvider) => libraryProvider.renewLoan(loan.id),
+                    ),
               child: const Text('Renew'),
             ),
             OutlinedButton(
@@ -113,13 +119,13 @@ class _LoanSheetState extends State<LoanSheet> {
     final chargeController = TextEditingController();
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (context) => AlertDialog(
         title: const Text('Mark book lost'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Mark ${widget.loan.accessionNo} as lost for ${widget.loan.memberLabel}?',
+              'Mark ${widget.loan.accessionNumber} as lost for ${widget.loan.memberLabel}?',
             ),
             const SizedBox(height: 12),
             TextField(
@@ -139,11 +145,11 @@ class _LoanSheetState extends State<LoanSheet> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
+            onPressed: () => Navigator.of(context).pop(false),
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
+            onPressed: () => Navigator.of(context).pop(true),
             child: const Text('Confirm lost'),
           ),
         ],
@@ -152,7 +158,7 @@ class _LoanSheetState extends State<LoanSheet> {
     if (confirmed != true || !mounted) return;
     final charge = double.tryParse(chargeController.text.trim());
     await _run(
-      (p) => p.markLoanLost({
+      (libraryProvider) => libraryProvider.markLoanLost({
         'id': widget.loan.id,
         'reason': ?blankToNull(reasonController),
         'charge': ?charge,

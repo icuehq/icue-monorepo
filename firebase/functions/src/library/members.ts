@@ -1,16 +1,15 @@
 import '../region';
-import { FieldValue } from 'firebase-admin/firestore';
 import { z } from 'zod';
-import { def, failed, id, missing, name, setStatusDef, status, usable } from '../shared/masters';
+import { defineCallable, failed, id, missing, name, defineSetStatus, status, usable } from '../shared/masters';
+import { isoDate } from '../shared/dates';
+import { serverTimestamp } from '../shared/firestore';
 
-const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 /** Member category key ("primary", "teacher"…): what a member and a policy are matched on. */
 const category = z.string().trim().toLowerCase().regex(/^[a-z0-9_-]{1,30}$/, 'Use letters, digits, - or _');
 const FINES = ['none', 'per_day', 'flat'] as const;
-const UP = () => FieldValue.serverTimestamp();
 
 export const policyId = (libraryId: string, memberCategory: string) => `${libraryId}_${memberCategory}`;
-export const memberId = (type: string, erpId: number) => `${type}_${erpId}`;
+export const memberId = (type: string, personErpId: number) => `${type}_${personErpId}`;
 
 export const members = {
   /**
@@ -18,9 +17,9 @@ export const members = {
    * so saving again edits it. Circulation (Lib-4) copies the values onto each loan at issue,
    * so edits never move existing due dates.
    */
-  policyUpsert: def({
-    name: 'lib.policy.upsert',
-    perm: 'lib.settings',
+  policyUpsert: defineCallable({
+    name: 'library.policy.upsert',
+    permission: 'library.settings',
     input: z
       .object({
         libraryId: id,
@@ -38,19 +37,19 @@ export const members = {
         restrictedCategoryIds: z.array(id).max(50).default([]),
       })
       .refine((i) => i.fineType === 'none' || i.fineAmount > 0, 'A fine needs an amount'),
-    handler: async (ctx, i) => {
-      const ref = ctx.doc(`libPolicies/${policyId(i.libraryId, i.memberCategory)}`);
-      const before = (await ctx.tx.get(ref)).data();
-      const lib = usable(await ctx.tx.get(ctx.doc(`libLibraries/${i.libraryId}`)), 'Library', !!before);
-      ctx.requireCampus(lib.campusId);
+    handler: async (context, i) => {
+      const ref = context.doc(`libraryBorrowingPolicies/${policyId(i.libraryId, i.memberCategory)}`);
+      const before = (await context.transaction.get(ref)).data();
+      const library = usable(await context.transaction.get(context.doc(`libraries/${i.libraryId}`)), 'Library', !!before);
+      context.requireCampus(library.campusId);
       const restricted = [...new Set(i.restrictedCategoryIds)];
-      for (const c of restricted) {
-        if (!(await ctx.tx.get(ctx.doc(`libCategories/${c}`))).exists) throw failed('Restricted category not found');
+      for (const categoryId of restricted) {
+        if (!(await context.transaction.get(context.doc(`libraryCategories/${categoryId}`))).exists) throw failed('Restricted category not found');
       }
       const after = {
         name: i.name,
         libraryId: i.libraryId,
-        campusId: lib.campusId,
+        campusId: library.campusId,
         memberCategory: i.memberCategory,
         maxBooks: i.maxBooks,
         loanDays: i.loanDays,
@@ -64,49 +63,49 @@ export const members = {
         restrictedCategoryIds: restricted,
       };
       if (before) {
-        ctx.update(ref, { ...after, updatedAt: UP() });
-        ctx.audit({ action: 'libPolicy.update', ref: ref.path, before, after });
+        context.update(ref, { ...after, updatedAt: serverTimestamp() });
+        context.audit({ action: 'libraryPolicy.update', documentPath: ref.path, before, after });
       } else {
-        ctx.set(ref, { ...after, status: 'active', createdAt: UP(), createdBy: ctx.uid, updatedAt: UP() });
-        ctx.audit({ action: 'libPolicy.create', ref: ref.path, after });
+        context.set(ref, { ...after, status: 'active', createdAt: serverTimestamp(), createdBy: context.uid, updatedAt: serverTimestamp() });
+        context.audit({ action: 'libraryPolicy.create', documentPath: ref.path, after });
       }
       return { id: ref.id };
     },
   }),
-  policySetStatus: setStatusDef('lib.policy.setStatus', 'lib.settings', 'libPolicies', 'libPolicy'),
+  policySetStatus: defineSetStatus('library.policy.setStatus', 'library.settings', 'libraryBorrowingPolicies', 'libraryPolicy'),
 
   /**
    * Enrols a student or teacher (FRS 11.7). The ERP person stays the source of truth: only the
-   * ID is stored, and the document ID `<type>_<erpId>` makes a duplicate impossible.
+   * ID is stored, and the document ID `<type>_<personErpId>` makes a duplicate impossible.
    */
-  memberUpsert: def({
-    name: 'lib.member.upsert',
-    perm: 'lib.circulation.operate',
+  memberUpsert: defineCallable({
+    name: 'library.member.upsert',
+    permission: 'library.circulation.operate',
     input: z
       .object({
         memberType: z.enum(['student', 'teacher']),
-        erpId: z.number().int().min(1),
+        personErpId: z.number().int().min(1),
         classId: z.number().int().nullish(),
         memberCategory: category,
         libraryIds: z.array(id).min(1).max(20),
-        start: day,
-        end: day.nullish(),
+        start: isoDate,
+        end: isoDate.nullish(),
       })
       .refine((i) => !i.end || i.end >= i.start, 'End date is before the start date'),
-    handler: async (ctx, i) => {
-      const ref = ctx.doc(`libMembers/${memberId(i.memberType, i.erpId)}`);
-      const before = (await ctx.tx.get(ref)).data();
-      if (before) for (const c of before.campusIds as number[]) ctx.requireCampus(c);
+    handler: async (context, i) => {
+      const ref = context.doc(`libraryMembers/${memberId(i.memberType, i.personErpId)}`);
+      const before = (await context.transaction.get(ref)).data();
+      if (before) for (const campusId of before.campusIds as number[]) context.requireCampus(campusId);
       const libraryIds = [...new Set(i.libraryIds)];
       const campusIds = new Set<number>();
-      for (const l of libraryIds) {
-        const lib = usable(await ctx.tx.get(ctx.doc(`libLibraries/${l}`)), 'Library', before?.libraryIds?.includes(l));
-        ctx.requireCampus(lib.campusId);
-        campusIds.add(lib.campusId);
+      for (const libraryId of libraryIds) {
+        const library = usable(await context.transaction.get(context.doc(`libraries/${libraryId}`)), 'Library', before?.libraryIds?.includes(libraryId));
+        context.requireCampus(library.campusId);
+        campusIds.add(library.campusId);
       }
       const after = {
         memberType: i.memberType,
-        erpId: i.erpId,
+        personErpId: i.personErpId,
         classId: i.memberType === 'student' ? (i.classId ?? null) : null,
         memberCategory: i.memberCategory,
         libraryIds,
@@ -115,30 +114,30 @@ export const members = {
         end: i.end ?? null,
       };
       if (before) {
-        ctx.update(ref, { ...after, updatedAt: UP() });
-        ctx.audit({ action: 'libMember.update', ref: ref.path, before, after });
+        context.update(ref, { ...after, updatedAt: serverTimestamp() });
+        context.audit({ action: 'libraryMember.update', documentPath: ref.path, before, after });
       } else {
-        ctx.set(ref, { ...after, status: 'active', activeLoans: 0, blocked: false, createdAt: UP(), createdBy: ctx.uid, updatedAt: UP() });
-        ctx.audit({ action: 'libMember.create', ref: ref.path, after });
+        context.set(ref, { ...after, status: 'active', activeLoans: 0, blocked: false, createdAt: serverTimestamp(), createdBy: context.uid, updatedAt: serverTimestamp() });
+        context.audit({ action: 'libraryMember.create', documentPath: ref.path, after });
       }
       return { id: ref.id };
     },
   }),
 
   /** Inactive members cannot borrow (checked at issue in Lib-4); their loans stay visible. */
-  memberSetStatus: def({
-    name: 'lib.member.setStatus',
-    perm: 'lib.circulation.operate',
+  memberSetStatus: defineCallable({
+    name: 'library.member.setStatus',
+    permission: 'library.circulation.operate',
     input: z.object({ id, status }),
-    handler: async (ctx, i) => {
-      const ref = ctx.doc(`libMembers/${i.id}`);
-      const snap = await ctx.tx.get(ref);
-      if (!snap.exists) throw missing('libMember');
-      const d = snap.data()!;
-      for (const c of d.campusIds as number[]) ctx.requireCampus(c);
-      if (d.status === i.status) return { id: ref.id };
-      ctx.update(ref, { status: i.status, updatedAt: UP() });
-      ctx.audit({ action: 'libMember.status', ref: ref.path, before: { status: d.status }, after: { status: i.status } });
+    handler: async (context, i) => {
+      const ref = context.doc(`libraryMembers/${i.id}`);
+      const snapshot = await context.transaction.get(ref);
+      if (!snapshot.exists) throw missing('libraryMember');
+      const member = snapshot.data()!;
+      for (const campusId of member.campusIds as number[]) context.requireCampus(campusId);
+      if (member.status === i.status) return { id: ref.id };
+      context.update(ref, { status: i.status, updatedAt: serverTimestamp() });
+      context.audit({ action: 'libraryMember.status', documentPath: ref.path, before: { status: member.status }, after: { status: i.status } });
       return { id: ref.id };
     },
   }),

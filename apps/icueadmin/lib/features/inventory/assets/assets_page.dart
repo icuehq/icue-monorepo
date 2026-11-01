@@ -1,11 +1,11 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icueadmin/features/inventory/assets/asset_sheet.dart';
 import 'package:icueadmin/features/inventory/assets/asset_ui.dart';
-import 'package:icueadmin/features/inventory/stock/stock_ui.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
 import 'package:icueadmin/features/inventory/widgets/scan_field.dart';
 import 'package:icueadmin/routing/app_routes.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -22,11 +22,13 @@ class _AssetsPageState extends State<AssetsPage> {
   var _search = '';
 
   Future<void> _load() async {
-    final inv = context.read<InventoryProvider>();
-    if (inv.categories.isEmpty) await inv.loadMasters();
+    final inventoryProvider = context.read<InventoryProvider>();
+    if (inventoryProvider.categories.isEmpty) {
+      await inventoryProvider.loadMasters();
+    }
     if (mounted) {
       await context.read<AssetsProvider>().loadAssets(
-        inv.access,
+        inventoryProvider.access,
         status: _status,
       );
     }
@@ -40,35 +42,35 @@ class _AssetsPageState extends State<AssetsPage> {
 
   /// A scan opens the asset with that ID or RFID tag, even outside the loaded list.
   Future<void> _scanned(String code) async {
-    final p = context.read<AssetsProvider>();
-    final a = await p.findByCode(
+    final assetsProvider = context.read<AssetsProvider>();
+    final asset = await assetsProvider.findByCode(
       context.read<InventoryProvider>().access,
       code,
     );
     if (!mounted) return;
-    if (a == null) {
-      invSnack(context, p.errorMessage ?? 'No asset "$code"');
+    if (asset == null) {
+      showMessage(context, assetsProvider.errorMessage ?? 'No asset "$code"');
       return;
     }
-    await showInvSheet(context, () => AssetSheet(asset: a));
+    await showFormSheet(context, () => AssetSheet(asset: asset));
     if (mounted) await _load();
   }
 
   @override
   Widget build(BuildContext context) {
-    final p = context.watch<AssetsProvider>();
+    final assetsProvider = context.watch<AssetsProvider>();
     final manage = context.read<InventoryProvider>().access.can(
-      'inv.assets.manage',
+      'inventory.assets.manage',
     );
-    final q = _search.toLowerCase();
+    final currentValue = _search.toLowerCase();
     final shown = [
-      for (final a in p.assets)
-        if (q.isEmpty ||
-            a.assetId.toLowerCase().contains(q) ||
-            a.name.toLowerCase().contains(q) ||
-            (a.serialNo ?? '').toLowerCase().contains(q) ||
-            (a.rfidTag ?? '').toLowerCase().contains(q))
-          a,
+      for (final asset in assetsProvider.assets)
+        if (currentValue.isEmpty ||
+            asset.assetId.toLowerCase().contains(currentValue) ||
+            asset.name.toLowerCase().contains(currentValue) ||
+            (asset.serialNumber ?? '').toLowerCase().contains(currentValue) ||
+            (asset.rfidTag ?? '').toLowerCase().contains(currentValue))
+          asset,
     ];
     return Scaffold(
       appBar: AppBar(
@@ -99,7 +101,7 @@ class _AssetsPageState extends State<AssetsPage> {
               children: [
                 ScanField(
                   hint: 'Search or scan asset ID, tag, name or serial',
-                  onChanged: (v) => setState(() => _search = v.trim()),
+                  onChanged: (value) => setState(() => _search = value.trim()),
                   onScan: _scanned,
                 ),
                 DropdownButton<String?>(
@@ -107,11 +109,14 @@ class _AssetsPageState extends State<AssetsPage> {
                   value: _status,
                   items: [
                     const DropdownMenuItem(child: Text('All statuses')),
-                    for (final s in InvAsset.statuses)
-                      DropdownMenuItem(value: s, child: Text(statusLabel(s))),
+                    for (final status in InventoryAsset.statuses)
+                      DropdownMenuItem(
+                        value: status,
+                        child: Text(humanizeStatus(status)),
+                      ),
                   ],
-                  onChanged: (v) {
-                    _status = v;
+                  onChanged: (value) {
+                    _status = value;
                     _load();
                   },
                 ),
@@ -121,24 +126,24 @@ class _AssetsPageState extends State<AssetsPage> {
           Expanded(
             child: shown.isEmpty
                 ? Center(
-                    child: p.isLoading
+                    child: assetsProvider.isLoading
                         ? const CircularProgressIndicator()
-                        : Text(p.errorMessage ?? 'No assets'),
+                        : Text(assetsProvider.errorMessage ?? 'No assets'),
                   )
                 : ListView(
                     children: [
-                      for (final a in shown)
+                      for (final asset in shown)
                         ListTile(
-                          title: Text(a.name),
+                          title: Text(asset.name),
                           subtitle: Text(
-                            '${a.assetId}${a.assignedTo == null ? '' : ' · ${a.assignedTo!.label}'}'
-                            '${a.location == null ? '' : ' · ${a.location}'}',
+                            '${asset.assetId}${asset.assignedTo == null ? '' : ' · ${asset.assignedTo!.label}'}'
+                            '${asset.location == null ? '' : ' · ${asset.location}'}',
                           ),
-                          trailing: StatusChip(a.status),
+                          trailing: StatusChip(asset.status),
                           onTap: () async {
-                            await showInvSheet(
+                            await showFormSheet(
                               context,
-                              () => AssetSheet(asset: a),
+                              () => AssetSheet(asset: asset),
                             );
                             if (mounted) await _load();
                           },

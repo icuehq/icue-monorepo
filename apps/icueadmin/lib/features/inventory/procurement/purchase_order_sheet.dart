@@ -1,11 +1,11 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icueadmin/features/inventory/procurement/invoice_form_sheet.dart';
 import 'package:icueadmin/features/inventory/procurement/order_widgets.dart';
-import 'package:icueadmin/features/inventory/procurement/po_pdf.dart';
-import 'package:icueadmin/features/inventory/procurement/po_receipts_section.dart';
-import 'package:icueadmin/features/inventory/procurement/proc_ui.dart';
-import 'package:icueadmin/features/inventory/stock/stock_ui.dart';
+import 'package:icueadmin/features/inventory/procurement/procurement_ui.dart';
+import 'package:icueadmin/features/inventory/procurement/purchase_order_pdf.dart';
+import 'package:icueadmin/features/inventory/procurement/purchase_order_receipts_section.dart';
 import 'package:icueadmin/routing/app_routes.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
@@ -14,34 +14,35 @@ import 'package:provider/provider.dart';
 class PurchaseOrderSheet extends StatelessWidget {
   const PurchaseOrderSheet({required this.order, super.key});
 
-  final InvPurchaseOrder order;
+  final InventoryPurchaseOrder order;
 
   Future<void> _act(
     BuildContext context,
-    String fn,
+    String value,
     Map<String, Object?> extra,
     String done,
   ) => procSubmit(
     context,
-    (p) => p.act(fn, {'id': order.id, ...extra}),
+    (procurementProvider) =>
+        procurementProvider.act(value, {'id': order.id, ...extra}),
     done: done,
   );
 
-  /// Asks for a reason, then runs [fn]; [required] blocks an empty answer.
+  /// Asks for a reason, then runs [value]; [required] blocks an empty answer.
   Future<void> _withReason(
     BuildContext context,
     String title,
-    String fn,
+    String value,
     String done, {
     bool required = true,
   }) async {
-    final c = TextEditingController();
+    final controller = TextEditingController();
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (context) => AlertDialog(
         title: Text(title),
         content: TextField(
-          controller: c,
+          controller: controller,
           autofocus: true,
           decoration: InputDecoration(
             labelText: required ? 'Reason *' : 'Reason',
@@ -49,34 +50,34 @@ class PurchaseOrderSheet extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
+            onPressed: () => Navigator.pop(context, false),
             child: const Text('Back'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
+            onPressed: () => Navigator.pop(context, true),
             child: const Text('Confirm'),
           ),
         ],
       ),
     );
-    final reason = c.text.trim();
-    c.dispose();
+    final reason = controller.text.trim();
+    controller.dispose();
     if (ok == true && context.mounted) {
-      await _act(context, fn, {'reason': reason}, done);
+      await _act(context, value, {'reason': reason}, done);
     }
   }
 
   Future<void> _revise(BuildContext context) async {
-    final p = context.read<ProcurementProvider>();
+    final procurementProvider = context.read<ProcurementProvider>();
     final prices = [
-      for (final l in order.lines)
-        TextEditingController(text: fmtQty(l.unitPrice)),
+      for (final orderLine in order.lineItems)
+        TextEditingController(text: formatQuantity(orderLine.unitPrice)),
     ];
     final reason = TextEditingController();
     final expected = TextEditingController(text: order.expectedDate);
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (context) => AlertDialog(
         title: Text('Revise ${order.number}'),
         content: SingleChildScrollView(
           child: Column(
@@ -86,15 +87,16 @@ class PurchaseOrderSheet extends StatelessWidget {
                 controller: reason,
                 decoration: const InputDecoration(labelText: 'Reason *'),
               ),
-              dateField(ctx, expected, 'Expected delivery'),
-              for (final (n, l) in order.lines.indexed)
+              dateField(context, expected, 'Expected delivery'),
+              for (final (n, l) in order.lineItems.indexed)
                 TextField(
                   controller: prices[n],
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
                   decoration: InputDecoration(
-                    labelText: '${p.itemName(l.itemId)} unit price',
+                    labelText:
+                        '${procurementProvider.itemName(l.itemId)} unit price',
                   ),
                 ),
             ],
@@ -102,11 +104,11 @@ class PurchaseOrderSheet extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
+            onPressed: () => Navigator.pop(context, false),
             child: const Text('Back'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
+            onPressed: () => Navigator.pop(context, true),
             child: const Text('Save revision'),
           ),
         ],
@@ -116,7 +118,7 @@ class PurchaseOrderSheet extends StatelessWidget {
       'reason': reason.text.trim(),
       'expectedDate': expected.text,
       'prices': [
-        for (final (n, l) in order.lines.indexed)
+        for (final (n, l) in order.lineItems.indexed)
           {
             'itemId': l.itemId,
             'variantId': ?l.variantId,
@@ -124,55 +126,63 @@ class PurchaseOrderSheet extends StatelessWidget {
           },
       ],
     };
-    for (final c in [...prices, reason, expected]) {
-      c.dispose();
+    for (final controller in [...prices, reason, expected]) {
+      controller.dispose();
     }
     if (ok == true && context.mounted) {
-      await _act(context, 'inv-po-revise', data, 'Revised');
+      await _act(context, 'inventory-purchaseOrder-revise', data, 'Revised');
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final o = order;
-    final p = context.read<ProcurementProvider>();
-    final inv = context.read<InventoryProvider>();
-    final op = inv.access.can('inv.procure.operate');
-    final vendor = p.vendorName(o.vendorId);
+    final purchaseOrder = order;
+    final procurementProvider = context.read<ProcurementProvider>();
+    final inventoryProvider = context.read<InventoryProvider>();
+    final value = inventoryProvider.access.can('inventory.procure.operate');
+    final vendor = procurementProvider.vendorName(purchaseOrder.vendorId);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(o.number, style: Theme.of(context).textTheme.titleLarge),
         Text(
-          '${statusLabel(o.status)} · $vendor · deliver to campus '
-          '${o.deliveryCampusId} by ${o.expectedDate}',
+          purchaseOrder.number,
+          style: Theme.of(context).textTheme.titleLarge,
         ),
-        if (o.revision > 0) Text('Revision ${o.revision}'),
-        if (o.ackRef != null) Text('Vendor ref: ${o.ackRef}'),
+        Text(
+          '${humanizeStatus(purchaseOrder.status)} · $vendor · deliver to campus '
+          '${purchaseOrder.deliveryCampusId} by ${purchaseOrder.expectedDate}',
+        ),
+        if (purchaseOrder.revision > 0)
+          Text('Revision ${purchaseOrder.revision}'),
+        if (purchaseOrder.ackRef != null)
+          Text('Vendor ref: ${purchaseOrder.ackRef}'),
         const SizedBox(height: 8),
-        for (final l in o.lines)
+        for (final orderLine in purchaseOrder.lineItems)
           ListTile(
             dense: true,
             contentPadding: EdgeInsets.zero,
-            title: Text(p.itemName(l.itemId)),
+            title: Text(procurementProvider.itemName(orderLine.itemId)),
             subtitle: Text(
-              'Accepted ${fmtQty(l.qtyAccepted)}'
-              '${l.qtyRejected > 0 ? ' · rejected ${fmtQty(l.qtyRejected)}' : ''}'
-              ' of ${fmtQty(l.qty)}',
+              'Accepted ${formatQuantity(orderLine.quantityAccepted)}'
+              '${orderLine.quantityRejected > 0 ? ' · rejected ${formatQuantity(orderLine.quantityRejected)}' : ''}'
+              ' of ${formatQuantity(orderLine.quantity)}',
             ),
-            trailing: Text('${fmtQty(l.qty)} × ${money(l.unitPrice)}'),
+            trailing: Text(
+              '${formatQuantity(orderLine.quantity)} × ${money(orderLine.unitPrice)}',
+            ),
           ),
         Text(
-          'Subtotal ${money(o.subtotal)} · discount ${money(o.discount)} · '
-          'tax ${money(o.tax)} · delivery ${money(o.delivery)}',
+          'Subtotal ${money(purchaseOrder.subtotal)} · discount ${money(purchaseOrder.discount)} · '
+          'tax ${money(purchaseOrder.tax)} · delivery ${money(purchaseOrder.delivery)}',
         ),
         Text(
-          'Total ${money(o.total)}',
+          'Total ${money(purchaseOrder.total)}',
           style: Theme.of(context).textTheme.titleMedium,
         ),
-        if (o.terms != null && o.terms!.isNotEmpty) Text(o.terms!),
-        PoReceiptsSection(orderId: o.id),
+        if (purchaseOrder.terms != null && purchaseOrder.terms!.isNotEmpty)
+          Text(purchaseOrder.terms!),
+        PurchaseOrderReceiptsSection(orderId: purchaseOrder.id),
         const SizedBox(height: 12),
         Wrap(
           spacing: 8,
@@ -180,71 +190,91 @@ class PurchaseOrderSheet extends StatelessWidget {
             OutlinedButton.icon(
               icon: const Icon(Icons.picture_as_pdf_rounded),
               label: const Text('PDF'),
-              onPressed: () =>
-                  sharePoPdf(o, vendor: vendor, itemName: p.itemName),
+              onPressed: () => sharePurchaseOrderPdf(
+                purchaseOrder,
+                vendor: vendor,
+                itemName: procurementProvider.itemName,
+              ),
             ),
-            if (inv.access.can('inv.stock.operate') && o.canReceive)
+            if (inventoryProvider.access.can('inventory.stock.operate') &&
+                purchaseOrder.canReceive)
               FilledButton(
                 onPressed: () {
                   final router = GoRouter.of(context);
                   Navigator.of(context).pop();
-                  router.push(AppRoutes.inventoryPoReceive, extra: o);
+                  router.push(
+                    AppRoutes.inventoryPoReceive,
+                    extra: purchaseOrder,
+                  );
                 },
                 child: const Text('Receive goods'),
               ),
-            if (op && !o.isDraft && o.status != 'cancelled')
+            if (value &&
+                !purchaseOrder.isDraft &&
+                purchaseOrder.status != 'cancelled')
               OutlinedButton(
-                onPressed: () => InvoiceFormSheet.show(context, o),
+                onPressed: () => InvoiceFormSheet.show(context, purchaseOrder),
                 child: const Text('Record invoice'),
               ),
-            if (op && o.isDraft) ...[
+            if (value && purchaseOrder.isDraft) ...[
               FilledButton(
-                onPressed: () => _act(context, 'inv-po-issue', {}, 'Issued'),
+                onPressed: () => _act(
+                  context,
+                  'inventory-purchaseOrder-issue',
+                  {},
+                  'Issued',
+                ),
                 child: const Text('Issue'),
               ),
               OutlinedButton(
                 onPressed: () async {
-                  final nav = Navigator.of(context);
+                  final navigator = Navigator.of(context);
                   final router = GoRouter.of(context);
-                  final req = await p.request(o.prId);
-                  if (req == null) return;
-                  nav.pop();
+                  final request = await procurementProvider.request(
+                    purchaseOrder.purchaseRequestId,
+                  );
+                  if (request == null) return;
+                  navigator.pop();
                   await router.push(
                     AppRoutes.inventoryPurchaseOrderForm,
-                    extra: (req, null, o),
+                    extra: (request, null, purchaseOrder),
                   );
                 },
                 child: const Text('Edit'),
               ),
             ],
-            if (op && o.isIssued)
+            if (value && purchaseOrder.isIssued)
               FilledButton(
-                onPressed: () =>
-                    _act(context, 'inv-po-acknowledge', {}, 'Acknowledged'),
+                onPressed: () => _act(
+                  context,
+                  'inventory-purchaseOrder-acknowledge',
+                  {},
+                  'Acknowledged',
+                ),
                 child: const Text('Vendor acknowledged'),
               ),
-            if (op && o.canRevise)
+            if (value && purchaseOrder.canRevise)
               OutlinedButton(
                 onPressed: () => _revise(context),
                 child: const Text('Revise'),
               ),
-            if (op && o.canClose)
+            if (value && purchaseOrder.canClose)
               OutlinedButton(
                 onPressed: () => _withReason(
                   context,
-                  'Close ${o.number}',
-                  'inv-po-close',
+                  'Close ${purchaseOrder.number}',
+                  'inventory-purchaseOrder-close',
                   'Closed',
-                  required: o.status != 'fully_received',
+                  required: purchaseOrder.status != 'fully_received',
                 ),
                 child: const Text('Close'),
               ),
-            if (op && o.canCancel)
+            if (value && purchaseOrder.canCancel)
               TextButton(
                 onPressed: () => _withReason(
                   context,
-                  'Cancel ${o.number}',
-                  'inv-po-cancel',
+                  'Cancel ${purchaseOrder.number}',
+                  'inventory-purchaseOrder-cancel',
                   'Cancelled',
                 ),
                 child: const Text('Cancel PO'),

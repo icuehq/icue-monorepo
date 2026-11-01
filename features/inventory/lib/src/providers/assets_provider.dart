@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:injectable/injectable.dart';
-import 'package:inventory/src/models/inv_assets.dart';
-import 'package:inventory/src/models/inv_masters.dart';
+import 'package:inventory/src/models/inventory_assets.dart';
+import 'package:inventory/src/models/inventory_masters.dart';
 import 'package:inventory/src/services/assets_service.dart';
 import 'package:inventory/src/services/stock_service.dart';
 
@@ -14,11 +14,11 @@ class AssetsProvider extends ChangeNotifier {
   final AssetsService _service;
   final StockService _stock;
 
-  List<InvAsset> assets = [];
-  List<InvMaintenance> maintenance = [];
-  List<InvAssignment> assignments = [];
+  List<InventoryAsset> assets = [];
+  List<InventoryMaintenance> maintenance = [];
+  List<InventoryAssignment> assignments = [];
   List<AssetEvent> history = [];
-  final Map<String, InvItem> items = {};
+  final Map<String, InventoryItem> items = {};
   String? errorMessage;
   bool isLoading = false;
 
@@ -30,47 +30,48 @@ class AssetsProvider extends ChangeNotifier {
     notifyListeners();
     try {
       await body();
-    } catch (e) {
-      errorMessage = _message(e);
+    } catch (error) {
+      errorMessage = callableErrorMessage(error);
     } finally {
       isLoading = false;
       notifyListeners();
     }
   }
 
-  Future<void> loadAssets(InvAccess a, {String? status}) =>
-      _load(() async => assets = await _service.assets(a, status: status));
+  Future<void> loadAssets(ModuleAccess access, {String? status}) =>
+      _load(() async => assets = await _service.assets(access, status: status));
 
-  Future<void> loadMaintenance(InvAccess a, {String? status}) =>
+  Future<void> loadMaintenance(ModuleAccess access, {String? status}) =>
       _load(() async {
-        maintenance = await _service.maintenance(a, status: status);
+        maintenance = await _service.maintenance(access, status: status);
       });
 
   /// Custody records and timeline of one asset.
-  Future<void> loadDetail(InvAccess a, String assetId) => _load(() async {
-    final r = await Future.wait([
-      _service.assignments(a, assetId),
-      _service.history(a, assetId),
-    ]);
-    assignments = r[0] as List<InvAssignment>;
-    history = r[1] as List<AssetEvent>;
-  });
+  Future<void> loadDetail(ModuleAccess access, String assetId) =>
+      _load(() async {
+        final masterLists = await Future.wait([
+          _service.assignments(access, assetId),
+          _service.history(access, assetId),
+        ]);
+        assignments = masterLists[0] as List<InventoryAssignment>;
+        history = masterLists[1] as List<AssetEvent>;
+      });
 
-  Future<InvAsset?> asset(String id) async {
+  Future<InventoryAsset?> asset(String id) async {
     try {
       return await _service.asset(id);
-    } catch (e) {
-      errorMessage = _message(e);
+    } catch (error) {
+      errorMessage = callableErrorMessage(error);
       return null;
     }
   }
 
   /// Resolves a scanned asset ID or RFID tag; null when unknown (or the read fails, with [errorMessage] set).
-  Future<InvAsset?> findByCode(InvAccess a, String code) async {
+  Future<InventoryAsset?> findByCode(ModuleAccess access, String code) async {
     try {
-      return await _service.findByCode(a, code.trim());
-    } catch (e) {
-      errorMessage = _message(e);
+      return await _service.findByCode(access, code.trim());
+    } catch (error) {
+      errorMessage = callableErrorMessage(error);
       return null;
     }
   }
@@ -84,20 +85,17 @@ class AssetsProvider extends ChangeNotifier {
 
   /// Runs a callable; returns its result (`id`, `number`) or null with [errorMessage] set.
   Future<Map<String, dynamic>?> act(
-    String fn,
+    String value,
     Map<String, Object?> data, {
     String? requestId,
   }) async {
     errorMessage = null;
     try {
-      return await _stock.call(fn, data, requestId: requestId);
-    } catch (e) {
-      errorMessage = _message(e);
+      return await _stock.call(value, data, requestId: requestId);
+    } catch (error) {
+      errorMessage = callableErrorMessage(error);
       notifyListeners();
       return null;
     }
   }
-
-  String _message(Object e) =>
-      e is FirebaseFunctionsException ? (e.message ?? e.code) : e.toString();
 }

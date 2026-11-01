@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icueadmin/features/library/widgets/fine_sheet.dart';
 import 'package:provider/provider.dart';
@@ -22,14 +23,14 @@ class _FinesPageState extends State<FinesPage> {
     );
   }
 
-  void _onStatusChanged(String s) {
-    setState(() => _status = s);
-    context.read<LibraryProvider>().loadFines(status: s);
+  void _onStatusChanged(String value) {
+    setState(() => _status = value);
+    context.read<LibraryProvider>().loadFines(status: value);
   }
 
   @override
   Widget build(BuildContext context) {
-    final p = context.watch<LibraryProvider>();
+    final libraryProvider = context.watch<LibraryProvider>();
     return Scaffold(
       appBar: AppBar(title: const Text('Fines & Penalties')),
       body: Column(
@@ -53,49 +54,51 @@ class _FinesPageState extends State<FinesPage> {
                   ButtonSegment(value: 'all', label: Text('All')),
                 ],
                 selected: {_status},
-                onSelectionChanged: (s) => _onStatusChanged(s.first),
+                onSelectionChanged: (values) => _onStatusChanged(values.first),
               ),
             ),
           ),
           Expanded(
-            child: p.fines.isEmpty
+            child: libraryProvider.fines.isEmpty
                 ? Center(
                     child: Text(
-                      p.finesLoading
+                      libraryProvider.finesLoading
                           ? 'Loading…'
-                          : p.errorMessage ?? 'No $_status fines',
+                          : libraryProvider.errorMessage ?? 'No $_status fines',
                     ),
                   )
                 : ListView.builder(
-                    itemCount: p.fines.length + (p.hasMoreFines ? 1 : 0),
+                    itemCount:
+                        libraryProvider.fines.length +
+                        (libraryProvider.hasMoreFines ? 1 : 0),
                     itemBuilder: (context, index) {
-                      if (index >= p.fines.length) {
+                      if (index >= libraryProvider.fines.length) {
                         return Center(
                           child: TextButton(
-                            onPressed: p.finesLoading
+                            onPressed: libraryProvider.finesLoading
                                 ? null
-                                : () => p.loadFines(more: true),
+                                : () => libraryProvider.loadFines(more: true),
                             child: const Text('Load more'),
                           ),
                         );
                       }
-                      final f = p.fines[index];
-                      final isOut = f.isOutstanding;
+                      final fine = libraryProvider.fines[index];
+                      final isOut = fine.isOutstanding;
                       return ListTile(
-                        title: Text('${f.fineNumber} · ${f.memberLabel}'),
+                        title: Text('${fine.fineNumber} · ${fine.memberLabel}'),
                         subtitle: Text(
-                          '${fineTypeLabel(f.type)} · Total ₹${f.amount.toStringAsFixed(2)} · Due ₹${f.outstanding.toStringAsFixed(2)}',
+                          '${fineTypeLabel(fine.type)} · Total ₹${fine.amount.toStringAsFixed(2)} · Due ₹${fine.outstanding.toStringAsFixed(2)}',
                         ),
                         trailing: Chip(
-                          label: Text(fineStatusLabel(f.status)),
+                          label: Text(humanizeStatus(fine.status)),
                           backgroundColor: isOut
                               ? Theme.of(context).colorScheme.errorContainer
                               : null,
                         ),
                         onTap: () async {
-                          await FineSheet.show(context, f);
+                          await FineSheet.show(context, fine);
                           if (mounted) {
-                            await p.loadFines(status: _status);
+                            await libraryProvider.loadFines(status: _status);
                           }
                         },
                       );

@@ -24,20 +24,20 @@ class ScanField extends StatefulWidget {
 }
 
 class _ScanFieldState extends State<ScanField> {
-  final _c = TextEditingController();
+  final _controller = TextEditingController();
 
   @override
   void dispose() {
-    _c.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
-  void _submit(String v) {
-    final code = v.trim();
+  void _submit(String value) {
+    final code = value.trim();
     if (code.isEmpty) return;
     widget.onScan(code);
     if (widget.clearOnScan) {
-      _c.clear();
+      _controller.clear();
       widget.onChanged?.call('');
     }
   }
@@ -45,28 +45,28 @@ class _ScanFieldState extends State<ScanField> {
   Future<void> _camera() async {
     final code = await showDialog<String>(
       context: context,
-      builder: (ctx) => Dialog(
+      builder: (context) => Dialog(
         clipBehavior: Clip.antiAlias,
         child: AspectRatio(
           aspectRatio: 1,
           child: MobileScanner(
             onDetect: (capture) {
-              final v = capture.barcodes.firstOrNull?.rawValue;
-              if (v != null) Navigator.of(ctx).pop(v);
+              final value = capture.barcodes.firstOrNull?.rawValue;
+              if (value != null) Navigator.of(context).pop(value);
             },
           ),
         ),
       ),
     );
     if (code == null || !mounted) return;
-    _c.text = code;
+    _controller.text = code;
     widget.onChanged?.call(code);
     _submit(code);
   }
 
   @override
   Widget build(BuildContext context) => TextField(
-    controller: _c,
+    controller: _controller,
     autofocus: widget.autofocus,
     textInputAction: TextInputAction.search,
     decoration: InputDecoration(

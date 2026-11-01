@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
 import 'package:icueadmin/features/library/widgets/member_sheet.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
@@ -14,7 +14,7 @@ class MembersPage extends StatefulWidget {
 
 class _MembersPageState extends State<MembersPage> {
   final _search = TextEditingController();
-  LibMember? _found;
+  LibraryMember? _found;
 
   @override
   void initState() {
@@ -30,30 +30,35 @@ class _MembersPageState extends State<MembersPage> {
     super.dispose();
   }
 
-  Future<void> _lookup(String v) async {
-    final p = context.read<LibraryProvider>();
-    final id = int.tryParse(v.trim());
-    if (v.trim().isEmpty) return setState(() => _found = null);
-    if (id == null) return invSnack(context, 'Enter an ERP ID');
-    final m = await p.member(p.memberType, id);
+  Future<void> _lookup(String value) async {
+    final libraryProvider = context.read<LibraryProvider>();
+    final id = int.tryParse(value.trim());
+    if (value.trim().isEmpty) return setState(() => _found = null);
+    if (id == null) return showMessage(context, 'Enter an ERP ID');
+    final member = await libraryProvider.member(libraryProvider.memberType, id);
     if (!mounted) return;
-    setState(() => _found = m);
-    if (m == null) {
-      invSnack(context, 'Not a member yet');
-      await MemberSheet.show(context, type: p.memberType, erpId: id);
+    setState(() => _found = member);
+    if (member == null) {
+      showMessage(context, 'Not a member yet');
+      await MemberSheet.show(
+        context,
+        type: libraryProvider.memberType,
+        personErpId: id,
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final p = context.watch<LibraryProvider>();
-    final canEdit = p.access.can('lib.circulation.operate');
-    final rows = _found == null ? p.members : [_found!];
+    final libraryProvider = context.watch<LibraryProvider>();
+    final canEdit = libraryProvider.access.can('library.circulation.operate');
+    final rows = _found == null ? libraryProvider.members : [_found!];
     return Scaffold(
       appBar: AppBar(title: const Text('Members')),
       floatingActionButton: canEdit
           ? FloatingActionButton.extended(
-              onPressed: () => MemberSheet.show(context, type: p.memberType),
+              onPressed: () =>
+                  MemberSheet.show(context, type: libraryProvider.memberType),
               icon: const Icon(Icons.person_add_alt_1_rounded),
               label: const Text('Member'),
             )
@@ -69,11 +74,11 @@ class _MembersPageState extends State<MembersPage> {
                     ButtonSegment(value: 'student', label: Text('Students')),
                     ButtonSegment(value: 'teacher', label: Text('Teachers')),
                   ],
-                  selected: {p.memberType},
-                  onSelectionChanged: (s) {
+                  selected: {libraryProvider.memberType},
+                  onSelectionChanged: (values) {
                     _search.clear();
                     setState(() => _found = null);
-                    p.loadMembers(type: s.first);
+                    libraryProvider.loadMembers(type: values.first);
                   },
                 ),
                 const SizedBox(height: 8),
@@ -94,19 +99,20 @@ class _MembersPageState extends State<MembersPage> {
             child: rows.isEmpty
                 ? Center(
                     child: Text(
-                      p.membersLoading
+                      libraryProvider.membersLoading
                           ? 'Loading…'
-                          : p.errorMessage ?? 'No members yet',
+                          : libraryProvider.errorMessage ?? 'No members yet',
                     ),
                   )
                 : ListView(
                     children: [
-                      for (final m in rows) _MemberTile(m, canEdit: canEdit),
-                      if (_found == null && p.hasMoreMembers)
+                      for (final member in rows)
+                        _MemberTile(member, canEdit: canEdit),
+                      if (_found == null && libraryProvider.hasMoreMembers)
                         TextButton(
-                          onPressed: p.membersLoading
+                          onPressed: libraryProvider.membersLoading
                               ? null
-                              : () => p.loadMembers(more: true),
+                              : () => libraryProvider.loadMembers(more: true),
                           child: const Text('Load more'),
                         ),
                     ],
@@ -119,42 +125,53 @@ class _MembersPageState extends State<MembersPage> {
 }
 
 class _MemberTile extends StatelessWidget {
-  const _MemberTile(this.m, {required this.canEdit});
+  const _MemberTile(this.member, {required this.canEdit});
 
-  final LibMember m;
+  final LibraryMember member;
   final bool canEdit;
 
   @override
   Widget build(BuildContext context) {
-    final p = context.read<LibraryProvider>();
+    final libraryProvider = context.read<LibraryProvider>();
     final noPolicy = [
-      for (final l in m.libraryIds)
-        if (p.policyFor(l, m.memberCategory)?.active != true)
-          p.library(l)?.name ?? l,
+      for (final libraryId in member.libraryIds)
+        if (libraryProvider
+                .policyFor(libraryId, member.memberCategory)
+                ?.active !=
+            true)
+          libraryProvider.library(libraryId)?.name ?? libraryId,
     ];
     return ListTile(
-      leading: m.active ? null : const InactiveBadge(),
-      title: Text(m.label),
+      leading: member.active ? null : const InactiveBadge(),
+      title: Text(member.label),
       subtitle: Text(
-        '${m.memberCategory}'
-        '${m.classId == null ? '' : ' · class ${m.classId}'}'
-        ' · ${m.start}${m.end == null ? '' : ' → ${m.end}'}'
-        '\nLibraries: ${m.libraryIds.map((l) => p.library(l)?.name ?? l).join(', ')}'
-        ' · ${m.activeLoans} on loan'
+        '${member.memberCategory}'
+        '${member.classId == null ? '' : ' · class ${member.classId}'}'
+        ' · ${member.start}${member.end == null ? '' : ' → ${member.end}'}'
+        '\nLibraries: ${member.libraryIds.map((libraryId) => libraryProvider.library(libraryId)?.name ?? libraryId).join(', ')}'
+        ' · ${member.activeLoans} on loan'
         '${noPolicy.isEmpty ? '' : '\nNo active policy in ${noPolicy.join(', ')}'}',
       ),
       isThreeLine: true,
-      onTap: canEdit ? () => MemberSheet.show(context, member: m) : null,
+      onTap: canEdit ? () => MemberSheet.show(context, member: member) : null,
       trailing: canEdit
           ? IconButton(
-              tooltip: m.active ? 'Deactivate' : 'Activate',
+              tooltip: member.active ? 'Deactivate' : 'Activate',
               icon: Icon(
-                m.active ? Icons.toggle_on_rounded : Icons.toggle_off_rounded,
+                member.active
+                    ? Icons.toggle_on_rounded
+                    : Icons.toggle_off_rounded,
               ),
               onPressed: () async {
-                if (!await p.setMemberActive(m.id, active: !m.active) &&
+                if (!await libraryProvider.setMemberActive(
+                      member.id,
+                      active: !member.active,
+                    ) &&
                     context.mounted) {
-                  invSnack(context, p.errorMessage ?? 'Failed');
+                  showMessage(
+                    context,
+                    libraryProvider.errorMessage ?? 'Failed',
+                  );
                 }
               },
             )

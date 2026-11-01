@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
-import 'package:icueadmin/features/library/widgets/lib_ui.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
@@ -8,10 +7,10 @@ import 'package:school_library/school_library.dart';
 class TransferSheet extends StatefulWidget {
   const TransferSheet({super.key, required this.transfer});
 
-  final LibTransfer transfer;
+  final LibraryTransfer transfer;
 
-  static Future<void> show(BuildContext context, LibTransfer t) =>
-      showInvSheet(context, () => TransferSheet(transfer: t));
+  static Future<void> show(BuildContext context, LibraryTransfer transfer) =>
+      showFormSheet(context, () => TransferSheet(transfer: transfer));
 
   @override
   State<TransferSheet> createState() => _TransferSheetState();
@@ -19,24 +18,30 @@ class TransferSheet extends StatefulWidget {
 
 class _TransferSheetState extends State<TransferSheet> {
   late final Set<String> _arrived = {
-    for (final l in widget.transfer.pending) l.copyId,
+    for (final transferLine in widget.transfer.pending) transferLine.copyId,
   };
   bool _busy = false;
 
-  Future<void> _run(Future<bool> Function(LibraryProvider p) action) async {
+  Future<void> _run(
+    Future<bool> Function(LibraryProvider libraryProvider) action,
+  ) async {
     setState(() => _busy = true);
-    final p = context.read<LibraryProvider>();
-    await libSubmit(context, () => action(p));
+    final libraryProvider = context.read<LibraryProvider>();
+    await submitAndClose<LibraryProvider>(
+      context,
+      () => action(libraryProvider),
+    );
     if (mounted) setState(() => _busy = false);
   }
 
   @override
   Widget build(BuildContext context) {
-    final t = widget.transfer;
+    final transfer = widget.transfer;
     final access = context.watch<LibraryProvider>().access;
-    final manage = access.can('lib.catalogue.manage');
+    final manage = access.can('library.catalogue.manage');
     final receiving =
-        t.status == 'dispatched' || t.status == 'partially_received';
+        transfer.status == 'dispatched' ||
+        transfer.status == 'partially_received';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -44,49 +49,65 @@ class _TransferSheetState extends State<TransferSheet> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(t.number, style: Theme.of(context).textTheme.titleMedium),
-            Chip(label: Text(transferStatusLabel(t.status))),
+            Text(
+              transfer.number,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            Chip(label: Text(transferStatusLabel(transfer.status))),
           ],
         ),
-        if (t.requestedOn != null) Text('Requested: ${t.requestedOn}'),
-        if (t.dispatchedOn != null) Text('Dispatched: ${t.dispatchedOn}'),
-        if (t.receivedOn != null) Text('Received: ${t.receivedOn}'),
-        if (t.remarks != null) Text('Remarks: ${t.remarks}'),
+        if (transfer.requestedDate != null)
+          Text('Requested: ${transfer.requestedDate}'),
+        if (transfer.dispatchedDate != null)
+          Text('Dispatched: ${transfer.dispatchedDate}'),
+        if (transfer.receivedDate != null)
+          Text('Received: ${transfer.receivedDate}'),
+        if (transfer.remarks != null) Text('Remarks: ${transfer.remarks}'),
         const Divider(height: 24),
-        for (final l in t.lines)
-          if (receiving && !l.received && manage)
+        for (final transferLine in transfer.lineItems)
+          if (receiving && !transferLine.received && manage)
             CheckboxListTile(
               dense: true,
               contentPadding: EdgeInsets.zero,
-              title: Text(l.accessionNo),
+              title: Text(transferLine.accessionNumber),
               subtitle: const Text('In transit'),
-              value: _arrived.contains(l.copyId),
-              onChanged: (v) => setState(
-                () => v! ? _arrived.add(l.copyId) : _arrived.remove(l.copyId),
+              value: _arrived.contains(transferLine.copyId),
+              onChanged: (value) => setState(
+                () => value!
+                    ? _arrived.add(transferLine.copyId)
+                    : _arrived.remove(transferLine.copyId),
               ),
             )
           else
             ListTile(
               dense: true,
               contentPadding: EdgeInsets.zero,
-              title: Text(l.accessionNo),
+              title: Text(transferLine.accessionNumber),
               subtitle: Text(
-                l.received ? 'Received (${l.condition})' : 'Not received',
+                transferLine.received
+                    ? 'Received (${transferLine.condition})'
+                    : 'Not received',
               ),
             ),
         const SizedBox(height: 12),
-        if (t.status == 'requested' && access.can('lib.settings'))
+        if (transfer.status == 'requested' && access.can('library.settings'))
           FilledButton(
             onPressed: _busy
                 ? null
-                : () => _run((p) => p.approveTransfer(t.id)),
+                : () => _run(
+                    (libraryProvider) =>
+                        libraryProvider.approveTransfer(transfer.id),
+                  ),
             child: const Text('Approve'),
           ),
-        if (t.status == 'approved' && manage)
+        if (transfer.status == 'approved' && manage)
           FilledButton(
             onPressed: _busy
                 ? null
-                : () => _run((p) => p.dispatchTransfer(t.id)),
+                : () => _run(
+                    (libraryProvider) =>
+                        libraryProvider.dispatchTransfer(transfer.id),
+                  ),
             child: const Text('Dispatch'),
           ),
         if (receiving && manage)
@@ -94,10 +115,10 @@ class _TransferSheetState extends State<TransferSheet> {
             onPressed: _busy || _arrived.isEmpty
                 ? null
                 : () => _run(
-                    (p) => p.receiveTransfer({
-                      'id': t.id,
+                    (libraryProvider) => libraryProvider.receiveTransfer({
+                      'id': transfer.id,
                       'copies': [
-                        for (final c in _arrived) {'copyId': c},
+                        for (final value in _arrived) {'copyId': value},
                       ],
                     }),
                   ),

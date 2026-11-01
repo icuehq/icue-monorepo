@@ -1,0 +1,74 @@
+/// One issue of a copy to a member (FRS 11.9–11.11). Policy values are frozen on the loan at issue.
+class LibraryLoan {
+  const LibraryLoan({
+    required this.id,
+    required this.number,
+    required this.memberId,
+    required this.memberType,
+    required this.personErpId,
+    required this.copyId,
+    required this.accessionNumber,
+    required this.catalogueId,
+    required this.libraryId,
+    required this.issuedDate,
+    required this.dueDate,
+    required this.renewals,
+    required this.maxRenewals,
+    required this.status,
+    this.returnedDate,
+    this.condition,
+    this.overdueDays,
+  });
+
+  factory LibraryLoan.fromMap(String id, Map<String, dynamic> data) =>
+      LibraryLoan(
+        id: id,
+        number: data['number'] as String? ?? '',
+        memberId: data['memberId'] as String? ?? '',
+        memberType: data['memberType'] as String? ?? 'student',
+        personErpId: (data['personErpId'] as num? ?? 0).toInt(),
+        copyId: data['copyId'] as String? ?? '',
+        accessionNumber: data['accessionNumber'] as String? ?? '',
+        catalogueId: data['catalogueId'] as String? ?? '',
+        libraryId: data['libraryId'] as String? ?? '',
+        issuedDate: data['issuedDate'] as String? ?? '',
+        dueDate: data['dueDate'] as String? ?? '',
+        renewals: (data['renewals'] as List?)?.length ?? 0,
+        maxRenewals:
+            ((data['policySnapshot'] as Map?)?['maxRenewals'] as num? ?? 0)
+                .toInt(),
+        status: data['status'] as String? ?? 'active',
+        returnedDate: data['returnedDate'] as String?,
+        condition: data['condition'] as String?,
+        overdueDays: (data['overdueDays'] as num?)?.toInt(),
+      );
+
+  final String id;
+  final String number;
+  final String memberId;
+  final String memberType;
+  final int personErpId;
+  final String copyId;
+  final String accessionNumber;
+  final String catalogueId;
+  final String libraryId;
+  final String issuedDate;
+  final String dueDate;
+  final int renewals;
+  final int maxRenewals;
+  final String status;
+  final String? returnedDate;
+  final String? condition;
+  final int? overdueDays;
+
+  bool get isActive => status == 'active';
+  bool get canRenew => isActive && renewals < maxRenewals;
+  String get memberLabel =>
+      '${memberType == 'student' ? 'Student' : 'Teacher'} #$personErpId';
+
+  /// Days past due as of [today] (`yyyy-MM-dd`); 0 when not overdue.
+  int overdueOn(String today) {
+    if (!isActive || dueDate.compareTo(today) >= 0) return 0;
+    return DateTime.parse(today).difference(DateTime.parse(dueDate)).inDays;
+  }
+}

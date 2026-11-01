@@ -5,14 +5,14 @@ import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
 /// Library stock verification sessions (FRS 11.16).
-class LibVerificationPage extends StatefulWidget {
-  const LibVerificationPage({super.key});
+class LibraryVerificationPage extends StatefulWidget {
+  const LibraryVerificationPage({super.key});
 
   @override
-  State<LibVerificationPage> createState() => _LibVerificationPageState();
+  State<LibraryVerificationPage> createState() => _LibVerificationPageState();
 }
 
-class _LibVerificationPageState extends State<LibVerificationPage> {
+class _LibVerificationPageState extends State<LibraryVerificationPage> {
   @override
   void initState() {
     super.initState();
@@ -23,49 +23,53 @@ class _LibVerificationPageState extends State<LibVerificationPage> {
 
   @override
   Widget build(BuildContext context) {
-    final p = context.watch<LibraryProvider>();
+    final libraryProvider = context.watch<LibraryProvider>();
     return Scaffold(
       appBar: AppBar(title: const Text('Stock Verification')),
-      floatingActionButton: p.access.can('lib.catalogue.manage')
+      floatingActionButton:
+          libraryProvider.access.can('library.catalogue.manage')
           ? FloatingActionButton.extended(
               onPressed: () => VerificationCreateSheet.show(context),
               icon: const Icon(Icons.fact_check_outlined),
               label: const Text('New verification'),
             )
           : null,
-      body: p.verifications.isEmpty
+      body: libraryProvider.verifications.isEmpty
           ? Center(
               child: Text(
-                p.verificationsLoading
+                libraryProvider.verificationsLoading
                     ? 'Loading…'
-                    : p.errorMessage ?? 'No verifications yet',
+                    : libraryProvider.errorMessage ?? 'No verifications yet',
               ),
             )
           : ListView.builder(
               itemCount:
-                  p.verifications.length + (p.hasMoreVerifications ? 1 : 0),
+                  libraryProvider.verifications.length +
+                  (libraryProvider.hasMoreVerifications ? 1 : 0),
               itemBuilder: (context, i) {
-                if (i >= p.verifications.length) {
+                if (i >= libraryProvider.verifications.length) {
                   return Center(
                     child: TextButton(
-                      onPressed: p.verificationsLoading
+                      onPressed: libraryProvider.verificationsLoading
                           ? null
-                          : () => p.loadVerifications(more: true),
+                          : () => libraryProvider.loadVerifications(more: true),
                       child: const Text('Load more'),
                     ),
                   );
                 }
-                final v = p.verifications[i];
+                final verification = libraryProvider.verifications[i];
                 return ListTile(
-                  title: Text('${v.number} · ${v.libraryName}'),
+                  title: Text(
+                    '${verification.number} · ${verification.libraryName}',
+                  ),
                   subtitle: Text(
-                    '${v.shelf ?? 'All shelves'} · ${v.verifiedOn ?? ''} · '
-                    '${v.scanned.length}/${v.expected.length} scanned',
+                    '${verification.shelf ?? 'All shelves'} · ${verification.verifiedDate ?? ''} · '
+                    '${verification.scanned.length}/${verification.expected.length} scanned',
                   ),
                   trailing: Chip(
-                    label: Text(verificationStatusLabel(v.status)),
+                    label: Text(verificationStatusLabel(verification.status)),
                   ),
-                  onTap: () => VerificationSheet.show(context, v.id),
+                  onTap: () => VerificationSheet.show(context, verification.id),
                 );
               },
             ),

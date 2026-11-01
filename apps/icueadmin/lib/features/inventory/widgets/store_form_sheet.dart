@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
 class StoreFormSheet extends StatefulWidget {
   const StoreFormSheet({super.key, this.store});
 
-  final InvStore? store;
+  final InventoryStore? store;
 
-  static Future<void> show(BuildContext context, {InvStore? store}) =>
-      showInvSheet(context, () => StoreFormSheet(store: store));
+  static Future<void> show(BuildContext context, {InventoryStore? store}) =>
+      showFormSheet(context, () => StoreFormSheet(store: store));
 
   @override
   State<StoreFormSheet> createState() => _StoreFormSheetState();
@@ -21,7 +21,9 @@ class _StoreFormSheetState extends State<StoreFormSheet> {
   final _requestId = newRequestId();
   late final _code = TextEditingController(text: widget.store?.code);
   late final _name = TextEditingController(text: widget.store?.name);
-  late final _desc = TextEditingController(text: widget.store?.description);
+  late final _description = TextEditingController(
+    text: widget.store?.description,
+  );
   late final _location = TextEditingController(text: widget.store?.location);
   // ponytail: ERP staff IDs typed in; a staff picker needs the Node staff endpoint.
   late final _keepers = TextEditingController(
@@ -32,18 +34,24 @@ class _StoreFormSheetState extends State<StoreFormSheet> {
 
   @override
   void dispose() {
-    for (final c in [_code, _name, _desc, _location, _keepers]) {
-      c.dispose();
+    for (final controller in [
+      _code,
+      _name,
+      _description,
+      _location,
+      _keepers,
+    ]) {
+      controller.dispose();
     }
     super.dispose();
   }
 
-  String? _keeperError(String? v) {
-    final parts = (v ?? '')
+  String? _keeperError(String? currentValue) {
+    final parts = (currentValue ?? '')
         .split(',')
-        .map((s) => s.trim())
-        .where((s) => s.isNotEmpty);
-    return parts.every((s) => int.tryParse(s) != null)
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty);
+    return parts.every((part) => int.tryParse(part) != null)
         ? null
         : 'Comma-separated staff IDs';
   }
@@ -51,20 +59,20 @@ class _StoreFormSheetState extends State<StoreFormSheet> {
   Future<void> _save() async {
     if (!_form.currentState!.validate()) return;
     setState(() => _busy = true);
-    final s = widget.store;
-    String? blank(TextEditingController c) =>
-        c.text.trim().isEmpty ? null : c.text.trim();
-    await invSubmit(
+    final store = widget.store;
+    String? blank(TextEditingController controller) =>
+        controller.text.trim().isEmpty ? null : controller.text.trim();
+    await submitAndClose<InventoryProvider>(
       context,
       () => context.read<InventoryProvider>().saveStore({
-        if (s != null) 'id': s.id else 'code': _code.text.trim(),
+        if (store != null) 'id': store.id else 'code': _code.text.trim(),
         'name': _name.text.trim(),
         'campusId': _campus,
-        'description': blank(_desc),
+        'description': blank(_description),
         'location': blank(_location),
         'storekeeperIds': [
-          for (final p in _keepers.text.split(','))
-            if (p.trim().isNotEmpty) int.parse(p.trim()),
+          for (final value in _keepers.text.split(','))
+            if (value.trim().isNotEmpty) int.parse(value.trim()),
         ],
       }, requestId: _requestId),
     );
@@ -75,7 +83,7 @@ class _StoreFormSheetState extends State<StoreFormSheet> {
   Widget build(BuildContext context) {
     final access = context.read<InventoryProvider>().access;
     final editing = widget.store != null;
-    final campuses = {...access.campuses, ?_campus}.toList();
+    final campuses = {...access.campusIds, ?_campus}.toList();
     return Form(
       key: _form,
       child: Column(
@@ -97,18 +105,18 @@ class _StoreFormSheetState extends State<StoreFormSheet> {
             initialValue: _campus,
             decoration: const InputDecoration(labelText: 'Campus *'),
             items: [
-              for (final c in campuses)
-                DropdownMenuItem(value: c, child: Text('Campus $c')),
+              for (final value in campuses)
+                DropdownMenuItem(value: value, child: Text('Campus $value')),
             ],
-            onChanged: editing ? null : (v) => _campus = v,
-            validator: (v) => v == null ? 'Required' : null,
+            onChanged: editing ? null : (value) => _campus = value,
+            validator: (value) => value == null ? 'Required' : null,
           ),
           TextFormField(
             controller: _location,
             decoration: const InputDecoration(labelText: 'Location'),
           ),
           TextFormField(
-            controller: _desc,
+            controller: _description,
             decoration: const InputDecoration(labelText: 'Description'),
           ),
           TextFormField(

@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
 class CategoryFormSheet extends StatefulWidget {
   const CategoryFormSheet({super.key, this.category, this.parentId});
 
-  final InvCategory? category;
+  final InventoryCategory? category;
   final String? parentId;
 
   static Future<void> show(
     BuildContext context, {
-    InvCategory? category,
+    InventoryCategory? category,
     String? parentId,
-  }) => showInvSheet(
+  }) => showFormSheet(
     context,
     () => CategoryFormSheet(category: category, parentId: parentId),
   );
@@ -28,29 +28,34 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
   final _requestId = newRequestId();
   late final _code = TextEditingController(text: widget.category?.code);
   late final _name = TextEditingController(text: widget.category?.name);
-  late final _desc = TextEditingController(text: widget.category?.description);
+  late final _description = TextEditingController(
+    text: widget.category?.description,
+  );
   late String? _parentId = widget.category?.parentId ?? widget.parentId;
-  late Tracking _tracking = widget.category?.suggestedTracking ?? Tracking.qty;
+  late Tracking _tracking =
+      widget.category?.suggestedTracking ?? Tracking.quantity;
   bool _busy = false;
 
   @override
   void dispose() {
     _code.dispose();
     _name.dispose();
-    _desc.dispose();
+    _description.dispose();
     super.dispose();
   }
 
   Future<void> _save() async {
     if (!_form.currentState!.validate()) return;
     setState(() => _busy = true);
-    final c = widget.category;
-    await invSubmit(
+    final category = widget.category;
+    await submitAndClose<InventoryProvider>(
       context,
       () => context.read<InventoryProvider>().saveCategory({
-        if (c != null) 'id': c.id else 'code': _code.text.trim(),
+        if (category != null) 'id': category.id else 'code': _code.text.trim(),
         'name': _name.text.trim(),
-        'description': _desc.text.trim().isEmpty ? null : _desc.text.trim(),
+        'description': _description.text.trim().isEmpty
+            ? null
+            : _description.text.trim(),
         'parentId': _parentId,
         'suggestedTracking': _tracking.name,
       }, requestId: _requestId),
@@ -60,59 +65,119 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final tops = context
         .read<InventoryProvider>()
         .topCategories
-        .where((c) => c.id != widget.category?.id)
+        .where((category) => category.id != widget.category?.id)
         .toList();
     final editing = widget.category != null;
+    final title = editing
+        ? 'Edit Category'
+        : (widget.parentId != null ? 'New Subcategory' : 'New Category');
+
     return Form(
       key: _form,
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                title,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close_rounded),
+                visualDensity: VisualDensity.compact,
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Code
           TextFormField(
             controller: _code,
             enabled: !editing,
             textCapitalization: TextCapitalization.characters,
-            decoration: const InputDecoration(labelText: 'Code *'),
+            decoration: InputDecoration(
+              labelText: 'Code *',
+              helperText: editing ? null : 'Unique code (e.g. BKD, CLN)',
+            ),
             validator: requiredText,
           ),
+          const SizedBox(height: 16),
+
+          // Name
           TextFormField(
             controller: _name,
             decoration: const InputDecoration(labelText: 'Name *'),
             validator: requiredText,
           ),
+          const SizedBox(height: 16),
+
+          // Description
           TextFormField(
-            controller: _desc,
+            controller: _description,
             decoration: const InputDecoration(labelText: 'Description'),
+            maxLines: 2,
           ),
+          const SizedBox(height: 16),
+
+          // Parent Category
           DropdownButtonFormField<String?>(
             initialValue: _parentId,
             decoration: const InputDecoration(labelText: 'Parent category'),
             items: [
               const DropdownMenuItem(child: Text('None (top level)')),
-              for (final c in tops)
-                DropdownMenuItem(value: c.id, child: Text(c.name)),
+              for (final category in tops)
+                DropdownMenuItem(
+                  value: category.id,
+                  child: Text(category.name),
+                ),
             ],
-            onChanged: (v) => _parentId = v,
+            onChanged: (value) => _parentId = value,
           ),
+          const SizedBox(height: 16),
+
+          // Suggested Tracking
           DropdownButtonFormField<Tracking>(
             initialValue: _tracking,
             decoration: const InputDecoration(
               labelText: 'Suggested tracking *',
             ),
             items: [
-              for (final t in Tracking.values)
-                DropdownMenuItem(value: t, child: Text(t.label)),
+              for (final tracking in Tracking.values)
+                DropdownMenuItem(value: tracking, child: Text(tracking.label)),
             ],
-            onChanged: (v) => _tracking = v ?? _tracking,
+            onChanged: (tracking) => _tracking = tracking ?? _tracking,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
+
+          // Submit action
           FilledButton(
             onPressed: _busy ? null : _save,
-            child: Text(_busy ? 'Saving…' : 'Save'),
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: Text(
+              _busy
+                  ? 'Saving…'
+                  : (editing ? 'Save Changes' : 'Create Category'),
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+            ),
           ),
+          const SizedBox(height: 8),
         ],
       ),
     );

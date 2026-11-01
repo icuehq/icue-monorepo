@@ -24,5 +24,5 @@ create_index() {
     || echo "index on $coll not created (already exists?)" >&2
 }
 
-create_index invItems name code
-create_index libCatalogue title subtitle authorsText publisher keywordsText
+create_index inventoryItems name code
+create_index libraryCatalogue title subtitle authorsText publisher keywordsText

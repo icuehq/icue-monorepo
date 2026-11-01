@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -11,7 +11,7 @@ class UnitsPage extends StatelessWidget {
     final name = TextEditingController();
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (context) => AlertDialog(
         title: const Text('Add unit'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -28,51 +28,61 @@ class UnitsPage extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
+            onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
+            onPressed: () => Navigator.pop(context, true),
             child: const Text('Save'),
           ),
         ],
       ),
     );
-    final c = code.text.trim();
-    final n = name.text.trim();
+    final currentValue = code.text.trim();
+    final value = name.text.trim();
     code.dispose();
     name.dispose();
     if (ok != true || !context.mounted) return;
-    final p = context.read<InventoryProvider>();
-    if (c.isEmpty || n.isEmpty || !await p.saveUnit(c, n)) {
+    final inventoryProvider = context.read<InventoryProvider>();
+    if (currentValue.isEmpty ||
+        value.isEmpty ||
+        !await inventoryProvider.saveUnit(currentValue, value)) {
       if (context.mounted) {
-        invSnack(context, p.errorMessage ?? 'Code and name are required');
+        showMessage(
+          context,
+          inventoryProvider.errorMessage ?? 'Code and name are required',
+        );
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final p = context.watch<InventoryProvider>();
+    final inventoryProvider = context.watch<InventoryProvider>();
     return Scaffold(
       appBar: AppBar(title: const Text('Units of measurement')),
-      floatingActionButton: p.access.can('inv.settings')
+      floatingActionButton: inventoryProvider.access.can('inventory.settings')
           ? FloatingActionButton.extended(
               onPressed: () => _add(context),
               icon: const Icon(Icons.add_rounded),
               label: const Text('Unit'),
             )
           : null,
-      body: p.units.isEmpty
+      body: inventoryProvider.units.isEmpty
           ? Center(
-              child: p.isLoading
+              child: inventoryProvider.isLoading
                   ? const CircularProgressIndicator()
-                  : const SeedDefaultsButton(),
+                  : SeedDefaultsButton<InventoryProvider>(
+                      label: 'Add default categories & units',
+                      canSeed: (provider) =>
+                          provider.access.can('inventory.settings'),
+                      seed: (provider) => provider.seedDefaults(),
+                    ),
             )
           : ListView(
               children: [
-                for (final u in p.units)
-                  ListTile(title: Text(u.name), subtitle: Text(u.code)),
+                for (final unit in inventoryProvider.units)
+                  ListTile(title: Text(unit.name), subtitle: Text(unit.code)),
               ],
             ),
     );

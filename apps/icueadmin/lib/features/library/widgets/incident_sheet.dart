@@ -1,6 +1,6 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
-import 'package:icueadmin/features/library/widgets/lib_ui.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
@@ -8,10 +8,10 @@ import 'package:school_library/school_library.dart';
 class IncidentSheet extends StatefulWidget {
   const IncidentSheet({super.key, required this.incident});
 
-  final LibIncident incident;
+  final LibraryIncident incident;
 
-  static Future<void> show(BuildContext context, LibIncident incident) =>
-      showInvSheet(context, () => IncidentSheet(incident: incident));
+  static Future<void> show(BuildContext context, LibraryIncident incident) =>
+      showFormSheet(context, () => IncidentSheet(incident: incident));
 
   @override
   State<IncidentSheet> createState() => _IncidentSheetState();
@@ -28,8 +28,8 @@ class _IncidentSheetState extends State<IncidentSheet> {
 
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
           title: const Text('Resolve incident'),
           content: SingleChildScrollView(
             child: Column(
@@ -61,8 +61,8 @@ class _IncidentSheetState extends State<IncidentSheet> {
                       child: Text('Dismissed'),
                     ),
                   ],
-                  onChanged: (v) {
-                    if (v != null) setDialogState(() => resolution = v);
+                  onChanged: (value) {
+                    if (value != null) setDialogState(() => resolution = value);
                   },
                 ),
                 const SizedBox(height: 8),
@@ -102,11 +102,11 @@ class _IncidentSheetState extends State<IncidentSheet> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
+              onPressed: () => Navigator.of(context).pop(false),
               child: const Text('Cancel'),
             ),
             FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
+              onPressed: () => Navigator.of(context).pop(true),
               child: const Text('Resolve'),
             ),
           ],
@@ -119,9 +119,9 @@ class _IncidentSheetState extends State<IncidentSheet> {
     final charge = double.tryParse(chargeController.text.trim());
 
     setState(() => _busy = true);
-    final p = context.read<LibraryProvider>();
-    final nav = Navigator.of(context);
-    final res = await p.resolveIncident({
+    final libraryProvider = context.read<LibraryProvider>();
+    final navigator = Navigator.of(context);
+    final result = await libraryProvider.resolveIncident({
       'id': widget.incident.id,
       'resolution': resolution,
       'repairCost': ?repairCost,
@@ -129,20 +129,25 @@ class _IncidentSheetState extends State<IncidentSheet> {
       'remarks': ?blankToNull(remarksController),
     });
     if (!mounted) return;
-    if (res) {
-      nav.pop();
-      invSnack(context, 'Incident resolved');
+    if (result) {
+      navigator.pop();
+      showMessage(context, 'Incident resolved');
     } else {
       setState(() => _busy = false);
-      invSnack(context, p.errorMessage ?? 'Failed to resolve incident');
+      showMessage(
+        context,
+        libraryProvider.errorMessage ?? 'Failed to resolve incident',
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final inc = widget.incident;
-    final p = context.watch<LibraryProvider>();
-    final canOperate = p.access.can('lib.circulation.operate');
+    final incident = widget.incident;
+    final libraryProvider = context.watch<LibraryProvider>();
+    final canOperate = libraryProvider.access.can(
+      'library.circulation.operate',
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -152,12 +157,12 @@ class _IncidentSheetState extends State<IncidentSheet> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              inc.incidentNumber,
+              incident.incidentNumber,
               style: Theme.of(context).textTheme.titleMedium,
             ),
             Chip(
-              label: Text(incidentStatusLabel(inc.status)),
-              backgroundColor: inc.isOpen
+              label: Text(humanizeStatus(incident.status)),
+              backgroundColor: incident.isOpen
                   ? Theme.of(context).colorScheme.errorContainer
                   : null,
             ),
@@ -165,32 +170,35 @@ class _IncidentSheetState extends State<IncidentSheet> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Book copy: ${inc.accessionNo} · Kind: ${incidentKindLabel(inc.kind)}',
+          'Book copy: ${incident.accessionNumber} · Kind: ${humanizeStatus(incident.type)}',
         ),
-        if (inc.severity != null)
-          Text('Severity: ${incidentSeverityLabel(inc.severity)}'),
-        if (inc.memberLabel != null) Text('Member: ${inc.memberLabel}'),
-        Text('Reported on: ${inc.reportedDate}'),
-        if (inc.description != null && inc.description!.isNotEmpty) ...[
+        if (incident.severity != null)
+          Text('Severity: ${humanizeStatus(incident.severity)}'),
+        if (incident.memberLabel != null)
+          Text('Member: ${incident.memberLabel}'),
+        Text('Reported on: ${incident.reportedDate}'),
+        if (incident.description != null &&
+            incident.description!.isNotEmpty) ...[
           const SizedBox(height: 4),
           Text(
-            'Description: ${inc.description}',
+            'Description: ${incident.description}',
             style: Theme.of(context).textTheme.bodyMedium,
           ),
         ],
-        if (inc.charge > 0) Text('Charge: ₹${inc.charge.toStringAsFixed(2)}'),
-        if (inc.repairCost != null)
-          Text('Repair cost: ₹${inc.repairCost!.toStringAsFixed(2)}'),
-        if (!inc.isOpen) ...[
+        if (incident.charge > 0)
+          Text('Charge: ₹${incident.charge.toStringAsFixed(2)}'),
+        if (incident.repairCost != null)
+          Text('Repair cost: ₹${incident.repairCost!.toStringAsFixed(2)}'),
+        if (!incident.isOpen) ...[
           const Divider(height: 24),
           Text(
-            'Resolution: ${incidentResolutionLabel(inc.resolution)}',
+            'Resolution: ${incidentResolutionLabel(incident.resolution)}',
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
-          if (inc.resolutionRemarks != null)
-            Text('Remarks: ${inc.resolutionRemarks}'),
+          if (incident.resolutionRemarks != null)
+            Text('Remarks: ${incident.resolutionRemarks}'),
         ],
-        if (inc.isOpen && canOperate) ...[
+        if (incident.isOpen && canOperate) ...[
           const SizedBox(height: 16),
           FilledButton(
             onPressed: _busy ? null : _resolve,

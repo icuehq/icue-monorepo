@@ -3,7 +3,7 @@ import 'package:printing/printing.dart';
 import 'package:school_library/school_library.dart';
 
 /// One label per copy: QR code of the accession number (FRS 11.5); opens the print / share sheet.
-Future<void> shareCopyLabels(String title, List<LibCopy> copies) {
+Future<void> shareCopyLabels(String title, List<LibraryCopy> copies) {
   final doc = pw.Document();
   doc.addPage(
     pw.MultiPage(
@@ -12,7 +12,7 @@ Future<void> shareCopyLabels(String title, List<LibCopy> copies) {
           spacing: 12,
           runSpacing: 12,
           children: [
-            for (final c in copies)
+            for (final copy in copies)
               pw.Container(
                 width: 170,
                 padding: const pw.EdgeInsets.all(6),
@@ -21,7 +21,7 @@ Future<void> shareCopyLabels(String title, List<LibCopy> copies) {
                   children: [
                     pw.BarcodeWidget(
                       barcode: pw.Barcode.qrCode(),
-                      data: c.barcode ?? c.accessionNo,
+                      data: copy.barcode ?? copy.accessionNumber,
                       width: 56,
                       height: 56,
                     ),
@@ -36,15 +36,15 @@ Future<void> shareCopyLabels(String title, List<LibCopy> copies) {
                             style: const pw.TextStyle(fontSize: 8),
                           ),
                           pw.Text(
-                            c.accessionNo,
+                            copy.accessionNumber,
                             style: const pw.TextStyle(
                               fontSize: 10,
                               fontWeight: pw.FontWeight.bold,
                             ),
                           ),
-                          if (c.shelf != null)
+                          if (copy.shelf != null)
                             pw.Text(
-                              c.shelf!,
+                              copy.shelf!,
                               style: const pw.TextStyle(fontSize: 8),
                             ),
                         ],

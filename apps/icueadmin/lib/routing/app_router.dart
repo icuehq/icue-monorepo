@@ -49,8 +49,8 @@ import 'package:icueadmin/features/inventory/item_details_page.dart';
 import 'package:icueadmin/features/inventory/item_form_page.dart';
 import 'package:icueadmin/features/inventory/items_page.dart';
 import 'package:icueadmin/features/inventory/procurement/invoices_page.dart';
-import 'package:icueadmin/features/inventory/procurement/po_receive_page.dart';
 import 'package:icueadmin/features/inventory/procurement/purchase_order_form_page.dart';
+import 'package:icueadmin/features/inventory/procurement/purchase_order_receive_page.dart';
 import 'package:icueadmin/features/inventory/procurement/purchase_orders_page.dart';
 import 'package:icueadmin/features/inventory/procurement/purchase_request_form_page.dart';
 import 'package:icueadmin/features/inventory/procurement/purchase_requests_page.dart';
@@ -73,12 +73,12 @@ import 'package:icueadmin/features/library/circulation_page.dart';
 import 'package:icueadmin/features/library/copies_page.dart';
 import 'package:icueadmin/features/library/fines_page.dart';
 import 'package:icueadmin/features/library/incidents_page.dart';
-import 'package:icueadmin/features/library/insights/lib_dashboard_page.dart';
-import 'package:icueadmin/features/library/insights/lib_import_page.dart';
-import 'package:icueadmin/features/library/insights/lib_report_page.dart';
-import 'package:icueadmin/features/library/insights/lib_reports_page.dart';
-import 'package:icueadmin/features/library/lib_categories_page.dart';
+import 'package:icueadmin/features/library/insights/library_dashboard_page.dart';
+import 'package:icueadmin/features/library/insights/library_import_page.dart';
+import 'package:icueadmin/features/library/insights/library_report_page.dart';
+import 'package:icueadmin/features/library/insights/library_reports_page.dart';
 import 'package:icueadmin/features/library/libraries_page.dart';
+import 'package:icueadmin/features/library/library_categories_page.dart';
 import 'package:icueadmin/features/library/library_home_page.dart';
 import 'package:icueadmin/features/library/members_page.dart';
 import 'package:icueadmin/features/library/policies_page.dart';
@@ -209,7 +209,7 @@ GoRouter createRouter({
         path: AppRoutes.inventoryItemForm,
         name: AppRoutes.inventoryItemFormName,
         builder: (context, state) =>
-            ItemFormPage(item: state.extra as InvItem?),
+            ItemFormPage(item: state.extra as InventoryItem?),
       ),
       GoRoute(
         path: AppRoutes.inventoryItemDetails,
@@ -252,20 +252,21 @@ GoRouter createRouter({
         path: AppRoutes.inventoryPurchaseRequestForm,
         name: AppRoutes.inventoryPurchaseRequestFormName,
         builder: (context, state) => PurchaseRequestFormPage(
-          existing: state.extra as InvPurchaseRequest?,
+          existing: state.extra as InventoryPurchaseRequest?,
         ),
       ),
       GoRoute(
         path: AppRoutes.inventoryQuotations,
         name: AppRoutes.inventoryQuotationsName,
         builder: (context, state) =>
-            QuotationsPage(request: state.extra! as InvPurchaseRequest),
+            QuotationsPage(request: state.extra! as InventoryPurchaseRequest),
       ),
       GoRoute(
         path: AppRoutes.inventoryQuotationForm,
         name: AppRoutes.inventoryQuotationFormName,
         builder: (context, state) {
-          final (r, q) = state.extra! as (InvPurchaseRequest, InvQuotation?);
+          final (r, q) =
+              state.extra! as (InventoryPurchaseRequest, InventoryQuotation?);
           return QuotationFormPage(request: r, existing: q);
         },
       ),
@@ -280,15 +281,20 @@ GoRouter createRouter({
         builder: (context, state) {
           final (r, q, o) =
               state.extra!
-                  as (InvPurchaseRequest, InvQuotation?, InvPurchaseOrder?);
+                  as (
+                    InventoryPurchaseRequest,
+                    InventoryQuotation?,
+                    InventoryPurchaseOrder?,
+                  );
           return PurchaseOrderFormPage(request: r, quotation: q, existing: o);
         },
       ),
       GoRoute(
         path: AppRoutes.inventoryPoReceive,
         name: AppRoutes.inventoryPoReceiveName,
-        builder: (context, state) =>
-            PoReceivePage(order: state.extra! as InvPurchaseOrder),
+        builder: (context, state) => PurchaseOrderReceivePage(
+          order: state.extra! as InventoryPurchaseOrder,
+        ),
       ),
       GoRoute(
         path: AppRoutes.inventoryAssets,
@@ -334,8 +340,9 @@ GoRouter createRouter({
       GoRoute(
         path: AppRoutes.inventoryVerification,
         name: AppRoutes.inventoryVerificationName,
-        builder: (context, state) =>
-            VerificationPage(verification: state.extra! as InvVerification),
+        builder: (context, state) => VerificationPage(
+          verification: state.extra! as InventoryVerification,
+        ),
       ),
       GoRoute(
         path: AppRoutes.inventoryInvoices,
@@ -370,7 +377,7 @@ GoRouter createRouter({
       GoRoute(
         path: AppRoutes.libraryCategories,
         name: AppRoutes.libraryCategoriesName,
-        builder: (context, state) => const LibCategoriesPage(),
+        builder: (context, state) => const LibraryCategoriesPage(),
       ),
       GoRoute(
         path: AppRoutes.libraryCatalogue,
@@ -382,7 +389,7 @@ GoRouter createRouter({
         path: AppRoutes.libraryBookForm,
         name: AppRoutes.libraryBookFormName,
         builder: (context, state) =>
-            BookFormPage(book: state.extra as LibBook?),
+            BookFormPage(book: state.extra as LibraryBook?),
       ),
       GoRoute(
         path: AppRoutes.libraryCopies,
@@ -417,33 +424,33 @@ GoRouter createRouter({
       GoRoute(
         path: AppRoutes.libraryTransfers,
         name: AppRoutes.libraryTransfersName,
-        builder: (context, state) => const LibTransfersPage(),
+        builder: (context, state) => const LibraryTransfersPage(),
       ),
       GoRoute(
         path: AppRoutes.libraryVerification,
         name: AppRoutes.libraryVerificationName,
-        builder: (context, state) => const LibVerificationPage(),
+        builder: (context, state) => const LibraryVerificationPage(),
       ),
       GoRoute(
         path: AppRoutes.libraryDashboard,
         name: AppRoutes.libraryDashboardName,
-        builder: (context, state) => const LibDashboardPage(),
+        builder: (context, state) => const LibraryDashboardPage(),
       ),
       GoRoute(
         path: AppRoutes.libraryReports,
         name: AppRoutes.libraryReportsName,
-        builder: (context, state) => const LibReportsPage(),
+        builder: (context, state) => const LibraryReportsPage(),
       ),
       GoRoute(
         path: AppRoutes.libraryReport,
         name: AppRoutes.libraryReportName,
         builder: (context, state) =>
-            LibReportPage(def: state.extra! as LibReportDef),
+            LibraryReportPage(def: state.extra! as LibraryReportDef),
       ),
       GoRoute(
         path: AppRoutes.libraryImport,
         name: AppRoutes.libraryImportName,
-        builder: (context, state) => const LibImportPage(),
+        builder: (context, state) => const LibraryImportPage(),
       ),
       GoRoute(
         path: AppRoutes.libraryPolicies,

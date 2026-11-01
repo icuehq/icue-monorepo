@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
-import 'package:icueadmin/features/library/widgets/lib_ui.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
@@ -9,7 +8,7 @@ class VerificationCreateSheet extends StatefulWidget {
   const VerificationCreateSheet({super.key});
 
   static Future<void> show(BuildContext context) =>
-      showInvSheet(context, () => const VerificationCreateSheet());
+      showFormSheet(context, () => const VerificationCreateSheet());
 
   @override
   State<VerificationCreateSheet> createState() =>
@@ -29,14 +28,14 @@ class _VerificationCreateSheetState extends State<VerificationCreateSheet> {
 
   Future<void> _submit() async {
     if (_library == null) {
-      invSnack(context, 'Pick a library');
+      showMessage(context, 'Pick a library');
       return;
     }
     setState(() => _busy = true);
-    final p = context.read<LibraryProvider>();
-    await libSubmit(
+    final libraryProvider = context.read<LibraryProvider>();
+    await submitAndClose<LibraryProvider>(
       context,
-      () => p.createVerification({
+      () => libraryProvider.createVerification({
         'libraryId': _library,
         'shelf': ?blankToNull(_shelf),
       }),
@@ -46,10 +45,10 @@ class _VerificationCreateSheetState extends State<VerificationCreateSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final libs = context
+    final libraries = context
         .watch<LibraryProvider>()
         .libraries
-        .where((l) => l.active)
+        .where((schoolLibrary) => schoolLibrary.active)
         .toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -64,10 +63,13 @@ class _VerificationCreateSheetState extends State<VerificationCreateSheet> {
           initialValue: _library,
           decoration: const InputDecoration(labelText: 'Library'),
           items: [
-            for (final l in libs)
-              DropdownMenuItem(value: l.id, child: Text(l.name)),
+            for (final schoolLibrary in libraries)
+              DropdownMenuItem(
+                value: schoolLibrary.id,
+                child: Text(schoolLibrary.name),
+              ),
           ],
-          onChanged: (v) => setState(() => _library = v),
+          onChanged: (value) => setState(() => _library = value),
         ),
         const SizedBox(height: 8),
         TextField(

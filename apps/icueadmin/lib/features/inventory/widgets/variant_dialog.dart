@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -8,13 +8,13 @@ import 'package:provider/provider.dart';
 class VariantDialog extends StatefulWidget {
   const VariantDialog({super.key, required this.item, this.variant});
 
-  final InvItem item;
-  final InvVariant? variant;
+  final InventoryItem item;
+  final InventoryVariant? variant;
 
   static Future<bool> show(
     BuildContext context,
-    InvItem item, {
-    InvVariant? variant,
+    InventoryItem item, {
+    InventoryVariant? variant,
   }) async =>
       await showDialog<bool>(
         context: context,
@@ -30,35 +30,38 @@ class _VariantDialogState extends State<VariantDialog> {
   final _requestId = newRequestId();
   late final _sku = TextEditingController(text: widget.variant?.sku);
   late final _attrs = {
-    for (final a in widget.item.variantAttrs)
-      a: TextEditingController(text: widget.variant?.attrs[a]),
+    for (final variantAttr in widget.item.variantAttrs)
+      variantAttr: TextEditingController(
+        text: widget.variant?.attrs[variantAttr],
+      ),
   };
 
   @override
   void dispose() {
     _sku.dispose();
-    for (final c in _attrs.values) {
-      c.dispose();
+    for (final controller in _attrs.values) {
+      controller.dispose();
     }
     super.dispose();
   }
 
   Future<void> _save() async {
     final values = {
-      for (final e in _attrs.entries)
-        if (e.value.text.trim().isNotEmpty) e.key: e.value.text.trim(),
+      for (final mapEntry in _attrs.entries)
+        if (mapEntry.value.text.trim().isNotEmpty)
+          mapEntry.key: mapEntry.value.text.trim(),
     };
     if (values.isEmpty ||
         (widget.variant == null && _sku.text.trim().isEmpty)) {
-      invSnack(context, 'SKU and at least one attribute are required');
+      showMessage(context, 'SKU and at least one attribute are required');
       return;
     }
-    final v = widget.variant;
-    await invSubmit(
+    final variant = widget.variant;
+    await submitAndClose<InventoryProvider>(
       context,
       () => context.read<InventoryProvider>().saveVariant({
         'itemId': widget.item.id,
-        if (v != null) 'id': v.id else 'code': _sku.text.trim(),
+        if (variant != null) 'id': variant.id else 'code': _sku.text.trim(),
         'attrs': values,
       }, requestId: _requestId),
     );
@@ -76,10 +79,10 @@ class _VariantDialogState extends State<VariantDialog> {
             enabled: widget.variant == null,
             decoration: const InputDecoration(labelText: 'SKU *'),
           ),
-          for (final e in _attrs.entries)
+          for (final mapEntry in _attrs.entries)
             TextField(
-              controller: e.value,
-              decoration: InputDecoration(labelText: e.key),
+              controller: mapEntry.value,
+              decoration: InputDecoration(labelText: mapEntry.key),
             ),
         ],
       ),

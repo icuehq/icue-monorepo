@@ -1,26 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
-import 'package:icueadmin/features/library/widgets/lib_ui.dart';
+import 'package:icueadmin/features/library/widgets/library_ui.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
 /// Enrol a student or teacher, or edit their category, libraries and dates (FRS 11.7).
 class MemberSheet extends StatefulWidget {
-  const MemberSheet({super.key, this.member, this.type, this.erpId});
+  const MemberSheet({super.key, this.member, this.type, this.personErpId});
 
-  final LibMember? member;
+  final LibraryMember? member;
   final String? type;
-  final int? erpId;
+  final int? personErpId;
 
   static Future<void> show(
     BuildContext context, {
-    LibMember? member,
+    LibraryMember? member,
     String? type,
-    int? erpId,
-  }) => showInvSheet(
+    int? personErpId,
+  }) => showFormSheet(
     context,
-    () => MemberSheet(member: member, type: type, erpId: erpId),
+    () => MemberSheet(member: member, type: type, personErpId: personErpId),
   );
 
   @override
@@ -31,7 +31,7 @@ class _MemberSheetState extends State<MemberSheet> {
   final _form = GlobalKey<FormState>();
   final _requestId = newRequestId();
   late final _erpId = TextEditingController(
-    text: (widget.member?.erpId ?? widget.erpId)?.toString(),
+    text: (widget.member?.personErpId ?? widget.personErpId)?.toString(),
   );
   late final _class = TextEditingController(
     text: widget.member?.classId?.toString(),
@@ -51,8 +51,8 @@ class _MemberSheetState extends State<MemberSheet> {
 
   @override
   void dispose() {
-    for (final c in [_erpId, _class, _category, _start, _end]) {
-      c.dispose();
+    for (final controller in [_erpId, _class, _category, _start, _end]) {
+      controller.dispose();
     }
     super.dispose();
   }
@@ -60,15 +60,15 @@ class _MemberSheetState extends State<MemberSheet> {
   Future<void> _save() async {
     if (!_form.currentState!.validate()) return;
     if (_libraries.isEmpty) {
-      invSnack(context, 'Pick at least one library');
+      showMessage(context, 'Pick at least one library');
       return;
     }
     setState(() => _busy = true);
-    await libSubmit(
+    await submitAndClose<LibraryProvider>(
       context,
       () => context.read<LibraryProvider>().saveMember({
         'memberType': _type,
-        'erpId': int.parse(_erpId.text.trim()),
+        'personErpId': int.parse(_erpId.text.trim()),
         'classId': _type == 'student' ? int.tryParse(_class.text.trim()) : null,
         'memberCategory': _category.text.trim().toLowerCase(),
         'libraryIds': _libraries.toList(),
@@ -81,10 +81,11 @@ class _MemberSheetState extends State<MemberSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final p = context.read<LibraryProvider>();
+    final libraryProvider = context.read<LibraryProvider>();
     final editing = widget.member != null;
-    final categories = {for (final x in p.policies) x.memberCategory}.toList()
-      ..sort();
+    final categories = {
+      for (final policy in libraryProvider.policies) policy.memberCategory,
+    }.toList()..sort();
     return Form(
       key: _form,
       child: Column(
@@ -98,15 +99,15 @@ class _MemberSheetState extends State<MemberSheet> {
             selected: {_type},
             onSelectionChanged: editing || widget.type != null
                 ? null
-                : (s) => setState(() => _type = s.first),
+                : (values) => setState(() => _type = values.first),
           ),
           // ponytail: ERP IDs typed in; a student/staff picker needs the Node endpoints.
           TextFormField(
             controller: _erpId,
-            enabled: !editing && widget.erpId == null,
+            enabled: !editing && widget.personErpId == null,
             keyboardType: TextInputType.number,
             decoration: const InputDecoration(labelText: 'ERP ID *'),
-            validator: (v) => (int.tryParse(v?.trim() ?? '') ?? 0) > 0
+            validator: (value) => (int.tryParse(value?.trim() ?? '') ?? 0) > 0
                 ? null
                 : 'Enter the ERP ID',
           ),
@@ -115,8 +116,9 @@ class _MemberSheetState extends State<MemberSheet> {
               controller: _class,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(labelText: 'Class ID'),
-              validator: (v) =>
-                  (v ?? '').trim().isEmpty || int.tryParse(v!.trim()) != null
+              validator: (value) =>
+                  (value ?? '').trim().isEmpty ||
+                      int.tryParse(value!.trim()) != null
                   ? null
                   : 'Enter a number',
             ),
@@ -128,8 +130,8 @@ class _MemberSheetState extends State<MemberSheet> {
                   ? 'Must match a borrowing policy'
                   : 'Policies exist for: ${categories.join(', ')}',
             ),
-            validator: (v) =>
-                RegExp(r'^[a-zA-Z0-9_-]{1,30}$').hasMatch(v?.trim() ?? '')
+            validator: (value) =>
+                RegExp(r'^[a-zA-Z0-9_-]{1,30}$').hasMatch(value?.trim() ?? '')
                 ? null
                 : 'Letters, digits, - or _',
           ),
@@ -141,23 +143,26 @@ class _MemberSheetState extends State<MemberSheet> {
           Wrap(
             spacing: 8,
             children: [
-              for (final l in p.libraries)
-                if (l.active || _libraries.contains(l.id))
+              for (final schoolLibrary in libraryProvider.libraries)
+                if (schoolLibrary.active ||
+                    _libraries.contains(schoolLibrary.id))
                   FilterChip(
-                    label: Text(l.name),
-                    selected: _libraries.contains(l.id),
-                    onSelected: (v) => setState(
-                      () => v ? _libraries.add(l.id) : _libraries.remove(l.id),
+                    label: Text(schoolLibrary.name),
+                    selected: _libraries.contains(schoolLibrary.id),
+                    onSelected: (value) => setState(
+                      () => value
+                          ? _libraries.add(schoolLibrary.id)
+                          : _libraries.remove(schoolLibrary.id),
                     ),
                   ),
             ],
           ),
-          LibDateField(
+          LibraryDateField(
             controller: _start,
             label: 'Member from',
             required: true,
           ),
-          LibDateField(controller: _end, label: 'Member until'),
+          LibraryDateField(controller: _end, label: 'Member until'),
           const SizedBox(height: 16),
           FilledButton(
             onPressed: _busy ? null : _save,

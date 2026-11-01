@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
 import 'package:icueadmin/features/library/widgets/policy_sheet.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
@@ -10,8 +10,8 @@ class PoliciesPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final p = context.watch<LibraryProvider>();
-    final canEdit = p.access.can('lib.settings');
+    final libraryProvider = context.watch<LibraryProvider>();
+    final canEdit = libraryProvider.access.can('library.settings');
     return Scaffold(
       appBar: AppBar(title: const Text('Borrowing policies')),
       floatingActionButton: canEdit
@@ -21,37 +21,44 @@ class PoliciesPage extends StatelessWidget {
               label: const Text('Policy'),
             )
           : null,
-      body: p.policies.isEmpty
-          ? Center(child: Text(p.isLoading ? 'Loading…' : 'No policies yet'))
+      body: libraryProvider.policies.isEmpty
+          ? Center(
+              child: Text(
+                libraryProvider.isLoading ? 'Loading…' : 'No policies yet',
+              ),
+            )
           : ListView(
               children: [
-                for (final x in p.policies)
+                for (final policy in libraryProvider.policies)
                   ListTile(
-                    title: Text(x.name),
+                    title: Text(policy.name),
                     subtitle: Text(
-                      '${p.library(x.libraryId)?.name ?? x.libraryId} · '
-                      '${x.memberCategory}\n${x.summary}',
+                      '${libraryProvider.library(policy.libraryId)?.name ?? policy.libraryId} · '
+                      '${policy.memberCategory}\n${policy.summary}',
                     ),
                     isThreeLine: true,
-                    leading: x.active ? null : const InactiveBadge(),
+                    leading: policy.active ? null : const InactiveBadge(),
                     onTap: canEdit
-                        ? () => PolicySheet.show(context, policy: x)
+                        ? () => PolicySheet.show(context, policy: policy)
                         : null,
                     trailing: canEdit
                         ? IconButton(
-                            tooltip: x.active ? 'Deactivate' : 'Activate',
+                            tooltip: policy.active ? 'Deactivate' : 'Activate',
                             icon: Icon(
-                              x.active
+                              policy.active
                                   ? Icons.toggle_on_rounded
                                   : Icons.toggle_off_rounded,
                             ),
                             onPressed: () async {
-                              if (!await p.setPolicyActive(
-                                    x.id,
-                                    active: !x.active,
+                              if (!await libraryProvider.setPolicyActive(
+                                    policy.id,
+                                    active: !policy.active,
                                   ) &&
                                   context.mounted) {
-                                invSnack(context, p.errorMessage ?? 'Failed');
+                                showMessage(
+                                  context,
+                                  libraryProvider.errorMessage ?? 'Failed',
+                                );
                               }
                             },
                           )

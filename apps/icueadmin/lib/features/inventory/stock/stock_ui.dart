@@ -1,26 +1,26 @@
 import 'package:flutter/material.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
 /// Runs [call]; on success shows its document number and (when [close]) leaves the screen.
 Future<bool> stockSubmit(
   BuildContext context,
-  Future<Map<String, dynamic>?> Function(StockProvider p) call, {
+  Future<Map<String, dynamic>?> Function(StockProvider stockProvider) call, {
   bool close = true,
   String done = 'Saved',
 }) async {
-  final p = context.read<StockProvider>();
-  final nav = Navigator.of(context);
-  final res = await call(p);
-  if (!context.mounted) return res != null;
-  if (res == null) {
-    invSnack(context, p.errorMessage ?? 'Could not save');
+  final stockProvider = context.read<StockProvider>();
+  final navigator = Navigator.of(context);
+  final result = await call(stockProvider);
+  if (!context.mounted) return result != null;
+  if (result == null) {
+    showMessage(context, stockProvider.errorMessage ?? 'Could not save');
     return false;
   }
-  final number = res['number'];
-  invSnack(context, number == null ? done : '$done · $number');
-  if (close) nav.pop();
+  final number = result['number'];
+  showMessage(context, number == null ? done : '$done · $number');
+  if (close) navigator.pop();
   return true;
 }
 
@@ -45,31 +45,33 @@ class StoreDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final stores = context.watch<InventoryProvider>().stores.where(
-      (s) =>
-          s.active &&
-          s.id != exclude &&
-          (campusId == null || s.campusId == campusId),
+      (store) =>
+          store.active &&
+          store.id != exclude &&
+          (campusId == null || store.campusId == campusId),
     );
     return DropdownButtonFormField<String>(
       initialValue: value,
       decoration: InputDecoration(labelText: label),
       items: [
-        for (final s in stores)
-          DropdownMenuItem(value: s.id, child: Text('${s.name} (${s.code})')),
+        for (final store in stores)
+          DropdownMenuItem(
+            value: store.id,
+            child: Text('${store.name} (${store.code})'),
+          ),
       ],
       onChanged: onChanged,
-      validator: (v) => v == null ? 'Required' : null,
+      validator: (value) => value == null ? 'Required' : null,
     );
   }
 }
 
 /// Makes sure masters (access, stores) are loaded before a stock screen uses them.
 void ensureMasters(BuildContext context) {
-  final p = context.read<InventoryProvider>();
+  final inventoryProvider = context.read<InventoryProvider>();
   WidgetsBinding.instance.addPostFrameCallback((_) {
-    if (p.stores.isEmpty && !p.isLoading) p.loadMasters();
+    if (inventoryProvider.stores.isEmpty && !inventoryProvider.isLoading) {
+      inventoryProvider.loadMasters();
+    }
   });
 }
-
-String statusLabel(String s) =>
-    s.replaceAll('_', ' ').replaceRange(0, 1, s.substring(0, 1).toUpperCase());

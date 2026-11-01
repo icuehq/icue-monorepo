@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:icueadmin/features/inventory/widgets/inv_ui.dart';
 import 'package:icueadmin/features/inventory/widgets/scan_field.dart';
-import 'package:icueadmin/features/library/widgets/lib_ui.dart';
+import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
@@ -12,14 +11,14 @@ class VerificationSheet extends StatefulWidget {
   final String id;
 
   static Future<void> show(BuildContext context, String id) =>
-      showInvSheet(context, () => VerificationSheet(id: id));
+      showFormSheet(context, () => VerificationSheet(id: id));
 
   @override
   State<VerificationSheet> createState() => _VerificationSheetState();
 }
 
 class _VerificationSheetState extends State<VerificationSheet> {
-  LibVerification? _v;
+  LibraryVerification? _v;
   final Set<String> _lost = {};
   final Set<String> _move = {};
   bool _busy = false;
@@ -31,39 +30,46 @@ class _VerificationSheetState extends State<VerificationSheet> {
   }
 
   Future<void> _refresh() async {
-    final v = await context.read<LibraryProvider>().verification(widget.id);
-    if (mounted) setState(() => _v = v);
+    final verification = await context.read<LibraryProvider>().verification(
+      widget.id,
+    );
+    if (mounted) setState(() => _v = verification);
   }
 
   Future<void> _scan(String code) async {
-    final p = context.read<LibraryProvider>();
-    final ok = await p.scanVerification(widget.id, [code.trim()]);
+    final libraryProvider = context.read<LibraryProvider>();
+    final ok = await libraryProvider.scanVerification(widget.id, [code.trim()]);
     if (!mounted) return;
     if (ok) {
       await _refresh();
     } else {
-      invSnack(context, p.errorMessage ?? 'Scan failed');
+      showMessage(context, libraryProvider.errorMessage ?? 'Scan failed');
     }
   }
 
-  Future<void> _run(Future<bool> Function(LibraryProvider p) action) async {
+  Future<void> _run(
+    Future<bool> Function(LibraryProvider libraryProvider) action,
+  ) async {
     setState(() => _busy = true);
-    final p = context.read<LibraryProvider>();
-    await libSubmit(context, () => action(p));
+    final libraryProvider = context.read<LibraryProvider>();
+    await submitAndClose<LibraryProvider>(
+      context,
+      () => action(libraryProvider),
+    );
     if (mounted) setState(() => _busy = false);
   }
 
   @override
   Widget build(BuildContext context) {
-    final v = _v;
-    if (v == null) {
+    final verification = _v;
+    if (verification == null) {
       return const Padding(
         padding: EdgeInsets.all(24),
         child: Center(child: CircularProgressIndicator()),
       );
     }
     final access = context.watch<LibraryProvider>().access;
-    final review = v.isSubmitted && access.can('lib.settings');
+    final review = verification.isSubmitted && access.can('library.settings');
     final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -73,17 +79,18 @@ class _VerificationSheetState extends State<VerificationSheet> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              '${v.number} · ${v.libraryName}',
+              '${verification.number} · ${verification.libraryName}',
               style: theme.textTheme.titleMedium,
             ),
-            Chip(label: Text(verificationStatusLabel(v.status))),
+            Chip(label: Text(verificationStatusLabel(verification.status))),
           ],
         ),
         Text(
-          '${v.scanned.length} scanned of ${v.expected.length} expected'
-          '${v.onLoan.isEmpty ? '' : ' · ${v.onLoan.length} on loan (not counted)'}',
+          '${verification.scanned.length} scanned of ${verification.expected.length} expected'
+          '${verification.onLoanCopyIds.isEmpty ? '' : ' · ${verification.onLoanCopyIds.length} on loan (not counted)'}',
         ),
-        if (v.isCounting && access.can('lib.catalogue.manage')) ...[
+        if (verification.isCounting &&
+            access.can('library.catalogue.manage')) ...[
           const SizedBox(height: 12),
           ScanField(
             hint: 'Scan barcode or enter accession no.',
@@ -95,49 +102,56 @@ class _VerificationSheetState extends State<VerificationSheet> {
           FilledButton(
             onPressed: _busy
                 ? null
-                : () => _run((p) => p.submitVerification(v.id)),
-            child: Text('Submit count (${v.notYetScanned.length} not scanned)'),
+                : () => _run(
+                    (libraryProvider) =>
+                        libraryProvider.submitVerification(verification.id),
+                  ),
+            child: Text(
+              'Submit count (${verification.notYetScanned.length} not scanned)',
+            ),
           ),
         ],
-        if (!v.isCounting) ...[
+        if (!verification.isCounting) ...[
           const Divider(height: 24),
           Text(
-            'Missing (${v.missing.length})',
+            'Missing (${verification.missing.length})',
             style: theme.textTheme.titleSmall,
           ),
-          for (final c in v.missing)
+          for (final copyId in verification.missing)
             review
                 ? CheckboxListTile(
                     dense: true,
                     contentPadding: EdgeInsets.zero,
-                    title: Text(c),
+                    title: Text(copyId),
                     subtitle: const Text('Mark as lost'),
-                    value: _lost.contains(c),
-                    onChanged: (x) =>
-                        setState(() => x! ? _lost.add(c) : _lost.remove(c)),
+                    value: _lost.contains(copyId),
+                    onChanged: (checked) => setState(
+                      () => checked! ? _lost.add(copyId) : _lost.remove(copyId),
+                    ),
                   )
-                : Text(c),
+                : Text(copyId),
           const SizedBox(height: 8),
           Text(
-            'Unexpected (${v.unexpected.length})',
+            'Unexpected (${verification.unexpected.length})',
             style: theme.textTheme.titleSmall,
           ),
-          for (final c in v.unexpected)
+          for (final copyId in verification.unexpected)
             review
                 ? CheckboxListTile(
                     dense: true,
                     contentPadding: EdgeInsets.zero,
-                    title: Text(c),
+                    title: Text(copyId),
                     subtitle: const Text('Move into this library'),
-                    value: _move.contains(c),
-                    onChanged: (x) =>
-                        setState(() => x! ? _move.add(c) : _move.remove(c)),
+                    value: _move.contains(copyId),
+                    onChanged: (checked) => setState(
+                      () => checked! ? _move.add(copyId) : _move.remove(copyId),
+                    ),
                   )
-                : Text(c),
-          if (v.investigate.isNotEmpty) ...[
+                : Text(copyId),
+          if (verification.investigate.isNotEmpty) ...[
             const SizedBox(height: 8),
             Text(
-              'Under investigation: ${v.investigate.join(', ')}',
+              'Under investigation: ${verification.investigate.join(', ')}',
               style: TextStyle(color: theme.colorScheme.error),
             ),
           ],
@@ -152,8 +166,8 @@ class _VerificationSheetState extends State<VerificationSheet> {
             onPressed: _busy
                 ? null
                 : () => _run(
-                    (p) => p.approveVerification({
-                      'id': v.id,
+                    (libraryProvider) => libraryProvider.approveVerification({
+                      'id': verification.id,
                       'lost': _lost.toList(),
                       'move': _move.toList(),
                     }),
