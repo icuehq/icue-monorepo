@@ -5,7 +5,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icueadmin/dialogs/logout_dialog.dart';
 import 'package:icueadmin/features/dashboard/widgets/branch_selector_bar.dart';
-import 'package:icueadmin/widgets/no_data_widget.dart';
+import 'package:icueadmin/routing/app_routes.dart';
 import 'package:icueadmin/widgets/option_card_tile.dart';
 import 'package:provider/provider.dart';
 
@@ -23,7 +23,16 @@ const Map<String, String> _iconsMap = {
   'layout.dropboarding': 'assets/dashboard/student-drop.png',
   'layout.gatepass': 'assets/dashboard/gate-pass.png',
   'layout.attendance': 'assets/dashboard/attendance.png',
+  'layout.inventory': 'assets/dashboard/inventory.png',
+  'layout.library': 'assets/dashboard/library.png',
 };
+
+// TEMP: Node does not return Inventory / Library yet; always shown below the Node actions.
+// Remove once Node sends them in `roleActions`.
+const _testModules = [
+  ('Inventory', AppRoutes.inventory, 'assets/dashboard/inventory.png'),
+  ('Library', AppRoutes.library, 'assets/dashboard/library.png'),
+];
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({this.environment, super.key});
@@ -109,13 +118,8 @@ class _DashboardPageState extends State<DashboardPage> {
             topRight: Radius.circular(32),
           ),
         ),
-        child: actions.isEmpty
-            ? (auth.isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : const NoDataWidget(
-                      size: 250,
-                      msg: "You don't have access to any features. Please contact your administrator.",
-                    ))
+        child: actions.isEmpty && auth.isLoading
+            ? const Center(child: CircularProgressIndicator())
             : RefreshIndicator(
                 onRefresh: () => context.read<AuthProvider>().getRoleActions(),
                 child: ListView.builder(
@@ -123,8 +127,17 @@ class _DashboardPageState extends State<DashboardPage> {
                     horizontal: 10,
                     vertical: 16,
                   ),
-                  itemCount: actions.length,
+                  itemCount: actions.length + _testModules.length,
                   itemBuilder: (context, index) {
+                    if (index >= actions.length) {
+                      final (title, route, iconAsset) =
+                          _testModules[index - actions.length];
+                      return OptionCardTile(
+                        title: title,
+                        iconAsset: iconAsset,
+                        onTap: () => context.push(route),
+                      );
+                    }
                     final item = actions[index];
                     final iconPath = _iconsMap[item.routeState];
 
