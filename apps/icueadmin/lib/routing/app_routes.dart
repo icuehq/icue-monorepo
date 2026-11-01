@@ -204,6 +204,23 @@ abstract final class AppRoutes {
   static const String inventoryTransferForm = '/layout.inventory/transfers/new';
   static const String inventoryTransferFormName = 'inventoryTransferForm';
 
+  static const String inventoryDashboard = '/layout.inventory/dashboard';
+  static const String inventoryDashboardName = 'inventoryDashboard';
+
+  static const String inventoryReports = '/layout.inventory/reports';
+  static const String inventoryReportsName = 'inventoryReports';
+
+  static const String inventoryReport = '/layout.inventory/reports/view';
+  static const String inventoryReportName = 'inventoryReport';
+
+  static const String inventoryVerifications =
+      '/layout.inventory/verifications';
+  static const String inventoryVerificationsName = 'inventoryVerifications';
+
+  static const String inventoryVerification =
+      '/layout.inventory/verifications/view';
+  static const String inventoryVerificationName = 'inventoryVerification';
+
   static const String inventoryUnavailable = '/layout.inventory/unavailable';
   static const String inventoryUnavailableName = 'inventoryUnavailable';
 

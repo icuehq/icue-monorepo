@@ -76,6 +76,7 @@ Fixed permission keys (code), configurable role mapping (data):
 | `inv.stock.view` / `inv.stock.operate` | as above / Admin, Inv. Mgr, Storekeeper |
 | `inv.issue.request` / `inv.issue.approve` | + Teacher / Principal (configurable) |
 | `inv.pr.request` / `inv.pr.approve` | + Teacher, Storekeeper, Procurement / Principal |
+| `inv.adjustment.approve` | Admin, Principal, Inv. Mgr |
 | `inv.procure.operate` | Admin, Inv. Mgr, Procurement |
 | `inv.vendors.manage` | Admin, Inv. Mgr, Procurement |
 | `inv.assets.manage` / `inv.assets.view` | Admin, Inv. Mgr, Storekeeper / + Teacher, Principal |
@@ -158,7 +159,7 @@ Common fields on every document: `campusId`, `createdAt`, `createdBy` (uid), `up
 | `invAssetAssignments` | assetId, assignee `{type: staff|student|department, erpId}`, assignedAt, expectedReturn, conditionOut, ack, returnedAt, conditionIn | Top-level so parents/teachers can query their own |
 | `invMaintenance` | assetId, issue, priority, technician, cost, partsUsed `[{itemId, qty}]`, status (FRS 10.20), nextServiceDate | Parts used create `issue` movements |
 | `invVerifications` | storeId, scope, status `draft|counting|submitted|approved|applied` | |
-| `invVerifications/{id}/lines` | balanceId/assetId, expected, counted, diff, reason, countedBy | Client-writable while `counting` (offline) |
+| `invVerifications/{id}/lines` | balanceId, expected, counted, diff, reason, countedBy | Written by `inv.verification.count` (client-writable offline counting arrives with Inv-8) |
 
 ### 4.3 Library
 
@@ -206,7 +207,7 @@ Names below are logical; they deploy as `<group>-<name>` (`session.sync` → `se
 | Stock | `inv.receipt.confirm`, `inv.issueRequest.submit/decide`, `inv.issue.create`, `inv.issue.acknowledge`, `inv.return.create`, `inv.transfer.request/dispatch/receive`, `inv.adjustment.create/approve`, `inv.unavailable.report/resolve` |
 | Procurement | `inv.pr.save/submit/decide/cancel`, `inv.quotation.save/select`, `inv.po.save/issue/revise/acknowledge/cancel/close`, `inv.invoice.save/setPayment` |
 | Assets | `inv.asset.register`, `inv.asset.assign/return/transfer/setCondition/retire`, `inv.maintenance.save/setStatus` |
-| Verification | `inv.verification.create/submit/approve` (approve creates adjustments referencing the session) |
+| Verification | `inv.verification.create/count/submit/decide` (approve creates adjustments referencing the session; reject reopens counting) |
 | Library masters | `lib.library.upsert/setStatus`, `lib.category.upsert/setStatus`, `lib.catalogue.upsert/setStatus/search`, `lib.seedDefaults`, `lib.policy.upsert` |
 | Copies | `lib.acquisition.create` (generates accession numbers + copies), `lib.copy.update/move` |
 | Members | `lib.member.upsert/setStatus` |

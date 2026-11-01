@@ -38,6 +38,11 @@ import 'package:icueadmin/features/inventory/assets/asset_form_page.dart';
 import 'package:icueadmin/features/inventory/assets/assets_page.dart';
 import 'package:icueadmin/features/inventory/assets/maintenance_page.dart';
 import 'package:icueadmin/features/inventory/categories_page.dart';
+import 'package:icueadmin/features/inventory/insights/dashboard_page.dart';
+import 'package:icueadmin/features/inventory/insights/report_page.dart';
+import 'package:icueadmin/features/inventory/insights/reports_page.dart';
+import 'package:icueadmin/features/inventory/insights/verification_page.dart';
+import 'package:icueadmin/features/inventory/insights/verifications_page.dart';
 import 'package:icueadmin/features/inventory/inventory_home_page.dart';
 import 'package:icueadmin/features/inventory/item_details_page.dart';
 import 'package:icueadmin/features/inventory/item_form_page.dart';
@@ -285,6 +290,33 @@ GoRouter createRouter({
         path: AppRoutes.inventoryMaintenance,
         name: AppRoutes.inventoryMaintenanceName,
         builder: (context, state) => const MaintenancePage(),
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryDashboard,
+        name: AppRoutes.inventoryDashboardName,
+        builder: (context, state) => const InventoryDashboardPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryReports,
+        name: AppRoutes.inventoryReportsName,
+        builder: (context, state) => const InventoryReportsPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryReport,
+        name: AppRoutes.inventoryReportName,
+        builder: (context, state) =>
+            InventoryReportPage(def: state.extra! as ReportDef),
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryVerifications,
+        name: AppRoutes.inventoryVerificationsName,
+        builder: (context, state) => const VerificationsPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryVerification,
+        name: AppRoutes.inventoryVerificationName,
+        builder: (context, state) =>
+            VerificationPage(verification: state.extra! as InvVerification),
       ),
       GoRoute(
         path: AppRoutes.inventoryInvoices,

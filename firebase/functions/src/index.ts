@@ -6,6 +6,7 @@ import { orders } from './inventory/orders';
 import { procurement } from './inventory/procurement';
 import { invoices, receiving } from './inventory/receiving';
 import { stock } from './inventory/stock-ops';
+import { verification } from './inventory/verification';
 import { itemSearch } from './inventory/search';
 import { masters as libMasters } from './library/masters';
 import { catalogueSearch } from './library/search';
@@ -20,6 +21,7 @@ export { onRolePermissionsChange } from './session';
 export { syncItemSearch } from './inventory/search';
 export { syncCatalogueSearch } from './library/search';
 export { outboxSend } from './shared/outbox';
+export { dailyInventory } from './inventory/daily';
 
 const masterFns = {
   category: { upsert: callable(masters.categoryUpsert), setStatus: callable(masters.categorySetStatus) },
@@ -80,7 +82,15 @@ const assetFns = {
   },
   maintenance: { save: callable(maintenance.save), setStatus: callable(maintenance.setStatus) },
 };
-export const inv = { ...masterFns, ...stockFns, ...procurementFns, ...assetFns, seedDefaults: callable(masters.seedDefaults) };
+const verificationFns = {
+  verification: {
+    create: callable(verification.create),
+    count: callable(verification.count),
+    submit: callable(verification.submit),
+    decide: callable(verification.decide),
+  },
+};
+export const inv = { ...masterFns, ...stockFns, ...procurementFns, ...assetFns, ...verificationFns, seedDefaults: callable(masters.seedDefaults) };
 
 export const lib = {
   library: { upsert: callable(libMasters.libraryUpsert), setStatus: callable(libMasters.librarySetStatus) },

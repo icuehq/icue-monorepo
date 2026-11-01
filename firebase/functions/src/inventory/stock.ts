@@ -18,7 +18,7 @@ export type MoveType =
   | 'receive' | 'issue' | 'return' | 'transfer_out' | 'transfer_in'
   | 'adjust' | 'expire' | 'damage' | 'writeoff' | 'restore';
 
-export type Bal = { id: string; ref: DocumentReference; d: DocumentData; reorder: number | null; wasLow: boolean };
+export type Bal = { id: string; ref: DocumentReference; d: DocumentData; reorder: number | null; wasLow: boolean; wasOut: boolean };
 export type Batch = { batchNo?: string | null; mfgDate?: string | null; expiryDate?: string | null };
 
 export const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
@@ -92,7 +92,7 @@ export class Stock {
     return this.track(bid, ref, {
       campusId: store.campusId, storeId, itemId: item.id, variantId: variantId ?? null, ...batch,
       qtyAvailable: 0, qtyReserved: 0, qtyDamaged: 0, qtyExpired: 0, qtyReceivedTotal: 0, qtyIssuedTotal: 0,
-      unitCost: 0, value: 0, belowReorder: false,
+      unitCost: 0, value: 0, belowReorder: false, expKey: null,
       createdAt: FieldValue.serverTimestamp(), createdBy: this.ctx.uid,
     }, item);
   }
@@ -113,7 +113,7 @@ export class Stock {
   }
 
   private track(bid: string, ref: DocumentReference, d: DocumentData, item: DocumentData): Bal {
-    const b: Bal = { id: bid, ref, d: { ...d }, reorder: item.reorderLevel ?? null, wasLow: d.belowReorder === true };
+    const b: Bal = { id: bid, ref, d: { ...d }, reorder: item.reorderLevel ?? null, wasLow: d.belowReorder === true, wasOut: d.qtyAvailable === 0 };
     this.bals.set(bid, b);
     return b;
   }
@@ -188,6 +188,8 @@ export class Stock {
       if (!this.moves.some((m) => m.balanceId === b.id)) continue;
       b.d.value = Math.round(b.d.qtyAvailable * b.d.unitCost * 100) / 100;
       b.d.belowReorder = b.reorder != null && b.d.qtyAvailable <= b.reorder;
+      // Indexed expiry of usable stock only, so the dashboard counts expiring / expired stock with one range query.
+      b.d.expKey = b.d.expiryDate && b.d.qtyAvailable > 0 ? b.d.expiryDate : null;
       this.ctx.set(b.ref, { ...b.d, updatedAt: FieldValue.serverTimestamp() });
       if (b.d.belowReorder && !b.wasLow) {
         await enqueue(this.ctx, `lowstock__${b.id}__${this.date}`, {
@@ -195,6 +197,15 @@ export class Stock {
           category: 'inv.lowStock',
           title: 'Low stock',
           body: `${this.items.get(b.d.itemId)?.name ?? 'An item'} is at ${b.d.qtyAvailable} (reorder level ${b.reorder}).`,
+          data: { balanceId: b.id },
+        });
+      }
+      if (b.d.qtyAvailable === 0 && !b.wasOut) {
+        await enqueue(this.ctx, `outofstock__${b.id}__${this.date}`, {
+          to: { perm: 'inv.stock.operate', campusId: b.d.campusId },
+          category: 'inv.outOfStock',
+          title: 'Out of stock',
+          body: `${this.items.get(b.d.itemId)?.name ?? 'An item'} is out of stock.`,
           data: { balanceId: b.id },
         });
       }

@@ -329,3 +329,35 @@ describe('assets and maintenance (Inv-6)', () => {
     await assertFails(getDoc(doc(db('p_none'), 'schools/12/invAssets/a1')));
   });
 });
+
+describe('verification and reports (Inv-7)', () => {
+  beforeEach(() =>
+    env.withSecurityRulesDisabled(async (ctx) => {
+      const fs = ctx.firestore();
+      const acc = (perms, cmp = [31]) => ({ perms, cmp, all: false });
+      await setDoc(doc(fs, 'schools/12/userAccess/p_stock'), acc(['inv.stock.view']));
+      await setDoc(doc(fs, 'schools/12/userAccess/p_rep'), acc(['inv.reports.view']));
+      await setDoc(doc(fs, 'schools/12/userAccess/p_far'), acc(['inv.stock.view', 'inv.reports.view'], [99]));
+      await setDoc(doc(fs, 'schools/12/invVerifications/v1'), { campusId: 31, status: 'counting' });
+      await setDoc(doc(fs, 'schools/12/invVerifications/v1/lines/l1'), { campusId: 31, expected: 3 });
+      await setDoc(doc(fs, 'schools/12/invPurchaseOrders/po1'), { campusId: 31, deliveryCampusId: 31 });
+      await setDoc(doc(fs, 'schools/12/invVendors/ven1'), { name: 'Acme' });
+    }),
+  );
+
+  it('stock viewers on the campus read sessions and lines; counting is never a client write', async () => {
+    for (const path of ['invVerifications/v1', 'invVerifications/v1/lines/l1']) {
+      await assertSucceeds(getDoc(doc(db('p_stock'), `schools/12/${path}`)));
+      await assertFails(getDoc(doc(db('p_far'), `schools/12/${path}`)));
+    }
+    await assertFails(setDoc(doc(db('p_stock'), 'schools/12/invVerifications/v1/lines/l1'), { counted: 3 }));
+  });
+
+  it('report viewers read the campus records of every report collection and the vendors', async () => {
+    await assertSucceeds(getDoc(doc(db('p_rep'), 'schools/12/invPurchaseOrders/po1')));
+    await assertSucceeds(getDoc(doc(db('p_rep'), 'schools/12/invVerifications/v1')));
+    await assertSucceeds(getDoc(doc(db('p_rep'), 'schools/12/invVendors/ven1')));
+    await assertFails(getDoc(doc(db('p_far'), 'schools/12/invPurchaseOrders/po1')));
+    await assertFails(getDoc(doc(db('p_stock'), 'schools/12/invPurchaseOrders/po1')));
+  });
+});

@@ -27,6 +27,25 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
     final a = p.access;
     final tiles = <(String, String, String, bool)>[
       (
+        // ponytail: insights tiles reuse existing artwork until dedicated images exist.
+        'assets/dashboard/inventory-stock.png',
+        'Dashboard',
+        AppRoutes.inventoryDashboard,
+        a.can('inv.stock.view') || a.can('inv.reports.view'),
+      ),
+      (
+        'assets/dashboard/inventory-stock.png',
+        'Stock verification',
+        AppRoutes.inventoryVerifications,
+        a.can('inv.stock.view'),
+      ),
+      (
+        'assets/dashboard/inventory-purchase-orders.png',
+        'Reports',
+        AppRoutes.inventoryReports,
+        a.can('inv.reports.view'),
+      ),
+      (
         'assets/dashboard/inventory-items.png',
         'Items',
         AppRoutes.inventoryItems,

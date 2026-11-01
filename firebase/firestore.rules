@@ -100,6 +100,25 @@ service cloud.firestore {
       allow read: if inSchool(sid) && ((can(sid, 'inv.assets.view') && onCampus(sid, resource.data.campusId)) || own());
     }
 
+    // Verification sessions (Inv-7): stock users on the campus; counting is a callable (offline counting is Inv-8).
+    match /schools/{sid}/invVerifications/{id} {
+      allow read: if inSchool(sid) && can(sid, 'inv.stock.view') && onCampus(sid, resource.data.campusId);
+    }
+    match /schools/{sid}/invVerifications/{id}/lines/{l} {
+      allow read: if inSchool(sid) && can(sid, 'inv.stock.view') && onCampus(sid, resource.data.campusId);
+    }
+
+    // Reports and the dashboard (Inv-7): report viewers read the campus's records in every report collection.
+    match /schools/{sid}/{coll}/{id} {
+      allow read: if inSchool(sid) && can(sid, 'inv.reports.view') && onCampus(sid, resource.data.campusId)
+        && coll in ['invBalances', 'invMovements', 'invReceipts', 'invIssues', 'invReturns', 'invAdjustments', 'invUnavailable',
+          'invIssueRequests', 'invTransfers', 'invPurchaseRequests', 'invQuotations', 'invPurchaseOrders', 'invInvoices',
+          'invAssets', 'invAssetAssignments', 'invMaintenance', 'invVerifications'];
+    }
+    match /schools/{sid}/invVendors/{id} {
+      allow read: if inSchool(sid) && can(sid, 'inv.reports.view');
+    }
+
     // Library masters (Lib-1): catalogue is school-wide, readable by anyone who may browse it.
     match /schools/{sid}/{coll}/{id} {
       allow read: if inSchool(sid) && coll in ['libLibraries', 'libCategories', 'libCatalogue']
