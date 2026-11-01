@@ -38,6 +38,8 @@ describe('inventory masters', () => {
   });
 
   it('keeps category codes unique and immutable, subcategories one level', async () => {
+    expect(category).toBe('gen');
+    await expect(run(masters.categoryUpsert, { code: 'a/b', name: 'Bad', suggestedTracking: 'quantity' })).rejects.toMatchObject({ code: 'invalid-argument' });
     await expect(run(masters.categoryUpsert, { code: 'gen', name: 'Dup', suggestedTracking: 'quantity' })).rejects.toMatchObject({ code: 'already-exists' });
     await expect(run(masters.categoryUpsert, { id: category, code: 'NEW', name: 'General', suggestedTracking: 'quantity' })).rejects.toMatchObject({ code: 'failed-precondition' });
     const sub = await run(masters.categoryUpsert, { code: 'SUB', name: 'Sub', parentId: category, suggestedTracking: 'quantity' });

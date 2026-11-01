@@ -1,7 +1,6 @@
 import '../region';
 import { z } from 'zod';
-import { uniqueKeyRef } from '../shared/keys';
-import { code, defineCallable, failed, id, missing, name, optionalText, saveMaster, defineSetStatus, status, usable } from '../shared/masters';
+import { code, codeDocId, defineCallable, failed, id, missing, name, optionalText, saveMaster, defineSetStatus, status, usable } from '../shared/masters';
 import { DEFAULT_CATEGORIES, DEFAULT_UNITS } from './defaults';
 import { serverTimestamp } from '../shared/firestore';
 
@@ -26,6 +25,7 @@ export const masters = {
       saveMaster(context, {
         coll: 'inventoryCategories',
         entityType: 'inventoryCategory',
+        idFromCode: true,
         id: i.id,
         code: i.code,
         build: async (before) => {
@@ -194,16 +194,14 @@ export const masters = {
     input: z.object({}),
     handler: async (context) => {
       const now = serverTimestamp();
-      const keys = DEFAULT_CATEGORIES.map((category) => uniqueKeyRef(context, 'inventoryCategory', category.code));
+      const categoryRefs = DEFAULT_CATEGORIES.map((category) => context.doc(`inventoryCategories/${codeDocId(category.code)}`));
       const unitRefs = DEFAULT_UNITS.map((unit) => context.doc(`inventoryUnits/${unit.code}`));
-      const [keySnaps, unitSnaps] = await Promise.all([context.transaction.getAll(...keys), context.transaction.getAll(...unitRefs)]);
+      const [categorySnaps, unitSnaps] = await Promise.all([context.transaction.getAll(...categoryRefs), context.transaction.getAll(...unitRefs)]);
       let categories = 0;
       let units = 0;
       DEFAULT_CATEGORIES.forEach((category, index) => {
-        if (keySnaps[index].exists) return;
-        const ref = context.newDoc('inventoryCategories');
-        context.set(keys[index], { keyType: 'inventoryCategory', value: category.code.toLowerCase(), documentPath: ref.path });
-        context.set(ref, {
+        if (categorySnaps[index].exists) return;
+        context.set(categoryRefs[index], {
           code: category.code, name: category.name, description: null, parentId: null, suggestedTracking: category.tracking,
           status: 'active', createdAt: now, createdBy: context.uid, updatedAt: now,
         });

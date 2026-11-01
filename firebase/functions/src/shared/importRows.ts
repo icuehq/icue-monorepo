@@ -24,7 +24,18 @@ export const toText = (value: string | undefined) => value?.trim() || undefined;
 /** `a; b; c` → `['a', 'b', 'c']`. */
 export const toList = (value: string | undefined) => (value ?? '').split(';').map((part) => part.trim()).filter(Boolean);
 
+/** Masters whose document ID is their lowercased code (no `uniqueKeys` entry). */
+const CODE_ID_COLLECTIONS: Record<string, string> = { inventoryCategory: 'inventoryCategories' };
+
 async function lookupByCode(schoolId: string, keyType: string, value: string, label: string): Promise<string> {
+  const collection = CODE_ID_COLLECTIONS[keyType];
+  if (collection) {
+    const docId = (value ?? '').trim().toLowerCase();
+    if (!docId || !(await getFirestore().doc(`schools/${schoolId}/${collection}/${docId}`).get()).exists) {
+      throw new HttpsError('failed-precondition', `${label} "${value}" not found`);
+    }
+    return docId;
+  }
   const key = await getFirestore().doc(`schools/${schoolId}/uniqueKeys/${keyType}_${encodeURIComponent((value ?? '').trim().toLowerCase())}`).get();
   if (!key.exists) throw new HttpsError('failed-precondition', `${label} "${value}" not found`);
   return String(key.data()!.documentPath).split('/').pop()!;
