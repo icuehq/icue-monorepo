@@ -1,6 +1,8 @@
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:injectable/injectable.dart';
 import 'package:school_library/src/models/lib_copies.dart';
+import 'package:school_library/src/models/lib_fines.dart';
+import 'package:school_library/src/models/lib_incidents.dart';
 import 'package:school_library/src/models/lib_loans.dart';
 import 'package:school_library/src/models/lib_masters.dart';
 import 'package:school_library/src/models/lib_members.dart';
@@ -190,6 +192,44 @@ class LibraryService {
     return [for (final d in snap.docs) LibReservation.fromMap(d.id, d.data())];
   }
 
+  /// A page of fines, optionally filtered by [status] ('outstanding', 'paid', 'waived').
+  Future<PagedResult<LibFine>> fines({
+    String? status,
+    DocumentSnapshot<Map<String, dynamic>>? after,
+  }) async {
+    Query<Map<String, dynamic>> q = await _coll('libFines');
+    if (status != null && status != 'all') {
+      q = q.where('status', isEqualTo: status);
+    }
+    return fetchPage(
+      q.orderBy('createdAt', descending: true),
+      (d) => LibFine.fromMap(d.id, d.data()!),
+      after: after,
+    );
+  }
+
+  /// A single fine by ID.
+  Future<LibFine?> fine(String id) async {
+    final d = await (await _coll('libFines')).doc(id).get();
+    return d.exists ? LibFine.fromMap(d.id, d.data()!) : null;
+  }
+
+  /// A page of lost/damaged incidents, optionally filtered by [status] ('open', 'resolved').
+  Future<PagedResult<LibIncident>> incidents({
+    String? status,
+    DocumentSnapshot<Map<String, dynamic>>? after,
+  }) async {
+    Query<Map<String, dynamic>> q = await _coll('libIncidents');
+    if (status != null && status != 'all') {
+      q = q.where('status', isEqualTo: status);
+    }
+    return fetchPage(
+      q.orderBy('createdAt', descending: true),
+      (d) => LibIncident.fromMap(d.id, d.data()!),
+      after: after,
+    );
+  }
+
   // --- writes: callables, same requestId on user retry --------------------
 
   Future<void> seedDefaults() => _call('lib-seedDefaults', {});
@@ -266,6 +306,23 @@ class LibraryService {
 
   Future<void> cancelReservation(String id, {String? requestId}) =>
       _call('lib-reservation-cancel', {'id': id}, requestId);
+
+  Future<void> waiveFine(Map<String, Object?> data, {String? requestId}) =>
+      _call('lib-fine-waive', data, requestId);
+
+  Future<void> setFinePayment(Map<String, Object?> data, {String? requestId}) =>
+      _call('lib-fine-setPayment', data, requestId);
+
+  Future<void> reportIncident(Map<String, Object?> data, {String? requestId}) =>
+      _call('lib-incident-report', data, requestId);
+
+  Future<void> resolveIncident(
+    Map<String, Object?> data, {
+    String? requestId,
+  }) => _call('lib-incident-resolve', data, requestId);
+
+  Future<void> markLoanLost(Map<String, Object?> data, {String? requestId}) =>
+      _call('lib-loan-markLost', data, requestId);
 
   Map<String, Object?> _status(String id, bool active) => {
     'id': id,

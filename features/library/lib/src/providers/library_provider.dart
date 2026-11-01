@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:injectable/injectable.dart';
 import 'package:school_library/src/models/lib_copies.dart';
+import 'package:school_library/src/models/lib_fines.dart';
+import 'package:school_library/src/models/lib_incidents.dart';
 import 'package:school_library/src/models/lib_loans.dart';
 import 'package:school_library/src/models/lib_masters.dart';
 import 'package:school_library/src/models/lib_members.dart';
@@ -49,6 +51,20 @@ class LibraryProvider extends ChangeNotifier {
   bool hasMoreReservations = false;
   String reservationStatus = 'waiting';
   DocumentSnapshot<Map<String, dynamic>>? _reservationCursor;
+
+  // Fines (paged, by status: 'outstanding', 'partially_paid', 'paid', 'waived', or 'all').
+  final List<LibFine> fines = [];
+  bool finesLoading = false;
+  bool hasMoreFines = false;
+  String fineStatus = 'outstanding';
+  DocumentSnapshot<Map<String, dynamic>>? _fineCursor;
+
+  // Incidents (paged, by status: 'open', 'resolved', or 'all').
+  final List<LibIncident> incidents = [];
+  bool incidentsLoading = false;
+  bool hasMoreIncidents = false;
+  String incidentStatus = 'open';
+  DocumentSnapshot<Map<String, dynamic>>? _incidentCursor;
 
   /// The policy a member of [category] gets in [libraryId], if one is set up.
   LibPolicy? policyFor(String libraryId, String category) {
@@ -210,6 +226,62 @@ class LibraryProvider extends ChangeNotifier {
     }
   }
 
+  /// (Re)loads the first page of fines, or the next one when [more] is true.
+  Future<void> loadFines({bool more = false, String? status}) async {
+    if (finesLoading || (more && !hasMoreFines)) return;
+    if (!more) {
+      fineStatus = status ?? fineStatus;
+      _fineCursor = null;
+    }
+    finesLoading = true;
+    errorMessage = null;
+    notifyListeners();
+    try {
+      final page = await _service.fines(
+        status: fineStatus == 'all' ? null : fineStatus,
+        after: _fineCursor,
+      );
+      if (!more) fines.clear();
+      fines.addAll(page.items);
+      _fineCursor = page.cursor;
+      hasMoreFines = page.hasMore;
+    } catch (e) {
+      errorMessage = _message(e);
+    } finally {
+      finesLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<LibFine?> fine(String id) => _service.fine(id);
+
+  /// (Re)loads the first page of incidents, or the next one when [more] is true.
+  Future<void> loadIncidents({bool more = false, String? status}) async {
+    if (incidentsLoading || (more && !hasMoreIncidents)) return;
+    if (!more) {
+      incidentStatus = status ?? incidentStatus;
+      _incidentCursor = null;
+    }
+    incidentsLoading = true;
+    errorMessage = null;
+    notifyListeners();
+    try {
+      final page = await _service.incidents(
+        status: incidentStatus == 'all' ? null : incidentStatus,
+        after: _incidentCursor,
+      );
+      if (!more) incidents.clear();
+      incidents.addAll(page.items);
+      _incidentCursor = page.cursor;
+      hasMoreIncidents = page.hasMore;
+    } catch (e) {
+      errorMessage = _message(e);
+    } finally {
+      incidentsLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<List<LibReservation>> waitingReservationsOf(
     String catalogueId, {
     String? libraryId,
@@ -357,6 +429,35 @@ class LibraryProvider extends ChangeNotifier {
     () => _service.cancelReservation(id, requestId: requestId),
     reload: loadReservations,
   );
+
+  Future<bool> waiveFine(Map<String, Object?> d, {String? requestId}) => _write(
+    () => _service.waiveFine(d, requestId: requestId),
+    reload: loadFines,
+  );
+
+  Future<bool> setFinePayment(Map<String, Object?> d, {String? requestId}) =>
+      _write(
+        () => _service.setFinePayment(d, requestId: requestId),
+        reload: loadFines,
+      );
+
+  Future<bool> reportIncident(Map<String, Object?> d, {String? requestId}) =>
+      _write(
+        () => _service.reportIncident(d, requestId: requestId),
+        reload: loadIncidents,
+      );
+
+  Future<bool> resolveIncident(Map<String, Object?> d, {String? requestId}) =>
+      _write(
+        () => _service.resolveIncident(d, requestId: requestId),
+        reload: loadIncidents,
+      );
+
+  Future<bool> markLoanLost(Map<String, Object?> d, {String? requestId}) =>
+      _write(
+        () => _service.markLoanLost(d, requestId: requestId),
+        reload: loadLoans,
+      );
 
   Future<bool> _write(
     Future<void> Function() call, {

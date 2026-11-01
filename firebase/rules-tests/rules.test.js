@@ -203,6 +203,28 @@ describe('library masters', () => {
     await assertFails(setDoc(doc(db('u_7'), 'schools/12/libReservations/a'), { status: 'cancelled' }));
   });
 
+  it('fines: circulation staff, fine waivers, or borrower read; nobody writes', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const fs = ctx.firestore();
+      await setDoc(doc(fs, 'schools/12/userAccess/u_w'), { perms: ['lib.fines.waive'], cmp: [31], all: false });
+      await setDoc(doc(fs, 'schools/12/libFines/a'), { campusId: 31, personErpId: 501 });
+    });
+    await assertSucceeds(getDoc(doc(db('u_7'), 'schools/12/libFines/a')));
+    await assertSucceeds(getDoc(doc(db('u_w'), 'schools/12/libFines/a')));
+    await assertFails(getDoc(doc(db('u_6'), 'schools/12/libFines/a')));
+    await assertFails(setDoc(doc(db('u_7'), 'schools/12/libFines/a'), { status: 'waived' }));
+  });
+
+  it('incidents: circulation staff or member read; nobody writes', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const fs = ctx.firestore();
+      await setDoc(doc(fs, 'schools/12/libIncidents/a'), { campusId: 31, personErpId: 501 });
+    });
+    await assertSucceeds(getDoc(doc(db('u_7'), 'schools/12/libIncidents/a')));
+    await assertFails(getDoc(doc(db('u_6'), 'schools/12/libIncidents/a')));
+    await assertFails(setDoc(doc(db('u_7'), 'schools/12/libIncidents/a'), { status: 'resolved' }));
+  });
+
   it('members and policies: lib.members.view only, never writable', async () => {
     for (const p of ['libMembers/a', 'libPolicies/a']) {
       await assertSucceeds(getDoc(doc(db('u_6'), `schools/12/${p}`)));

@@ -109,11 +109,198 @@ export const loans = {
       const returnNumber = await nextNumber(ctx, 'RET');
       const after = { status: 'returned', returnNumber, returnedOn: today, condition: i.condition, overdueDays, returnRemarks: i.remarks ?? null };
       ctx.update(ref, { ...after, receivedBy: ctx.uid, returnedAt: UP() });
-      if (i.condition === 'damaged') ctx.update(cRef, { status: 'damaged', activeLoanId: null, updatedAt: UP() });
-      else await release(ctx, cRef, d);
-      if (m.exists) ctx.update(mRef, { activeLoans: Math.max(0, (m.data()!.activeLoans ?? 0) - 1), updatedAt: UP() });
+
+      const p = d.policySnapshot ?? {};
+      const grace = (p.graceDays as number) ?? 0;
+      let fineAmount = 0;
+      if (overdueDays > grace) {
+        const rate = (p.fineAmount as number) ?? 0;
+        if (p.fineType === 'per_day') {
+          fineAmount = (overdueDays - grace) * rate;
+        } else if (p.fineType === 'flat') {
+          fineAmount = rate;
+        }
+        const max = p.maxFine as number | null | undefined;
+        if (typeof max === 'number' && max > 0 && fineAmount > max) {
+          fineAmount = max;
+        }
+        fineAmount = Math.round(fineAmount * 100) / 100;
+      }
+
+      if (fineAmount > 0 && m.exists) {
+        const member = m.data()!;
+        const fineNumber = await nextNumber(ctx, 'FIN');
+        const fRef = ctx.doc(`libFines/${ref.id}__overdue`);
+        ctx.set(fRef, {
+          fineNumber,
+          loanId: ref.id,
+          memberId: m.id,
+          memberType: member.memberType,
+          personErpId: member.erpId,
+          catalogueId: d.catalogueId,
+          accessionNo: d.accessionNo,
+          libraryId: d.libraryId,
+          campusId: d.campusId,
+          type: 'overdue',
+          amount: fineAmount,
+          waived: 0,
+          paid: 0,
+          outstanding: fineAmount,
+          status: 'outstanding',
+          calc: { overdueDays, graceDays: grace, fineType: p.fineType, fineAmount: p.fineAmount, maxFine: p.maxFine },
+          waivals: [],
+          payments: [],
+          createdAt: UP(),
+          createdBy: ctx.uid,
+          updatedAt: UP(),
+        });
+      }
+
+      if (i.condition === 'damaged') {
+        ctx.update(cRef, { status: 'damaged', activeLoanId: null, updatedAt: UP() });
+        const incidentNumber = await nextNumber(ctx, 'INC');
+        const incRef = ctx.newDoc('libIncidents');
+        const member = m.exists ? m.data()! : null;
+        const copy = c.data()!;
+        ctx.set(incRef, {
+          incidentNumber,
+          kind: 'damaged',
+          copyId: c.id,
+          accessionNo: copy.accessionNo,
+          catalogueId: copy.catalogueId,
+          libraryId: copy.libraryId,
+          campusId: copy.campusId,
+          memberId: m.exists ? m.id : null,
+          memberType: member ? member.memberType : null,
+          personErpId: member ? member.erpId : null,
+          loanId: ref.id,
+          reportedDate: today,
+          reportedBy: ctx.uid,
+          severity: 'moderate',
+          description: i.remarks ?? 'Returned in damaged condition',
+          photos: [],
+          charge: 0,
+          repairStatus: 'none',
+          status: 'open',
+          resolution: null,
+          resolvedAt: null,
+          createdAt: UP(),
+          createdBy: ctx.uid,
+          updatedAt: UP(),
+        });
+      } else {
+        await release(ctx, cRef, d);
+      }
+
+      if (m.exists) {
+        const member = m.data()!;
+        const activeLoans = Math.max(0, (member.activeLoans ?? 0) - 1);
+        const blocked = fineAmount > 0 ? true : member.blocked;
+        ctx.update(mRef, { activeLoans, blocked, updatedAt: UP() });
+      }
+
       ctx.audit({ action: 'libLoan.return', ref: ref.path, before: { status: 'active' }, after });
       return { id: ref.id, returnNumber, overdueDays };
+    },
+  }),
+
+  /**
+   * Marks a book lost during loan (FRS 11.14). The loan and copy are marked lost,
+   * replacement charge is fined to the member, member is blocked, and an incident is recorded.
+   */
+  loanMarkLost: def({
+    name: 'lib.loan.markLost',
+    perm: 'lib.circulation.operate',
+    input: z.object({
+      id,
+      reason: note,
+      charge: z.number().min(0).max(10_000_000).nullish(),
+    }),
+    handler: async (ctx, i) => {
+      const { ref, d } = await loadLoan(ctx, i.id);
+      const cRef = ctx.doc(`libCopies/${d.copyId}`);
+      const mRef = ctx.doc(`libMembers/${d.memberId}`);
+      const [c, m] = await Promise.all([ctx.tx.get(cRef), ctx.tx.get(mRef)]);
+      if (!c.exists) throw missing('libCopy');
+      if (!m.exists) throw missing('libMember');
+      const copy = c.data()!;
+      const member = m.data()!;
+      if (copy.activeLoanId !== ref.id) throw failed('Copy is not on this loan');
+
+      const today = todayIST();
+      const charge = i.charge ?? copy.price ?? 0;
+      const after = {
+        status: 'lost',
+        lostOn: today,
+        lostRemarks: i.reason ?? null,
+        charge,
+      };
+      ctx.update(ref, { ...after, receivedBy: ctx.uid, returnedAt: UP() });
+      ctx.update(cRef, { status: 'lost', activeLoanId: null, updatedAt: UP() });
+
+      const activeLoans = Math.max(0, (member.activeLoans ?? 0) - 1);
+      const blocked = charge > 0 ? true : member.blocked;
+      ctx.update(mRef, { activeLoans, blocked, updatedAt: UP() });
+
+      if (charge > 0) {
+        const fineNumber = await nextNumber(ctx, 'FIN');
+        const fRef = ctx.doc(`libFines/${ref.id}__lost`);
+        ctx.set(fRef, {
+          fineNumber,
+          loanId: ref.id,
+          memberId: m.id,
+          memberType: member.memberType,
+          personErpId: member.erpId,
+          catalogueId: d.catalogueId,
+          accessionNo: d.accessionNo,
+          libraryId: d.libraryId,
+          campusId: d.campusId,
+          type: 'lost',
+          amount: charge,
+          waived: 0,
+          paid: 0,
+          outstanding: charge,
+          status: 'outstanding',
+          calc: { copyPrice: copy.price, charge },
+          waivals: [],
+          payments: [],
+          createdAt: UP(),
+          createdBy: ctx.uid,
+          updatedAt: UP(),
+        });
+      }
+
+      const incidentNumber = await nextNumber(ctx, 'INC');
+      const incRef = ctx.newDoc('libIncidents');
+      ctx.set(incRef, {
+        incidentNumber,
+        kind: 'lost',
+        copyId: c.id,
+        accessionNo: copy.accessionNo,
+        catalogueId: copy.catalogueId,
+        libraryId: copy.libraryId,
+        campusId: copy.campusId,
+        memberId: m.id,
+        memberType: member.memberType,
+        personErpId: member.erpId,
+        loanId: ref.id,
+        reportedDate: today,
+        reportedBy: ctx.uid,
+        severity: null,
+        description: i.reason ?? 'Marked lost during loan',
+        photos: [],
+        charge,
+        repairStatus: null,
+        status: 'open',
+        resolution: null,
+        resolvedAt: null,
+        createdAt: UP(),
+        createdBy: ctx.uid,
+        updatedAt: UP(),
+      });
+
+      ctx.audit({ action: 'libLoan.markLost', ref: ref.path, before: { status: 'active' }, after });
+      return { id: ref.id, charge };
     },
   }),
 

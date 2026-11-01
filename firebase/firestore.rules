@@ -152,6 +152,18 @@ service cloud.firestore {
       allow read: if inSchool(sid) && ((can(sid, 'lib.circulation.operate') && onCampus(sid, resource.data.campusId)) || own());
     }
 
+    // Fines (Lib-6): circulation staff or fine waivers on the campus, or the borrower / parent by ERP ID.
+    match /schools/{sid}/libFines/{id} {
+      allow read: if inSchool(sid)
+        && (((can(sid, 'lib.circulation.operate') || can(sid, 'lib.fines.waive')) && onCampus(sid, resource.data.campusId)) || own());
+    }
+
+    // Incidents (Lib-6): circulation staff on the campus, or the member / parent by ERP ID.
+    match /schools/{sid}/libIncidents/{id} {
+      allow read: if inSchool(sid)
+        && ((can(sid, 'lib.circulation.operate') && onCampus(sid, resource.data.campusId)) || own());
+    }
+
     match /devices/{uid} {
       allow read: if signedIn() && request.auth.uid == uid;
       allow write: if signedIn() && request.auth.uid == uid

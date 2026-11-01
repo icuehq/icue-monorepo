@@ -71,6 +71,8 @@ import 'package:icueadmin/features/library/book_form_page.dart';
 import 'package:icueadmin/features/library/catalogue_page.dart';
 import 'package:icueadmin/features/library/circulation_page.dart';
 import 'package:icueadmin/features/library/copies_page.dart';
+import 'package:icueadmin/features/library/fines_page.dart';
+import 'package:icueadmin/features/library/incidents_page.dart';
 import 'package:icueadmin/features/library/lib_categories_page.dart';
 import 'package:icueadmin/features/library/libraries_page.dart';
 import 'package:icueadmin/features/library/library_home_page.dart';
@@ -395,6 +397,16 @@ GoRouter createRouter({
         path: AppRoutes.libraryReservations,
         name: AppRoutes.libraryReservationsName,
         builder: (context, state) => const ReservationsPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.libraryFines,
+        name: AppRoutes.libraryFinesName,
+        builder: (context, state) => const FinesPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.libraryIncidents,
+        name: AppRoutes.libraryIncidentsName,
+        builder: (context, state) => const IncidentsPage(),
       ),
       GoRoute(
         path: AppRoutes.libraryPolicies,

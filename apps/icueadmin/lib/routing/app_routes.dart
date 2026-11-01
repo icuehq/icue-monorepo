@@ -303,4 +303,10 @@ abstract final class AppRoutes {
 
   static const String libraryReservations = '/layout.library/reservations';
   static const String libraryReservationsName = 'libraryReservations';
+
+  static const String libraryFines = '/layout.library/fines';
+  static const String libraryFinesName = 'libraryFines';
+
+  static const String libraryIncidents = '/layout.library/incidents';
+  static const String libraryIncidentsName = 'libraryIncidents';
 }

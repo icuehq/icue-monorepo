@@ -98,9 +98,65 @@ class _LoanSheetState extends State<LoanSheet> {
                   : () => _run((p) => p.renewLoan(l.id)),
               child: const Text('Renew'),
             ),
+            OutlinedButton(
+              onPressed: _busy ? null : _markLost,
+              child: const Text('Mark lost'),
+            ),
           ],
         ),
       ],
+    );
+  }
+
+  Future<void> _markLost() async {
+    final reasonController = TextEditingController();
+    final chargeController = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Mark book lost'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Mark ${widget.loan.accessionNo} as lost for ${widget.loan.memberLabel}?',
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: reasonController,
+              decoration: const InputDecoration(labelText: 'Reason for loss'),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: chargeController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Replacement charge (₹)',
+                hintText: 'Leave empty for book price',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Confirm lost'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final charge = double.tryParse(chargeController.text.trim());
+    await _run(
+      (p) => p.markLoanLost({
+        'id': widget.loan.id,
+        'reason': ?blankToNull(reasonController),
+        'charge': ?charge,
+      }),
     );
   }
 }

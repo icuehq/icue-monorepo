@@ -14,6 +14,8 @@ import { masters as libMasters } from './library/masters';
 import { loans as libLoans } from './library/loans';
 import { members as libMembers } from './library/members';
 import { reservations as libReservations } from './library/reservations';
+import { fines as libFines } from './library/fines';
+import { incidents as libIncidents } from './library/incidents';
 import { catalogueSearch } from './library/search';
 import * as sessionFns from './session';
 import { callable, queryCallable } from './shared/callable';
@@ -112,6 +114,13 @@ export const lib = {
   copy: { update: callable(libCopies.copyUpdate), move: callable(libCopies.copyMove), setStatus: callable(libCopies.copySetStatus) },
   policy: { upsert: callable(libMembers.policyUpsert), setStatus: callable(libMembers.policySetStatus) },
   member: { upsert: callable(libMembers.memberUpsert), setStatus: callable(libMembers.memberSetStatus) },
-  loan: { issue: callable(libLoans.loanIssue), return: callable(libLoans.loanReturn), renew: callable(libLoans.loanRenew) },
+  loan: {
+    issue: callable(libLoans.loanIssue),
+    return: callable(libLoans.loanReturn),
+    renew: callable(libLoans.loanRenew),
+    markLost: callable(libLoans.loanMarkLost),
+  },
   reservation: { create: callable(libReservations.reservationCreate), cancel: callable(libReservations.reservationCancel) },
+  fine: { waive: callable(libFines.fineWaive), setPayment: callable(libFines.fineSetPayment) },
+  incident: { report: callable(libIncidents.incidentReport), resolve: callable(libIncidents.resolve) },
 };

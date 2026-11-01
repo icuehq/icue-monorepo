@@ -73,7 +73,7 @@ Inventory definition of done: FRS §31.
 | Lib-3 | Memberships, borrowing policies (11.7–11.8) | done, not deployed | abb3f9d |
 | Lib-4 | Issue, return, renewal (11.9–11.11) | done, not deployed | 04fe97f |
 | Lib-5 | Reservations, waiting lists (11.12) | done, not deployed | – |
-| Lib-6 | Fines, lost and damaged books (11.13–11.14) | not started | – |
+| Lib-6 | Fines, lost and damaged books (11.13–11.14) | done, not deployed | – |
 | Lib-7 | Inter-library transfers, stock verification (11.15–11.16) | not started | – |
 | Lib-8 | Reports, notifications, dashboard, import/export, parent view (11.1, 11.17–11.18) | not started | – |
 
@@ -418,6 +418,32 @@ Flutter:
 - [x] `icueadmin`: Reservations page (status filter: waiting/ready/fulfilled/cancelled, queue position, cancel reservation with confirmation) and reservation sheet; Book details reserve button; route `/layout.library/reservations`; Reservations tile
 - [x] Lint passes (library, icueadmin); functions build and rules tests pass
 
+### Lib-6
+
+Collections: `libFines` (`{loanId__type}` or `inc_{incidentId}__{type}`), `libIncidents`. Counters `FIN`, `INC`.
+
+Functions (`firebase/functions/src/library/fines.ts`, `incidents.ts`, `loans.ts`):
+
+- [x] `lib-fine-waive` (waives partial or full fine; unblocks member when balance is settled; `lib.fines.waive`)
+- [x] `lib-fine-setPayment` (records fine payment reference; unblocks member when balance is settled; `lib.circulation.operate`)
+- [x] `lib-incident-report` (reports lost or damaged copy; updates copy status; assesses penalty/fine if member responsible; `lib.circulation.operate`)
+- [x] `lib-incident-resolve` (resolves incident: repaired releases copy to shelf/reservation queue, replaced, written off marks withdrawn; assesses charge; `lib.circulation.operate`)
+- [x] `lib-loan-markLost` (marks loan and copy lost, assesses replacement charge, blocks member, creates incident; `lib.circulation.operate`)
+- [x] Overdue fine and damaged incident integrated into `loanReturn` (calculates overdue fine per loan snapshot policy, creates fine doc, blocks member; damaged return creates open incident)
+- [x] Tests: `test/fines.test.ts` (emulator)
+
+Rules and indexes:
+
+- [x] `firestore.rules`: `libFines` readable by circulation staff or fine waivers on campus, or borrower / parent (`own()`). `libIncidents` readable by circulation staff on campus or member (`own()`)
+- [x] `firestore.indexes.json`: `libFines` composite indexes (status + createdAt, campusId + status + createdAt, personErpId + createdAt, memberId + status), `libIncidents` composite indexes (status + createdAt, campusId + status + createdAt, personErpId + createdAt, copyId + createdAt)
+- [x] Rules test in `rules-tests/rules.test.js`
+
+Flutter:
+
+- [x] `features/library`: `lib_fines.dart` (`LibFine`), `lib_incidents.dart` (`LibIncident`), service and provider methods (fines, incidents, waiveFine, setFinePayment, reportIncident, resolveIncident, markLoanLost), unit tests
+- [x] `icueadmin`: Fines page (status filter: outstanding/partially_paid/paid/waived/all) and fine sheet (waive and record payment actions); Incidents page (status filter: open/resolved/all), incident sheet (resolve action) and incident report sheet; loan sheet `Mark lost` action; routes `/layout.library/fines` and `/layout.library/incidents`; home page tiles for Fines & Penalties and Lost & Damaged
+- [x] Lint passes (library, icueadmin); functions build and tests pass
+
 ## Decisions and deviations
 
 Format: `date · phase · what changed from the architecture doc · why`.
@@ -502,6 +528,8 @@ Format: `date · phase · what changed from the architecture doc · why`.
 - 2026-11-01 · Lib-4 · `lib.loan.markLost` is not built (Lib-6). Renewal extends from the later of the due date and today by the loan's snapshot `loanDays`; inactive or blocked members cannot renew. Issue/return numbers are `ISS/…` and `RET/…`; no printable issue slip yet.
 - 2026-11-01 · Lib-4 · The circulation screen lists active loans only (earliest due first); borrowing history on the member sheet (FRS 11.7) is not shown yet. Camera scanning is untested on a device (no native build run).
 - 2026-11-01 · Lib-5 · Reservations can only be placed when all copies are unavailable (issued, reserved, under maintenance or damaged); available copies must be issued directly · prevents members queuing when a book is ready on the shelf. Queue position is computed as index in the created-ordered waiting list, not stored.
+- 2026-11-01 · Lib-6 · Unblocking member is evaluated when fines are settled (waived in full or paid in full) · if no other outstanding fines exist for the member, the member is unblocked immediately in the same transaction.
+- 2026-11-01 · Lib-6 · Incident resolution 'repaired' triggers reservation queue release · if reservations are waiting for that title, the repaired copy fulfills the next waiting reservation rather than going idle on the shelf.
 
 ## Open items
 

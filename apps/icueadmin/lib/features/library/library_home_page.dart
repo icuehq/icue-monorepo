@@ -74,6 +74,19 @@ class _LibraryHomePageState extends State<LibraryHomePage> {
         AppRoutes.libraryPolicies,
         p.access.can('lib.members.view'),
       ),
+      (
+        'assets/dashboard/library.png',
+        'Fines & Penalties',
+        AppRoutes.libraryFines,
+        p.access.can('lib.circulation.operate') ||
+            p.access.can('lib.fines.waive'),
+      ),
+      (
+        'assets/dashboard/library.png',
+        'Lost & Damaged',
+        AppRoutes.libraryIncidents,
+        p.access.can('lib.circulation.operate'),
+      ),
     ];
     final visibleTiles = tiles.where((t) => t.$4).toList();
 
