@@ -72,7 +72,7 @@ Inventory definition of done: FRS §31.
 | Lib-2 | Copies, accession numbers, acquisition, barcodes (11.5–11.6) | done, not deployed | d3f48e8 |
 | Lib-3 | Memberships, borrowing policies (11.7–11.8) | done, not deployed | abb3f9d |
 | Lib-4 | Issue, return, renewal (11.9–11.11) | done, not deployed | 04fe97f |
-| Lib-5 | Reservations, waiting lists (11.12) | done, not deployed | – |
+| Lib-5 | Reservations, waiting lists (11.12) | done, not deployed | 0ab4b80 |
 | Lib-6 | Fines, lost and damaged books (11.13–11.14) | done, not deployed | 44c1383 |
 | Lib-7 | Inter-library transfers, stock verification (11.15–11.16) | not started | – |
 | Lib-8 | Reports, notifications, dashboard, import/export, parent view (11.1, 11.17–11.18) | not started | – |
@@ -414,8 +414,8 @@ Rules and indexes:
 
 Flutter:
 
-- [x] `features/library`: `lib_reservations.dart` (`LibReservation`), service / provider (paged reservations, `waitingReservationsOf`, create / cancel reservation), model test
-- [x] `icueadmin`: Reservations page (status filter: waiting/ready/fulfilled/cancelled, queue position, cancel reservation with confirmation) and reservation sheet; Book details reserve button; route `/layout.library/reservations`; Reservations tile
+- [x] `features/library`: `lib_reservations.dart` (`LibReservation`), service / provider (paged reservations, create / cancel reservation), model test
+- [x] `icueadmin`: Reservations page (status filter: waiting/ready/fulfilled/cancelled/expired, queue position, cancel reservation with confirmation) and reservation sheet; Book details reserve button; route `/layout.library/reservations`; Reservations tile
 - [x] Lint passes (library, icueadmin); functions build and rules tests pass
 
 ### Lib-6

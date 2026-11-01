@@ -282,11 +282,6 @@ class LibraryProvider extends ChangeNotifier {
     }
   }
 
-  Future<List<LibReservation>> waitingReservationsOf(
-    String catalogueId, {
-    String? libraryId,
-  }) => _service.waitingReservationsOf(catalogueId, libraryId: libraryId);
-
   Future<LibLoan?> activeLoanOf(String copyId) => _service.activeLoanOf(copyId);
 
   Future<LibMember?> member(String type, int erpId) =>

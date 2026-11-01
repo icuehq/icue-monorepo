@@ -179,19 +179,6 @@ class LibraryService {
     after: after,
   );
 
-  /// Waiting reservations of a title in a library, oldest first.
-  Future<List<LibReservation>> waitingReservationsOf(
-    String catalogueId, {
-    String? libraryId,
-  }) async {
-    Query<Map<String, dynamic>> q = (await _coll('libReservations'))
-        .where('status', isEqualTo: 'waiting')
-        .where('catalogueId', isEqualTo: catalogueId);
-    if (libraryId != null) q = q.where('libraryId', isEqualTo: libraryId);
-    final snap = await q.orderBy('createdAt').get();
-    return [for (final d in snap.docs) LibReservation.fromMap(d.id, d.data())];
-  }
-
   /// A page of fines, optionally filtered by [status] ('outstanding', 'paid', 'waived').
   Future<PagedResult<LibFine>> fines({
     String? status,

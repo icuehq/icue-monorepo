@@ -81,6 +81,7 @@ class _ReservationsPageState extends State<ReservationsPage> {
                 ButtonSegment(value: 'ready', label: Text('Ready')),
                 ButtonSegment(value: 'fulfilled', label: Text('Fulfilled')),
                 ButtonSegment(value: 'cancelled', label: Text('Cancelled')),
+                ButtonSegment(value: 'expired', label: Text('Expired')),
               ],
               selected: {_status},
               onSelectionChanged: (s) => _onStatusChanged(s.first),
@@ -110,8 +111,19 @@ class _ReservationsPageState extends State<ReservationsPage> {
                         );
                       }
                       final r = p.reservations[index];
+                      // Position within the same title and library; the list is oldest first.
+                      final position =
+                          p.reservations
+                              .take(index)
+                              .where(
+                                (o) =>
+                                    o.catalogueId == r.catalogueId &&
+                                    o.libraryId == r.libraryId,
+                              )
+                              .length +
+                          1;
                       final subtitle = switch (r.status) {
-                        'waiting' => 'Queue: #${index + 1} · ${r.number}',
+                        'waiting' => 'Queue: #$position · ${r.number}',
                         'ready' =>
                           'Held: ${r.heldCopyId ?? '-'} · Hold until ${r.holdUntil ?? '-'} · ${r.number}',
                         'fulfilled' =>
