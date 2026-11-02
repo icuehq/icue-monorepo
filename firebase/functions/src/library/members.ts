@@ -1,14 +1,28 @@
 import '../region';
 import { z } from 'zod';
-import { defineCallable, failed, id, missing, name, defineSetStatus, status, usable } from '../shared/masters';
 import { isoDate } from '../shared/dates';
 import { serverTimestamp } from '../shared/firestore';
+import {
+  defineCallable,
+  failed,
+  id,
+  missing,
+  name,
+  defineSetStatus,
+  status,
+  usable,
+} from '../shared/masters';
 
 /** Member category key ("primary", "teacher"…): what a member and a policy are matched on. */
-const category = z.string().trim().toLowerCase().regex(/^[a-z0-9_-]{1,30}$/, 'Use letters, digits, - or _');
+const category = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .regex(/^[a-z0-9_-]{1,30}$/, 'Use letters, digits, - or _');
 const FINES = ['none', 'per_day', 'flat'] as const;
 
-export const policyId = (libraryId: string, memberCategory: string) => `${libraryId}_${memberCategory}`;
+export const policyId = (libraryId: string, memberCategory: string) =>
+  `${libraryId}_${memberCategory}`;
 export const memberId = (type: string, personErpId: number) => `${type}_${personErpId}`;
 
 export const members = {
@@ -38,13 +52,20 @@ export const members = {
       })
       .refine((i) => i.fineType === 'none' || i.fineAmount > 0, 'A fine needs an amount'),
     handler: async (context, i) => {
-      const ref = context.doc(`libraryBorrowingPolicies/${policyId(i.libraryId, i.memberCategory)}`);
+      const ref = context.doc(
+        `libraryBorrowingPolicies/${policyId(i.libraryId, i.memberCategory)}`,
+      );
       const before = (await context.transaction.get(ref)).data();
-      const library = usable(await context.transaction.get(context.doc(`libraries/${i.libraryId}`)), 'Library', !!before);
+      const library = usable(
+        await context.transaction.get(context.doc(`libraries/${i.libraryId}`)),
+        'Library',
+        !!before,
+      );
       context.requireCampus(library.campusId);
       const restricted = [...new Set(i.restrictedCategoryIds)];
       for (const categoryId of restricted) {
-        if (!(await context.transaction.get(context.doc(`libraryCategories/${categoryId}`))).exists) throw failed('Restricted category not found');
+        if (!(await context.transaction.get(context.doc(`libraryCategories/${categoryId}`))).exists)
+          throw failed('Restricted category not found');
       }
       const after = {
         name: i.name,
@@ -66,13 +87,24 @@ export const members = {
         context.update(ref, { ...after, updatedAt: serverTimestamp() });
         context.audit({ action: 'libraryPolicy.update', documentPath: ref.path, before, after });
       } else {
-        context.set(ref, { ...after, status: 'active', createdAt: serverTimestamp(), createdBy: context.uid, updatedAt: serverTimestamp() });
+        context.set(ref, {
+          ...after,
+          status: 'active',
+          createdAt: serverTimestamp(),
+          createdBy: context.uid,
+          updatedAt: serverTimestamp(),
+        });
         context.audit({ action: 'libraryPolicy.create', documentPath: ref.path, after });
       }
       return { id: ref.id };
     },
   }),
-  policySetStatus: defineSetStatus('library.policy.setStatus', 'library.settings', 'libraryBorrowingPolicies', 'libraryPolicy'),
+  policySetStatus: defineSetStatus(
+    'library.policy.setStatus',
+    'library.settings',
+    'libraryBorrowingPolicies',
+    'libraryPolicy',
+  ),
 
   /**
    * Enrols a student or teacher (FRS 11.7). The ERP person stays the source of truth: only the
@@ -95,11 +127,16 @@ export const members = {
     handler: async (context, i) => {
       const ref = context.doc(`libraryMembers/${memberId(i.memberType, i.personErpId)}`);
       const before = (await context.transaction.get(ref)).data();
-      if (before) for (const campusId of before.campusIds as number[]) context.requireCampus(campusId);
+      if (before)
+        for (const campusId of before.campusIds as number[]) context.requireCampus(campusId);
       const libraryIds = [...new Set(i.libraryIds)];
       const campusIds = new Set<number>();
       for (const libraryId of libraryIds) {
-        const library = usable(await context.transaction.get(context.doc(`libraries/${libraryId}`)), 'Library', before?.libraryIds?.includes(libraryId));
+        const library = usable(
+          await context.transaction.get(context.doc(`libraries/${libraryId}`)),
+          'Library',
+          before?.libraryIds?.includes(libraryId),
+        );
         context.requireCampus(library.campusId);
         campusIds.add(library.campusId);
       }
@@ -117,7 +154,15 @@ export const members = {
         context.update(ref, { ...after, updatedAt: serverTimestamp() });
         context.audit({ action: 'libraryMember.update', documentPath: ref.path, before, after });
       } else {
-        context.set(ref, { ...after, status: 'active', activeLoans: 0, blocked: false, createdAt: serverTimestamp(), createdBy: context.uid, updatedAt: serverTimestamp() });
+        context.set(ref, {
+          ...after,
+          status: 'active',
+          activeLoans: 0,
+          blocked: false,
+          createdAt: serverTimestamp(),
+          createdBy: context.uid,
+          updatedAt: serverTimestamp(),
+        });
         context.audit({ action: 'libraryMember.create', documentPath: ref.path, after });
       }
       return { id: ref.id };
@@ -137,7 +182,12 @@ export const members = {
       for (const campusId of member.campusIds as number[]) context.requireCampus(campusId);
       if (member.status === i.status) return { id: ref.id };
       context.update(ref, { status: i.status, updatedAt: serverTimestamp() });
-      context.audit({ action: 'libraryMember.status', documentPath: ref.path, before: { status: member.status }, after: { status: i.status } });
+      context.audit({
+        action: 'libraryMember.status',
+        documentPath: ref.path,
+        before: { status: member.status },
+        after: { status: i.status },
+      });
       return { id: ref.id };
     },
   }),

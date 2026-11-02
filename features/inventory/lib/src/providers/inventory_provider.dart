@@ -117,11 +117,8 @@ class InventoryProvider extends ChangeNotifier implements ErrorReporting {
   Future<bool> seedDefaults() =>
       _write(_service.seedDefaults, reload: loadMasters);
 
-  Future<bool> saveCategory(Map<String, Object?> data, {String? requestId}) =>
-      _write(
-        () => _service.saveCategory(data, requestId: requestId),
-        reload: loadMasters,
-      );
+  Future<bool> saveCategory(Map<String, Object?> data) =>
+      _write(() => _service.saveCategory(data), reload: loadMasters);
 
   Future<bool> setCategoryActive(String id, {required bool active}) => _write(
     () => _service.setCategoryActive(id, active: active),
@@ -131,25 +128,19 @@ class InventoryProvider extends ChangeNotifier implements ErrorReporting {
   Future<bool> saveUnit(String code, String name) =>
       _write(() => _service.saveUnit(code, name), reload: loadMasters);
 
-  Future<bool> saveItem(Map<String, Object?> data, {String? requestId}) =>
-      _write(
-        () => _service.saveItem(data, requestId: requestId),
-        reload: loadItems,
-      );
+  Future<bool> saveItem(Map<String, Object?> data) =>
+      _write(() => _service.saveItem(data), reload: loadItems);
 
   Future<bool> setItemActive(String id, {required bool active}) => _write(
     () => _service.setItemActive(id, active: active),
     reload: loadItems,
   );
 
-  Future<bool> saveVariant(Map<String, Object?> data, {String? requestId}) =>
-      _write(() => _service.saveVariant(data, requestId: requestId));
+  Future<bool> saveVariant(Map<String, Object?> data) =>
+      _write(() => _service.saveVariant(data));
 
-  Future<bool> saveStore(Map<String, Object?> data, {String? requestId}) =>
-      _write(
-        () => _service.saveStore(data, requestId: requestId),
-        reload: loadMasters,
-      );
+  Future<bool> saveStore(Map<String, Object?> data) =>
+      _write(() => _service.saveStore(data), reload: loadMasters);
 
   Future<bool> setStoreActive(String id, {required bool active}) => _write(
     () => _service.setStoreActive(id, active: active),

@@ -1,7 +1,7 @@
 rules_version = '2';
 
 // Clients read; all writes go through Cloud Functions (Admin SDK bypasses rules).
-// Exceptions: own device tokens/mute, and verification count lines (offline counting, Inv-8).
+// Exceptions: own device tokens/mute, verification count lines (offline counting, Inv-8), the master collections, and purchase requests/quotations/invoices.
 service cloud.firestore {
   match /databases/{db}/documents {
     function signedIn() { return request.auth != null; }
@@ -15,7 +15,7 @@ service cloud.firestore {
     }
 
     // Default: no client writes anywhere under a school. Reads need an explicit rule below.
-    // auditLogs, requests, uniqueKeys, outbox, counters have no client access at all.
+    // auditLogs, requests, uniqueKeys and outbox have no client access at all.
     match /schools/{schoolId}/{coll}/{id} {
       allow write: if false;
     }
@@ -35,7 +35,48 @@ service cloud.firestore {
       allow read: if inSchool(schoolId) && coll in ['inventoryCategories', 'inventoryUnits', 'inventoryItems']
         && (can(schoolId, 'inventory.items.view') || can(schoolId, 'inventory.issue.request') || can(schoolId, 'inventory.purchaseRequest.request'));
     }
+    // Masters are plain client CRUD for the users who manage them (no field validation, no audit log).
+    // Creates are keyed by the lowercased code, so an existing code cannot be recreated.
+    match /schools/{schoolId}/inventoryCategories/{id} {
+      allow write: if inSchool(schoolId) && can(schoolId, 'inventory.settings');
+    }
+    match /schools/{schoolId}/inventoryUnits/{id} {
+      allow write: if inSchool(schoolId) && can(schoolId, 'inventory.settings');
+    }
+    match /schools/{schoolId}/inventoryStores/{id} {
+      allow write: if inSchool(schoolId) && can(schoolId, 'inventory.settings');
+    }
+    match /schools/{schoolId}/inventoryItems/{id} {
+      allow write: if inSchool(schoolId) && can(schoolId, 'inventory.items.manage');
+    }
+    match /schools/{schoolId}/inventoryVendors/{id} {
+      allow write: if inSchool(schoolId) && can(schoolId, 'inventory.vendors.manage');
+    }
+    match /schools/{schoolId}/libraries/{id} {
+      allow write: if inSchool(schoolId) && can(schoolId, 'library.settings');
+    }
+    match /schools/{schoolId}/libraryCategories/{id} {
+      allow write: if inSchool(schoolId) && can(schoolId, 'library.catalogue.manage');
+    }
+
+    // Purchase requests, quotations and invoices: client writes for the roles that handle them.
+    match /schools/{schoolId}/inventoryPurchaseRequests/{id} {
+      allow write: if inSchool(schoolId)
+        && (can(schoolId, 'inventory.purchaseRequest.request') || can(schoolId, 'inventory.purchaseRequest.approve'));
+    }
+    match /schools/{schoolId}/inventoryQuotations/{id} {
+      allow write: if inSchool(schoolId) && can(schoolId, 'inventory.procure.operate');
+    }
+    match /schools/{schoolId}/inventoryInvoices/{id} {
+      allow write: if inSchool(schoolId) && can(schoolId, 'inventory.procure.operate');
+    }
+    // Sequence counters (PR/QT numbers) are bumped by clients that hold any permission (parents hold none).
+    match /schools/{schoolId}/counters/{id} {
+      allow read, write: if inSchool(schoolId) && access(schoolId).permissions.size() > 0;
+    }
+
     match /schools/{schoolId}/inventoryItems/{itemId}/variants/{id} {
+      allow write: if inSchool(schoolId) && can(schoolId, 'inventory.items.manage');
       allow read: if inSchool(schoolId) && (can(schoolId, 'inventory.items.view') || can(schoolId, 'inventory.issue.request') || can(schoolId, 'inventory.purchaseRequest.request'));
     }
     // Stores are readable school-wide so a transfer can name a destination on another campus.

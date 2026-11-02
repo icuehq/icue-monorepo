@@ -382,22 +382,16 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   Future<bool> seedDefaults() =>
       _write(_service.seedDefaults, reload: loadMasters);
 
-  Future<bool> saveLibrary(Map<String, Object?> data, {String? requestId}) =>
-      _write(
-        () => _service.saveLibrary(data, requestId: requestId),
-        reload: loadMasters,
-      );
+  Future<bool> saveLibrary(Map<String, Object?> data) =>
+      _write(() => _service.saveLibrary(data), reload: loadMasters);
 
   Future<bool> setLibraryActive(String id, {required bool active}) => _write(
     () => _service.setLibraryActive(id, active: active),
     reload: loadMasters,
   );
 
-  Future<bool> saveCategory(Map<String, Object?> data, {String? requestId}) =>
-      _write(
-        () => _service.saveCategory(data, requestId: requestId),
-        reload: loadMasters,
-      );
+  Future<bool> saveCategory(Map<String, Object?> data) =>
+      _write(() => _service.saveCategory(data), reload: loadMasters);
 
   Future<bool> setCategoryActive(String id, {required bool active}) => _write(
     () => _service.setCategoryActive(id, active: active),

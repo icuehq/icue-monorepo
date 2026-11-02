@@ -1,44 +1,66 @@
 import '../region';
-import { DocumentData, DocumentReference } from 'firebase-admin/firestore';
+import { type DocumentData, type DocumentReference } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import type { CallableContext } from '../shared/callable';
+import { isoDate, todayIST } from '../shared/dates';
+import { serverTimestamp } from '../shared/firestore';
 import { nextNumber } from '../shared/keys';
 import { defineCallable, failed, id, missing, optionalText, usable } from '../shared/masters';
 import { lineKey, positiveQuantity } from './stock';
-import { isoDate, todayIST } from '../shared/dates';
-import { serverTimestamp } from '../shared/firestore';
 
-/** Quotations (FRS 10.15) and purchase orders (FRS 10.16). Receiving and invoices are in receiving.ts. */
+/** Purchase orders (FRS 10.16). Quotations are client writes; receiving is in receiving.ts. */
 
 const money = z.number().min(0).max(100_000_000);
 const text = (max: number) => z.string().trim().max(max).nullish();
 const OPEN_PURCHASE_REQUEST_STATUSES = ['approved', 'partially_ordered'];
 const roundToCents = (amount: number) => Math.round(amount * 100) / 100;
 
-type Line = { itemId: string; variantId: string | null; quantity: number };
-const key = (lineItem: { itemId: string; variantId?: string | null }) => `${lineItem.itemId}__${lineItem.variantId ?? '-'}`;
+interface Line {
+  itemId: string;
+  variantId: string | null;
+  quantity: number;
+}
+const key = (lineItem: { itemId: string; variantId?: string | null }) =>
+  `${lineItem.itemId}__${lineItem.variantId ?? '-'}`;
 
 /** `subtotal - discount + tax + delivery`; a discount above the subtotal is rejected. */
-function totals(lineItems: Array<{ quantity: number; unitPrice: number }>, charges: { discount: number; tax: number; delivery: number }) {
-  const subtotal = roundToCents(lineItems.reduce((total, lineItem) => total + lineItem.quantity * lineItem.unitPrice, 0));
+function totals(
+  lineItems: { quantity: number; unitPrice: number }[],
+  charges: { discount: number; tax: number; delivery: number },
+) {
+  const subtotal = roundToCents(
+    lineItems.reduce((total, lineItem) => total + lineItem.quantity * lineItem.unitPrice, 0),
+  );
   if (charges.discount > subtotal) throw failed('Discount exceeds the subtotal');
-  return { subtotal, total: roundToCents(subtotal - charges.discount + charges.tax + charges.delivery) };
+  return {
+    subtotal,
+    total: roundToCents(subtotal - charges.discount + charges.tax + charges.delivery),
+  };
 }
 
-function uniqueLines(lineItems: Array<{ itemId: string; variantId?: string | null }>) {
-  if (new Set(lineItems.map(key)).size !== lineItems.length) throw failed('Each item (and variant) may appear once');
+function uniqueLines(lineItems: { itemId: string; variantId?: string | null }[]) {
+  if (new Set(lineItems.map(key)).size !== lineItems.length)
+    throw failed('Each item (and variant) may appear once');
 }
 
-async function loadPurchaseRequest(context: CallableContext, purchaseRequestId: string): Promise<{ ref: DocumentReference; purchaseRequest: DocumentData }> {
+async function loadPurchaseRequest(
+  context: CallableContext,
+  purchaseRequestId: string,
+): Promise<{ ref: DocumentReference; purchaseRequest: DocumentData }> {
   const ref = context.doc(`inventoryPurchaseRequests/${purchaseRequestId}`);
   const purchaseRequest = (await context.transaction.get(ref)).data();
   if (!purchaseRequest) throw missing('Purchase request');
   context.requireCampus(purchaseRequest.campusId);
-  if (!OPEN_PURCHASE_REQUEST_STATUSES.includes(purchaseRequest.status)) throw failed(`Request is ${purchaseRequest.status}; it must be approved`);
-  return { ref, purchaseRequest: purchaseRequest };
+  if (!OPEN_PURCHASE_REQUEST_STATUSES.includes(purchaseRequest.status))
+    throw failed(`Request is ${purchaseRequest.status}; it must be approved`);
+  return { ref, purchaseRequest };
 }
 
-async function loadDoc(context: CallableContext, path: string, what: string): Promise<{ ref: DocumentReference; document: DocumentData }> {
+async function loadDoc(
+  context: CallableContext,
+  path: string,
+  what: string,
+): Promise<{ ref: DocumentReference; document: DocumentData }> {
   const ref = context.doc(path);
   const documentData = (await context.transaction.get(ref)).data();
   if (!documentData) throw missing(what);
@@ -47,18 +69,45 @@ async function loadDoc(context: CallableContext, path: string, what: string): Pr
 }
 
 /** Request status follows the ordered quantity of its lines (set by PO issue / cancel). */
-function purchaseRequestStatus(lineItems: Array<{ quantity: number; quantityOrdered: number }>) {
-  if (lineItems.every((lineItem) => lineItem.quantityOrdered >= lineItem.quantity)) return 'ordered';
-  return lineItems.some((lineItem) => lineItem.quantityOrdered > 0) ? 'partially_ordered' : 'approved';
+function purchaseRequestStatus(lineItems: { quantity: number; quantityOrdered: number }[]) {
+  if (lineItems.every((lineItem) => lineItem.quantityOrdered >= lineItem.quantity))
+    return 'ordered';
+  return lineItems.some((lineItem) => lineItem.quantityOrdered > 0)
+    ? 'partially_ordered'
+    : 'approved';
 }
 
 /** Moves ordered quantity on the request by [sign] × each PO line (floored at 0) and updates its status. */
-function shiftOrdered(context: CallableContext, ref: DocumentReference, purchaseRequest: DocumentData, purchaseOrder: DocumentData, sign: 1 | -1) {
-  const lineItems = (purchaseRequest.lineItems as Array<{ itemId: string; variantId?: string | null; quantity: number; quantityOrdered: number }>).map((lineItem) => {
-    const existingLine = (purchaseOrder.lineItems as Line[]).find((orderLine) => key(orderLine) === key(lineItem));
-    return existingLine ? { ...lineItem, quantityOrdered: Math.max(0, lineItem.quantityOrdered + sign * existingLine.quantity) } : lineItem;
+function shiftOrdered(
+  context: CallableContext,
+  ref: DocumentReference,
+  purchaseRequest: DocumentData,
+  purchaseOrder: DocumentData,
+  sign: 1 | -1,
+) {
+  const lineItems = (
+    purchaseRequest.lineItems as {
+      itemId: string;
+      variantId?: string | null;
+      quantity: number;
+      quantityOrdered: number;
+    }[]
+  ).map((lineItem) => {
+    const existingLine = (purchaseOrder.lineItems as Line[]).find(
+      (orderLine) => key(orderLine) === key(lineItem),
+    );
+    return existingLine
+      ? {
+          ...lineItem,
+          quantityOrdered: Math.max(0, lineItem.quantityOrdered + sign * existingLine.quantity),
+        }
+      : lineItem;
   });
-  context.update(ref, { lineItems, status: purchaseRequestStatus(lineItems), updatedAt: serverTimestamp() });
+  context.update(ref, {
+    lineItems,
+    status: purchaseRequestStatus(lineItems),
+    updatedAt: serverTimestamp(),
+  });
 }
 
 const header = {
@@ -69,82 +118,6 @@ const header = {
 };
 
 export const orders = {
-  /** Draft or final quotation against an approved request; lines must be request lines in the item's stock unit. */
-  quotationSave: defineCallable({
-    name: 'inventory.quotation.save',
-    permission: 'inventory.procure.operate',
-    input: z.object({
-      id: id.optional(),
-      purchaseRequestId: id,
-      vendorId: id,
-      vendorRef: text(60),
-      quotationDate: isoDate.optional(),
-      validUntil: isoDate,
-      deliveryDays: z.number().int().min(0).max(365).nullish(),
-      lineItems: z.array(z.object({ ...lineKey, quantity: positiveQuantity, unitPrice: money })).min(1).max(50),
-      ...header,
-      final: z.boolean().default(false),
-    }),
-    handler: async (context, i) => {
-      const { purchaseRequest: purchaseRequest } = await loadPurchaseRequest(context, i.purchaseRequestId);
-      usable(await context.transaction.get(context.doc(`inventoryVendors/${i.vendorId}`)), 'Vendor', false);
-      uniqueLines(i.lineItems);
-      const purchaseRequestLines = purchaseRequest.lineItems as Array<{ itemId: string; variantId?: string | null; quantity: number }>;
-      for (const lineItem of i.lineItems) {
-        const requestLine = purchaseRequestLines.find((purchaseRequestLine) => key(purchaseRequestLine) === key(lineItem));
-        if (!requestLine) throw failed('Quotation lines must be lines of the request');
-        if (lineItem.quantity > requestLine.quantity) throw failed('Quoted quantity exceeds the requested quantity');
-      }
-      const date = i.quotationDate ?? todayIST();
-      if (i.validUntil < date) throw failed('Valid until is before the quotation date');
-      const lineItems = i.lineItems.map((lineItem) => ({ itemId: lineItem.itemId, variantId: lineItem.variantId ?? null, quantity: lineItem.quantity, unitPrice: lineItem.unitPrice }));
-      const quotationTotals = totals(lineItems, i);
-      const fields = {
-        vendorId: i.vendorId, vendorRef: i.vendorRef ?? null, quotationDate: date, validUntil: i.validUntil,
-        deliveryDays: i.deliveryDays ?? null, lineItems, discount: i.discount, tax: i.tax, delivery: i.delivery,
-        remarks: i.remarks ?? null, ...quotationTotals, status: i.final ? 'final' : 'draft', updatedAt: serverTimestamp(),
-      };
-      if (i.id) {
-        const { ref, document: quotation } = await loadDoc(context, `inventoryQuotations/${i.id}`, 'Quotation');
-        if (quotation.purchaseRequestId !== i.purchaseRequestId) throw failed('Request cannot change');
-        if (quotation.status !== 'draft') throw failed('Only draft quotations can be edited');
-        context.update(ref, fields);
-        context.audit({ action: 'inventoryQuotation.update', documentPath: ref.path, before: { total: quotation.total }, after: { total: quotationTotals.total, status: fields.status } });
-        return { id: ref.id, number: quotation.number as string };
-      }
-      const ref = context.newDoc('inventoryQuotations');
-      const number = await nextNumber(context, 'QT');
-      context.set(ref, {
-        ...fields, number, purchaseRequestId: i.purchaseRequestId, campusId: purchaseRequest.campusId, selected: false, selectionReason: null, attachments: [],
-        createdAt: serverTimestamp(), createdBy: context.uid,
-      });
-      context.audit({ action: 'inventoryQuotation.create', documentPath: ref.path, after: { number, total: quotationTotals.total, status: fields.status } });
-      return { id: ref.id, number };
-    },
-  }),
-
-  /** One selected quotation per request, with a reason; changing it is blocked while a live PO uses the old one. */
-  quotationSelect: defineCallable({
-    name: 'inventory.quotation.select',
-    permission: 'inventory.procure.operate',
-    input: z.object({ id, reason: z.string().trim().min(1).max(500) }),
-    handler: async (context, i) => {
-      const { ref, document: quotation } = await loadDoc(context, `inventoryQuotations/${i.id}`, 'Quotation');
-      await loadPurchaseRequest(context, quotation.purchaseRequestId);
-      if (quotation.status !== 'final') throw failed('Only final quotations can be selected');
-      if (quotation.validUntil < todayIST()) throw failed('Quotation has expired');
-      const others = (await context.transaction.get(context.coll('inventoryQuotations').where('purchaseRequestId', '==', quotation.purchaseRequestId))).docs.filter((quotation) => quotation.id !== ref.id && quotation.data().selected);
-      for (const snapshot of others) {
-        const live = await context.transaction.get(context.coll('inventoryPurchaseOrders').where('quotationId', '==', snapshot.id));
-        if (live.docs.some((purchaseOrder) => purchaseOrder.data().status !== 'cancelled')) throw failed('A purchase order already uses the selected quotation');
-        context.update(snapshot.ref, { selected: false, selectionReason: null });
-      }
-      context.update(ref, { selected: true, selectionReason: i.reason, updatedAt: serverTimestamp() });
-      context.audit({ action: 'inventoryQuotation.select', documentPath: ref.path, reason: i.reason });
-      return { id: ref.id, number: quotation.number as string };
-    },
-  }),
-
   /** Draft PO against an approved request; with a quotation the vendor and unit prices come from it. */
   purchaseOrderSave: defineCallable({
     name: 'inventory.purchaseOrder.save',
@@ -157,56 +130,113 @@ export const orders = {
       deliveryCampusId: z.number().int().nullish(),
       expectedDate: isoDate,
       terms: text(2000),
-      lineItems: z.array(z.object({ ...lineKey, quantityOrdered: positiveQuantity, unitPrice: money.default(0) })).min(1).max(50),
+      lineItems: z
+        .array(
+          z.object({ ...lineKey, quantityOrdered: positiveQuantity, unitPrice: money.default(0) }),
+        )
+        .min(1)
+        .max(50),
       ...header,
     }),
     handler: async (context, i) => {
-      const { purchaseRequest: purchaseRequest } = await loadPurchaseRequest(context, i.purchaseRequestId);
+      const { purchaseRequest: purchaseRequest } = await loadPurchaseRequest(
+        context,
+        i.purchaseRequestId,
+      );
       uniqueLines(i.lineItems);
       let vendorId = i.vendorId;
-      let quoted: Array<{ itemId: string; variantId?: string | null; unitPrice: number }> | null = null;
+      let quoted: { itemId: string; variantId?: string | null; unitPrice: number }[] | null = null;
       if (i.quotationId) {
-        const quotation = (await context.transaction.get(context.doc(`inventoryQuotations/${i.quotationId}`))).data();
-        if (!quotation || quotation.purchaseRequestId !== i.purchaseRequestId) throw failed('Quotation does not belong to this request');
+        const quotation = (
+          await context.transaction.get(context.doc(`inventoryQuotations/${i.quotationId}`))
+        ).data();
+        if (!quotation || quotation.purchaseRequestId !== i.purchaseRequestId)
+          throw failed('Quotation does not belong to this request');
         if (!quotation.selected) throw failed('Quotation is not the selected one');
         vendorId = quotation.vendorId;
         quoted = quotation.lineItems;
       }
       if (!vendorId) throw failed('Vendor is required');
-      usable(await context.transaction.get(context.doc(`inventoryVendors/${vendorId}`)), 'Vendor', false);
+      usable(
+        await context.transaction.get(context.doc(`inventoryVendors/${vendorId}`)),
+        'Vendor',
+        false,
+      );
       const campus = i.deliveryCampusId ?? purchaseRequest.campusId;
       context.requireCampus(campus);
       if (i.expectedDate < todayIST()) throw failed('Expected delivery date is in the past');
       const lineItems = i.lineItems.map((lineItem) => {
         const quotedLine = quoted?.find((quotedLineItem) => key(quotedLineItem) === key(lineItem));
         if (quoted && !quotedLine) throw failed('Order lines must be lines of the quotation');
-        return { itemId: lineItem.itemId, variantId: lineItem.variantId ?? null, quantity: lineItem.quantityOrdered, unitPrice: quotedLine ? quotedLine.unitPrice : lineItem.unitPrice };
+        return {
+          itemId: lineItem.itemId,
+          variantId: lineItem.variantId ?? null,
+          quantity: lineItem.quantityOrdered,
+          unitPrice: quotedLine ? quotedLine.unitPrice : lineItem.unitPrice,
+        };
       });
       checkRemaining(purchaseRequest, lineItems);
       const orderTotals = totals(lineItems, i);
       const stored = lineItems.map((lineItem) => ({
-        itemId: lineItem.itemId, variantId: lineItem.variantId, quantityOrdered: lineItem.quantity, quantityReceived: 0, quantityAccepted: 0, quantityRejected: 0, unitPrice: lineItem.unitPrice,
+        itemId: lineItem.itemId,
+        variantId: lineItem.variantId,
+        quantityOrdered: lineItem.quantity,
+        quantityReceived: 0,
+        quantityAccepted: 0,
+        quantityRejected: 0,
+        unitPrice: lineItem.unitPrice,
       }));
       const fields = {
-        vendorId, quotationId: i.quotationId ?? null, deliveryCampusId: campus, expectedDate: i.expectedDate, terms: i.terms ?? null,
-        lineItems: stored, discount: i.discount, tax: i.tax, delivery: i.delivery, remarks: i.remarks ?? null, ...orderTotals,
+        vendorId,
+        quotationId: i.quotationId ?? null,
+        deliveryCampusId: campus,
+        expectedDate: i.expectedDate,
+        terms: i.terms ?? null,
+        lineItems: stored,
+        discount: i.discount,
+        tax: i.tax,
+        delivery: i.delivery,
+        remarks: i.remarks ?? null,
+        ...orderTotals,
         updatedAt: serverTimestamp(),
       };
       if (i.id) {
-        const { ref, document: purchaseOrder } = await loadDoc(context, `inventoryPurchaseOrders/${i.id}`, 'Purchase order');
+        const { ref, document: purchaseOrder } = await loadDoc(
+          context,
+          `inventoryPurchaseOrders/${i.id}`,
+          'Purchase order',
+        );
         if (purchaseOrder.status !== 'draft') throw failed('Only draft orders can be edited');
-        if (purchaseOrder.purchaseRequestIds[0] !== i.purchaseRequestId) throw failed('Request cannot change');
+        if (purchaseOrder.purchaseRequestIds[0] !== i.purchaseRequestId)
+          throw failed('Request cannot change');
         context.update(ref, fields);
-        context.audit({ action: 'inventoryPurchaseOrder.update', documentPath: ref.path, before: { total: purchaseOrder.total }, after: { total: orderTotals.total } });
+        context.audit({
+          action: 'inventoryPurchaseOrder.update',
+          documentPath: ref.path,
+          before: { total: purchaseOrder.total },
+          after: { total: orderTotals.total },
+        });
         return { id: ref.id, number: purchaseOrder.number as string };
       }
       const ref = context.newDoc('inventoryPurchaseOrders');
       const number = await nextNumber(context, 'PO');
       context.set(ref, {
-        ...fields, number, purchaseRequestIds: [i.purchaseRequestId], campusId: purchaseRequest.campusId, purchaseOrderDate: todayIST(), status: 'draft', acknowledgement: null, revision: 0,
-        createdAt: serverTimestamp(), createdBy: context.uid,
+        ...fields,
+        number,
+        purchaseRequestIds: [i.purchaseRequestId],
+        campusId: purchaseRequest.campusId,
+        purchaseOrderDate: todayIST(),
+        status: 'draft',
+        acknowledgement: null,
+        revision: 0,
+        createdAt: serverTimestamp(),
+        createdBy: context.uid,
       });
-      context.audit({ action: 'inventoryPurchaseOrder.create', documentPath: ref.path, after: { number, total: orderTotals.total } });
+      context.audit({
+        action: 'inventoryPurchaseOrder.create',
+        documentPath: ref.path,
+        after: { number, total: orderTotals.total },
+      });
       return { id: ref.id, number };
     },
   }),
@@ -217,15 +247,40 @@ export const orders = {
     permission: 'inventory.procure.operate',
     input: z.object({ id }),
     handler: async (context, i) => {
-      const { ref, document: purchaseOrder } = await loadDoc(context, `inventoryPurchaseOrders/${i.id}`, 'Purchase order');
+      const { ref, document: purchaseOrder } = await loadDoc(
+        context,
+        `inventoryPurchaseOrders/${i.id}`,
+        'Purchase order',
+      );
       if (purchaseOrder.status !== 'draft') throw failed(`Order is ${purchaseOrder.status}`);
-      const { ref: purchaseRequestRef, purchaseRequest: purchaseRequest } = await loadPurchaseRequest(context, purchaseOrder.purchaseRequestIds[0]);
-      usable(await context.transaction.get(context.doc(`inventoryVendors/${purchaseOrder.vendorId}`)), 'Vendor', false);
-      const lineItems = (purchaseOrder.lineItems as Array<{ itemId: string; variantId: string | null; quantityOrdered: number }>).map((lineItem) => ({ ...lineItem, quantity: lineItem.quantityOrdered }));
+      const { ref: purchaseRequestRef, purchaseRequest: purchaseRequest } =
+        await loadPurchaseRequest(context, purchaseOrder.purchaseRequestIds[0]);
+      usable(
+        await context.transaction.get(context.doc(`inventoryVendors/${purchaseOrder.vendorId}`)),
+        'Vendor',
+        false,
+      );
+      const lineItems = (
+        purchaseOrder.lineItems as {
+          itemId: string;
+          variantId: string | null;
+          quantityOrdered: number;
+        }[]
+      ).map((lineItem) => ({ ...lineItem, quantity: lineItem.quantityOrdered }));
       checkRemaining(purchaseRequest, lineItems);
       shiftOrdered(context, purchaseRequestRef, purchaseRequest, { lineItems }, 1);
-      context.update(ref, { status: 'issued', issuedAt: serverTimestamp(), issuedBy: context.uid, updatedAt: serverTimestamp() });
-      context.audit({ action: 'inventoryPurchaseOrder.issue', documentPath: ref.path, before: { status: 'draft' }, after: { status: 'issued' } });
+      context.update(ref, {
+        status: 'issued',
+        issuedAt: serverTimestamp(),
+        issuedBy: context.uid,
+        updatedAt: serverTimestamp(),
+      });
+      context.audit({
+        action: 'inventoryPurchaseOrder.issue',
+        documentPath: ref.path,
+        before: { status: 'draft' },
+        after: { status: 'issued' },
+      });
       return { id: ref.id, number: purchaseOrder.number as string };
     },
   }),
@@ -239,30 +294,73 @@ export const orders = {
       reason: z.string().trim().min(1).max(500),
       expectedDate: isoDate.optional(),
       terms: text(2000),
-      prices: z.array(z.object({ ...lineKey, unitPrice: money })).max(50).default([]),
+      prices: z
+        .array(z.object({ ...lineKey, unitPrice: money }))
+        .max(50)
+        .default([]),
       discount: money.optional(),
       tax: money.optional(),
       delivery: money.optional(),
       remarks: optionalText,
     }),
     handler: async (context, i) => {
-      const { ref, document: purchaseOrder } = await loadDoc(context, `inventoryPurchaseOrders/${i.id}`, 'Purchase order');
-      if (!['issued', 'acknowledged'].includes(purchaseOrder.status)) throw failed(`Order is ${purchaseOrder.status}`);
-      const lineItems = (purchaseOrder.lineItems as Array<{ itemId: string; variantId: string | null; quantityOrdered: number; unitPrice: number }>).map((lineItem) => {
+      const { ref, document: purchaseOrder } = await loadDoc(
+        context,
+        `inventoryPurchaseOrders/${i.id}`,
+        'Purchase order',
+      );
+      if (!['issued', 'acknowledged'].includes(purchaseOrder.status))
+        throw failed(`Order is ${purchaseOrder.status}`);
+      const lineItems = (
+        purchaseOrder.lineItems as {
+          itemId: string;
+          variantId: string | null;
+          quantityOrdered: number;
+          unitPrice: number;
+        }[]
+      ).map((lineItem) => {
         const priceLine = i.prices.find((price) => key(price) === key(lineItem));
         return priceLine ? { ...lineItem, unitPrice: priceLine.unitPrice } : lineItem;
       });
-      if (i.prices.some((price) => !lineItems.some((lineItem) => key(lineItem) === key(price)))) throw failed('Price given for an item not on the order');
-      const charges = { discount: i.discount ?? purchaseOrder.discount, tax: i.tax ?? purchaseOrder.tax, delivery: i.delivery ?? purchaseOrder.delivery };
-      const orderTotals = totals(lineItems.map((lineItem) => ({ quantity: lineItem.quantityOrdered, unitPrice: lineItem.unitPrice })), charges);
-      context.set(ref.collection('revisions').doc(), { snapshot: purchaseOrder, changedBy: context.uid, reason: i.reason, performedAt: serverTimestamp() });
-      context.update(ref, {
-        lineItems, ...charges, ...orderTotals,
-        expectedDate: i.expectedDate ?? purchaseOrder.expectedDate, terms: i.terms === undefined ? purchaseOrder.terms : i.terms ?? null,
-        remarks: i.remarks === undefined ? purchaseOrder.remarks : i.remarks ?? null,
-        revision: purchaseOrder.revision + 1, status: 'issued', acknowledgement: null, updatedAt: serverTimestamp(),
+      if (i.prices.some((price) => !lineItems.some((lineItem) => key(lineItem) === key(price))))
+        throw failed('Price given for an item not on the order');
+      const charges = {
+        discount: i.discount ?? purchaseOrder.discount,
+        tax: i.tax ?? purchaseOrder.tax,
+        delivery: i.delivery ?? purchaseOrder.delivery,
+      };
+      const orderTotals = totals(
+        lineItems.map((lineItem) => ({
+          quantity: lineItem.quantityOrdered,
+          unitPrice: lineItem.unitPrice,
+        })),
+        charges,
+      );
+      context.set(ref.collection('revisions').doc(), {
+        snapshot: purchaseOrder,
+        changedBy: context.uid,
+        reason: i.reason,
+        performedAt: serverTimestamp(),
       });
-      context.audit({ action: 'inventoryPurchaseOrder.revise', documentPath: ref.path, before: { total: purchaseOrder.total }, after: { total: orderTotals.total }, reason: i.reason });
+      context.update(ref, {
+        lineItems,
+        ...charges,
+        ...orderTotals,
+        expectedDate: i.expectedDate ?? purchaseOrder.expectedDate,
+        terms: i.terms === undefined ? purchaseOrder.terms : (i.terms ?? null),
+        remarks: i.remarks === undefined ? purchaseOrder.remarks : (i.remarks ?? null),
+        revision: purchaseOrder.revision + 1,
+        status: 'issued',
+        acknowledgement: null,
+        updatedAt: serverTimestamp(),
+      });
+      context.audit({
+        action: 'inventoryPurchaseOrder.revise',
+        documentPath: ref.path,
+        before: { total: purchaseOrder.total },
+        after: { total: orderTotals.total },
+        reason: i.reason,
+      });
       return { id: ref.id, number: purchaseOrder.number as string };
     },
   }),
@@ -272,13 +370,28 @@ export const orders = {
     permission: 'inventory.procure.operate',
     input: z.object({ id, vendorRef: text(60), remarks: text(500) }),
     handler: async (context, i) => {
-      const { ref, document: purchaseOrder } = await loadDoc(context, `inventoryPurchaseOrders/${i.id}`, 'Purchase order');
+      const { ref, document: purchaseOrder } = await loadDoc(
+        context,
+        `inventoryPurchaseOrders/${i.id}`,
+        'Purchase order',
+      );
       if (purchaseOrder.status !== 'issued') throw failed(`Order is ${purchaseOrder.status}`);
       context.update(ref, {
-        status: 'acknowledged', updatedAt: serverTimestamp(),
-        acknowledgement: { performedBy: context.uid, performedAt: serverTimestamp(), vendorRef: i.vendorRef ?? null, remarks: i.remarks ?? null },
+        status: 'acknowledged',
+        updatedAt: serverTimestamp(),
+        acknowledgement: {
+          performedBy: context.uid,
+          performedAt: serverTimestamp(),
+          vendorRef: i.vendorRef ?? null,
+          remarks: i.remarks ?? null,
+        },
       });
-      context.audit({ action: 'inventoryPurchaseOrder.acknowledge', documentPath: ref.path, before: { status: 'issued' }, after: { status: 'acknowledged' } });
+      context.audit({
+        action: 'inventoryPurchaseOrder.acknowledge',
+        documentPath: ref.path,
+        before: { status: 'issued' },
+        after: { status: 'acknowledged' },
+      });
       return { id: ref.id, number: purchaseOrder.number as string };
     },
   }),
@@ -289,18 +402,40 @@ export const orders = {
     permission: 'inventory.procure.operate',
     input: z.object({ id, reason: z.string().trim().min(1).max(500) }),
     handler: async (context, i) => {
-      const { ref, document: purchaseOrder } = await loadDoc(context, `inventoryPurchaseOrders/${i.id}`, 'Purchase order');
-      if (!['draft', 'issued', 'acknowledged'].includes(purchaseOrder.status)) throw failed(`Order is ${purchaseOrder.status}`);
+      const { ref, document: purchaseOrder } = await loadDoc(
+        context,
+        `inventoryPurchaseOrders/${i.id}`,
+        'Purchase order',
+      );
+      if (!['draft', 'issued', 'acknowledged'].includes(purchaseOrder.status))
+        throw failed(`Order is ${purchaseOrder.status}`);
       if (purchaseOrder.status !== 'draft') {
-        const purchaseRequestRef = context.doc(`inventoryPurchaseRequests/${purchaseOrder.purchaseRequestIds[0]}`);
+        const purchaseRequestRef = context.doc(
+          `inventoryPurchaseRequests/${purchaseOrder.purchaseRequestIds[0]}`,
+        );
         const purchaseRequest = (await context.transaction.get(purchaseRequestRef)).data();
         if (purchaseRequest) {
-          const lineItems = (purchaseOrder.lineItems as Array<{ itemId: string; variantId: string | null; quantityOrdered: number }>).map((lineItem) => ({ ...lineItem, quantity: lineItem.quantityOrdered }));
+          const lineItems = (
+            purchaseOrder.lineItems as {
+              itemId: string;
+              variantId: string | null;
+              quantityOrdered: number;
+            }[]
+          ).map((lineItem) => ({ ...lineItem, quantity: lineItem.quantityOrdered }));
           shiftOrdered(context, purchaseRequestRef, purchaseRequest, { lineItems }, -1);
         }
       }
-      context.update(ref, { status: 'cancelled', cancelReason: i.reason, updatedAt: serverTimestamp() });
-      context.audit({ action: 'inventoryPurchaseOrder.cancel', documentPath: ref.path, before: { status: purchaseOrder.status }, reason: i.reason });
+      context.update(ref, {
+        status: 'cancelled',
+        cancelReason: i.reason,
+        updatedAt: serverTimestamp(),
+      });
+      context.audit({
+        action: 'inventoryPurchaseOrder.cancel',
+        documentPath: ref.path,
+        before: { status: purchaseOrder.status },
+        reason: i.reason,
+      });
       return { id: ref.id, number: purchaseOrder.number as string };
     },
   }),
@@ -311,11 +446,30 @@ export const orders = {
     permission: 'inventory.procure.operate',
     input: z.object({ id, reason: text(500) }),
     handler: async (context, i) => {
-      const { ref, document: purchaseOrder } = await loadDoc(context, `inventoryPurchaseOrders/${i.id}`, 'Purchase order');
-      if (!['issued', 'acknowledged', 'partially_received', 'fully_received'].includes(purchaseOrder.status)) throw failed(`Order is ${purchaseOrder.status}`);
-      if (purchaseOrder.status !== 'fully_received' && !i.reason) throw failed('A reason is required to close an order that is not fully received');
-      context.update(ref, { status: 'closed', closeReason: i.reason ?? null, updatedAt: serverTimestamp() });
-      context.audit({ action: 'inventoryPurchaseOrder.close', documentPath: ref.path, before: { status: purchaseOrder.status }, reason: i.reason ?? undefined });
+      const { ref, document: purchaseOrder } = await loadDoc(
+        context,
+        `inventoryPurchaseOrders/${i.id}`,
+        'Purchase order',
+      );
+      if (
+        !['issued', 'acknowledged', 'partially_received', 'fully_received'].includes(
+          purchaseOrder.status,
+        )
+      )
+        throw failed(`Order is ${purchaseOrder.status}`);
+      if (purchaseOrder.status !== 'fully_received' && !i.reason)
+        throw failed('A reason is required to close an order that is not fully received');
+      context.update(ref, {
+        status: 'closed',
+        closeReason: i.reason ?? null,
+        updatedAt: serverTimestamp(),
+      });
+      context.audit({
+        action: 'inventoryPurchaseOrder.close',
+        documentPath: ref.path,
+        before: { status: purchaseOrder.status },
+        reason: i.reason ?? undefined,
+      });
       return { id: ref.id, number: purchaseOrder.number as string };
     },
   }),
@@ -324,8 +478,16 @@ export const orders = {
 /** Ordered quantity per line may not exceed what the request still needs. */
 function checkRemaining(purchaseRequest: DocumentData, lineItems: Line[]) {
   for (const lineItem of lineItems) {
-    const requestLine = (purchaseRequest.lineItems as Array<{ itemId: string; variantId?: string | null; quantity: number; quantityOrdered: number }>).find((lineItem) => key(lineItem) === key(lineItem));
+    const requestLine = (
+      purchaseRequest.lineItems as {
+        itemId: string;
+        variantId?: string | null;
+        quantity: number;
+        quantityOrdered: number;
+      }[]
+    ).find((lineItem) => key(lineItem) === key(lineItem));
     if (!requestLine) throw failed('Order lines must be lines of the request');
-    if (lineItem.quantity > requestLine.quantity - requestLine.quantityOrdered) throw failed('Ordered quantity exceeds what the request still needs');
+    if (lineItem.quantity > requestLine.quantity - requestLine.quantityOrdered)
+      throw failed('Ordered quantity exceeds what the request still needs');
   }
 }

@@ -10,7 +10,9 @@ export async function clearFirestore(): Promise<void> {
   const host = process.env.FIRESTORE_EMULATOR_HOST;
   if (!host) throw new Error('Run through `npm test` (Firestore emulator)');
   for (const database of ['(default)', 'search']) {
-    await fetch(`http://${host}/emulator/v1/projects/${PROJECT}/databases/${database}/documents`, { method: 'DELETE' });
+    await fetch(`http://${host}/emulator/v1/projects/${PROJECT}/databases/${database}/documents`, {
+      method: 'DELETE',
+    });
   }
 }
 

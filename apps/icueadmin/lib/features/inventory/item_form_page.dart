@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icueadmin/features/inventory/widgets/form_section_card.dart';
 import 'package:icueadmin/features/inventory/widgets/purchase_units_editor.dart';
 import 'package:icueadmin/widgets/form_helpers.dart';
@@ -18,7 +17,6 @@ class ItemFormPage extends StatefulWidget {
 
 class _ItemFormPageState extends State<ItemFormPage> {
   final _form = GlobalKey<FormState>();
-  final _requestId = newRequestId();
   late final InventoryItem? _existingItem = widget.item;
   late final _code = TextEditingController(text: _existingItem?.code);
   late final _name = TextEditingController(text: _existingItem?.name);
@@ -98,7 +96,7 @@ class _ItemFormPageState extends State<ItemFormPage> {
         'reorderLevel': _d(_reorder),
         'defaultPrice': _d(_price),
         'defaultLocation': _blank(_location),
-      }, requestId: _requestId),
+      }),
     );
     if (mounted) setState(() => _busy = false);
   }

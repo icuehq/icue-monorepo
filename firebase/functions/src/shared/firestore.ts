@@ -4,4 +4,5 @@ import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 export const serverTimestamp = () => FieldValue.serverTimestamp();
 
 /** A collection of the school the caller belongs to, read outside the transaction. */
-export const schoolCollection = (schoolId: string, name: string) => getFirestore().collection(`schools/${schoolId}/${name}`);
+export const schoolCollection = (schoolId: string, name: string) =>
+  getFirestore().collection(`schools/${schoolId}/${name}`);

@@ -15,7 +15,7 @@ This document decides *how* the FRS is built. Functional behaviour stays defined
 | D1 | Node issues a **Firebase custom token** after its own login; Flutter calls `signInWithCustomToken`. No second login. |
 | D2 | Tenant = Node `organizationId` (school). Campus = `branchId`. `zoneId` = campus group (used only to resolve a user's campuses). |
 | D3 | Roles come from Node. A Firestore permission map (role → permissions) per school makes the §12 matrix configurable. |
-| D4 | **All writes go through callable Cloud Functions** (Admin SDK, transactions). Security Rules are read-only for clients, with one exception: offline verification counts (§8). |
+| D4 | **All writes go through callable Cloud Functions** (Admin SDK, transactions). Security Rules are read-only for clients, with two exceptions: offline verification counts (§8) and the code-keyed masters (inventory categories, units, stores, items, variants, vendors; library libraries and categories) and inventory purchase requests, quotations and invoices (`ProcurementWrites`): plain client CRUD guarded only by the managing permission, no validation, audit log, `requestId`, approver notification or campus check in rules; `counters` is client-writable for any user holding a permission (PR/QT numbering). |
 | D5 | Every transaction is an **append-only movement/event** plus a **balance/status** update in the same Firestore transaction. |
 | D6 | Every mutating callable takes a client-generated `requestId`; replays return the first result (idempotency). |
 | D7 | ERP records (students, staff, departments, roles, academic years) are fetched from **Node APIs by the client** and stored in Firestore **as IDs only**. Functions never call Node. |
@@ -29,7 +29,7 @@ This document decides *how* the FRS is built. Functional behaviour stays defined
 
 ## 2. Authentication bridge
 
-```
+```sh
 Flutter ──login──▶ Node (/v2.0/login) ──▶ Node token
 Flutter ──POST /v1.0/firebaseToken (Node token)──▶ Node
           Node: verify session, resolve user, firebase-admin createCustomToken(uid, claims)
@@ -137,7 +137,7 @@ Common fields on every document: `campusId`, `createdAt`, `createdBy` (uid), `up
 | --- | --- | --- |
 | `inventoryCategories` | code, name, parentId, suggestedTracking, status | Subcategory = `parentId` set |
 | `inventoryUnits` | code, name | Defaults seeded (FRS 10.4) |
-| `inventoryItems` | code, name, categoryId, subcategoryId, stockUnit, purchaseUnits `[{unit, factor}]`, tracking `quantity|batch|asset`, variantAttrs, minLevel, reorderLevel, defaultPrice, preferredVendorId, defaultLocation, imagePath | `categoryHistory` via audit log |
+| `inventoryItems` | code, name, categoryId, subcategoryId, stockUnit, purchaseUnits `[{unit, factor}]`, tracking `quantity | batch | asset`, variantAttrs, minLevel, reorderLevel, defaultPrice, preferredVendorId, defaultLocation, imagePath | `categoryHistory` via audit log |
 | `inventoryItems/{id}/variants` | attrs `{size, color}`, sku, status | Uniforms etc. |
 | `inventoryStores` | code, name, campusId, location, storekeeperIds, status | Department/location is a field on the store or balance |
 | `inventoryBalances/{storeId__itemId__variantId__batchId}` | quantityAvailable, quantityReserved, quantityDamaged, quantityExpired, totalQuantityReceived, totalQuantityIssued, unitCost, value, batchNumber, manufacturingDate, expiryDate, isBelowReorderLevel | **The only stock balance.** One doc per store × item × variant × batch (`-` when not applicable). |
@@ -145,7 +145,7 @@ Common fields on every document: `campusId`, `createdAt`, `createdBy` (uid), `up
 | `inventoryIssueRequests` | lineItems `[{itemId, variantId, quantityRequested, quantityApproved, quantityIssued}]`, itemIds, requester, departmentId, purpose, status, approval `{by, at, comment}` | FRS 10.8 |
 | `inventoryIssues` | requestId, lineItems `[{balanceId, quantity}]`, recipient `{type, personErpId}`, issuedBy, recipientAck | One per issuance (partials allowed) |
 | `inventoryReturns` | issueId, lineItems `[{balanceId, quantityUsable, quantityDamaged}]`, inspection | `quantityReturned ≤ issued − returned` |
-| `inventoryTransfers` | from `{campusId, storeId}`, to, `campusId` (source) + `toCampusId` for rules, `requested` `[{itemId, variantId, quantity}]`, lines (set at dispatch, one per batch) `[{balanceId, quantityDispatched, quantityReceived, discrepancy}]`, status `requested|dispatched|partially_received|received` | In-transit = dispatched − received on open transfers |
+| `inventoryTransfers` | from `{campusId, storeId}`, to, `campusId` (source) + `toCampusId` for rules, `requested` `[{itemId, variantId, quantity}]`, lines (set at dispatch, one per batch) `[{balanceId, quantityDispatched, quantityReceived, discrepancy}]`, status `requested | dispatched | partially_received | received` | In-transit = dispatched − received on open transfers |
 | `inventoryAdjustments` | balanceId, before, delta, after, reason, evidence, verificationId, approval | Immutable after `completed` |
 | `inventoryUnavailableStock` | balanceId or assetId, quantity, reason, evidence, resolution, resolvedAt | FRS 10.12 register |
 | `inventoryPurchaseRequests` | lineItems `[{itemId, quantity, estimatedPrice, quantityOrdered}]`, itemIds, priority, requiredDate, status (FRS 10.13), approval | |
@@ -156,9 +156,9 @@ Common fields on every document: `campusId`, `createdAt`, `createdBy` (uid), `up
 | `inventoryReceipts` (GRN) | source, purchaseOrderId, storeId, lineItems `[{itemId, variantId, quantityReceived, quantityAccepted, quantityRejected, condition, batchNumber, manufacturingDate, expiryDate, serials[]}]`, attachments, inspection | Covers FRS 10.7 and 10.17 |
 | `inventoryInvoices` | vendorId, invoiceNumber, purchaseOrderId, receiptIds, subtotal, tax, discount, total, paidAmount, paymentStatus, attachments | Record only; no payments (FRS 10.18) |
 | `inventoryAssets` | assetId, itemId, serialNumber, make, model, purchaseOrderId, vendorId, purchaseDate, price, warranty `{start, end}`, condition, campusId, storeId, location, status (FRS 10.19), activeAssignmentId, rfidTag, imagePath | One doc per physical object |
-| `inventoryAssetAssignments` | assetId, assignee `{type: staff|student|department, personErpId}`, assignedAt, expectedReturn, conditionOut, ack, returnedAt, conditionIn | Top-level so parents/teachers can query their own |
+| `inventoryAssetAssignments` | assetId, assignee `{type: staff | student | department, personErpId}`, assignedAt, expectedReturn, conditionOut, ack, returnedAt, conditionIn | Top-level so parents/teachers can query their own |
 | `inventoryMaintenanceJobs` | assetId, issue, priority, technician, cost, partsUsed `[{itemId, quantity}]`, status (FRS 10.20), nextServiceDate | Parts used create `issue` movements |
-| `inventoryVerifications` | storeId, scope, status `draft|counting|submitted|approved|applied` | |
+| `inventoryVerifications` | storeId, scope, status `draft | counting | submitted | approved | applied` | |
 | `inventoryVerifications/{id}/lines` | balanceId, expected, counted, diff, reason, countedBy | Written by `inventory.verification.count` (client-writable offline counting arrives with Inv-8) |
 
 ### 4.3 Library
@@ -170,13 +170,13 @@ Common fields on every document: `campusId`, `createdAt`, `createdBy` (uid), `up
 | `libraryCatalogue` | title, subtitle, authors[], isbn10, isbn13, publisher, edition, year, language, categoryId, classificationNumber, keywords, coverPath, status, identityKey | School-wide; shared across libraries |
 | `libraryCopies` | accessionNumber, catalogueId, libraryId, campusId, shelf, barcode, rfidTag, acquisitionId, price, source, condition, status (FRS 11.5 + `in_transit`), activeLoanId, heldReservationId | One doc per physical book |
 | `libraryAcquisitions` | type, catalogueId, quantity, libraryId, vendorOrDonor, price, reference, copyIds | |
-| `libraryMembers/{memberType_erpId}` | memberType `student|teacher`, personErpId, classId (students), category (policy key), libraryIds, start, end, status, activeLoans, blocked | Deterministic ID → no duplicate members |
+| `libraryMembers/{memberType_erpId}` | memberType `student | teacher`, personErpId, classId (students), category (policy key), libraryIds, start, end, status, activeLoans, blocked | Deterministic ID → no duplicate members |
 | `libraryBorrowingPolicies` | libraryId, memberCategory, maxBooks, loanDays, maxRenewals, fineType, fineAmount, graceDays, maxFine, canReserve, restrictedCategoryIds, overdueRenewal, status | |
-| `libraryLoans` | memberId, copyId, catalogueId, libraryId, issuedAt, dueAt, renewals[], policySnapshot, status `active|returned|lost`, returnedAt, condition, overdueDays | `policySnapshot` frozen at issue (FRS 11.8) |
+| `libraryLoans` | memberId, copyId, catalogueId, libraryId, issuedAt, dueAt, renewals[], policySnapshot, status `active | returned | lost`, returnedAt, condition, overdueDays | `policySnapshot` frozen at issue (FRS 11.8) |
 | `libraryReservations` | memberId, catalogueId, libraryId, status (FRS 11.12), createdAt, heldCopyId, holdUntil, fulfilledLoanId | Queue position is computed (count of earlier `waiting`), not stored |
 | `libraryFines/{loanId__type}` | memberId, loanId, type, fineCalculation, amount, waived, outstanding, status, waivers[] | Deterministic ID → fines cannot duplicate |
-| `libraryIncidents` | kind `lost|damaged`, copyId, memberId, severity, photos, charge, repairStatus, resolution | FRS 11.14 |
-| `libraryTransfers` | fromLibraryId, toLibraryId, lineItems `[{copyId, received, condition}]`, status `requested|approved|dispatched|partially_received|received` | |
+| `libraryIncidents` | kind `lost | damaged`, copyId, memberId, severity, photos, charge, repairStatus, resolution | FRS 11.14 |
+| `libraryTransfers` | fromLibraryId, toLibraryId, lineItems `[{copyId, received, condition}]`, status `requested | approved | dispatched | partially_received | received` | |
 | `libraryVerifications` (+`lineItems`) | libraryId, scope, expected copy IDs, scanned, missing, unexpected, status | Same pattern as inventory |
 
 Parents and teachers read `libraryLoans`, `libraryFines`, `libraryReservations`, `inventoryAssetAssignments` where `memberErpId`/`assignee.personErpId` matches their claim, so those docs carry a flat `personErpId` field for rule and index use.
@@ -203,12 +203,12 @@ Names below are logical; they deploy as `<group>-<name>` (`session.sync` → `se
 | --- | --- |
 | Session | `session.sync` |
 | Settings | `config.setRolePermissions`, `inventory.setSettings`, `library.setSettings` |
-| Inventory masters | `inventory.category.upsert/setStatus`, `inventory.unit.upsert`, `inventory.item.upsert/setStatus`, `inventory.variant.upsert`, `inventory.store.upsert/setStatus`, `inventory.vendor.upsert/setStatus` |
+| Inventory masters | `inventory.seedDefaults`, `inventory.item.search`. Categories, units, stores, items, variants and vendors are client Firestore writes (`firestore.rules`); the bulk importer reuses their server handlers internally. |
 | Stock | `inventory.receipt.confirm`, `inventory.issueRequest.submit/decide`, `inventory.issue.create`, `inventory.issue.acknowledge`, `inventory.return.create`, `inventory.transfer.request/dispatch/receive`, `inventory.adjustment.create/approve`, `inventory.unavailable.report/resolve` |
-| Procurement | `inventory.purchaseRequest.save/submit/decide/cancel`, `inventory.quotation.save/select`, `inventory.purchaseOrder.save/issue/revise/acknowledge/cancel/close`, `inventory.invoice.save/setPayment` |
+| Procurement | `inventory.purchaseOrder.save/issue/revise/acknowledge/cancel/close/receive`. Purchase requests, quotations and invoices are client Firestore writes (`ProcurementWrites`). |
 | Assets | `inventory.asset.register`, `inventory.asset.assign/return/transfer/setCondition/retire`, `inventory.maintenance.save/setStatus` |
 | Verification | `inventory.verification.create/count/submit/decide` (approve creates adjustments referencing the session; reject reopens counting) |
-| Library masters | `library.library.upsert/setStatus`, `library.category.upsert/setStatus`, `library.catalogue.upsert/setStatus/search`, `library.seedDefaults`, `library.policy.upsert` |
+| Library masters | `library.catalogue.upsert/setStatus/search`, `library.seedDefaults`, `library.policy.upsert`. Libraries and categories are client Firestore writes. |
 | Copies | `library.acquisition.create` (generates accession numbers + copies), `library.copy.update/move` |
 | Members | `library.member.upsert/setStatus` |
 | Circulation | `library.loan.issue`, `library.loan.return`, `library.loan.renew`, `library.loan.markLost` |

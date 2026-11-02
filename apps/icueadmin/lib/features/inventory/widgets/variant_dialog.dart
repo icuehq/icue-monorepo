@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
@@ -27,7 +26,6 @@ class VariantDialog extends StatefulWidget {
 }
 
 class _VariantDialogState extends State<VariantDialog> {
-  final _requestId = newRequestId();
   late final _sku = TextEditingController(text: widget.variant?.sku);
   late final _attrs = {
     for (final variantAttr in widget.item.variantAttrs)
@@ -63,7 +61,7 @@ class _VariantDialogState extends State<VariantDialog> {
         'itemId': widget.item.id,
         if (variant != null) 'id': variant.id else 'code': _sku.text.trim(),
         'attrs': values,
-      }, requestId: _requestId),
+      }),
     );
   }
 

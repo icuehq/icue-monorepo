@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icueadmin/features/inventory/procurement/procurement_ui.dart';
 import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
@@ -19,7 +18,6 @@ class VendorFormSheet extends StatefulWidget {
 
 class _VendorFormSheetState extends State<VendorFormSheet> {
   final _form = GlobalKey<FormState>();
-  final _requestId = newRequestId();
   late final _code = TextEditingController(text: widget.vendor?.code);
   late final _name = TextEditingController(text: widget.vendor?.name);
   late final _contact = TextEditingController(
@@ -60,19 +58,18 @@ class _VendorFormSheetState extends State<VendorFormSheet> {
         controller.text.trim().isEmpty ? null : controller.text.trim();
     await procSubmit(
       context,
-      (procurementProvider) =>
-          procurementProvider.act('inventory-vendor-upsert', {
-            if (vendor != null) 'id': vendor.id else 'code': _code.text.trim(),
-            'name': _name.text.trim(),
-            'contactPerson': blank(_contact),
-            'phone': blank(_phone),
-            'email': blank(_email),
-            'address': blank(_address),
-            'taxNumber': blank(_tax),
-            'website': blank(_website),
-            'categoryIds': _categories.toList(),
-            'notes': blank(_remarks),
-          }, requestId: _requestId),
+      (procurementProvider) => procurementProvider.saveVendor({
+        if (vendor != null) 'id': vendor.id else 'code': _code.text.trim(),
+        'name': _name.text.trim(),
+        'contactPerson': blank(_contact),
+        'phone': blank(_phone),
+        'email': blank(_email),
+        'address': blank(_address),
+        'taxNumber': blank(_tax),
+        'website': blank(_website),
+        'categoryIds': _categories.toList(),
+        'remarks': blank(_remarks),
+      }),
     );
     if (mounted) setState(() => _busy = false);
   }

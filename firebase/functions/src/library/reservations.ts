@@ -1,24 +1,35 @@
 import '../region';
-import { getFirestore, type DocumentData, type DocumentReference, type DocumentSnapshot } from 'firebase-admin/firestore';
+import {
+  getFirestore,
+  type DocumentData,
+  type DocumentReference,
+  type DocumentSnapshot,
+} from 'firebase-admin/firestore';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
-import { forEachSchool } from '../shared/scheduled';
 import { z } from 'zod';
 import { CallableContext } from '../shared/callable';
+import { todayIST, addDays } from '../shared/dates';
+import { serverTimestamp } from '../shared/firestore';
 import { nextNumber } from '../shared/keys';
 import { defineCallable, failed, id, missing, usable } from '../shared/masters';
 import { enqueue } from '../shared/outbox';
+import { forEachSchool } from '../shared/scheduled';
 import { policyId } from './members';
-import { todayIST, addDays } from '../shared/dates';
-import { serverTimestamp } from '../shared/firestore';
 
 const DEFAULT_HOLD_DAYS = 3;
 /** Waiting rows read per freed copy; members who are no longer eligible are skipped, so read a few extra. */
 const LOOKAHEAD = 10;
 
 /** Waiting reservations of a title in a library, oldest first (FRS 11.12 queue order). */
-export const waitingQuery = (context: CallableContext, catalogueId: string, libraryId: string, limit: number) =>
+export const waitingQuery = (
+  context: CallableContext,
+  catalogueId: string,
+  libraryId: string,
+  limit: number,
+) =>
   context.transaction.get(
-    context.coll('libraryReservations')
+    context
+      .coll('libraryReservations')
       .where('status', '==', 'waiting')
       .where('catalogueId', '==', catalogueId)
       .where('libraryId', '==', libraryId)
@@ -27,30 +38,67 @@ export const waitingQuery = (context: CallableContext, catalogueId: string, libr
   );
 
 /** The first `n` waiting reservations whose member can still borrow; the rest keep their place. */
-export async function nextWaiting(context: CallableContext, catalogueId: string, libraryId: string, count: number): Promise<DocumentSnapshot[]> {
+export async function nextWaiting(
+  context: CallableContext,
+  catalogueId: string,
+  libraryId: string,
+  count: number,
+): Promise<DocumentSnapshot[]> {
   const today = todayIST();
   const out: DocumentSnapshot[] = [];
-  for (const snapshot of (await waitingQuery(context, catalogueId, libraryId, count + LOOKAHEAD)).docs) {
+  for (const snapshot of (await waitingQuery(context, catalogueId, libraryId, count + LOOKAHEAD))
+    .docs) {
     if (out.length === count) break;
-    const member = (await context.transaction.get(context.doc(`libraryMembers/${snapshot.data().memberId}`))).data();
-    if (member?.status === 'active' && !member.blocked && member.start <= today && (!member.end || member.end >= today)) out.push(snapshot);
+    const member = (
+      await context.transaction.get(context.doc(`libraryMembers/${snapshot.data().memberId}`))
+    ).data();
+    if (
+      member?.status === 'active' &&
+      !member.blocked &&
+      member.start <= today &&
+      (!member.end || member.end >= today)
+    )
+      out.push(snapshot);
   }
   return out;
 }
 
 export async function holdDays(context: CallableContext): Promise<number> {
-  const configuredDays = (await context.transaction.get(context.doc('config/librarySettings'))).data()?.holdDays;
-  return typeof configuredDays === 'number' && configuredDays >= 1 ? configuredDays : DEFAULT_HOLD_DAYS;
+  const configuredDays = (
+    await context.transaction.get(context.doc('config/librarySettings'))
+  ).data()?.holdDays;
+  return typeof configuredDays === 'number' && configuredDays >= 1
+    ? configuredDays
+    : DEFAULT_HOLD_DAYS;
 }
 
 /** Holds a copy for a reservation and tells the member (the student's parent, or the teacher). */
-export async function hold(context: CallableContext, reservationSnapshot: DocumentSnapshot, copyRef: DocumentReference, copyId: string, days: number): Promise<void> {
+export async function hold(
+  context: CallableContext,
+  reservationSnapshot: DocumentSnapshot,
+  copyRef: DocumentReference,
+  copyId: string,
+  days: number,
+): Promise<void> {
   const reservation = reservationSnapshot.data()!;
   const holdUntil = addDays(todayIST(), days);
-  context.update(reservationSnapshot.ref, { status: 'ready', heldCopyId: copyId, holdUntil, readyAt: serverTimestamp() });
-  context.update(copyRef, { status: 'reserved', heldReservationId: reservationSnapshot.id, activeLoanId: null, updatedAt: serverTimestamp() });
+  context.update(reservationSnapshot.ref, {
+    status: 'ready',
+    heldCopyId: copyId,
+    holdUntil,
+    readyAt: serverTimestamp(),
+  });
+  context.update(copyRef, {
+    status: 'reserved',
+    heldReservationId: reservationSnapshot.id,
+    activeLoanId: null,
+    updatedAt: serverTimestamp(),
+  });
   await enqueue(context, `library-reservation-ready__${reservationSnapshot.id}`, {
-    to: reservation.memberType === 'student' ? { wardStudentIds: [reservation.personErpId] } : { personErpIds: [reservation.personErpId] },
+    to:
+      reservation.memberType === 'student'
+        ? { wardStudentIds: [reservation.personErpId] }
+        : { personErpIds: [reservation.personErpId] },
     category: 'library.reservation',
     title: 'Reserved book is ready',
     body: `${reservation.title}: collect it by ${holdUntil}.`,
@@ -62,10 +110,20 @@ export async function hold(context: CallableContext, reservationSnapshot: Docume
  * A copy came free (returned, repaired, cancelled or expired hold): the next eligible member in the
  * queue gets it, otherwise it goes back on the shelf.
  */
-export async function release(context: CallableContext, copyRef: DocumentReference, copy: DocumentData): Promise<void> {
+export async function release(
+  context: CallableContext,
+  copyRef: DocumentReference,
+  copy: DocumentData,
+): Promise<void> {
   const [next] = await nextWaiting(context, copy.catalogueId, copy.libraryId, 1);
   if (next) await hold(context, next, copyRef, copyRef.id, await holdDays(context));
-  else context.update(copyRef, { status: 'available', heldReservationId: null, activeLoanId: null, updatedAt: serverTimestamp() });
+  else
+    context.update(copyRef, {
+      status: 'available',
+      heldReservationId: null,
+      activeLoanId: null,
+      updatedAt: serverTimestamp(),
+    });
 }
 
 export const reservations = {
@@ -92,19 +150,46 @@ export const reservations = {
 
       if (member.status !== 'active') throw failed('Member is inactive');
       if (member.blocked) throw failed('Member is blocked');
-      if (member.start > today || (member.end && member.end < today)) throw failed('Membership is not valid today');
-      if (!member.libraryIds.includes(i.libraryId)) throw failed('Member has no access to this library');
-      const policy = (await context.transaction.get(context.doc(`libraryBorrowingPolicies/${policyId(i.libraryId, member.memberCategory)}`))).data();
-      if (!policy || policy.status !== 'active') throw failed('No active borrowing policy for this member');
+      if (member.start > today || (member.end && member.end < today))
+        throw failed('Membership is not valid today');
+      if (!member.libraryIds.includes(i.libraryId))
+        throw failed('Member has no access to this library');
+      const policy = (
+        await context.transaction.get(
+          context.doc(`libraryBorrowingPolicies/${policyId(i.libraryId, member.memberCategory)}`),
+        )
+      ).data();
+      if (!policy || policy.status !== 'active')
+        throw failed('No active borrowing policy for this member');
       if (!policy.canReserve) throw failed('This member category cannot reserve');
-      if (policy.restrictedCategoryIds.includes(title.categoryId)) throw failed('This category is restricted for the member');
+      if (policy.restrictedCategoryIds.includes(title.categoryId))
+        throw failed('This category is restricted for the member');
 
-      const live = await context.transaction.get(context.coll('libraryReservations').where('memberId', '==', snapshot.id).where('catalogueId', '==', i.catalogueId).where('status', 'in', ['waiting', 'ready']).limit(1));
+      const live = await context.transaction.get(
+        context
+          .coll('libraryReservations')
+          .where('memberId', '==', snapshot.id)
+          .where('catalogueId', '==', i.catalogueId)
+          .where('status', 'in', ['waiting', 'ready'])
+          .limit(1),
+      );
       if (!live.empty) throw failed('Member already has a reservation for this title');
-      const loans = await context.transaction.get(context.coll('libraryLoans').where('memberId', '==', snapshot.id).where('catalogueId', '==', i.catalogueId).where('status', '==', 'active').limit(1));
+      const loans = await context.transaction.get(
+        context
+          .coll('libraryLoans')
+          .where('memberId', '==', snapshot.id)
+          .where('catalogueId', '==', i.catalogueId)
+          .where('status', '==', 'active')
+          .limit(1),
+      );
       if (!loans.empty) throw failed('Member already has this title on loan');
       const shelf = await context.transaction.get(
-        context.coll('libraryCopies').where('catalogueId', '==', i.catalogueId).where('libraryId', '==', i.libraryId).where('status', '==', 'available').limit(1),
+        context
+          .coll('libraryCopies')
+          .where('catalogueId', '==', i.catalogueId)
+          .where('libraryId', '==', i.libraryId)
+          .where('status', '==', 'available')
+          .limit(1),
       );
       if (!shelf.empty) throw failed('A copy is available; issue it instead');
 
@@ -142,17 +227,31 @@ export const reservations = {
       if (!snapshot.exists) throw missing('libraryReservation');
       const reservation = snapshot.data()!;
       context.requireCampus(reservation.campusId);
-      if (reservation.status !== 'waiting' && reservation.status !== 'ready') throw failed(`Reservation is ${reservation.status}`);
+      if (reservation.status !== 'waiting' && reservation.status !== 'ready')
+        throw failed(`Reservation is ${reservation.status}`);
       if (reservation.status === 'ready') await freeHeld(context, reservation.heldCopyId, ref.id);
-      context.update(ref, { status: 'cancelled', cancelledBy: context.uid, cancelledAt: serverTimestamp() });
-      context.audit({ action: 'libraryReservation.cancel', documentPath: ref.path, before: { status: reservation.status }, after: { status: 'cancelled' } });
+      context.update(ref, {
+        status: 'cancelled',
+        cancelledBy: context.uid,
+        cancelledAt: serverTimestamp(),
+      });
+      context.audit({
+        action: 'libraryReservation.cancel',
+        documentPath: ref.path,
+        before: { status: reservation.status },
+        after: { status: 'cancelled' },
+      });
       return { id: ref.id };
     },
   }),
 };
 
 /** Releases the copy held for [reservationId], unless it has meanwhile been taken by something else. */
-async function freeHeld(context: CallableContext, copyId: string, reservationId: string): Promise<void> {
+async function freeHeld(
+  context: CallableContext,
+  copyId: string,
+  reservationId: string,
+): Promise<void> {
   const cRef = context.doc(`libraryCopies/${copyId}`);
   const copy = (await context.transaction.get(cRef)).data();
   if (copy?.heldReservationId === reservationId) await release(context, cRef, copy);
@@ -161,10 +260,18 @@ async function freeHeld(context: CallableContext, copyId: string, reservationId:
 /** Expires holds past `holdUntil` and passes each copy to the next member. Re-checked per row, so reruns are no-ops. */
 export async function runHoldExpiry(schoolId: string, today = todayIST()): Promise<void> {
   const db = getFirestore();
-  const due = await db.collection(`schools/${schoolId}/libraryReservations`).where('status', '==', 'ready').where('holdUntil', '<', today).get();
+  const due = await db
+    .collection(`schools/${schoolId}/libraryReservations`)
+    .where('status', '==', 'ready')
+    .where('holdUntil', '<', today)
+    .get();
   for (const snapshot of due.docs) {
     await db.runTransaction(async (transaction) => {
-      const context = new CallableContext(transaction, schoolId, 'system', { permissions: [], campusIds: [], hasAllCampuses: true });
+      const context = new CallableContext(transaction, schoolId, 'system', {
+        permissions: [],
+        campusIds: [],
+        hasAllCampuses: true,
+      });
       const reservation = (await transaction.get(snapshot.ref)).data();
       if (reservation?.status !== 'ready' || reservation.holdUntil >= today) return;
       await freeHeld(context, reservation.heldCopyId, snapshot.id);
@@ -175,6 +282,9 @@ export async function runHoldExpiry(schoolId: string, today = todayIST()): Promi
 }
 
 /** Hourly, every school (architecture §5.2). */
-export const holdExpiry = onSchedule({ schedule: '0 * * * *', timeZone: 'Asia/Kolkata' }, async () => {
-  await forEachSchool(runHoldExpiry);
-});
+export const holdExpiry = onSchedule(
+  { schedule: '0 * * * *', timeZone: 'Asia/Kolkata' },
+  async () => {
+    await forEachSchool(runHoldExpiry);
+  },
+);

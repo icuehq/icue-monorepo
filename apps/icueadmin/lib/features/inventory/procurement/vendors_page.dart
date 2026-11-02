@@ -27,10 +27,10 @@ class _VendorsPageState extends State<VendorsPage> {
 
   Future<void> _toggle(InventoryVendor vendor) async {
     final procurementProvider = context.read<ProcurementProvider>();
-    final result = await procurementProvider.act('inventory-vendor-setStatus', {
-      'id': vendor.id,
-      'status': vendor.active ? 'inactive' : 'active',
-    });
+    final result = await procurementProvider.setVendorActive(
+      vendor.id,
+      active: !vendor.active,
+    );
     if (!mounted) return;
     if (result == null) {
       return showMessage(context, procurementProvider.errorMessage ?? 'Failed');

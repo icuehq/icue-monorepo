@@ -4,7 +4,7 @@ import 'package:inventory/src/models/inventory_orders.dart';
 import 'package:inventory/src/models/inventory_procurement.dart';
 import 'package:inventory/src/models/inventory_receiving.dart';
 
-/// Vendors and purchase requests (Inv-3): reads from Firestore, writes are callables (see `StockService.call`).
+/// Vendors and purchase requests (Inv-3): reads and vendor writes go to Firestore; request, quotation and invoice writes are `ProcurementWrites`.
 @lazySingleton
 class ProcurementService {
   String get uid => FirebaseAuth.instance.currentUser!.uid;
@@ -18,6 +18,12 @@ class ProcurementService {
         InventoryVendor.fromMap(document.id, document.data()),
     ];
   }
+
+  Future<void> saveVendor(Map<String, Object?> data) =>
+      saveMasterDocument('inventoryVendors', data, onCreate: {'documents': []});
+
+  Future<void> setVendorActive(String id, {required bool active}) =>
+      setMasterActive('inventoryVendors', id, active: active);
 
   /// Approvers and procurement see the campus's requests; everyone else their own (rules need the campus filter).
   Future<List<InventoryPurchaseRequest>> requests(

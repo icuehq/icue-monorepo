@@ -1,10 +1,10 @@
-import { DocumentData } from 'firebase-admin/firestore';
+import { type DocumentData } from 'firebase-admin/firestore';
 import { HttpsError } from 'firebase-functions/v2/https';
 import { z } from 'zod';
 import type { CallableDef, CallableContext } from './callable';
+import { serverTimestamp } from './firestore';
 import { claimUniqueKey } from './keys';
 import type { Permission } from './permissions';
-import { serverTimestamp } from './firestore';
 
 /** Helpers shared by the inventory and library master-data callables. */
 
@@ -47,30 +47,56 @@ export async function saveMaster(
     const snapshot = await context.transaction.get(ref);
     if (!snapshot.exists) throw missing(documentData.entityType);
     const before = snapshot.data()!;
-    if (documentData.code && documentData.code.toLowerCase() !== String(before.code).toLowerCase()) throw failed('Code cannot be changed');
+    if (documentData.code && documentData.code.toLowerCase() !== String(before.code).toLowerCase())
+      throw failed('Code cannot be changed');
     const after = await documentData.build(before, before.code);
     context.update(ref, { ...after, updatedAt: now });
-    context.audit({ action: `${documentData.entityType}.update`, documentPath: ref.path, before, after });
+    context.audit({
+      action: `${documentData.entityType}.update`,
+      documentPath: ref.path,
+      before,
+      after,
+    });
     return { id: ref.id };
   }
   if (!documentData.code) throw new HttpsError('invalid-argument', 'code required');
   let ref;
   if (documentData.idFromCode) {
     const docId = codeDocId(documentData.code);
-    if (!codeIdPattern.test(docId)) throw new HttpsError('invalid-argument', 'Code may only contain letters, digits, "-" and "_"');
+    if (!codeIdPattern.test(docId))
+      throw new HttpsError(
+        'invalid-argument',
+        'Code may only contain letters, digits, "-" and "_"',
+      );
     ref = context.doc(`${documentData.coll}/${docId}`);
-    if ((await context.transaction.get(ref)).exists) throw new HttpsError('already-exists', `${documentData.entityType} "${documentData.code}" already exists`);
+    if ((await context.transaction.get(ref)).exists)
+      throw new HttpsError(
+        'already-exists',
+        `${documentData.entityType} "${documentData.code}" already exists`,
+      );
   } else {
     ref = context.newDoc(documentData.coll);
     await claimUniqueKey(context, documentData.entityType, documentData.code, ref.path);
   }
   const after = await documentData.build(undefined, documentData.code);
-  context.set(ref, { status: 'active', ...after, code: documentData.code, createdAt: now, createdBy: context.uid, updatedAt: now });
+  context.set(ref, {
+    status: 'active',
+    ...after,
+    code: documentData.code,
+    createdAt: now,
+    createdBy: context.uid,
+    updatedAt: now,
+  });
   context.audit({ action: `${documentData.entityType}.create`, documentPath: ref.path, after });
   return { id: ref.id };
 }
 
-export function defineSetStatus(functionName: string, permission: Permission, collection: string, entityType: string) {
+export function defineSetStatus(
+  functionName: string,
+  permission: Permission,
+  collection: string,
+  entityType: string,
+) {
   return defineCallable({
     name: functionName,
     permission,
@@ -81,14 +107,23 @@ export function defineSetStatus(functionName: string, permission: Permission, co
       if (!snapshot.exists) throw missing(entityType);
       if (snapshot.data()!.status === input.status) return { id: input.id };
       context.update(ref, { status: input.status, updatedAt: serverTimestamp() });
-      context.audit({ action: `${entityType}.status`, documentPath: ref.path, before: { status: snapshot.data()!.status }, after: { status: input.status } });
+      context.audit({
+        action: `${entityType}.status`,
+        documentPath: ref.path,
+        before: { status: snapshot.data()!.status },
+        after: { status: input.status },
+      });
       return { id: input.id };
     },
   });
 }
 
 /** Active, unless it is the value the record already holds (existing records keep deactivated masters). */
-export function usable(snapshot: { exists: boolean; data(): DocumentData | undefined }, what: string, unchanged: boolean) {
+export function usable(
+  snapshot: { exists: boolean; data(): DocumentData | undefined },
+  what: string,
+  unchanged: boolean,
+) {
   if (!snapshot.exists) throw failed(`${what} not found`);
   if (!unchanged && snapshot.data()!.status !== 'active') throw failed(`${what} is inactive`);
   return snapshot.data()!;

@@ -1,13 +1,13 @@
 import '../region';
 import { z } from 'zod';
 import type { CallableContext } from '../shared/callable';
+import { todayIST } from '../shared/dates';
+import { serverTimestamp } from '../shared/firestore';
 import { nextNumber } from '../shared/keys';
 import { defineCallable, failed, id, missing, optionalText } from '../shared/masters';
 import { enqueue } from '../shared/outbox';
 import { memberAndLibrarians } from './notify';
 import { release } from './reservations';
-import { todayIST } from '../shared/dates';
-import { serverTimestamp } from '../shared/firestore';
 
 const INCIDENT_TYPES = ['lost', 'damaged'] as const;
 const SEVERITIES = ['minor', 'moderate', 'severe'] as const;
@@ -49,9 +49,17 @@ export const incidents = {
         throw failed(`Copy is already ${copy.status}`);
       }
       if (copy.activeLoanId || copy.heldReservationId) {
-        throw failed('Copy is on loan or held; use Mark lost / return as damaged, or release the hold first');
+        throw failed(
+          'Copy is on loan or held; use Mark lost / return as damaged, or release the hold first',
+        );
       }
-      const open = await context.transaction.get(context.coll('libraryIncidents').where('copyId', '==', i.copyId).where('status', '==', 'open').limit(1));
+      const open = await context.transaction.get(
+        context
+          .coll('libraryIncidents')
+          .where('copyId', '==', i.copyId)
+          .where('status', '==', 'open')
+          .limit(1),
+      );
       if (!open.empty) throw failed('Copy already has an open incident');
 
       let member: Record<string, unknown> | null = null;
@@ -90,11 +98,21 @@ export const incidents = {
         reportedBy: context.uid,
       };
 
-      context.set(incRef, { ...after, createdAt: serverTimestamp(), createdBy: context.uid, updatedAt: serverTimestamp() });
+      context.set(incRef, {
+        ...after,
+        createdAt: serverTimestamp(),
+        createdBy: context.uid,
+        updatedAt: serverTimestamp(),
+      });
 
       // Update copy status: lost or damaged copies are taken off circulation
       const newCopyStatus = i.type === 'lost' ? 'lost' : 'damaged';
-      context.update(cRef, { status: newCopyStatus, activeLoanId: null, heldReservationId: null, updatedAt: serverTimestamp() });
+      context.update(cRef, {
+        status: newCopyStatus,
+        activeLoanId: null,
+        heldReservationId: null,
+        updatedAt: serverTimestamp(),
+      });
 
       // If a member is responsible and charge > 0, raise a fine and block the member
       if (member && mRef && i.charge > 0) {
@@ -128,9 +146,15 @@ export const incidents = {
       }
 
       await enqueue(context, `library-incident__${incRef.id}`, {
-        to: memberAndLibrarians((member?.memberType as string) ?? '', (member?.personErpId as number) ?? null, copy.campusId),
-        category: 'library.incident', title: `${i.type === 'lost' ? 'Lost' : 'Damaged'} book recorded`,
-        body: `${copy.accessionNumber} was reported ${i.type}.`, data: { incidentId: incRef.id },
+        to: memberAndLibrarians(
+          (member?.memberType as string) ?? '',
+          (member?.personErpId as number) ?? null,
+          copy.campusId,
+        ),
+        category: 'library.incident',
+        title: `${i.type === 'lost' ? 'Lost' : 'Damaged'} book recorded`,
+        body: `${copy.accessionNumber} was reported ${i.type}.`,
+        data: { incidentId: incRef.id },
       });
       context.audit({ action: 'libraryIncident.report', documentPath: incRef.path, after });
       return { id: incRef.id, number: incidentNumber };
@@ -160,9 +184,11 @@ export const incidents = {
       if (!cSnap.exists) throw missing('libraryCopy');
       const copy = cSnap.data()!;
 
-      if (i.resolution === 'repaired' && incident.type !== 'damaged') throw failed('Only a damaged copy can be repaired');
+      if (i.resolution === 'repaired' && incident.type !== 'damaged')
+        throw failed('Only a damaged copy can be repaired');
       const charge = i.charge ?? incident.charge ?? 0;
-      if (charge < (incident.charge ?? 0)) throw failed('Charge cannot be lowered on resolve; waive the fine instead');
+      if (charge < (incident.charge ?? 0))
+        throw failed('Charge cannot be lowered on resolve; waive the fine instead');
 
       let repairStatus = incident.repairStatus;
       if (i.resolution === 'repaired' || i.resolution === 'dismissed') {
@@ -199,7 +225,11 @@ export const incidents = {
             paid: 0,
             outstanding: difference,
             status: 'outstanding',
-            fineCalculation: { incidentNumber: incident.incidentNumber, resolution: i.resolution, charge: difference },
+            fineCalculation: {
+              incidentNumber: incident.incidentNumber,
+              resolution: i.resolution,
+              charge: difference,
+            },
             waivers: [],
             payments: [],
             createdAt: serverTimestamp(),
@@ -222,7 +252,12 @@ export const incidents = {
         updatedAt: serverTimestamp(),
       };
       context.update(ref, update);
-      context.audit({ action: 'libraryIncident.resolve', documentPath: ref.path, before: { status: 'open' }, after: update });
+      context.audit({
+        action: 'libraryIncident.resolve',
+        documentPath: ref.path,
+        before: { status: 'open' },
+        after: update,
+      });
       return { id: ref.id };
     },
   }),

@@ -1,16 +1,30 @@
-import { getFirestore, DocumentReference, Timestamp, Transaction } from 'firebase-admin/firestore';
+import {
+  getFirestore,
+  type DocumentReference,
+  Timestamp,
+  type Transaction,
+} from 'firebase-admin/firestore';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { z } from 'zod';
-import type { Permission } from './permissions';
 import { serverTimestamp } from './firestore';
+import type { Permission } from './permissions';
 
-export type TokenClaims = { schoolId?: unknown; personType?: unknown; [key: string]: unknown };
-export type UserAccess = { permissions: string[]; campusIds: number[]; hasAllCampuses: boolean; personErpId?: number };
+export interface TokenClaims {
+  schoolId?: unknown;
+  personType?: unknown;
+  [key: string]: unknown;
+}
+export interface UserAccess {
+  permissions: string[];
+  campusIds: number[];
+  hasAllCampuses: boolean;
+  personErpId?: number;
+}
 
 /** Per-call context. Read through `tx`; write only through `set`/`update` so all
  * writes run after all reads (Firestore transactions require it). */
 export class CallableContext {
-  private readonly writes: Array<(transaction: Transaction) => void> = [];
+  private readonly writes: ((transaction: Transaction) => void)[] = [];
 
   constructor(
     readonly transaction: Transaction,
@@ -52,7 +66,13 @@ export class CallableContext {
     }
   }
 
-  audit(entry: { action: string; documentPath: string; before?: unknown; after?: unknown; reason?: string }): void {
+  audit(entry: {
+    action: string;
+    documentPath: string;
+    before?: unknown;
+    after?: unknown;
+    reason?: string;
+  }): void {
     this.set(this.newDoc('auditLogs'), {
       actor: this.uid,
       action: entry.action,
@@ -70,12 +90,12 @@ export class CallableContext {
   }
 }
 
-export type CallableDef<S extends z.ZodType, R> = {
+export interface CallableDef<S extends z.ZodType, R> {
   name: string;
   permission: Permission;
   input: S;
   handler: (context: CallableContext, input: z.infer<S>) => Promise<R>;
-};
+}
 
 const REQUEST_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const requestIdSchema = z.string().regex(/^[A-Za-z0-9_-]{8,64}$/);
@@ -90,7 +110,8 @@ export async function runCallable<S extends z.ZodType, R>(
   data: unknown,
 ): Promise<R> {
   if (!auth) throw new HttpsError('unauthenticated', 'Sign in required');
-  if (auth.token.personType === 'parent') throw new HttpsError('permission-denied', 'Read-only user');
+  if (auth.token.personType === 'parent')
+    throw new HttpsError('permission-denied', 'Read-only user');
   if (auth.token.schoolId == null) throw new HttpsError('permission-denied', 'No school');
   const schoolId = String(auth.token.schoolId);
   const uid = auth.uid;
@@ -100,7 +121,7 @@ export async function runCallable<S extends z.ZodType, R>(
   if (!requestId.success) throw new HttpsError('invalid-argument', 'requestId required');
   const parsed = def.input.safeParse(raw);
   if (!parsed.success) throw new HttpsError('invalid-argument', z.prettifyError(parsed.error));
-  const input = parsed.data as z.infer<S>;
+  const input = parsed.data;
 
   const db = getFirestore();
   return db.runTransaction(async (transaction) => {
@@ -117,7 +138,8 @@ export async function runCallable<S extends z.ZodType, R>(
     }
     if (!accessSnap.exists) throw new HttpsError('failed-precondition', 'Session not synced');
     const access = accessSnap.data() as UserAccess;
-    if (!access.permissions?.includes(def.permission)) throw new HttpsError('permission-denied', 'Not allowed');
+    if (!access.permissions?.includes(def.permission))
+      throw new HttpsError('permission-denied', 'Not allowed');
 
     const context = new CallableContext(transaction, schoolId, uid, access);
     const campusId = (input as { campusId?: unknown })?.campusId;
@@ -139,15 +161,19 @@ export async function runCallable<S extends z.ZodType, R>(
 /** Exposes [def] as an `asia-south1` callable (region set globally in index.ts). */
 export function callable<S extends z.ZodType, R>(def: CallableDef<S, R>) {
   return onCall((request) =>
-    runCallable(def, request.auth ? { uid: request.auth.uid, token: request.auth.token as TokenClaims } : undefined, request.data),
+    runCallable(
+      def,
+      request.auth ? { uid: request.auth.uid, token: request.auth.token } : undefined,
+      request.data,
+    ),
   );
 }
 
-export type QueryDef<S extends z.ZodType, R> = {
+export interface QueryDef<S extends z.ZodType, R> {
   permission: Permission;
   input: S;
   handler: (schoolId: string, input: z.infer<S>) => Promise<R>;
-};
+}
 
 /** Read-only callable pipeline: auth → permission → validation. No transaction, no request record. */
 export async function runQuery<S extends z.ZodType, R>(
@@ -156,19 +182,27 @@ export async function runQuery<S extends z.ZodType, R>(
   data: unknown,
 ): Promise<R> {
   if (!auth) throw new HttpsError('unauthenticated', 'Sign in required');
-  if (auth.token.personType === 'parent') throw new HttpsError('permission-denied', 'Read-only user');
+  if (auth.token.personType === 'parent')
+    throw new HttpsError('permission-denied', 'Read-only user');
   if (auth.token.schoolId == null) throw new HttpsError('permission-denied', 'No school');
   const schoolId = String(auth.token.schoolId);
-  const access = (await getFirestore().doc(`schools/${schoolId}/userAccess/${auth.uid}`).get()).data() as UserAccess | undefined;
+  const access = (
+    await getFirestore().doc(`schools/${schoolId}/userAccess/${auth.uid}`).get()
+  ).data() as UserAccess | undefined;
   if (!access) throw new HttpsError('failed-precondition', 'Session not synced');
-  if (!access.permissions?.includes(def.permission)) throw new HttpsError('permission-denied', 'Not allowed');
+  if (!access.permissions?.includes(def.permission))
+    throw new HttpsError('permission-denied', 'Not allowed');
   const parsed = def.input.safeParse(data ?? {});
   if (!parsed.success) throw new HttpsError('invalid-argument', z.prettifyError(parsed.error));
-  return def.handler(schoolId, parsed.data as z.infer<S>);
+  return def.handler(schoolId, parsed.data);
 }
 
 export function queryCallable<S extends z.ZodType, R>(def: QueryDef<S, R>) {
   return onCall((request) =>
-    runQuery(def, request.auth ? { uid: request.auth.uid, token: request.auth.token as TokenClaims } : undefined, request.data),
+    runQuery(
+      def,
+      request.auth ? { uid: request.auth.uid, token: request.auth.token } : undefined,
+      request.data,
+    ),
   );
 }

@@ -1,5 +1,5 @@
 /** FRS 11.3 default book categories. */
-export const DEFAULT_CATEGORIES: Array<{ code: string; name: string }> = [
+export const DEFAULT_CATEGORIES: { code: string; name: string }[] = [
   { code: 'FIC', name: 'Fiction' },
   { code: 'NFC', name: 'Non-fiction' },
   { code: 'SCI', name: 'Science' },

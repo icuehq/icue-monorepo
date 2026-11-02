@@ -52,13 +52,14 @@ String? optionalNumber(String? value) =>
     : 'Enter a number';
 
 /// Formatter allowing only non-negative decimal numbers with at most one dot.
-final decimalInputFormatter = TextInputFormatter.withFunction(
-  (oldValue, newValue) {
-    final text = newValue.text;
-    if (text.isEmpty) return newValue;
-    return RegExp(r'^\d*\.?\d*$').hasMatch(text) ? newValue : oldValue;
-  },
-);
+final decimalInputFormatter = TextInputFormatter.withFunction((
+  oldValue,
+  newValue,
+) {
+  final text = newValue.text;
+  if (text.isEmpty) return newValue;
+  return RegExp(r'^\d*\.?\d*$').hasMatch(text) ? newValue : oldValue;
+});
 
 String? blankToNull(TextEditingController controller) =>
     controller.text.trim().isEmpty ? null : controller.text.trim();

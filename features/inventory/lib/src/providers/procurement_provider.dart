@@ -6,6 +6,7 @@ import 'package:inventory/src/models/inventory_orders.dart';
 import 'package:inventory/src/models/inventory_procurement.dart';
 import 'package:inventory/src/models/inventory_receiving.dart';
 import 'package:inventory/src/services/procurement_service.dart';
+import 'package:inventory/src/services/procurement_writes.dart';
 import 'package:inventory/src/services/stock_service.dart';
 
 /// Vendors and purchase requests. Needs `InventoryProvider.loadMasters()` first (access).
@@ -15,6 +16,7 @@ class ProcurementProvider extends ChangeNotifier {
 
   final ProcurementService _service;
   final StockService _stock;
+  final _writes = ProcurementWrites();
 
   final Map<String, InventoryItem> items = {};
   List<InventoryVendor> vendors = [];
@@ -139,7 +141,30 @@ class ProcurementProvider extends ChangeNotifier {
         if (need.isNotEmpty) items.addAll(await _stock.itemsByIds(need));
       });
 
-  /// Runs a callable; returns its result (`id`, `number`) or null with [errorMessage] set.
+  /// Saves a vendor; returns an empty map, or null with [errorMessage] set.
+  Future<Map<String, dynamic>?> saveVendor(Map<String, Object?> data) =>
+      _vendorWrite(() => _service.saveVendor(data));
+
+  Future<Map<String, dynamic>?> setVendorActive(
+    String id, {
+    required bool active,
+  }) => _vendorWrite(() => _service.setVendorActive(id, active: active));
+
+  Future<Map<String, dynamic>?> _vendorWrite(
+    Future<void> Function() write,
+  ) async {
+    errorMessage = null;
+    try {
+      await write();
+      return {};
+    } catch (error) {
+      errorMessage = callableErrorMessage(error);
+      notifyListeners();
+      return null;
+    }
+  }
+
+  /// Runs a client write (purchase requests, quotations, invoices) or else a callable; returns its result (`id`, `number`) or null with [errorMessage] set.
   Future<Map<String, dynamic>?> act(
     String value,
     Map<String, Object?> data, {
@@ -147,7 +172,9 @@ class ProcurementProvider extends ChangeNotifier {
   }) async {
     errorMessage = null;
     try {
-      return await _stock.call(value, data, requestId: requestId);
+      return ProcurementWrites.names.contains(value)
+          ? await _writes.run(value, data)
+          : await _stock.call(value, data, requestId: requestId);
     } catch (error) {
       errorMessage = callableErrorMessage(error);
       notifyListeners();

@@ -1,11 +1,12 @@
 import './region';
-import { Firestore, getFirestore } from 'firebase-admin/firestore';
+import { type Firestore, getFirestore } from 'firebase-admin/firestore';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import type { TokenClaims } from './shared/callable';
-import { permissionsFromActions } from './shared/permissions';
 import { serverTimestamp } from './shared/firestore';
+import { permissionsFromActions } from './shared/permissions';
 
-const numbers = (value: unknown): number[] => (Array.isArray(value) ? value.map(Number).filter(Number.isFinite) : []);
+const numbers = (value: unknown): number[] =>
+  Array.isArray(value) ? value.map(Number).filter(Number.isFinite) : [];
 
 /** Writes `userAccess/{uid}` from the custom-token claims (architecture §3.2); permissions come from `actionIds`. */
 export async function syncSession(db: Firestore, uid: string, token: TokenClaims) {
@@ -22,11 +23,17 @@ export async function syncSession(db: Firestore, uid: string, token: TokenClaims
     personErpId: token.personErpId == null ? null : Number(token.personErpId),
     wardStudentIds: numbers(token.wardStudentIds),
   };
-  await db.doc(`schools/${schoolId}/userAccess/${uid}`).set({ ...access, updatedAt: serverTimestamp() });
-  return { permissions: access.permissions, campusIds: access.campusIds, hasAllCampuses: access.hasAllCampuses };
+  await db
+    .doc(`schools/${schoolId}/userAccess/${uid}`)
+    .set({ ...access, updatedAt: serverTimestamp() });
+  return {
+    permissions: access.permissions,
+    campusIds: access.campusIds,
+    hasAllCampuses: access.hasAllCampuses,
+  };
 }
 
 export const sync = onCall((request) => {
   if (!request.auth) throw new HttpsError('unauthenticated', 'Sign in required');
-  return syncSession(getFirestore(), request.auth.uid, request.auth.token as TokenClaims);
+  return syncSession(getFirestore(), request.auth.uid, request.auth.token);
 });

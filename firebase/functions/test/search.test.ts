@@ -1,29 +1,53 @@
 import { Timestamp } from 'firebase-admin/firestore';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { applyItemChange, itemSearch } from '../src/inventory/search';
-import { matchesAll, searchDb } from '../src/shared/searchMirror';
 import { runQuery } from '../src/shared/callable';
+import { matchesAll, searchDb } from '../src/shared/searchMirror';
 import { clearFirestore, db } from './setup';
 
 const SCHOOL_ID = '12';
-const mirror = (schoolId = SCHOOL_ID) => searchDb().collection(`schools/${schoolId}/inventoryItems`);
+const mirror = (schoolId = SCHOOL_ID) =>
+  searchDb().collection(`schools/${schoolId}/inventoryItems`);
 const timestampAt = (milliseconds: number) => Timestamp.fromMillis(milliseconds);
-const item = (name: string, code: string, categoryId = 'c1') => ({ name, code, categoryId, status: 'active', stockUnit: 'pcs', tracking: 'quantity', extra: 'x' });
-const staff = (uid = '1', schoolId: number | string = 12) => ({ uid, token: { schoolId, personType: 'staff' } });
-const search = (data: Record<string, unknown>, auth: Parameters<typeof runQuery>[1] | null = staff()) =>
-  runQuery(itemSearch, auth ?? undefined, data) as ReturnType<typeof itemSearch.handler>;
+const item = (name: string, code: string, categoryId = 'c1') => ({
+  name,
+  code,
+  categoryId,
+  status: 'active',
+  stockUnit: 'pcs',
+  tracking: 'quantity',
+  extra: 'x',
+});
+const staff = (uid = '1', schoolId: number | string = 12) => ({
+  uid,
+  token: { schoolId, personType: 'staff' },
+});
+const search = (
+  data: Record<string, unknown>,
+  auth: Parameters<typeof runQuery>[1] | null = staff(),
+) => runQuery(itemSearch, auth ?? undefined, data) as ReturnType<typeof itemSearch.handler>;
 
 describe('item search mirror', () => {
   beforeEach(async () => {
     await clearFirestore();
-    await db().doc(`schools/${SCHOOL_ID}/userAccess/1`).set({ permissions: ['inventory.items.view'], campusIds: [], hasAllCampuses: true });
-    await db().doc(`schools/${SCHOOL_ID}/userAccess/2`).set({ permissions: ['inventory.stock.view'], campusIds: [], hasAllCampuses: true });
+    await db()
+      .doc(`schools/${SCHOOL_ID}/userAccess/1`)
+      .set({ permissions: ['inventory.items.view'], campusIds: [], hasAllCampuses: true });
+    await db()
+      .doc(`schools/${SCHOOL_ID}/userAccess/2`)
+      .set({ permissions: ['inventory.stock.view'], campusIds: [], hasAllCampuses: true });
   });
 
   it('mirrors only the projection, updates it, and deletes it', async () => {
     await applyItemChange(SCHOOL_ID, 'i1', item('Blue Pen', 'PEN-01'), timestampAt(1));
     expect((await mirror().doc('i1').get()).data()).toEqual({
-      name: 'Blue Pen', code: 'PEN-01', categoryId: 'c1', status: 'active', stockUnit: 'pcs', tracking: 'quantity', srcUpdatedAt: timestampAt(1),
+      name: 'Blue Pen',
+      code: 'PEN-01',
+      categoryId: 'c1',
+      status: 'active',
+      stockUnit: 'pcs',
+      tracking: 'quantity',
+      srcUpdatedAt: timestampAt(1),
     });
     await applyItemChange(SCHOOL_ID, 'i1', item('Blue Pen XL', 'PEN-01'), timestampAt(2));
     expect((await mirror().doc('i1').get()).data()?.name).toBe('Blue Pen XL');
@@ -59,7 +83,9 @@ describe('item search mirror', () => {
     });
 
     it('combines text with a category filter and pages with hasMore', async () => {
-      expect((await search({ q: 'blue', categoryId: 'c1' })).items.map((i) => i.id)).toEqual(['i1']);
+      expect((await search({ q: 'blue', categoryId: 'c1' })).items.map((i) => i.id)).toEqual([
+        'i1',
+      ]);
       const firstPage = await search({ q: 'pen', limit: 1 });
       expect(firstPage).toMatchObject({ hasMore: true, items: [{ id: 'i3' }] });
       const secondPage = await search({ q: 'pen', limit: 1, offset: 1 });
@@ -73,9 +99,15 @@ describe('item search mirror', () => {
 
     it('requires auth, a synced session and inv.items.view; rejects parents', async () => {
       await expect(search({ q: 'pen' }, null)).rejects.toMatchObject({ code: 'unauthenticated' });
-      await expect(search({ q: 'pen' }, { uid: 'parent-1', token: { schoolId: 12, personType: 'parent' } })).rejects.toMatchObject({ code: 'permission-denied' });
-      await expect(search({ q: 'pen' }, staff('9'))).rejects.toMatchObject({ code: 'failed-precondition' });
-      await expect(search({ q: 'pen' }, staff('2'))).rejects.toMatchObject({ code: 'permission-denied' });
+      await expect(
+        search({ q: 'pen' }, { uid: 'parent-1', token: { schoolId: 12, personType: 'parent' } }),
+      ).rejects.toMatchObject({ code: 'permission-denied' });
+      await expect(search({ q: 'pen' }, staff('9'))).rejects.toMatchObject({
+        code: 'failed-precondition',
+      });
+      await expect(search({ q: 'pen' }, staff('2'))).rejects.toMatchObject({
+        code: 'permission-denied',
+      });
     });
   });
 });

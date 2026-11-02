@@ -3,7 +3,10 @@ export const cleanIsbn = (isbn: string) => isbn.replace(/[\s-]/g, '').toUpperCas
 
 export function isIsbn10(isbn: string): boolean {
   if (!/^\d{9}[\dX]$/.test(isbn)) return false;
-  const sum = [...isbn].reduce((total, digit, i) => total + (digit === 'X' ? 10 : Number(digit)) * (10 - i), 0);
+  const sum = [...isbn].reduce(
+    (total, digit, i) => total + (digit === 'X' ? 10 : Number(digit)) * (10 - i),
+    0,
+  );
   return sum % 11 === 0;
 }
 

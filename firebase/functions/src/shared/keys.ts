@@ -16,7 +16,11 @@ export function financialYearOf(date: Date): string {
  * Known limit: one number per type per transaction (a second call reads the same
  * counter); add a `count` parameter when bulk numbering (accessions) needs it.
  */
-export async function nextNumber(context: CallableContext, type: string, date = new Date()): Promise<string> {
+export async function nextNumber(
+  context: CallableContext,
+  type: string,
+  date = new Date(),
+): Promise<string> {
   const financialYear = financialYearOf(date);
   const ref = context.doc(`counters/${type}_${financialYear}`);
   const snapshot = await context.transaction.get(ref);
@@ -32,7 +36,12 @@ export const uniqueKeyRef = (context: CallableContext, keyType: string, value: s
  * Claims `uniqueKeys/{keyType_value}` for [documentPath]. Codes are case-insensitive.
  * Throws `already-exists` when another record holds it; re-claiming your own is a no-op.
  */
-export async function claimUniqueKey(context: CallableContext, keyType: string, value: string, documentPath: string): Promise<void> {
+export async function claimUniqueKey(
+  context: CallableContext,
+  keyType: string,
+  value: string,
+  documentPath: string,
+): Promise<void> {
   const norm = value.trim().toLowerCase();
   const ref = uniqueKeyRef(context, keyType, value);
   const snapshot = await context.transaction.get(ref);

@@ -1,11 +1,11 @@
 import '../region';
 import { z } from 'zod';
 import type { CallableContext } from '../shared/callable';
+import { todayIST } from '../shared/dates';
+import { serverTimestamp } from '../shared/firestore';
 import { nextNumber } from '../shared/keys';
 import { defineCallable, failed, id, missing, optionalText, usable } from '../shared/masters';
 import { enqueue } from '../shared/outbox';
-import { todayIST } from '../shared/dates';
-import { serverTimestamp } from '../shared/firestore';
 
 // Known limit: copy IDs live in arrays on the session doc (1 MiB limit); narrow by shelf for larger libraries.
 const MAX_COPIES = 2000;
@@ -14,7 +14,8 @@ const SHELF = ['available', 'reserved', 'under_maintenance', 'damaged'];
 /** Statuses where marking a missing copy lost is safe; reserved copies would orphan their reservation. */
 const LOSABLE = ['available', 'under_maintenance', 'damaged'];
 
-const list = (session: Record<string, unknown>, field: string) => (session[field] as string[] | undefined) ?? [];
+const list = (session: Record<string, unknown>, field: string) =>
+  (session[field] as string[] | undefined) ?? [];
 
 async function loadSession(context: CallableContext, sessionId: string) {
   const ref = context.doc(`libraryVerifications/${sessionId}`);
@@ -31,16 +32,29 @@ export const verification = {
   verificationCreate: defineCallable({
     name: 'library.verification.create',
     permission: 'library.catalogue.manage',
-    input: z.object({ libraryId: id, shelf: z.string().trim().min(1).max(120).nullish(), remarks: optionalText }),
+    input: z.object({
+      libraryId: id,
+      shelf: z.string().trim().min(1).max(120).nullish(),
+      remarks: optionalText,
+    }),
     handler: async (context, i) => {
-      const library = usable(await context.transaction.get(context.doc(`libraries/${i.libraryId}`)), 'Library', false);
+      const library = usable(
+        await context.transaction.get(context.doc(`libraries/${i.libraryId}`)),
+        'Library',
+        false,
+      );
       context.requireCampus(library.campusId);
       let copy = context.coll('libraryCopies').where('libraryId', '==', i.libraryId);
       if (i.shelf) copy = copy.where('shelf', '==', i.shelf);
       const docs = (await context.transaction.get(copy.limit(MAX_COPIES + 1))).docs;
-      if (docs.length > MAX_COPIES) throw failed(`More than ${MAX_COPIES} copies in scope; verify one shelf at a time`);
-      const expected = docs.filter((shelfCopy) => SHELF.includes(shelfCopy.data().status)).map((shelfCopy) => shelfCopy.id);
-      const onLoanCopyIds = docs.filter((shelfCopy) => shelfCopy.data().status === 'issued').map((shelfCopy) => shelfCopy.id);
+      if (docs.length > MAX_COPIES)
+        throw failed(`More than ${MAX_COPIES} copies in scope; verify one shelf at a time`);
+      const expected = docs
+        .filter((shelfCopy) => SHELF.includes(shelfCopy.data().status))
+        .map((shelfCopy) => shelfCopy.id);
+      const onLoanCopyIds = docs
+        .filter((shelfCopy) => shelfCopy.data().status === 'issued')
+        .map((shelfCopy) => shelfCopy.id);
       if (!expected.length) throw failed('No copies in scope');
       const ref = context.newDoc('libraryVerifications');
       const number = await nextNumber(context, 'LVR');
@@ -59,8 +73,17 @@ export const verification = {
         status: 'counting',
         verifiedDate: todayIST(),
       };
-      context.set(ref, { ...after, createdBy: context.uid, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
-      context.audit({ action: 'libraryVerification.create', documentPath: ref.path, after: { number, expected: expected.length, onLoanCopyIds: onLoanCopyIds.length } });
+      context.set(ref, {
+        ...after,
+        createdBy: context.uid,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+      context.audit({
+        action: 'libraryVerification.create',
+        documentPath: ref.path,
+        after: { number, expected: expected.length, onLoanCopyIds: onLoanCopyIds.length },
+      });
       return { id: ref.id, number };
     },
   }),
@@ -76,15 +99,30 @@ export const verification = {
       const expected = new Set(list(session, 'expected'));
       const scanned = new Set(list(session, 'scanned'));
       const unexpected = new Set(list(session, 'unexpected'));
-      const fresh = [...new Set(i.accessionNumbers)].filter((accessionNumber) => !scanned.has(accessionNumber));
+      const fresh = [...new Set(i.accessionNumbers)].filter(
+        (accessionNumber) => !scanned.has(accessionNumber),
+      );
       const unknown = fresh.filter((accessionNumber) => !expected.has(accessionNumber));
-      const snapshots = unknown.length ? await context.transaction.getAll(...unknown.map((accessionNumber) => context.doc(`libraryCopies/${accessionNumber}`))) : [];
+      const snapshots = unknown.length
+        ? await context.transaction.getAll(
+            ...unknown.map((accessionNumber) => context.doc(`libraryCopies/${accessionNumber}`)),
+          )
+        : [];
       const gone = snapshots.filter((snapshot) => !snapshot.exists).map((snapshot) => snapshot.id);
       if (gone.length) throw failed(`Unknown accession number: ${gone.join(', ')}`);
       fresh.forEach((accessionNumber) => scanned.add(accessionNumber));
       unknown.forEach((accessionNumber) => unexpected.add(accessionNumber));
-      context.update(ref, { scanned: [...scanned], unexpected: [...unexpected], updatedAt: serverTimestamp() });
-      return { id: ref.id, scanned: scanned.size, expected: expected.size, unexpected: unexpected.size };
+      context.update(ref, {
+        scanned: [...scanned],
+        unexpected: [...unexpected],
+        updatedAt: serverTimestamp(),
+      });
+      return {
+        id: ref.id,
+        scanned: scanned.size,
+        expected: expected.size,
+        unexpected: unexpected.size,
+      };
     },
   }),
 
@@ -97,17 +135,32 @@ export const verification = {
       const { ref, verification: session } = await loadSession(context, i.id);
       if (session.status !== 'counting') throw failed(`Verification is ${session.status}`);
       const scanned = new Set(list(session, 'scanned'));
-      const missingIds = list(session, 'expected').filter((accessionNumber) => !scanned.has(accessionNumber));
+      const missingIds = list(session, 'expected').filter(
+        (accessionNumber) => !scanned.has(accessionNumber),
+      );
       const unexpected = list(session, 'unexpected');
       const status = missingIds.length || unexpected.length ? 'submitted' : 'approved';
-      context.update(ref, { status, missing: missingIds, submittedBy: context.uid, submittedDate: todayIST(), updatedAt: serverTimestamp() });
+      context.update(ref, {
+        status,
+        missing: missingIds,
+        submittedBy: context.uid,
+        submittedDate: todayIST(),
+        updatedAt: serverTimestamp(),
+      });
       if (status === 'submitted') {
         await enqueue(context, `library-verification-submit__${ref.id}`, {
-          to: { permission: 'library.settings', campusId: session.campusId }, category: 'library.verification', title: 'Stock verification to review',
-          body: `${session.number}: ${missingIds.length} missing, ${unexpected.length} unexpected.`, data: { verificationId: ref.id },
+          to: { permission: 'library.settings', campusId: session.campusId },
+          category: 'library.verification',
+          title: 'Stock verification to review',
+          body: `${session.number}: ${missingIds.length} missing, ${unexpected.length} unexpected.`,
+          data: { verificationId: ref.id },
         });
       }
-      context.audit({ action: 'libraryVerification.submit', documentPath: ref.path, after: { status, missing: missingIds.length, unexpected: unexpected.length } });
+      context.audit({
+        action: 'libraryVerification.submit',
+        documentPath: ref.path,
+        after: { status, missing: missingIds.length, unexpected: unexpected.length },
+      });
       return { id: ref.id, status, missing: missingIds.length, unexpected: unexpected.length };
     },
   }),
@@ -120,31 +173,62 @@ export const verification = {
   verificationApprove: defineCallable({
     name: 'library.verification.approve',
     permission: 'library.settings',
-    input: z.object({ id, lost: z.array(id).max(MAX_COPIES).default([]), move: z.array(id).max(MAX_COPIES).default([]) }),
+    input: z.object({
+      id,
+      lost: z.array(id).max(MAX_COPIES).default([]),
+      move: z.array(id).max(MAX_COPIES).default([]),
+    }),
     handler: async (context, i) => {
       const { ref, verification: session } = await loadSession(context, i.id);
       if (session.status !== 'submitted') throw failed(`Verification is ${session.status}`);
       const missingIds = new Set(list(session, 'missing'));
       const unexpected = new Set(list(session, 'unexpected'));
-      if (i.lost.some((copyId) => !missingIds.has(copyId))) throw failed('Only missing copies can be marked lost');
-      if (i.move.some((copyId) => !unexpected.has(copyId))) throw failed('Only unexpected copies can be moved');
+      if (i.lost.some((copyId) => !missingIds.has(copyId)))
+        throw failed('Only missing copies can be marked lost');
+      if (i.move.some((copyId) => !unexpected.has(copyId)))
+        throw failed('Only unexpected copies can be moved');
       const touched = [...i.lost, ...i.move];
-      const snapshots = touched.length ? await context.transaction.getAll(...touched.map((copyId) => context.doc(`libraryCopies/${copyId}`))) : [];
-      const library = i.move.length ? usable(await context.transaction.get(context.doc(`libraries/${session.libraryId}`)), 'Library', true) : null;
+      const snapshots = touched.length
+        ? await context.transaction.getAll(
+            ...touched.map((copyId) => context.doc(`libraryCopies/${copyId}`)),
+          )
+        : [];
+      const library = i.move.length
+        ? usable(
+            await context.transaction.get(context.doc(`libraries/${session.libraryId}`)),
+            'Library',
+            true,
+          )
+        : null;
       for (const snapshot of snapshots) {
         const copyDocument = snapshot.data();
         if (!copyDocument) throw missing('libraryCopy');
         context.requireCampus(copyDocument.campusId);
         if (i.lost.includes(snapshot.id)) {
-          if (!LOSABLE.includes(copyDocument.status)) throw failed(`${snapshot.id} is ${copyDocument.status}`);
+          if (!LOSABLE.includes(copyDocument.status))
+            throw failed(`${snapshot.id} is ${copyDocument.status}`);
           context.update(snapshot.ref, { status: 'lost', updatedAt: serverTimestamp() });
         } else {
-          if (copyDocument.status !== 'available') throw failed(`${snapshot.id} is ${copyDocument.status}`);
-          context.update(snapshot.ref, { libraryId: session.libraryId, campusId: library!.campusId, shelf: session.shelf ?? null, updatedAt: serverTimestamp() });
+          if (copyDocument.status !== 'available')
+            throw failed(`${snapshot.id} is ${copyDocument.status}`);
+          context.update(snapshot.ref, {
+            libraryId: session.libraryId,
+            campusId: library!.campusId,
+            shelf: session.shelf ?? null,
+            updatedAt: serverTimestamp(),
+          });
         }
       }
       const investigate = [...missingIds].filter((copyId) => !i.lost.includes(copyId));
-      context.update(ref, { status: 'approved', lost: i.lost, moved: i.move, investigate, approvedBy: context.uid, approvedDate: todayIST(), updatedAt: serverTimestamp() });
+      context.update(ref, {
+        status: 'approved',
+        lost: i.lost,
+        moved: i.move,
+        investigate,
+        approvedBy: context.uid,
+        approvedDate: todayIST(),
+        updatedAt: serverTimestamp(),
+      });
       context.audit({
         action: 'libraryVerification.approve',
         documentPath: ref.path,

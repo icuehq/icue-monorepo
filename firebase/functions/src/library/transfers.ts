@@ -1,17 +1,21 @@
 import '../region';
 import { z } from 'zod';
 import type { CallableContext } from '../shared/callable';
+import { todayIST } from '../shared/dates';
+import { serverTimestamp } from '../shared/firestore';
 import { nextNumber } from '../shared/keys';
 import { defineCallable, failed, id, missing, optionalText, usable } from '../shared/masters';
 import { enqueue } from '../shared/outbox';
 import { holdDays, hold, nextWaiting } from './reservations';
-import { todayIST } from '../shared/dates';
-import { serverTimestamp } from '../shared/firestore';
 
 const CONDITIONS = ['good', 'fair', 'poor'] as const;
 const MAX_COPIES = 100;
 
-async function loadTransfer(context: CallableContext, transferId: string, campus: 'campusId' | 'toCampusId') {
+async function loadTransfer(
+  context: CallableContext,
+  transferId: string,
+  campus: 'campusId' | 'toCampusId',
+) {
   const ref = context.doc(`libraryTransfers/${transferId}`);
   const snapshot = await context.transaction.get(ref);
   if (!snapshot.exists) throw missing('libraryTransfer');
@@ -34,16 +38,34 @@ export const transfers = {
     handler: async (context, i) => {
       if (i.fromLibraryId === i.toLibraryId) throw failed('Source and destination must differ');
       if (new Set(i.copyIds).size !== i.copyIds.length) throw failed('A copy is listed twice');
-      const from = usable(await context.transaction.get(context.doc(`libraries/${i.fromLibraryId}`)), 'Source library', false);
-      const destinationLibrary = usable(await context.transaction.get(context.doc(`libraries/${i.toLibraryId}`)), 'Destination library', false);
+      const from = usable(
+        await context.transaction.get(context.doc(`libraries/${i.fromLibraryId}`)),
+        'Source library',
+        false,
+      );
+      const destinationLibrary = usable(
+        await context.transaction.get(context.doc(`libraries/${i.toLibraryId}`)),
+        'Destination library',
+        false,
+      );
       context.requireCampus(from.campusId);
-      const snapshots = await context.transaction.getAll(...i.copyIds.map((copyId) => context.doc(`libraryCopies/${copyId}`)));
+      const snapshots = await context.transaction.getAll(
+        ...i.copyIds.map((copyId) => context.doc(`libraryCopies/${copyId}`)),
+      );
       const lineItems = snapshots.map((snapshot) => {
         const toLibraryData = snapshot.data();
         if (!toLibraryData) throw missing('libraryCopy');
-        if (toLibraryData.libraryId !== i.fromLibraryId) throw failed(`${snapshot.id} is not in the source library`);
-        if (toLibraryData.status !== 'available') throw failed(`${snapshot.id} is ${toLibraryData.status}`);
-        return { copyId: snapshot.id, accessionNumber: toLibraryData.accessionNumber, catalogueId: toLibraryData.catalogueId, received: false, condition: null };
+        if (toLibraryData.libraryId !== i.fromLibraryId)
+          throw failed(`${snapshot.id} is not in the source library`);
+        if (toLibraryData.status !== 'available')
+          throw failed(`${snapshot.id} is ${toLibraryData.status}`);
+        return {
+          copyId: snapshot.id,
+          accessionNumber: toLibraryData.accessionNumber,
+          catalogueId: toLibraryData.catalogueId,
+          received: false,
+          condition: null,
+        };
       });
       const ref = context.newDoc('libraryTransfers');
       const number = await nextNumber(context, 'LTR');
@@ -58,10 +80,18 @@ export const transfers = {
         requestedDate: todayIST(),
         remarks: i.remarks ?? null,
       };
-      context.set(ref, { ...after, requestedBy: context.uid, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+      context.set(ref, {
+        ...after,
+        requestedBy: context.uid,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
       await enqueue(context, `library-transfer-request__${ref.id}`, {
-        to: { permission: 'library.settings', campusId: from.campusId }, category: 'library.transfer', title: 'Transfer needs approval',
-        body: `${number}: ${i.copyIds.length} copies from ${from.name} to ${destinationLibrary.name}.`, data: { transferId: ref.id },
+        to: { permission: 'library.settings', campusId: from.campusId },
+        category: 'library.transfer',
+        title: 'Transfer needs approval',
+        body: `${number}: ${i.copyIds.length} copies from ${from.name} to ${destinationLibrary.name}.`,
+        data: { transferId: ref.id },
       });
       context.audit({ action: 'libraryTransfer.request', documentPath: ref.path, after });
       return { id: ref.id, number };
@@ -76,8 +106,18 @@ export const transfers = {
     handler: async (context, i) => {
       const { ref, transfer } = await loadTransfer(context, i.id, 'campusId');
       if (transfer.status !== 'requested') throw failed(`Transfer is ${transfer.status}`);
-      context.update(ref, { status: 'approved', approvedBy: context.uid, approvedDate: todayIST(), updatedAt: serverTimestamp() });
-      context.audit({ action: 'libraryTransfer.approve', documentPath: ref.path, before: { status: transfer.status }, after: { status: 'approved' } });
+      context.update(ref, {
+        status: 'approved',
+        approvedBy: context.uid,
+        approvedDate: todayIST(),
+        updatedAt: serverTimestamp(),
+      });
+      context.audit({
+        action: 'libraryTransfer.approve',
+        documentPath: ref.path,
+        before: { status: transfer.status },
+        after: { status: 'approved' },
+      });
       return { id: ref.id };
     },
   }),
@@ -90,17 +130,43 @@ export const transfers = {
     handler: async (context, i) => {
       const { ref, transfer } = await loadTransfer(context, i.id, 'campusId');
       if (transfer.status !== 'approved') throw failed(`Transfer is ${transfer.status}`);
-      const snapshots = await context.transaction.getAll(...(transfer.lineItems as Array<{ copyId: string }>).map((lineItem) => context.doc(`libraryCopies/${lineItem.copyId}`)));
+      const snapshots = await context.transaction.getAll(
+        ...(transfer.lineItems as { copyId: string }[]).map((lineItem) =>
+          context.doc(`libraryCopies/${lineItem.copyId}`),
+        ),
+      );
       for (const snapshot of snapshots) {
-        if (snapshot.data()?.status !== 'available' || snapshot.data()?.libraryId !== transfer.fromLibraryId) throw failed(`${snapshot.id} is no longer available`);
+        if (
+          snapshot.data()?.status !== 'available' ||
+          snapshot.data()?.libraryId !== transfer.fromLibraryId
+        )
+          throw failed(`${snapshot.id} is no longer available`);
       }
-      for (const snapshot of snapshots) context.update(snapshot.ref, { status: 'in_transit', transferId: ref.id, updatedAt: serverTimestamp() });
-      context.update(ref, { status: 'dispatched', dispatchedBy: context.uid, dispatchedDate: todayIST(), updatedAt: serverTimestamp() });
-      await enqueue(context, `library-transfer-dispatch__${ref.id}`, {
-        to: { permission: 'library.catalogue.manage', campusId: transfer.toCampusId }, category: 'library.transfer', title: 'Books on the way',
-        body: `${transfer.number}: ${snapshots.length} copies dispatched to your library.`, data: { transferId: ref.id },
+      for (const snapshot of snapshots)
+        context.update(snapshot.ref, {
+          status: 'in_transit',
+          transferId: ref.id,
+          updatedAt: serverTimestamp(),
+        });
+      context.update(ref, {
+        status: 'dispatched',
+        dispatchedBy: context.uid,
+        dispatchedDate: todayIST(),
+        updatedAt: serverTimestamp(),
       });
-      context.audit({ action: 'libraryTransfer.dispatch', documentPath: ref.path, before: { status: transfer.status }, after: { status: 'dispatched' } });
+      await enqueue(context, `library-transfer-dispatch__${ref.id}`, {
+        to: { permission: 'library.catalogue.manage', campusId: transfer.toCampusId },
+        category: 'library.transfer',
+        title: 'Books on the way',
+        body: `${transfer.number}: ${snapshots.length} copies dispatched to your library.`,
+        data: { transferId: ref.id },
+      });
+      context.audit({
+        action: 'libraryTransfer.dispatch',
+        documentPath: ref.path,
+        before: { status: transfer.status },
+        after: { status: 'dispatched' },
+      });
       return { id: ref.id };
     },
   }),
@@ -114,41 +180,71 @@ export const transfers = {
     permission: 'library.catalogue.manage',
     input: z.object({
       id,
-      copies: z.array(z.object({ copyId: id, condition: z.enum(CONDITIONS).default('good') })).min(1).max(MAX_COPIES),
+      copies: z
+        .array(z.object({ copyId: id, condition: z.enum(CONDITIONS).default('good') }))
+        .min(1)
+        .max(MAX_COPIES),
       shelf: z.string().trim().min(1).max(120).nullish(),
       remarks: optionalText,
     }),
     handler: async (context, i) => {
       const { ref, transfer } = await loadTransfer(context, i.id, 'toCampusId');
-      if (transfer.status !== 'dispatched' && transfer.status !== 'partially_received') throw failed(`Transfer is ${transfer.status}`);
+      if (transfer.status !== 'dispatched' && transfer.status !== 'partially_received')
+        throw failed(`Transfer is ${transfer.status}`);
       const ids = i.copies.map((copy) => copy.copyId);
       if (new Set(ids).size !== ids.length) throw failed('A copy is listed twice');
-      const lineItems = transfer.lineItems as Array<{ copyId: string; received: boolean; condition: string | null }>;
+      const lineItems = transfer.lineItems as {
+        copyId: string;
+        received: boolean;
+        condition: string | null;
+      }[];
       for (const copy of i.copies) {
         const line = lineItems.find((lineItem) => lineItem.copyId === copy.copyId);
         if (!line) throw failed(`${copy.copyId} is not part of this transfer`);
         if (line.received) throw failed(`${copy.copyId} was already received`);
       }
-      const snapshots = await context.transaction.getAll(...ids.map((copyId) => context.doc(`libraryCopies/${copyId}`)));
+      const snapshots = await context.transaction.getAll(
+        ...ids.map((copyId) => context.doc(`libraryCopies/${copyId}`)),
+      );
       // Titles with a waiting list at the destination serve it first, in queue order (as new acquisitions do).
       const waiting = new Map<string, Awaited<ReturnType<typeof nextWaiting>>>();
       for (const [index, snapshot] of snapshots.entries()) {
         const copyDocument = snapshot.data();
-        if (copyDocument?.status !== 'in_transit' || copyDocument.transferId !== ref.id) throw failed(`${snapshot.id} is not in transit on this transfer`);
+        if (copyDocument?.status !== 'in_transit' || copyDocument.transferId !== ref.id)
+          throw failed(`${snapshot.id} is not in transit on this transfer`);
         const condition = i.copies[index].condition;
-        context.update(snapshot.ref, { libraryId: transfer.toLibraryId, campusId: transfer.toCampusId, shelf: i.shelf ?? null, condition, transferId: null, updatedAt: serverTimestamp() });
+        context.update(snapshot.ref, {
+          libraryId: transfer.toLibraryId,
+          campusId: transfer.toCampusId,
+          shelf: i.shelf ?? null,
+          condition,
+          transferId: null,
+          updatedAt: serverTimestamp(),
+        });
         if (!waiting.has(copyDocument.catalogueId)) {
-          const need = snapshots.filter((other) => other.data()?.catalogueId === copyDocument.catalogueId).length;
-          waiting.set(copyDocument.catalogueId, await nextWaiting(context, copyDocument.catalogueId, transfer.toLibraryId, need));
+          const need = snapshots.filter(
+            (other) => other.data()?.catalogueId === copyDocument.catalogueId,
+          ).length;
+          waiting.set(
+            copyDocument.catalogueId,
+            await nextWaiting(context, copyDocument.catalogueId, transfer.toLibraryId, need),
+          );
         }
         const next = waiting.get(copyDocument.catalogueId)!.shift();
         if (next) await hold(context, next, snapshot.ref, snapshot.id, await holdDays(context));
-        else context.update(snapshot.ref, { status: 'available', heldReservationId: null, activeLoanId: null });
+        else
+          context.update(snapshot.ref, {
+            status: 'available',
+            heldReservationId: null,
+            activeLoanId: null,
+          });
         const line = lineItems.find((lineItem) => lineItem.copyId === snapshot.id)!;
         line.received = true;
         line.condition = condition;
       }
-      const status = lineItems.every((lineItem) => lineItem.received) ? 'received' : 'partially_received';
+      const status = lineItems.every((lineItem) => lineItem.received)
+        ? 'received'
+        : 'partially_received';
       context.update(ref, {
         lineItems,
         status,
@@ -157,11 +253,23 @@ export const transfers = {
         ...(i.remarks ? { receiptRemarks: i.remarks } : {}),
         updatedAt: serverTimestamp(),
       });
-      await enqueue(context, `library-transfer-receive__${ref.id}__${status}__${lineItems.filter((lineItem) => lineItem.received).length}`, {
-        to: { permission: 'library.catalogue.manage', campusId: transfer.campusId }, category: 'library.transfer', title: 'Transfer received',
-        body: `${transfer.number}: ${status === 'received' ? 'all copies' : `${ids.length} copies`} received at the destination.`, data: { transferId: ref.id },
+      await enqueue(
+        context,
+        `library-transfer-receive__${ref.id}__${status}__${lineItems.filter((lineItem) => lineItem.received).length}`,
+        {
+          to: { permission: 'library.catalogue.manage', campusId: transfer.campusId },
+          category: 'library.transfer',
+          title: 'Transfer received',
+          body: `${transfer.number}: ${status === 'received' ? 'all copies' : `${ids.length} copies`} received at the destination.`,
+          data: { transferId: ref.id },
+        },
+      );
+      context.audit({
+        action: 'libraryTransfer.receive',
+        documentPath: ref.path,
+        before: { status: transfer.status },
+        after: { status, copyIds: ids },
       });
-      context.audit({ action: 'libraryTransfer.receive', documentPath: ref.path, before: { status: transfer.status }, after: { status, copyIds: ids } });
       return { id: ref.id, status };
     },
   }),

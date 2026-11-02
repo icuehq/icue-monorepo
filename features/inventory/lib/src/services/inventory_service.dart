@@ -2,7 +2,7 @@ import 'package:icue_firebase/icue_firebase.dart';
 import 'package:injectable/injectable.dart';
 import 'package:inventory/src/models/inventory_masters.dart';
 
-/// Inventory masters: reads from Firestore, writes through callables.
+/// Inventory masters: reads and master writes go to Firestore; defaults seed through a callable.
 @lazySingleton
 class InventoryService {
   Future<List<T>> _all<T>(
@@ -103,38 +103,47 @@ class InventoryService {
       (await _all('inventoryItems/$itemId/variants', InventoryVariant.fromMap))
         ..sort((left, right) => left.sku.compareTo(right.sku));
 
-  // --- writes: callables, same requestId on user retry --------------------
+  // --- writes: masters are plain client CRUD (`firestore.rules`); defaults seed through a callable ---
 
   Future<void> seedDefaults() => _call('inventory-seedDefaults', {});
 
-  Future<void> saveCategory(Map<String, Object?> data, {String? requestId}) =>
-      _call('inventory-category-upsert', data, requestId);
+  Future<void> saveCategory(Map<String, Object?> data) =>
+      saveMasterDocument('inventoryCategories', data);
 
   Future<void> setCategoryActive(String id, {required bool active}) =>
-      _call('inventory-category-setStatus', _status(id, active));
+      setMasterActive('inventoryCategories', id, active: active);
 
-  Future<void> saveUnit(String code, String name) =>
-      _call('inventory-unit-upsert', {'code': code, 'name': name});
+  Future<void> saveUnit(String code, String name) async {
+    final collection = await schoolCollection('inventoryUnits');
+    final exists =
+        (await collection.doc(code.trim().toLowerCase()).get()).exists;
+    await saveMasterDocument('inventoryUnits', {
+      if (exists) 'id': code.trim().toLowerCase() else 'code': code,
+      'name': name,
+    });
+  }
 
-  Future<void> saveItem(Map<String, Object?> data, {String? requestId}) =>
-      _call('inventory-item-upsert', data, requestId);
+  Future<void> saveItem(Map<String, Object?> data) =>
+      saveMasterDocument('inventoryItems', data, onCreate: {'imagePath': null});
 
   Future<void> setItemActive(String id, {required bool active}) =>
-      _call('inventory-item-setStatus', _status(id, active));
+      setMasterActive('inventoryItems', id, active: active);
 
-  Future<void> saveVariant(Map<String, Object?> data, {String? requestId}) =>
-      _call('inventory-variant-upsert', data, requestId);
+  Future<void> saveVariant(Map<String, Object?> data) {
+    final fields = {...data};
+    final itemId = fields.remove('itemId')! as String;
+    return saveMasterDocument('inventoryItems/$itemId/variants', {
+      ...fields,
+      'itemId': itemId,
+      if (fields['code'] != null) 'sku': fields['code'],
+    });
+  }
 
-  Future<void> saveStore(Map<String, Object?> data, {String? requestId}) =>
-      _call('inventory-store-upsert', data, requestId);
+  Future<void> saveStore(Map<String, Object?> data) =>
+      saveMasterDocument('inventoryStores', data);
 
   Future<void> setStoreActive(String id, {required bool active}) =>
-      _call('inventory-store-setStatus', _status(id, active));
-
-  Map<String, Object?> _status(String id, bool active) => {
-    'id': id,
-    'status': active ? 'active' : 'inactive',
-  };
+      setMasterActive('inventoryStores', id, active: active);
 
   Future<void> _call(
     String name,

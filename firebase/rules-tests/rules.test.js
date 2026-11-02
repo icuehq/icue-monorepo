@@ -60,10 +60,17 @@ describe('school data', () => {
   });
 
   it('internal collections: no client read or write', async () => {
-    for (const collectionName of ['auditLogs', 'requests', 'uniqueKeys', 'outbox', 'counters']) {
+    for (const collectionName of ['auditLogs', 'requests', 'uniqueKeys', 'outbox']) {
       await assertFails(getDoc(doc(db('1'), `schools/12/${collectionName}/x`)));
       await assertFails(setDoc(doc(db('1'), `schools/12/${collectionName}/y`), { a: 1 }));
     }
+  });
+
+  it('counters: any user holding a permission may bump them, nobody else', async () => {
+    await assertSucceeds(setDoc(doc(db('1'), 'schools/12/counters/PR_2026-27'), { next: 1 }));
+    await assertSucceeds(getDoc(doc(db('1'), 'schools/12/counters/PR_2026-27')));
+    await assertFails(setDoc(doc(db('2'), 'schools/12/counters/PR_2026-27'), { next: 9 }));
+    await assertFails(setDoc(doc(db('1', { ...staff, schoolId: 13 }), 'schools/12/counters/PR_2026-27'), { next: 9 }));
   });
 
   it('module collections: no client writes, no reads without a rule', async () => {
@@ -93,13 +100,41 @@ describe('inventory masters', () => {
     }
   });
 
+  it('masters: plain client CRUD for the managing permission only, in own school', async () => {
+    await env.withSecurityRulesDisabled((context) =>
+      Promise.all([
+        setDoc(doc(context.firestore(), 'schools/12/userAccess/m1'), { permissions: ['inventory.items.manage'], campusIds: [31] }),
+        setDoc(doc(context.firestore(), 'schools/12/userAccess/m2'), { permissions: ['library.settings'], campusIds: [31] }),
+        setDoc(doc(context.firestore(), 'schools/12/userAccess/m3'), { permissions: ['library.catalogue.manage'], campusIds: [31] }),
+      ]),
+    );
+    const cases = [
+      ['3', 'inventoryCategories/tools'],
+      ['3', 'inventoryUnits/box'],
+      ['3', 'inventoryStores/main'],
+      ['m1', 'inventoryItems/pen'],
+      ['m1', 'inventoryItems/pen/variants/pen-red'],
+      ['m2', 'libraries/main'],
+      ['m3', 'libraryCategories/fiction'],
+    ];
+    for (const [uid, documentPath] of cases) {
+      const path = `schools/12/${documentPath}`;
+      await assertSucceeds(setDoc(doc(db(uid), path), { code: 'x', name: 'x' }));
+      await assertSucceeds(updateDoc(doc(db(uid), path), { status: 'inactive' }));
+      await assertFails(updateDoc(doc(db('1'), path), { name: 'y' }));
+      await assertFails(setDoc(doc(db(uid, { ...staff, schoolId: 13 }), path), { name: 'z' }));
+      await assertSucceeds(deleteDoc(doc(db(uid), path)));
+    }
+    await assertFails(setDoc(doc(db('m1'), 'schools/12/inventoryUnits/box'), { name: 'x' }));
+  });
+
   it('stores: school-wide reads for stock viewers and settings users', async () => {
     await assertSucceeds(getDoc(doc(db('3'), 'schools/12/inventoryStores/s31')));
     await assertSucceeds(getDoc(doc(db('3'), 'schools/12/inventoryStores/s32')));
     await assertFails(getDoc(doc(db('1'), 'schools/12/inventoryStores/s31')));
     await assertFails(getDoc(doc(db('3', { ...staff, schoolId: 13 }), 'schools/12/inventoryStores/s31')));
     await assertSucceeds(getDocs(collection(db('3'), 'schools/12/inventoryStores')));
-    await assertFails(setDoc(doc(db('3'), 'schools/12/inventoryStores/s31'), { campusId: 31 }));
+    await assertFails(setDoc(doc(db('1'), 'schools/12/inventoryStores/s31'), { campusId: 31 }));
   });
 });
 
@@ -366,14 +401,16 @@ describe('procurement (Inv-3)', () => {
     await assertFails(readPurchaseRequest('ven'));
     await assertFails(getDoc(doc(db('parent-apr', { ...staff, schoolId: 13 }), 'schools/12/inventoryPurchaseRequests/pr1')));
     await assertSucceeds(getDocs(query(collection(db('parent-req'), 'schools/12/inventoryPurchaseRequests'), where('createdBy', '==', 'parent-req'))));
-    await assertFails(setDoc(doc(db('parent-req'), 'schools/12/inventoryPurchaseRequests/pr1'), { status: 'approved' }));
+    await assertSucceeds(setDoc(doc(db('parent-req'), 'schools/12/inventoryPurchaseRequests/pr1'), { status: 'approved' }));
+    await assertFails(setDoc(doc(db('2'), 'schools/12/inventoryPurchaseRequests/pr1'), { status: 'approved' }));
   });
 
-  it('vendors: vendor managers and procurement only, never writable; requesters can browse items', async () => {
+  it('vendors: vendor managers write, procurement reads; requesters can browse items', async () => {
     await assertSucceeds(getDoc(doc(db('ven'), 'schools/12/inventoryVendors/v1')));
     await assertSucceeds(getDoc(doc(db('proc'), 'schools/12/inventoryVendors/v1')));
     await assertFails(getDoc(doc(db('parent-req'), 'schools/12/inventoryVendors/v1')));
-    await assertFails(setDoc(doc(db('ven'), 'schools/12/inventoryVendors/v1'), { name: 'x' }));
+    await assertSucceeds(setDoc(doc(db('ven'), 'schools/12/inventoryVendors/v1'), { name: 'x' }));
+    await assertFails(setDoc(doc(db('proc'), 'schools/12/inventoryVendors/v1'), { name: 'x' }));
     await assertSucceeds(getDoc(doc(db('parent-req'), 'schools/12/inventoryItems/i')));
   });
 });
@@ -409,7 +446,8 @@ describe('quotations and purchase orders (Inv-4)', () => {
     await assertSucceeds(getDoc(doc(db('proc'), 'schools/12/inventoryInvoices/i1')));
     await assertFails(getDoc(doc(db('far'), 'schools/12/inventoryInvoices/i1')));
     await assertFails(getDoc(doc(db('store'), 'schools/12/inventoryInvoices/i1')));
-    await assertFails(setDoc(doc(db('proc'), 'schools/12/inventoryInvoices/i1'), { paymentStatus: 'paid' }));
+    await assertSucceeds(setDoc(doc(db('proc'), 'schools/12/inventoryInvoices/i1'), { paymentStatus: 'paid' }));
+    await assertFails(setDoc(doc(db('2'), 'schools/12/inventoryInvoices/i1'), { paymentStatus: 'paid' }));
     await assertSucceeds(getDoc(doc(db('store'), 'schools/12/inventoryPurchaseOrders/po1')));
     await assertFails(getDoc(doc(db('store_far'), 'schools/12/inventoryPurchaseOrders/po1')));
     await assertFails(getDoc(doc(db('store'), 'schools/12/inventoryQuotations/q1')));

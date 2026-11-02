@@ -13,10 +13,63 @@ Future<CollectionReference<Map<String, dynamic>>> schoolCollection(
   );
 }
 
+/// Plain client CRUD for a master collection under the school ([path]).
+///
+/// Edits (`id` present) update the document. Creates are keyed by the
+/// lowercased `code`, so an existing code is rejected. [onCreate] adds fields
+/// that only a new document gets.
+Future<void> saveMasterDocument(
+  String path,
+  Map<String, Object?> data, {
+  Map<String, Object?> onCreate = const {},
+}) async {
+  final fields = {...data};
+  final id = fields.remove('id') as String?;
+  final collection = await schoolCollection(path);
+  if (id != null) {
+    await collection.doc(id).update({
+      ...fields,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+    return;
+  }
+  final code = fields['code']! as String;
+  final document = collection.doc(code.trim().toLowerCase());
+  if ((await document.get()).exists) {
+    throw FirebaseException(
+      plugin: 'cloud_firestore',
+      code: 'already-exists',
+      message: '"$code" already exists',
+    );
+  }
+  await document.set({
+    'status': 'active',
+    ...fields,
+    ...onCreate,
+    'createdBy': FirebaseAuth.instance.currentUser!.uid,
+    'createdAt': FieldValue.serverTimestamp(),
+    'updatedAt': FieldValue.serverTimestamp(),
+  });
+}
+
+/// Activates or deactivates the master [id] in [path].
+Future<void> setMasterActive(
+  String path,
+  String id, {
+  required bool active,
+}) async {
+  await (await schoolCollection(path)).doc(id).update({
+    'status': active ? 'active' : 'inactive',
+    'updatedAt': FieldValue.serverTimestamp(),
+  });
+}
+
 /// The message to show for a failed call: the server's message for a callable error, else the error text.
-String callableErrorMessage(Object error) => error is FirebaseFunctionsException
-    ? (error.message ?? error.code)
-    : error.toString();
+String callableErrorMessage(Object error) => switch (error) {
+  FirebaseFunctionsException(:final message, :final code) => message ?? code,
+  FirebaseException(:final message, :final code) => message ?? code,
+  _ => error.toString(),
+};
 
 /// Implemented by providers that keep the message of their last failed call.
 abstract interface class ErrorReporting {

@@ -1,10 +1,9 @@
 import '../region';
 import { z } from 'zod';
 import type { CallableContext } from '../shared/callable';
-import { defineCallable, failed, id, missing } from '../shared/masters';
 import { isoDate, todayIST } from '../shared/dates';
 import { serverTimestamp } from '../shared/firestore';
-
+import { defineCallable, failed, id, missing } from '../shared/masters';
 
 async function loadFine(context: CallableContext, fineId: string) {
   const ref = context.doc(`libraryFines/${fineId}`);
@@ -15,9 +14,17 @@ async function loadFine(context: CallableContext, fineId: string) {
   return { ref, fine };
 }
 
-async function checkUnblockMember(context: CallableContext, memberId: string, currentFineId: string) {
+async function checkUnblockMember(
+  context: CallableContext,
+  memberId: string,
+  currentFineId: string,
+) {
   const otherFines = await context.transaction.get(
-    context.coll('libraryFines').where('memberId', '==', memberId).where('status', 'in', ['outstanding', 'partially_paid']).limit(2),
+    context
+      .coll('libraryFines')
+      .where('memberId', '==', memberId)
+      .where('status', 'in', ['outstanding', 'partially_paid'])
+      .limit(2),
   );
   const hasOther = otherFines.docs.some((doc) => doc.id !== currentFineId);
   if (!hasOther) {
@@ -53,8 +60,12 @@ export const fines = {
 
       const waived = Math.round(((fine.waived ?? 0) + i.amount) * 100) / 100;
       const outstanding = Math.round((fine.outstanding - i.amount) * 100) / 100;
-      const status = outstanding <= 0 ? 'waived' : (fine.paid ?? 0) > 0 ? 'partially_paid' : 'outstanding';
-      const waivers = [...(fine.waivers ?? []), { amount: i.amount, reason: i.reason, performedBy: context.uid, performedAt: todayIST() }];
+      const status =
+        outstanding <= 0 ? 'waived' : (fine.paid ?? 0) > 0 ? 'partially_paid' : 'outstanding';
+      const waivers = [
+        ...(fine.waivers ?? []),
+        { amount: i.amount, reason: i.reason, performedBy: context.uid, performedAt: todayIST() },
+      ];
 
       if (outstanding <= 0 && fine.memberId) {
         await checkUnblockMember(context, fine.memberId, ref.id);
@@ -98,7 +109,12 @@ export const fines = {
       const status = outstanding <= 0 ? 'paid' : 'partially_paid';
       const payments = [
         ...(fine.payments ?? []),
-        { amount: i.paidAmount, reference: i.reference ?? null, date: i.paidDate ?? todayIST(), performedBy: context.uid },
+        {
+          amount: i.paidAmount,
+          reference: i.reference ?? null,
+          date: i.paidDate ?? todayIST(),
+          performedBy: context.uid,
+        },
       ];
 
       if (outstanding <= 0 && fine.memberId) {

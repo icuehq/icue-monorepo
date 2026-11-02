@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
@@ -25,7 +24,6 @@ class CategoryFormSheet extends StatefulWidget {
 
 class _CategoryFormSheetState extends State<CategoryFormSheet> {
   final _form = GlobalKey<FormState>();
-  final _requestId = newRequestId();
   late final _code = TextEditingController(text: widget.category?.code);
   late final _name = TextEditingController(text: widget.category?.name);
   late final _description = TextEditingController(
@@ -59,7 +57,7 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
             : _description.text.trim(),
         'parentId': _parentId,
         'suggestedTracking': _tracking.name,
-      }, requestId: _requestId),
+      }),
     );
     if (mounted) setState(() => _busy = false);
   }

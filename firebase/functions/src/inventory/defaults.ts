@@ -1,7 +1,7 @@
 import type { Tracking } from './masters';
 
 /** FRS 10.2 default categories. */
-export const DEFAULT_CATEGORIES: Array<{ code: string; name: string; tracking: Tracking }> = [
+export const DEFAULT_CATEGORIES: { code: string; name: string; tracking: Tracking }[] = [
   { code: 'STA', name: 'Stationery', tracking: 'quantity' },
   { code: 'CLS', name: 'Classroom supplies', tracking: 'quantity' },
   { code: 'FUR', name: 'Furniture', tracking: 'asset' },
@@ -19,7 +19,7 @@ export const DEFAULT_CATEGORIES: Array<{ code: string; name: string; tracking: T
 ];
 
 /** FRS 10.4 default units; the doc ID is the code. */
-export const DEFAULT_UNITS: Array<{ code: string; name: string }> = [
+export const DEFAULT_UNITS: { code: string; name: string }[] = [
   { code: 'pcs', name: 'Pieces' },
   { code: 'box', name: 'Boxes' },
   { code: 'pkt', name: 'Packets' },

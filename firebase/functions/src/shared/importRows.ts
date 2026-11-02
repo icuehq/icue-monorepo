@@ -14,55 +14,94 @@ export const MAX_ROWS = 200;
 export type ImportRow = Record<string, string>;
 /** Finds the document ID behind a unique code (category code, library code, ISBN…); throws when it does not exist. */
 export type CodeLookup = (keyType: string, value: string, label: string) => Promise<string>;
-export type ImportType = {
+export interface ImportType {
   callable: CallableDef<any, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
   mapRow: (row: ImportRow, lookup: CodeLookup) => Promise<Record<string, unknown>>;
-};
+}
 
 export const toNumber = (value: string | undefined) => (value?.trim() ? Number(value) : undefined);
 export const toText = (value: string | undefined) => value?.trim() || undefined;
 /** `a; b; c` → `['a', 'b', 'c']`. */
-export const toList = (value: string | undefined) => (value ?? '').split(';').map((part) => part.trim()).filter(Boolean);
+export const toList = (value: string | undefined) =>
+  (value ?? '')
+    .split(';')
+    .map((part) => part.trim())
+    .filter(Boolean);
 
 /** Masters whose document ID is their lowercased code (no `uniqueKeys` entry). */
-const CODE_ID_COLLECTIONS: Record<string, string> = { inventoryCategory: 'inventoryCategories' };
+const CODE_ID_COLLECTIONS: Record<string, string> = {
+  inventoryCategory: 'inventoryCategories',
+  library: 'libraries',
+  libraryCategory: 'libraryCategories',
+};
 
-async function lookupByCode(schoolId: string, keyType: string, value: string, label: string): Promise<string> {
+async function lookupByCode(
+  schoolId: string,
+  keyType: string,
+  value: string,
+  label: string,
+): Promise<string> {
   const collection = CODE_ID_COLLECTIONS[keyType];
   if (collection) {
     const docId = (value ?? '').trim().toLowerCase();
-    if (!docId || !(await getFirestore().doc(`schools/${schoolId}/${collection}/${docId}`).get()).exists) {
+    if (
+      !docId ||
+      !(await getFirestore().doc(`schools/${schoolId}/${collection}/${docId}`).get()).exists
+    ) {
       throw new HttpsError('failed-precondition', `${label} "${value}" not found`);
     }
     return docId;
   }
-  const key = await getFirestore().doc(`schools/${schoolId}/uniqueKeys/${keyType}_${encodeURIComponent((value ?? '').trim().toLowerCase())}`).get();
+  const key = await getFirestore()
+    .doc(
+      `schools/${schoolId}/uniqueKeys/${keyType}_${encodeURIComponent((value ?? '').trim().toLowerCase())}`,
+    )
+    .get();
   if (!key.exists) throw new HttpsError('failed-precondition', `${label} "${value}" not found`);
   return String(key.data()!.documentPath).split('/').pop()!;
 }
 
-export async function importRows(auth: { uid: string; token: TokenClaims } | undefined, data: unknown, types: Record<string, ImportType>) {
+export async function importRows(
+  auth: { uid: string; token: TokenClaims } | undefined,
+  data: unknown,
+  types: Record<string, ImportType>,
+) {
   if (!auth) throw new HttpsError('unauthenticated', 'Sign in required');
   const input = z.object({
     importId: z.string().regex(/^[A-Za-z0-9_]{6,40}$/),
     type: z.enum(Object.keys(types) as [string, ...string[]]),
-    rows: z.array(z.record(z.string(), z.string().max(500))).min(1).max(MAX_ROWS),
+    rows: z
+      .array(z.record(z.string(), z.string().max(500)))
+      .min(1)
+      .max(MAX_ROWS),
   });
   const parsed = input.safeParse(data);
   if (!parsed.success) throw new HttpsError('invalid-argument', z.prettifyError(parsed.error));
   const { importId, type, rows } = parsed.data;
   const schoolId = String(auth.token.schoolId);
-  const lookup: CodeLookup = (keyType, value, label) => lookupByCode(schoolId, keyType, value, label);
-  const results: Array<{ row: number; ok: boolean; error?: string }> = [];
+  const lookup: CodeLookup = (keyType, value, label) =>
+    lookupByCode(schoolId, keyType, value, label);
+  const results: { row: number; ok: boolean; error?: string }[] = [];
   for (const [index, row] of rows.entries()) {
     try {
       const fields = await types[type].mapRow(row, lookup);
-      await runCallable(types[type].callable, auth, { requestId: `${importId}-${index}`, ...fields });
+      await runCallable(types[type].callable, auth, {
+        requestId: `${importId}-${index}`,
+        ...fields,
+      });
       results.push({ row: index, ok: true });
     } catch (error) {
       // Permission and sign-in failures stop the whole file; row problems are reported per row.
-      if (error instanceof HttpsError && ['permission-denied', 'unauthenticated'].includes(error.code)) throw error;
-      results.push({ row: index, ok: false, error: error instanceof HttpsError ? error.message : 'Invalid row' });
+      if (
+        error instanceof HttpsError &&
+        ['permission-denied', 'unauthenticated'].includes(error.code)
+      )
+        throw error;
+      results.push({
+        row: index,
+        ok: false,
+        error: error instanceof HttpsError ? error.message : 'Invalid row',
+      });
     }
   }
   return { results, created: results.filter((result) => result.ok).length };

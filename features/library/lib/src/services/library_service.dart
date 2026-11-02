@@ -279,21 +279,21 @@ class LibraryService {
         : null;
   }
 
-  // --- writes: callables, same requestId on user retry --------------------
+  // --- writes: masters are plain client CRUD (`firestore.rules`); the rest are callables, same requestId on user retry --------------------
 
   Future<void> seedDefaults() => _call('library-seedDefaults', {});
 
-  Future<void> saveLibrary(Map<String, Object?> data, {String? requestId}) =>
-      _call('library-library-upsert', data, requestId);
+  Future<void> saveLibrary(Map<String, Object?> data) =>
+      saveMasterDocument('libraries', data);
 
   Future<void> setLibraryActive(String id, {required bool active}) =>
-      _call('library-library-setStatus', _status(id, active));
+      setMasterActive('libraries', id, active: active);
 
-  Future<void> saveCategory(Map<String, Object?> data, {String? requestId}) =>
-      _call('library-category-upsert', data, requestId);
+  Future<void> saveCategory(Map<String, Object?> data) =>
+      saveMasterDocument('libraryCategories', data);
 
   Future<void> setCategoryActive(String id, {required bool active}) =>
-      _call('library-category-setStatus', _status(id, active));
+      setMasterActive('libraryCategories', id, active: active);
 
   Future<void> saveBook(Map<String, Object?> data, {String? requestId}) =>
       _call('library-catalogue-upsert', data, requestId);
