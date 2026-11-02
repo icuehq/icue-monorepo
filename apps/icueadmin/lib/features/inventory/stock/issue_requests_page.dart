@@ -1,6 +1,6 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icueadmin/features/inventory/stock/issue_request_card.dart';
 import 'package:icueadmin/features/inventory/stock/request_sheet.dart';
 import 'package:icueadmin/routing/app_routes.dart';
 import 'package:icueadmin/widgets/form_helpers.dart';
@@ -38,74 +38,174 @@ class _IssueRequestsPageState extends State<IssueRequestsPage> {
   @override
   Widget build(BuildContext context) {
     final stockProvider = context.watch<StockProvider>();
-    final access = context.watch<InventoryProvider>().access;
+    final inventoryProvider = context.watch<InventoryProvider>();
+    final access = inventoryProvider.access;
+    final canRequest = access.can('inventory.issue.request');
+    final theme = Theme.of(context);
+
+    String storeName(String storeId) =>
+        inventoryProvider.stores
+            .where((store) => store.id == storeId)
+            .firstOrNull
+            ?.name ??
+        storeId;
+
+    final statuses = <(String?, String)>[
+      (null, 'All'),
+      ('pending', 'Pending'),
+      ('approved', 'Approved'),
+      ('partially_issued', 'Partially issued'),
+      ('issued', 'Issued'),
+      ('rejected', 'Rejected'),
+    ];
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Issue requests')),
-      floatingActionButton: access.can('inventory.issue.request')
+      appBar: AppBar(title: const Text('Issue Requests')),
+      floatingActionButton: canRequest
           ? FloatingActionButton.extended(
               onPressed: () async {
                 await context.push(AppRoutes.inventoryRequestForm);
                 if (mounted) await _load();
               },
               icon: const Icon(Icons.add_rounded),
-              label: const Text('Request'),
+              label: const Text('New request'),
             )
           : null,
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-            child: DropdownButton<String?>(
-              isExpanded: true,
-              value: _status,
-              items: [
-                const DropdownMenuItem(child: Text('All statuses')),
-                for (final value in [
-                  'pending',
-                  'approved',
-                  'partially_issued',
-                  'issued',
-                  'rejected',
-                ])
-                  DropdownMenuItem(
-                    value: value,
-                    child: Text(humanizeStatus(value)),
+          // Horizontal Status Filter Chips
+          SizedBox(
+            height: 44,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              children: [
+                for (final (key, label) in statuses)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: FilterChip(
+                      label: Text(label),
+                      selected: _status == key,
+                      showCheckmark: false,
+                      visualDensity: VisualDensity.compact,
+                      onSelected: (_) {
+                        setState(() => _status = key);
+                        _load();
+                      },
+                    ),
                   ),
               ],
-              onChanged: (value) {
-                _status = value;
-                _load();
-              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+            child: Row(
+              children: [
+                Text(
+                  stockProvider.isLoading && stockProvider.requests.isEmpty
+                      ? 'Loading requests…'
+                      : '${stockProvider.requests.length} request${stockProvider.requests.length == 1 ? '' : 's'}'
+                            '${_status != null ? ' in ${_status!.replaceAll('_', ' ')}' : ''}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
           ),
           Expanded(
-            child: stockProvider.requests.isEmpty
-                ? Center(
-                    child: stockProvider.isLoading
-                        ? const CircularProgressIndicator()
-                        : Text(stockProvider.errorMessage ?? 'No requests'),
-                  )
-                : ListView(
-                    children: [
-                      for (final issueRequest in stockProvider.requests)
-                        ListTile(
-                          title: Text(
-                            '${issueRequest.number} · ${issueRequest.purpose}',
-                          ),
-                          subtitle: Text(
-                            issueRequest.lineItems
-                                .map(
-                                  (requestLine) =>
-                                      '${stockProvider.itemName(requestLine.itemId)} × ${formatQuantity(requestLine.requested)}',
-                                )
-                                .join(', '),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          trailing: Chip(
-                            label: Text(humanizeStatus(issueRequest.status)),
-                            visualDensity: VisualDensity.compact,
-                          ),
+            child: RefreshIndicator(
+              onRefresh: _load,
+              child: stockProvider.requests.isEmpty
+                  ? Center(
+                      child: stockProvider.isLoading
+                          ? const CircularProgressIndicator()
+                          : SingleChildScrollView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              child: Padding(
+                                padding: const EdgeInsets.all(32),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      width: 72,
+                                      height: 72,
+                                      decoration: BoxDecoration(
+                                        color: theme
+                                            .colorScheme
+                                            .surfaceContainerHighest
+                                            .withValues(alpha: 0.5),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        Icons.outbox_rounded,
+                                        size: 36,
+                                        color:
+                                            theme.colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      _status != null
+                                          ? 'No $_status requests'
+                                          : 'No issue requests',
+                                      style: theme.textTheme.titleMedium
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      _status != null
+                                          ? 'There are currently no requests with this status filter.'
+                                          : 'Submit an issue request to withdraw supplies or equipment from store stock.',
+                                      textAlign: TextAlign.center,
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            color: theme
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 18),
+                                    if (_status != null)
+                                      OutlinedButton.icon(
+                                        onPressed: () {
+                                          setState(() => _status = null);
+                                          _load();
+                                        },
+                                        icon: const Icon(
+                                          Icons.filter_alt_off_outlined,
+                                          size: 18,
+                                        ),
+                                        label: const Text('Show all requests'),
+                                      )
+                                    else if (canRequest)
+                                      FilledButton.icon(
+                                        onPressed: () async {
+                                          await context.push(
+                                            AppRoutes.inventoryRequestForm,
+                                          );
+                                          if (mounted) await _load();
+                                        },
+                                        icon: const Icon(Icons.add, size: 18),
+                                        label: const Text('New request'),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 80),
+                      itemCount: stockProvider.requests.length,
+                      itemBuilder: (context, index) {
+                        final issueRequest = stockProvider.requests[index];
+                        return IssueRequestCard(
+                          request: issueRequest,
+                          storeName: storeName(issueRequest.storeId),
+                          itemName: stockProvider.itemName,
                           onTap: () async {
                             await showFormSheet(
                               context,
@@ -113,9 +213,10 @@ class _IssueRequestsPageState extends State<IssueRequestsPage> {
                             );
                             if (mounted) await _load();
                           },
-                        ),
-                    ],
-                  ),
+                        );
+                      },
+                    ),
+            ),
           ),
         ],
       ),

@@ -68,60 +68,177 @@ class _ReceivePageState extends State<ReceivePage> {
             ),
         ],
       }, requestId: _requestId),
-      done: 'Received',
+      done: 'Stock received successfully',
     );
     if (mounted) setState(() => _busy = false);
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Receive stock')),
-    body: Form(
-      key: _form,
-      child: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          StoreDropdown(
-            value: _store,
-            onChanged: (value) => setState(() => _store = value),
-          ),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            initialValue: _source,
-            decoration: const InputDecoration(labelText: 'Source'),
-            items: [
-              for (final mapEntry in _sources.entries)
-                DropdownMenuItem(
-                  value: mapEntry.key,
-                  child: Text(mapEntry.value),
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Scaffold(
+      appBar: AppBar(title: const Text('Receive Stock')),
+      body: Form(
+        key: _form,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            // Store & Source Card
+            Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: theme.colorScheme.outlineVariant),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.warehouse_outlined,
+                          size: 20,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Destination & Source',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    StoreDropdown(
+                      value: _store,
+                      onChanged: (value) => setState(() => _store = value),
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      initialValue: _source,
+                      decoration: const InputDecoration(
+                        labelText: 'Source of stock',
+                        prefixIcon: Icon(Icons.source_outlined),
+                      ),
+                      items: [
+                        for (final mapEntry in _sources.entries)
+                          DropdownMenuItem(
+                            value: mapEntry.key,
+                            child: Text(mapEntry.value),
+                          ),
+                      ],
+                      onChanged: (value) => setState(() => _source = value!),
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _reference,
+                      decoration: const InputDecoration(
+                        labelText: 'Reference number / Challan (optional)',
+                        hintText: 'e.g. DC-2024-001, OP-STOCK-2024',
+                        prefixIcon: Icon(Icons.tag_rounded),
+                      ),
+                    ),
+                  ],
                 ),
-            ],
-            onChanged: (value) => setState(() => _source = value!),
-          ),
-          const SizedBox(height: 12),
-          TextFormField(
-            controller: _reference,
-            decoration: const InputDecoration(
-              labelText: 'Reference (optional)',
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-          LineEditor(
-            lineItems: _lines,
-            receipt: true,
-            onChanged: () => setState(() {}),
-          ),
-          TextFormField(
-            controller: _remarks,
-            decoration: const InputDecoration(labelText: 'Remarks (optional)'),
-          ),
-          const SizedBox(height: 20),
-          FilledButton(
-            onPressed: _busy ? null : _save,
-            child: Text(_busy ? 'Saving…' : 'Confirm receiving'),
-          ),
-        ],
+            const SizedBox(height: 16),
+
+            // Items Card
+            Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: theme.colorScheme.outlineVariant),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.inventory_2_outlined,
+                          size: 20,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Items to Receive',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const Spacer(),
+                        if (_lines.isNotEmpty)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primaryContainer,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              '${_lines.length} items',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.onPrimaryContainer,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    LineEditor(
+                      lineItems: _lines,
+                      receipt: true,
+                      onChanged: () => setState(() {}),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            TextFormField(
+              controller: _remarks,
+              decoration: const InputDecoration(
+                labelText: 'Remarks / Notes (optional)',
+                hintText: 'e.g. Verified by physical count',
+                prefixIcon: Icon(Icons.notes_rounded),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            FilledButton.icon(
+              onPressed: _busy ? null : _save,
+              icon: _busy
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.check_circle_outline_rounded),
+              label: Text(_busy ? 'Receiving…' : 'Confirm Receiving'),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(48),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }

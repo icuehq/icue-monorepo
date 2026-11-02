@@ -7,6 +7,22 @@ import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
+Color _statusColor(String status) => switch (status) {
+  'approved' => Colors.blue.shade700,
+  'partially_issued' => Colors.purple.shade700,
+  'issued' => Colors.green.shade700,
+  'rejected' => Colors.red.shade700,
+  _ => Colors.orange.shade800,
+};
+
+Color _statusBgColor(String status) => switch (status) {
+  'approved' => Colors.blue.withValues(alpha: 0.12),
+  'partially_issued' => Colors.purple.withValues(alpha: 0.12),
+  'issued' => Colors.green.withValues(alpha: 0.12),
+  'rejected' => Colors.red.withValues(alpha: 0.12),
+  _ => Colors.orange.withValues(alpha: 0.12),
+};
+
 /// One issue request: approve/reject (approver), issue (storekeeper), then issues → return.
 class RequestSheet extends StatefulWidget {
   const RequestSheet({required this.request, super.key});
@@ -19,7 +35,7 @@ class RequestSheet extends StatefulWidget {
 
 class _RequestSheetState extends State<RequestSheet> {
   final _comment = TextEditingController();
-  final _recipient = TextEditingController();
+  late final _recipient = TextEditingController(text: widget.request.createdBy);
   late final _approve = [
     for (final requestLine in widget.request.lineItems)
       TextEditingController(text: formatQuantity(requestLine.requested)),
@@ -40,23 +56,36 @@ class _RequestSheetState extends State<RequestSheet> {
     super.dispose();
   }
 
-  Future<void> _decide(bool approve) => stockSubmit(
-    context,
-    (stockProvider) => stockProvider.act('inventory-issueRequest-decide', {
-      'id': widget.request.id,
-      'decision': approve ? 'approve' : 'reject',
-      'comment': _comment.text.trim(),
-      if (approve)
-        'lineItems': [
-          for (final (i, c) in _approve.indexed)
-            {
-              'index': i,
-              'quantityApproved': double.tryParse(c.text.trim()) ?? 0,
-            },
-        ],
-    }, requestId: _requestId),
-    done: approve ? 'Approved' : 'Rejected',
-  );
+  Future<void> _decide(bool approve) {
+    if (!approve && _comment.text.trim().isEmpty) {
+      showMessage(context, 'Please enter a rejection comment');
+      return Future.value();
+    }
+    return stockSubmit(
+      context,
+      (stockProvider) => stockProvider.act('inventory-issueRequest-decide', {
+        'id': widget.request.id,
+        'decision': approve ? 'approve' : 'reject',
+        'comment': _comment.text.trim(),
+        if (approve)
+          'lineItems': [
+            for (final (i, c) in _approve.indexed)
+              {
+                'index': i,
+                'quantityApproved': double.tryParse(c.text.trim()) ?? 0,
+              },
+          ],
+      }, requestId: _requestId),
+      done: approve ? 'Approved' : 'Rejected',
+    );
+  }
+
+  Future<void> _approveAllInFull() {
+    for (final (i, requestLine) in widget.request.lineItems.indexed) {
+      _approve[i].text = formatQuantity(requestLine.requested);
+    }
+    return _decide(true);
+  }
 
   Future<void> _issue() async {
     final personErpId = int.tryParse(_recipient.text.trim());
@@ -87,132 +116,364 @@ class _RequestSheetState extends State<RequestSheet> {
     final issueRequest = widget.request;
     final stockProvider = context.read<StockProvider>();
     final access = context.read<InventoryProvider>().access;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          issueRequest.number,
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
-        Text(
-          '${humanizeStatus(issueRequest.status)} · ${issueRequest.purpose}',
-        ),
-        if (issueRequest.approvalComment != null &&
-            issueRequest.approvalComment!.isNotEmpty)
-          Text('Comment: ${issueRequest.approvalComment}'),
-        const SizedBox(height: 8),
-        for (final (i, l) in issueRequest.lineItems.indexed)
-          issueRequest.isPending && access.can('inventory.issue.approve')
-              ? Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: TextField(
-                    controller: _approve[i],
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
+    final theme = Theme.of(context);
+    final statusColor = _statusColor(issueRequest.status);
+    final statusBg = _statusBgColor(issueRequest.status);
+
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Header Row
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      issueRequest.number,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        fontFamily: 'monospace',
+                        fontSize: 18,
+                      ),
                     ),
-                    decoration: InputDecoration(
-                      labelText:
-                          '${stockProvider.itemName(l.itemId)} – approve (requested ${formatQuantity(l.requested)})',
+                    const SizedBox(height: 2),
+                    Text(
+                      issueRequest.purpose,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                )
-              : ListTile(
-                  dense: true,
-                  title: Text(stockProvider.itemName(l.itemId)),
-                  trailing: Text(
-                    'Req ${formatQuantity(l.requested)}'
-                    '${l.approved == null ? '' : ' · Appr ${formatQuantity(l.approved!)}'}'
-                    '${l.issued > 0 ? ' · Issued ${formatQuantity(l.issued)}' : ''}',
+                    if (issueRequest.destination != null &&
+                        issueRequest.destination!.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        'Destination: ${issueRequest.destination}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: statusBg,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  humanizeStatus(issueRequest.status),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: statusColor,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-        if (issueRequest.isPending &&
-            access.can('inventory.issue.approve')) ...[
-          TextField(
-            controller: _comment,
-            decoration: const InputDecoration(
-              labelText: 'Comment (required to reject)',
+              ),
+            ],
+          ),
+
+          if (issueRequest.approvalComment != null &&
+              issueRequest.approvalComment!.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.4,
+                ),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                'Approval note: ${issueRequest.approvalComment}',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+          ],
+
+          const Divider(height: 24),
+
+          // Requested Items Section
+          Text(
+            'Requested Items',
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => _decide(false),
-                  child: const Text('Reject'),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: FilledButton(
-                  onPressed: () => _decide(true),
-                  child: const Text('Approve'),
-                ),
-              ),
-            ],
-          ),
-        ],
-        if (issueRequest.isIssuable &&
-            access.can('inventory.stock.operate')) ...[
-          const Divider(),
-          Row(
-            children: [
-              DropdownButton<String>(
-                value: _recipientType,
-                items: const [
-                  DropdownMenuItem(value: 'staff', child: Text('Staff')),
-                  DropdownMenuItem(value: 'student', child: Text('Student')),
-                  DropdownMenuItem(value: 'department', child: Text('Dept')),
-                ],
-                onChanged: (value) => setState(() => _recipientType = value!),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextField(
-                  controller: _recipient,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Recipient ERP ID',
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          FilledButton(
-            onPressed: _issue,
-            child: const Text('Issue remaining approved quantity'),
-          ),
-        ],
-        if (!issueRequest.isPending && access.can('inventory.stock.operate'))
-          FutureBuilder<List<InventoryIssue>>(
-            future: _issues,
-            builder: (context, snapshot) => Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if ((snapshot.data ?? []).isNotEmpty) const Divider(),
-                for (final i in snapshot.data ?? <InventoryIssue>[])
-                  ListTile(
-                    dense: true,
-                    title: Text(i.number),
-                    subtitle: Text(
-                      i.acknowledged
-                          ? 'Receipt confirmed'
-                          : 'Awaiting recipient confirmation',
+
+          for (final (i, l) in issueRequest.lineItems.indexed) ...[
+            if (issueRequest.isPending && access.can('inventory.issue.approve'))
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest.withValues(
+                      alpha: 0.35,
                     ),
-                    trailing: TextButton(
-                      onPressed: () => showFormSheet(
-                        context,
-                        () => IssueReturnSheet(issue: i),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        stockProvider.itemName(l.itemId),
+                        style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
-                      child: const Text('Return / confirm'),
-                    ),
+                      const SizedBox(height: 6),
+                      TextFormField(
+                        controller: _approve[i],
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        inputFormatters: [decimalInputFormatter],
+                        decoration: InputDecoration(
+                          labelText: 'Approved quantity',
+                          helperText:
+                              'Requested: ${formatQuantity(l.requested)}',
+                          isDense: true,
+                        ),
+                      ),
+                    ],
                   ),
+                ),
+              )
+            else
+              Container(
+                margin: const EdgeInsets.only(bottom: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest.withValues(
+                    alpha: 0.25,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        stockProvider.itemName(l.itemId),
+                        style: const TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          'Req: ${formatQuantity(l.requested)}',
+                          style: theme.textTheme.bodySmall,
+                        ),
+                        if (l.approved != null)
+                          Text(
+                            'Appr: ${formatQuantity(l.approved!)}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: theme.colorScheme.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        if (l.issued > 0)
+                          Text(
+                            'Issued: ${formatQuantity(l.issued)}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.green.shade700,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+          ],
+
+          // Approver Actions
+          if (issueRequest.isPending &&
+              access.can('inventory.issue.approve')) ...[
+            const SizedBox(height: 8),
+            TextField(
+              controller: _comment,
+              decoration: const InputDecoration(
+                labelText: 'Comment / Reason (required to reject)',
+                isDense: true,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => _decide(false),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: theme.colorScheme.error,
+                      side: BorderSide(color: theme.colorScheme.error),
+                    ),
+                    child: const Text('Reject'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: _approveAllInFull,
+                    child: const Text('Approve'),
+                  ),
+                ),
               ],
             ),
-          ),
-      ],
+          ],
+
+          // Storekeeper Issuance Action
+          if (issueRequest.isIssuable &&
+              access.can('inventory.stock.operate')) ...[
+            const Divider(height: 24),
+            Text(
+              'Issue Items',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 110,
+                  child: DropdownButtonFormField<String>(
+                    initialValue: _recipientType,
+                    decoration: const InputDecoration(labelText: 'Type'),
+                    items: const [
+                      DropdownMenuItem(value: 'staff', child: Text('Staff')),
+                      DropdownMenuItem(
+                        value: 'student',
+                        child: Text('Student'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'department',
+                        child: Text('Dept'),
+                      ),
+                    ],
+                    onChanged: (value) =>
+                        setState(() => _recipientType = value!),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextFormField(
+                    controller: _recipient,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: 'Recipient ERP ID',
+                      helperText:
+                          'Default: Requester (${issueRequest.createdBy})',
+                      isDense: true,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: FilledButton.icon(
+                onPressed: _issue,
+                icon: const Icon(Icons.outbox_rounded, size: 18),
+                label: const Text('Issue approved stock'),
+              ),
+            ),
+          ],
+
+          // Past Issuance Records & Acknowledgements
+          if (!issueRequest.isPending && access.can('inventory.stock.operate'))
+            FutureBuilder<List<InventoryIssue>>(
+              future: _issues,
+              builder: (context, snapshot) {
+                final issues = snapshot.data ?? <InventoryIssue>[];
+                if (issues.isEmpty) return const SizedBox.shrink();
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Divider(height: 24),
+                    Text(
+                      'Issuances (${issues.length})',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    for (final issue in issues)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerHighest
+                              .withValues(alpha: 0.35),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    issue.number,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontFamily: 'monospace',
+                                    ),
+                                  ),
+                                  Text(
+                                    issue.acknowledged
+                                        ? 'Receipt confirmed'
+                                        : 'Awaiting confirmation',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: issue.acknowledged
+                                          ? Colors.green.shade700
+                                          : Colors.orange.shade800,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            TextButton.icon(
+                              onPressed: () => showFormSheet(
+                                context,
+                                () => IssueReturnSheet(issue: issue),
+                              ),
+                              icon: const Icon(Icons.undo_rounded, size: 16),
+                              label: const Text('Return'),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+          const SizedBox(height: 16),
+        ],
+      ),
     );
   }
 }
