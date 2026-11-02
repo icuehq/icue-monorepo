@@ -58,6 +58,15 @@ export const transactionFields = {
 };
 export const lineKey = { itemId: id, variantId: id.nullish() };
 
+/** Identifies a line by item and variant. */
+export const lineItemKey = (lineItem: { itemId?: string; variantId?: string | null }) =>
+  `${lineItem.itemId}__${lineItem.variantId ?? '-'}`;
+
+export function assertUniqueLines(lineItems: { itemId: string; variantId?: string | null }[]) {
+  if (new Set(lineItems.map(lineItemKey)).size !== lineItems.length)
+    throw failed('Each item (and variant) may appear once');
+}
+
 export const balanceId = (
   storeId: string,
   itemId: string,

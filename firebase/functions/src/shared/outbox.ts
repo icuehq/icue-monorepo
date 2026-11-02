@@ -1,4 +1,3 @@
-import '../region';
 import { type Firestore, getFirestore } from 'firebase-admin/firestore';
 import { getMessaging, type BatchResponse, type TokenMessage } from 'firebase-admin/messaging';
 import { logger } from 'firebase-functions/v2';

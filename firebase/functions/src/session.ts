@@ -1,4 +1,3 @@
-import './region';
 import { type Firestore, getFirestore } from 'firebase-admin/firestore';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import type { TokenClaims } from './shared/callable';

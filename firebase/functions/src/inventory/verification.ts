@@ -1,4 +1,3 @@
-import '../region';
 import { z } from 'zod';
 import { todayIST } from '../shared/dates';
 import { serverTimestamp } from '../shared/firestore';
@@ -10,7 +9,6 @@ import { Stock } from './stock';
 
 // Known limit: one transaction applies every difference (3 writes each), so a session is capped; narrow by category for larger stores.
 const MAX_LINES = 150;
-const stamp = () => serverTimestamp();
 const reason = z.enum(['count_correction', 'missing', 'excess', 'other']);
 
 export const verification = {
@@ -123,10 +121,10 @@ export const verification = {
           reason: difference === 0 ? null : (lineItem.reason ?? null),
           remarks: lineItem.remarks ?? null,
           countedBy: context.uid,
-          countedAt: stamp(),
+          countedAt: serverTimestamp(),
         });
       });
-      context.update(ref, { updatedAt: stamp() });
+      context.update(ref, { updatedAt: serverTimestamp() });
       return { id: i.id };
     },
   }),
@@ -161,9 +159,9 @@ export const verification = {
       context.update(ref, {
         status: differences.length ? 'submitted' : 'applied',
         differenceCount: differences.length,
-        submittedAt: stamp(),
+        submittedAt: serverTimestamp(),
         submittedBy: context.uid,
-        updatedAt: stamp(),
+        updatedAt: serverTimestamp(),
       });
       if (differences.length) {
         await enqueue(context, `inventory-verification-submitted__${i.id}`, {
@@ -205,12 +203,12 @@ export const verification = {
       if (i.decision === 'reject' && !i.comment) throw failed('Give a reason for rejecting');
       const approval = {
         performedBy: context.uid,
-        performedAt: stamp(),
+        performedAt: serverTimestamp(),
         decision: i.decision,
         comment: i.comment ?? null,
       };
       if (i.decision === 'reject') {
-        context.update(ref, { status: 'counting', approval, updatedAt: stamp() });
+        context.update(ref, { status: 'counting', approval, updatedAt: serverTimestamp() });
         await enqueue(context, `inventory-verification-rejected__${i.id}__${Date.now()}`, {
           to: { uids: [session.createdBy] },
           category: 'inventory.verification',
@@ -264,9 +262,9 @@ export const verification = {
         status: 'applied',
         approval,
         adjustmentCount: appliedCount,
-        appliedAt: stamp(),
+        appliedAt: serverTimestamp(),
         appliedDate: todayIST(),
-        updatedAt: stamp(),
+        updatedAt: serverTimestamp(),
       });
       context.audit({
         action: 'inventoryVerification.approve',

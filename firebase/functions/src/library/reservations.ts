@@ -1,4 +1,3 @@
-import '../region';
 import {
   getFirestore,
   type DocumentData,

@@ -1,7 +1,9 @@
 import { getFirestore } from 'firebase-admin/firestore';
 import { HttpsError } from 'firebase-functions/v2/https';
 import { z } from 'zod';
-import { runCallable, type CallableDef, type TokenClaims } from './callable';
+import { runCallable, type AnyCallableDef, type Auth } from './callable';
+import { uniqueKeyId } from './keys';
+import { codeDocId } from './masters';
 
 /**
  * CSV import (FRS 14): the app parses the file and sends rows; each row goes through the same callable as a
@@ -15,7 +17,7 @@ export type ImportRow = Record<string, string>;
 /** Finds the document ID behind a unique code (category code, library code, ISBN…); throws when it does not exist. */
 export type CodeLookup = (keyType: string, value: string, label: string) => Promise<string>;
 export interface ImportType {
-  callable: CallableDef<any, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  callable: AnyCallableDef;
   mapRow: (row: ImportRow, lookup: CodeLookup) => Promise<Record<string, unknown>>;
 }
 
@@ -43,7 +45,7 @@ async function lookupByCode(
 ): Promise<string> {
   const collection = CODE_ID_COLLECTIONS[keyType];
   if (collection) {
-    const docId = (value ?? '').trim().toLowerCase();
+    const docId = codeDocId(value ?? '');
     if (
       !docId ||
       !(await getFirestore().doc(`schools/${schoolId}/${collection}/${docId}`).get()).exists
@@ -53,19 +55,13 @@ async function lookupByCode(
     return docId;
   }
   const key = await getFirestore()
-    .doc(
-      `schools/${schoolId}/uniqueKeys/${keyType}_${encodeURIComponent((value ?? '').trim().toLowerCase())}`,
-    )
+    .doc(`schools/${schoolId}/uniqueKeys/${uniqueKeyId(keyType, value ?? '')}`)
     .get();
   if (!key.exists) throw new HttpsError('failed-precondition', `${label} "${value}" not found`);
   return String(key.data()!.documentPath).split('/').pop()!;
 }
 
-export async function importRows(
-  auth: { uid: string; token: TokenClaims } | undefined,
-  data: unknown,
-  types: Record<string, ImportType>,
-) {
+export async function importRows(auth: Auth, data: unknown, types: Record<string, ImportType>) {
   if (!auth) throw new HttpsError('unauthenticated', 'Sign in required');
   const input = z.object({
     importId: z.string().regex(/^[A-Za-z0-9_]{6,40}$/),

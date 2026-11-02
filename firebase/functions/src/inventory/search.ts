@@ -1,4 +1,3 @@
-import '../region';
 import { type DocumentData, type Firestore, type Timestamp } from 'firebase-admin/firestore';
 import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { HttpsError } from 'firebase-functions/v2/https';
@@ -52,6 +51,7 @@ export async function searchItems(
 }
 
 export const itemSearch: QueryDef<typeof searchInput, Awaited<ReturnType<typeof searchItems>>> = {
+  name: 'inventory.item.search',
   permission: 'inventory.items.view',
   input: searchInput,
   handler: searchItems,

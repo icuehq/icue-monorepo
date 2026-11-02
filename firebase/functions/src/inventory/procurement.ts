@@ -1,4 +1,3 @@
-import '../region';
 import { z } from 'zod';
 import {
   code,
@@ -8,11 +7,10 @@ import {
   name,
   optionalText,
   saveMaster,
+  text,
 } from '../shared/masters';
 
 /** Vendor master, kept only for the bulk importer; vendors are edited by the client (`firestore.rules`). */
-
-const text = (max: number) => z.string().trim().max(max).nullish();
 
 export const procurement = {
   vendorUpsert: defineCallable({

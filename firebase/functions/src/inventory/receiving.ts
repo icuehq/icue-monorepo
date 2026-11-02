@@ -1,15 +1,19 @@
-import '../region';
 import { z } from 'zod';
 import type { CallableContext } from '../shared/callable';
 import { serverTimestamp } from '../shared/firestore';
 import { defineCallable, failed, id, missing, optionalText } from '../shared/masters';
-import { type Batch, lineKey, Stock, transactionFields } from './stock';
+import {
+  assertUniqueLines,
+  type Batch,
+  lineItemKey,
+  lineKey,
+  Stock,
+  transactionFields,
+} from './stock';
 import { batch } from './stock-operations';
 
 /** Goods receiving against purchase orders (FRS 10.17). Vendor invoices are client writes. */
 
-const key = (lineItem: { itemId: string; variantId?: string | null }) =>
-  `${lineItem.itemId}__${lineItem.variantId ?? '-'}`;
 const RECEIVABLE = ['issued', 'acknowledged', 'partially_received'];
 // Firestore line items are untyped maps; shape is enforced by the callables that write them.
 interface PurchaseOrderLine {
@@ -83,8 +87,7 @@ export const receiving = {
         .max(50),
     }),
     handler: async (context, i) => {
-      if (new Set(i.lineItems.map(key)).size !== i.lineItems.length)
-        throw failed('Each item (and variant) may appear once');
+      assertUniqueLines(i.lineItems);
       const { ref: purchaseOrderRef, purchaseOrder: purchaseOrder } = await loadPurchaseOrder(
         context,
         i.purchaseOrderId,
@@ -103,7 +106,7 @@ export const receiving = {
       const rows = [];
       for (const lineItem of i.lineItems) {
         const orderLine = purchaseOrderLines.find(
-          (purchaseOrderLine) => key(purchaseOrderLine) === key(lineItem),
+          (purchaseOrderLine) => lineItemKey(purchaseOrderLine) === lineItemKey(lineItem),
         );
         if (!orderLine) throw failed('Receiving lines must be lines of the order');
         const got = lineItem.quantityAccepted + lineItem.quantityRejected;

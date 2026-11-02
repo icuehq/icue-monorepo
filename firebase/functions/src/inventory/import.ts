@@ -1,4 +1,3 @@
-import '../region';
 import { onCall } from 'firebase-functions/v2/https';
 import { importRows, toNumber, toText, type ImportType } from '../shared/importRows';
 import { masters } from './masters';
@@ -56,9 +55,4 @@ const types: Record<string, ImportType> = {
 export const runImport = (auth: Parameters<typeof importRows>[0], data: unknown) =>
   importRows(auth, data, types);
 
-export const importRun = onCall((request) =>
-  runImport(
-    request.auth ? { uid: request.auth.uid, token: request.auth.token } : undefined,
-    request.data,
-  ),
-);
+export const importRun = onCall((request) => runImport(request.auth, request.data));

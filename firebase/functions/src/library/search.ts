@@ -1,4 +1,3 @@
-import '../region';
 import {
   type DocumentData,
   type Firestore,
@@ -112,6 +111,7 @@ export const catalogueSearch: QueryDef<
   typeof searchInput,
   Awaited<ReturnType<typeof searchCatalogue>>
 > = {
+  name: 'library.catalogue.search',
   permission: 'library.catalogue.view',
   input: searchInput,
   handler: searchCatalogue,

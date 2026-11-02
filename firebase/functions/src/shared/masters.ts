@@ -13,7 +13,9 @@ export const defineCallable = <S extends z.ZodType, R>(definition: CallableDef<S
 export const id = z.string().min(1).max(100);
 export const code = z.string().trim().min(1).max(30);
 export const name = z.string().trim().min(1).max(120);
-export const optionalText = z.string().trim().max(500).nullish();
+export const text = (max: number) => z.string().trim().max(max).nullish();
+export const optionalText = text(500);
+export const money = z.number().min(0).max(100_000_000);
 export const status = z.enum(['active', 'inactive']);
 
 export const failed = (message: string) => new HttpsError('failed-precondition', message);

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const INDIA_OFFSET_MILLISECONDS = 330 * 60 * 1000;
+export const INDIA_OFFSET_MILLISECONDS = 330 * 60 * 1000;
 const MILLISECONDS_PER_DAY = 86_400_000;
 
 /** A calendar day as `yyyy-MM-dd`. */

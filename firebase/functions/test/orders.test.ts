@@ -189,6 +189,15 @@ describe('purchase orders', () => {
     );
   });
 
+  it('each order line is checked against its own request line', async () => {
+    expect(await code(purchaseOrder({ lineItems: [{ itemId: ink, quantityOrdered: 21 }] }))).toBe(
+      'failed-precondition',
+    ); // ink asks for 20; pen's 100 must not count
+    expect(await code(purchaseOrder({ lineItems: [{ itemId: ink, quantityOrdered: 20 }] }))).toBe(
+      'ok',
+    );
+  });
+
   it('acknowledge, revise (recorded), close, and campus scope', async () => {
     const id = (await purchaseOrder()).id as string;
     expect(await code(run(o.purchaseOrderAcknowledge, { id }))).toBe('failed-precondition'); // draft

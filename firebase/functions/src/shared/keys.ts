@@ -1,12 +1,11 @@
 import { HttpsError } from 'firebase-functions/v2/https';
 import type { CallableContext } from './callable';
+import { INDIA_OFFSET_MILLISECONDS } from './dates';
 import { serverTimestamp } from './firestore';
-
-const IST_OFFSET_MS = 330 * 60 * 1000;
 
 /** Indian financial year (Apr–Mar) of [date] in IST, e.g. `2026-27`. */
 export function financialYearOf(date: Date): string {
-  const ist = new Date(date.getTime() + IST_OFFSET_MS);
+  const ist = new Date(date.getTime() + INDIA_OFFSET_MILLISECONDS);
   const start = ist.getUTCMonth() >= 3 ? ist.getUTCFullYear() : ist.getUTCFullYear() - 1;
   return `${start}-${String((start + 1) % 100).padStart(2, '0')}`;
 }
@@ -29,8 +28,12 @@ export async function nextNumber(
   return `${type}/${financialYear}/${String(next).padStart(6, '0')}`;
 }
 
+/** `uniqueKeys` document ID of [value]; codes are case-insensitive. */
+export const uniqueKeyId = (keyType: string, value: string) =>
+  `${keyType}_${encodeURIComponent(value.trim().toLowerCase())}`;
+
 export const uniqueKeyRef = (context: CallableContext, keyType: string, value: string) =>
-  context.doc(`uniqueKeys/${keyType}_${encodeURIComponent(value.trim().toLowerCase())}`);
+  context.doc(`uniqueKeys/${uniqueKeyId(keyType, value)}`);
 
 /**
  * Claims `uniqueKeys/{keyType_value}` for [documentPath]. Codes are case-insensitive.

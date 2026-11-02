@@ -1,4 +1,3 @@
-import '../region';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { CallableContext } from '../shared/callable';

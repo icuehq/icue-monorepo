@@ -1,4 +1,3 @@
-import '../region';
 import { getFirestore } from 'firebase-admin/firestore';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { todayIST, addDays } from '../shared/dates';

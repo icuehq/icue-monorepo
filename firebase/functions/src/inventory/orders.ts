@@ -1,17 +1,23 @@
-import '../region';
 import { type DocumentData, type DocumentReference } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import type { CallableContext } from '../shared/callable';
 import { isoDate, todayIST } from '../shared/dates';
 import { serverTimestamp } from '../shared/firestore';
 import { nextNumber } from '../shared/keys';
-import { defineCallable, failed, id, missing, optionalText, usable } from '../shared/masters';
-import { lineKey, positiveQuantity } from './stock';
+import {
+  defineCallable,
+  failed,
+  id,
+  missing,
+  money,
+  optionalText,
+  text,
+  usable,
+} from '../shared/masters';
+import { assertUniqueLines, lineItemKey, lineKey, positiveQuantity } from './stock';
 
 /** Purchase orders (FRS 10.16). Quotations are client writes; receiving is in receiving.ts. */
 
-const money = z.number().min(0).max(100_000_000);
-const text = (max: number) => z.string().trim().max(max).nullish();
 const OPEN_PURCHASE_REQUEST_STATUSES = ['approved', 'partially_ordered'];
 const roundToCents = (amount: number) => Math.round(amount * 100) / 100;
 
@@ -20,8 +26,6 @@ interface Line {
   variantId: string | null;
   quantity: number;
 }
-const key = (lineItem: { itemId: string; variantId?: string | null }) =>
-  `${lineItem.itemId}__${lineItem.variantId ?? '-'}`;
 
 /** `subtotal - discount + tax + delivery`; a discount above the subtotal is rejected. */
 function totals(
@@ -36,11 +40,6 @@ function totals(
     subtotal,
     total: roundToCents(subtotal - charges.discount + charges.tax + charges.delivery),
   };
-}
-
-function uniqueLines(lineItems: { itemId: string; variantId?: string | null }[]) {
-  if (new Set(lineItems.map(key)).size !== lineItems.length)
-    throw failed('Each item (and variant) may appear once');
 }
 
 async function loadPurchaseRequest(
@@ -94,7 +93,7 @@ function shiftOrdered(
     }[]
   ).map((lineItem) => {
     const existingLine = (purchaseOrder.lineItems as Line[]).find(
-      (orderLine) => key(orderLine) === key(lineItem),
+      (orderLine) => lineItemKey(orderLine) === lineItemKey(lineItem),
     );
     return existingLine
       ? {
@@ -143,7 +142,7 @@ export const orders = {
         context,
         i.purchaseRequestId,
       );
-      uniqueLines(i.lineItems);
+      assertUniqueLines(i.lineItems);
       let vendorId = i.vendorId;
       let quoted: { itemId: string; variantId?: string | null; unitPrice: number }[] | null = null;
       if (i.quotationId) {
@@ -166,7 +165,9 @@ export const orders = {
       context.requireCampus(campus);
       if (i.expectedDate < todayIST()) throw failed('Expected delivery date is in the past');
       const lineItems = i.lineItems.map((lineItem) => {
-        const quotedLine = quoted?.find((quotedLineItem) => key(quotedLineItem) === key(lineItem));
+        const quotedLine = quoted?.find(
+          (quotedLineItem) => lineItemKey(quotedLineItem) === lineItemKey(lineItem),
+        );
         if (quoted && !quotedLine) throw failed('Order lines must be lines of the quotation');
         return {
           itemId: lineItem.itemId,
@@ -319,10 +320,14 @@ export const orders = {
           unitPrice: number;
         }[]
       ).map((lineItem) => {
-        const priceLine = i.prices.find((price) => key(price) === key(lineItem));
+        const priceLine = i.prices.find((price) => lineItemKey(price) === lineItemKey(lineItem));
         return priceLine ? { ...lineItem, unitPrice: priceLine.unitPrice } : lineItem;
       });
-      if (i.prices.some((price) => !lineItems.some((lineItem) => key(lineItem) === key(price))))
+      if (
+        i.prices.some(
+          (price) => !lineItems.some((lineItem) => lineItemKey(lineItem) === lineItemKey(price)),
+        )
+      )
         throw failed('Price given for an item not on the order');
       const charges = {
         discount: i.discount ?? purchaseOrder.discount,
@@ -485,7 +490,7 @@ function checkRemaining(purchaseRequest: DocumentData, lineItems: Line[]) {
         quantity: number;
         quantityOrdered: number;
       }[]
-    ).find((lineItem) => key(lineItem) === key(lineItem));
+    ).find((candidate) => lineItemKey(candidate) === lineItemKey(lineItem));
     if (!requestLine) throw failed('Order lines must be lines of the request');
     if (lineItem.quantity > requestLine.quantity - requestLine.quantityOrdered)
       throw failed('Ordered quantity exceeds what the request still needs');

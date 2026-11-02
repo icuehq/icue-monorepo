@@ -1,18 +1,24 @@
-import '../region';
 import { type DocumentData, type DocumentReference } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import type { CallableContext } from '../shared/callable';
 import { isoDate, todayIST } from '../shared/dates';
 import { serverTimestamp } from '../shared/firestore';
 import { claimUniqueKey, nextNumber, uniqueKeyRef } from '../shared/keys';
-import { defineCallable, failed, id, missing, optionalText, usable } from '../shared/masters';
+import {
+  defineCallable,
+  failed,
+  id,
+  missing,
+  money,
+  optionalText,
+  text,
+  usable,
+} from '../shared/masters';
 import { lineKey, stockPerson, positiveQuantity, Stock } from './stock';
 
 /** Individual assets: registration, custody, condition, retirement (FRS 10.19) and maintenance (FRS 10.20). */
 
 const condition = z.enum(['new', 'good', 'fair', 'poor', 'damaged']);
-const money = z.number().min(0).max(100_000_000);
-const text = z.string().trim().max(120).nullish();
 // Maintenance status drives the asset status (architecture §6): `restoreTo` is what the asset was before.
 const LIVE = ['open', 'assigned', 'in_progress', 'waiting_for_parts'];
 const WORKING = {
@@ -48,7 +54,7 @@ function hist(
 
 const assignee = z.object({
   assignee: stockPerson,
-  location: text,
+  location: text(120),
   expectedReturn: isoDate.nullish(),
   acknowledged: z.boolean().default(false),
   remarks: optionalText,
@@ -118,9 +124,9 @@ export const assets = {
       itemId: id,
       storeId: id,
       name: z.string().trim().min(1).max(120).optional(),
-      serialNumber: text,
-      make: text,
-      model: text,
+      serialNumber: text(120),
+      make: text(120),
+      model: text(120),
       purchaseOrderId: id.nullish(),
       vendorId: id.nullish(),
       purchaseDate: isoDate.nullish(),
@@ -128,7 +134,7 @@ export const assets = {
       warrantyStart: isoDate.nullish(),
       warrantyEnd: isoDate.nullish(),
       condition: condition.default('new'),
-      location: text,
+      location: text(120),
     }),
     handler: async (context, i) => {
       const item = usable(
@@ -282,7 +288,7 @@ export const assets = {
   return: defineCallable({
     name: 'inventory.asset.return',
     permission: 'inventory.assets.manage',
-    input: z.object({ id, condition, location: text, remarks: optionalText }),
+    input: z.object({ id, condition, location: text(120), remarks: optionalText }),
     handler: async (context, i) => {
       const { ref, asset } = await loadAsset(context, i.id);
       if (asset.status !== 'assigned') throw failed(`Asset is ${asset.status}`);
@@ -422,7 +428,7 @@ export const maintenance = {
       assetId: id,
       issue: z.string().trim().min(1).max(1000),
       priority: z.enum(['low', 'medium', 'high', 'urgent']),
-      technician: text,
+      technician: text(120),
       reportedDate: isoDate.optional(),
       nextServiceDate: isoDate.nullish(),
     }),
@@ -507,7 +513,7 @@ export const maintenance = {
     input: z.object({
       id,
       status: z.enum(['assigned', 'in_progress', 'waiting_for_parts', 'completed', 'cancelled']),
-      technician: text,
+      technician: text(120),
       repairDetails: z.string().trim().max(1000).nullish(),
       cost: money.nullish(),
       nextServiceDate: isoDate.nullish(),

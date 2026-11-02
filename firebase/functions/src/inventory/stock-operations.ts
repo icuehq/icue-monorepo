@@ -1,10 +1,19 @@
-import '../region';
 import { z } from 'zod';
 import { todayIST } from '../shared/dates';
 import { serverTimestamp } from '../shared/firestore';
-import { defineCallable, failed, id, missing, optionalText, usable } from '../shared/masters';
+import {
+  defineCallable,
+  failed,
+  id,
+  missing,
+  money,
+  optionalText,
+  usable,
+} from '../shared/masters';
 import { enqueue } from '../shared/outbox';
 import {
+  assertUniqueLines,
+  lineItemKey,
   lineKey,
   stockPerson,
   positiveQuantity,
@@ -15,7 +24,6 @@ import {
 
 /** Stock receiving, issuance, returns, transfers, adjustments, unavailable stock (FRS 10.7–10.12). */
 
-const money = z.number().min(0).max(100_000_000);
 export const batch = {
   batchNumber: z.string().trim().min(1).max(40).nullish(),
   manufacturingDate: z
@@ -31,14 +39,6 @@ const lineItems = <T extends z.ZodType>(lineSchema: T) => z.array(lineSchema).mi
 // Firestore line items are untyped maps; shape is enforced by the callables that write them.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Row = Record<string, any>;
-const stamp = () => serverTimestamp();
-const keyOf = (lineItem: { itemId?: string; variantId?: string | null }) =>
-  `${lineItem.itemId}__${lineItem.variantId ?? '-'}`;
-
-function unique(candidates: { itemId: string; variantId?: string | null }[]) {
-  if (new Set(candidates.map(keyOf)).size !== candidates.length)
-    throw failed('Each item (and variant) may appear once');
-}
 
 export const stock = {
   /** FRS 10.7. PO-linked receiving is `inventory.purchaseOrder.receive` (receiving.ts). */
@@ -130,7 +130,7 @@ export const stock = {
       lineItems: lineItems(z.object({ ...lineKey, quantity: positiveQuantity })),
     }),
     handler: async (context, i) => {
-      unique(i.lineItems);
+      assertUniqueLines(i.lineItems);
       const stockData = new Stock(context);
       const store = await stockData.store(i.storeId);
       for (const lineItem of i.lineItems) await stockData.item(lineItem.itemId, lineItem.variantId);
@@ -225,8 +225,12 @@ export const stock = {
       }
       context.update(ref, {
         ...patch,
-        approval: { performedBy: context.uid, performedAt: stamp(), comment: i.comment ?? null },
-        updatedAt: stamp(),
+        approval: {
+          performedBy: context.uid,
+          performedAt: serverTimestamp(),
+          comment: i.comment ?? null,
+        },
+        updatedAt: serverTimestamp(),
       });
       context.audit({
         action: `inventoryIssueRequest.${i.decision}`,
@@ -270,7 +274,9 @@ export const stock = {
       const number = await stockData.num('ISS');
       const issued = new Map<string, Record<string, unknown>>();
       for (const lineItem of i.lineItems) {
-        const requestLine = reqLines.find((reqLine) => keyOf(reqLine) === keyOf(lineItem));
+        const requestLine = reqLines.find(
+          (reqLine) => lineItemKey(reqLine) === lineItemKey(lineItem),
+        );
         if (!requestLine) throw failed('Item is not on the request');
         if (requestLine.quantityIssued + lineItem.quantity > requestLine.quantityApproved)
           throw failed('Issue exceeds the approved quantity');
@@ -333,7 +339,7 @@ export const stock = {
       context.update(reqRef, {
         lineItems: reqLines,
         status: done ? 'issued' : 'partially_issued',
-        updatedAt: stamp(),
+        updatedAt: serverTimestamp(),
       });
       context.audit({
         action: 'inventoryIssue.create',
@@ -359,10 +365,10 @@ export const stock = {
       context.update(ref, {
         acknowledgement: {
           performedBy: context.uid,
-          performedAt: stamp(),
+          performedAt: serverTimestamp(),
           remarks: i.remarks ?? null,
         },
-        updatedAt: stamp(),
+        updatedAt: serverTimestamp(),
       });
       context.audit({ action: 'inventoryIssue.acknowledge', documentPath: ref.path });
       return { id: i.id };
@@ -457,10 +463,10 @@ export const stock = {
         returnedBy: i.returnedBy,
         remarks: i.remarks ?? null,
         lineItems: out,
-        inspection: { performedBy: context.uid, performedAt: stamp() },
+        inspection: { performedBy: context.uid, performedAt: serverTimestamp() },
         ...stockData.header(store.campusId),
       });
-      context.update(issueRef, { lineItems: issueLines, updatedAt: stamp() });
+      context.update(issueRef, { lineItems: issueLines, updatedAt: serverTimestamp() });
       context.audit({
         action: 'inventoryReturn.create',
         documentPath: ref.path,
@@ -484,7 +490,7 @@ export const stock = {
     }),
     handler: async (context, i) => {
       if (i.fromStoreId === i.toStoreId) throw failed('Source and destination must differ');
-      unique(i.lineItems);
+      assertUniqueLines(i.lineItems);
       const stockData = new Stock(context, i);
       const from = await stockData.store(i.fromStoreId);
       const store = usable(
@@ -567,8 +573,12 @@ export const stock = {
       context.update(ref, {
         lineItems: out,
         status: 'dispatched',
-        dispatch: { performedBy: context.uid, date: stockData.date, performedAt: stamp() },
-        updatedAt: stamp(),
+        dispatch: {
+          performedBy: context.uid,
+          date: stockData.date,
+          performedAt: serverTimestamp(),
+        },
+        updatedAt: serverTimestamp(),
       });
       context.audit({ action: 'inventoryTransfer.dispatch', documentPath: ref.path });
       await enqueue(context, `inventory-transfer-dispatched__${i.id}`, {
@@ -647,10 +657,10 @@ export const stock = {
         receipt: {
           performedBy: context.uid,
           date: stockData.date,
-          performedAt: stamp(),
+          performedAt: serverTimestamp(),
           remarks: i.remarks ?? null,
         },
-        updatedAt: stamp(),
+        updatedAt: serverTimestamp(),
       });
       context.audit({
         action: 'inventoryTransfer.receive',
@@ -851,8 +861,8 @@ export const stock = {
         status: repair ? 'in_repair' : 'resolved',
         resolution: i.resolution,
         resolutionNote: i.remarks ?? null,
-        ...(repair ? {} : { resolvedAt: stamp(), resolvedBy: context.uid }),
-        updatedAt: stamp(),
+        ...(repair ? {} : { resolvedAt: serverTimestamp(), resolvedBy: context.uid }),
+        updatedAt: serverTimestamp(),
       });
       context.audit({
         action: 'inventoryUnavailableStock.resolve',
