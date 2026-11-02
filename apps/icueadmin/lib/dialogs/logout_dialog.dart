@@ -29,8 +29,22 @@ class LogoutDialog extends StatelessWidget {
           onPressed: () async {
             unawaited(HapticFeedback.vibrate());
             final auth = context.read<AuthProvider>();
-            Navigator.of(context).pop();
-            await auth.logout();
+            final navigator = Navigator.of(context)..pop();
+            unawaited(
+              showDialog<void>(
+                context: navigator.context,
+                barrierDismissible: false,
+                builder: (_) => const PopScope(
+                  canPop: false,
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              ),
+            );
+            try {
+              await auth.logout();
+            } finally {
+              if (navigator.mounted) navigator.pop();
+            }
           },
         ),
       ],

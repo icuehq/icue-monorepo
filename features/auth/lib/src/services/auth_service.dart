@@ -286,7 +286,8 @@ class AuthService {
       );
     } catch (_) {}
     try {
-      await _pushTokenDoc(token)?.delete();
+      // Firestore writes queue forever when auth is invalid; never block logout on it.
+      await _pushTokenDoc(token)?.delete().timeout(const Duration(seconds: 3));
     } catch (_) {}
   }
 

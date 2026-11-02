@@ -38,7 +38,20 @@ case "${1:-}" in
     echo "Firestore emulator edition: $EDITION (data: firebase/$DATA)"
     args=(--config "$config" --project "$PROJECT" --export-on-exit "$DATA")
     [ -d "$DATA" ] && args+=(--import "$DATA")
-    exec firebase emulators:start "${args[@]}"
+    # Ctrl-C closing our stdout (melos, closed terminal) makes the CLI hit EPIPE mid export-on-exit and
+    # dump to ./firebase-export-<timestamp> instead of $DATA. Send its output to a file (no pipe to
+    # break), mirror it with tail, and stay alive until the CLI has finished exporting.
+    log=$(mktemp -t firebase-emulators)
+    firebase emulators:start "${args[@]}" >"$log" 2>&1 &
+    cli=$!
+    tail -f "$log" &
+    tailer=$!
+    trap '' INT
+    status=0
+    while kill -0 "$cli" 2>/dev/null; do wait "$cli" || status=$?; done
+    kill "$tailer" 2>/dev/null || true
+    rm -f "$log"
+    exit "$status"
     ;;
   reset)
     rm -rf .emulator-data .emulator-data-enterprise
