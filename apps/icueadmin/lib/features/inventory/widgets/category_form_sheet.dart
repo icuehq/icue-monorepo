@@ -34,6 +34,8 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
       widget.category?.suggestedTracking ?? Tracking.quantity;
   bool _codeManuallyEdited = false;
   bool _busy = false;
+  bool _submitted = false;
+  String? _errorMessage;
 
   @override
   void dispose() {
@@ -44,22 +46,30 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
   }
 
   Future<void> _save() async {
+    setState(() {
+      _submitted = true;
+      _errorMessage = null;
+    });
     if (!_form.currentState!.validate()) return;
     setState(() => _busy = true);
     final category = widget.category;
-    await submitAndClose<InventoryProvider>(
+    final provider = context.read<InventoryProvider>();
+    final saved = await submitAndClose<InventoryProvider>(
       context,
-      () => context.read<InventoryProvider>().saveCategory({
+      () => provider.saveCategory({
         if (category != null) 'id': category.id else 'code': _code.text.trim(),
         'name': _name.text.trim(),
-        'description': _description.text.trim().isEmpty
-            ? null
-            : _description.text.trim(),
+        'description': blankToNull(_description),
         'parentId': _parentId,
         'suggestedTracking': _tracking.name,
       }),
     );
-    if (mounted) setState(() => _busy = false);
+    if (mounted && !saved) {
+      setState(() {
+        _busy = false;
+        _errorMessage = provider.errorMessage ?? 'Could not save';
+      });
+    }
   }
 
   @override
@@ -77,6 +87,9 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
 
     return Form(
       key: _form,
+      autovalidateMode: _submitted
+          ? AutovalidateMode.onUserInteraction
+          : AutovalidateMode.disabled,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -110,6 +123,7 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
               if (widget.category == null && !_codeManuallyEdited) {
                 _code.text = generateCategoryCode(value);
               }
+              if (_errorMessage != null) setState(() => _errorMessage = null);
             },
           ),
           const SizedBox(height: 16),
@@ -123,8 +137,22 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
               labelText: 'Code *',
               helperText: editing ? null : 'Unique code (e.g. BKD, CLN)',
             ),
-            validator: requiredText,
-            onChanged: (value) => _codeManuallyEdited = value.trim().isNotEmpty,
+            validator: (value) {
+              final required = requiredText(value);
+              if (required != null) return required;
+              if (!editing) {
+                final code = value!.trim().toLowerCase();
+                final exists = context.read<InventoryProvider>().categories.any(
+                  (c) => c.code.trim().toLowerCase() == code || c.id == code,
+                );
+                if (exists) return 'Code "$value" already exists';
+              }
+              return null;
+            },
+            onChanged: (value) {
+              _codeManuallyEdited = value.trim().isNotEmpty;
+              if (_errorMessage != null) setState(() => _errorMessage = null);
+            },
           ),
           const SizedBox(height: 16),
 
@@ -165,6 +193,19 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
             onChanged: (tracking) => _tracking = tracking ?? _tracking,
           ),
           const SizedBox(height: 24),
+
+          if (_errorMessage != null) ...[
+            Text(
+              _errorMessage!,
+              style: TextStyle(
+                color: theme.colorScheme.error,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+          ],
 
           // Submit action
           FilledButton(

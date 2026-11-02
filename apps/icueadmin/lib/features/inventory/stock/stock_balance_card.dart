@@ -121,7 +121,8 @@ class StockBalanceCard extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 2),
-                        Row(
+                        Wrap(
+                          crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
                             if (itemCode != null)
                               Text(

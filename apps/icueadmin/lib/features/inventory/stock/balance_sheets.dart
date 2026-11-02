@@ -180,12 +180,13 @@ class _AdjustState extends State<_Adjust> with _Submit {
         ),
         DropdownButtonFormField<String>(
           initialValue: _reason,
+          isExpanded: true,
           decoration: const InputDecoration(labelText: 'Reason'),
           items: [
             for (final mapEntry in _reasons.entries)
               DropdownMenuItem(
                 value: mapEntry.key,
-                child: Text(mapEntry.value),
+                child: Text(mapEntry.value, overflow: TextOverflow.ellipsis),
               ),
           ],
           onChanged: (value) => setState(() => _reason = value!),
@@ -227,11 +228,24 @@ class _ReportState extends State<_Report> with _Submit {
       children: [
         DropdownButtonFormField<String>(
           initialValue: _reason,
+          isExpanded: true,
           decoration: const InputDecoration(labelText: 'What happened'),
           items: const [
-            DropdownMenuItem(value: 'damaged', child: Text('Damaged')),
-            DropdownMenuItem(value: 'expired', child: Text('Expired')),
-            DropdownMenuItem(value: 'lost', child: Text('Lost (written off)')),
+            DropdownMenuItem(
+              value: 'damaged',
+              child: Text('Damaged', overflow: TextOverflow.ellipsis),
+            ),
+            DropdownMenuItem(
+              value: 'expired',
+              child: Text('Expired', overflow: TextOverflow.ellipsis),
+            ),
+            DropdownMenuItem(
+              value: 'lost',
+              child: Text(
+                'Lost (written off)',
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
           onChanged: (value) => setState(() => _reason = value!),
         ),

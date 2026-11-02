@@ -31,6 +31,7 @@ class StoreDropdown extends StatelessWidget {
     this.label = 'Store',
     this.exclude,
     this.campusId,
+    this.prefixIcon,
     super.key,
   });
 
@@ -38,6 +39,7 @@ class StoreDropdown extends StatelessWidget {
   final ValueChanged<String?> onChanged;
   final String label;
   final String? exclude;
+  final Widget? prefixIcon;
 
   /// Only stores of this campus.
   final int? campusId;
@@ -52,12 +54,16 @@ class StoreDropdown extends StatelessWidget {
     );
     return DropdownButtonFormField<String>(
       initialValue: value,
-      decoration: InputDecoration(labelText: label),
+      isExpanded: true,
+      decoration: InputDecoration(labelText: label, prefixIcon: prefixIcon),
       items: [
         for (final store in stores)
           DropdownMenuItem(
             value: store.id,
-            child: Text('${store.name} (${store.code})'),
+            child: Text(
+              '${store.name} (${store.code})',
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
       ],
       onChanged: onChanged,

@@ -42,6 +42,13 @@ class _StockPageState extends State<StockPage> {
     });
   }
 
+  /// These screens change balances, so reload the visible store when they close.
+  Future<void> _open(String route) async {
+    final stock = context.read<StockProvider>();
+    await context.push(route);
+    if (mounted && stock.store != null) await stock.loadBalances(stock.store!);
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -112,7 +119,7 @@ class _StockPageState extends State<StockPage> {
       appBar: AppBar(title: const Text('Store Stock')),
       floatingActionButton: canOperate
           ? FloatingActionButton.extended(
-              onPressed: () => context.push(AppRoutes.inventoryReceive),
+              onPressed: () => _open(AppRoutes.inventoryReceive),
               icon: const Icon(Icons.add_rounded),
               label: const Text('Receive stock'),
             )
@@ -246,25 +253,25 @@ class _StockPageState extends State<StockPage> {
                     context,
                     icon: Icons.move_to_inbox_outlined,
                     label: 'Receive',
-                    onTap: () => context.push(AppRoutes.inventoryReceive),
+                    onTap: () => _open(AppRoutes.inventoryReceive),
                   ),
                 _quickActionChip(
                   context,
                   icon: Icons.outbox_outlined,
                   label: 'Issue requests',
-                  onTap: () => context.push(AppRoutes.inventoryRequests),
+                  onTap: () => _open(AppRoutes.inventoryRequests),
                 ),
                 _quickActionChip(
                   context,
                   icon: Icons.swap_horiz_rounded,
                   label: 'Transfers',
-                  onTap: () => context.push(AppRoutes.inventoryTransfers),
+                  onTap: () => _open(AppRoutes.inventoryTransfers),
                 ),
                 _quickActionChip(
                   context,
                   icon: Icons.report_problem_outlined,
                   label: 'Damaged / Expired',
-                  onTap: () => context.push(AppRoutes.inventoryUnavailable),
+                  onTap: () => _open(AppRoutes.inventoryUnavailable),
                 ),
               ],
             ),
@@ -409,9 +416,8 @@ class _StockPageState extends State<StockPage> {
                                       )
                                     else if (canOperate)
                                       FilledButton.icon(
-                                        onPressed: () => context.push(
-                                          AppRoutes.inventoryReceive,
-                                        ),
+                                        onPressed: () =>
+                                            _open(AppRoutes.inventoryReceive),
                                         icon: const Icon(Icons.add, size: 18),
                                         label: const Text('Receive stock'),
                                       ),

@@ -119,6 +119,7 @@ class _ReceivePageState extends State<ReceivePage> {
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
                       initialValue: _source,
+                      isExpanded: true,
                       decoration: const InputDecoration(
                         labelText: 'Source of stock',
                         prefixIcon: Icon(Icons.source_outlined),
@@ -127,7 +128,10 @@ class _ReceivePageState extends State<ReceivePage> {
                         for (final mapEntry in _sources.entries)
                           DropdownMenuItem(
                             value: mapEntry.key,
-                            child: Text(mapEntry.value),
+                            child: Text(
+                              mapEntry.value,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                       ],
                       onChanged: (value) => setState(() => _source = value!),

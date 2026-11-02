@@ -10,19 +10,20 @@ void showMessage(BuildContext context, String message) {
 }
 
 /// Runs [save]; closes the sheet or page on success, else shows the error of provider [P].
-Future<void> submitAndClose<P extends ErrorReporting>(
+Future<bool> submitAndClose<P extends ErrorReporting>(
   BuildContext context,
   Future<bool> Function() save,
 ) async {
   final provider = context.read<P>();
   final navigator = Navigator.of(context);
   final saved = await save();
-  if (!context.mounted) return;
+  if (!context.mounted) return saved;
   if (saved) {
     navigator.pop();
   } else {
     showMessage(context, provider.errorMessage ?? 'Could not save');
   }
+  return saved;
 }
 
 Future<void> showFormSheet(BuildContext context, Widget Function() form) =>

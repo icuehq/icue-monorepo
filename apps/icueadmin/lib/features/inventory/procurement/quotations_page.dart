@@ -229,7 +229,9 @@ class _QuotationsPageState extends State<QuotationsPage> {
                                       DataCell(
                                         Text(
                                           quotation.lineItems
-                                              .where((line) => line.itemId == id)
+                                              .where(
+                                                (line) => line.itemId == id,
+                                              )
                                               .map(
                                                 (line) =>
                                                     '₹${money(line.unitPrice)}',

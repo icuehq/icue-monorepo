@@ -76,8 +76,7 @@ Future<Map<String, Object?>?> showPurchaseOrderRevisionDialog(
         {
           'itemId': orderLine.itemId,
           'unitPrice':
-              double.tryParse(prices[index].text.trim()) ??
-              orderLine.unitPrice,
+              double.tryParse(prices[index].text.trim()) ?? orderLine.unitPrice,
         },
     ],
   };

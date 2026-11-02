@@ -114,6 +114,7 @@ class _TransferFormPageState extends State<TransferFormPage> {
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
                       initialValue: _to,
+                      isExpanded: true,
                       decoration: const InputDecoration(
                         labelText: 'Destination Store (To)',
                         prefixIcon: Icon(Icons.warehouse_outlined),
@@ -124,6 +125,7 @@ class _TransferFormPageState extends State<TransferFormPage> {
                             value: store.id,
                             child: Text(
                               '${store.name} (${store.code}) · Campus ${store.campusId}',
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                       ],

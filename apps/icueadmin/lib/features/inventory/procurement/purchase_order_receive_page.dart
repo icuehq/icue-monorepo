@@ -109,8 +109,9 @@ class _PurchaseOrderReceivePageState extends State<PurchaseOrderReceivePage> {
     final procurementProvider = context.watch<ProcurementProvider>();
     final theme = Theme.of(context);
     final purchaseOrder = widget.order;
-    final acceptedCount =
-        _drafts.where((draft) => draft.acceptedValue > 0).length;
+    final acceptedCount = _drafts
+        .where((draft) => draft.acceptedValue > 0)
+        .length;
 
     return Scaffold(
       appBar: AppBar(title: Text('Receive ${purchaseOrder.number}')),

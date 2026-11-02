@@ -31,18 +31,23 @@ class StockProvider extends ChangeNotifier {
 
   String itemName(String id, [String? variantId]) => items[id]?.name ?? id;
 
-  Future<T?> _load<T>(Future<T> Function() body) async {
-    isLoading = true;
-    errorMessage = null;
-    notifyListeners();
+  /// [quiet] skips the loading notifications, for fetches triggered from a widget's build (FutureBuilder).
+  Future<T?> _load<T>(Future<T> Function() body, {bool quiet = false}) async {
+    if (!quiet) {
+      isLoading = true;
+      errorMessage = null;
+      notifyListeners();
+    }
     try {
       return await body();
     } catch (error) {
       errorMessage = callableErrorMessage(error);
       return null;
     } finally {
-      isLoading = false;
-      notifyListeners();
+      if (!quiet) {
+        isLoading = false;
+        notifyListeners();
+      }
     }
   }
 
@@ -54,7 +59,7 @@ class StockProvider extends ChangeNotifier {
   Future<void> loadBalances(InventoryStore store, {bool more = false}) async {
     if (isLoading || (more && !hasMoreBalances)) return;
     if (!more) {
-      store = store;
+      this.store = store;
       _cursor = null;
     }
     await _load(() async {
@@ -68,7 +73,11 @@ class StockProvider extends ChangeNotifier {
   }
 
   Future<List<InventoryMovement>> movements(InventoryBalance balance) async =>
-      (await _load(() => _service.movements(balance, store!.campusId))) ?? [];
+      (await _load(
+        () => _service.movements(balance, store!.campusId),
+        quiet: true,
+      )) ??
+      [];
 
   Future<void> loadRequests(ModuleAccess access, {String? status}) =>
       _load(() async {
@@ -88,7 +97,8 @@ class StockProvider extends ChangeNotifier {
 
   Future<List<InventoryIssue>> issuesOf(
     InventoryIssueRequest issueRequest,
-  ) async => (await _load(() => _service.issuesOf(issueRequest))) ?? [];
+  ) async =>
+      (await _load(() => _service.issuesOf(issueRequest), quiet: true)) ?? [];
 
   Future<void> loadTransfers(ModuleAccess access) => _load(() async {
     transfers = await _service.transfers(access);

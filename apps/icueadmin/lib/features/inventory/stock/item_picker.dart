@@ -24,16 +24,13 @@ Future<PickedItem?> pickItem(
       .where((variant) => variant.active)
       .toList();
   if (!context.mounted) return null;
+  // Items without variants are stocked directly; the backend rejects a missing variant when one is required.
+  if (variants.isEmpty) return (item: item, variant: null);
   final currentVariant = await showDialog<InventoryVariant>(
     context: context,
     builder: (context) => SimpleDialog(
       title: Text('${item.name} – variant'),
       children: [
-        if (variants.isEmpty)
-          const Padding(
-            padding: EdgeInsets.all(24),
-            child: Text('No active variants. Add one on the item page.'),
-          ),
         for (final variant in variants)
           SimpleDialogOption(
             onPressed: () => Navigator.pop(context, variant),

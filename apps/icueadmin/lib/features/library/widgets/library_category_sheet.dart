@@ -31,6 +31,8 @@ class _LibCategorySheetState extends State<LibraryCategorySheet> {
   );
   late String? _parentId = widget.category?.parentId ?? widget.parentId;
   bool _busy = false;
+  bool _submitted = false;
+  String? _errorMessage;
 
   @override
   void dispose() {
@@ -41,23 +43,34 @@ class _LibCategorySheetState extends State<LibraryCategorySheet> {
   }
 
   Future<void> _save() async {
+    setState(() {
+      _submitted = true;
+      _errorMessage = null;
+    });
     if (!_form.currentState!.validate()) return;
     setState(() => _busy = true);
     final category = widget.category;
-    await submitAndClose<LibraryProvider>(
+    final provider = context.read<LibraryProvider>();
+    final saved = await submitAndClose<LibraryProvider>(
       context,
-      () => context.read<LibraryProvider>().saveCategory({
+      () => provider.saveCategory({
         if (category != null) 'id': category.id else 'code': _code.text.trim(),
         'name': _name.text.trim(),
         'description': blankToNull(_description),
         'parentId': _parentId,
       }),
     );
-    if (mounted) setState(() => _busy = false);
+    if (mounted && !saved) {
+      setState(() {
+        _busy = false;
+        _errorMessage = provider.errorMessage ?? 'Could not save';
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final tops = context
         .read<LibraryProvider>()
         .topCategories
@@ -65,6 +78,9 @@ class _LibCategorySheetState extends State<LibraryCategorySheet> {
         .toList();
     return Form(
       key: _form,
+      autovalidateMode: _submitted
+          ? AutovalidateMode.onUserInteraction
+          : AutovalidateMode.disabled,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -73,12 +89,29 @@ class _LibCategorySheetState extends State<LibraryCategorySheet> {
             enabled: widget.category == null,
             textCapitalization: TextCapitalization.characters,
             decoration: const InputDecoration(labelText: 'Code *'),
-            validator: requiredText,
+            validator: (value) {
+              final required = requiredText(value);
+              if (required != null) return required;
+              if (widget.category == null) {
+                final code = value!.trim().toLowerCase();
+                final exists = context.read<LibraryProvider>().categories.any(
+                  (c) => c.code.trim().toLowerCase() == code || c.id == code,
+                );
+                if (exists) return 'Code "$value" already exists';
+              }
+              return null;
+            },
+            onChanged: (_) {
+              if (_errorMessage != null) setState(() => _errorMessage = null);
+            },
           ),
           TextFormField(
             controller: _name,
             decoration: const InputDecoration(labelText: 'Name *'),
             validator: requiredText,
+            onChanged: (_) {
+              if (_errorMessage != null) setState(() => _errorMessage = null);
+            },
           ),
           TextFormField(
             controller: _description,
@@ -98,6 +131,18 @@ class _LibCategorySheetState extends State<LibraryCategorySheet> {
             onChanged: (value) => _parentId = value,
           ),
           const SizedBox(height: 16),
+          if (_errorMessage != null) ...[
+            Text(
+              _errorMessage!,
+              style: TextStyle(
+                color: theme.colorScheme.error,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+          ],
           FilledButton(
             onPressed: _busy ? null : _save,
             child: Text(_busy ? 'Saving…' : 'Save'),
