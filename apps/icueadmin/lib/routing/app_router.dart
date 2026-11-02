@@ -64,6 +64,7 @@ import 'package:icueadmin/features/inventory/stock/stock_page.dart';
 import 'package:icueadmin/features/inventory/stock/transfer_form_page.dart';
 import 'package:icueadmin/features/inventory/stock/transfers_page.dart';
 import 'package:icueadmin/features/inventory/stock/unavailable_page.dart';
+import 'package:icueadmin/features/inventory/store_form_page.dart';
 import 'package:icueadmin/features/inventory/stores_page.dart';
 import 'package:icueadmin/features/inventory/units_page.dart';
 import 'package:icueadmin/features/library/book_details_page.dart';
@@ -198,6 +199,12 @@ GoRouter createRouter({
         path: AppRoutes.inventoryStores,
         name: AppRoutes.inventoryStoresName,
         builder: (context, state) => const StoresPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryStoreForm,
+        name: AppRoutes.inventoryStoreFormName,
+        builder: (context, state) =>
+            StoreFormPage(store: state.extra as InventoryStore?),
       ),
       GoRoute(
         path: AppRoutes.inventoryItems,

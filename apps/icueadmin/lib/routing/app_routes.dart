@@ -177,6 +177,9 @@ abstract final class AppRoutes {
   static const String inventoryStores = '/layout.inventory/stores';
   static const String inventoryStoresName = 'inventoryStores';
 
+  static const String inventoryStoreForm = '/layout.inventory/stores/form';
+  static const String inventoryStoreFormName = 'inventoryStoreForm';
+
   static const String inventoryItems = '/layout.inventory/items';
   static const String inventoryItemsName = 'inventoryItems';
 

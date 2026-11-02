@@ -34,7 +34,6 @@ const types: Record<string, ImportType> = {
       categoryId: await lookup('inventoryCategory', row.categoryCode, 'Category'),
       stockUnit: toText(row.stockUnit) ?? 'pcs',
       tracking: tracking(row.tracking),
-      minLevel: toNumber(row.minLevel),
       reorderLevel: toNumber(row.reorderLevel),
       defaultPrice: toNumber(row.defaultPrice),
     }),

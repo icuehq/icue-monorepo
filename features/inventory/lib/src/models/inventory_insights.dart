@@ -434,7 +434,6 @@ const importColumns = <String, List<String>>{
     'categoryCode',
     'stockUnit',
     'tracking',
-    'minLevel',
     'reorderLevel',
     'defaultPrice',
   ],

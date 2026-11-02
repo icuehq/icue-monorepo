@@ -17,7 +17,7 @@ Future<PickedItem?> pickItem(
     context: context,
     builder: (_) => _PickerDialog(assets: assets),
   );
-  if (item == null || item.variantAttrs.isEmpty || !context.mounted) {
+  if (item == null || !context.mounted) {
     return item == null ? null : (item: item, variant: null);
   }
   final variants = (await inventoryProvider.variants(item.id))

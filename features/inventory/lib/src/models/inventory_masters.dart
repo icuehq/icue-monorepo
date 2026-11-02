@@ -57,15 +57,6 @@ class InventoryUnit {
   final String name;
 }
 
-class PurchaseUnit {
-  const PurchaseUnit({required this.unit, required this.factor});
-
-  final String unit;
-  final double factor;
-
-  Map<String, Object?> toMap() => {'unit': unit, 'factor': factor};
-}
-
 class InventoryItem {
   const InventoryItem({
     required this.id,
@@ -77,13 +68,9 @@ class InventoryItem {
     required this.active,
     this.subcategoryId,
     this.description,
-    this.purchaseUnits = const [],
-    this.variantAttrs = const [],
-    this.minLevel,
     this.reorderLevel,
     this.defaultPrice,
     this.preferredVendorId,
-    this.defaultLocation,
   });
 
   factory InventoryItem.fromMap(String id, Map<String, dynamic> currentData) =>
@@ -95,22 +82,10 @@ class InventoryItem {
         subcategoryId: currentData['subcategoryId'] as String?,
         description: currentData['description'] as String?,
         stockUnit: currentData['stockUnit'] as String? ?? '',
-        purchaseUnits: [
-          for (final data in readList<Map<String, dynamic>>(
-            currentData['purchaseUnits'],
-          ))
-            PurchaseUnit(
-              unit: data['unit'] as String? ?? '',
-              factor: (data['factor'] as num? ?? 1).toDouble(),
-            ),
-        ],
         tracking: Tracking.parse(currentData['tracking']),
-        variantAttrs: readList<String>(currentData['variantAttrs']),
-        minLevel: (currentData['minLevel'] as num?)?.toDouble(),
         reorderLevel: (currentData['reorderLevel'] as num?)?.toDouble(),
         defaultPrice: (currentData['defaultPrice'] as num?)?.toDouble(),
         preferredVendorId: currentData['preferredVendorId'] as String?,
-        defaultLocation: currentData['defaultLocation'] as String?,
         active: currentData['status'] != 'inactive',
       );
 
@@ -121,14 +96,10 @@ class InventoryItem {
   final String? subcategoryId;
   final String? description;
   final String stockUnit;
-  final List<PurchaseUnit> purchaseUnits;
   final Tracking tracking;
-  final List<String> variantAttrs;
-  final double? minLevel;
   final double? reorderLevel;
   final double? defaultPrice;
   final String? preferredVendorId;
-  final String? defaultLocation;
   final bool active;
 }
 

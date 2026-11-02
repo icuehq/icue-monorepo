@@ -68,17 +68,11 @@ export const masters = {
       subcategoryId: id.nullish(),
       description: optionalText,
       stockUnit: z.string().min(1).max(10),
-      purchaseUnits: z
-        .array(z.object({ unit: z.string().min(1).max(10), factor: z.number().positive() }))
-        .max(10)
-        .default([]),
       tracking,
       variantAttrs: z.array(z.string().trim().min(1).max(30)).max(5).default([]),
-      minLevel: amount,
       reorderLevel: amount,
       defaultPrice: amount,
       preferredVendorId: id.nullish(),
-      defaultLocation: optionalText,
     }),
     handler: (context, i) =>
       saveMaster(context, {
@@ -110,16 +104,8 @@ export const masters = {
               before?.preferredVendorId === i.preferredVendorId,
             );
           }
-          const units = new Set([
-            i.stockUnit,
-            ...i.purchaseUnits.map((purchaseUnit) => purchaseUnit.unit),
-          ]);
-          if (i.purchaseUnits.some((purchaseUnit) => purchaseUnit.unit === i.stockUnit))
-            throw failed('Purchase unit equals the stock unit');
-          for (const unit of units) {
-            if (!(await context.transaction.get(context.doc(`inventoryUnits/${unit}`))).exists)
-              throw failed(`Unit "${unit}" not found`);
-          }
+          if (!(await context.transaction.get(context.doc(`inventoryUnits/${i.stockUnit}`))).exists)
+            throw failed(`Unit "${i.stockUnit}" not found`);
           if (before && (before.stockUnit !== i.stockUnit || before.tracking !== i.tracking)) {
             const used = await context.transaction.get(
               context.coll('inventoryMovements').where('itemId', '==', i.id).limit(1),
@@ -133,14 +119,11 @@ export const masters = {
             subcategoryId: i.subcategoryId ?? null,
             description: i.description ?? null,
             stockUnit: i.stockUnit,
-            purchaseUnits: i.purchaseUnits,
             tracking: i.tracking,
             variantAttrs: i.variantAttrs,
-            minLevel: i.minLevel ?? null,
             reorderLevel: i.reorderLevel ?? null,
             defaultPrice: i.defaultPrice ?? null,
             preferredVendorId: i.preferredVendorId ?? null,
-            defaultLocation: i.defaultLocation ?? null,
             ...(before ? {} : { imagePath: null }),
           };
         },

@@ -120,7 +120,7 @@ export class Stock {
         throw failed(`${item.name} is an individual asset; assets are managed separately`);
       this.items.set(itemId, { ...item, id: itemId });
     }
-    const hasVariants = (item.variantAttrs as string[]).length > 0;
+    const hasVariants = ((item.variantAttrs as string[] | undefined) ?? []).length > 0;
     if (hasVariants !== !!variantId)
       throw failed(hasVariants ? `${item.name} needs a variant` : `${item.name} has no variants`);
     if (variantId)

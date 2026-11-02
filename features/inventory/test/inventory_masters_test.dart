@@ -9,15 +9,13 @@ void main() {
       'categoryId': 'c1',
       'stockUnit': 'pcs',
       'tracking': 'batch',
-      'purchaseUnits': [
-        {'unit': 'box', 'factor': 10},
-      ],
-      'minLevel': 5,
+      'reorderLevel': 10,
+      'defaultPrice': 2.5,
       'status': 'inactive',
     });
     expect(item.tracking, Tracking.batch);
-    expect(item.purchaseUnits.single.factor, 10.0);
-    expect(item.minLevel, 5.0);
+    expect(item.reorderLevel, 10.0);
+    expect(item.defaultPrice, 2.5);
     expect(item.active, isFalse);
   });
 }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:icueadmin/features/inventory/widgets/form_section_card.dart';
-import 'package:icueadmin/features/inventory/widgets/purchase_units_editor.dart';
 import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
@@ -23,24 +22,16 @@ class _ItemFormPageState extends State<ItemFormPage> {
   late final _description = TextEditingController(
     text: _existingItem?.description,
   );
-  late final _attrs = TextEditingController(
-    text: _existingItem?.variantAttrs.join(', '),
-  );
-  late final _min = TextEditingController(text: _num(_existingItem?.minLevel));
   late final _reorder = TextEditingController(
     text: _num(_existingItem?.reorderLevel),
   );
   late final _price = TextEditingController(
     text: _num(_existingItem?.defaultPrice),
   );
-  late final _location = TextEditingController(
-    text: _existingItem?.defaultLocation,
-  );
   late String? _categoryId = _existingItem?.categoryId;
   late String? _subcategoryId = _existingItem?.subcategoryId;
   late String? _stockUnit = _existingItem?.stockUnit;
   late Tracking _tracking = _existingItem?.tracking ?? Tracking.quantity;
-  late List<PurchaseUnit> _purchaseUnits = _existingItem?.purchaseUnits ?? [];
   bool _busy = false;
 
   static String _num(double? v) =>
@@ -48,16 +39,7 @@ class _ItemFormPageState extends State<ItemFormPage> {
 
   @override
   void dispose() {
-    for (final controller in [
-      _code,
-      _name,
-      _description,
-      _attrs,
-      _min,
-      _reorder,
-      _price,
-      _location,
-    ]) {
+    for (final controller in [_code, _name, _description, _reorder, _price]) {
       controller.dispose();
     }
     super.dispose();
@@ -84,18 +66,9 @@ class _ItemFormPageState extends State<ItemFormPage> {
         'subcategoryId': _subcategoryId,
         'description': _blank(_description),
         'stockUnit': _stockUnit,
-        'purchaseUnits': [
-          for (final purchaseUnit in _purchaseUnits) purchaseUnit.toMap(),
-        ],
         'tracking': _tracking.name,
-        'variantAttrs': [
-          for (final value in _attrs.text.split(','))
-            if (value.trim().isNotEmpty) value.trim(),
-        ],
-        'minLevel': _d(_min),
         'reorderLevel': _d(_reorder),
         'defaultPrice': _d(_price),
-        'defaultLocation': _blank(_location),
       }),
     );
     if (mounted) setState(() => _busy = false);
@@ -251,103 +224,39 @@ class _ItemFormPageState extends State<ItemFormPage> {
                   ],
                   onChanged: (tracking) => _tracking = tracking ?? _tracking,
                 ),
-                PurchaseUnitsEditor(
-                  units: inventoryProvider.units,
-                  stockUnit: _stockUnit,
-                  initial: _purchaseUnits,
-                  onChanged: (purchaseUnits) => _purchaseUnits = purchaseUnits,
-                ),
               ],
             ),
             FormSectionCard(
-              title: 'Stock levels',
-              icon: Icons.stacked_bar_chart_outlined,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _min,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        inputFormatters: [decimalInputFormatter],
-                        textInputAction: TextInputAction.next,
-                        decoration: const InputDecoration(
-                          labelText: 'Minimum stock',
-                          prefixIcon: Icon(
-                            Icons.vertical_align_bottom_outlined,
-                            size: 20,
-                          ),
-                          helperText: 'Alert threshold',
-                        ),
-                        validator: optionalNumber,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextFormField(
-                        controller: _reorder,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        inputFormatters: [decimalInputFormatter],
-                        textInputAction: TextInputAction.next,
-                        decoration: const InputDecoration(
-                          labelText: 'Reorder level',
-                          prefixIcon: Icon(Icons.refresh_outlined, size: 20),
-                          helperText: 'Restock point',
-                        ),
-                        validator: optionalNumber,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            FormSectionCard(
-              title: 'Pricing & storage',
-              icon: Icons.storefront_outlined,
+              title: 'Reorder & pricing',
+              icon: Icons.payments_outlined,
               children: [
                 TextFormField(
-                  controller: _price,
+                  controller: _reorder,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
                   inputFormatters: [decimalInputFormatter],
                   textInputAction: TextInputAction.next,
                   decoration: const InputDecoration(
-                    labelText: 'Default purchase price',
-                    prefixIcon: Icon(Icons.payments_outlined, size: 20),
+                    labelText: 'Reorder level',
+                    prefixIcon: Icon(Icons.refresh_outlined, size: 20),
+                    helperText: 'Alert threshold when available stock is low',
                   ),
                   validator: optionalNumber,
                 ),
                 TextFormField(
-                  controller: _location,
-                  textCapitalization: TextCapitalization.words,
-                  textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: 'Default storage location',
-                    hintText: 'e.g. Shelf A-3, Main Warehouse',
-                    prefixIcon: Icon(Icons.place_outlined, size: 20),
+                  controller: _price,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
                   ),
-                ),
-              ],
-            ),
-            FormSectionCard(
-              title: 'Variants (optional)',
-              icon: Icons.style_outlined,
-              children: [
-                TextFormField(
-                  controller: _attrs,
-                  textCapitalization: TextCapitalization.words,
+                  inputFormatters: [decimalInputFormatter],
                   textInputAction: TextInputAction.done,
                   decoration: const InputDecoration(
-                    labelText: 'Variant attributes',
-                    helperText: 'Comma-separated, e.g. Size, Color, Flavor',
-                    prefixIcon: Icon(Icons.palette_outlined, size: 20),
+                    labelText: 'Default purchase price',
+                    prefixIcon: Icon(Icons.payments_outlined, size: 20),
+                    helperText: 'Estimated unit cost for purchase requests',
                   ),
+                  validator: optionalNumber,
                 ),
               ],
             ),
