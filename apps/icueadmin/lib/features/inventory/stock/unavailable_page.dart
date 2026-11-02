@@ -334,7 +334,7 @@ class _UnavailablePageState extends State<UnavailablePage> {
         : isExpired
         ? Colors.amber[900]!
         : Colors.blueGrey[800]!;
-    final bg = isDamaged
+    final backgroundColor = isDamaged
         ? Colors.red.withValues(alpha: 0.12)
         : isExpired
         ? Colors.amber.withValues(alpha: 0.12)
@@ -343,7 +343,7 @@ class _UnavailablePageState extends State<UnavailablePage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: bg,
+        color: backgroundColor,
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(

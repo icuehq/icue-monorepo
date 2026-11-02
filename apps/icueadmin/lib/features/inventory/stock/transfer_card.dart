@@ -80,7 +80,7 @@ class TransferCard extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: statusConfig.bg,
+                      color: statusConfig.background,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -89,13 +89,13 @@ class TransferCard extends StatelessWidget {
                         Icon(
                           statusConfig.icon,
                           size: 14,
-                          color: statusConfig.fg,
+                          color: statusConfig.foreground,
                         ),
                         const SizedBox(width: 4),
                         Text(
                           statusConfig.label,
                           style: theme.textTheme.labelSmall?.copyWith(
-                            color: statusConfig.fg,
+                            color: statusConfig.foreground,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -323,36 +323,36 @@ class TransferCard extends StatelessWidget {
         return _StatusConfig(
           label: 'Requested',
           icon: Icons.pending_actions_rounded,
-          fg: Colors.amber[900]!,
-          bg: Colors.amber.withValues(alpha: 0.15),
+          foreground: Colors.amber[900]!,
+          background: Colors.amber.withValues(alpha: 0.15),
         );
       case 'dispatched':
         return _StatusConfig(
           label: 'In Transit',
           icon: Icons.local_shipping_outlined,
-          fg: Colors.blue[800]!,
-          bg: Colors.blue.withValues(alpha: 0.15),
+          foreground: Colors.blue[800]!,
+          background: Colors.blue.withValues(alpha: 0.15),
         );
       case 'partially_received':
         return _StatusConfig(
           label: 'Partially Received',
           icon: Icons.call_split_rounded,
-          fg: Colors.purple[800]!,
-          bg: Colors.purple.withValues(alpha: 0.15),
+          foreground: Colors.purple[800]!,
+          background: Colors.purple.withValues(alpha: 0.15),
         );
       case 'received':
         return _StatusConfig(
           label: 'Received',
           icon: Icons.check_circle_outline_rounded,
-          fg: Colors.green[800]!,
-          bg: Colors.green.withValues(alpha: 0.15),
+          foreground: Colors.green[800]!,
+          background: Colors.green.withValues(alpha: 0.15),
         );
       default:
         return _StatusConfig(
           label: humanizeStatus(status),
           icon: Icons.help_outline_rounded,
-          fg: Colors.grey[800]!,
-          bg: Colors.grey.withValues(alpha: 0.15),
+          foreground: Colors.grey[800]!,
+          background: Colors.grey.withValues(alpha: 0.15),
         );
     }
   }
@@ -365,12 +365,12 @@ class _StatusConfig {
   const _StatusConfig({
     required this.label,
     required this.icon,
-    required this.fg,
-    required this.bg,
+    required this.foreground,
+    required this.background,
   });
 
   final String label;
   final IconData icon;
-  final Color fg;
-  final Color bg;
+  final Color foreground;
+  final Color background;
 }

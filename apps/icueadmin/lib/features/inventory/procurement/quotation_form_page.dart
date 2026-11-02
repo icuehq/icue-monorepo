@@ -64,6 +64,9 @@ class _QuotationFormPageState extends State<QuotationFormPage> {
             purchaseRequestLine.variantId,
             procurementProvider.itemName(purchaseRequestLine.itemId),
             quantity: formatQuantity(purchaseRequestLine.quantity),
+            price: purchaseRequestLine.estimatedPrice > 0
+                ? formatQuantity(purchaseRequestLine.estimatedPrice)
+                : '',
           ),
         );
       }
@@ -123,9 +126,11 @@ class _QuotationFormPageState extends State<QuotationFormPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final vendors = context.watch<ProcurementProvider>().vendors.where(
       (vendor) => vendor.active || vendor.id == _vendor,
     );
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -137,57 +142,237 @@ class _QuotationFormPageState extends State<QuotationFormPage> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            DropdownButtonFormField<String>(
-              initialValue: _vendor,
-              decoration: const InputDecoration(labelText: 'Vendor *'),
-              items: [
-                for (final vendor in vendors)
-                  DropdownMenuItem(value: vendor.id, child: Text(vendor.name)),
-              ],
-              onChanged: (value) => _vendor = value,
-              validator: (value) => value == null ? 'Required' : null,
-            ),
-            TextFormField(
-              controller: _ref,
-              decoration: const InputDecoration(
-                labelText: "Vendor's quotation no.",
+            // Vendor & Reference Card
+            Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: theme.colorScheme.outlineVariant),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.business_rounded,
+                          size: 20,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Supplier Details',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      initialValue: _vendor,
+                      decoration: const InputDecoration(
+                        labelText: 'Select Vendor *',
+                        prefixIcon: Icon(Icons.storefront_outlined),
+                      ),
+                      items: [
+                        for (final vendor in vendors)
+                          DropdownMenuItem(
+                            value: vendor.id,
+                            child: Text(vendor.name),
+                          ),
+                      ],
+                      onChanged: (value) => setState(() => _vendor = value),
+                      validator: (value) => value == null ? 'Required' : null,
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _ref,
+                      decoration: const InputDecoration(
+                        labelText: "Vendor's quotation no. / reference",
+                        hintText: 'e.g. QT-2024-8849',
+                        prefixIcon: Icon(Icons.tag_rounded),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-            dateField(context, _valid, 'Valid until *'),
-            TextFormField(
-              controller: _days,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Delivery (days)'),
-            ),
-            TextFormField(
-              controller: _remarks,
-              decoration: const InputDecoration(labelText: 'Remarks'),
-            ),
-            const SizedBox(height: 12),
-            for (final (n, l) in _lines.indexed)
-              OrderLineCard(
-                line: l,
-                onChanged: () => setState(() {}),
-                onRemove: _lines.length > 1
-                    ? () => setState(() => _lines.removeAt(n).dispose())
-                    : null,
+            const SizedBox(height: 16),
+
+            // Validity & Lead Time Card
+            Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: theme.colorScheme.outlineVariant),
               ),
-            OrderTotals(
-              lineItems: _lines,
-              discount: _discount,
-              tax: _tax,
-              delivery: _delivery,
-              onChanged: () => setState(() {}),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.schedule_rounded,
+                          size: 20,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Validity & Delivery Lead Time',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: dateField(
+                            context,
+                            _valid,
+                            'Valid Until *',
+                            first: DateTime.now(),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _days,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: 'Lead time (days)',
+                              hintText: 'e.g. 7',
+                              prefixIcon: Icon(Icons.timer_outlined),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _remarks,
+                      decoration: const InputDecoration(
+                        labelText: 'Remarks / Notes',
+                        prefixIcon: Icon(Icons.notes_rounded),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-            const SizedBox(height: 12),
-            FilledButton(
+            const SizedBox(height: 16),
+
+            // Line Items Card
+            Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: theme.colorScheme.outlineVariant),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.receipt_outlined,
+                          size: 20,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Quoted Prices',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            '${_lines.length} items',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.onPrimaryContainer,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    for (final (n, l) in _lines.indexed)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: OrderLineCard(
+                          line: l,
+                          onChanged: () => setState(() {}),
+                          onRemove: _lines.length > 1
+                              ? () =>
+                                    setState(() => _lines.removeAt(n).dispose())
+                              : null,
+                        ),
+                      ),
+                    const Divider(height: 16),
+                    OrderTotals(
+                      lineItems: _lines,
+                      discount: _discount,
+                      tax: _tax,
+                      delivery: _delivery,
+                      onChanged: () => setState(() {}),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Actions
+            FilledButton.icon(
               onPressed: _busy ? null : () => _save(finalize: true),
-              child: Text(_busy ? 'Saving…' : 'Record quotation'),
+              icon: _busy
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.check_circle_outline),
+              label: Text(_busy ? 'Saving…' : 'Record Quotation'),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(48),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             OutlinedButton(
               onPressed: _busy ? null : () => _save(finalize: false),
-              child: const Text('Save draft'),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(44),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: const Text('Save Draft Quotation'),
             ),
           ],
         ),

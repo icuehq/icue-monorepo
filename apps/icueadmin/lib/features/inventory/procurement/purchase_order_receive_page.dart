@@ -2,51 +2,11 @@ import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icueadmin/features/inventory/procurement/procurement_ui.dart';
+import 'package:icueadmin/features/inventory/procurement/purchase_order_receive_line_card.dart';
 import 'package:icueadmin/features/inventory/stock/stock_ui.dart';
 import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
-
-class _Draft {
-  _Draft(this.line);
-
-  final OrderLine line;
-  final accepted = TextEditingController();
-  final rejected = TextEditingController();
-  final condition = TextEditingController();
-  final batchNumber = TextEditingController();
-  final expiry = TextEditingController();
-
-  double get acceptedValue => double.tryParse(accepted.text.trim()) ?? 0;
-  double get rejectedValue => double.tryParse(rejected.text.trim()) ?? 0;
-  bool get touched => acceptedValue + rejectedValue > 0;
-
-  void dispose() {
-    for (final controller in [
-      accepted,
-      rejected,
-      condition,
-      batchNumber,
-      expiry,
-    ]) {
-      controller.dispose();
-    }
-  }
-
-  Map<String, Object?> toJson() {
-    String? text(TextEditingController controller) =>
-        controller.text.trim().isEmpty ? null : controller.text.trim();
-    return {
-      'itemId': line.itemId,
-      'variantId': ?line.variantId,
-      'quantityAccepted': acceptedValue,
-      'quantityRejected': rejectedValue,
-      'condition': text(condition),
-      'batchNumber': text(batchNumber),
-      'expiryDate': text(expiry),
-    };
-  }
-}
 
 /// One delivery against a purchase order: accepted and rejected quantities per line (FRS 10.17).
 class PurchaseOrderReceivePage extends StatefulWidget {
@@ -68,7 +28,7 @@ class _PurchaseOrderReceivePageState extends State<PurchaseOrderReceivePage> {
     for (final orderLine in widget.order.lineItems.where(
       (orderLine) => orderLine.due > 0,
     ))
-      _Draft(orderLine),
+      ReceiveLineDraft(orderLine),
   ];
   String? _store;
   var _busy = false;
@@ -89,11 +49,34 @@ class _PurchaseOrderReceivePageState extends State<PurchaseOrderReceivePage> {
     super.dispose();
   }
 
+  void _acceptAllDue() {
+    setState(() {
+      for (final draft in _drafts) {
+        if (draft.line.due > 0) {
+          draft.accepted.text = formatQuantity(draft.line.due);
+          draft.rejected.clear();
+        }
+      }
+    });
+  }
+
+  void _clearAll() {
+    setState(() {
+      for (final draft in _drafts) {
+        draft.accepted.clear();
+        draft.rejected.clear();
+      }
+    });
+  }
+
   Future<void> _save() async {
+    if (_store == null) {
+      return showMessage(context, 'Please select a destination store');
+    }
     if (!_form.currentState!.validate()) return;
     final lineItems = _drafts.where((draft) => draft.touched).toList();
     if (lineItems.isEmpty) {
-      return showMessage(context, 'Enter a received quantity');
+      return showMessage(context, 'Enter an accepted or rejected quantity');
     }
     setState(() => _busy = true);
     await procSubmit(
@@ -106,12 +89,12 @@ class _PurchaseOrderReceivePageState extends State<PurchaseOrderReceivePage> {
             'remarks': _remarks.text.trim(),
             'lineItems': [for (final draft in lineItems) draft.toJson()],
           }, requestId: _requestId),
-      done: 'Received',
+      done: 'Goods received (GRN generated)',
     );
     if (mounted) setState(() => _busy = false);
   }
 
-  String? _validateQuantity(String? currentValue, _Draft draft) {
+  String? _validateQuantity(String? currentValue, ReceiveLineDraft draft) {
     final value = (currentValue ?? '').trim();
     if (value.isEmpty) return null;
     final number = double.tryParse(value);
@@ -124,7 +107,11 @@ class _PurchaseOrderReceivePageState extends State<PurchaseOrderReceivePage> {
   @override
   Widget build(BuildContext context) {
     final procurementProvider = context.watch<ProcurementProvider>();
+    final theme = Theme.of(context);
     final purchaseOrder = widget.order;
+    final acceptedCount =
+        _drafts.where((draft) => draft.acceptedValue > 0).length;
+
     return Scaffold(
       appBar: AppBar(title: Text('Receive ${purchaseOrder.number}')),
       body: Form(
@@ -132,132 +119,240 @@ class _PurchaseOrderReceivePageState extends State<PurchaseOrderReceivePage> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            Text(
-              '${procurementProvider.vendorName(purchaseOrder.vendorId)} · due ${purchaseOrder.expectedDate}',
-            ),
-            const SizedBox(height: 12),
-            StoreDropdown(
-              value: _store,
-              campusId: purchaseOrder.deliveryCampusId,
-              onChanged: (value) => setState(() => _store = value),
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _deliveryRef,
-              decoration: const InputDecoration(
-                labelText: 'Delivery note / challan no. (optional)',
+            // Header card
+            Card(
+              elevation: 0,
+              color: theme.colorScheme.surfaceContainerHighest.withValues(
+                alpha: 0.4,
               ),
-            ),
-            const SizedBox(height: 12),
-            for (final draft in _drafts)
-              _line(context, procurementProvider, draft),
-            TextFormField(
-              controller: _remarks,
-              decoration: const InputDecoration(
-                labelText: 'Inspection remarks (optional)',
-              ),
-            ),
-            const SizedBox(height: 20),
-            FilledButton(
-              onPressed: _busy ? null : _save,
-              child: Text(_busy ? 'Saving…' : 'Confirm receiving'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _line(
-    BuildContext context,
-    ProcurementProvider procurementProvider,
-    _Draft draft,
-  ) {
-    final batch =
-        procurementProvider.items[draft.line.itemId]?.tracking ==
-        Tracking.batch;
-    const num = TextInputType.numberWithOptions(decimal: true);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              procurementProvider.itemName(draft.line.itemId),
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-            Text(
-              'Ordered ${formatQuantity(draft.line.quantity)} · still due ${formatQuantity(draft.line.due)}',
-            ),
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: draft.accepted,
-                    keyboardType: num,
-                    decoration: const InputDecoration(labelText: 'Accepted'),
-                    validator: (value) => _validateQuantity(value, draft),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(
+                  color: theme.colorScheme.outlineVariant.withValues(
+                    alpha: 0.6,
                   ),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextFormField(
-                    controller: draft.rejected,
-                    keyboardType: num,
-                    decoration: const InputDecoration(labelText: 'Rejected'),
-                    validator: (value) => _validateQuantity(value, draft),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          purchaseOrder.number,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            purchaseOrder.status.toUpperCase(),
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.onPrimaryContainer,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.business_rounded,
+                          size: 16,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            procurementProvider.vendorName(
+                              purchaseOrder.vendorId,
+                            ),
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.event_outlined,
+                          size: 16,
+                          color: theme.colorScheme.outline,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Expected by: ${purchaseOrder.expectedDate}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Store & Challan
+            Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(
+                  color: theme.colorScheme.outlineVariant.withValues(
+                    alpha: 0.6,
                   ),
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Destination & Delivery Details',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    StoreDropdown(
+                      value: _store,
+                      campusId: purchaseOrder.deliveryCampusId,
+                      onChanged: (value) => setState(() => _store = value),
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _deliveryRef,
+                      decoration: const InputDecoration(
+                        labelText: 'Delivery note / Challan no. (optional)',
+                        prefixIcon: Icon(Icons.receipt_long_outlined),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Items Section Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      'Items to Receive',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '${_drafts.length}',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                Row(
+                  children: [
+                    TextButton.icon(
+                      onPressed: _acceptAllDue,
+                      icon: const Icon(Icons.done_all_rounded, size: 18),
+                      label: const Text('Accept all due'),
+                      style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    IconButton(
+                      tooltip: 'Clear quantities',
+                      onPressed: _clearAll,
+                      icon: const Icon(Icons.clear_all_rounded, size: 20),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ],
                 ),
               ],
             ),
+            const SizedBox(height: 8),
+
+            for (final draft in _drafts)
+              PurchaseOrderReceiveLineCard(
+                draft: draft,
+                itemName: procurementProvider.itemName(draft.line.itemId),
+                isBatchTracked:
+                    procurementProvider.items[draft.line.itemId]?.tracking ==
+                    Tracking.batch,
+                onChanged: () => setState(() {}),
+                validator: _validateQuantity,
+              ),
+
+            const SizedBox(height: 8),
             TextFormField(
-              controller: draft.condition,
+              controller: _remarks,
+              maxLines: 2,
               decoration: const InputDecoration(
-                labelText: 'Condition (optional)',
+                labelText: 'Overall inspection remarks (optional)',
+                prefixIcon: Icon(Icons.notes_rounded),
               ),
             ),
-            if (batch)
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: draft.batchNumber,
-                      decoration: const InputDecoration(labelText: 'Batch no.'),
-                      validator: (value) =>
-                          draft.touched && (value ?? '').trim().isEmpty
-                          ? 'Required'
-                          : null,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(child: _expiry(context, draft.expiry)),
-                ],
+            const SizedBox(height: 24),
+
+            FilledButton.icon(
+              onPressed: _busy ? null : _save,
+              icon: _busy
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.inventory_2_rounded),
+              label: Text(
+                _busy
+                    ? 'Saving…'
+                    : acceptedCount > 0
+                    ? 'Confirm receiving ($acceptedCount ${acceptedCount == 1 ? "item" : "items"})'
+                    : 'Confirm receiving',
               ),
+            ),
+            const SizedBox(height: 16),
           ],
         ),
       ),
     );
   }
-
-  Widget _expiry(BuildContext context, TextEditingController controller) =>
-      TextFormField(
-        controller: controller,
-        readOnly: true,
-        decoration: const InputDecoration(
-          labelText: 'Expiry',
-          suffixIcon: Icon(Icons.event_rounded),
-        ),
-        onTap: () async {
-          final date = await showDatePicker(
-            context: context,
-            firstDate: DateTime(2000),
-            lastDate: DateTime(2100),
-            initialDate: DateTime.now(),
-          );
-          if (date != null) {
-            controller.text = date.toIso8601String().substring(0, 10);
-          }
-        },
-      );
 }

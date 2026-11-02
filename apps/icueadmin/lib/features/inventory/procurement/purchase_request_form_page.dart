@@ -1,33 +1,12 @@
 import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icueadmin/features/inventory/procurement/procurement_ui.dart';
+import 'package:icueadmin/features/inventory/procurement/purchase_request_line_card.dart';
 import 'package:icueadmin/features/inventory/stock/item_picker.dart';
 import 'package:icueadmin/features/inventory/stock/stock_ui.dart';
 import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
-
-class _Line {
-  _Line(
-    this.itemId,
-    this.name,
-    this.variantId, {
-    String quantity = '',
-    String price = '',
-  }) : quantity = TextEditingController(text: quantity),
-       price = TextEditingController(text: price);
-
-  final String itemId;
-  final String name;
-  final String? variantId;
-  final TextEditingController quantity;
-  final TextEditingController price;
-
-  void dispose() {
-    quantity.dispose();
-    price.dispose();
-  }
-}
 
 /// Create a purchase request, or edit a draft / returned one ([existing]).
 class PurchaseRequestFormPage extends StatefulWidget {
@@ -45,7 +24,7 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
   late final _purpose = TextEditingController(text: widget.existing?.purpose);
   late final _remarks = TextEditingController(text: widget.existing?.remarks);
   late final _date = TextEditingController(text: widget.existing?.requiredDate);
-  final _lines = <_Line>[];
+  final _lines = <RequestLineDraft>[];
   late int? _campus = widget.existing?.campusId;
   late String _priority = widget.existing?.priority ?? 'normal';
   var _busy = false;
@@ -59,11 +38,10 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
       final items = context.read<ProcurementProvider>().items;
       for (final purchaseRequestLine in purchaseRequest.lineItems) {
         _lines.add(
-          _Line(
+          RequestLineDraft(
             purchaseRequestLine.itemId,
             items[purchaseRequestLine.itemId]?.name ??
                 purchaseRequestLine.itemId,
-            purchaseRequestLine.variantId,
             quantity: formatQuantity(purchaseRequestLine.quantity),
             price: formatQuantity(purchaseRequestLine.estimatedPrice),
           ),
@@ -102,7 +80,6 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
             for (final line in _lines)
               {
                 'itemId': line.itemId,
-                'variantId': ?line.variantId,
                 'quantity': double.parse(line.quantity.text.trim()),
                 'estimatedPrice': double.tryParse(line.price.text.trim()) ?? 0,
               },
@@ -110,7 +87,7 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
           'submit': submit,
         },
       ),
-      done: submit ? 'Submitted' : 'Draft saved',
+      done: submit ? 'Submitted for approval' : 'Draft saved',
     );
     if (mounted) setState(() => _busy = false);
   }
@@ -121,12 +98,9 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
     context.read<ProcurementProvider>().items[picked.item.id] = picked.item;
     setState(() {
       _lines.add(
-        _Line(
+        RequestLineDraft(
           picked.item.id,
-          picked.variant == null
-              ? picked.item.name
-              : '${picked.item.name} · ${picked.variant!.sku}',
-          picked.variant?.id,
+          picked.item.name,
           price: picked.item.defaultPrice == null
               ? ''
               : formatQuantity(picked.item.defaultPrice!),
@@ -137,14 +111,16 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final access = context.read<InventoryProvider>().access;
     final campuses = {...access.campusIds, ?_campus}.toList();
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
           widget.existing == null
-              ? 'New purchase request'
-              : widget.existing!.number,
+              ? 'New Purchase Request'
+              : 'Edit ${widget.existing!.number}',
         ),
       ),
       body: Form(
@@ -152,140 +128,274 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            DropdownButtonFormField<int>(
-              initialValue: _campus,
-              decoration: const InputDecoration(labelText: 'Campus *'),
-              items: [
-                for (final value in campuses)
-                  DropdownMenuItem(value: value, child: Text('Campus $value')),
-              ],
-              onChanged: widget.existing == null
-                  ? (value) => _campus = value
-                  : null,
-              validator: (value) => value == null ? 'Required' : null,
-            ),
-            TextFormField(
-              controller: _purpose,
-              decoration: const InputDecoration(labelText: 'Purpose *'),
-              validator: requiredText,
-            ),
-            TextFormField(
-              controller: _date,
-              readOnly: true,
-              decoration: const InputDecoration(
-                labelText: 'Required by *',
-                suffixIcon: Icon(Icons.event_rounded),
+            // Campus & Priority Card
+            Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: theme.colorScheme.outlineVariant),
               ),
-              validator: requiredText,
-              onTap: () async {
-                final date = await showDatePicker(
-                  context: context,
-                  firstDate: DateTime.now(),
-                  lastDate: DateTime.now().add(const Duration(days: 730)),
-                  initialDate: DateTime.now(),
-                );
-                if (date != null) {
-                  _date.text = date.toIso8601String().substring(0, 10);
-                }
-              },
-            ),
-            DropdownButtonFormField<String>(
-              initialValue: _priority,
-              decoration: const InputDecoration(labelText: 'Priority'),
-              items: [
-                for (final value in ['low', 'normal', 'high', 'urgent'])
-                  DropdownMenuItem(
-                    value: value,
-                    child: Text(humanizeStatus(value)),
-                  ),
-              ],
-              onChanged: (value) => _priority = value ?? 'normal',
-            ),
-            TextFormField(
-              controller: _remarks,
-              decoration: const InputDecoration(labelText: 'Remarks'),
-            ),
-            const SizedBox(height: 12),
-            for (final (n, l) in _lines.indexed)
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              l.name,
-                              style: Theme.of(context).textTheme.titleSmall,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.apartment_rounded,
+                          size: 20,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Campus & Urgency',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: DropdownButtonFormField<int>(
+                            initialValue: _campus,
+                            decoration: const InputDecoration(
+                              labelText: 'Campus *',
+                              prefixIcon: Icon(Icons.school_outlined),
                             ),
+                            items: [
+                              for (final value in campuses)
+                                DropdownMenuItem(
+                                  value: value,
+                                  child: Text('Campus $value'),
+                                ),
+                            ],
+                            onChanged: widget.existing == null
+                                ? (value) => _campus = value
+                                : null,
+                            validator: (value) =>
+                                value == null ? 'Required' : null,
                           ),
-                          IconButton(
-                            icon: const Icon(Icons.close_rounded),
-                            onPressed: () =>
-                                setState(() => _lines.removeAt(n).dispose()),
-                          ),
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: l.quantity,
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                              decoration: const InputDecoration(
-                                labelText: 'Quantity',
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: DropdownButtonFormField<String>(
+                            initialValue: _priority,
+                            decoration: const InputDecoration(
+                              labelText: 'Priority',
+                              prefixIcon: Icon(Icons.flag_outlined),
+                            ),
+                            items: const [
+                              DropdownMenuItem(
+                                value: 'low',
+                                child: Text('Low'),
                               ),
-                              validator: (value) {
-                                final quantity = double.tryParse(
-                                  (value ?? '').trim(),
-                                );
-                                return quantity == null || quantity <= 0
-                                    ? 'Invalid'
-                                    : null;
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: TextFormField(
-                              controller: l.price,
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                              decoration: const InputDecoration(
-                                labelText: 'Est. price',
+                              DropdownMenuItem(
+                                value: 'normal',
+                                child: Text('Normal'),
                               ),
-                              validator: optionalNumber,
-                            ),
+                              DropdownMenuItem(
+                                value: 'high',
+                                child: Text('High'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'urgent',
+                                child: Text('Urgent'),
+                              ),
+                            ],
+                            onChanged: (value) =>
+                                setState(() => _priority = value ?? 'normal'),
                           ),
-                        ],
-                      ),
-                    ],
-                  ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
-                icon: const Icon(Icons.add_rounded),
-                label: const Text('Add item'),
-                onPressed: _addItem,
+            ),
+            const SizedBox(height: 16),
+
+            // Purpose & Schedule Card
+            Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: theme.colorScheme.outlineVariant),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.description_outlined,
+                          size: 20,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Requisition Details',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _purpose,
+                      decoration: const InputDecoration(
+                        labelText: 'Purpose / Justification *',
+                        hintText:
+                            'e.g. Science lab equipment for term practicals',
+                        prefixIcon: Icon(Icons.edit_note_rounded),
+                      ),
+                      validator: requiredText,
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _date,
+                      readOnly: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Required by date *',
+                        hintText: 'YYYY-MM-DD',
+                        prefixIcon: Icon(Icons.event_outlined),
+                        suffixIcon: Icon(Icons.calendar_month_rounded),
+                      ),
+                      validator: requiredText,
+                      onTap: () async {
+                        final date = await showDatePicker(
+                          context: context,
+                          firstDate: DateTime.now(),
+                          lastDate: DateTime.now().add(
+                            const Duration(days: 730),
+                          ),
+                          initialDate: DateTime.now().add(
+                            const Duration(days: 7),
+                          ),
+                        );
+                        if (date != null) {
+                          _date.text = date.toIso8601String().substring(0, 10);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _remarks,
+                      decoration: const InputDecoration(
+                        labelText: 'Remarks / Special instructions (optional)',
+                        prefixIcon: Icon(Icons.notes_rounded),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 12),
-            FilledButton(
-              onPressed: _busy ? null : () => _save(submit: true),
-              child: Text(_busy ? 'Saving…' : 'Submit for approval'),
+            const SizedBox(height: 16),
+
+            // Items Card
+            Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: theme.colorScheme.outlineVariant),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.checklist_rounded,
+                          size: 20,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Requested Items',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const Spacer(),
+                        if (_lines.isNotEmpty)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primaryContainer,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              '${_lines.length} items',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.onPrimaryContainer,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    for (final (n, l) in _lines.indexed) ...[
+                      RequestLineCard(
+                        line: l,
+                        onRemove: () =>
+                            setState(() => _lines.removeAt(n).dispose()),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.add_rounded),
+                      label: const Text('Add Item to Request'),
+                      onPressed: _addItem,
+                    ),
+                  ],
+                ),
+              ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 24),
+
+            // Actions
+            FilledButton.icon(
+              onPressed: _busy ? null : () => _save(submit: true),
+              icon: _busy
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.send_rounded),
+              label: Text(_busy ? 'Saving…' : 'Submit for Approval'),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(48),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
             OutlinedButton(
               onPressed: _busy ? null : () => _save(submit: false),
-              child: const Text('Save draft'),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(44),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: const Text('Save as Draft'),
             ),
           ],
         ),

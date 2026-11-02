@@ -25,8 +25,10 @@ class _InvoiceFormSheetState extends State<InvoiceFormSheet> {
   final _form = GlobalKey<FormState>();
   final _requestId = newRequestId();
   final _invoiceNumber = TextEditingController();
-  final _date = TextEditingController();
-  final _due = TextEditingController();
+  final _date = TextEditingController(
+    text: DateTime.now().toIso8601String().substring(0, 10),
+  );
+  late final _due = TextEditingController(text: widget.order.expectedDate);
   late final _subtotal = TextEditingController(
     text: widget.order.subtotal.toStringAsFixed(2),
   );
@@ -84,81 +86,191 @@ class _InvoiceFormSheetState extends State<InvoiceFormSheet> {
             'discount': _v(_discount),
             'receiptIds': _receipts.toList(),
           }, requestId: _requestId),
-      done: 'Invoice recorded',
+      done: 'Invoice recorded successfully',
     );
     if (mounted) setState(() => _busy = false);
   }
 
-  Widget _amount(TextEditingController controller, String label) =>
-      TextFormField(
-        controller: controller,
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        decoration: InputDecoration(labelText: label),
-        validator: (value) {
-          final number = double.tryParse((value ?? '').trim());
-          return number == null || number < 0 ? 'Invalid' : null;
-        },
-      );
-
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final procurementProvider = context.read<ProcurementProvider>();
     final goodsReceipts = context.watch<ProcurementProvider>().receipts;
+    final vendor = procurementProvider.vendorName(widget.order.vendorId);
     final today = DateTime.now();
-    return Form(
-      key: _form,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            'Invoice for ${widget.order.number}',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          TextFormField(
-            controller: _invoiceNumber,
-            decoration: const InputDecoration(labelText: 'Invoice number *'),
-            validator: requiredText,
-          ),
-          dateField(
-            context,
-            _date,
-            'Invoice date',
-            first: today.subtract(const Duration(days: 365)),
-          ),
-          dateField(
-            context,
-            _due,
-            'Due date',
-            first: today.subtract(const Duration(days: 365)),
-          ),
-          _amount(_subtotal, 'Subtotal'),
-          _amount(_tax, 'Tax'),
-          _amount(_discount, 'Discount'),
-          if (goodsReceipts.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            const Text('Receiving references'),
-            Wrap(
-              spacing: 8,
+
+    return SingleChildScrollView(
+      child: Form(
+        key: _form,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
               children: [
-                for (final goodsReceipt in goodsReceipts)
-                  FilterChip(
-                    label: Text(goodsReceipt.number),
-                    selected: _receipts.contains(goodsReceipt.id),
-                    onSelected: (isSelected) => setState(
-                      () => isSelected
-                          ? _receipts.add(goodsReceipt.id)
-                          : _receipts.remove(goodsReceipt.id),
-                    ),
+                Icon(
+                  Icons.receipt_long_rounded,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Record Vendor Invoice',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        'PO: ${widget.order.number} · $vendor',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
                   ),
+                ),
               ],
             ),
+            const SizedBox(height: 16),
+
+            TextFormField(
+              controller: _invoiceNumber,
+              decoration: const InputDecoration(
+                labelText: 'Vendor Invoice Number *',
+                hintText: 'e.g. INV-2024-9912',
+                prefixIcon: Icon(Icons.tag_rounded),
+              ),
+              validator: requiredText,
+            ),
+            const SizedBox(height: 12),
+
+            Row(
+              children: [
+                Expanded(
+                  child: dateField(
+                    context,
+                    _date,
+                    'Invoice Date *',
+                    first: today.subtract(const Duration(days: 365)),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: dateField(
+                    context,
+                    _due,
+                    'Due Date *',
+                    first: today.subtract(const Duration(days: 365)),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _subtotal,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: const InputDecoration(
+                      labelText: 'Subtotal (₹)',
+                      isDense: true,
+                    ),
+                    validator: (value) =>
+                        (double.tryParse((value ?? '').trim()) ?? -1) < 0
+                        ? 'Invalid'
+                        : null,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextFormField(
+                    controller: _tax,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: const InputDecoration(
+                      labelText: 'Tax (₹)',
+                      isDense: true,
+                    ),
+                    validator: optionalNumber,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextFormField(
+                    controller: _discount,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: const InputDecoration(
+                      labelText: 'Discount (₹)',
+                      isDense: true,
+                    ),
+                    validator: optionalNumber,
+                  ),
+                ),
+              ],
+            ),
+
+            if (goodsReceipts.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Text(
+                'Link Receiving Goods Receipts (GRN)',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  for (final receipt in goodsReceipts)
+                    FilterChip(
+                      label: Text(
+                        '${receipt.number}${receipt.reference == null ? '' : ' (${receipt.reference})'}',
+                      ),
+                      selected: _receipts.contains(receipt.id),
+                      onSelected: (selected) => setState(
+                        () => selected
+                            ? _receipts.add(receipt.id)
+                            : _receipts.remove(receipt.id),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+            const SizedBox(height: 20),
+
+            FilledButton.icon(
+              onPressed: _busy ? null : _save,
+              icon: _busy
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.save_rounded),
+              label: Text(_busy ? 'Recording…' : 'Record Invoice'),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(44),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
           ],
-          const SizedBox(height: 16),
-          FilledButton(
-            onPressed: _busy ? null : _save,
-            child: Text(_busy ? 'Saving…' : 'Record invoice'),
-          ),
-        ],
+        ),
       ),
     );
   }

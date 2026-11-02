@@ -6,6 +6,7 @@ import 'package:icueadmin/features/inventory/procurement/order_widgets.dart';
 import 'package:icueadmin/features/inventory/procurement/procurement_ui.dart';
 import 'package:icueadmin/features/inventory/procurement/purchase_order_pdf.dart';
 import 'package:icueadmin/features/inventory/procurement/purchase_order_receipts_section.dart';
+import 'package:icueadmin/features/inventory/procurement/purchase_order_revision_dialog.dart';
 import 'package:icueadmin/routing/app_routes.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
@@ -39,22 +40,26 @@ class PurchaseOrderSheet extends StatelessWidget {
     final controller = TextEditingController();
     final ok = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: Text(title),
         content: TextField(
           controller: controller,
           autofocus: true,
           decoration: InputDecoration(
             labelText: required ? 'Reason *' : 'Reason',
+            hintText: 'e.g. Discontinued item / Supplier cancellation',
           ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(dialogContext, false),
             child: const Text('Back'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () {
+              if (required && controller.text.trim().isEmpty) return;
+              Navigator.pop(dialogContext, true);
+            },
             child: const Text('Confirm'),
           ),
         ],
@@ -68,220 +73,415 @@ class PurchaseOrderSheet extends StatelessWidget {
   }
 
   Future<void> _revise(BuildContext context) async {
-    final procurementProvider = context.read<ProcurementProvider>();
-    final prices = [
-      for (final orderLine in order.lineItems)
-        TextEditingController(text: formatQuantity(orderLine.unitPrice)),
-    ];
-    final reason = TextEditingController();
-    final expected = TextEditingController(text: order.expectedDate);
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Revise ${order.number}'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: reason,
-                decoration: const InputDecoration(labelText: 'Reason *'),
-              ),
-              dateField(context, expected, 'Expected delivery'),
-              for (final (n, l) in order.lineItems.indexed)
-                TextField(
-                  controller: prices[n],
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  decoration: InputDecoration(
-                    labelText:
-                        '${procurementProvider.itemName(l.itemId)} unit price',
-                  ),
-                ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Back'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Save revision'),
-          ),
-        ],
-      ),
-    );
-    final data = <String, Object?>{
-      'reason': reason.text.trim(),
-      'expectedDate': expected.text,
-      'prices': [
-        for (final (n, l) in order.lineItems.indexed)
-          {
-            'itemId': l.itemId,
-            'variantId': ?l.variantId,
-            'unitPrice': double.tryParse(prices[n].text.trim()) ?? l.unitPrice,
-          },
-      ],
-    };
-    for (final controller in [...prices, reason, expected]) {
-      controller.dispose();
-    }
-    if (ok == true && context.mounted) {
-      await _act(context, 'inventory-purchaseOrder-revise', data, 'Revised');
+    final data = await showPurchaseOrderRevisionDialog(context, order: order);
+    if (data != null && context.mounted) {
+      await _act(
+        context,
+        'inventory-purchaseOrder-revise',
+        data,
+        'Revision recorded',
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final purchaseOrder = order;
     final procurementProvider = context.read<ProcurementProvider>();
     final inventoryProvider = context.read<InventoryProvider>();
-    final value = inventoryProvider.access.can('inventory.procure.operate');
+    final canOperate = inventoryProvider.access.can(
+      'inventory.procure.operate',
+    );
+    final canStockOperate = inventoryProvider.access.can(
+      'inventory.stock.operate',
+    );
     final vendor = procurementProvider.vendorName(purchaseOrder.vendorId);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          purchaseOrder.number,
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
-        Text(
-          '${humanizeStatus(purchaseOrder.status)} · $vendor · deliver to campus '
-          '${purchaseOrder.deliveryCampusId} by ${purchaseOrder.expectedDate}',
-        ),
-        if (purchaseOrder.revision > 0)
-          Text('Revision ${purchaseOrder.revision}'),
-        if (purchaseOrder.ackRef != null)
-          Text('Vendor ref: ${purchaseOrder.ackRef}'),
-        const SizedBox(height: 8),
-        for (final orderLine in purchaseOrder.lineItems)
-          ListTile(
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            title: Text(procurementProvider.itemName(orderLine.itemId)),
-            subtitle: Text(
-              'Accepted ${formatQuantity(orderLine.quantityAccepted)}'
-              '${orderLine.quantityRejected > 0 ? ' · rejected ${formatQuantity(orderLine.quantityRejected)}' : ''}'
-              ' of ${formatQuantity(orderLine.quantity)}',
-            ),
-            trailing: Text(
-              '${formatQuantity(orderLine.quantity)} × ${money(orderLine.unitPrice)}',
-            ),
-          ),
-        Text(
-          'Subtotal ${money(purchaseOrder.subtotal)} · discount ${money(purchaseOrder.discount)} · '
-          'tax ${money(purchaseOrder.tax)} · delivery ${money(purchaseOrder.delivery)}',
-        ),
-        Text(
-          'Total ${money(purchaseOrder.total)}',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        if (purchaseOrder.terms != null && purchaseOrder.terms!.isNotEmpty)
-          Text(purchaseOrder.terms!),
-        PurchaseOrderReceiptsSection(orderId: purchaseOrder.id),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          children: [
-            OutlinedButton.icon(
-              icon: const Icon(Icons.picture_as_pdf_rounded),
-              label: const Text('PDF'),
-              onPressed: () => sharePurchaseOrderPdf(
-                purchaseOrder,
-                vendor: vendor,
-                itemName: procurementProvider.itemName,
-              ),
-            ),
-            if (inventoryProvider.access.can('inventory.stock.operate') &&
-                purchaseOrder.canReceive)
-              FilledButton(
-                onPressed: () {
-                  final router = GoRouter.of(context);
-                  Navigator.of(context).pop();
-                  router.push(
-                    AppRoutes.inventoryPoReceive,
-                    extra: purchaseOrder,
-                  );
-                },
-                child: const Text('Receive goods'),
-              ),
-            if (value &&
-                !purchaseOrder.isDraft &&
-                purchaseOrder.status != 'cancelled')
-              OutlinedButton(
-                onPressed: () => InvoiceFormSheet.show(context, purchaseOrder),
-                child: const Text('Record invoice'),
-              ),
-            if (value && purchaseOrder.isDraft) ...[
-              FilledButton(
-                onPressed: () => _act(
-                  context,
-                  'inventory-purchaseOrder-issue',
-                  {},
-                  'Issued',
+
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Header: PO Number, Status, Revision
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          purchaseOrder.number,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        if (purchaseOrder.revision > 0) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.secondaryContainer,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              'Revision ${purchaseOrder.revision}',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    Text(
+                      '$vendor · Deliver to Campus ${purchaseOrder.deliveryCampusId}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ),
-                child: const Text('Issue'),
               ),
-              OutlinedButton(
-                onPressed: () async {
-                  final navigator = Navigator.of(context);
-                  final router = GoRouter.of(context);
-                  final request = await procurementProvider.request(
-                    purchaseOrder.purchaseRequestId,
-                  );
-                  if (request == null) return;
-                  navigator.pop();
-                  await router.push(
-                    AppRoutes.inventoryPurchaseOrderForm,
-                    extra: (request, null, purchaseOrder),
-                  );
-                },
-                child: const Text('Edit'),
+              Chip(
+                label: Text(humanizeStatus(purchaseOrder.status)),
+                visualDensity: VisualDensity.compact,
               ),
             ],
-            if (value && purchaseOrder.isIssued)
-              FilledButton(
-                onPressed: () => _act(
-                  context,
-                  'inventory-purchaseOrder-acknowledge',
-                  {},
-                  'Acknowledged',
+          ),
+          const SizedBox(height: 12),
+
+          // Details Card
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest.withValues(
+                alpha: 0.35,
+              ),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.event_available_outlined,
+                      size: 16,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Expected Delivery: ${purchaseOrder.expectedDate}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const Spacer(),
+                    if (purchaseOrder.ackRef != null)
+                      Text(
+                        'Ack: ${purchaseOrder.ackRef}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                  ],
                 ),
-                child: const Text('Vendor acknowledged'),
+                if (purchaseOrder.terms != null &&
+                    purchaseOrder.terms!.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    'Terms: ${purchaseOrder.terms}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Line Items & Progress
+          Text(
+            'Order Items & Delivery Status',
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          for (final orderLine in purchaseOrder.lineItems)
+            Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+                side: BorderSide(color: theme.colorScheme.outlineVariant),
               ),
-            if (value && purchaseOrder.canRevise)
-              OutlinedButton(
-                onPressed: () => _revise(context),
-                child: const Text('Revise'),
-              ),
-            if (value && purchaseOrder.canClose)
-              OutlinedButton(
-                onPressed: () => _withReason(
-                  context,
-                  'Close ${purchaseOrder.number}',
-                  'inventory-purchaseOrder-close',
-                  'Closed',
-                  required: purchaseOrder.status != 'fully_received',
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            procurementProvider.itemName(orderLine.itemId),
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Accepted: ${formatQuantity(orderLine.quantityAccepted)} / ${formatQuantity(orderLine.quantity)}'
+                            '${orderLine.quantityRejected > 0 ? ' · ${formatQuantity(orderLine.quantityRejected)} rejected' : ''}',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color:
+                                  orderLine.quantityAccepted >=
+                                      orderLine.quantity
+                                  ? Colors.green[800]
+                                  : theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      '${formatQuantity(orderLine.quantity)} × ₹${money(orderLine.unitPrice)}',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
-                child: const Text('Close'),
               ),
-            if (value && purchaseOrder.canCancel)
-              TextButton(
-                onPressed: () => _withReason(
-                  context,
-                  'Cancel ${purchaseOrder.number}',
-                  'inventory-purchaseOrder-cancel',
-                  'Cancelled',
+            ),
+          const SizedBox(height: 8),
+
+          // Totals summary
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest.withValues(
+                alpha: 0.25,
+              ),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Subtotal', style: theme.textTheme.bodySmall),
+                    Text(
+                      '₹${money(purchaseOrder.subtotal)}',
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ],
                 ),
-                child: const Text('Cancel PO'),
+                if (purchaseOrder.discount > 0)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Discount', style: theme.textTheme.bodySmall),
+                      Text(
+                        '-₹${money(purchaseOrder.discount)}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.green[800],
+                        ),
+                      ),
+                    ],
+                  ),
+                if (purchaseOrder.tax > 0)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Tax', style: theme.textTheme.bodySmall),
+                      Text(
+                        '+₹${money(purchaseOrder.tax)}',
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                if (purchaseOrder.delivery > 0)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Delivery', style: theme.textTheme.bodySmall),
+                      Text(
+                        '+₹${money(purchaseOrder.delivery)}',
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                const Divider(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Total Amount',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      '₹${money(purchaseOrder.total)}',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // Receipts History
+          PurchaseOrderReceiptsSection(orderId: purchaseOrder.id),
+          const SizedBox(height: 20),
+
+          // Actions
+          if (canStockOperate && purchaseOrder.canReceive) ...[
+            FilledButton.icon(
+              onPressed: () {
+                final router = GoRouter.of(context);
+                Navigator.of(context).pop();
+                router.push(AppRoutes.inventoryPoReceive, extra: purchaseOrder);
+              },
+              icon: const Icon(Icons.inventory_2_outlined),
+              label: const Text('Receive Goods (GRN)'),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(44),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
+            ),
+            const SizedBox(height: 8),
           ],
-        ),
-      ],
+
+          if (canOperate && purchaseOrder.isIssued) ...[
+            FilledButton.icon(
+              onPressed: () => _act(
+                context,
+                'inventory-purchaseOrder-acknowledge',
+                {},
+                'Vendor acknowledged',
+              ),
+              icon: const Icon(Icons.check_circle_outline_rounded),
+              label: const Text('Confirm Vendor Acknowledged'),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(44),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+
+          if (canOperate && purchaseOrder.isDraft) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: () => _act(
+                      context,
+                      'inventory-purchaseOrder-issue',
+                      {},
+                      'Purchase order issued',
+                    ),
+                    icon: const Icon(Icons.send_rounded),
+                    label: const Text('Issue PO'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.edit_outlined),
+                  label: const Text('Edit'),
+                  onPressed: () async {
+                    final navigator = Navigator.of(context);
+                    final router = GoRouter.of(context);
+                    final request = await procurementProvider.request(
+                      purchaseOrder.purchaseRequestId,
+                    );
+                    if (request == null) return;
+                    navigator.pop();
+                    await router.push(
+                      AppRoutes.inventoryPurchaseOrderForm,
+                      extra: (request, null, purchaseOrder),
+                    );
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+          ],
+
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              OutlinedButton.icon(
+                icon: const Icon(Icons.picture_as_pdf_rounded),
+                label: const Text('Download / Share PDF'),
+                onPressed: () => sharePurchaseOrderPdf(
+                  purchaseOrder,
+                  vendor: vendor,
+                  itemName: procurementProvider.itemName,
+                ),
+              ),
+              if (canOperate &&
+                  !purchaseOrder.isDraft &&
+                  purchaseOrder.status != 'cancelled')
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.receipt_long_outlined),
+                  label: const Text('Record Invoice'),
+                  onPressed: () =>
+                      InvoiceFormSheet.show(context, purchaseOrder),
+                ),
+              if (canOperate && purchaseOrder.canRevise)
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.replay_rounded),
+                  label: const Text('Revise PO'),
+                  onPressed: () => _revise(context),
+                ),
+              if (canOperate && purchaseOrder.canClose)
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.done_all_rounded),
+                  label: const Text('Close PO'),
+                  onPressed: () => _withReason(
+                    context,
+                    'Close ${purchaseOrder.number}',
+                    'inventory-purchaseOrder-close',
+                    'Closed',
+                    required: purchaseOrder.status != 'fully_received',
+                  ),
+                ),
+              if (canOperate && purchaseOrder.canCancel)
+                TextButton.icon(
+                  style: TextButton.styleFrom(
+                    foregroundColor: theme.colorScheme.error,
+                  ),
+                  icon: const Icon(Icons.cancel_outlined, size: 16),
+                  label: const Text('Cancel PO'),
+                  onPressed: () => _withReason(
+                    context,
+                    'Cancel ${purchaseOrder.number}',
+                    'inventory-purchaseOrder-cancel',
+                    'Cancelled',
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

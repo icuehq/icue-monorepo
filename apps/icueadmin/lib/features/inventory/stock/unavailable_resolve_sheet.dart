@@ -82,21 +82,21 @@ class _UnavailableResolveSheetState extends State<UnavailableResolveSheet> {
     if (choiceKey == 'dispose' || choiceKey == 'write_off') {
       final confirm = await showDialog<bool>(
         context: context,
-        builder: (ctx) => AlertDialog(
+        builder: (dialogContext) => AlertDialog(
           title: Text('$choiceTitle?'),
           content: Text(
             'This will permanently resolve ${formatQuantity(widget.unavailable.quantity)} units as $choiceTitle. This action cannot be undone.',
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
+              onPressed: () => Navigator.pop(dialogContext, false),
               child: const Text('Cancel'),
             ),
             FilledButton(
               style: FilledButton.styleFrom(
-                backgroundColor: Theme.of(ctx).colorScheme.error,
+                backgroundColor: Theme.of(dialogContext).colorScheme.error,
               ),
-              onPressed: () => Navigator.pop(ctx, true),
+              onPressed: () => Navigator.pop(dialogContext, true),
               child: const Text('Confirm'),
             ),
           ],
