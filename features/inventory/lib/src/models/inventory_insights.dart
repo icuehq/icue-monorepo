@@ -356,7 +356,6 @@ const dashboardStats = <(String, String, List<String>)>[
 /// Columns of each import type (`inventory-import-run`); the first row of the pasted CSV.
 const importColumns = <String, List<String>>{
   'categories': ['code', 'name', 'tracking', 'parentCode'],
-  'stores': ['code', 'name', 'campusId', 'location'],
   'items': [
     'code',
     'name',
@@ -372,7 +371,6 @@ const importColumns = <String, List<String>>{
 /// Permission the single-record callable of each import type needs.
 const importPermissions = <String, String>{
   'categories': 'inventory.settings',
-  'stores': 'inventory.settings',
   'items': 'inventory.items.manage',
   'vendors': 'inventory.vendors.manage',
 };

@@ -118,7 +118,6 @@ class InventoryVariant {
 class InventoryStore {
   const InventoryStore({
     required this.id,
-    required this.code,
     required this.name,
     required this.campusId,
     this.description,
@@ -130,7 +129,6 @@ class InventoryStore {
   factory InventoryStore.fromMap(String id, Map<String, dynamic> data) =>
       InventoryStore(
         id: id,
-        code: data['code'] as String? ?? '',
         name: data['name'] as String? ?? '',
         campusId: (data['campusId'] as num? ?? 0).toInt(),
         description: data['description'] as String?,
@@ -143,7 +141,6 @@ class InventoryStore {
       );
 
   final String id;
-  final String code;
   final String name;
   final int campusId;
   final String? description;

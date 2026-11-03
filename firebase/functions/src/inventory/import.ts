@@ -17,15 +17,6 @@ const types: Record<string, ImportType> = {
         : undefined,
     }),
   },
-  stores: {
-    callable: masters.storeUpsert,
-    mapRow: async (row) => ({
-      code: row.code,
-      name: row.name,
-      campusId: toNumber(row.campusId),
-      location: toText(row.location),
-    }),
-  },
   items: {
     callable: masters.itemUpsert,
     mapRow: async (row, lookup) => ({

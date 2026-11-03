@@ -164,7 +164,7 @@ class _StockPageState extends State<StockPage> {
                                 DropdownMenuItem(
                                   value: store.id,
                                   child: Text(
-                                    '${store.name} (${store.code}) · Campus ${store.campusId}',
+                                    '${store.name} · Campus ${store.campusId}',
                                     style: const TextStyle(
                                       fontWeight: FontWeight.w600,
                                       fontSize: 14,

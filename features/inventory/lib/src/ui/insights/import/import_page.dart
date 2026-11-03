@@ -3,13 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
-/// Import of inventory master data (categories, stores, items, vendors).
+/// Import of inventory master data (categories, items, vendors).
 class ImportPage extends StatelessWidget {
   const ImportPage({super.key});
 
   static const _hints = {
     'categories': 'Existing codes are rejected, not updated.',
-    'stores': 'Existing codes are rejected, not updated.',
     'items': 'Items need categoryCode of an existing category. Existing codes are rejected, not updated.',
     'vendors': 'Existing codes are rejected, not updated.',
   };

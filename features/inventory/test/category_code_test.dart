@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:inventory/src/ui/masters/categories/widgets/category_form_sheet.dart';
+import 'package:inventory/src/ui/masters/categories/category_form_page.dart';
 
 void main() {
   group('generateCategoryCode', () {

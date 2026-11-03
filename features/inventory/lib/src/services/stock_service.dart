@@ -112,7 +112,7 @@ class StockService {
     return [
       for (final document in snapshot.docs)
         InventoryStore.fromMap(document.id, document.data()),
-    ]..sort((left, right) => left.code.compareTo(right.code));
+    ]..sort((left, right) => left.name.compareTo(right.name));
   }
 
   /// Item docs by id (30 per Firestore `in` query).

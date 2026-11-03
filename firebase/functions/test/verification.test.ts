@@ -83,7 +83,7 @@ describe('stock verification and daily job', () => {
       await makeItem('INK'),
       await makeItem('MED', { tracking: 'batch' }),
     ];
-    store = (await run(masters.storeUpsert, { code: 'S1', name: 'Main', campusId: 31 })).id;
+    store = (await run(masters.storeUpsert, { name: 'Main', campusId: 31 })).id;
     await run(receiveStock, {
       storeId: store,
       source: 'opening',

@@ -41,7 +41,7 @@ class InventoryService {
     return [
       for (final document in snapshot.docs)
         InventoryStore.fromMap(document.id, document.data()),
-    ]..sort((left, right) => left.code.compareTo(right.code));
+    ]..sort((left, right) => left.name.compareTo(right.name));
   }
 
   /// A page of items by name, optionally within [categoryId] (Firestore query).
@@ -139,8 +139,24 @@ class InventoryService {
     });
   }
 
-  Future<void> saveStore(Map<String, Object?> data) =>
-      saveMasterDocument('inventoryStores', data);
+  /// Stores have no code: a new store gets the Firestore auto ID.
+  Future<void> saveStore(Map<String, Object?> data) async {
+    final fields = {...data};
+    final id = fields.remove('id') as String?;
+    final collection = await schoolCollection('inventoryStores');
+    final now = FieldValue.serverTimestamp();
+    if (id != null) {
+      await collection.doc(id).update({...fields, 'updatedAt': now});
+      return;
+    }
+    await collection.add({
+      'status': 'active',
+      ...fields,
+      'createdBy': FirebaseAuth.instance.currentUser!.uid,
+      'createdAt': now,
+      'updatedAt': now,
+    });
+  }
 
   Future<void> setStoreActive(String id, {required bool active}) =>
       setMasterActive('inventoryStores', id, active: active);

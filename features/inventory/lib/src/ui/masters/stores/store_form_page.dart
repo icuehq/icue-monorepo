@@ -43,18 +43,6 @@ class _StoreFormPageState extends State<StoreFormPage> {
     super.dispose();
   }
 
-  static String _generateStoreCode(String text) {
-    final cleaned = text
-        .trim()
-        .toUpperCase()
-        .replaceAll(RegExp(r'[^A-Z0-9]+'), '_')
-        .replaceAll(RegExp(r'^_+|_+$'), '');
-    if (cleaned.isEmpty) {
-      return 'STORE_${DateTime.now().millisecondsSinceEpoch.toRadixString(36).toUpperCase()}';
-    }
-    return cleaned.length > 40 ? cleaned.substring(0, 40) : cleaned;
-  }
-
   Future<void> _save() async {
     if (!_form.currentState!.validate()) return;
     setState(() => _busy = true);
@@ -72,10 +60,7 @@ class _StoreFormPageState extends State<StoreFormPage> {
     await submitAndClose<InventoryProvider>(
       context,
       () => context.read<InventoryProvider>().saveStore({
-        if (store != null)
-          'id': store.id
-        else
-          'code': _generateStoreCode(_name.text),
+        if (store != null) 'id': store.id,
         'name': _name.text.trim(),
         'campusId': campusId,
         'description': blank(_description),

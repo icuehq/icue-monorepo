@@ -192,7 +192,6 @@ models:
     InventoryStore:
       id: id
       fields:
-        code: string
         name: string
         campusId: int
         description: string?

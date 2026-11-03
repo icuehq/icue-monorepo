@@ -65,12 +65,11 @@ class _StoresPageState extends State<StoresPage> {
       if (_searchQuery.isNotEmpty) {
         final query = _searchQuery.toLowerCase();
         final matchName = store.name.toLowerCase().contains(query);
-        final matchCode = store.code.toLowerCase().contains(query);
         final matchLocation =
             store.location?.toLowerCase().contains(query) ?? false;
         final matchDescription =
             store.description?.toLowerCase().contains(query) ?? false;
-        return matchName || matchCode || matchLocation || matchDescription;
+        return matchName || matchLocation || matchDescription;
       }
       return true;
     }).toList();

@@ -8,6 +8,10 @@ class InventoryRoutes {
   static const String inventoryCategories = '/layout.inventory/categories';
   static const String inventoryCategoriesName = 'inventoryCategories';
 
+  static const String inventoryCategoryForm =
+      '/layout.inventory/categories/form';
+  static const String inventoryCategoryFormName = 'inventoryCategoryForm';
+
   static const String inventoryUnits = '/layout.inventory/units';
   static const String inventoryUnitsName = 'inventoryUnits';
 

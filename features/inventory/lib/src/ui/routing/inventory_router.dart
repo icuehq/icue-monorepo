@@ -11,6 +11,7 @@ import 'package:inventory/src/ui/insights/reports/reports_page.dart';
 import 'package:inventory/src/ui/insights/verifications/verification_page.dart';
 import 'package:inventory/src/ui/insights/verifications/verifications_page.dart';
 import 'package:inventory/src/ui/masters/categories/categories_page.dart';
+import 'package:inventory/src/ui/masters/categories/category_form_page.dart';
 import 'package:inventory/src/ui/masters/items/item_details_page.dart';
 import 'package:inventory/src/ui/masters/items/item_form_page.dart';
 import 'package:inventory/src/ui/masters/items/items_page.dart';
@@ -51,6 +52,15 @@ List<RouteBase> inventoryRoutes() => [
     path: InventoryRoutes.inventoryCategories,
     name: InventoryRoutes.inventoryCategoriesName,
     builder: (context, state) => const CategoriesPage(),
+  ),
+  GoRoute(
+    path: InventoryRoutes.inventoryCategoryForm,
+    name: InventoryRoutes.inventoryCategoryFormName,
+    builder: (context, state) => CategoryFormPage(
+      category: state.extra as InventoryCategory?,
+      categoryId: state.uri.queryParameters['id'],
+      parentId: state.uri.queryParameters['parent'],
+    ),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryUnits,

@@ -127,11 +127,10 @@ describe('inventory masters', () => {
   });
 
   it('stores: campus scope enforced, campus fixed after creation', async () => {
-    await expect(
-      run(masters.storeUpsert, { code: 'S1', name: 'Main', campusId: 99 }),
-    ).rejects.toMatchObject({ code: 'permission-denied' });
+    await expect(run(masters.storeUpsert, { name: 'Main', campusId: 99 })).rejects.toMatchObject({
+      code: 'permission-denied',
+    });
     const { id } = await run(masters.storeUpsert, {
-      code: 'S1',
       name: 'Main',
       campusId: 31,
       storekeeperIds: [5, 5, 6],

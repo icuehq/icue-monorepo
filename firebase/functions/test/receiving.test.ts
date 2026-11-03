@@ -97,7 +97,7 @@ describe('goods receiving', () => {
         '1',
       ).then((extra) => extra.id as string);
     [pen, ink] = [await item('PEN'), await item('INK')];
-    store = (await run(masters.storeUpsert, { code: 'S1', name: 'Main', campusId: 31 }, '1')).id;
+    store = (await run(masters.storeUpsert, { name: 'Main', campusId: 31 }, '1')).id;
     firstVendor = (await run(p.vendorUpsert, { code: 'V1', name: 'Acme' }, '1')).id;
     purchaseRequest = await seedPurchaseRequest([
       { itemId: pen, quantity: 100, estimatedPrice: 5 },

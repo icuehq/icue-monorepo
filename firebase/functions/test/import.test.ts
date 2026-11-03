@@ -67,9 +67,9 @@ describe('import and RFID', () => {
     );
     expect(items.results.map((result) => result.ok)).toEqual([true, false]);
     expect((await db().collection(`schools/${SCHOOL_ID}/inventoryItems`).get()).size).toBe(1);
-    expect(
-      await code(imp('stores', [{ code: 'S', name: 'S', campusId: '31' }], 'none', 'imp_000003')),
-    ).toBe('permission-denied');
+    expect(await code(imp('vendors', [{ code: 'V', name: 'V' }], 'none', 'imp_000003'))).toBe(
+      'permission-denied',
+    );
   });
 
   it('assigns a unique RFID tag, moves and clears it', async () => {
@@ -85,7 +85,7 @@ describe('import and RFID', () => {
         tracking: 'asset',
       })
     ).id;
-    const store = (await run(masters.storeUpsert, { code: 'S1', name: 'Main', campusId: 31 })).id;
+    const store = (await run(masters.storeUpsert, { name: 'Main', campusId: 31 })).id;
     const [firstAsset, secondAsset] = [
       (await run(a.register, { itemId: item, storeId: store })).id,
       (await run(a.register, { itemId: item, storeId: store })).id,

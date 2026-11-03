@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/masters/categories/widgets/category_card.dart';
-import 'package:inventory/src/ui/masters/categories/widgets/category_form_sheet.dart';
 import 'package:inventory/src/ui/masters/categories/widgets/category_list_views.dart';
 import 'package:provider/provider.dart';
 
@@ -130,7 +129,8 @@ class _CategoriesPageState extends State<CategoriesPage> {
       ),
       floatingActionButton: canEdit && hasAnyCategories
           ? FloatingActionButton.extended(
-              onPressed: () => CategoryFormSheet.show(context),
+              onPressed: () =>
+                  context.push(InventoryRoutes.inventoryCategoryForm),
               icon: const Icon(Icons.add_rounded),
               label: const Text('Category'),
             )
@@ -151,7 +151,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
           if (!hasAnyCategories) {
             return CategoryEmptyState(
               canEdit: canEdit,
-              onAdd: () => CategoryFormSheet.show(context),
+              onAdd: () => context.push(InventoryRoutes.inventoryCategoryForm),
             );
           }
 
@@ -172,7 +172,8 @@ class _CategoriesPageState extends State<CategoriesPage> {
                       onSearchChanged: (_) => setState(() {}),
                       onFilterChanged: (filter) =>
                           setState(() => _statusFilter = filter),
-                      onAddCategory: () => CategoryFormSheet.show(context),
+                      onAddCategory: () =>
+                          context.push(InventoryRoutes.inventoryCategoryForm),
                     ),
                     const SizedBox(height: 12),
                     Padding(
@@ -245,9 +246,14 @@ class _CategoriesPageState extends State<CategoriesPage> {
           '${InventoryRoutes.inventoryItems}?category=${category.id}',
         );
       case 'edit':
-        await CategoryFormSheet.show(context, category: category);
+        await context.push(
+          '${InventoryRoutes.inventoryCategoryForm}?id=${category.id}',
+          extra: category,
+        );
       case 'sub':
-        await CategoryFormSheet.show(context, parentId: category.id);
+        await context.push(
+          '${InventoryRoutes.inventoryCategoryForm}?parent=${category.id}',
+        );
       case 'toggle':
         if (!await inventoryProvider.setCategoryActive(
               category.id,
