@@ -2,7 +2,7 @@ import 'package:admin_ui/admin_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
-import 'package:school_library/src/ui/widgets/member_sheet.dart';
+import 'package:school_library/src/ui/members/widgets/member_sheet.dart';
 
 /// Student and teacher members (FRS 11.7). Search is an exact ERP ID lookup.
 class MembersPage extends StatefulWidget {

@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
-import 'package:school_library/src/ui/widgets/transfer_detail_widgets.dart';
-import 'package:school_library/src/ui/widgets/transfer_widgets.dart';
+import 'package:school_library/src/ui/transfers/widgets/transfer_detail_widgets.dart';
+import 'package:school_library/src/ui/transfers/widgets/transfer_widgets.dart';
 
 /// One transfer (FRS 11.15) with its next step: approve, dispatch or confirm receipt.
 class LibraryTransferPage extends StatefulWidget {

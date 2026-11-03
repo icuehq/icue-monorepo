@@ -3,7 +3,7 @@ import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
-import 'package:school_library/src/ui/widgets/copy_labels.dart';
+import 'package:school_library/src/ui/catalogue/widgets/copy_labels.dart';
 
 /// One copy: details, label, and (for librarians) shelf / condition / RFID edit, move and status.
 class CopySheet extends StatefulWidget {

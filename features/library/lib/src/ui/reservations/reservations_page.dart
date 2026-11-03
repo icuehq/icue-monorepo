@@ -2,7 +2,7 @@ import 'package:admin_ui/admin_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
-import 'package:school_library/src/ui/widgets/reservation_sheet.dart';
+import 'package:school_library/src/ui/reservations/widgets/reservation_sheet.dart';
 
 /// Manage book reservations and queue (FRS 11.12).
 class ReservationsPage extends StatefulWidget {

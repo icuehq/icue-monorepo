@@ -2,7 +2,7 @@ import 'package:admin_ui/admin_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
-import 'package:school_library/src/ui/widgets/copy_sheet.dart';
+import 'package:school_library/src/ui/catalogue/widgets/copy_sheet.dart';
 
 /// Find a copy by scanning its label (accession number, barcode or RFID tag) and review acquisitions.
 class CopiesPage extends StatefulWidget {

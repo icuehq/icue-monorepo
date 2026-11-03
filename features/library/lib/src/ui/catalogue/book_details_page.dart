@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
-import 'package:school_library/src/ui/widgets/book_copies_section.dart';
-import 'package:school_library/src/ui/widgets/reservation_sheet.dart';
+import 'package:school_library/src/ui/catalogue/widgets/book_copies_section.dart';
+import 'package:school_library/src/ui/reservations/widgets/reservation_sheet.dart';
 
 class BookDetailsPage extends StatefulWidget {
   const BookDetailsPage({super.key, required this.bookId});

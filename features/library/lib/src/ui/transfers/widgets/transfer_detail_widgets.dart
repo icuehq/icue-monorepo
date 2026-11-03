@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:school_library/school_library.dart';
-import 'package:school_library/src/ui/widgets/transfer_widgets.dart';
+import 'package:school_library/src/ui/transfers/widgets/transfer_widgets.dart';
 
 /// Header of a transfer: route, status, progress and dates.
 class TransferSummary extends StatelessWidget {

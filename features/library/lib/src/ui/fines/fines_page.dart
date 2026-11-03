@@ -2,7 +2,7 @@ import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
-import 'package:school_library/src/ui/widgets/fine_sheet.dart';
+import 'package:school_library/src/ui/fines/widgets/fine_sheet.dart';
 
 /// Manage overdue fines, damage penalties, and lost book charges (FRS 11.13).
 class FinesPage extends StatefulWidget {

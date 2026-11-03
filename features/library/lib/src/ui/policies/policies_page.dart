@@ -2,7 +2,7 @@ import 'package:admin_ui/admin_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
-import 'package:school_library/src/ui/widgets/policy_sheet.dart';
+import 'package:school_library/src/ui/policies/widgets/policy_sheet.dart';
 
 /// Borrowing policies per library and member category (FRS 11.8).
 class PoliciesPage extends StatelessWidget {

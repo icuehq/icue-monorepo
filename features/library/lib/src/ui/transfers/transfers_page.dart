@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
-import 'package:school_library/src/ui/widgets/transfer_card.dart';
-import 'package:school_library/src/ui/widgets/transfer_widgets.dart';
+import 'package:school_library/src/ui/transfers/widgets/transfer_card.dart';
+import 'package:school_library/src/ui/transfers/widgets/transfer_widgets.dart';
 
 /// Inter-library transfers (FRS 11.15).
 class LibraryTransfersPage extends StatefulWidget {

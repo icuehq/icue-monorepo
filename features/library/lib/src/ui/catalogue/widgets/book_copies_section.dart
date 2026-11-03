@@ -2,9 +2,9 @@ import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
-import 'package:school_library/src/ui/widgets/acquisition_sheet.dart';
-import 'package:school_library/src/ui/widgets/copy_labels.dart';
-import 'package:school_library/src/ui/widgets/copy_sheet.dart';
+import 'package:school_library/src/ui/catalogue/widgets/acquisition_sheet.dart';
+import 'package:school_library/src/ui/catalogue/widgets/copy_labels.dart';
+import 'package:school_library/src/ui/catalogue/widgets/copy_sheet.dart';
 
 /// Physical copies of a title (FRS 11.1 "view physical copies"), with add-copies for librarians.
 class BookCopiesSection extends StatefulWidget {

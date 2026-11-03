@@ -1,26 +1,26 @@
 import 'package:go_router/go_router.dart';
 import 'package:school_library/school_library.dart';
-import 'package:school_library/src/ui/book_details_page.dart';
-import 'package:school_library/src/ui/book_form_page.dart';
-import 'package:school_library/src/ui/catalogue_page.dart';
-import 'package:school_library/src/ui/circulation_page.dart';
-import 'package:school_library/src/ui/copies_page.dart';
-import 'package:school_library/src/ui/fines_page.dart';
-import 'package:school_library/src/ui/incidents_page.dart';
-import 'package:school_library/src/ui/insights/library_dashboard_page.dart';
-import 'package:school_library/src/ui/insights/library_import_page.dart';
-import 'package:school_library/src/ui/insights/library_report_page.dart';
-import 'package:school_library/src/ui/insights/library_reports_page.dart';
-import 'package:school_library/src/ui/libraries_page.dart';
-import 'package:school_library/src/ui/library_categories_page.dart';
-import 'package:school_library/src/ui/library_home_page.dart';
-import 'package:school_library/src/ui/members_page.dart';
-import 'package:school_library/src/ui/policies_page.dart';
-import 'package:school_library/src/ui/reservations_page.dart';
-import 'package:school_library/src/ui/transfer_form_page.dart';
-import 'package:school_library/src/ui/transfer_page.dart';
-import 'package:school_library/src/ui/transfers_page.dart';
-import 'package:school_library/src/ui/verification_page.dart';
+import 'package:school_library/src/ui/catalogue/book_details_page.dart';
+import 'package:school_library/src/ui/catalogue/book_form_page.dart';
+import 'package:school_library/src/ui/catalogue/catalogue_page.dart';
+import 'package:school_library/src/ui/catalogue/copies_page.dart';
+import 'package:school_library/src/ui/circulation/circulation_page.dart';
+import 'package:school_library/src/ui/fines/fines_page.dart';
+import 'package:school_library/src/ui/home/library_home_page.dart';
+import 'package:school_library/src/ui/incidents/incidents_page.dart';
+import 'package:school_library/src/ui/insights/dashboard/library_dashboard_page.dart';
+import 'package:school_library/src/ui/insights/import/library_import_page.dart';
+import 'package:school_library/src/ui/insights/reports/library_report_page.dart';
+import 'package:school_library/src/ui/insights/reports/library_reports_page.dart';
+import 'package:school_library/src/ui/libraries/libraries_page.dart';
+import 'package:school_library/src/ui/libraries/library_categories_page.dart';
+import 'package:school_library/src/ui/members/members_page.dart';
+import 'package:school_library/src/ui/policies/policies_page.dart';
+import 'package:school_library/src/ui/reservations/reservations_page.dart';
+import 'package:school_library/src/ui/transfers/transfer_form_page.dart';
+import 'package:school_library/src/ui/transfers/transfer_page.dart';
+import 'package:school_library/src/ui/transfers/transfers_page.dart';
+import 'package:school_library/src/ui/verification/verification_page.dart';
 
 /// Library screens as go_router routes; mount inside the app's shell.
 List<RouteBase> libraryRoutes() => [

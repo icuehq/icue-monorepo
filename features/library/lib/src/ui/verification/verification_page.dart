@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
-import 'package:school_library/src/ui/widgets/verification_create_sheet.dart';
-import 'package:school_library/src/ui/widgets/verification_sheet.dart';
+import 'package:school_library/src/ui/verification/widgets/verification_create_sheet.dart';
+import 'package:school_library/src/ui/verification/widgets/verification_sheet.dart';
 
 /// Library stock verification sessions (FRS 11.16).
 class LibraryVerificationPage extends StatefulWidget {

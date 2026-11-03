@@ -2,8 +2,8 @@ import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
-import 'package:school_library/src/ui/widgets/incident_report_sheet.dart';
-import 'package:school_library/src/ui/widgets/incident_sheet.dart';
+import 'package:school_library/src/ui/incidents/widgets/incident_report_sheet.dart';
+import 'package:school_library/src/ui/incidents/widgets/incident_sheet.dart';
 
 /// Manage lost and damaged book incidents (FRS 11.14).
 class IncidentsPage extends StatefulWidget {

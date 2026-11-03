@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
-import 'package:school_library/src/ui/widgets/library_ui.dart';
+import 'package:school_library/src/ui/shared/library_ui.dart';
 
 /// Enrol a student or teacher, or edit their category, libraries and dates (FRS 11.7).
 class MemberSheet extends StatefulWidget {
