@@ -79,10 +79,10 @@ class _History extends StatelessWidget {
                         '${humanizeStatus(movement.type)} · ${movement.bucket}',
                       ),
                       subtitle: Text(
-                        '${movement.transactionDate} · ${movement.referenceType}',
+                        '${movement.transactionDate.toDisplayDay()} · ${movement.referenceType}',
                       ),
                       trailing: Text(
-                        '${movement.quantity > 0 ? '+' : ''}${formatQuantity(movement.quantity)}',
+                        '${movement.quantity > 0 ? '+' : ''}${movement.quantity.toQuantityText()}',
                         style: TextStyle(
                           color: movement.quantity < 0
                               ? Colors.red
@@ -162,7 +162,9 @@ class _AdjustState extends State<_Adjust> with _Submit {
       mainAxisSize: MainAxisSize.min,
       spacing: 16,
       children: [
-        Text('Currently ${formatQuantity(widget.balance.available)} available'),
+        Text(
+          'Currently ${widget.balance.available.toQuantityText()} available',
+        ),
         TextFormField(
           controller: quantity,
           keyboardType: const TextInputType.numberWithOptions(
@@ -256,7 +258,7 @@ class _ReportState extends State<_Report> with _Submit {
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: InputDecoration(
             labelText:
-                'Quantity (max ${formatQuantity(widget.balance.available)})',
+                'Quantity (max ${widget.balance.available.toQuantityText()})',
           ),
           validator: (value) {
             final number = double.tryParse((value ?? '').trim());

@@ -128,15 +128,15 @@ class _AssetSheetState extends State<AssetSheet> {
         ),
         _row('Location', asset.location),
         _row('Held by', asset.assignedTo?.label),
-        _row('Purchased', asset.purchaseDate),
-        _row('Price', asset.price?.toStringAsFixed(2)),
+        _row('Purchased', asset.purchaseDate?.toDisplayDay()),
+        _row('Price', asset.price?.toRupees()),
         _row(
           'Warranty',
           asset.warrantyEnd == null
               ? null
               : '${asset.warrantyStart ?? ''} → ${asset.warrantyEnd}',
         ),
-        _row('Next service', asset.nextServiceDate),
+        _row('Next service', asset.nextServiceDate?.toDisplayDay()),
         const SizedBox(height: 12),
         Wrap(
           spacing: 8,
@@ -165,7 +165,7 @@ class _AssetSheetState extends State<AssetSheet> {
                 contentPadding: EdgeInsets.zero,
                 title: Text(assignment.assignee.label),
                 subtitle: Text(
-                  '${assignment.assignedDate} → ${assignment.returnedDate ?? 'now'}'
+                  '${assignment.assignedDate.toDisplayDay()} → ${assignment.returnedDate?.toDisplayDay() ?? 'now'}'
                   '${assignment.closedAs == null ? '' : ' · ${assignment.closedAs}'}'
                   '${assignment.conditionOut == null ? '' : ' · out ${assignment.conditionOut}'}'
                   '${assignment.conditionIn == null ? '' : ' · in ${assignment.conditionIn}'}'
@@ -185,10 +185,7 @@ class _AssetSheetState extends State<AssetSheet> {
                 ),
                 subtitle: Text(
                   [
-                        assetEvent.performedAt?.toLocal().toString().substring(
-                          0,
-                          16,
-                        ),
+                        assetEvent.performedAt?.toLocal().toNumericDateTime(),
                         assetEvent.detail,
                       ]
                       .whereType<String>()

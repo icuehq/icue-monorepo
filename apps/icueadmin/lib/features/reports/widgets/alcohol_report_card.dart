@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:reports/reports.dart';
 
@@ -125,7 +126,8 @@ class AlcoholReportCard extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '${record.submittedDate} ${record.submittedTime}'.trim(),
+                      '${record.submittedDate.toDisplayDay()} ${record.submittedTime.toDisplayTime()}'
+                          .trim(),
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,

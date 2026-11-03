@@ -22,7 +22,7 @@ class _FineSheetState extends State<FineSheet> {
 
   Future<void> _waive() async {
     final amountController = TextEditingController(
-      text: widget.fine.outstanding.toStringAsFixed(2),
+      text: widget.fine.outstanding.toAmountText(),
     );
     final reasonController = TextEditingController();
     final ok = await showDialog<bool>(
@@ -32,9 +32,7 @@ class _FineSheetState extends State<FineSheet> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              'Max waivable: ₹${widget.fine.outstanding.toStringAsFixed(2)}',
-            ),
+            Text('Max waivable: ${widget.fine.outstanding.toRupees()}'),
             const SizedBox(height: 12),
             TextField(
               controller: amountController,
@@ -102,7 +100,7 @@ class _FineSheetState extends State<FineSheet> {
 
   Future<void> _recordPayment() async {
     final amountController = TextEditingController(
-      text: widget.fine.outstanding.toStringAsFixed(2),
+      text: widget.fine.outstanding.toAmountText(),
     );
     final refController = TextEditingController();
     final ok = await showDialog<bool>(
@@ -112,7 +110,7 @@ class _FineSheetState extends State<FineSheet> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Outstanding: ₹${widget.fine.outstanding.toStringAsFixed(2)}'),
+            Text('Outstanding: ${widget.fine.outstanding.toRupees()}'),
             const SizedBox(height: 12),
             TextField(
               controller: amountController,
@@ -230,7 +228,7 @@ class _FineSheetState extends State<FineSheet> {
           Text('Waivers:', style: Theme.of(context).textTheme.labelMedium),
           for (final fineWaiver in fine.waivers)
             Text(
-              '• ₹${fineWaiver.amount.toStringAsFixed(2)} on ${fineWaiver.performedAt} (${fineWaiver.reason})',
+              '• ${fineWaiver.amount.toRupees()} on ${fineWaiver.performedAt.toDateOrNull()?.toLocal().toNumericDateTime() ?? fineWaiver.performedAt} (${fineWaiver.reason})',
               style: Theme.of(context).textTheme.bodySmall,
             ),
         ],
@@ -239,7 +237,7 @@ class _FineSheetState extends State<FineSheet> {
           Text('Payments:', style: Theme.of(context).textTheme.labelMedium),
           for (final pay in fine.payments)
             Text(
-              '• ₹${pay.amount.toStringAsFixed(2)} on ${pay.date ?? '-'} (${pay.reference ?? 'no ref'})',
+              '• ${pay.amount.toRupees()} on ${pay.date?.toDisplayDay() ?? '-'} (${pay.reference ?? 'no ref'})',
               style: Theme.of(context).textTheme.bodySmall,
             ),
         ],
@@ -284,7 +282,7 @@ class _AmountCol extends StatelessWidget {
         Text(label, style: Theme.of(context).textTheme.bodySmall),
         const SizedBox(height: 2),
         Text(
-          '₹${value.toStringAsFixed(2)}',
+          value.toRupees(),
           style: TextStyle(
             fontWeight: FontWeight.bold,
             color: isError ? Theme.of(context).colorScheme.error : null,

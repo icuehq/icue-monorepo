@@ -3,7 +3,6 @@ import 'package:admin_ui/src/report_pdf.dart';
 import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:icue_firebase/icue_firebase.dart' show readDay;
 
 /// A report as a table: search over the loaded rows, a totals row, CSV copy and PDF export.
 /// The module supplies the rows and its own filters (date range, status, store or library).
@@ -61,7 +60,7 @@ class _ReportScreenState extends State<ReportScreen> {
                     0,
                     (sum, row) => sum + (double.tryParse(row[column]) ?? 0),
                   )
-                  .toStringAsFixed(2)
+                  .toAmountText()
             : column == 0
             ? 'Total'
             : '',
@@ -186,7 +185,7 @@ class ReportFilterBar extends StatelessWidget {
           label: Text(
             range == null
                 ? 'Any date'
-                : '${readDay(range!.start.toIso8601String())} → ${readDay(range!.end.toIso8601String())}',
+                : '${range!.start.toNumericDate()} → ${range!.end.toNumericDate()}',
           ),
           onPressed: () => _pickRange(context),
         ),

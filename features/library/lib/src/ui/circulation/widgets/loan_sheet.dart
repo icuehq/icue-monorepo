@@ -1,6 +1,6 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
-import 'package:icue_firebase/icue_firebase.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
@@ -60,7 +60,7 @@ class _LoanSheetState extends State<LoanSheet> {
         const SizedBox(height: 4),
         Text(
           '${loan.accessionNumber} · ${loan.memberLabel} · ${loan.number}\n'
-          'Issued ${loan.issuedDate} · due ${loan.dueDate}'
+          'Issued ${loan.issuedDate.toDisplayDay()} · due ${loan.dueDate.toDisplayDay()}'
           '${late > 0 ? ' · $late day${late == 1 ? '' : 's'} overdue' : ''}\n'
           'Renewed ${loan.renewals} of ${loan.maxRenewals}',
         ),

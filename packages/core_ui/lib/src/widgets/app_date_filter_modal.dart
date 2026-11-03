@@ -1,4 +1,4 @@
-import 'package:core_ui/src/utils/app_date_utils.dart';
+import 'package:core_ui/src/utils/date_time_formatting.dart';
 import 'package:flutter/material.dart';
 
 /// Modes for filtering report / list items by temporal dimensions.
@@ -44,14 +44,14 @@ class AppFilterResult {
     switch (mode) {
       case AppFilterMode.byDate:
         final d = date ?? DateTime.now();
-        return AppDateUtils.formatDate(d);
+        return d.toNumericDate();
       case AppFilterMode.byMonth:
         return '$month $year';
       case AppFilterMode.byRange:
         if (range == null) return 'Selected Range';
         final s = range!.start;
         final e = range!.end;
-        return '${s.day}/${s.month}/${s.year} - ${e.day}/${e.month}/${e.year}';
+        return '${s.toNumericDate()} - ${e.toNumericDate()}';
     }
   }
 }
@@ -252,7 +252,7 @@ class _AppDateFilterModalState extends State<AppDateFilterModal> {
                 title: const Text('Selected Date'),
                 subtitle: Text(
                   _selectedDate != null
-                      ? '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}'
+                      ? _selectedDate!.toNumericDate()
                       : 'Choose date',
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
@@ -309,7 +309,7 @@ class _AppDateFilterModalState extends State<AppDateFilterModal> {
                 title: const Text('Date Range'),
                 subtitle: Text(
                   _selectedRange != null
-                      ? '${_selectedRange!.start.day}/${_selectedRange!.start.month}/${_selectedRange!.start.year} - ${_selectedRange!.end.day}/${_selectedRange!.end.month}/${_selectedRange!.end.year}'
+                      ? '${_selectedRange!.start.toNumericDate()} - ${_selectedRange!.end.toNumericDate()}'
                       : 'Tap to select range',
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),

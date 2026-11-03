@@ -214,7 +214,7 @@ class _UnavailablePageState extends State<UnavailablePage> {
                                           ),
                                         ),
                                         child: Text(
-                                          '${formatQuantity(item.quantity)} units',
+                                          '${item.quantity.toQuantityText()} units',
                                           style: theme.textTheme.labelMedium
                                               ?.copyWith(
                                                 color: theme.colorScheme.error,
@@ -238,7 +238,7 @@ class _UnavailablePageState extends State<UnavailablePage> {
                                       const Spacer(),
                                       if (item.createdAt != null)
                                         Text(
-                                          _formatDate(item.createdAt!),
+                                          item.createdAt!.toNumericDate(),
                                           style: theme.textTheme.bodySmall
                                               ?.copyWith(
                                                 color: theme
@@ -388,7 +388,4 @@ class _UnavailablePageState extends State<UnavailablePage> {
       ),
     );
   }
-
-  String _formatDate(DateTime dt) =>
-      '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
 }

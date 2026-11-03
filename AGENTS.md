@@ -65,6 +65,7 @@ Never hand-edit `*.g.dart`, `*.module.dart`, `injection.config.dart` or other ge
 
 - Lints are defined in the root `analysis_options.yaml` (strict casts/inference/raw types, single quotes, trailing commas, `always_use_package_imports`, `prefer_final_locals`). Follow them; do not add `// ignore:` without a documented reason (`document_ignores` is on).
 - Use package imports, never relative `../` imports.
+- User-facing dates, times and money use Indian formats: `05/03/2025` (or `05 Mar 2025`), 12-hour `02:30 PM`, `₹1,23,456.00`. Format and parse them only through the `core_ui` extensions (`toRupees`, `toNumericDate`, `toNumericDateTime`, `toDisplayDay`/`toDisplayTime` for stored strings, `toApiDate`/`todayIST` for stored values, `toDateOrNull`…) and pick dates with `AppDateField`, which stores `yyyy-MM-dd` but shows the Indian form; do not inline `DateFormat`, `NumberFormat`, `toStringAsFixed` or `toIso8601String().substring`.
 - Names follow `docs/naming-map.md`: full words (no `qty`, `cmp`, `inv`, `lib`…), dates end in `Date` and timestamps in `At`, locals say what they hold. `melos run naming:check` enforces it for Inventory and Library. A Firebase uid is the ERP ID as a string, with no prefix.
 
 ## Code structure & screen size limits

@@ -1,5 +1,6 @@
 // Library dashboard, reports and import columns (Lib-8). Display only; rules live in Cloud Functions and Firestore rules.
 
+import 'package:core_ui/core_ui.dart';
 import 'package:icue_firebase/icue_firebase.dart'
     show ReportColumn, ReportRow, readDay, readNumber, readString;
 
@@ -77,7 +78,7 @@ class LibraryReportDef {
 LibraryReportCol _textColumn(String label, String field, {bool sum = false}) =>
     LibraryReportCol(label, (m, _) => readString(m[field]), sum: sum);
 LibraryReportCol _dayColumn(String label, String value) =>
-    LibraryReportCol(label, (m, _) => readDay(m[value]));
+    LibraryReportCol(label, (m, _) => readDay(m[value]).toDisplayDay());
 LibraryReportCol _title() => LibraryReportCol(
   'Title',
   (data, names) => names.title(data['catalogueId']),
@@ -90,7 +91,7 @@ LibraryReportCol _person() => LibraryReportCol(
 );
 LibraryReportCol _money(String label, String value) => LibraryReportCol(
   label,
-  (m, _) => readNumber(m[value]).toStringAsFixed(2),
+  (m, _) => readNumber(m[value]).toAmountText(),
   sum: true,
 );
 

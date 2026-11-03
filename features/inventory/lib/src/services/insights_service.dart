@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:injectable/injectable.dart';
 import 'package:inventory/src/models/inventory_insights.dart';
@@ -93,8 +94,7 @@ class InsightsService {
     final today = todayIST();
     final soon = DateTime.parse(today)
         .add(const Duration(days: 30))
-        .toIso8601String()
-        .substring(0, 10);
+        .toApiDate();
     Future<Query<Map<String, dynamic>>?> scope(
       String collection, {
       bool byStore = false,
@@ -224,9 +224,8 @@ class InsightsService {
       query = query.where('status', whereIn: def.fixedStatuses);
     }
     if (def.hasDates) {
-      Object bound(DateTime date) => def.isString
-          ? date.toIso8601String().substring(0, 10)
-          : Timestamp.fromDate(date);
+      Object bound(DateTime date) =>
+          def.isString ? date.toApiDate() : Timestamp.fromDate(date);
       if (from != null) {
         query = query.where(def.dateField, isGreaterThanOrEqualTo: bound(from));
       }

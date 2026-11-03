@@ -3,10 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/procurement/purchase_requests/purchase_request_rules.dart';
 
-String formatPurchaseDate(DateTime date) =>
-    '${date.day.toString().padLeft(2, '0')}/'
-    '${date.month.toString().padLeft(2, '0')}/${date.year}';
-
 class PurchaseSection extends StatelessWidget {
   const PurchaseSection({
     required this.title,
@@ -102,7 +98,10 @@ class PurchaseSummary extends StatelessWidget {
               fontWeight: FontWeight.w600,
             ),
           ),
-          row(Icons.event_outlined, 'Needed by ${request.requiredDate}'),
+          row(
+            Icons.event_outlined,
+            'Needed by ${request.requiredDate.toDisplayDay()}',
+          ),
           row(
             Icons.flag_outlined,
             '${humanizeStatus(request.priority)} priority',
@@ -111,7 +110,7 @@ class PurchaseSummary extends StatelessWidget {
           if (request.createdAt != null)
             row(
               Icons.schedule_outlined,
-              'Raised on ${formatPurchaseDate(request.createdAt!)}',
+              'Raised on ${request.createdAt!.toNumericDate()}',
             ),
           if (request.remarks?.isNotEmpty ?? false)
             row(Icons.notes_outlined, request.remarks!),
@@ -167,7 +166,7 @@ class PurchaseItems extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        '${formatQuantity(line.quantity)} × ₹${formatQuantity(line.estimatedPrice)}',
+                        '${line.quantity.toQuantityText()} × ${line.estimatedPrice.toRupees()}',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
@@ -176,7 +175,7 @@ class PurchaseItems extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '₹${formatQuantity(line.quantity * line.estimatedPrice)}',
+                  (line.quantity * line.estimatedPrice).toRupees(),
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
@@ -192,7 +191,7 @@ class PurchaseItems extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                'Ordered ${formatQuantity(line.quantityOrdered)} of ${formatQuantity(line.quantity)}',
+                'Ordered ${line.quantityOrdered.toQuantityText()} of ${line.quantity.toQuantityText()}',
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -204,7 +203,7 @@ class PurchaseItems extends StatelessWidget {
             children: [
               const Expanded(child: Text('Total estimate')),
               Text(
-                '₹${formatQuantity(request.total)}',
+                request.total.toRupees(),
                 style: theme.textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w800,
                   color: theme.colorScheme.primary,
@@ -278,7 +277,7 @@ class PurchaseHistory extends StatelessWidget {
                   ),
                   if (entry.performedAt != null)
                     Text(
-                      formatPurchaseDate(entry.performedAt!),
+                      entry.performedAt!.toNumericDate(),
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),

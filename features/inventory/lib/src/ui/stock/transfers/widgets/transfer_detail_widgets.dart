@@ -132,8 +132,8 @@ class TransferSummaryCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            detail('Dispatched', transfer.dispatchedDate),
-            detail('Received', transfer.receivedDate),
+            detail('Dispatched', transfer.dispatchedDate?.toDisplayDay()),
+            detail('Received', transfer.receivedDate?.toDisplayDay()),
             if (transfer.fromCampusId != transfer.toCampusId)
               detail('Route', 'Inter-campus transfer'),
             detail('Remarks', transfer.remarks),
@@ -191,7 +191,7 @@ class TransferLinesCard extends StatelessWidget {
                     children: [
                       Expanded(child: Text(itemName(line.itemId))),
                       Text(
-                        formatQuantity(line.quantity),
+                        line.quantity.toQuantityText(),
                         style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                     ],
@@ -217,13 +217,13 @@ class TransferLinesCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Sent ${formatQuantity(line.dispatched)} · '
-                  'Received ${formatQuantity(line.received)}',
+                  'Sent ${line.dispatched.toQuantityText()} · '
+                  'Received ${line.received.toQuantityText()}',
                   style: theme.textTheme.labelSmall?.copyWith(color: muted),
                 ),
                 if (line.discrepancy > 0)
                   Text(
-                    'Shortfall ${formatQuantity(line.discrepancy)}',
+                    'Shortfall ${line.discrepancy.toQuantityText()}',
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: theme.colorScheme.error,
                       fontWeight: FontWeight.w700,
@@ -241,13 +241,14 @@ class TransferLinesCard extends StatelessWidget {
                       decoration: InputDecoration(
                         labelText: 'Receive now',
                         helperText:
-                            'Up to ${formatQuantity(line.dispatched - line.received)}',
+                            'Up to ${(line.dispatched - line.received).toQuantityText()}',
                         isDense: true,
                         suffixIcon: IconButton(
                           icon: const Icon(Icons.done_all, size: 18),
                           tooltip: 'Everything remaining',
                           onPressed: () => entering[index].text =
-                              formatQuantity(line.dispatched - line.received),
+                              (line.dispatched - line.received)
+                                  .toQuantityText(),
                         ),
                       ),
                     ),

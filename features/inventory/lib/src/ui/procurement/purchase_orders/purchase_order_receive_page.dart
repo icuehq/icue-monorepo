@@ -53,7 +53,7 @@ class _PurchaseOrderReceivePageState extends State<PurchaseOrderReceivePage> {
     setState(() {
       for (final draft in _drafts) {
         if (draft.line.due > 0) {
-          draft.accepted.text = formatQuantity(draft.line.due);
+          draft.accepted.text = draft.line.due.toQuantityText();
           draft.rejected.clear();
         }
       }
@@ -100,7 +100,7 @@ class _PurchaseOrderReceivePageState extends State<PurchaseOrderReceivePage> {
     final number = double.tryParse(value);
     if (number == null || number < 0) return 'Invalid';
     return draft.acceptedValue + draft.rejectedValue > draft.line.due
-        ? 'Only ${formatQuantity(draft.line.due)} due'
+        ? 'Only ${draft.line.due.toQuantityText()} due'
         : null;
   }
 
@@ -199,7 +199,7 @@ class _PurchaseOrderReceivePageState extends State<PurchaseOrderReceivePage> {
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          'Expected by: ${purchaseOrder.expectedDate}',
+                          'Expected by: ${purchaseOrder.expectedDate.toDisplayDay()}',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),

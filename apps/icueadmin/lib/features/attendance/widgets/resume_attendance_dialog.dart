@@ -1,4 +1,5 @@
 import 'package:attendance/attendance.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 
 class ResumeAttendanceDialog extends StatelessWidget {
@@ -19,7 +20,7 @@ class ResumeAttendanceDialog extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       title: const Text('Ongoing Attendance Found!'),
       content: Text(
-        'For ${ongoing.standard} - Section ${ongoing.section}\nDate: ${ongoing.attendanceDate}',
+        'For ${ongoing.standard} - Section ${ongoing.section}\nDate: ${ongoing.attendanceDate.toDisplayDay()}',
         style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
       ),
       actions: [

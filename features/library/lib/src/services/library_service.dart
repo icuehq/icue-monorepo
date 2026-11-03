@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:injectable/injectable.dart';
 import 'package:school_library/src/models/library_copies.dart';
@@ -590,8 +591,8 @@ class LibraryService {
     DateTime? to,
     String? status,
   }) async {
-    final fromS = from?.toIso8601String().substring(0, 10);
-    final toS = to?.toIso8601String().substring(0, 10);
+    final fromS = from?.toApiDate();
+    final toS = to?.toApiDate();
     if (def.type != LibraryReportType.query) {
       return _ranking(access, def, library, fromS, toS);
     }

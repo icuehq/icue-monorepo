@@ -1,4 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:inventory/inventory.dart';
@@ -28,13 +29,13 @@ class _InvoiceFormSheetState extends State<InvoiceFormSheet> {
   final _date = TextEditingController(text: todayIST());
   late final _due = TextEditingController(text: widget.order.expectedDate);
   late final _subtotal = TextEditingController(
-    text: widget.order.subtotal.toStringAsFixed(2),
+    text: widget.order.subtotal.toAmountText(),
   );
   late final _tax = TextEditingController(
-    text: widget.order.tax.toStringAsFixed(2),
+    text: widget.order.tax.toAmountText(),
   );
   late final _discount = TextEditingController(
-    text: widget.order.discount.toStringAsFixed(2),
+    text: widget.order.discount.toAmountText(),
   );
   final _receipts = <String>{};
   var _busy = false;

@@ -128,7 +128,7 @@ class _DriverDocsPageState extends State<DriverDocsPage> {
               final isLicense = docType == 'License';
 
               final parsedExpiry = isLicense
-                  ? AppDateUtils.tryParseDate(widget.driver.licenceExpiryDate)
+                  ? widget.driver.licenceExpiryDate.toDateOrNull()
                   : null;
 
               final itemData = DocumentItemData(

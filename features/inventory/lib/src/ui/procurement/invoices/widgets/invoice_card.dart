@@ -1,8 +1,6 @@
 import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
-import 'package:icue_firebase/icue_firebase.dart';
 import 'package:inventory/inventory.dart';
-import 'package:inventory/src/ui/procurement/shared/order_widgets.dart';
 
 class InvoiceCard extends StatelessWidget {
   const InvoiceCard({
@@ -101,7 +99,7 @@ class InvoiceCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    'Dated ${invoice.invoiceDate}',
+                    'Dated ${invoice.invoiceDate.toDisplayDay()}',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -119,7 +117,7 @@ class InvoiceCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      'Due: ${invoice.dueDate}',
+                      'Due: ${invoice.dueDate.toDisplayDay()}',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: isOverdue
                             ? theme.colorScheme.error
@@ -154,7 +152,7 @@ class InvoiceCard extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          '₹${money(invoice.total)}',
+                          invoice.total.toRupees(),
                           style: theme.textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
@@ -171,7 +169,7 @@ class InvoiceCard extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          '₹${money(invoice.paidAmount)}',
+                          invoice.paidAmount.toRupees(),
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: Colors.green[800],
                             fontWeight: FontWeight.w600,
@@ -189,7 +187,7 @@ class InvoiceCard extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          '₹${money(invoice.outstanding)}',
+                          invoice.outstanding.toRupees(),
                           style: theme.textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: invoice.outstanding > 0

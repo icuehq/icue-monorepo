@@ -188,7 +188,7 @@ class IssueRequestCard extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            '× ${formatQuantity(request.lineItems[i].requested)}',
+                            '× ${request.lineItems[i].requested.toQuantityText()}',
                             style: theme.textTheme.bodySmall?.copyWith(
                               fontWeight: FontWeight.w600,
                               color: theme.colorScheme.primary,

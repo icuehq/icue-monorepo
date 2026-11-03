@@ -1,6 +1,5 @@
 import 'package:core_ui/core_ui.dart';
 import 'package:inventory/inventory.dart';
-import 'package:inventory/src/ui/procurement/shared/order_widgets.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
@@ -24,7 +23,7 @@ Future<void> sharePurchaseOrderPdf(
         pw.SizedBox(height: 8),
         pw.Text('Vendor: $vendor'),
         pw.Text(
-          'Date: ${purchaseOrder.purchaseOrderDate}   Expected delivery: ${purchaseOrder.expectedDate}',
+          'Date: ${purchaseOrder.purchaseOrderDate.toDisplayDay()}   Expected delivery: ${purchaseOrder.expectedDate.toDisplayDay()}',
         ),
         pw.Text('Deliver to: Campus ${purchaseOrder.deliveryCampusId}'),
         if (purchaseOrder.revision > 0)
@@ -36,9 +35,9 @@ Future<void> sharePurchaseOrderPdf(
             for (final orderLine in purchaseOrder.lineItems)
               [
                 itemName(orderLine.itemId),
-                formatQuantity(orderLine.quantity),
-                money(orderLine.unitPrice),
-                money(orderLine.quantity * orderLine.unitPrice),
+                orderLine.quantity.toQuantityText(),
+                orderLine.unitPrice.toAmountText(),
+                (orderLine.quantity * orderLine.unitPrice).toAmountText(),
               ],
           ],
           cellAlignments: {
@@ -57,7 +56,7 @@ Future<void> sharePurchaseOrderPdf(
         ])
           pw.Align(
             alignment: pw.Alignment.centerRight,
-            child: pw.Text('$label: ${money(v)}'),
+            child: pw.Text('$label: ${v.toAmountText()}'),
           ),
         if (purchaseOrder.terms != null && purchaseOrder.terms!.isNotEmpty) ...[
           pw.SizedBox(height: 12),

@@ -1,4 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 
 /// One editable quotation / PO line: item label, quantity and unit price.
@@ -157,8 +158,8 @@ class OrderTotals extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          'Subtotal ${sub.toStringAsFixed(2)} · '
-          'Total ${total.toStringAsFixed(2)}',
+          'Subtotal ${sub.toRupees()} · '
+          'Total ${total.toRupees()}',
           style: Theme.of(context).textTheme.titleSmall,
         ),
       ],
@@ -172,24 +173,14 @@ Widget dateField(
   TextEditingController controller,
   String label, {
   DateTime? first,
-}) => TextFormField(
-  controller: controller,
-  readOnly: true,
-  decoration: InputDecoration(
-    labelText: label,
-    suffixIcon: const Icon(Icons.event_rounded),
-  ),
-  validator: requiredText,
-  onTap: () async {
-    final from = first ?? DateTime.now();
-    final date = await showDatePicker(
-      context: context,
-      firstDate: from,
-      lastDate: from.add(const Duration(days: 730)),
-      initialDate: from,
-    );
-    if (date != null) controller.text = date.toIso8601String().substring(0, 10);
-  },
-);
-
-String money(num n) => n.toStringAsFixed(2);
+}) {
+  final from = first ?? DateTime.now();
+  return AppDateField(
+    controller: controller,
+    label: label,
+    firstDate: from,
+    lastDate: from.add(const Duration(days: 730)),
+    initialDate: from,
+    validator: requiredText,
+  );
+}

@@ -133,12 +133,8 @@ class ReportsService {
       payload['Month'] = month;
       payload['Year'] = year;
     } else {
-      payload['FromDate'] = startDate != null
-          ? AppDateUtils.formatUsDate(startDate)
-          : null;
-      payload['ToDate'] = endDate != null
-          ? AppDateUtils.formatUsDate(endDate)
-          : null;
+      payload['FromDate'] = startDate?.toUsDate();
+      payload['ToDate'] = endDate?.toUsDate();
     }
 
     final response = await _apiClient.post<dynamic>(
@@ -176,12 +172,8 @@ class ReportsService {
       payload['Month'] = month;
       payload['Year'] = year;
     } else {
-      payload['FromDate'] = startDate != null
-          ? AppDateUtils.formatUsDate(startDate)
-          : null;
-      payload['ToDate'] = endDate != null
-          ? AppDateUtils.formatUsDate(endDate)
-          : null;
+      payload['FromDate'] = startDate?.toUsDate();
+      payload['ToDate'] = endDate?.toUsDate();
     }
 
     final response = await _apiClient.post<dynamic>(
@@ -221,12 +213,8 @@ class ReportsService {
       payload['Month'] = month;
       payload['Year'] = year;
     } else {
-      payload['FromDate'] = startDate != null
-          ? AppDateUtils.formatUsDate(startDate)
-          : null;
-      payload['ToDate'] = endDate != null
-          ? AppDateUtils.formatUsDate(endDate)
-          : null;
+      payload['FromDate'] = startDate?.toUsDate();
+      payload['ToDate'] = endDate?.toUsDate();
     }
 
     final response = await _apiClient.post<dynamic>(

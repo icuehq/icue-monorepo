@@ -81,7 +81,7 @@ class _PendingGatePassPageState extends State<PendingGatePassPage> {
   Widget build(BuildContext context) {
     final provider = context.watch<GatePassProvider>();
     final requests = provider.requests;
-    final dateDisplay = AppDateUtils.formatDisplayDate(_selectedDate);
+    final dateDisplay = _selectedDate.toDisplayDate();
 
     return Scaffold(
       appBar: AppBar(

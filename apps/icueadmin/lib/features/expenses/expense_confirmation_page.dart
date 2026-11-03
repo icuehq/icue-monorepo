@@ -77,7 +77,9 @@ class ExpenseConfirmationPage extends StatelessWidget {
                         const Divider(height: 18),
                         _DetailRow(
                           label: 'Bill Amount',
-                          value: AppCurrencyUtils.formatInr(data.amount),
+                          value:
+                              num.tryParse(data.amount!.trim())?.toRupees() ??
+                              '-',
                           isHighlighted: true,
                         ),
                       ],

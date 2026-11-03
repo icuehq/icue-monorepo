@@ -2,7 +2,6 @@ import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/shared/widgets/person_search_field.dart';
-import 'package:inventory/src/ui/stock/issues/widgets/issue_request_widgets.dart';
 
 /// One issue against a request: what left the store, receipt status and returns.
 class IssuanceCard extends StatelessWidget {
@@ -70,8 +69,7 @@ class IssuanceCard extends StatelessWidget {
                 [
                   if (recipientId != null)
                     'To ${issue.recipientType == 'staff' ? staffDisplayName(recipientId) : '${issue.recipientType} #$recipientId'}',
-                  if (issue.createdAt != null)
-                    formatIssueDate(issue.createdAt!),
+                  if (issue.createdAt != null) issue.createdAt!.toNumericDate(),
                 ].join(' · '),
                 style: theme.textTheme.bodySmall?.copyWith(color: muted),
               ),
@@ -90,8 +88,8 @@ class IssuanceCard extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    '${formatQuantity(line.quantity)}'
-                    '${line.returned > 0 ? ' · returned ${formatQuantity(line.returned)}' : ''}',
+                    '${line.quantity.toQuantityText()}'
+                    '${line.returned > 0 ? ' · returned ${line.returned.toQuantityText()}' : ''}',
                     style: theme.textTheme.bodySmall?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),

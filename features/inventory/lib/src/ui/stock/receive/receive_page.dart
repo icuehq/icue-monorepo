@@ -313,7 +313,7 @@ class _ReceiveSummaryBar extends StatelessWidget {
                   runSpacing: 4,
                   children: [
                     Text(
-                      'Accepted: ${formatQuantity(totalAccepted)}',
+                      'Accepted: ${totalAccepted.toQuantityText()}',
                       style: theme.textTheme.labelMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                         color: theme.colorScheme.primary,
@@ -321,7 +321,7 @@ class _ReceiveSummaryBar extends StatelessWidget {
                     ),
                     if (totalRejected > 0)
                       Text(
-                        'Rejected: ${formatQuantity(totalRejected)}',
+                        'Rejected: ${totalRejected.toQuantityText()}',
                         style: theme.textTheme.labelMedium?.copyWith(
                           fontWeight: FontWeight.w600,
                           color: theme.colorScheme.error,
@@ -329,7 +329,7 @@ class _ReceiveSummaryBar extends StatelessWidget {
                       ),
                     if (hasValuation)
                       Text(
-                        'Total Value: ₹${totalValuation.toStringAsFixed(2)}',
+                        'Total Value: ${totalValuation.toRupees()}',
                         style: theme.textTheme.labelMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: theme.colorScheme.onSurface,

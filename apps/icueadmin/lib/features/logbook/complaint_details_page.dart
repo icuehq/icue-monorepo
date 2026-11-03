@@ -41,14 +41,14 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
           categoryName: _complaint.categoryName,
           currStatus: req.status,
           currAction: req.action,
-          stsUpdatedDt: DateTime.now().toIso8601String().split('T').first,
-          stsUpdatedTime: AppDateUtils.formatHourMinute(DateTime.now()),
+          stsUpdatedDt: DateTime.now().toApiDate(),
+          stsUpdatedTime: DateTime.now().toHourMinute(),
           details: [
             ComplaintDetail(
               status: req.status,
               action: req.action,
-              date: DateTime.now().toIso8601String().split('T').first,
-              time: AppDateUtils.formatHourMinute(DateTime.now()),
+              date: DateTime.now().toApiDate(),
+              time: DateTime.now().toHourMinute(),
               description: req.description ?? '',
               createdBy: 'Admin',
             ),
@@ -185,7 +185,7 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
                         children: [
                           ComplaintStatusBadge(status: detail.status),
                           Text(
-                            '${detail.date} ${detail.time}',
+                            '${detail.date.toDisplayDay()} ${detail.time.toDisplayTime()}',
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.grey.shade600,

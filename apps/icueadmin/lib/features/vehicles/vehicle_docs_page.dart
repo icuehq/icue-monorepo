@@ -128,7 +128,7 @@ class _VehicleDocsPageState extends State<VehicleDocsPage> {
       case 'Permit':
         rawDate = doc?.permitExpiryDate ?? widget.vehicle.permitExpiryDate;
     }
-    return AppDateUtils.tryParseDate(rawDate);
+    return rawDate.toDateOrNull();
   }
 
   String? _resolveDocNumber(String docType, Docs? doc) {

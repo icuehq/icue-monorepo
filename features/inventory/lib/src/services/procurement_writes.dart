@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 
 /// Client-side purchase request, quotation and invoice writes.
@@ -43,10 +44,7 @@ class ProcurementWrites {
 
   String get _uid => FirebaseAuth.instance.currentUser!.uid;
 
-  DateTime get _istNow =>
-      DateTime.now().toUtc().add(const Duration(hours: 5, minutes: 30));
-
-  String get _today => _istNow.toIso8601String().substring(0, 10);
+  String get _today => todayIST();
 
   double _roundToCents(num amount) => (amount * 100).round() / 100;
 
@@ -82,10 +80,7 @@ class ProcurementWrites {
 
   /// Next `TYPE/2026-27/000123`, from a counter document updated in a transaction.
   Future<String> _nextNumber(String type) async {
-    final now = _istNow;
-    final startYear = now.month >= 4 ? now.year : now.year - 1;
-    final financialYear =
-        '$startYear-${((startYear + 1) % 100).toString().padLeft(2, '0')}';
+    final financialYear = DateTime.now().toIndianTime().financialYear;
     final counter = await _reference('counters', '${type}_$financialYear');
     final next = await FirebaseFirestore.instance.runTransaction((
       transaction,

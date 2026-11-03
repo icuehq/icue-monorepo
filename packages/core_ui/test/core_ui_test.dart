@@ -49,7 +49,7 @@ void main() {
         DateTimeRange(start: start, end: end),
       );
       expect(result.mode, equals(AppFilterMode.byRange));
-      expect(result.displayLabel, equals('1/1/2025 - 31/1/2025'));
+      expect(result.displayLabel, equals('01/01/2025 - 31/01/2025'));
     });
   });
 
@@ -85,69 +85,6 @@ void main() {
         expiryDate: expiringSoonDate,
       );
       expect(docExpiring.expiryStatusMessage, contains('Expires in'));
-    });
-  });
-
-  group('AppDateUtils', () {
-    test('parses ISO8601 string', () {
-      final parsed = AppDateUtils.tryParseDate('2025-05-20');
-      expect(parsed, isNotNull);
-      expect(parsed!.year, equals(2025));
-      expect(parsed.month, equals(5));
-      expect(parsed.day, equals(20));
-    });
-
-    test('parses DD-MM-YYYY string', () {
-      final parsed = AppDateUtils.tryParseDate('15-08-2024');
-      expect(parsed, isNotNull);
-      expect(parsed!.year, equals(2024));
-      expect(parsed.month, equals(8));
-      expect(parsed.day, equals(15));
-    });
-
-    test('returns null for invalid or empty string', () {
-      expect(AppDateUtils.tryParseDate(''), isNull);
-      expect(AppDateUtils.tryParseDate(null), isNull);
-      expect(AppDateUtils.tryParseDate('invalid-date'), isNull);
-    });
-
-    test('formats date as dd/MM/yyyy', () {
-      final formatted = AppDateUtils.formatDate(DateTime(2025, 3, 7));
-      expect(formatted, equals('07/03/2025'));
-      expect(AppDateUtils.formatDate(null), equals('-'));
-    });
-
-    test('calculates checkExpiryStatus correctly', () {
-      final now = DateTime.now();
-      final expired = AppDateUtils.checkExpiryStatus(
-        'License',
-        now.subtract(const Duration(days: 3)),
-      );
-      expect(expired, contains('expired 3 days ago'));
-
-      final today = AppDateUtils.checkExpiryStatus('License', now);
-      expect(today, contains('expires today'));
-
-      final soon = AppDateUtils.checkExpiryStatus(
-        'License',
-        now.add(const Duration(days: 15)),
-      );
-      expect(soon, contains('will expire in 15 days'));
-
-      final safe = AppDateUtils.checkExpiryStatus(
-        'License',
-        now.add(const Duration(days: 60)),
-      );
-      expect(safe, isNull);
-    });
-  });
-
-  group('AppCurrencyUtils', () {
-    test('formats INR with lakh grouping', () {
-      expect(AppCurrencyUtils.formatInr(1234567.5), '₹12,34,567.50');
-      expect(AppCurrencyUtils.formatInr('500'), '₹500.00');
-      expect(AppCurrencyUtils.formatInr(null), '-');
-      expect(AppCurrencyUtils.formatInr('abc'), '-');
     });
   });
 }

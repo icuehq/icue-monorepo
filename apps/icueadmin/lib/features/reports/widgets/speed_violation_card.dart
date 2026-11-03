@@ -9,7 +9,7 @@ class SpeedViolationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final timeStr = AppDateUtils.formatDisplayDateTime(record.gpsTime);
+    final timeStr = record.gpsTime.toDisplayDateTime();
 
     return Card(
       margin: const EdgeInsets.only(bottom: 10),

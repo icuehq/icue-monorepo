@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:gatepass/gatepass.dart';
 
@@ -109,7 +110,8 @@ class GatePassRequestCard extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '${request.requestDt} ${request.requestTime}'.trim(),
+                      '${request.requestDt.toDisplayDay()} ${request.requestTime.toDisplayTime()}'
+                          .trim(),
                       style: TextStyle(
                         fontSize: 11,
                         color: Colors.grey.shade500,

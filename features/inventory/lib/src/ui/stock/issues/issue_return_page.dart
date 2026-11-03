@@ -57,7 +57,7 @@ class _IssueReturnPageState extends State<IssueReturnPage> {
         return showMessage(
           context,
           '${stockProvider.itemName(line.itemId)}: only '
-          '${formatQuantity(line.outstanding)} can still be returned',
+          '${line.outstanding.toQuantityText()} can still be returned',
         );
       }
       lineItems.add({
@@ -108,7 +108,7 @@ class _IssueReturnPageState extends State<IssueReturnPage> {
               IssueSection(
                 title: stockProvider.itemName(line.itemId),
                 trailing: Text(
-                  '${formatQuantity(line.outstanding)} to return',
+                  '${line.outstanding.toQuantityText()} to return',
                   style: theme.textTheme.labelMedium?.copyWith(
                     color: theme.colorScheme.error,
                     fontWeight: FontWeight.w700,
@@ -139,9 +139,8 @@ class _IssueReturnPageState extends State<IssueReturnPage> {
                                 icon: const Icon(Icons.done_all, size: 18),
                                 tooltip: 'All usable',
                                 onPressed: () {
-                                  _usable[index].text = formatQuantity(
-                                    line.outstanding,
-                                  );
+                                  _usable[index].text = line.outstanding
+                                      .toQuantityText();
                                   _damaged[index].clear();
                                 },
                               ),

@@ -126,7 +126,7 @@ class _GenericExpenseFormPageState extends State<GenericExpenseFormPage> {
     if (!_formKey.currentState!.validate()) return;
     _formKey.currentState!.save();
 
-    final dateFormatted = AppDateUtils.formatDate(_billDate);
+    final dateFormatted = _billDate.toNumericDate();
 
     final extraFields = <String, dynamic>{};
     final code = widget.args.expenseType.code;

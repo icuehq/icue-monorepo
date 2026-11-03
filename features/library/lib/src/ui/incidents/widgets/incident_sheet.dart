@@ -176,7 +176,7 @@ class _IncidentSheetState extends State<IncidentSheet> {
           Text('Severity: ${humanizeStatus(incident.severity)}'),
         if (incident.memberLabel != null)
           Text('Member: ${incident.memberLabel}'),
-        Text('Reported on: ${incident.reportedDate}'),
+        Text('Reported on: ${incident.reportedDate.toDisplayDay()}'),
         if (incident.description != null &&
             incident.description!.isNotEmpty) ...[
           const SizedBox(height: 4),
@@ -185,10 +185,9 @@ class _IncidentSheetState extends State<IncidentSheet> {
             style: Theme.of(context).textTheme.bodyMedium,
           ),
         ],
-        if (incident.charge > 0)
-          Text('Charge: ₹${incident.charge.toStringAsFixed(2)}'),
+        if (incident.charge > 0) Text('Charge: ${incident.charge.toRupees()}'),
         if (incident.repairCost != null)
-          Text('Repair cost: ₹${incident.repairCost!.toStringAsFixed(2)}'),
+          Text('Repair cost: ${incident.repairCost!.toRupees()}'),
         if (!incident.isOpen) ...[
           const Divider(height: 24),
           Text(

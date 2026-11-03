@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
@@ -63,7 +64,7 @@ class _LibVerificationPageState extends State<LibraryVerificationPage> {
                     '${verification.number} · ${verification.libraryName}',
                   ),
                   subtitle: Text(
-                    '${verification.shelf ?? 'All shelves'} · ${verification.verifiedDate ?? ''} · '
+                    '${verification.shelf ?? 'All shelves'} · ${verification.verifiedDate.toDisplayDay()} · '
                     '${verification.scanned.length}/${verification.expected.length} scanned',
                   ),
                   trailing: Chip(

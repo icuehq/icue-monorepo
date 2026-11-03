@@ -140,7 +140,7 @@ class ExpenseService {
   /// Generates a unique Bill Number if user left it blank.
   Future<String?> generateBillNo(String billDate) async {
     final now = DateTime.now();
-    final timeStr = AppDateUtils.formatTime24(now);
+    final timeStr = now.toTime24();
 
     final response = await _apiClient.post<dynamic>(
       '/v1.0/generateBillNo',

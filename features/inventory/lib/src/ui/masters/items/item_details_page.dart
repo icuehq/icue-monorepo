@@ -1,4 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:inventory/inventory.dart';
@@ -361,7 +362,7 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
                 icon: Icons.payments_outlined,
                 label: 'Default purchase price',
                 value: price != null
-                    ? '₹${price.toStringAsFixed(2)} / ${item.stockUnit}'
+                    ? '${price.toRupees()} / ${item.stockUnit}'
                     : 'Not configured',
                 helper:
                     'Estimated unit cost auto-filled on purchase requisitions',

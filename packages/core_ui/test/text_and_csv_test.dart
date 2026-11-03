@@ -2,11 +2,6 @@ import 'package:core_ui/core_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('quantities drop a trailing .0', () {
-    expect(formatQuantity(7), '7');
-    expect(formatQuantity(2.5), '2.5');
-  });
-
   test(
     'status codes become readable text, with overrides and a dash for none',
     () {

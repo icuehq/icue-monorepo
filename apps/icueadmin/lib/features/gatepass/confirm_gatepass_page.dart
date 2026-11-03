@@ -37,7 +37,7 @@ class _ConfirmGatePassPageState extends State<ConfirmGatePassPage> {
     if (_selectedCategory == null) return;
 
     final provider = context.read<GatePassProvider>();
-    final today = AppDateUtils.formatApiDate(DateTime.now());
+    final today = DateTime.now().toApiDate();
 
     final request = CreateGatePassRequest(
       personId: widget.student.id,

@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:reports/reports.dart';
 
@@ -55,7 +56,8 @@ class CleaningReportCard extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '${report.createdDate} ${report.createdTime}'.trim(),
+                  '${report.createdDate.toDisplayDay()} ${report.createdTime.toDisplayTime()}'
+                      .trim(),
                   style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
                 ),
               ],

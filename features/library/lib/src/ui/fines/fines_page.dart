@@ -87,7 +87,7 @@ class _FinesPageState extends State<FinesPage> {
                       return ListTile(
                         title: Text('${fine.fineNumber} · ${fine.memberLabel}'),
                         subtitle: Text(
-                          '${fineTypeLabel(fine.type)} · Total ₹${fine.amount.toStringAsFixed(2)} · Due ₹${fine.outstanding.toStringAsFixed(2)}',
+                          '${fineTypeLabel(fine.type)} · Total ${fine.amount.toRupees()} · Due ${fine.outstanding.toRupees()}',
                         ),
                         trailing: Chip(
                           label: Text(humanizeStatus(fine.status)),

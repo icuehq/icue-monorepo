@@ -11,7 +11,7 @@ Future<Map<String, Object?>?> showPurchaseOrderRevisionDialog(
   final procurementProvider = context.read<ProcurementProvider>();
   final prices = [
     for (final orderLine in order.lineItems)
-      TextEditingController(text: formatQuantity(orderLine.unitPrice)),
+      TextEditingController(text: orderLine.unitPrice.toQuantityText()),
   ];
   final reason = TextEditingController();
   final expected = TextEditingController(text: order.expectedDate);

@@ -11,11 +11,8 @@ class DriverListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final parsedExpiry = AppDateUtils.tryParseDate(driver.licenceExpiryDate);
-    final licenceStatus = AppDateUtils.checkExpiryStatus(
-      'License',
-      parsedExpiry,
-    );
+    final parsedExpiry = driver.licenceExpiryDate.toDateOrNull();
+    final licenceStatus = parsedExpiry?.expiryStatus('License');
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),

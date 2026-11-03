@@ -93,12 +93,10 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
     _fuelType = v?.fuelType ?? 'Diesel';
     _isAc = v?.airCondition?.toLowerCase() == 'yes';
 
-    _dateOfReg = AppDateUtils.tryParseDate(v?.dateOfReg);
-    _fireExtInstallDate = AppDateUtils.tryParseDate(v?.fireExtInstallDate);
-    _fireExtExpiryDate = AppDateUtils.tryParseDate(v?.fireExtExpiryDate);
-    _firstAidExpiryDate = AppDateUtils.tryParseDate(
-      firstAid?.medicineExpiryDate,
-    );
+    _dateOfReg = v?.dateOfReg.toDateOrNull();
+    _fireExtInstallDate = v?.fireExtInstallDate.toDateOrNull();
+    _fireExtExpiryDate = v?.fireExtExpiryDate.toDateOrNull();
+    _firstAidExpiryDate = firstAid?.medicineExpiryDate.toDateOrNull();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -270,9 +268,7 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
                     onSelected: (date) {
                       setState(() {
                         _dateOfReg = date;
-                        _dateOfRegController.text = AppDateUtils.formatDate(
-                          date,
-                        );
+                        _dateOfRegController.text = date.toNumericDate();
                       });
                     },
                   ),
@@ -283,8 +279,8 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
                     onSelected: (date) {
                       setState(() {
                         _fireExtInstallDate = date;
-                        _fireExtInstallDateController.text =
-                            AppDateUtils.formatDate(date);
+                        _fireExtInstallDateController.text = date
+                            .toNumericDate();
                       });
                     },
                   ),
@@ -295,8 +291,8 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
                     onSelected: (date) {
                       setState(() {
                         _fireExtExpiryDate = date;
-                        _fireExtExpiryDateController.text =
-                            AppDateUtils.formatDate(date);
+                        _fireExtExpiryDateController.text = date
+                            .toNumericDate();
                       });
                     },
                   ),
@@ -307,8 +303,8 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
                     onSelected: (date) {
                       setState(() {
                         _firstAidExpiryDate = date;
-                        _firstAidExpiryDateController.text =
-                            AppDateUtils.formatDate(date);
+                        _firstAidExpiryDateController.text = date
+                            .toNumericDate();
                       });
                     },
                   ),

@@ -11,7 +11,7 @@ class AnnouncementCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final formattedDate = announcement.createdDate != null
-        ? AppDateUtils.formatDateTime(announcement.createdDate!)
+        ? announcement.createdDate!.toNumericDateTime()
         : announcement.announcementDate;
 
     return Card(

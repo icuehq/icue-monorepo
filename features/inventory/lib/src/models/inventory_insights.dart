@@ -1,5 +1,6 @@
 // Stock verification, dashboard and reports (Inv-7). Parse and display only; rules live in Cloud Functions.
 
+import 'package:core_ui/core_ui.dart';
 import 'package:icue_firebase/icue_firebase.dart'
     show ReportColumn, readDay, readNumber, readString;
 import 'package:inventory/src/models/inventory_insights.g.dart';
@@ -24,7 +25,7 @@ class ReportNames {
 }
 
 String _money(Object? value) =>
-    value == null ? '' : readNumber(value).toStringAsFixed(2);
+    value == null ? '' : readNumber(value).toAmountText();
 
 typedef ReportCol = ReportColumn<ReportNames>;
 
@@ -69,7 +70,7 @@ ReportCol _item() =>
 ReportCol _store(String value) =>
     ReportCol('Store', (data, reportNames) => reportNames.store(data[value]));
 ReportCol _date(String label, String value) =>
-    ReportCol(label, (m, _) => readDay(m[value]));
+    ReportCol(label, (m, _) => readDay(m[value]).toDisplayDay());
 ReportCol _quantityColumn(String label, String value, {bool sum = false}) =>
     ReportCol(label, (m, _) => readString(readNumber(m[value])), sum: sum);
 

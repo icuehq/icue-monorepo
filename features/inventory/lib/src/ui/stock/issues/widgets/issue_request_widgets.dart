@@ -13,10 +13,6 @@ Color issueStatusColor(String status) => switch (status) {
   _ => Colors.orange.shade800,
 };
 
-String formatIssueDate(DateTime date) =>
-    '${date.day.toString().padLeft(2, '0')}/'
-    '${date.month.toString().padLeft(2, '0')}/${date.year}';
-
 class IssueStatusPill extends StatelessWidget {
   const IssueStatusPill(this.status, {super.key});
 
@@ -195,7 +191,7 @@ class IssueSummary extends StatelessWidget {
             Icons.person_outline_rounded,
             'Requested by '
             '${requesterId == null ? request.createdBy : staffDisplayName(requesterId)}'
-            '${request.createdAt == null ? '' : ' on ${formatIssueDate(request.createdAt!)}'}',
+            '${request.createdAt == null ? '' : ' on ${request.createdAt!.toNumericDate()}'}',
           ),
           const SizedBox(height: 14),
           IssueProgress(request),
@@ -260,7 +256,7 @@ class IssueItems extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  'Requested ${formatQuantity(line.requested)}',
+                  'Requested ${line.requested.toQuantityText()}',
                   style: theme.textTheme.bodySmall,
                 ),
               ],
@@ -291,8 +287,8 @@ class IssueItems extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                'Approved ${formatQuantity(line.approved!)} · '
-                'Issued ${formatQuantity(line.issued)}',
+                'Approved ${line.approved!.toQuantityText()} · '
+                'Issued ${line.issued.toQuantityText()}',
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),

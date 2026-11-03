@@ -249,7 +249,7 @@ String _dart(
     }
     out.writeln('}\n');
   }
-  return out.toString().trimRight() + '\n';
+  return '${out.toString().trimRight()}\n';
 }
 
 String _ts(
@@ -298,7 +298,7 @@ String _ts(
     }
     out.writeln('}\n');
   }
-  return out.toString().trimRight() + '\n';
+  return '${out.toString().trimRight()}\n';
 }
 
 String _tsDoc(String? text) => text == null ? '' : '/** ${text.trim()} */\n';

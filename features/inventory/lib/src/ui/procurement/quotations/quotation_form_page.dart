@@ -26,13 +26,17 @@ class _QuotationFormPageState extends State<QuotationFormPage> {
   );
   late final _remarks = TextEditingController(text: widget.existing?.remarks);
   late final _discount = TextEditingController(
-    text: widget.existing == null ? '' : money(widget.existing!.discount),
+    text: widget.existing == null
+        ? ''
+        : widget.existing!.discount.toAmountText(),
   );
   late final _tax = TextEditingController(
-    text: widget.existing == null ? '' : money(widget.existing!.tax),
+    text: widget.existing == null ? '' : widget.existing!.tax.toAmountText(),
   );
   late final _delivery = TextEditingController(
-    text: widget.existing == null ? '' : money(widget.existing!.delivery),
+    text: widget.existing == null
+        ? ''
+        : widget.existing!.delivery.toAmountText(),
   );
   final _lines = <OrderLineInput>[];
   late String? _vendor = widget.existing?.vendorId;
@@ -51,8 +55,8 @@ class _QuotationFormPageState extends State<QuotationFormPage> {
             orderLine.itemId,
             orderLine.variantId,
             procurementProvider.itemName(orderLine.itemId),
-            quantity: formatQuantity(orderLine.quantity),
-            price: formatQuantity(orderLine.unitPrice),
+            quantity: orderLine.quantity.toQuantityText(),
+            price: orderLine.unitPrice.toQuantityText(),
           ),
         );
       }
@@ -63,9 +67,9 @@ class _QuotationFormPageState extends State<QuotationFormPage> {
             purchaseRequestLine.itemId,
             purchaseRequestLine.variantId,
             procurementProvider.itemName(purchaseRequestLine.itemId),
-            quantity: formatQuantity(purchaseRequestLine.quantity),
+            quantity: purchaseRequestLine.quantity.toQuantityText(),
             price: purchaseRequestLine.estimatedPrice > 0
-                ? formatQuantity(purchaseRequestLine.estimatedPrice)
+                ? purchaseRequestLine.estimatedPrice.toQuantityText()
                 : '',
           ),
         );

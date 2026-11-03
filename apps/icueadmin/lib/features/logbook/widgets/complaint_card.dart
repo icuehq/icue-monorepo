@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icueadmin/features/logbook/widgets/complaint_status_badge.dart';
 import 'package:logbook/logbook.dart';
@@ -104,7 +105,7 @@ class ComplaintCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    '${complaint.stsUpdatedDt} ${complaint.stsUpdatedTime}',
+                    '${complaint.stsUpdatedDt.toDisplayDay()} ${complaint.stsUpdatedTime.toDisplayTime()}',
                     style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
                   ),
                   const Spacer(),

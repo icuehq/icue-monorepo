@@ -1,4 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:inventory/inventory.dart';
@@ -195,7 +196,7 @@ class _StockPageState extends State<StockPage> {
                         ),
                         const SizedBox(width: 12),
                         Text(
-                          'Value: ₹${totalStoreValue.toStringAsFixed(2)}',
+                          'Value: ${totalStoreValue.toRupees()}',
                           style: theme.textTheme.bodySmall?.copyWith(
                             fontWeight: FontWeight.w600,
                           ),

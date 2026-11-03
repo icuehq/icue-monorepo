@@ -1,10 +1,10 @@
 import 'dart:math';
 
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:inventory/inventory.dart';
-import 'package:inventory/src/ui/procurement/shared/order_widgets.dart';
 import 'package:provider/provider.dart';
 
 /// Quotations of one request (FRS 10.15): side-by-side comparison, select the preferred one.
@@ -235,7 +235,7 @@ class _QuotationsPageState extends State<QuotationsPage> {
                                               )
                                               .map(
                                                 (line) =>
-                                                    '₹${money(line.unitPrice)}',
+                                                    line.unitPrice.toRupees(),
                                               )
                                               .join(),
                                         ),
@@ -255,7 +255,7 @@ class _QuotationsPageState extends State<QuotationsPage> {
                                   for (final quotation in quotations)
                                     DataCell(
                                       Text(
-                                        '₹${money(quotation.total)}',
+                                        quotation.total.toRupees(),
                                         style: TextStyle(
                                           fontWeight: FontWeight.bold,
                                           color: quotation.total == lowestTotal
@@ -403,7 +403,7 @@ class _QuotationsPageState extends State<QuotationsPage> {
                           Row(
                             children: [
                               Text(
-                                'Total: ₹${money(quotation.total)}',
+                                'Total: ${quotation.total.toRupees()}',
                                 style: theme.textTheme.titleSmall?.copyWith(
                                   fontWeight: FontWeight.bold,
                                   color: theme.colorScheme.primary,

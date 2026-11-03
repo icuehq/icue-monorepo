@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 
 /// Client-side stock writes: Receive Stock (`inventory-receipt-confirm`) issue request submit and approve/reject.
@@ -40,9 +41,6 @@ class StockWrites {
     message: message,
   );
 
-  DateTime get _istNow =>
-      DateTime.now().toUtc().add(const Duration(hours: 5, minutes: 30));
-
   String? _blankToNull(Object? value) {
     final text = (value as String?)?.trim();
     return text == null || text.isEmpty ? null : text;
@@ -84,11 +82,7 @@ class StockWrites {
     return item;
   }
 
-  String get _financialYear {
-    final now = _istNow;
-    final startYear = now.month >= 4 ? now.year : now.year - 1;
-    return '$startYear-${((startYear + 1) % 100).toString().padLeft(2, '0')}';
-  }
+  String get _financialYear => DateTime.now().toIndianTime().financialYear;
 
   Future<Map<String, dynamic>> _decideIssueRequest(
     Map<String, Object?> data,
@@ -194,7 +188,7 @@ class StockWrites {
     String itemId,
     String? variantId,
   ) async {
-    final today = _istNow.toIso8601String().substring(0, 10);
+    final today = todayIST();
     try {
       final snapshot = await (await schoolCollection('inventoryBalances'))
           .where('campusId', isEqualTo: campusId)
@@ -295,7 +289,7 @@ class StockWrites {
         'status': 'pending',
         'approval': null,
         'campusId': store['campusId'],
-        'transactionDate': _istNow.toIso8601String().substring(0, 10),
+        'transactionDate': todayIST(),
         'financialYear': financialYear,
         'academicYearId': null,
         'createdAt': FieldValue.serverTimestamp(),
@@ -311,8 +305,8 @@ class StockWrites {
     Map<String, Object?> data,
   ) async {
     final uid = FirebaseAuth.instance.currentUser!.uid;
-    final now = _istNow;
-    final today = now.toIso8601String().substring(0, 10);
+    final now = DateTime.now().toIndianTime();
+    final today = now.toApiDate();
     final financialYear = _financialYear;
 
     final storeId = data['storeId']! as String;

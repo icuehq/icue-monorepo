@@ -106,7 +106,7 @@ class PurchaseRequestCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    'Needed by ${request.requiredDate}',
+                    'Needed by ${request.requiredDate.toDisplayDay()}',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -150,7 +150,7 @@ class PurchaseRequestCard extends StatelessWidget {
                               ),
                             ),
                             Text(
-                              '× ${formatQuantity(line.quantity)}',
+                              '× ${line.quantity.toQuantityText()}',
                               style: theme.textTheme.bodySmall?.copyWith(
                                 fontWeight: FontWeight.w600,
                               ),
@@ -174,7 +174,7 @@ class PurchaseRequestCard extends StatelessWidget {
               Row(
                 children: [
                   Text(
-                    'Estimated: ₹${formatQuantity(request.total)}',
+                    'Estimated: ${request.total.toRupees()}',
                     style: theme.textTheme.bodySmall?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: theme.colorScheme.primary,
@@ -183,7 +183,7 @@ class PurchaseRequestCard extends StatelessWidget {
                   const Spacer(),
                   if (totalOrdered > 0)
                     Text(
-                      'Ordered ${formatQuantity(totalOrdered)} / ${formatQuantity(totalRequested)}',
+                      'Ordered ${totalOrdered.toQuantityText()} / ${totalRequested.toQuantityText()}',
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.w600,

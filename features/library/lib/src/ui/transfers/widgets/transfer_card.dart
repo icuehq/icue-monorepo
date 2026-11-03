@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/transfers/widgets/transfer_widgets.dart';
@@ -93,7 +94,7 @@ class TransferCard extends StatelessWidget {
                   if (transfer.status == 'partially_received')
                     '$received received',
                   if (transfer.requestedDate != null)
-                    'Requested ${transfer.requestedDate}',
+                    'Requested ${transfer.requestedDate.toDisplayDay()}',
                 ].join(' · '),
                 style: theme.textTheme.bodySmall?.copyWith(color: muted),
               ),

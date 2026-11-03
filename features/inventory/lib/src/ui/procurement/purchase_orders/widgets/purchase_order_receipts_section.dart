@@ -41,14 +41,14 @@ class _PurchaseOrderReceiptsSectionState
             dense: true,
             contentPadding: EdgeInsets.zero,
             title: Text(
-              '${goodsReceipt.number} · ${goodsReceipt.date}'
+              '${goodsReceipt.number} · ${goodsReceipt.date.toDisplayDay()}'
               '${goodsReceipt.reference == null ? '' : ' · ${goodsReceipt.reference}'}',
             ),
             subtitle: Text(
               [
                 for (final goodsReceiptLine in goodsReceipt.lineItems)
-                  '${procurementProvider.itemName(goodsReceiptLine.itemId)}: ${formatQuantity(goodsReceiptLine.accepted)} accepted'
-                      '${goodsReceiptLine.rejected > 0 ? ', ${formatQuantity(goodsReceiptLine.rejected)} rejected' : ''}'
+                  '${procurementProvider.itemName(goodsReceiptLine.itemId)}: ${goodsReceiptLine.accepted.toQuantityText()} accepted'
+                      '${goodsReceiptLine.rejected > 0 ? ', ${goodsReceiptLine.rejected.toQuantityText()} rejected' : ''}'
                       '${goodsReceiptLine.condition == null ? '' : ' (${goodsReceiptLine.condition})'}',
               ].join('\n'),
             ),

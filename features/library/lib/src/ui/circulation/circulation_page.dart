@@ -1,6 +1,6 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
-import 'package:icue_firebase/icue_firebase.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/circulation/widgets/loan_sheet.dart';
@@ -137,7 +137,7 @@ class _CirculationPageState extends State<CirculationPage> {
                             '${loan.accessionNumber} · ${loan.memberLabel}',
                           ),
                           subtitle: Text(
-                            'Due ${loan.dueDate} · ${loan.number}',
+                            'Due ${loan.dueDate.toDisplayDay()} · ${loan.number}',
                           ),
                           trailing: loan.overdueOn(today) > 0
                               ? Text(

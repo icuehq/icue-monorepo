@@ -32,13 +32,17 @@ class _PurchaseOrderFormPageState extends State<PurchaseOrderFormPage> {
   late final _terms = TextEditingController(text: widget.existing?.terms);
   late final _remarks = TextEditingController(text: widget.existing?.remarks);
   late final _discount = TextEditingController(
-    text: widget.existing == null ? '' : money(widget.existing!.discount),
+    text: widget.existing == null
+        ? ''
+        : widget.existing!.discount.toAmountText(),
   );
   late final _tax = TextEditingController(
-    text: widget.existing == null ? '' : money(widget.existing!.tax),
+    text: widget.existing == null ? '' : widget.existing!.tax.toAmountText(),
   );
   late final _delivery = TextEditingController(
-    text: widget.existing == null ? '' : money(widget.existing!.delivery),
+    text: widget.existing == null
+        ? ''
+        : widget.existing!.delivery.toAmountText(),
   );
   final _lines = <OrderLineInput>[];
   late String? _vendor =
@@ -66,8 +70,8 @@ class _PurchaseOrderFormPageState extends State<PurchaseOrderFormPage> {
       item,
       variant,
       procurementProvider.itemName(item),
-      quantity: formatQuantity(quantity),
-      price: price == 0 ? '' : formatQuantity(price),
+      quantity: quantity.toQuantityText(),
+      price: price == 0 ? '' : price.toQuantityText(),
       priceLocked: locked,
     );
 

@@ -30,7 +30,7 @@ class ExpenseBillSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final dateStr = AppDateUtils.formatDate(billDate);
+    final dateStr = billDate.toNumericDate();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -41,7 +42,7 @@ class StatTileGrid extends StatelessWidget {
                   children: [
                     Text(
                       tile.isAmount
-                          ? tile.value.toStringAsFixed(2)
+                          ? tile.value.toRupees()
                           : '${tile.value.round()}',
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),

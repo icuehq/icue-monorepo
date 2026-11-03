@@ -150,7 +150,7 @@ class StockBalanceCard extends StatelessWidget {
                                 ),
                               if (balance.expiryDate != null)
                                 Text(
-                                  ' (exp ${balance.expiryDate})',
+                                  ' (exp ${balance.expiryDate.toDisplayDay()})',
                                   style: theme.textTheme.bodySmall?.copyWith(
                                     color: Colors.red.shade700,
                                     fontWeight: FontWeight.w500,
@@ -166,7 +166,7 @@ class StockBalanceCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        '${formatQuantity(balance.available)} $unit',
+                        '${balance.available.toQuantityText()} $unit',
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w700,
                           color: balance.available == 0
@@ -195,7 +195,7 @@ class StockBalanceCard extends StatelessWidget {
                       context,
                       icon: Icons.warning_amber_rounded,
                       label: reorderLevel != null
-                          ? 'Low stock (reorder: ${formatQuantity(reorderLevel!)})'
+                          ? 'Low stock (reorder: ${reorderLevel!.toQuantityText()})'
                           : 'Low stock',
                       color: Colors.orange.shade900,
                       backgroundColor: Colors.orange.withValues(alpha: 0.15),
@@ -203,20 +203,20 @@ class StockBalanceCard extends StatelessWidget {
                   _pill(
                     context,
                     icon: Icons.payments_outlined,
-                    label: '₹${balance.value.toStringAsFixed(2)}',
+                    label: balance.value.toRupees(),
                   ),
                   if (balance.issuedTotal > 0)
                     _pill(
                       context,
                       icon: Icons.outbox_outlined,
                       label:
-                          '${formatQuantity(balance.issuedTotal)} out with users',
+                          '${balance.issuedTotal.toQuantityText()} out with users',
                     ),
                   if (balance.damaged > 0)
                     _pill(
                       context,
                       icon: Icons.broken_image_outlined,
-                      label: '${formatQuantity(balance.damaged)} damaged',
+                      label: '${balance.damaged.toQuantityText()} damaged',
                       color: Colors.red.shade800,
                       backgroundColor: Colors.red.withValues(alpha: 0.12),
                     ),
@@ -224,7 +224,7 @@ class StockBalanceCard extends StatelessWidget {
                     _pill(
                       context,
                       icon: Icons.event_busy_outlined,
-                      label: '${formatQuantity(balance.expired)} expired',
+                      label: '${balance.expired.toQuantityText()} expired',
                       color: Colors.red.shade800,
                       backgroundColor: Colors.red.withValues(alpha: 0.12),
                     ),

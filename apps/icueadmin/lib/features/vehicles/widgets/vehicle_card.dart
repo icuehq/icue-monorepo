@@ -20,8 +20,8 @@ class VehicleCard extends StatelessWidget {
     };
 
     for (final entry in docs.entries) {
-      final date = AppDateUtils.tryParseDate(entry.value);
-      final status = AppDateUtils.checkExpiryStatus(entry.key, date);
+      final date = entry.value.toDateOrNull();
+      final status = date?.expiryStatus(entry.key);
       if (status != null) {
         alerts.add(status);
       }

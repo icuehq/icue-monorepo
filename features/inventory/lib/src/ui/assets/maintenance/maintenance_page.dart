@@ -87,7 +87,7 @@ class _MaintenancePageState extends State<MaintenancePage> {
                             '${maintenance.number} · ${maintenance.assetName}',
                           ),
                           subtitle: Text(
-                            '${maintenance.issue}\n${maintenance.assetCode} · ${humanizeStatus(maintenance.priority)} priority · ${maintenance.reportedDate}',
+                            '${maintenance.issue}\n${maintenance.assetCode} · ${humanizeStatus(maintenance.priority)} priority · ${maintenance.reportedDate.toDisplayDay()}',
                           ),
                           isThreeLine: true,
                           trailing: StatusChip(maintenance.status),
@@ -149,12 +149,12 @@ class MaintenanceSheet extends StatelessWidget {
         const SizedBox(height: 8),
         Text(maintenance.issue),
         row('Priority', humanizeStatus(maintenance.priority)),
-        row('Reported', maintenance.reportedDate),
+        row('Reported', maintenance.reportedDate.toDisplayDay()),
         row('Technician', maintenance.technician),
         row('Repair details', maintenance.repairDetails),
-        row('Repair cost', maintenance.cost?.toStringAsFixed(2)),
-        row('Completed', maintenance.completedDate),
-        row('Next service', maintenance.nextServiceDate),
+        row('Repair cost', maintenance.cost?.toRupees()),
+        row('Completed', maintenance.completedDate?.toDisplayDay()),
+        row('Next service', maintenance.nextServiceDate?.toDisplayDay()),
         if (maintenance.parts.isNotEmpty)
           row(
             'Parts',

@@ -79,14 +79,15 @@ class _IssueRequestPageState extends State<IssueRequestPage> {
       _loadError = null;
       _approved = [
         for (final line in request.lineItems)
-          TextEditingController(text: formatQuantity(line.requested)),
+          TextEditingController(text: line.requested.toQuantityText()),
       ];
       _issueNow = [
         for (final line in request.lineItems)
           TextEditingController(
-            text: formatQuantity(
-              ((line.approved ?? 0) - line.issued).clamp(0, double.infinity),
-            ),
+            text: (((line.approved ?? 0) - line.issued).clamp(
+              0,
+              double.infinity,
+            )).toQuantityText(),
           ),
       ];
       _recipientId ??= int.tryParse(request.createdBy);
@@ -124,7 +125,7 @@ class _IssueRequestPageState extends State<IssueRequestPage> {
         return showMessage(
           context,
           '$name: cannot approve more than the requested '
-          '${formatQuantity(line.requested)}',
+          '${line.requested.toQuantityText()}',
         );
       }
       total += quantity;
@@ -253,7 +254,7 @@ class _IssueRequestPageState extends State<IssueRequestPage> {
         final name = context.read<StockProvider>().itemName(line.itemId);
         return showMessage(
           context,
-          '$name: enter 0 to ${formatQuantity(remaining)}',
+          '$name: enter 0 to ${remaining.toQuantityText()}',
         );
       }
       if (quantity > 0) {

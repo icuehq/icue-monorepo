@@ -63,7 +63,7 @@ class _StockTransferPageState extends State<StockTransferPage> {
     _receive = [
       for (final line in transfer.lineItems)
         TextEditingController(
-          text: formatQuantity(line.dispatched - line.received),
+          text: (line.dispatched - line.received).toQuantityText(),
         ),
     ];
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -200,7 +200,7 @@ class _StockTransferPageState extends State<StockTransferPage> {
         return showMessage(
           context,
           '${stockProvider.itemName(line.itemId)}: at most '
-          '${formatQuantity(remaining)} can be received',
+          '${remaining.toQuantityText()} can be received',
         );
       }
       shortfall += remaining - quantity;
@@ -214,7 +214,7 @@ class _StockTransferPageState extends State<StockTransferPage> {
     if (_closeTransfer && shortfall > 0) {
       final confirmed = await _confirm(
         'Close with shortfall',
-        '${formatQuantity(shortfall)} units not received will be recorded as '
+        '${shortfall.toQuantityText()} units not received will be recorded as '
             'a permanent shortfall and the transfer closes.',
         'Close transfer',
       );

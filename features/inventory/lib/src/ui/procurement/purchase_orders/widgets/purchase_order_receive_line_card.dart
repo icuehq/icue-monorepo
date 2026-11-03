@@ -98,7 +98,7 @@ class PurchaseOrderReceiveLineCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Ordered ${formatQuantity(draft.line.quantity)} · Received ${formatQuantity(draft.line.quantityReceived)}',
+                        'Ordered ${draft.line.quantity.toQuantityText()} · Received ${draft.line.quantityReceived.toQuantityText()}',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.outline,
                         ),
@@ -116,7 +116,7 @@ class PurchaseOrderReceiveLineCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    'Due: ${formatQuantity(draft.line.due)}',
+                    'Due: ${draft.line.due.toQuantityText()}',
                     style: theme.textTheme.labelSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: theme.colorScheme.onTertiaryContainer,
@@ -241,27 +241,15 @@ class PurchaseOrderReceiveLineCard extends StatelessWidget {
     );
   }
 
-  Widget _expiry(BuildContext context, ReceiveLineDraft draft) => TextFormField(
+  Widget _expiry(BuildContext context, ReceiveLineDraft draft) => AppDateField(
     controller: draft.expiry,
-    readOnly: true,
-    decoration: const InputDecoration(
-      labelText: 'Expiry date *',
-      suffixIcon: Icon(Icons.event_rounded),
-    ),
+    label: 'Expiry date *',
+    firstDate: DateTime.now(),
+    lastDate: DateTime(2100),
+    initialDate: DateTime.now().add(const Duration(days: 180)),
     validator: (value) =>
         draft.acceptedValue > 0 && (value ?? '').trim().isEmpty
         ? 'Expiry required'
         : null,
-    onTap: () async {
-      final date = await showDatePicker(
-        context: context,
-        firstDate: DateTime.now(),
-        lastDate: DateTime(2100),
-        initialDate: DateTime.now().add(const Duration(days: 180)),
-      );
-      if (date != null) {
-        draft.expiry.text = date.toIso8601String().substring(0, 10);
-      }
-    },
   );
 }

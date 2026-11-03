@@ -84,8 +84,8 @@ class IssueStockCard extends StatelessWidget {
                   decoration: InputDecoration(
                     labelText: itemName(line.itemId),
                     helperText:
-                        'Remaining ${formatQuantity(remainingToIssue(line))} of '
-                        '${formatQuantity(line.approved ?? 0)} approved',
+                        'Remaining ${remainingToIssue(line).toQuantityText()} of '
+                        '${(line.approved ?? 0).toQuantityText()} approved',
                     isDense: true,
                   ),
                 ),

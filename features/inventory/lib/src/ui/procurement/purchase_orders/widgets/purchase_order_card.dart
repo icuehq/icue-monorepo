@@ -149,7 +149,7 @@ class PurchaseOrderCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    'Due: ${order.expectedDate}',
+                    'Due: ${order.expectedDate.toDisplayDay()}',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -193,7 +193,7 @@ class PurchaseOrderCard extends StatelessWidget {
               Row(
                 children: [
                   Text(
-                    'Total: ₹${formatQuantity(order.total)}',
+                    'Total: ${order.total.toRupees()}',
                     style: theme.textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: theme.colorScheme.primary,
@@ -201,7 +201,7 @@ class PurchaseOrderCard extends StatelessWidget {
                   ),
                   const Spacer(),
                   Text(
-                    '${order.lineItems.length} items (${formatQuantity(totalAccepted)} / ${formatQuantity(totalOrdered)} rec\'d)',
+                    '${order.lineItems.length} items (${totalAccepted.toQuantityText()} / ${totalOrdered.toQuantityText()} rec\'d)',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -210,7 +210,7 @@ class PurchaseOrderCard extends StatelessWidget {
                     Padding(
                       padding: const EdgeInsets.only(left: 6),
                       child: Text(
-                        '(${formatQuantity(totalRejected)} rej)',
+                        '(${totalRejected.toQuantityText()} rej)',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.error,
                           fontWeight: FontWeight.bold,

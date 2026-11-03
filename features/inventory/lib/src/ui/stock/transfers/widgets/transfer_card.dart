@@ -68,7 +68,7 @@ class TransferCard extends StatelessWidget {
                         ),
                         if (transfer.createdAt != null)
                           Text(
-                            _formatDate(transfer.createdAt!),
+                            transfer.createdAt!.toNumericDate(),
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: theme.colorScheme.onSurfaceVariant,
                             ),
@@ -210,7 +210,7 @@ class TransferCard extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          '× ${formatQuantity(line.quantity)}',
+                          '× ${line.quantity.toQuantityText()}',
                           style: theme.textTheme.bodySmall?.copyWith(
                             fontWeight: FontWeight.w600,
                           ),
@@ -251,7 +251,7 @@ class TransferCard extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          '${formatQuantity(line.received)} / ${formatQuantity(line.dispatched)}',
+                          '${line.received.toQuantityText()} / ${line.dispatched.toQuantityText()}',
                           style: theme.textTheme.bodySmall?.copyWith(
                             fontWeight: FontWeight.w600,
                           ),
@@ -260,7 +260,7 @@ class TransferCard extends StatelessWidget {
                           Padding(
                             padding: const EdgeInsets.only(left: 6),
                             child: Text(
-                              '(-${formatQuantity(line.discrepancy)})',
+                              '(-${line.discrepancy.toQuantityText()})',
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: theme.colorScheme.error,
                                 fontWeight: FontWeight.bold,
@@ -323,7 +323,7 @@ class TransferCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        'Shortfall of ${formatQuantity(totalDiscrepancy)} units recorded on receipt',
+                        'Shortfall of ${totalDiscrepancy.toQuantityText()} units recorded on receipt',
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: theme.colorScheme.error,
                           fontWeight: FontWeight.w600,
@@ -386,9 +386,6 @@ class TransferCard extends StatelessWidget {
         );
     }
   }
-
-  String _formatDate(DateTime dt) =>
-      '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
 }
 
 class _StatusConfig {

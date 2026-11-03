@@ -55,7 +55,7 @@ class GatePassProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final dateStr = AppDateUtils.formatApiDate(date);
+      final dateStr = date.toApiDate();
       _requests = await _gatePassService.getGatePassRequests(dateStr);
     } catch (e) {
       _errorMessage = e.toString();

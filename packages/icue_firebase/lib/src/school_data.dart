@@ -149,13 +149,6 @@ class ReportColumn<Names> {
   final bool sum;
 }
 
-/// Today's calendar day in India Standard Time (`yyyy-MM-dd`), as the backend dates records.
-String todayIST() => DateTime.now()
-    .toUtc()
-    .add(const Duration(hours: 5, minutes: 30))
-    .toIso8601String()
-    .substring(0, 10);
-
 /// Newest [limit] documents leaving or arriving on the user's campuses (`campusId` / `toCampusId`),
 /// merged newest first. Rules need the campus filter on both sides, so the two lists are fetched apart.
 Future<List<T>> fetchCampusBothSides<T>(

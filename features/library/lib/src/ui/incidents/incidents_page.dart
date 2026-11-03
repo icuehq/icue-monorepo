@@ -94,7 +94,7 @@ class _IncidentsPageState extends State<IncidentsPage> {
                       final subtitle =
                           '${humanizeStatus(incident.type)}${incident.severity != null ? ' (${humanizeStatus(incident.severity)})' : ''}'
                           '${incident.memberLabel != null ? ' · ${incident.memberLabel}' : ''}'
-                          ' · ${incident.reportedDate}';
+                          ' · ${incident.reportedDate.toDisplayDay()}';
                       return ListTile(
                         title: Text(
                           '${incident.incidentNumber} · ${incident.accessionNumber}',

@@ -69,7 +69,7 @@ class _VerificationsPageState extends State<VerificationsPage> {
                       '${verification.number} · ${verification.storeName}',
                     ),
                     subtitle: Text(
-                      '${verification.date} · ${verification.lineCount} lines'
+                      '${verification.date.toDisplayDay()} · ${verification.lineCount} lines'
                       '${verification.differenceCount == null ? '' : ' · ${verification.differenceCount} differences'}',
                     ),
                     trailing: Chip(

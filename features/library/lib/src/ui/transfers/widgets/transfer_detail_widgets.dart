@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/transfers/widgets/transfer_widgets.dart';
@@ -36,7 +37,7 @@ class TransferSummary extends StatelessWidget {
         : Padding(
             padding: const EdgeInsets.only(top: 2),
             child: Text(
-              '$label: $date',
+              '$label: ${date.toDisplayDay()}',
               style: theme.textTheme.bodySmall?.copyWith(color: muted),
             ),
           );

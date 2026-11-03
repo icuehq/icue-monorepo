@@ -25,7 +25,7 @@ class _SectionsPageState extends State<SectionsPage> {
 
     try {
       final attendanceProvider = context.read<AttendanceProvider>();
-      final date = AppDateUtils.formatApiDate(DateTime.now());
+      final date = DateTime.now().toApiDate();
 
       final exists = await attendanceProvider.checkAttendanceExists(
         classId: widget.standard.classId,

@@ -1,4 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
@@ -31,27 +32,12 @@ Widget optionalDate(
   String label, {
   required DateTime first,
   required DateTime last,
-}) => TextFormField(
+}) => AppDateField(
   controller: controller,
-  readOnly: true,
-  decoration: InputDecoration(
-    labelText: label,
-    suffixIcon: controller.text.isEmpty
-        ? const Icon(Icons.event_rounded)
-        : IconButton(
-            icon: const Icon(Icons.clear_rounded),
-            onPressed: controller.clear,
-          ),
-  ),
-  onTap: () async {
-    final date = await showDatePicker(
-      context: context,
-      firstDate: first,
-      lastDate: last,
-      initialDate: DateTime.now().isBefore(first) ? first : DateTime.now(),
-    );
-    if (date != null) controller.text = date.toIso8601String().substring(0, 10);
-  },
+  label: label,
+  firstDate: first,
+  lastDate: last,
+  clearable: true,
 );
 
 DropdownButtonFormField<String> labelled(

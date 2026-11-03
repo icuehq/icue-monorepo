@@ -1,3 +1,4 @@
+import 'package:core_ui/src/utils/date_time_formatting.dart';
 import 'package:flutter/material.dart';
 
 /// Status model for a manageable document (e.g. License, RC, Insurance).
@@ -134,7 +135,7 @@ class AppDocumentAccordion extends StatelessWidget {
                           style: TextStyle(color: Colors.grey),
                         ),
                         Text(
-                          '${document.expiryDate!.day}/${document.expiryDate!.month}/${document.expiryDate!.year}',
+                          document.expiryDate!.toNumericDate(),
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ],

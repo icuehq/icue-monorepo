@@ -139,8 +139,8 @@ class _CopySheetState extends State<CopySheet> {
       ('Library', libraryProvider.library(copy.libraryId)?.name),
       ('Source', copy.source),
       ('Vendor / donor', copy.vendorOrDonor),
-      ('Acquired', copy.acquiredDate),
-      ('Price', copy.price.toStringAsFixed(2)),
+      ('Acquired', copy.acquiredDate?.toDisplayDay()),
+      ('Price', copy.price.toRupees()),
     ];
     return Column(
       mainAxisSize: MainAxisSize.min,

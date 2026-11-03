@@ -195,7 +195,7 @@ class _ArrivalTimeReportPageState extends State<ArrivalTimeReportPage> {
                                         children: [
                                           _buildDetailCol(
                                             'Trip Start',
-                                            '${item.startDate} ${item.startTime}'
+                                            '${item.startDate.toDisplayDay()} ${item.startTime.toDisplayTime()}'
                                                 .trim(),
                                           ),
                                           _buildDetailCol(

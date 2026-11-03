@@ -1,6 +1,6 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
-import 'package:icue_firebase/icue_firebase.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/procurement/invoices/widgets/invoice_card.dart';
 import 'package:inventory/src/ui/procurement/invoices/widgets/invoice_sheet.dart';

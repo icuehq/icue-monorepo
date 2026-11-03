@@ -56,7 +56,7 @@ class AttendanceProvider extends ChangeNotifier {
     required String section,
     String? period,
   }) {
-    final dateStr = AppDateUtils.formatApiDate(DateTime.now());
+    final dateStr = DateTime.now().toApiDate();
     final activePeriod = (period == null || period.isEmpty) ? '1' : period;
     return '$dateStr-$classId-$section-$activePeriod';
   }
@@ -148,8 +148,8 @@ class AttendanceProvider extends ChangeNotifier {
           classId: classId,
           section: section,
           standard: className,
-          attendanceDate: AppDateUtils.formatDate(DateTime.now()),
-          attendanceTime: AppDateUtils.formatTime12(DateTime.now()),
+          attendanceDate: DateTime.now().toNumericDate(),
+          attendanceTime: DateTime.now().toTime12(),
           month: DateTime.now().month,
           year: DateTime.now().year,
           period: activePeriod,
@@ -224,8 +224,8 @@ class AttendanceProvider extends ChangeNotifier {
           classId: classId,
           section: section,
           standard: className,
-          attendanceDate: AppDateUtils.formatDate(DateTime.now()),
-          attendanceTime: AppDateUtils.formatTime12(DateTime.now()),
+          attendanceDate: DateTime.now().toNumericDate(),
+          attendanceTime: DateTime.now().toTime12(),
           month: DateTime.now().month,
           year: DateTime.now().year,
           period: activePeriod,

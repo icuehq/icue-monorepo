@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/stock/shared/item_picker.dart';
@@ -67,7 +68,7 @@ class LineEditor extends StatelessWidget {
     if (receipt &&
         picked.item.defaultPrice != null &&
         picked.item.defaultPrice! > 0) {
-      draft.cost.text = picked.item.defaultPrice!.toStringAsFixed(2);
+      draft.cost.text = picked.item.defaultPrice!.toAmountText();
     }
     lineItems.add(draft);
     onChanged();
@@ -330,7 +331,7 @@ class _LineCard extends StatelessWidget {
                       labelText: 'Unit cost (₹)',
                       hintText:
                           item.defaultPrice != null && item.defaultPrice! > 0
-                          ? item.defaultPrice!.toStringAsFixed(2)
+                          ? item.defaultPrice!.toAmountText()
                           : '0.00',
                       prefixIcon: const Icon(Icons.currency_rupee_rounded),
                       helperText: item.stockUnit.isNotEmpty
@@ -396,9 +397,7 @@ class _LineCard extends StatelessWidget {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              hasCalculation
-                                  ? '₹ ${subtotal.toStringAsFixed(2)}'
-                                  : '—',
+                              hasCalculation ? subtotal.toRupees() : '—',
                               style: theme.textTheme.titleSmall?.copyWith(
                                 fontWeight: FontWeight.bold,
                                 color: hasCalculation
@@ -467,36 +466,19 @@ class _LineCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: TextFormField(
+                          child: AppDateField(
                             controller: lineDraft.expiry,
-                            readOnly: true,
-                            decoration: const InputDecoration(
-                              labelText: 'Expiry date',
-                              suffixIcon: Icon(Icons.event_rounded),
-                            ),
+                            label: 'Expiry date',
+                            firstDate: DateTime.now(),
+                            lastDate: DateTime(2100),
                             validator: (value) =>
                                 (value ?? '').compareTo(
-                                          DateTime.now()
-                                              .toIso8601String()
-                                              .substring(0, 10),
+                                          DateTime.now().toApiDate(),
                                         ) <
                                         0 &&
                                     (value ?? '').isNotEmpty
                                 ? 'Expired batches cannot be received'
                                 : null,
-                            onTap: () async {
-                              final date = await showDatePicker(
-                                context: context,
-                                firstDate: DateTime.now(),
-                                lastDate: DateTime(2100),
-                                initialDate: DateTime.now(),
-                              );
-                              if (date != null) {
-                                lineDraft.expiry.text = date
-                                    .toIso8601String()
-                                    .substring(0, 10);
-                              }
-                            },
                           ),
                         ),
                       ],

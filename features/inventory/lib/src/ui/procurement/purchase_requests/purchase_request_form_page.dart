@@ -42,8 +42,8 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
             purchaseRequestLine.itemId,
             items[purchaseRequestLine.itemId]?.name ??
                 purchaseRequestLine.itemId,
-            quantity: formatQuantity(purchaseRequestLine.quantity),
-            price: formatQuantity(purchaseRequestLine.estimatedPrice),
+            quantity: purchaseRequestLine.quantity.toQuantityText(),
+            price: purchaseRequestLine.estimatedPrice.toQuantityText(),
           ),
         );
       }
@@ -103,7 +103,7 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
           picked.item.name,
           price: picked.item.defaultPrice == null
               ? ''
-              : formatQuantity(picked.item.defaultPrice!),
+              : picked.item.defaultPrice!.toQuantityText(),
         ),
       );
     });
@@ -259,31 +259,14 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
                       validator: requiredText,
                     ),
                     const SizedBox(height: 12),
-                    TextFormField(
+                    AppDateField(
                       controller: _date,
-                      readOnly: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Required by date *',
-                        hintText: 'YYYY-MM-DD',
-                        prefixIcon: Icon(Icons.event_outlined),
-                        suffixIcon: Icon(Icons.calendar_month_rounded),
-                      ),
+                      label: 'Required by date *',
+                      prefixIcon: const Icon(Icons.event_outlined),
+                      firstDate: DateTime.now(),
+                      lastDate: DateTime.now().add(const Duration(days: 730)),
+                      initialDate: DateTime.now().add(const Duration(days: 7)),
                       validator: requiredText,
-                      onTap: () async {
-                        final date = await showDatePicker(
-                          context: context,
-                          firstDate: DateTime.now(),
-                          lastDate: DateTime.now().add(
-                            const Duration(days: 730),
-                          ),
-                          initialDate: DateTime.now().add(
-                            const Duration(days: 7),
-                          ),
-                        );
-                        if (date != null) {
-                          _date.text = date.toIso8601String().substring(0, 10);
-                        }
-                      },
                     ),
                     const SizedBox(height: 12),
                     TextFormField(

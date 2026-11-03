@@ -1,8 +1,6 @@
 import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
-import 'package:icue_firebase/icue_firebase.dart';
 import 'package:inventory/inventory.dart';
-import 'package:inventory/src/ui/procurement/shared/order_widgets.dart';
 import 'package:inventory/src/ui/procurement/shared/procurement_ui.dart';
 import 'package:provider/provider.dart';
 
@@ -119,7 +117,7 @@ class InvoiceSheet extends StatelessWidget {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  'Invoice Date: ${i.invoiceDate}',
+                  'Invoice Date: ${i.invoiceDate.toDisplayDay()}',
                   style: theme.textTheme.bodySmall?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
@@ -135,7 +133,7 @@ class InvoiceSheet extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    'Due: ${i.dueDate}',
+                    'Due: ${i.dueDate.toDisplayDay()}',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: isOverdue ? theme.colorScheme.error : null,
                       fontWeight: isOverdue ? FontWeight.bold : null,
@@ -163,7 +161,7 @@ class InvoiceSheet extends StatelessWidget {
                     children: [
                       Text('Subtotal', style: theme.textTheme.bodySmall),
                       Text(
-                        '₹${money(i.subtotal)}',
+                        i.subtotal.toRupees(),
                         style: theme.textTheme.bodySmall,
                       ),
                     ],
@@ -174,7 +172,7 @@ class InvoiceSheet extends StatelessWidget {
                       children: [
                         Text('Discount', style: theme.textTheme.bodySmall),
                         Text(
-                          '-₹${money(i.discount)}',
+                          '-${i.discount.toRupees()}',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: Colors.green[800],
                           ),
@@ -187,7 +185,7 @@ class InvoiceSheet extends StatelessWidget {
                       children: [
                         Text('Tax', style: theme.textTheme.bodySmall),
                         Text(
-                          '+₹${money(i.tax)}',
+                          '+${i.tax.toRupees()}',
                           style: theme.textTheme.bodySmall,
                         ),
                       ],
@@ -203,7 +201,7 @@ class InvoiceSheet extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        '₹${money(i.total)}',
+                        i.total.toRupees(),
                         style: theme.textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
@@ -221,7 +219,7 @@ class InvoiceSheet extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        '₹${money(i.paidAmount)}',
+                        i.paidAmount.toRupees(),
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: Colors.green[800],
                           fontWeight: FontWeight.w600,
@@ -245,7 +243,7 @@ class InvoiceSheet extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        '₹${money(i.outstanding)}',
+                        i.outstanding.toRupees(),
                         style: theme.textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: i.outstanding > 0
@@ -298,7 +296,7 @@ class InvoiceSheet extends StatelessWidget {
                 title: 'Update Paid Amount',
                 label: 'Total paid amount so far (₹)',
                 number: true,
-                initial: i.paidAmount.toStringAsFixed(2),
+                initial: i.paidAmount.toAmountText(),
                 then: (value) => procSubmit(
                   context,
                   (procurementProvider) => procurementProvider.act(

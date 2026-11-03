@@ -32,7 +32,7 @@ void main() {
       'issuedDate': '2026-11-01',
       'status': 'active',
     });
-    expect(row, 'ISS/1|student #501|name:T|2026-11-01|||active');
+    expect(row, 'ISS/1|student #501|name:T|01/11/2026|||active');
   });
 }
 

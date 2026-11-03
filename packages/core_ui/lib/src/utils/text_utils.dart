@@ -1,7 +1,3 @@
-/// `12` -> `12`, `12.5` -> `12.5`.
-String formatQuantity(num value) =>
-    value == value.roundToDouble() ? '${value.toInt()}' : '$value';
-
 /// A stored code as display text: `partially_paid` -> `Partially paid`. A null value shows an en dash;
 /// [overrides] replace the plain wording where it is not clear enough (`dispatched` -> `In transit`).
 String humanizeStatus(

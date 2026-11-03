@@ -61,11 +61,8 @@ class DriverInfoPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final parsedExpiry = AppDateUtils.tryParseDate(driver.licenceExpiryDate);
-    final expiryStatus = AppDateUtils.checkExpiryStatus(
-      'License',
-      parsedExpiry,
-    );
+    final parsedExpiry = driver.licenceExpiryDate.toDateOrNull();
+    final expiryStatus = parsedExpiry?.expiryStatus('License');
 
     return Scaffold(
       appBar: AppBar(

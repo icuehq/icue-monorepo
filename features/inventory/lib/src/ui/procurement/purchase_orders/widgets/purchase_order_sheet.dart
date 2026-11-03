@@ -6,7 +6,6 @@ import 'package:inventory/src/ui/procurement/invoices/widgets/invoice_form_sheet
 import 'package:inventory/src/ui/procurement/purchase_orders/purchase_order_pdf.dart';
 import 'package:inventory/src/ui/procurement/purchase_orders/widgets/purchase_order_receipts_section.dart';
 import 'package:inventory/src/ui/procurement/purchase_orders/widgets/purchase_order_revision_dialog.dart';
-import 'package:inventory/src/ui/procurement/shared/order_widgets.dart';
 import 'package:inventory/src/ui/procurement/shared/procurement_ui.dart';
 import 'package:provider/provider.dart';
 
@@ -176,7 +175,7 @@ class PurchaseOrderSheet extends StatelessWidget {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      'Expected Delivery: ${purchaseOrder.expectedDate}',
+                      'Expected Delivery: ${purchaseOrder.expectedDate.toDisplayDay()}',
                       style: theme.textTheme.bodySmall?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
@@ -237,8 +236,8 @@ class PurchaseOrderSheet extends StatelessWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'Accepted: ${formatQuantity(orderLine.quantityAccepted)} / ${formatQuantity(orderLine.quantity)}'
-                            '${orderLine.quantityRejected > 0 ? ' · ${formatQuantity(orderLine.quantityRejected)} rejected' : ''}',
+                            'Accepted: ${orderLine.quantityAccepted.toQuantityText()} / ${orderLine.quantity.toQuantityText()}'
+                            '${orderLine.quantityRejected > 0 ? ' · ${orderLine.quantityRejected.toQuantityText()} rejected' : ''}',
                             style: theme.textTheme.bodySmall?.copyWith(
                               color:
                                   orderLine.quantityAccepted >=
@@ -251,7 +250,7 @@ class PurchaseOrderSheet extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '${formatQuantity(orderLine.quantity)} × ₹${money(orderLine.unitPrice)}',
+                      '${orderLine.quantity.toQuantityText()} × ${orderLine.unitPrice.toRupees()}',
                       style: theme.textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
@@ -278,7 +277,7 @@ class PurchaseOrderSheet extends StatelessWidget {
                   children: [
                     Text('Subtotal', style: theme.textTheme.bodySmall),
                     Text(
-                      '₹${money(purchaseOrder.subtotal)}',
+                      purchaseOrder.subtotal.toRupees(),
                       style: theme.textTheme.bodySmall,
                     ),
                   ],
@@ -289,7 +288,7 @@ class PurchaseOrderSheet extends StatelessWidget {
                     children: [
                       Text('Discount', style: theme.textTheme.bodySmall),
                       Text(
-                        '-₹${money(purchaseOrder.discount)}',
+                        '-${purchaseOrder.discount.toRupees()}',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: Colors.green[800],
                         ),
@@ -302,7 +301,7 @@ class PurchaseOrderSheet extends StatelessWidget {
                     children: [
                       Text('Tax', style: theme.textTheme.bodySmall),
                       Text(
-                        '+₹${money(purchaseOrder.tax)}',
+                        '+${purchaseOrder.tax.toRupees()}',
                         style: theme.textTheme.bodySmall,
                       ),
                     ],
@@ -313,7 +312,7 @@ class PurchaseOrderSheet extends StatelessWidget {
                     children: [
                       Text('Delivery', style: theme.textTheme.bodySmall),
                       Text(
-                        '+₹${money(purchaseOrder.delivery)}',
+                        '+${purchaseOrder.delivery.toRupees()}',
                         style: theme.textTheme.bodySmall,
                       ),
                     ],
@@ -329,7 +328,7 @@ class PurchaseOrderSheet extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '₹${money(purchaseOrder.total)}',
+                      purchaseOrder.total.toRupees(),
                       style: theme.textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: theme.colorScheme.primary,

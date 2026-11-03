@@ -87,10 +87,10 @@ class _AddDriverPageState extends State<AddDriverPage> {
     _countryController = TextEditingController(text: d?.country ?? 'India');
     _pincodeController = TextEditingController(text: '${d?.pincode ?? ''}');
 
-    _dob = AppDateUtils.tryParseDate(d?.dateOfBirth);
-    _doj = AppDateUtils.tryParseDate(d?.dateOfJoining);
-    _licenceIssueDate = AppDateUtils.tryParseDate(d?.licenceIssuedDate);
-    _licenceExpiryDate = AppDateUtils.tryParseDate(d?.licenceExpiryDate);
+    _dob = d?.dateOfBirth.toDateOrNull();
+    _doj = d?.dateOfJoining.toDateOrNull();
+    _licenceIssueDate = d?.licenceIssuedDate.toDateOrNull();
+    _licenceExpiryDate = d?.licenceExpiryDate.toDateOrNull();
   }
 
   @override
@@ -228,7 +228,7 @@ class _AddDriverPageState extends State<AddDriverPage> {
                     onSelected: (date) {
                       setState(() {
                         _dob = date;
-                        _dobController.text = AppDateUtils.formatDate(date);
+                        _dobController.text = date.toNumericDate();
                       });
                     },
                   ),
@@ -239,7 +239,7 @@ class _AddDriverPageState extends State<AddDriverPage> {
                     onSelected: (date) {
                       setState(() {
                         _doj = date;
-                        _dojController.text = AppDateUtils.formatDate(date);
+                        _dojController.text = date.toNumericDate();
                       });
                     },
                   ),
@@ -265,8 +265,7 @@ class _AddDriverPageState extends State<AddDriverPage> {
                     onSelected: (date) {
                       setState(() {
                         _licenceIssueDate = date;
-                        _licenseIssueDateController.text =
-                            AppDateUtils.formatDate(date);
+                        _licenseIssueDateController.text = date.toNumericDate();
                       });
                     },
                   ),
@@ -277,8 +276,8 @@ class _AddDriverPageState extends State<AddDriverPage> {
                     onSelected: (date) {
                       setState(() {
                         _licenceExpiryDate = date;
-                        _licenseExpiryDateController.text =
-                            AppDateUtils.formatDate(date);
+                        _licenseExpiryDateController.text = date
+                            .toNumericDate();
                       });
                     },
                   ),

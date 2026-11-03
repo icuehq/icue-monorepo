@@ -85,7 +85,7 @@ class _UnavailableResolveSheetState extends State<UnavailableResolveSheet> {
         builder: (dialogContext) => AlertDialog(
           title: Text('$choiceTitle?'),
           content: Text(
-            'This will permanently resolve ${formatQuantity(widget.unavailable.quantity)} units as $choiceTitle. This action cannot be undone.',
+            'This will permanently resolve ${widget.unavailable.quantity.toQuantityText()} units as $choiceTitle. This action cannot be undone.',
           ),
           actions: [
             TextButton(
@@ -142,7 +142,7 @@ class _UnavailableResolveSheetState extends State<UnavailableResolveSheet> {
                       ),
                     ),
                     Text(
-                      '${stockProvider.itemName(item.itemId)} · ${formatQuantity(item.quantity)} units',
+                      '${stockProvider.itemName(item.itemId)} · ${item.quantity.toQuantityText()} units',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
