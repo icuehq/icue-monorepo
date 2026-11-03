@@ -1,3 +1,5 @@
+import 'package:icue_firebase/icue_firebase.dart';
+
 String transferStatusLabel(String value) => switch (value) {
   'requested' => 'Requested',
   'approved' => 'Approved',
@@ -41,6 +43,7 @@ class LibraryTransfer {
     required this.toCampusId,
     required this.status,
     required this.lineItems,
+    this.createdAt,
     this.requestedDate,
     this.dispatchedDate,
     this.receivedDate,
@@ -62,6 +65,9 @@ class LibraryTransfer {
               Map<String, dynamic>.from(value as Map),
             ),
         ],
+        createdAt: data['createdAt'] is Timestamp
+            ? (data['createdAt'] as Timestamp).toDate()
+            : null,
         requestedDate: data['requestedDate'] as String?,
         dispatchedDate: data['dispatchedDate'] as String?,
         receivedDate: data['receivedDate'] as String?,
@@ -76,6 +82,7 @@ class LibraryTransfer {
   final int toCampusId;
   final String status;
   final List<LibraryTransferLine> lineItems;
+  final DateTime? createdAt;
   final String? requestedDate;
   final String? dispatchedDate;
   final String? receivedDate;

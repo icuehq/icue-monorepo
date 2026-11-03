@@ -162,6 +162,7 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
                         Expanded(
                           child: DropdownButtonFormField<int>(
                             initialValue: _campus,
+                            isExpanded: true,
                             decoration: const InputDecoration(
                               labelText: 'Campus *',
                               prefixIcon: Icon(Icons.school_outlined),

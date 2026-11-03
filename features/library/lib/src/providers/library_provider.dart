@@ -290,28 +290,24 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     }
   }
 
-  // Transfers and stock verifications (paged, newest first).
+  // Transfers (newest first, up to 50 per direction) and paged stock verifications.
   final List<LibraryTransfer> transfers = [];
   bool transfersLoading = false;
-  bool hasMoreTransfers = false;
-  DocumentSnapshot<Map<String, dynamic>>? _transferCursor;
   final List<LibraryVerification> verifications = [];
   bool verificationsLoading = false;
   bool hasMoreVerifications = false;
   DocumentSnapshot<Map<String, dynamic>>? _verificationCursor;
 
-  Future<void> loadTransfers({bool more = false}) async {
-    if (transfersLoading || (more && !hasMoreTransfers)) return;
-    if (!more) _transferCursor = null;
+  Future<void> loadTransfers() async {
+    if (transfersLoading) return;
     transfersLoading = true;
     errorMessage = null;
     notifyListeners();
     try {
-      final page = await _service.transfers(after: _transferCursor);
-      if (!more) transfers.clear();
-      transfers.addAll(page.items);
-      _transferCursor = page.cursor;
-      hasMoreTransfers = page.hasMore;
+      final loaded = await _service.transfers(access);
+      transfers
+        ..clear()
+        ..addAll(loaded);
     } catch (error) {
       errorMessage = callableErrorMessage(error);
     } finally {

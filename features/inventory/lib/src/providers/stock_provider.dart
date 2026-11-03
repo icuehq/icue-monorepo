@@ -81,16 +81,38 @@ class StockProvider extends ChangeNotifier {
       )) ??
       [];
 
-  Future<void> loadRequests(ModuleAccess access, {String? status}) =>
-      _load(() async {
-        requests = await _service.requests(access, status: status);
-        await _names(
-          requests.expand(
-            (issueRequest) =>
-                issueRequest.lineItems.map((requestLine) => requestLine.itemId),
-          ),
-        );
-      });
+  var _requestsLoad = 0;
+
+  /// Newer calls win, so quickly switching a status filter never shows an older answer.
+  Future<void> loadRequests(ModuleAccess access, {String? status}) {
+    final load = ++_requestsLoad;
+    return _load(() async {
+      final loaded = await _service.requests(access, status: status);
+      await _names(
+        loaded.expand(
+          (issueRequest) =>
+              issueRequest.lineItems.map((requestLine) => requestLine.itemId),
+        ),
+      );
+      if (load == _requestsLoad) requests = loaded;
+    });
+  }
+
+  /// One request, fresh from Firestore; also refreshes its row in [requests].
+  Future<InventoryIssueRequest?> loadRequest(String id) async {
+    final loaded = await _load(() async {
+      final request = await _service.requestById(id);
+      if (request == null) {
+        errorMessage = 'Request not found';
+        return null;
+      }
+      await _names(request.lineItems.map((requestLine) => requestLine.itemId));
+      final index = requests.indexWhere((existing) => existing.id == id);
+      if (index >= 0) requests[index] = request;
+      return request;
+    }, quiet: true);
+    return loaded;
+  }
 
   Future<void> loadAllStores() async {
     if (allStores.isNotEmpty) return;

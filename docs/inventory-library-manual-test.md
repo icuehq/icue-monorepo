@@ -6,6 +6,8 @@ the expectation holds. Note failures with the step number.
 Tags: **[JOB]** needs a scheduled job that the emulator never fires on its own (see Part 0.5).
 **[EMU]** behaves differently in the emulator.
 
+---
+
 ## Part 0 – Setup
 
 ### 0.1 Start the emulators
@@ -18,762 +20,826 @@ melos run emulators:reset
 melos run emulators
 ```
 
-Leave it running (Ctrl-C saves data to `firebase/.emulator-data`). Emulator UI: http://localhost:4000.
+Leave it running (Ctrl-C saves data to `firebase/.emulator-data`). Emulator UI: <http://localhost:4000>.
 
-### 0.2 Seed role permissions
+### 0.2 User Roles & Permissions
 
-Use the role IDs your test login really has from Node (it is in the login response). One command per extra role is not needed; pass several:
+Inventory and Library permissions are synced automatically on login from Node `/v1.0/getActionsByRole` via `session-sync` into Firestore under `schools/<schoolId>/userAccess/<uid>` (see `docs/inventory-library-node-actions.md`).
 
-```bash
-melos run emulators:seed -- --school <schoolId> --roles admin=<roleId>
-```
+For emulator testing:
 
-To test other roles later, re-run with `--force` and a different mapping, for example `--roles librarian=<roleId> --force`. Role names: `admin`, `principal`, `inventoryManager`, `storekeeper`, `procurement`, `librarian`, `teacher`.
+- **Full Admin / Testing Access**: Sign in through the app. In the Emulator UI (<http://localhost:4000/firestore>), locate `schools/<schoolId>/userAccess/<your uid>`. Ensure `permissions` contains the required keys (or all permissions below), `campusIds: [31, 32]`, and `hasAllCampuses: true`:
+  - Inventory: `inventory.settings`, `inventory.items.manage`, `inventory.items.view`, `inventory.stock.view`, `inventory.stock.operate`, `inventory.issue.request`, `inventory.issue.approve`, `inventory.adjustment.approve`, `inventory.purchaseRequest.request`, `inventory.purchaseRequest.approve`, `inventory.procure.operate`, `inventory.vendors.manage`, `inventory.assets.manage`, `inventory.assets.view`, `inventory.reports.view`.
+  - Library: `library.settings`, `library.catalogue.manage`, `library.catalogue.view`, `library.circulation.operate`, `library.fines.waive`, `library.reports.view`, `library.members.view`.
+- **Role Verification (Part 1.7 / 2.9)**: To simulate specific roles (e.g. `storekeeper`, `procurement`, `teacher`, `librarian`), edit the `permissions` array directly in the Emulator UI document or sign in as a user with that role.
 
 ### 0.3 Run the app
 
 Launch config **icueadmin [Dev + Emulators · Android]** (or iOS). It signs in with a locally built unsigned token. Open Emulator UI → Firestore → `schools/<schoolId>/userAccess/<your uid>`.
 
-- [ ] 0.3.1 `permissions` is non-empty, `campusIds` lists your campus IDs (or `hasAllCampuses: true`). **Expect** the app shows Inventory and Library tiles. If not, the role ID in the seed does not match your login.
+- [ ] 0.3.1 `permissions` is non-empty, `campusIds` lists your campus IDs (or `hasAllCampuses: true`). **Expect** the Dashboard shows Inventory and Library tiles.
 
-### 0.4 Test data you will type
+### 0.4 Test data you will use
 
-Use two campuses (31 and 32 below; use your real campus IDs). Keep a scratch list: ERP student IDs 501, 502, 503, ERP teacher/staff ID 884 (yours), a second staff ID.
+- Campuses: `31` and `32` (or your school's actual campus IDs).
+- Person IDs: ERP student IDs `501`, `502`, `503`; ERP staff/teacher IDs `884` (yours), `501` (second staff).
 
 ### 0.5 Scheduled jobs
 
-`dailyInventory`, `dailyLibrary` and `holdExpiry` do not run by themselves in the emulator. Steps tagged **[JOB]** can only be checked once someone triggers them (a small script calling `runDailyInventory` / `runDailyLibrary` / `runHoldExpiry` is not in the repo yet). Skip those steps for now and mark them blocked.
+`dailyInventory`, `dailyLibrary` and `holdExpiry` do not run by themselves in the emulator. Steps tagged **[JOB]** can only be checked once triggered. Skip those steps for now and mark them blocked if a scheduled job runner is not invoked.
 
-### 0.6 What to watch in the Emulator UI during the whole run
+### 0.6 What to watch in the Emulator UI during the run
 
-- `schools/<schoolId>/auditLogs`: one entry per change.
-- `schools/<schoolId>/outbox` and `notifications`: what would have been pushed. Push itself is never sent from the emulator. **[EMU]**
-- `schools/<schoolId>/requests`: repeating the same action (double tap) must not create a second record.
+- `schools/<schoolId>/auditLogs`: one entry per cloud callable mutation.
+- `schools/<schoolId>/outbox`: notification events queued for delivery. (Push notifications are not dispatched to real FCM in emulator **[EMU]**).
+- Idempotency: repeating actions (e.g. double-tapping save) uses `requestId` deduplication so duplicate records are not created.
 
 ---
 
 ## Part 1 – Inventory
 
-Open **Inventory** from the dashboard.
+Open **Inventory** from the dashboard. The Inventory hub shows 15 option grid tiles: Dashboard, Stock verification, Import, Reports, Items, Categories, Units, Stock, Issue requests, Purchase requests, Purchase orders, Vendor invoices, Assets, Vendors, Stores.
 
 ### 1.1 Masters (Inv-1)
 
-#### Master Setup & Categories
-- [ ] 1.1.1 **Categories** → tap empty-state seed button (or view seeded categories). **Expect** FRS default categories (Stationery, Laboratory, IT & Electronics, Sports, Maintenance) and standard units appear.
-- [ ] 1.1.2 Add a root category with Code `STA`, Name `Stationery & Supplies`. Under `STA`, add subcategory Code `WRI`, Name `Writing Instruments`. **Expect** both saved and listed in the tree.
-- [ ] 1.1.3 Negative: Add a category with Code `STA` again. **Expect** rejected with "Category code already exists" (codes are unique and case-insensitive).
-- [ ] 1.1.4 Deactivate subcategory `WRI` (switch off Active). Try to select `WRI` in item creation. **Expect** `WRI` is excluded or creation is rejected with inactive category error. Reactivate `WRI`.
-- [ ] 1.1.5 **Units** → add Code `ream`, Name `Ream (500 sheets)`. **Expect** unit saved and appears in unit dropdowns.
+#### Categories & Default Seed
+
+- [ ] 1.1.1 **Categories** → tap empty-state seed button (or reload if already seeded). **Expect** 14 standard FRS default categories appear (`STA` - Stationery, `CLS` - Classroom supplies, `FUR` - Furniture, `ITE` - IT equipment, `LAB` - Laboratory equipment, `SPT` - Sports equipment, `KIT` - Kitchen supplies, `MED` - Medical supplies, etc.).
+- [ ] 1.1.2 On category card `STA` (`Stationery`), tap **Add Subcategory**:
+  - Code: `WRI`
+  - Name: `Writing Instruments`
+  - Suggested Tracking: `Quantity tracked`
+  - Tap **Save**. **Expect** `WRI` is listed nested under `Stationery` with a subcategory badge.
+- [ ] 1.1.3 Tap FAB **+ Category** to add a new root category:
+  - Code: `ART`
+  - Name: `Art & Craft Supplies`
+  - Suggested Tracking: `Quantity tracked`
+  - Tap **Save**. **Expect** `ART` appears as a root category card.
+- [ ] 1.1.4 Negative: Tap FAB **+ Category** and enter Code `STA` again with Name `Duplicate Stationery`. Tap Save. **Expect** rejected with error ("Category code already exists").
+- [ ] 1.1.5 Deactivate subcategory `WRI` (toggle Active switch off). Try creating an item under `WRI`. **Expect** inactive subcategory is hidden or rejected. Reactivate subcategory `WRI`.
+
+#### Units
+
+- [ ] 1.1.6 **Units** → tap empty-state seed button (if not already seeded). **Expect** 12 standard units appear (`pcs` - Pieces, `box` - Boxes, `pkt` - Packets, `kg`, `g`, `l`, `ml`, `m`, `set`, `pair`, `doz`, `roll`).
+- [ ] 1.1.7 Tap FAB **+ Unit**:
+  - Code: `ream`
+  - Name: `Ream (500 sheets)`
+  - Tap **Save**. **Expect** `ream` saved and appears in unit list and item form dropdowns.
 
 #### Stores
-- [ ] 1.1.6 **Stores** → add Store 1:
-  - Code: `S31`
-  - Name: `Central Main Store`
-  - Campus: `31`
+
+- [ ] 1.1.8 **Stores** → tap FAB **+ Store** to create Store 1:
+  - Store Name: `Central Main Store` (Note: Store code `CENTRAL_MAIN_STORE` is auto-generated from the name)
+  - Campus: `Campus 31`
   - Location: `Admin Building Ground Floor`
   - Description: `Main central distribution store`
-- [ ] 1.1.7 Add Store 2:
-  - Code: `S32`
-  - Name: `Science Lab Store`
-  - Campus: `32`
+  - Store Keepers: Search and add Staff ERP ID `884`
+  - Tap **Save**. **Expect** store card created with Active badge and Campus 31.
+- [ ] 1.1.9 Tap FAB **+ Store** to create Store 2:
+  - Store Name: `Science Lab Store` (Code auto-generated: `SCIENCE_LAB_STORE`)
+  - Campus: `Campus 32`
   - Location: `Science Block 2nd Floor`
   - Description: `Laboratory chemicals and apparatus store`
-- [ ] 1.1.8 In store details / edit, check Campus field. **Expect** both stores listed with Active badges; campus selector is locked / cannot be modified after creation.
+  - Tap **Save**. **Expect** store card created with Campus 32.
+- [ ] 1.1.10 Open `Central Main Store` for editing. Check Campus field. **Expect** Campus dropdown is locked/disabled during edit.
 
-#### Items (Simplified Catalog Master)
-- [ ] 1.1.9 **Items** → Add Item 1 (Quantity-tracked consumable):
+#### Items (Catalog Master)
+
+- [ ] 1.1.11 **Items** → tap FAB **+ Item** to add Item 1 (Quantity-tracked consumable):
   - Code: `PEN-BLU-01`
   - Name: `Ballpoint Pen (Blue, 0.7mm)`
-  - Category: `Writing Instruments` (`WRI`)
-  - Stock Unit: `pc`
+  - Category: `Stationery` (`STA`)
+  - Subcategory: `Writing Instruments` (`WRI`)
+  - Stock Unit: `Pieces (pcs)`
   - Tracking Method: `Quantity tracked`
   - Reorder Level: `50`
   - Default Price: `15.00`
-  - **Expect** saved. Item card displays code, name, category, unit, default price (₹15.00), and reorder level (50).
-- [ ] 1.1.10 Add Item 2 (Batch & Expiry-tracked):
+  - Tap **Save**. **Expect** saved. Item card displays code `PEN-BLU-01`, name, category, unit `pcs`, default price (₹15), and reorder level (50).
+- [ ] 1.1.12 Add Item 2 (Batch & Expiry-tracked):
   - Code: `MILK-PAST-01`
   - Name: `Pasteurized Milk (500ml pouch)`
-  - Category: `Stationery & Supplies` (`STA`)
-  - Stock Unit: `pc`
+  - Category: `Kitchen supplies` (`KIT`)
+  - Stock Unit: `Pieces (pcs)`
   - Tracking Method: `Batch & expiry tracked`
   - Reorder Level: `15`
   - Default Price: `30.00`
-  - **Expect** saved with Batch tracking badge.
-- [ ] 1.1.11 Add Item 3 (Serialized Asset-tracked):
+  - Tap **Save**. **Expect** saved with Batch tracking badge.
+- [ ] 1.1.13 Add Item 3 (Serialized Asset-tracked):
   - Code: `LAP-DELL-15`
   - Name: `Dell Latitude 15 Core i5 Laptop`
-  - Category: `Stationery & Supplies` (`STA`)
-  - Stock Unit: `pc`
+  - Category: `IT equipment` (`ITE`)
+  - Stock Unit: `Pieces (pcs)`
   - Tracking Method: `Asset tracked (serialized)`
   - Reorder Level: `3`
   - Default Price: `45000.00`
-  - **Expect** saved with Asset tracking badge.
-- [ ] 1.1.12 Negative: Add an item with Code `PEN-BLU-01` again. **Expect** rejected with "Item code already exists".
-- [ ] 1.1.13 **Item Details & Navigation**: Tap `PEN-BLU-01` in the catalog list. **Expect** dashboard card opens showing classification, tracking parameters, and a direct action button **"View Store Stock"**.
-- [ ] 1.1.14 **Items Search & Category Filter**:
+  - Tap **Save**. **Expect** saved with Asset tracking badge.
+- [ ] 1.1.14 Negative: Tap **+ Item** and enter Code `PEN-BLU-01` again. Tap Save. **Expect** rejected with error ("Item code already exists").
+- [ ] 1.1.15 **Item Details & Navigation**: Tap `PEN-BLU-01` in the catalog list. **Expect** Item details screen opens displaying classification, tracking parameters, description, and an active status switch.
+- [ ] 1.1.16 **Items Search & Filter**:
   - In Items list search bar, type `pen`. **Expect** `PEN-BLU-01` is filtered immediately.
-  - Tap Category filter chip `Writing Instruments`. **Expect** only items under `WRI` are shown, with matching count badge. Clear chip.
+  - Filter by Category `Stationery`. **Expect** only items under `STA` are shown. Clear search.
 
 ---
 
 ### 1.2 Stock (Inv-2)
 
-Open **Stock** from Inventory.
+Open **Stock** from Inventory tiles.
 
 #### 1.2.1 Receive Opening Stock (Consumable)
-- [ ] Tap **Receive Stock** (or quick-action chip).
-  - Store: `Central Main Store` (`S31`)
+
+- [ ] Tap **Receive stock** FAB (or quick-action chip "Receive"):
+  - Store: `Central Main Store`
   - Source: `Opening stock`
   - Reference: `OP-2024-PEN`
-  - Line: `PEN-BLU-01` × `100` units at unit cost `15.00`
-  - Tap **Confirm Receiving**.
-- [ ] **Expect** in Stock Overview for `S31`:
-  - Available balance for `PEN-BLU-01` = `100 units`.
-  - Store Valuation banner updates (+ ₹1,500.00).
-  - Tap balance card → **View movement history**: shows `receive` movement with +100 units, source `opening`, reference `OP-2024-PEN`.
+  - Tap **+ Add item**: Search and select `PEN-BLU-01`. Enter Quantity: `100`, Unit Cost: `15.00`.
+  - Tap **Receive stock** at bottom.
+- [ ] **Expect** in Stock Overview for `Central Main Store`:
+  - Available balance for `PEN-BLU-01` = `100`.
+  - Store Valuation banner updates by +₹1,500.00.
+  - Tap balance card → select **Movement history**: displays `receive` movement with +100 units, bucket `available`, reference `OP-2024-PEN`.
 
 #### 1.2.2 Receive Batch Stock (FEFO Preparation)
-- [ ] Tap **Receive Stock**:
-  - Store: `Central Main Store` (`S31`)
+
+- [ ] Tap **Receive stock**:
+  - Store: `Central Main Store`
   - Source: `Opening stock`
   - Reference: `OP-2024-MILK`
-  - Line 1: `MILK-PAST-01`, Batch `BATCH-M1`, Expiry: Today + 5 days, Quantity: `20`
-  - Line 2: `MILK-PAST-01`, Batch `BATCH-M2`, Expiry: Today + 25 days, Quantity: `10`
-  - Tap **Confirm Receiving**.
-- [ ] **Expect** in `S31`:
-  - `MILK-PAST-01` shows total Available = `30 units`.
-  - Expanding balance shows two separate batch balances: `BATCH-M1` (20 units, expiring in 5 days) and `BATCH-M2` (10 units, expiring in 25 days).
+  - Line 1: Tap **+ Add item** → select `MILK-PAST-01`. Enter Quantity: `20`, Unit Cost: `30.00`, Batch Number: `BATCH-M1`, Expiry Date: Today + 5 days (`YYYY-MM-DD`).
+  - Line 2: Tap **+ Add item** → select `MILK-PAST-01`. Enter Quantity: `10`, Unit Cost: `30.00`, Batch Number: `BATCH-M2`, Expiry Date: Today + 25 days (`YYYY-MM-DD`).
+  - Tap **Receive stock**.
+- [ ] **Expect** in `Central Main Store`:
+  - `MILK-PAST-01` shows total Available = `30`.
+  - Balance cards list batch entries: `BATCH-M1` (20 units) and `BATCH-M2` (10 units) with respective expiry dates.
 
 #### 1.2.3 Negative: Expired Batch Receipt Rejected
-- [ ] Tap **Receive Stock** with `MILK-PAST-01`, Batch `BATCH-OLD`, Expiry: Yesterday (past date), Quantity: `5`.
-- [ ] **Expect** rejected with validation error (expired batches cannot be received into active inventory).
 
-#### 1.2.4 Negative: Asset-Tracked Items Ineligible for Stock Receive
-- [ ] In **Receive Stock**, select `LAP-DELL-15` (asset-tracked item).
-- [ ] **Expect** rejected: Asset items cannot be received via opening stock receipt; they must be received via Purchase Orders with individual serial/tag registration (Inv-6).
+- [ ] Tap **Receive stock** with `MILK-PAST-01`, Batch `BATCH-OLD`, Expiry: Yesterday (`YYYY-MM-DD`), Quantity: `5`. Tap Receive stock.
+- [ ] **Expect** rejected with validation error (expired batches cannot be received into active stock).
+
+#### 1.2.4 Negative: Asset-Tracked Items Excluded from Stock Receive
+
+- [ ] In **Receive stock**, tap **+ Add item** to open the item picker dialog. Type `LAP-DELL-15` or `Laptop`.
+- [ ] **Expect** `LAP-DELL-15` does NOT appear in the item picker (asset-tracked items are managed through the Assets module and PO receiving, and are excluded from direct stock receive).
 
 #### 1.2.5 Create Issue Request (Requisition)
-- [ ] Tap **Issue Requests** → tap **New Request**:
-  - Store: `Central Main Store` (`S31`)
+
+- [ ] Open **Issue requests** (from tile or Stock quick-action chip) → tap FAB **New request**:
+  - Issue from store: `Central Main Store`
   - Purpose: `Exam Hall Supplies for Midterms`
   - Destination: `Main Exam Hall - Block A`
-  - Line: `PEN-BLU-01` × `30` units
-  - Tap **Submit Request**.
-- [ ] **Expect** request created with number `REQ/<year>/<seq>`. Status is `Pending`. Appears under `All` and `Pending` filter chips with badge count `1`.
+  - Line items: Tap **+ Add item** → select `PEN-BLU-01`, Quantity: `30`.
+  - Tap **Submit request**.
+- [ ] **Expect** request created with number `REQ/<year>/<seq>`. Status is `Pending`. Appears under `All` and `Pending` filter chips with count badge `1`.
 
-#### 1.2.6 Approve Issue Request (One-Click Approval)
-- [ ] As Approver (`inventory.issue.approve`), open the request sheet.
-- [ ] Tap **"Approve all requested"** button. **Expect** approved quantity for `PEN-BLU-01` automatically fills with `30`.
-- [ ] Tap **Approve request**.
-- [ ] **Expect** status changes to `Approved`. Request card moves under `Approved` filter chip; requester receives outbox event `issuerequest__approved`.
+#### 1.2.6 Approve Issue Request
+
+- [ ] As Approver (`inventory.issue.approve`), tap the pending request card to open the request screen.
+- [ ] **Expect** the progress strip shows `Requested` done, and the Items section has the Approve quantity field pre-filled with `30`.
+- [ ] Change it to `31` and tap **Approve**. **Expect** blocked: cannot approve more than the requested `30`. Set it back to `30`.
+- [ ] Tap **Approve**.
+- [ ] **Expect** the same screen refreshes to `Approved` (blue) with `Approved 30 · Issued 0` under the item. The request card moves under the `Approved` filter chip; requester receives outbox event `issuerequest__approved`.
 
 #### 1.2.7 Negative: Rejection Reason Required
-- [ ] Create a dummy request for `10` PEN. Open as Approver, leave Note empty and tap **Reject**.
-- [ ] **Expect** blocked with error "Enter a reason for rejection".
-- [ ] Type "Department monthly quota exceeded" and tap **Reject**. **Expect** status changes to `Rejected`.
+
+- [ ] Create a dummy request for `10` pens. Open as Approver and tap **Reject**.
+- [ ] A dialog asks for a reason. Tap **Reject** with it empty. **Expect** "A reason is required".
+- [ ] Type "Department monthly quota exceeded" and tap **Reject**. **Expect** status changes to `Rejected` and the reason shows on the request screen.
 
 #### 1.2.8 Stock Issuance & Recipient Auto-Fill
-- [ ] As Storekeeper (`S31`), open the approved 30-unit request sheet.
-- [ ] Scroll to **Issue Stock** section.
-- [ ] **Expect** Recipient ERP ID is automatically pre-filled with the requester's ERP ID (`884`), Recipient Type: `Staff`.
+
+- [ ] Open the approved 30-unit request as Storekeeper.
+- [ ] In the **Issue stock** card:
+  - Recipient: `Staff`, pre-filled with the requester (ERP ID `884`, shown as a chip marked `requester`).
+  - Quantity to issue now: pre-filled with the remaining `30`. (It can be lowered to issue in parts.)
 - [ ] Tap **Issue stock**.
 - [ ] **Expect**:
-  - Issue number created (e.g. `ISS/<year>/<seq>`).
-  - Request status updates to `Issued`.
-  - In `S31` stock overview, `PEN-BLU-01` Available balance decreases from `100` to `70`.
+  - Request status becomes `Issued`; an **Issuances** card for `ISS/...` appears on the same screen.
+  - In `Central Main Store` stock overview, `PEN-BLU-01` Available balance drops from `100` to `70`.
 
 #### 1.2.9 Negative: Issue Beyond Available Balance
-- [ ] Create a request for `500` PEN from `S31`. Approve it and try to issue.
-- [ ] **Expect** refused with error (insufficient stock; available is only 70; balances cannot go negative).
+
+- [ ] Create and approve an issue request for `500` pens from `Central Main Store`. Try to issue it.
+- [ ] **Expect** refused with error (insufficient available balance; balance cannot drop below zero).
 
 #### 1.2.10 Recipient Receipt Acknowledgement
-- [ ] Open the issue sheet for the 30-unit issue.
-- [ ] Notice the banner: *"Recipient has not yet acknowledged receiving these items"*.
-- [ ] Tap **Confirm receipt**.
-- [ ] **Expect** banner updates to `Receipt Confirmed` (green pill).
+
+- [ ] In the **Issuances** card for the 30-unit issue, notice `Awaiting receipt`.
+- [ ] Tap **Confirm receipt** and confirm in the dialog.
+- [ ] **Expect** the label changes to `Receipt confirmed` (green) and the **Confirm receipt** button disappears.
 
 #### 1.2.11 Return Inspection (Usable vs. Damaged Split)
-- [ ] In the issue return sheet for the 30-unit issue:
-  - Outstanding is `30 units`.
-  - For `PEN-BLU-01`, enter `10` in **Usable** (or tap "All usable" icon and edit) and `5` in **Damaged**.
-  - Returned by Staff ERP ID: `884`.
-  - Tap **Record Return**.
+
+- [ ] On the issuance card tap **Return items** (opens the return screen):
+  - `PEN-BLU-01` shows `30 to return`.
+  - Returned by: pre-filled with `884`.
+  - Enter Usable: `10`, Damaged: `5`.
+  - Tap **Record return**.
 - [ ] **Expect**:
-  - `S31` Available balance for `PEN-BLU-01` increases from `70` to `80` (only usable stock returns to available).
-  - The `5` damaged units are NOT added to available balance; they are automatically routed to the **Quarantine / Damaged Stock Register**.
-  - Outstanding on the issue becomes `15 units` (30 − 15).
+  - Back on the request screen, the issuance line shows `30 · returned 15`.
+  - `Central Main Store` Available balance for `PEN-BLU-01` increases from `70` to `80` (only usable units return to available stock).
+  - The `5` damaged units are routed to Damaged / Expired stock (`inventoryUnavailable`).
+  - Remaining outstanding on the issue is `15` (30 − 15).
 
 #### 1.2.12 Negative: Return Exceeding Outstanding Quantity
-- [ ] In the same issue return sheet, try to return `20` units (only 15 are outstanding).
-- [ ] **Expect** refused with error (return quantity cannot exceed remaining outstanding balance).
+
+- [ ] On the return screen again, try to return Usable: `20` units (remaining outstanding is only 15).
+- [ ] **Expect** blocked: only 15 can still be returned.
 
 #### 1.2.13 Inter-Store Transfer Request
-- [ ] Tap **Transfers** → tap **New Transfer**:
-  - Source Store (From): `Central Main Store` (`S31`, Campus 31)
-  - Destination Store (To): `Science Lab Store` (`S32`, Campus 32)
-  - Line: `PEN-BLU-01` × `20` units
+
+- [ ] Open **Transfers** (from tile or Stock quick-action chip) → tap FAB **New Transfer**:
+  - Source store: `Central Main Store` (Campus 31)
+  - Destination store: `Science Lab Store` (Campus 32)
   - Remarks: `Transfer surplus stationery to science faculty`
-  - Tap **Request Transfer**.
-- [ ] **Expect** transfer card created with number `TRF/<year>/<seq>`. Status is `Requested` (amber). Displays `Inter-campus` badge and route `Central Main Store ➔ Science Lab Store`.
+  - Tap **+ Add item**: select `PEN-BLU-01`, Quantity: `20`.
+  - Tap **Submit Request** (or **Request Transfer**).
+- [ ] **Expect** transfer card created with number `TRF/<year>/<seq>`. Status is `Requested` (amber). Displays route `Central Main Store ➔ Science Lab Store` and `Inter-campus` badge.
 
 #### 1.2.14 Negative: Same Source and Destination Store
-- [ ] In **New Transfer**, select `S31` for both From and To stores.
-- [ ] **Expect** blocked with error "Source and destination stores must differ".
+
+- [ ] In **New Transfer**, select `Central Main Store` for both Source and Destination stores. Tap Request.
+- [ ] **Expect** blocked with error: "Source and destination stores must differ".
 
 #### 1.2.15 Transfer Dispatch
-- [ ] Open the transfer card as Storekeeper for `S31`.
-- [ ] Tap **Dispatch Transfer**.
+
+- [ ] As Storekeeper for `Central Main Store`, the transfer card shows `Ready to dispatch`. Tap it to open the transfer screen.
+- [ ] Tap **Dispatch transfer** and confirm in the dialog. (A user on another campus sees only "Waiting for the source store to dispatch the stock" and no button.)
 - [ ] **Expect**:
   - Transfer status updates to `In Transit` (blue).
-  - `PEN-BLU-01` Available balance in `S31` drops from `80` to `60` (allocated and deducted immediately upon dispatch).
-  - `S32` balance remains `0` (stock is in transit).
+  - `PEN-BLU-01` Available balance in `Central Main Store` drops from `80` to `60` (deducted immediately upon dispatch).
+  - `Science Lab Store` balance remains `0` (stock is in transit).
 
 #### 1.2.16 Transfer Partial Receipt & Shortfall Discrepancy Recording
-- [ ] Open the transfer card as Storekeeper for `S32` (`Science Lab Store`).
-- [ ] Receive dialog opens showing 20 units dispatched.
-- [ ] Enter received quantity `15` (5 units short / damaged in transit).
-- [ ] Switch ON **"Close transfer upon receipt (record any unreceived items as permanent shortfall)"**.
-- [ ] Tap **Confirm Receipt**.
+
+- [ ] Switch Store selector to `Science Lab Store` (or open transfer as receiving storekeeper).
+- [ ] Open the transfer card (`Confirm receipt on arrival`). In the Items card:
+  - Enter `25` for **Receive now**. **Expect** it is refused: at most 20 can be received. Then enter `15` (5 units short / damaged in transit).
+  - Switch ON **"Close transfer after this receipt"** (anything not received is recorded as a permanent shortfall).
+  - Tap **Confirm receipt** and confirm the shortfall dialog.
 - [ ] **Expect**:
   - Transfer status updates to `Received` (green).
-  - `PEN-BLU-01` Available balance in `S32` increases from `0` to `15 units`.
-  - Transfer card displays red warning banner: *"Shortfall of 5 units recorded on receipt"*.
+  - `PEN-BLU-01` Available balance in `Science Lab Store` increases from `0` to `15`.
+  - Transfer card displays red shortfall badge: *"Shortfall: 5 units"*.
   - Discrepancy of 5 units is logged permanently in transfer audit records.
 
 #### 1.2.17 Stock Adjustment with Reason
-- [ ] In `S31`, tap on `PEN-BLU-01` balance card → select **Adjust stock**.
-- [ ] Enter adjustment quantity `-3` units.
-- [ ] Reason: `Physical count audit discrepancy`.
-- [ ] Tap **Confirm adjustment**.
-- [ ] **Expect** `PEN-BLU-01` Available balance in `S31` drops from `60` to `57 units`. Movement history logs an `adjust` movement with -3 units and the audit reason.
 
-#### 1.2.18 Quarantine / Damaged Resolution Flow
-- [ ] Open **Quarantine / Damaged Stock** (`unavailable_page`).
-- [ ] **Expect** filter chip `Open (1)` shows the `5` damaged units of `PEN-BLU-01` recorded in step 1.2.11.
+- [ ] In `Central Main Store`, tap `PEN-BLU-01` balance card → select **Adjust quantity**:
+  - Change (+ adds, − removes): `-3`
+  - Reason: `Physical count correction`
+  - Note: `Physical count audit discrepancy`
+  - Tap **Confirm** / submit.
+- [ ] **Expect** `PEN-BLU-01` Available balance drops from `60` to `57`. Movement history logs an `adjust` movement with -3 units and the audit reason.
+
+#### 1.2.18 Damaged / Expired Resolution Flow
+
+- [ ] In Stock Overview, tap quick-action chip **Damaged / Expired** (`unavailable_page`).
+- [ ] **Expect** Filter chip `Open (1)` lists the `5` damaged units of `PEN-BLU-01` recorded from step 1.2.11.
 - [ ] **Resolution Case A (Restoration)**:
-  - Tap the damaged card to open resolution modal.
-  - Enter note: `Replaced leaking caps; verified usable after inspection`.
-  - Tap **Return to usable stock**.
-  - **Expect**: Status updates to `Resolved: Return to usable stock`. In `S31`, `PEN-BLU-01` Available balance increases from `57` to `62 units`.
-- [ ] **Resolution Case B (Quarantine & Permanent Write-Off)**:
-  - In `S31` stock overview, tap `PEN-BLU-01` → select **Report damaged / quarantine** for `2` units. Note: `Crushed in storage bin`.
-  - `PEN-BLU-01` Available balance drops from `62` to `60 units`.
-  - In Quarantine page, open the new 2-unit entry.
-  - Tap **Write off**.
-  - **Expect**: Confirmation dialog prompts *"Write off? This will permanently resolve 2 units... Action cannot be undone"*. Confirm.
-  - **Expect**: Entry moves to `Resolved: Write off`. Stock Available remains `60`.
+  - Tap the damaged card to open `UnavailableResolveSheet`.
+  - Enter remarks: `Replaced leaking caps; inspected and usable`.
+  - Select **Return to usable stock**.
+  - **Expect**: Status updates to `Resolved`. In `Central Main Store`, `PEN-BLU-01` Available balance increases from `57` to `62`.
+- [ ] **Resolution Case B (Reporting & Permanent Write-Off)**:
+  - In Stock Overview for `Central Main Store`, tap `PEN-BLU-01` → select **Report damaged / expired / lost**:
+    - What happened: `Damaged`
+    - Quantity: `2`
+    - Details: `Crushed in storage bin`
+    - Tap **Report**.
+  - `PEN-BLU-01` Available balance drops from `62` to `60`.
+  - In **Damaged / Expired** page, open the new 2-unit entry → tap **Write off**.
+  - Confirmation dialog prompts: *"Write off? This will permanently resolve 2 units... Action cannot be undone"*. Tap **Confirm**.
+  - **Expect**: Entry status becomes `Resolved: Write off`. Stock Available remains `60`.
 
 #### 1.2.19 Low Stock Alert & Filter Chip
-- [ ] Open `PEN-BLU-01` in Item Details. Edit reorder level to `70` (higher than current available `60`).
-- [ ] Return to **Stock Overview** for `S31`.
+
+- [ ] Open `PEN-BLU-01` in Items → Edit. Update reorder level to `70` (higher than current available `60`). Save.
+- [ ] Return to **Stock** for `Central Main Store`.
 - [ ] **Expect**:
   - Balance card for `PEN-BLU-01` displays high-visibility warning pill: *"Low Stock: Below reorder level (70)"*.
   - Header filter chip **"Low stock only (1)"** appears.
   - Tapping **"Low stock only"** filters the list to show only `PEN-BLU-01`.
-  - Low-stock outbox notification event generated (`lowstock__...`).
+  - Low-stock event generated in outbox.
 
 #### 1.2.20 FEFO Batch Issuance (Earliest Expiry First)
-- [ ] In `S31`, create and approve an issue request for `15` units of `MILK-PAST-01`. Issue it.
-- [ ] **Expect**: FEFO allocation consumes 15 units from `BATCH-M1` (expiring in 5 days). `BATCH-M1` balance drops from 20 to `5 units`. `BATCH-M2` remains untouched at `10 units`. Total available = 15.
+
+- [ ] In `Central Main Store`, create and approve an issue request for `15` units of `MILK-PAST-01`. Issue it.
+- [ ] **Expect**: FEFO allocation consumes 15 units from `BATCH-M1` (expiring in 5 days). `BATCH-M1` balance drops from 20 to `5`. `BATCH-M2` remains untouched at `10`.
 - [ ] Create and approve a second issue request for `10` units of `MILK-PAST-01`. Issue it.
-- [ ] **Expect**: Remaining 5 units are drawn from `BATCH-M1` (depleting it to 0), and the remaining 5 units are drawn from `BATCH-M2` (balance drops from 10 to `5 units`). Earliest-expiry batch is always exhausted first.
+- [ ] **Expect**: Remaining 5 units are drawn from `BATCH-M1` (depleting it to 0), and the next 5 units are drawn from `BATCH-M2` (balance drops from 10 to `5`). Earliest-expiry batch is always exhausted first.
 
 ---
 
 ### 1.3 Procurement (Inv-3, Inv-4, Inv-5)
 
 #### Vendors Master (Inv-3)
-- [ ] 1.3.1 **Vendors** → Add Vendor 1 (`V-APEX`):
-  - Code: `V-APEX`
-  - Name: `Apex Educational Supplies Ltd.`
+
+- [ ] 1.3.1 **Vendors** → tap FAB **+ Vendor** to add Vendor 1 (Apex):
+  - Vendor Name: `Apex Educational Supplies Ltd.`
   - Contact Person: `Sunil Verma`
   - Phone: `9876543210`
   - Email: `sales@apexsupplies.com`
   - Tax / GST: `29ABCDE1234F1Z5`
   - Address: `Plot 14, Industrial Estate, Bangalore`
-  - Payment Terms: `Net 30 days`
-  - Categories: `STA` (Stationery), `WRI` (Writing Instruments)
-  - **Expect** saved; vendor card displays code, contact chips, GSTIN, payment terms, and category tags.
-- [ ] 1.3.2 Add Vendor 2 (`V-GLOBAL`):
-  - Code: `V-GLOBAL`
-  - Name: `Global Tech & Lab Instruments`
+  - Categories: Tap `Stationery` chip
+  - Remarks: `Payment terms: Net 30 days`
+  - Tap **Save vendor**. **Expect** the form closes and a vendor card appears with the name, name, contact chips, and GSTIN. Tap the card to open the vendor screen showing address, remarks and categories, with copy buttons.
+- [ ] 1.3.2 Add Vendor 2 (Global):
+  - Vendor Name: `Global Tech & Lab Instruments`
   - Contact Person: `Priya Nair`
   - Phone: `9845012345`
   - Email: `orders@globaltechlab.in`
-  - Categories: `STA`
-  - **Expect** saved.
-- [ ] 1.3.3 Negative & Lifecycle checks:
-  - Add Vendor with duplicate code `V-APEX`. **Expect** rejected ("Vendor code already exists").
-  - Deactivate `V-GLOBAL` (switch off Active toggle). **Expect** Vendor card shows Inactive badge; filter chip "Active" excludes it, "Inactive" shows it.
-  - Reactivate `V-GLOBAL`.
+  - Categories: Tap `Stationery` chip
+  - Tap **Save**. **Expect** Vendor 2 saved.
+- [ ] 1.3.3 Negative & Lifecycle:
+  - Enter an invalid email (`abc`) and phone (`12`). **Expect** each field shows its own error and nothing is saved.
+  - Edit a field and press back. **Expect** a "Discard changes?" dialog.
+  - On the Global card menu choose **Deactivate** and confirm. **Expect** an Inactive badge; chip "Active" excludes it, "Inactive" displays it. It no longer appears in the vendor dropdown of new quotations or purchase orders. Reactivate it.
+  - Use the search box with a phone number or GST fragment and the category chips. **Expect** the list narrows; with no match **Clear filters** resets it.
 
-#### Purchase Requests Requisitions (Inv-3)
-- [ ] 1.3.4 **Purchase requests** → Create PR 1 (Draft to Submitted):
-  - Delivery Campus: `31`
-  - Urgency / Priority: `High`
+#### Purchase Requests (Inv-3)
+
+- [ ] 1.3.4 **Purchase requests** → tap FAB **+ New request**:
+  - Delivery campus: `Campus 31`
+  - Priority: `High`
   - Purpose: `Annual Examination & Office Supplies Requisition`
-  - Needed By Date: One week from today (`YYYY-MM-DD`)
-  - Line 1: Item `PEN-BLU-01` · Quantity: `120` · Est. Unit Price: `15.00` (Subtotal ₹1,800.00)
-  - Line 2: Item `LAP-DELL-15` · Quantity: `5` · Est. Unit Price: `55000.00` (Subtotal ₹2,75,000.00)
-  - Total Estimated: ₹2,76,800.00
-  - Tap "Save as draft". **Expect** created with status `Draft`, number `PR/<financialYear>/<seq>`.
+  - Required by date: One week from today (`YYYY-MM-DD`)
+  - Line 1: Tap **+ Add item** → select `PEN-BLU-01`. Quantity: `120`, Est. Unit Price: `15.00`.
+  - Line 2: Tap **+ Add item** → select `LAP-DELL-15` (asset item). Quantity: `5`, Est. Unit Price: `55000.00`.
+  - Total Estimated: ₹2,76,800.00.
+  - Tap **Save as draft**. **Expect** PR created with status `Draft`, number `PR/<financialYear>/<seq>`.
 - [ ] 1.3.5 Edit PR 1:
-  - Open PR sheet → tap "Edit".
+  - Open the PR (tap its card) → tap **Edit** in the bottom bar.
   - Change `PEN-BLU-01` quantity from `120` to `100` (Estimated total updates to ₹2,76,500.00).
-  - Tap "Save changes". **Expect** updated item quantity on the PR card.
+  - Tap **Save as draft**. **Expect** PR card reflects updated quantity 100.
 - [ ] 1.3.6 Submit PR 1:
-  - Open PR sheet → tap "Submit for approval".
-  - **Expect** status transitions from `Draft` to `Pending`; approval timeline logs "Submitted by [requester]"; `outbox` records notification event for approvers (`inventory.purchaseRequest.approve`).
-- [ ] 1.3.7 Negative: Ownership & Permissions:
-  - Open PR 1 with another user without requisition ownership or approval rights. **Expect** action bar hides Edit, Cancel, and Approve actions.
+  - Open the PR → tap **Submit**.
+  - **Expect** the screen refreshes in place: status `Pending`, and History logs the submission. The card on the list shows `Awaiting your decision` for approvers.
+- [ ] 1.3.7 Negative: Permissions:
+  - Open PR 1 with a user lacking `inventory.purchaseRequest.approve`. **Expect** the Approve, Return and Reject buttons are not visible.
 
-#### PR Review, Revision & Approval Workflow
+#### PR Revision & Approval Workflow
+
 - [ ] 1.3.8 Approver Review → Return for Revision:
   - Open PR 1 as Approver (with `inventory.purchaseRequest.approve`).
-  - Tap "Return" action → enter reason: "Please reduce laptop quantity from 5 to 2 due to quarterly budget ceiling."
-  - **Expect** status changes to `Returned`; timeline displays "Returned by [approver] · Remarks: Please reduce laptop quantity...".
+  - Tap **Return**. In the dialog leave the comment empty and tap **Return**. **Expect** "A comment is required".
+  - Enter comment: `Please reduce laptop quantity from 5 to 2 due to quarterly budget ceiling.` and tap **Return**.
+  - **Expect** status changes to `Returned` (`revision_requested`); the comment shows in a highlighted box under the summary and in History.
 - [ ] 1.3.9 Requester Resubmission:
-  - As requester, open PR 1 → tap "Edit".
+  - As requester, open PR 1 → tap **Edit**.
   - Update `LAP-DELL-15` quantity to `2`.
-  - Tap "Submit for approval".
-  - **Expect** status moves back to `Pending`; timeline logs re-submission.
+  - Tap **Submit for approval**.
+  - **Expect** status moves back to `Pending`.
 - [ ] 1.3.10 Approver Approval:
-  - Open PR 1 as Approver → tap "Approve".
-  - Enter optional comment: "Approved within revised departmental budget."
-  - **Expect** status changes to `Approved`; timeline logs approval; outbox emits notification to procurement role (`inventory.orders.manage`).
+  - Open PR 1 as Approver → tap **Approve** and confirm (the comment is optional).
+  - **Expect** status changes to `Approved`. Action buttons for procurement (`Quotations`, `Direct PO`) become enabled.
 
 #### Quotations & Comparative Analysis (Inv-4)
-- [ ] 1.3.11 **Quotations** → Add Quotation 1 (`V-APEX`):
-  - On approved PR 1, tap "Add quotation".
-  - Vendor: `Apex Educational Supplies Ltd.` (`V-APEX`)
-  - Quote Ref: `QT-APEX-2026-09`
-  - Valid Until: 30 days from today
-  - Lead Time: `5 days`
-  - Payment Terms: `Net 30 days`
-  - Prices:
-    - `PEN-BLU-01` (100 pc): Unit Price `14.50`
-    - `LAP-DELL-15` (2 pc): Unit Price `54000.00`
-  - Total Quoted: ₹1,09,450.00
-  - Tap "Save quotation". **Expect** Quotation 1 listed.
-- [ ] 1.3.12 Add Quotation 2 (`V-GLOBAL`):
-  - Tap "Add quotation".
-  - Vendor: `Global Tech & Lab Instruments` (`V-GLOBAL`)
-  - Quote Ref: `QT-GLB-881`
-  - Valid Until: 15 days from today
-  - Lead Time: `12 days`
-  - Payment Terms: `Net 15 days`
-  - Prices:
-    - `PEN-BLU-01` (100 pc): Unit Price `15.50`
-    - `LAP-DELL-15` (2 pc): Unit Price `53500.00`
-  - Total Quoted: ₹1,08,550.00
-  - Tap "Save quotation". **Expect** Quotation 2 listed.
-- [ ] 1.3.13 Comparative Matrix & Quotation Selection:
-  - Open Quotations comparative view.
-  - **Expect** side-by-side comparison matrix showing both vendor quotes, line items, and lowest price highlighted.
-  - Select Quotation 1 (`V-APEX`) → Selection dialog prompts for mandatory justification reason.
-  - Enter reason: "Shorter lead time of 5 days (vs 12 days) and local support warranty."
-  - Tap "Confirm selection". **Expect** Quotation 1 marked `Selected`; other quotation remains unselected. Only one quotation can be selected per PR.
 
-#### Purchase Orders (PO Generation, Issuance & Revision) (Inv-4)
+- [ ] 1.3.11 On the approved PR 1 screen, tap **Quotations** → tap FAB **+ Add quotation**:
+  - Vendor: Select `Apex Educational Supplies Ltd.` (Vendor 1)
+  - Vendor Ref: `QT-APEX-2026-09`
+  - Valid Until: 30 days from today (`YYYY-MM-DD`)
+  - Delivery Days: `5`
+  - Line 1 (`PEN-BLU-01`, 100 pc): Unit Price `14.50`
+  - Line 2 (`LAP-DELL-15`, 2 pc): Unit Price `54000.00`
+  - Subtotal: ₹1,09,450.00
+  - Tap **Save and finalize** (Note: only finalized quotations can be selected).
+  - **Expect** Quotation 1 created with status `Final`.
+- [ ] 1.3.12 Tap **+ Add quotation** again:
+  - Vendor: Select `Global Tech & Lab Instruments` (Vendor 2)
+  - Vendor Ref: `QT-GLB-881`
+  - Valid Until: 15 days from today (`YYYY-MM-DD`)
+  - Delivery Days: `12`
+  - Line 1 (`PEN-BLU-01`, 100 pc): Unit Price `15.50`
+  - Line 2 (`LAP-DELL-15`, 2 pc): Unit Price `53500.00`
+  - Subtotal: ₹1,08,550.00
+  - Tap **Save and finalize**.
+  - **Expect** Quotation 2 created with status `Final`.
+- [ ] 1.3.13 Comparative Matrix & Selection:
+  - On `QuotationsPage`, observe side-by-side comparative cards with lowest line prices highlighted.
+  - On Quotation 1 (Apex), tap **Select quotation**:
+    - Dialog prompts for mandatory reason. Enter: `Shorter lead time of 5 days and local support warranty.`
+    - Tap **Confirm**.
+  - **Expect** Quotation 1 is marked `Selected` (green badge); Quotation 2 remains unselected. Action button **"Create Purchase Order"** appears.
+
+#### Purchase Orders (Inv-4)
+
 - [ ] 1.3.14 Create PO from Selected Quotation:
-  - Tap "Create PO" from the selected quotation or PR sheet.
-  - **Expect** form prefilled with Vendor `V-APEX`, Delivery Campus `31`, items (`100` pens @ ₹14.50, `2` laptops @ ₹54,000.00), Subtotal ₹1,09,450.00.
-  - Add Tax / GST: `18%` (₹19,701.00). Total: ₹1,29,151.00.
+  - Tap **Create Purchase Order** from selected Quotation 1 (or from PR sheet).
+  - **Expect** form pre-filled with Vendor `Apex Educational Supplies Ltd.`, Campus `Campus 31`, lines (`100` pens @ ₹14.50, `2` laptops @ ₹54,000.00), Subtotal ₹1,09,450.00.
+  - Tax (₹): Enter amount `19701.00` (18% tax amount). Total updates to ₹1,29,151.00.
   - Expected Delivery Date: Next week (`YYYY-MM-DD`).
-  - Delivery Terms: `Door delivery to Central Main Store S31`.
-  - Tap "Save as draft". **Expect** PO created with number `PO/<financialYear>/<seq>`, status `Draft`.
+  - Delivery Terms: `Door delivery to Central Main Store`.
+  - Tap **Save as draft**. **Expect** PO created with number `PO/<financialYear>/<seq>`, status `Draft`.
 - [ ] 1.3.15 Issue and Acknowledge PO:
-  - Open PO sheet → tap "Issue Purchase Order".
-  - **Expect** status changes to `Issued`; PR records ordered quantities; outbox notification generated for supplier dispatch.
-  - Tap "Acknowledge" (supplier acknowledgement).
-  - Enter Supplier Reference: `ACK-APEX-9921`.
-  - **Expect** status updates to `Acknowledged`.
+  - Open PO sheet → tap **Issue Purchase Order**.
+  - **Expect** status changes to `Issued`; PR records ordered quantities.
+  - Tap **Acknowledge** (supplier acknowledgement):
+    - Enter Supplier Reference: `ACK-APEX-9921`.
+    - Tap Save. **Expect** status updates to `Acknowledged`.
 - [ ] 1.3.16 PO PDF Preview & Share:
-  - Tap "Download / Share PDF".
-  - **Expect** formatted purchase order PDF opens with institution header, PO Number, vendor details, itemized table, tax breakdown, delivery terms, and signature lines.
+  - Tap **Download / Share PDF**.
+  - **Expect** system share sheet / PDF preview opens displaying formatted purchase order with institution header, PO Number, vendor details, line items, tax breakdown, and terms.
 - [ ] 1.3.17 PO Revision with Audit Trail:
-  - Tap "Revise PO".
-  - Update `PEN-BLU-01` unit price from `14.50` to `14.00` (special discount conceded by vendor).
-  - Enter Revision Reason: "Negotiated additional educational volume discount."
-  - Tap "Create revision". **Expect** PO revision incremented (e.g. `Rev 1`); prior revision archived in history; status resets to `Issued` pending re-acknowledgement. Re-acknowledge the PO.
+  - On PO sheet, tap **Revise PO**:
+    - Revision reason *: `Negotiated educational volume discount on pens`
+    - Update `PEN-BLU-01` unit price from `14.50` to `14.00`.
+    - Tap **Save Revision**.
+  - **Expect** revision incremented (`Rev 1`); status resets to `Issued`. Tap **Acknowledge** again with reference `ACK-APEX-9921-R1`.
 
-#### PO Goods Receiving (GRN, Inspection & Batch Tracking) (Inv-5)
+#### PO Goods Receiving (GRN & Inspection) (Inv-5)
+
 - [ ] 1.3.18 Partial Goods Receiving:
-  - Open PO sheet → tap "Receive goods".
-  - **Expect** `PurchaseOrderReceivePage` opens with Destination Store dropdown, challan input, and items list (`100` pens due, `2` laptops due).
-  - Select Destination Store: `Central Main Store (S31)`.
-  - Enter Delivery note / Challan no.: `DC-APEX-7741`.
-  - Line 1 (`PEN-BLU-01`): Enter Accepted `80`, Rejected `5`, Condition `5 broken tips during transit`.
-  - Line 2 (`LAP-DELL-15`): Enter Accepted `0` (delivery scheduled next week).
-  - Enter Overall inspection remarks: `First consignment received; 5 pens rejected at inspection.`
-  - Tap "Confirm receiving (1 item)".
-  - **Expect** GRN generated (`GRN/<financialYear>/<seq>`); PO status updates to `In Delivery` (`partially_received`); PO card shows delivery progress bar (~80%); Central Main Store (`S31`) stock balance of `PEN-BLU-01` increases by `80`; stock movement ledger records GRN movement; rejected count (5) logged in inspection records without entering store stock.
+  - On PO sheet, tap **Receive goods**:
+    - Destination store: Select `Central Main Store`.
+    - Delivery note / Challan no.: `DC-APEX-7741`.
+    - Line 1 (`PEN-BLU-01`): Enter Accepted: `80`, Rejected: `5`, Rejection condition: `5 broken tips during transit`.
+    - Line 2 (`LAP-DELL-15`): Leave Accepted: `0`, Rejected: `0` (scheduled for next delivery).
+    - Remarks: `First consignment received; 5 pens rejected at inspection.`
+    - Tap **Confirm receiving (1 item)**.
+  - **Expect**:
+    - GRN generated (`GRN/<financialYear>/<seq>`).
+    - PO status updates to `Partially received` (`in_delivery`).
+    - `Central Main Store` stock balance of `PEN-BLU-01` increases by `80`.
+    - Rejected count (5) logged in inspection records without entering available stock.
 - [ ] 1.3.19 Negative: Exceeding Due Quantity:
-  - Tap "Receive goods" again on the PO.
+  - On PO sheet, tap **Receive goods** again.
   - Remaining due for `PEN-BLU-01` is `15` (`100 ordered - 80 accepted - 5 rejected`).
-  - Enter Accepted `25`. **Expect** inline validation error: "Only 15 due".
+  - Enter Accepted `25`.
+  - **Expect** inline validation error: "Only 15 due".
 - [ ] 1.3.20 Quick Action "Accept all due" & Full Receiving:
-  - Tap "Accept all due" button on the items header.
-  - **Expect** line 1 accepted automatically fills with `15` (leaving 0 rejected), line 2 accepted fills with `2`.
-  - Tap "Confirm receiving (2 items)".
-  - **Expect** second GRN generated; all lines fulfilled; PO status transitions to `Received` (`fully_received`); PR status updates to `Completed`.
+  - Tap **Accept all due** button in header.
+  - **Expect** Line 1 accepted auto-fills with `15` (0 rejected), Line 2 accepted auto-fills with `2`.
+  - Select Destination store: `Central Main Store`. Enter Challan: `DC-APEX-7742`.
+  - Tap **Confirm receiving (2 items)**.
+  - **Expect** second GRN generated; all items fulfilled; PO status transitions to `Received` (`fully_received`); PR status updates to `Completed`.
 
-#### Vendor Invoices & 3-Way Match (Inv-5)
+#### Vendor Invoices & Payment (Inv-5)
+
 - [ ] 1.3.21 Record Vendor Invoice:
-  - Open **Vendor Invoices** → tap "+ New Invoice".
-  - Select Linked PO: `PO/<financialYear>/<seq>`.
-  - **Expect** Vendor pre-filled as `Apex Educational Supplies Ltd.`.
-  - Enter Invoice Number: `INV-APEX-2026-104`.
-  - Invoice Date: Today (`YYYY-MM-DD`).
-  - Due Date: Net 30 date (`YYYY-MM-DD`).
-  - Subtotal: `1,09,350.00`, Tax: `19,683.00`, Total: `1,29,033.00`.
-  - Link Goods Receipts: Check both generated GRN chips (`GRN-1`, `GRN-2`).
-  - Tap "Create Invoice". **Expect** Invoice saved; status `Unpaid`; outstanding amount equals total `₹1,29,033.00`.
+  - Open PO sheet for the received PO → tap **Record Invoice**:
+    - **Expect** Vendor pre-filled as `Apex Educational Supplies Ltd.`, subtotal and tax pre-filled.
+    - Enter Invoice Number: `INV-APEX-2026-104`.
+    - Invoice Date: Today (`YYYY-MM-DD`).
+    - Due Date: 30 days from today (`YYYY-MM-DD`).
+    - Link Goods Receipts: Check both generated GRN chips.
+    - Tap **Record Invoice**.
+  - **Expect** Invoice saved with status `Unpaid`, outstanding equals total ₹1,29,033.00 (or matching PO total).
 - [ ] 1.3.22 Negative: Duplicate Invoice Number per Vendor:
-  - Tap "+ New Invoice" → choose same vendor and type identical Invoice Number `INV-APEX-2026-104`.
-  - Tap "Create Invoice". **Expect** rejected with "Invoice number already exists for this vendor".
+  - On the PO sheet, tap **Record Invoice** again with the identical Invoice Number `INV-APEX-2026-104`.
+  - Tap Record Invoice. **Expect** rejected with error ("Invoice number already exists for this vendor").
 - [ ] 1.3.23 Payment Recording & Status Transitions:
-  - Open Invoice sheet → tap "Update payment".
-  - Enter Payment Reference: `NEFT/HDFC/9931023`.
-  - Enter Paid Amount: `50,000.00`.
-  - Tap "Save payment". **Expect** payment status transitions to `Partially paid`; Outstanding updates to `₹79,033.00`.
-  - Tap "Update payment" again → enter Paid Amount `100,000.00` (exceeding outstanding).
-  - **Expect** rejected ("Paid amount cannot exceed invoice total").
-  - Enter remaining balance `79,033.00`. **Expect** status transitions to `Paid`; Outstanding becomes `₹0.00`.
-- [ ] 1.3.24 Overdue Filter & Cancellation Safeguards:
-  - In Emulator UI set an invoice's due date to yesterday. **Expect** filter chip `Overdue` filters and displays the invoice.
+  - Open **Vendor invoices** from Inventory tiles. Tap the invoice card to open `InvoiceSheet`.
+  - Tap **Update payment**:
+    - Paid Amount: `50000.00`
+    - Payment Reference: `NEFT/HDFC/9931023`
+    - Tap Save. **Expect** payment status transitions to `Partially paid`; Outstanding updates.
+  - Tap **Update payment** again → enter Paid Amount exceeding total. **Expect** rejected ("Paid amount cannot exceed invoice total").
+  - Enter remaining balance. **Expect** status transitions to `Paid`; Outstanding becomes ₹0.00.
+- [ ] 1.3.24 Negative: Cancellation Safeguards:
   - Try cancelling a `Paid` invoice. **Expect** cancellation prohibited / action disabled.
   - Cancel an `Unpaid` invoice. **Expect** invoice cancelled; status moves to `Cancelled`.
-- [ ] 1.3.25 Cancel PO with Deliveries:
-  - Attempt to cancel a PO that already has goods receipts recorded. **Expect** rejected with error explaining that received purchase orders cannot be cancelled without reversing receipts.
+
+---
 
 ### 1.4 Assets (Inv-6)
 
+Open **Assets** from Inventory tiles.
+
 #### Asset Registration & PO Integration
+
 - [ ] 1.4.1 **Asset Registration (Unit 1)**:
-  - In **Assets** → tap **+ Register Asset**.
-  - Choose Asset Item: Tap search and select `LAP-DELL-15` (`Dell Latitude 15 Core i5 Laptop`).
-  - Receiving Store: `Central Main Store` (`S31`).
-  - Linked PO: Select `PO/<financialYear>/<seq>` (issued and received in step 1.3).
-  - Asset Name: `Dell Latitude 15 - Admin 01`.
-  - Serial Number: `DELL-SN-78491`.
-  - Make: `Dell` · Model: `Latitude 3520`.
-  - Physical Location: `Admin Building Ground Floor - Room 102`.
-  - Condition: `new`.
-  - Purchase Date: Today (`YYYY-MM-DD`).
-  - Purchase Price: `54000.00` (auto-filled or matching PO).
-  - Warranty Period: Start date: Today (`YYYY-MM-DD`), End date: 3 years from today.
-  - Tap **Register asset**.
+  - In Assets, tap FAB **Register asset**:
+    - Asset item: Tap search and select `LAP-DELL-15` (`Dell Latitude 15 Core i5 Laptop`).
+    - Store: Select `Central Main Store`.
+    - Linked PO: Select `PO/<financialYear>/<seq>` (the PO received in step 1.3.20).
+    - Asset Name: `Dell Latitude 15 - Admin 01`.
+    - Serial Number: `DELL-SN-78491`.
+    - Make: `Dell`, Model: `Latitude 3520`.
+    - Location: `Admin Building Ground Floor - Room 102`.
+    - Condition: `new`.
+    - Purchase Date: Today (`YYYY-MM-DD`).
+    - Purchase Price: `54000.00`.
+    - Warranty: Start: Today, End: 3 years from today (`YYYY-MM-DD`).
+    - Tap **Register asset**.
   - **Expect** Asset created with status `Available` (green pill), identifier `AST/<financialYear>/<seq>`. Linked PO and item code displayed on card.
 - [ ] 1.4.2 **Asset Registration (Unit 2)**:
   - Register second asset for same item `LAP-DELL-15`:
-    - Linked PO: Same `PO/<financialYear>/<seq>`.
+    - Linked PO: Same `PO/...`.
     - Asset Name: `Dell Latitude 15 - Lab 01`.
     - Serial Number: `DELL-SN-78492`.
-    - Make: `Dell` · Model: `Latitude 3520`.
-    - Location: `Science Block 2nd Floor - Lab Store S32`.
+    - Store: `Science Lab Store`.
+    - Make: `Dell`, Model: `Latitude 3520`.
+    - Location: `Science Block 2nd Floor - Room 204`.
     - Condition: `new`.
     - Purchase Price: `54000.00`.
-  - Tap **Register asset**. **Expect** Asset 2 registered with status `Available`.
+    - Tap **Register asset**. **Expect** Asset 2 registered with status `Available`.
 - [ ] 1.4.3 Negative: PO Quantity Cap Enforcement:
   - Attempt to register a 3rd asset unit linked to the same PO.
   - **Expect** rejected with error (cannot register more asset units than the accepted quantity of 2 on the purchase order).
 
 #### Asset Labels & Identification
+
 - [ ] 1.4.4 **QR Code Label Generation**:
-  - Open Asset 1 sheet → tap **QR Label** (or barcode action).
-  - **Expect** formatted asset label preview modal renders a scannable QR code encoding the asset identifier (`AST/...`), item name, serial number, and institution branding.
+  - Open Asset 1 sheet → tap **Label** button.
+  - **Expect** system share sheet / preview renders printable asset label with QR code encoding asset identifier (`AST/...`), serial number, item name, and school branding.
 - [ ] 1.4.5 **RFID Tag Assignment & Uniqueness**:
-  - Open Asset 1 sheet → tap **Set RFID Tag**.
-  - Enter RFID Tag: `RFID-LAP-001`. Tap Save. **Expect** RFID tag saved and shown on Asset 1 card.
-  - Open Asset 2 sheet → tap **Set RFID Tag**.
-  - Enter identical RFID Tag: `RFID-LAP-001`. Tap Save.
-  - **Expect** rejected with error ("RFID tag already assigned to another asset").
-  - Enter unique RFID Tag: `RFID-LAP-002`. Tap Save. **Expect** saved.
+  - Open Asset 1 sheet → tap **RFID tag**:
+    - Enter RFID Tag: `RFID-LAP-001`. Tap Save. **Expect** RFID tag saved and shown on Asset 1 card.
+  - Open Asset 2 sheet → tap **RFID tag**:
+    - Enter identical RFID Tag: `RFID-LAP-001`. Tap Save.
+    - **Expect** rejected with error ("RFID tag already assigned to another asset").
+    - Enter unique RFID Tag: `RFID-LAP-002`. Tap Save. **Expect** saved.
 
 #### Asset Custody Lifecycle (Assign, Transfer, Return)
+
 - [ ] 1.4.6 **Custody Assignment**:
-  - Open Asset 1 sheet → tap **Assign Custody**.
-  - Recipient Staff ERP ID: `884` (Staff / Teacher).
-  - Purpose: `Curriculum preparation and lecture presentations`.
-  - Due Back Date: End of current academic term (`YYYY-MM-DD`).
-  - Location: `Faculty Room 204`.
-  - Tap **Confirm assignment**.
-  - **Expect** Asset status transitions from `Available` to `Assigned` (blue pill); custodian displays Staff `884`; Custody History logs active assignment with timestamp.
+  - Open Asset 1 sheet → tap **Assign**:
+    - Type: `Staff`
+    - ERP ID: `884`.
+    - Location: `Faculty Room 204`.
+    - Expected return: End of current term (`YYYY-MM-DD`).
+    - Tap **Save**.
+  - **Expect** Asset status transitions to `Assigned` (blue pill); custodian displays Staff `884`; Custody section logs assignment record.
 - [ ] 1.4.7 Negative: Assigning an Unavailable Asset:
-  - On Asset 1 (currently `Assigned`), attempt to assign custody again.
-  - **Expect** assignment action is disabled or rejected (only `Available` assets can be assigned).
+  - On Asset 1 (currently `Assigned`), inspect action buttons.
+  - **Expect** `Assign` button is hidden/disabled (only `Available` assets can be assigned).
 - [ ] 1.4.8 **Custody Transfer (Handover)**:
-  - Open Asset 1 sheet → tap **Transfer Custody**.
-  - New Custodian Staff ERP ID: `501`.
-  - Handover Reason: `Inter-departmental teaching reassignment`.
-  - Tap **Confirm transfer**.
-  - **Expect** prior custody assignment for Staff `884` is closed; new active custody is opened for Staff `501`; custody history timeline shows complete audit trail of the transfer.
+  - Open Asset 1 sheet → tap **Transfer**:
+    - Type: `Staff`
+    - New ERP ID: `501`.
+    - Location: `Physics Lab Prep Room`.
+    - Tap **Save**.
+  - **Expect** prior custody assignment for Staff `884` is closed; new active custody is opened for Staff `501`; custody history timeline shows complete audit trail.
 - [ ] 1.4.9 **Return Asset with Damage**:
-  - Open Asset 1 sheet → tap **Return Asset**.
-  - Condition: `Damaged`.
-  - Return Remarks: `Display backlight flickering; cracked hinge casing`.
-  - Return to Store: `Central Main Store` (`S31`).
-  - Tap **Confirm return**.
-  - **Expect** Custody assignment closed (no active custodian); Asset status changes to `Damaged` (red pill); Return record logged with inspection notes.
+  - Open Asset 1 sheet → tap **Return**:
+    - Condition: `Damaged`.
+    - Location: `Central Main Store`.
+    - Remarks: `Display backlight flickering; cracked hinge casing`.
+    - Tap **Save**.
+  - **Expect** Custody assignment closed; Asset status changes to `Damaged` (red pill); condition recorded as `Damaged`.
 
 #### Asset Maintenance & Repair Workflow
-- [ ] 1.4.10 **Raise Maintenance Request**:
-  - Open Asset 1 sheet → tap **Request Maintenance**.
-  - Issue Summary: `Screen hinge fracture and backlight repair`.
-  - Priority: `High`.
-  - Service Provider / Type: `Vendor Repair` (`Apex Educational Supplies Ltd.`).
-  - Estimated Repair Cost: `4500.00`.
-  - Tap **Submit maintenance request**.
-  - **Expect** Maintenance ticket created (`MNT/<financialYear>/<seq>`); status is `Reported`; Asset status transitions to `Under Maintenance` (amber pill).
-- [ ] 1.4.11 Negative: Multiple Concurrent Maintenance Requests:
-  - On Asset 1, attempt to open another maintenance request.
-  - **Expect** rejected with error ("Asset already has an active maintenance job in progress").
+
+- [ ] 1.4.10 **Report Fault**:
+  - Open Asset 1 sheet → tap **Report fault**:
+    - Issue *: `Screen hinge fracture and backlight repair`.
+    - Priority: `High`.
+    - Technician / service provider: `Apex Educational Supplies Ltd.`.
+    - Tap **Save**.
+  - **Expect** Maintenance ticket created (`MNT/<financialYear>/<seq>`); Asset status transitions to `Under maintenance` (amber pill).
+- [ ] 1.4.11 Negative: Concurrent Maintenance Prevention:
+  - On Asset 1, inspect action buttons.
+  - **Expect** `Report fault` button is hidden while an active maintenance job is in progress.
 - [ ] 1.4.12 **Move Maintenance to In-Progress**:
-  - Open the maintenance ticket in Maintenance view → tap **Mark In Progress**.
-  - Vendor Job Sheet Ref: `JS-APEX-8820`.
-  - Expected Completion Date: 3 days from today.
-  - Tap **Update**. **Expect** maintenance status updates to `In Progress`.
-- [ ] 1.4.13 **Spare Part Consumption from Inventory**:
-  - In maintenance job sheet, link a spare part/consumable drawn from `Central Main Store` (`S31`) (e.g. `1` unit replacement component or cable).
-  - Tap **Consume spare part**.
-  - **Expect** store stock balance is deducted; stock movement ledger logs an `issue` movement with reference to the maintenance job ID.
-- [ ] 1.4.14 Negative: Completion without Cost:
-  - On the maintenance job, tap **Complete Maintenance**.
-  - Leave Actual Cost empty and tap Submit.
-  - **Expect** rejected with validation error ("Actual repair cost is required to complete maintenance").
-- [ ] 1.4.15 **Complete Maintenance & Restore Asset**:
-  - Enter Actual Cost: `4200.00`.
-  - Resolution Notes: `Hinge casing replaced; screen tested operational under warranty rebate`.
-  - Post-Repair Asset Condition: `Good`.
-  - Tap **Complete maintenance**.
-  - **Expect** Maintenance ticket status moves to `Completed`; Asset status is restored to `Available` (green pill); condition updated to `Good`. Total lifetime maintenance cost on asset card updates to `₹4,200.00`.
+  - Open Maintenance view (from Assets app bar icon or Maintenance page).
+  - Tap the maintenance ticket → update status to `in_progress`. Tap Save.
+  - **Expect** maintenance status updates to `In Progress`.
+- [ ] 1.4.13 **Complete Maintenance with Parts Consumption**:
+  - On the maintenance job, tap **Complete**:
+    - Technician: `Sunil Verma (Apex)`
+    - Repair Details: `Hinge casing replaced; screen tested operational`.
+    - Actual repair cost (₹): `4200.00`.
+    - Post-repair condition: `Good`.
+    - Spare parts: Tap **+ Add part** → select `PEN-BLU-01`, Store: `Central Main Store`, Quantity: `1`.
+    - Tap **Save**.
+  - **Expect**:
+    - Maintenance ticket status moves to `Completed`.
+    - Asset status restores to `Available` (green pill); condition updated to `Good`.
+    - Store stock balance of spare part in `Central Main Store` is deducted by 1 unit.
 
 #### Asset Retirement / Decommissioning
-- [ ] 1.4.16 **Retire Asset**:
+
+- [ ] 1.4.14 **Retire Asset**:
   - Open Asset 2 (`Dell Latitude 15 - Lab 01`).
-  - Tap **Retire Asset**.
-  - Decommission Reason: `Damaged beyond economic repair` (or `Obsolete`).
-  - Disposal Method: `Scrapped for parts`.
-  - Disposal Remarks: `Motherboard liquid ingress; salvageable RAM and storage removed`.
-  - Confirmation prompt: Confirm irreversible retirement.
-  - **Expect** Asset status transitions to `Retired` (grey pill); asset is permanently locked from future custody assignments, maintenance, or store transfers; excluded from active valuation and store stock.
+  - Tap **Retire / dispose**:
+    - Status: `Retired` (or `Disposed`).
+    - Reason: `Damaged beyond economic repair; salvageable RAM removed`.
+    - Tap **Save**.
+  - **Expect** Asset status transitions to `Retired` (grey pill); asset is locked from custody assignments and maintenance; excluded from active valuation and store stock.
 
 ---
 
 ### 1.5 Verification, Scanning & Import (Inv-7, Inv-8)
 
-#### Stock Verification & Discrepancy Reconciliation (Inv-7)
+#### Stock Verification & Reconciliation (Inv-7)
+
 - [ ] 1.5.1 **Create Stock Verification Session**:
-  - Open **Stock Verification** → tap **+ New Verification**.
-  - Target Store: `Central Main Store` (`S31`).
-  - Name: `Q4 Annual Physical Stock Audit`.
-  - Scope: Select all active catalog items (or up to 150 lines).
-  - Tap **Start Verification**.
-  - **Expect** Session created with status `Counting` (`in_progress`); current system book balances are snapshotted (`PEN-BLU-01` = book balance 57, `MILK-PAST-01` = book balance 5, etc.).
+  - Open **Stock verification** from Inventory tiles.
+  - Tap FAB **+ New**:
+    - Store: Select `Central Main Store`.
+    - Categories: Leave empty (whole store) or select `Stationery`.
+    - Tap **Generate expected stock**.
+  - **Expect** Verification session created (`STK/<financialYear>/<seq>`) with status `Counting`. Book balances are snapshotted (`PEN-BLU-01`, `MILK-PAST-01`, etc.).
 - [ ] 1.5.2 **Physical Counting & Line Entry**:
-  - In counting view, locate line `PEN-BLU-01`:
-    - Physical Count: Enter `55` (discrepancy of `-2` units vs book balance `57`).
-  - Locate line `MILK-PAST-01`:
-    - Physical Count: Enter `5` (matches book balance, discrepancy `0`).
-- [ ] 1.5.3 Negative: Discrepancy Reason Mandatory:
-  - Leave Discrepancy Reason blank for line `PEN-BLU-01` and tap **Submit Verification**.
-  - **Expect** rejected with error: "Every line with a count variance requires a discrepancy reason".
-- [ ] 1.5.4 **Submit Verification with Audit Justification**:
-  - For line `PEN-BLU-01`, enter Reason: `2 pens damaged and discarded during packaging without recorded write-off`.
-  - Tap **Submit Verification**.
-  - **Expect** Session status moves to `Submitted`; outbox notification emitted for inventory approver (`inventory.adjustment.approve`).
-- [ ] 1.5.5 **Approver Review & Rejection Workflow**:
-  - Open verification session as Approver (`inventory.adjustment.approve`).
-  - Tap **Reject** → enter feedback: `Please recount stationery shelf B-3 for the 2 missing pens`.
-  - **Expect** Session status reverts to `Rejected` / `Counting` for recount.
-- [ ] 1.5.6 **Recount & Final Approval**:
-  - As Storekeeper, update physical count of `PEN-BLU-01` to `56` (1 pen located on shelf B-3; variance is now `-1`).
-  - Update Reason: `1 pen recovered from shelf B-3; 1 pen confirmed lost`.
-  - Resubmit session.
-  - As Approver, tap **Approve Verification**.
-  - **Expect** Session status transitions to `Approved`; automatic stock adjustment of `-1` unit is written to `S31` stock ledger; `PEN-BLU-01` Available balance in `S31` updates from `57` to `56`; adjustment movement is logged in stock movement history with reference to the verification session.
+  - Tap the verification session to open `VerificationPage`.
+  - For `PEN-BLU-01`: Enter Counted: `56` (1 unit variance vs book balance `57`).
+  - For `MILK-PAST-01`: Enter Counted matching current book balance.
+  - Tap **Save counts**. **Expect** confirmation "Counts saved".
+- [ ] 1.5.3 **Submit Verification**:
+  - Tap **Submit** button at bottom.
+  - **Expect** Session status moves to `Submitted`; pending review by inventory approver (`inventory.adjustment.approve`).
+- [ ] 1.5.4 **Approver Review & Recount Workflow**:
+  - Open session as Approver (`inventory.adjustment.approve`).
+  - Tap **Send back**:
+    - Reason: `Please recount stationery shelf B-3 for missing pen`.
+    - Tap Confirm.
+  - **Expect** Session status reverts to `Counting` for recount.
+- [ ] 1.5.5 **Recount & Final Approval**:
+  - In counting view, verify count and tap **Submit** again.
+  - As Approver, tap **Approve**:
+    - Dialog prompts: *"Apply adjustments?"*
+    - Enter optional comment: `Variance approved after physical recount`.
+    - Tap Confirm.
+  - **Expect**:
+    - Session status transitions to `Approved`.
+    - Automatic stock adjustment movement is logged in `Central Main Store` ledger.
+    - Available balance for `PEN-BLU-01` updates to the counted balance `56`.
 
 #### Barcode & Code Scanning
-- [ ] 1.5.7 **Item Code Scanning & Search Filter**:
-  - In the Verification Counting page (or Stock Overview), focus the scan/search input field.
-  - Enter item code `PEN-BLU-01` (simulating barcode scan input).
-  - **Expect** the item line `PEN-BLU-01` is immediately matched, highlighted, and scrolled into view. **[EMU]** Camera scanning is tested with manual code entry in emulator.
+
+- [ ] 1.5.6 **Item Code Scanning**:
+  - In `VerificationPage` counting view, focus the scan input field at the top (`ScanField`).
+  - Type item code `PEN-BLU-01` and press enter (simulating a barcode scan).
+  - **Expect** the count for `PEN-BLU-01` increments by 1 with toast confirmation displaying item name and new count. **[EMU]**
 
 #### Data Import (Inv-8)
-- [ ] 1.5.8 **Catalog CSV Import (Batch Validation)**:
-  - Open **Import** → choose **Items (Catalog)**.
-  - Upload CSV file with header: `code,name,categoryCode,stockUnit,tracking` and 3 rows:
-    - Row 1 (Valid): `NOTE-RULE-01,Ruled Notebook (200 pages),STA,pc,quantity`
-    - Row 2 (Invalid Category): `CALC-SCI-01,Scientific Calculator,INVALID_CAT,pc,quantity`
-    - Row 3 (Duplicate Code): `PEN-BLU-01,Duplicate Blue Pen,STA,pc,quantity`
-  - Tap **Upload & Process Import**.
-  - **Expect** import results summary displays:
-    - Overall status: `1 of 3 records imported`.
+
+- [ ] 1.5.7 **Catalog CSV Import**:
+  - Open **Import** from Inventory tiles.
+  - Select import kind: **Items**.
+  - In the CSV text area, paste CSV with header:
+
+    ```csv
+    code,name,categoryCode,stockUnit,tracking,reorderLevel,defaultPrice
+    NOTE-RULE-01,Ruled Notebook (200 pages),STA,pcs,quantity,20,45.00
+    CALC-SCI-01,Scientific Calculator,INVALID_CAT,pcs,quantity,5,650.00
+    PEN-BLU-01,Duplicate Blue Pen,STA,pcs,quantity,10,15.00
+    ```
+
+  - Tap **Run import**.
+  - **Expect** row-level summary:
     - Row 1: `Success` (created in catalog).
-    - Row 2: `Error: Category code 'INVALID_CAT' does not exist`.
-    - Row 3: `Error: Item code 'PEN-BLU-01' already exists`.
-- [ ] 1.5.9 Negative: Idempotent Re-Import:
-  - Upload the identical CSV file a second time without changes.
-  - **Expect** summary displays `0 of 3 records imported`; Row 1 now fails with duplicate code error; no duplicate records created in Firestore.
+    - Row 2: `Error: Category with code "INVALID_CAT" does not exist`.
+    - Row 3: `Error: Item code "PEN-BLU-01" already exists`.
+- [ ] 1.5.8 Negative: Idempotent Re-Import:
+  - Tap Run import again with the same data.
+  - **Expect** 0 imported; Row 1 now fails with duplicate code error; no duplicates created.
 
 ---
 
 ### 1.6 Dashboard and Reports (Inv-7)
 
-#### Executive Dashboard Overview
-- [ ] 1.6.1 **Dashboard Multi-Store Filtering**:
-  - Open **Dashboard** from the Inventory navigation bar.
-  - Switch filter dropdown between **All Stores** and `Central Main Store (S31)`.
-  - **Expect** KPI metric cards update dynamically:
-    - **Total Items in Catalog**: matches master items count.
-    - **Total Stock Balance**: reflects on-hand quantities across stores.
-    - **Total Inventory Valuation**: reflects total financial worth based on unit costs.
-    - **Low Stock Alerts**: displays badge count `1` (`PEN-BLU-01` below reorder level `70`).
-    - **Expiring Batches**: displays alert for `BATCH-M1` expiring in 5 days.
-    - **Pending Purchase Requests**: displays count of pending PRs.
-    - **Active Purchase Orders**: displays count of open / in-delivery POs.
-    - **Registered Assets**: displays `2` registered assets (`1` available, `1` retired).
-    - **Active Maintenance Jobs**: displays `0` active (after completing step 1.4.15).
-  - Tap on any KPI tile (e.g. Low Stock) → **Expect** navigates directly to the filtered list view.
+#### Executive Dashboard
 
-#### Comprehensive Reporting Suite (17 Standard Reports)
+- [ ] 1.6.1 **Dashboard KPI Validation**:
+  - Open **Dashboard** from Inventory tiles.
+  - Switch store filter dropdown between **All Stores** and `Central Main Store`.
+  - **Expect** 13 metric cards update dynamically:
+    1. **Active items**: matches master items count.
+    2. **Available stock**: reflects on-hand quantities.
+    3. **Stock value**: reflects total financial worth based on unit costs.
+    4. **Low-stock lines**: displays count `1` (`PEN-BLU-01` below reorder level `70`).
+    5. **Out-of-stock lines**: displays count of depleted items.
+    6. **Expiring in 30 days**: displays alert count for `MILK-PAST-01`.
+    7. **Expired lines**: displays count of expired items.
+    8. **Pending purchase requests**: displays pending PR count.
+    9. **Pending approvals**: displays pending approval counts.
+    10. **Open purchase orders**: displays active PO count.
+    11. **Pending goods receipts**: displays POs awaiting delivery.
+    12. **Registered assets**: displays registered assets count.
+    13. **Assets under maintenance**: displays `0` (after completing step 1.4.13).
+
+#### Reports Suite (All 17 Inventory Reports)
+
 - [ ] 1.6.2 **Execute and Validate All 17 Inventory Reports**:
-  - Open **Reports** page. Open each report, apply Store filter (`S31` or `All`), date range, and status filter:
-    1. **Stock Summary Report**: Displays current on-hand, allocated, and available balances for each item.
-    2. **Item-wise Stock Report**: Detailed breakdown per item with minimum/maximum limits and reorder indicators.
-    3. **Stock Movement Ledger**: Complete audit log showing `opening`, `receive`, `issue`, `return`, `transfer`, and `adjust` movements with timestamps and reference IDs.
-    4. **Inventory Stock Valuation**: Financial valuation per item and store; verify **Totals Row** at bottom displays correct sum.
-    5. **Low Stock Alert Report**: Lists items where available balance <= reorder point (`PEN-BLU-01`).
-    6. **Expiry & Shelf-Life Report**: Lists batch-tracked items sorted by earliest expiry date (`MILK-PAST-01`).
-    7. **Purchase History Report**: Chronological record of purchased items with vendor names and unit rates.
-    8. **Vendor Register & Performance Report**: Lists registered suppliers (`V-APEX`, `V-GLOBAL`) with GSTIN, contact, and active order counts.
-    9. **Purchase Requests Report**: Requisitions filtered by status (`Draft`, `Pending`, `Approved`, `Completed`).
-    10. **Purchase Orders Report**: PO records with ordered, received, and due quantities, total amounts, and statuses.
-    11. **Goods Receipts (GRN) Register**: Inspection results, challan numbers, accepted vs. rejected counts.
-    12. **Stock Issuance Report**: Departmental consumption and staff issue records (`Staff 884`).
-    13. **Inter-Store Transfers Report**: Dispatched vs. received quantities with in-transit and shortfall tracking.
-    14. **Fixed Asset Register**: Complete catalog of serialized assets (`LAP-DELL-15`), purchase prices, locations, and conditions.
-    15. **Asset Custody & Assignment History**: Audit trail of staff assignments, transfers, and return dates.
-    16. **Asset Maintenance & Repair Cost History**: Maintenance job history with vendor details and total expenditures.
-    17. **Stock Verification & Discrepancy Report**: Audit sessions, variance counts, discrepancy reasons, and approved adjustments.
+  - Open **Reports** from Inventory tiles. Open and verify each report:
+    1. **Stock summary**: current on-hand, allocated, and available balances per item.
+    2. **Item-wise stock**: item, store, batch, available, received, and issued totals.
+    3. **Stock movement**: chronological movements (`receive`, `issue`, `return`, `transfer`, `adjust`) with timestamps and reference IDs.
+    4. **Stock valuation**: unit cost and total value per balance; verify **Totals Row** at bottom.
+    5. **Low stock**: items where available balance is below reorder level (`PEN-BLU-01`).
+    6. **Expiry**: batch-tracked items sorted by earliest expiry date (`MILK-PAST-01`).
+    7. **Purchase history**: fulfilled purchase orders with vendor names and amounts.
+    8. **Vendors**: supplier register (Apex, Global) with codes, names, and active status.
+    9. **Purchase requests**: requisitions with dates, numbers, statuses, and priorities.
+    10. **Purchase orders**: orders with numbers, vendors, statuses, and total amounts.
+    11. **Goods receiving**: GRN register with dates, sources, and line counts.
+    12. **Issuance**: departmental consumption and staff issue records (`Staff 884`).
+    13. **Transfers**: inter-store transfers with from/to stores, dates, and statuses.
+    14. **Asset register**: serialized assets with asset IDs, serials, locations, and conditions.
+    15. **Asset assignment**: staff custody history with assigned/returned dates and closed status.
+    16. **Maintenance**: maintenance tickets with numbers, asset codes, statuses, and repair costs.
+    17. **Stock verification**: audit sessions with stores, line counts, and differences.
 - [ ] 1.6.3 **Report Export (CSV & PDF)**:
-  - On **Inventory Stock Valuation** and **Stock Movement Ledger** reports:
-    - Tap **Copy CSV** → **Expect** CSV text is copied to clipboard with header row and comma-separated column values.
-    - Tap **Download / Print PDF** → **Expect** native PDF document viewer/preview opens with structured tabular layout, column headers, page numbering, and formatted currency totals.
+  - On **Stock valuation** and **Stock movement** reports:
+    - Tap **Copy CSV** → **Expect** formatted CSV copied to clipboard.
+    - Tap **PDF** (or print action) → **Expect** PDF viewer opens with structured tabular layout and formatted currency totals.
 
 ---
 
 ### 1.7 Permissions & Cross-Campus Security (Inventory)
 
-Re-seed with different role configurations and verify interface permissions and security rules:
+Edit permissions in `schools/<schoolId>/userAccess/<uid>` via Emulator UI (or sign in as matching role):
 
 - [ ] 1.7.1 **Role: `teacher`**:
-  - Seed with `teacher` role permissions. Restart app.
-  - **Expect**:
-    - Can only access requisition forms (Issue Requests and Purchase Requests).
-    - Cannot view Store Stock balances, Asset register, Maintenance jobs, Vendor master, Quotations, POs, Invoices, or Reports.
+  - Set permissions: `inventory.issue.request`, `inventory.purchaseRequest.request`, `inventory.assets.view`.
+  - Restart / reload app.
+  - **Expect**: Only Issue requests, Purchase requests, and Assets tiles are visible. Stores, Stock management, Vendors, Quotations, Invoices, and Reports are hidden.
 - [ ] 1.7.2 **Role: `storekeeper`**:
-  - Seed with `storekeeper` role permissions. Restart app.
-  - **Expect**:
-    - Full operational access to Stock management (Receiving, Issuing, Returns, Transfers, Quarantine, and Physical Verification).
-    - Can receive PO deliveries (GRN generation).
-    - Read-only or hidden access to Vendor management, Quotations, PO issuance, and Invoices.
+  - Set permissions: `inventory.items.view`, `inventory.stock.view`, `inventory.stock.operate`, `inventory.issue.request`, `inventory.purchaseRequest.request`, `inventory.assets.manage`, `inventory.assets.view`.
+  - **Expect**: Full operational access to Stock (Receive, Issue, Transfers, Damaged/Expired, Verification). Vendor management, Quotation selection, PO creation, and Invoices are hidden.
 - [ ] 1.7.3 **Role: `procurement`**:
-  - Seed with `procurement` role permissions. Restart app.
-  - **Expect**:
-    - Full access to Vendors, Purchase Requests, Quotation comparisons, PO creation/issuance, and Invoices.
-    - Prohibited from executing physical store receipts, stock issues, or manual balance adjustments.
-- [ ] 1.7.4 **Role: `principal`**:
-  - Seed with `principal` role permissions. Restart app.
-  - **Expect**:
-    - Executive approval privileges for PRs, POs, and Verification adjustments.
-    - Read-only access to Dashboards, Master registers, and all 17 Reports.
-    - Cannot initiate direct stock movements or operational drafts.
-- [ ] 1.7.5 **Campus Isolation & Boundary Enforcement**:
-  - Sign in with a user credential assigned exclusively to Campus `32`.
-  - Open Stock Overview, Requisitions, and Asset lists.
-  - **Expect**:
-    - Only Campus `32` stores (`Science Lab Store S32`) and records are visible.
-    - Campus `31` stores (`Central Main Store S31`) and balances are excluded.
-    - No crashes, blank error screens, or permission exceptions occur; UI handles single-campus scoping gracefully.
-- [ ] 1.7.6 **Scheduled Maintenance & Alert Jobs [JOB]**:
-  - Run `runDailyInventory` scheduled callable via test harness.
-  - **Expect**:
-    - Any batch with `expiryDate < today` transitions to `expired` status.
-    - System emits outbox notifications for near-expiry batches (within 30 days), overdue PO deliveries past expected date, warranties expiring within 60 days, and assets due for scheduled maintenance.
+  - Set permissions: `inventory.items.view`, `inventory.stock.view`, `inventory.purchaseRequest.request`, `inventory.procure.operate`, `inventory.vendors.manage`, `inventory.assets.view`.
+  - **Expect**: Full access to Vendors, Purchase requests, Quotations, POs, and Invoices. Prohibited from executing physical store receipts, stock issues, or manual balance adjustments.
+- [ ] 1.7.4 **Campus Isolation**:
+  - In `userAccess/<uid>`, set `campusIds: [32]` (Campus 32 only) and `hasAllCampuses: false`.
+  - Open Stock Overview.
+  - **Expect**: Only Campus 32 stores (`Science Lab Store`) and records are visible. Campus 31 stores (`Central Main Store`) are excluded.
 
 ---
 
 ## Part 2 – Library
 
-Open **Library** from the dashboard. Use the `librarian` role for operational workflows.
+Open **Library** from the dashboard. The Library hub displays 15 option grid tiles: Dashboard, Catalogue, Copies, Categories, Libraries, Circulation, Reservations, Members, Borrowing policies, Fines & Penalties, Lost & Damaged, Transfers, Stock verification, Reports, Import.
 
 ### 2.1 Masters (Lib-1)
 
 #### Library Facilities Master
-- [ ] 2.1.1 **Libraries Setup**:
-  - Open **Libraries** → Add Library 1:
-    - Code: `L1`
-    - Name: `Central High School Library`
-    - Campus: `31`
-    - Location: `Academic Block A, 1st Floor`
-  - Add Library 2:
-    - Code: `L2`
-    - Name: `Junior School Library`
-    - Campus: `32`
-    - Location: `Primary Wing Ground Floor`
-  - **Expect** Both libraries listed with Active status chips and campus IDs.
+
+- [ ] 2.1.1 **Libraries** → tap FAB **+ Library** to add Library 1:
+  - Library Code: `L1`
+  - Library Name: `Central High School Library`
+  - Campus: `Campus 31`
+  - Location: `Academic Block A, 1st Floor`
+  - Hours: `08:00 - 17:00`
+  - Staff IDs: `884`
+  - Tap **Save**. **Expect** Library 1 created with Active status chip.
+- [ ] 2.1.2 Add Library 2:
+  - Library Code: `L2`
+  - Library Name: `Junior School Library`
+  - Campus: `Campus 32`
+  - Location: `Primary Wing Ground Floor`
+  - Hours: `08:30 - 15:30`
+  - Tap **Save**. **Expect** Library 2 created.
 
 #### Classification Categories
-- [ ] 2.1.2 **Book Categories**:
-  - Tap **Categories** → tap seed defaults button (or verify default categories).
-  - **Expect** Standard classification categories created:
-    - Code `FIC`: `Fiction & Literature`
-    - Code `NFIC`: `Non-Fiction`
-    - Code `SCI`: `Science & Mathematics`
-    - Code `HIS`: `History, Biography & Geography`
-- [ ] 2.1.3 Negative: Category Deactivation Protection:
-  - Deactivate category `HIS` (switch off Active toggle).
-  - Attempt to create a catalog book assigned to category `HIS`.
-  - **Expect** rejected with error ("Category is inactive"). Reactivate category `HIS`.
+
+- [ ] 2.1.3 **Categories** → tap empty-state seed button (or view seeded categories).
+  - **Expect** 14 standard classification categories created:
+    - Code `FIC`: `Fiction`
+    - Code `NFC`: `Non-fiction`
+    - Code `SCI`: `Science`
+    - Code `MAT`: `Mathematics`
+    - Code `HIS`: `History`
+    - Code `GEO`: `Geography`
+    - Code `LIT`: `Literature`
+    - Code `LNG`: `Languages`
+    - Code `REF`: `Reference`
+    - Code `ENC`: `Encyclopedias`
+    - Code `BIO`: `Biographies`
+    - Code `CHL`: `Children's books`
+    - Code `TXT`: `Textbooks`
+    - Code `GKN`: `General knowledge`
+- [ ] 2.1.4 Negative: Category Deactivation Protection:
+  - On category `HIS` (`History`), toggle Active switch off.
+  - Try to create a catalogue title under category `HIS`.
+  - **Expect** inactive category is excluded from selection or creation is rejected. Reactivate category `HIS`.
 
 #### Title Catalogue Management
-- [ ] 2.1.4 **Add Catalogue Title 1 (Standard ISBN-13)**:
-  - Open **Catalogue** → tap **+ Add Book Title**:
-    - Title: `Wings of Fire: An Autobiography`
-    - Authors: `A.P.J. Abdul Kalam; Arun Tiwari`
-    - Category: `History, Biography & Geography` (`HIS`)
-    - Publisher: `Universities Press`
-    - Edition: `1st Edition`
-    - Publication Year: `1999`
-    - ISBN-13: `9788173711466` (valid check digit)
-    - Default Price: `350.00`
-  - Tap **Save Title**. **Expect** Title saved and listed in catalogue.
-- [ ] 2.1.5 **Add Catalogue Title 2**:
+
+- [ ] 2.1.5 **Catalogue** → tap FAB **+ Book** to add Title 1:
+  - Title: `Wings of Fire: An Autobiography`
+  - Authors: `A.P.J. Abdul Kalam, Arun Tiwari` (comma-separated)
+  - Category: `History` (`HIS`)
+  - Publisher: `Universities Press`
+  - Edition: `1st Edition`
+  - Publication Year: `1999`
+  - ISBN-13: `9788173711466` (valid check digit)
+  - Tap **Save**. **Expect** Title saved and listed in catalogue.
+- [ ] 2.1.6 Add Title 2:
   - Title: `Pride and Prejudice`
   - Authors: `Jane Austen`
-  - Category: `Fiction & Literature` (`FIC`)
+  - Category: `Fiction` (`FIC`)
   - Publisher: `Penguin Classics`
   - Publication Year: `2003`
   - ISBN-13: `9780141439518`
-  - Default Price: `299.00`
-  - Tap **Save Title**. **Expect** Title saved.
-- [ ] 2.1.6 **Add Catalogue Title 3 (Without ISBN)**:
+  - Tap **Save**. **Expect** Title saved.
+- [ ] 2.1.7 Add Title 3 (Without ISBN):
   - Title: `School Annual Magazine 2025-26`
   - Authors: `Editorial Board`
-  - Category: `Non-Fiction` (`NFIC`)
-  - ISBN-13: Leave blank (optional for local/school publications)
-  - Default Price: `150.00`
-  - Tap **Save Title**. **Expect** Title saved successfully without ISBN.
-- [ ] 2.1.7 Negative: Duplicate ISBN-13:
+  - Category: `Non-fiction` (`NFC`)
+  - ISBN-13: Leave blank
+  - Tap **Save**. **Expect** Title saved successfully without ISBN.
+- [ ] 2.1.8 Negative: Duplicate ISBN-13:
   - Add another title with the identical ISBN-13 `9788173711466`.
   - **Expect** rejected with error ("A title with this ISBN-13 already exists in catalogue").
-- [ ] 2.1.8 Negative: Invalid ISBN-13 Check Digit:
+- [ ] 2.1.9 Negative: Invalid ISBN-13 Check Digit:
   - Attempt to add a title with invalid check digit `9788173711460`.
   - **Expect** rejected with validation error ("Invalid ISBN-13 check digit").
-- [ ] 2.1.9 **Catalogue Search & Filter**:
-  - In Catalogue search bar, search `kalam` (author) and `wings` (title). **Expect** "Wings of Fire" is returned.
+- [ ] 2.1.10 **Catalogue Search**:
+  - In Catalogue search bar, search `kalam` or `wings`. **Expect** "Wings of Fire" is returned.
   - Search exact ISBN `9780141439518`. **Expect** "Pride and Prejudice" is returned.
 
 ---
@@ -781,154 +847,178 @@ Open **Library** from the dashboard. Use the `librarian` role for operational wo
 ### 2.2 Copies & Acquisition (Lib-2)
 
 #### Acquisition & Copy Generation
+
 - [ ] 2.2.1 **Acquire Copies for Title 1 ("Wings of Fire")**:
-  - Open Title sheet for "Wings of Fire" → tap **+ Add Acquisition**:
-    - Acquisition Type: `Purchase`.
-    - Target Library: `Central High School Library` (`L1`).
-    - Quantity: `3` copies.
-    - Unit Price: `320.00`.
-    - Invoice / Bill Ref: `INV-BOOK-2026-01`.
-  - Tap **Confirm Acquisition**.
+  - Open "Wings of Fire" details → scroll to Physical Copies section → tap **Acquire copies**:
+    - Acquisition Type: `Purchase`
+    - Target Library: `Central High School Library` (`L1`)
+    - Quantity: `3`
+    - Unit Price: `320.00`
+    - Vendor / donor: `Apex Educational Supplies Ltd.`
+    - Invoice / Reference: `INV-BOOK-2026-01`
+    - Shelf: `Shelf A-12 / Bay 2`
+    - Condition: `good`
+    - Tap **Save**.
   - **Expect**:
     - Three physical copies created with sequential accession numbers: `ACC-000001`, `ACC-000002`, `ACC-000003`.
     - All 3 copies have status `Available` (green pill).
-    - Default barcode equals accession number.
+    - SnackBar offers "Print labels" action.
 - [ ] 2.2.2 **Acquire Copy for Title 2 ("Pride and Prejudice")**:
-  - Open "Pride and Prejudice" → tap **+ Add Acquisition**:
-    - Library: `Central High School Library` (`L1`).
-    - Quantity: `1` copy. Unit Price: `280.00`.
-  - Tap **Confirm Acquisition**.
+  - Open "Pride and Prejudice" details → tap **Acquire copies**:
+    - Library: `Central High School Library` (`L1`)
+    - Quantity: `1`
+    - Unit Price: `280.00`
+    - Shelf: `Shelf F-03`
+    - Tap **Save**.
   - **Expect** Copy created with accession number `ACC-000004`, status `Available`.
 
 #### Copy Attributes, RFID & Spine Labels
+
 - [ ] 2.2.3 **Shelf Location & RFID Assignment**:
-  - Open Copy sheet for `ACC-000001`:
-    - Shelf Location: `Shelf A-12 / Bay 2`.
-    - Condition: `New`.
-    - RFID Tag: `RFID-BK-0001`.
-  - Tap **Save**. **Expect** Shelf and RFID updated.
-- [ ] 2.2.4 Negative: Duplicate RFID Tag on Copies:
-  - Open Copy sheet for `ACC-000002` → attempt to assign same RFID `RFID-BK-0001`.
+  - In Copies list (or from Book Details copies section), tap copy `ACC-000001` to open `CopySheet`:
+    - RFID tag: `RFID-BK-0001`
+    - Remarks: `Curriculum reference copy`
+    - Tap **Save**. **Expect** copy updated.
+- [ ] 2.2.4 Negative: Duplicate RFID Tag:
+  - Open Copy sheet for `ACC-000002` → enter identical RFID `RFID-BK-0001`. Tap Save.
   - **Expect** rejected with error ("RFID tag already assigned to another copy").
-  - Enter unique RFID: `RFID-BK-0002`. **Expect** saved.
+  - Enter unique RFID: `RFID-BK-0002`. Tap Save. **Expect** saved.
 - [ ] 2.2.5 **Print Spine & Barcode Labels**:
-  - On copy `ACC-000001`, tap **Print Label**.
+  - On copy `ACC-000001` sheet, tap **Print label** (or share labels action).
   - **Expect** printable label preview renders accession barcode, call number, title, and library code.
-- [ ] 2.2.6 **Inter-Library Copy Relocation**:
+- [ ] 2.2.6 **Inter-Library Copy Move**:
   - Open Copy `ACC-000003` ("Wings of Fire").
-  - Tap **Transfer Library** → select `Junior School Library` (`L2`).
-  - Shelf Location: `Junior Shelf J-04`.
-  - **Expect** Copy library updates to `L2`; appears in `L2` copy inventory.
+  - Tap **Move library** → select `Junior School Library` (`L2`). New shelf: `Junior Shelf J-04`.
+  - Tap confirm. **Expect** copy's library updates to `L2`; appears in `L2` copy inventory.
 - [ ] 2.2.7 **Copy Maintenance State Transitions**:
-  - Open Copy `ACC-000002` → tap **Mark Under Maintenance** (e.g. rebinding required).
-  - **Expect** status transitions to `Under Maintenance` (amber); copy is excluded from available loans.
-  - Tap **Restore to Circulation**. **Expect** status restored to `Available`.
+  - Open Copy `ACC-000002` → tap **Change status** → select `under_maintenance`.
+  - **Expect** status transitions to `Under maintenance` (amber); copy is excluded from available loans.
+  - Tap **Change status** → select `available`. **Expect** status restored to `Available`.
 
 ---
 
 ### 2.3 Members & Borrowing Policies (Lib-3)
 
 #### Borrowing Rules & Policies
+
 - [ ] 2.3.1 **Create Primary Student Policy**:
-  - Open **Borrowing Policies** → tap **+ New Policy**:
-    - Library: `Central High School Library` (`L1`).
-    - Member Category: `primary` (Students Class 1-5).
-    - Max Books Allowed: `2` books.
-    - Loan Period: `7` days.
-    - Max Renewals: `1`.
-    - Fine Per Day: `2.00` (₹2.00/day).
-    - Grace Period: `0` days.
-    - Can Reserve Titles: `Yes` (enabled).
-  - Tap **Save Policy**. **Expect** Policy created for `L1` · `primary`.
+  - Open **Borrowing policies** → tap FAB **+ Policy**:
+    - Library: `Central High School Library` (`L1`)
+    - Member category: `primary`
+    - Policy name: `Primary Student Policy`
+    - Max books allowed: `2`
+    - Loan period in days: `7`
+    - Max renewals: `1`
+    - Fine type: `per_day`
+    - Rate per day (₹): `2.00`
+    - Grace days: `0`
+    - Can reserve titles: switch ON (`true`)
+    - Tap **Save**. **Expect** Policy created for `L1` · `primary`.
 - [ ] 2.3.2 **Create Teacher Policy**:
   - Add Policy 2:
-    - Library: `Central High School Library` (`L1`).
-    - Member Category: `teacher`.
-    - Max Books Allowed: `5` books.
-    - Loan Period: `30` days.
-    - Max Renewals: `2`.
-    - Fine Per Day: `0.00` (no overdue fine).
-    - Grace Period: `3` days.
-    - Can Reserve Titles: `Yes`.
-  - Tap **Save Policy**. **Expect** Policy created for `L1` · `teacher`.
-- [ ] 2.3.3 Negative: Invalid Fine Configuration:
-  - Create policy with fine type "Per day" and empty or negative fine rate.
-  - **Expect** rejected with validation error.
+    - Library: `Central High School Library` (`L1`)
+    - Member category: `teacher`
+    - Policy name: `Teacher Borrowing Policy`
+    - Max books allowed: `5`
+    - Loan period in days: `30`
+    - Max renewals: `2`
+    - Fine type: `none`
+    - Grace days: `3`
+    - Can reserve titles: switch ON (`true`)
+    - Tap **Save**. **Expect** Policy created for `L1` · `teacher`.
+- [ ] 2.3.3 Negative: Validation:
+  - Create policy with Fine type `per_day` and empty or negative fine rate.
+  - **Expect** blocked with validation error.
 
 #### Member Enrollment
+
 - [ ] 2.3.4 **Enrol Students**:
-  - Open **Members** → tap **+ Enrol Member**:
-    - Student 1: ERP ID `501`, Member Category `primary`, Library `L1`, Membership Start Date: `2026-01-01`.
-    - Student 2: ERP ID `502`, Member Category `primary`, Library `L1`, Start Date: `2026-01-01`.
-    - Student 3: ERP ID `503`, Member Category `primary`, Library `L1`, Start Date: `2026-01-01`.
+  - Open **Members** → tap FAB **+ Member**:
+    - Member Type: `Student`
+    - ERP ID: `501`
+    - Member Category: `primary`
+    - Library assignment: Tap `Central High School Library` chip
+    - Start Date: Today (`YYYY-MM-DD`)
+    - Tap **Save**.
+  - Enrol Student 2 (ERP ID `502`, category `primary`, library `L1`).
+  - Enrol Student 3 (ERP ID `503`, category `primary`, library `L1`).
   - **Expect** All 3 students enrolled with status `Active`, category `primary`, showing 0 active loans.
 - [ ] 2.3.5 **Enrol Staff / Teacher**:
-  - Enrol Staff ERP ID `884`, Member Category `teacher`, Library `L1`.
-  - **Expect** Enrolled with matching teacher borrowing policy.
-- [ ] 2.3.6 **Member Search & Status Lifecycle**:
-  - Search member by exact ERP ID `501`. **Expect** Student 501 profile returned.
-  - Deactivate Member 503 (toggle Active off) → **Expect** status shows `Inactive`; attempts to issue books are rejected. Reactivate Member 503.
+  - Enrol Teacher: Member Type: `Teacher`, ERP ID `884`, Category: `teacher`, Library: `L1`.
+  - **Expect** Enrolled with matching teacher policy.
+- [ ] 2.3.6 **Member Status & Search**:
+  - Search member by ERP ID `501`. **Expect** Student 501 profile returned.
+  - Edit Member 503 → toggle Active off. **Expect** status shows `Inactive`; attempts to issue books are rejected. Reactivate Member 503.
 
 ---
 
 ### 2.4 Circulation (Loans, Renewals, Returns) (Lib-4)
 
+Open **Circulation** from Library tiles.
+
 #### Book Issuance
+
 - [ ] 2.4.1 **Issue Book to Student 501**:
-  - Open **Circulation** → tap **Issue Book**:
-    - Member: Select or type ERP ID `501`.
-    - Book Copy: Scan or select `ACC-000001` ("Wings of Fire").
-  - Tap **Confirm Issue**.
+  - Member type toggle: `Student`
+  - ERP ID: Enter `501`
+  - In the field **"Scan book to ISSUE to this member"**, enter or scan accession number `ACC-000001` ("Wings of Fire").
+  - Press enter / confirm.
   - **Expect**:
-    - Issue transaction created with number `ISS/<financialYear>/<seq>`.
-    - Due Date automatically set to Today + 7 days.
+    - Toast confirmation: `ACC-000001 issued`.
+    - Active loan appears in the loans list below showing `ACC-000001 · Student #501`, due in 7 days.
     - Copy `ACC-000001` status transitions from `Available` to `Issued` (blue pill).
-    - Student 501 active loan count increments to `1`.
-    - Outbox records notification event `library-issued__...` to student 501.
+    - Outbox records notification event `library-issued__...`.
 - [ ] 2.4.2 **Issue Second Book to Student 501**:
-  - Issue Copy `ACC-000004` ("Pride and Prejudice") to Student 501.
-  - **Expect** Issue succeeds; active loan count becomes `2` (reaching the policy limit).
+  - With ERP ID `501` selected, enter `ACC-000004` ("Pride and Prejudice") in the issue scan field.
+  - **Expect** Issue succeeds; Student 501 active loan count becomes `2` (reaching the policy limit).
 - [ ] 2.4.3 Negative: Borrowing Quota Limit Exceeded:
   - Attempt to issue Copy `ACC-000002` to Student 501.
   - **Expect** rejected with error ("Member has reached maximum borrowing limit of 2 books").
 - [ ] 2.4.4 Negative: Issuing an Already Issued Copy:
-  - Attempt to issue Copy `ACC-000001` to Student 502.
+  - With ERP ID set to `502`, enter `ACC-000001` into the issue scan field.
   - **Expect** rejected with error ("Copy is currently issued and unavailable").
 
 #### Loan Renewal
+
 - [ ] 2.4.5 **Renew Active Loan**:
-  - Open loan sheet for `ACC-000001` (Student 501) → tap **Renew Loan**.
-  - **Expect** Due date moves forward by 7 days; renewal count increments to `1`.
+  - Tap the loan card for `ACC-000001` (or enter `ACC-000001` in "Scan book to RETURN or RENEW") to open `LoanSheet`.
+  - Tap **Renew** button.
+  - **Expect** Due date advances by 7 days; loan sheet shows `Renewed 1 of 1`.
 - [ ] 2.4.6 Negative: Renewal Limit Reached:
-  - Tap **Renew Loan** a second time on `ACC-000001`.
-  - **Expect** rejected with error ("Maximum renewal limit of 1 reached for this loan").
+  - On the same loan sheet, check the Renew button.
+  - **Expect** `Renew` button is disabled (renewals reached policy max limit of 1).
 
 #### Book Returns
+
 - [ ] 2.4.7 **Return Book in Good Condition**:
-  - Open loan sheet for `ACC-000004` ("Pride and Prejudice") → tap **Return Book**.
-  - Return Condition: `Good`.
-  - Remarks: `Returned on time in clean condition`.
-  - Tap **Confirm Return**.
+  - Open `LoanSheet` for `ACC-000004` ("Pride and Prejudice").
+  - Enter optional return remarks: `Returned on time in clean condition`.
+  - Tap **Return** button.
   - **Expect**:
-    - Loan status marked `Returned`.
+    - Loan is closed and removed from active loans list.
     - Copy `ACC-000004` status restores to `Available`.
-    - Student 501 active loan count decreases from `2` to `1`.
+    - Student 501 active loans count drops from `2` to `1`.
     - Outbox records notification `library-returned__...`.
 
 ---
 
 ### 2.5 Reservations & Hold Queue (Lib-5)
 
-Setup: Copy `ACC-000001` is currently on loan to Student 501. No other copies of "Wings of Fire" are available at Library `L1` (Copy 2 is under maintenance/quarantined, Copy 3 moved to `L2`).
+Setup: Copy `ACC-000001` is currently on loan to Student 501. No other copies of "Wings of Fire" are available at Library `L1` (Copy 2 is under maintenance/quarantined, Copy 3 was moved to `L2`).
 
 - [ ] 2.5.1 **Queue Reservation 1 (Student 502)**:
-  - Open Title "Wings of Fire" → tap **Reserve Title**:
-    - Member: Student ERP ID `502`.
-    - Target Library: `Central High School Library` (`L1`).
-  - Tap **Confirm Reservation**.
+  - Open Catalogue → open "Wings of Fire" details → tap AppBar bookmark icon (tooltip: "Reserve book"):
+    - Member type: `Student`
+    - ERP ID: `502`
+    - Library: `Central High School Library` (`L1`)
+    - Tap **Reserve book**.
   - **Expect** Reservation created with status `Waiting`; Queue Position is `1`.
 - [ ] 2.5.2 **Queue Reservation 2 (Student 503)**:
-  - Place second reservation for Student ERP ID `503` on "Wings of Fire".
+  - Open **Reservations** from Library tiles → tap FAB **New reservation**:
+    - Member type: `Student`, ERP ID: `503`
+    - Select Book: `Wings of Fire`
+    - Library: `Central High School Library` (`L1`)
+    - Tap **Reserve book**.
   - **Expect** Reservation created with status `Waiting`; Queue Position is `2`.
 - [ ] 2.5.3 Negative: Reserving a Title with Available Shelf Copies:
   - Attempt to place a reservation on "Pride and Prejudice" (which has available copy `ACC-000004`).
@@ -937,215 +1027,243 @@ Setup: Copy `ACC-000001` is currently on loan to Student 501. No other copies of
   - Attempt to place another reservation for Student 502 on "Wings of Fire".
   - **Expect** rejected with error ("Member already has an active reservation for this title").
 - [ ] 2.5.5 **Fulfill Reservation on Return (Hold Activation)**:
-  - In Circulation, return copy `ACC-000001` from Student 501.
+  - In Circulation, return copy `ACC-000001` (issued to Student 501) by entering `ACC-000001` in the Return/Renew field → tap **Return**.
   - **Expect**:
     - Copy status does NOT become available to general circulation; status transitions to `Reserved` (purple pill).
     - Student 502's reservation status changes from `Waiting` to `Ready`.
     - Hold Expiry Date is automatically set to Today + 3 days.
-    - Outbox records notification `library-rsv-ready__...` notifying Student 502 that the book is held for pickup.
+    - Outbox records notification `library-rsv-ready__...` notifying Student 502.
 - [ ] 2.5.6 Negative: Issuing a Held Copy to Another Member:
-  - Attempt to issue copy `ACC-000001` to Student 503 (queue position 2).
+  - In Circulation, set ERP ID to `503` (queue position 2). Enter held copy `ACC-000001` in issue field.
   - **Expect** rejected with error ("Copy is currently held on reservation for Member 502").
 - [ ] 2.5.7 **Issue Held Copy to Target Member**:
-  - Issue copy `ACC-000001` to Student 502.
-  - **Expect** Issue allowed; reservation status updates to `Fulfilled`; active loans for Student 502 becomes `1`.
+  - In Circulation, set ERP ID to `502`. Enter `ACC-000001` in issue field.
+  - **Expect** Issue allowed; reservation status updates to `Fulfilled`; Student 502 has active loan.
 - [ ] 2.5.8 **Reservation Cancellation**:
-  - Open Student 503's reservation → tap **Cancel Reservation**.
+  - Open **Reservations** → tap Student 503's waiting reservation → tap **Cancel reservation**.
   - **Expect** Reservation status moves to `Cancelled`.
 - [ ] 2.5.9 **Hold Expiry Job [JOB]**:
   - For a reservation in `Ready` status whose hold date has passed, execute `runHoldExpiry`.
-  - **Expect** Reservation status transitions to `Expired`; copy either allocates to next queued member or reverts to `Available`.
+  - **Expect** Reservation status transitions to `Expired`; copy re-allocates to next member in queue or reverts to `Available`.
 
 ---
 
 ### 2.6 Fines, Penalties, Lost & Damaged Incidents (Lib-6)
 
 #### Overdue Fine Calculation & Enforcement
+
 - [ ] 2.6.1 **Overdue Fine Generation**:
-  - In Emulator Firestore UI, edit loan for `ACC-000001` (issued to Student 502): change `dueDate` to 3 days in the past (`today - 3 days`).
-  - Return the book via Circulation.
+  - In Emulator Firestore UI, locate loan for `ACC-000001` (issued to Student 502): edit `dueDate` to 3 days in the past (`today - 3 days`).
+  - In Circulation, scan `ACC-000001` into Return/Renew field → tap **Return**.
   - **Expect**:
     - Overdue fine generated: 3 days × ₹2.00/day = `₹6.00`.
-    - Fine record created with status `Unpaid` (`outstanding` = `₹6.00`).
-    - Member Student 502 status is flagged `Blocked` (fines pending).
+    - Fine record created with status `Outstanding` (`outstanding` = `₹6.00`).
+    - Member Student 502 is flagged as blocked due to unpaid fines.
     - Outbox records notification event `library-fine__...`.
 - [ ] 2.6.2 Negative: Blocked Member Borrowing Prevention:
-  - Attempt to issue any book to Student 502.
+  - Attempt to issue any book to Student 502 in Circulation.
   - **Expect** rejected with error ("Member is blocked due to outstanding unpaid fines").
 
 #### Fine Waivers & Payments
+
 - [ ] 2.6.3 **Partial Fine Waiver**:
-  - Open **Fines & Penalties** → locate Student 502's ₹6.00 fine.
-  - Tap **Waive Fine**:
-    - Waive Amount: `3.00` (₹3.00).
-    - Justification: `Medical illness leave with doctor certificate`.
-  - Tap **Confirm Waiver**.
-  - **Expect** Fine status updates to `Partially paid`; Outstanding fine drops to `₹3.00`; Member remains blocked until settled.
+  - Open **Fines & Penalties** from Library tiles → tap Student 502's ₹6.00 fine to open `FineSheet`.
+  - Tap **Waive fine**:
+    - Amount to waive (₹): `3.00`
+    - Reason for waiver: `Medical illness leave with certificate`
+    - Tap **Confirm waive**.
+  - **Expect** Fine status updates to `Partially paid`; Outstanding drops to `₹3.00`; member remains blocked.
 - [ ] 2.6.4 **Fine Payment Collection**:
-  - On the same fine, tap **Record Payment**:
-    - Payment Amount: `3.00`.
-    - Payment Method: `Cash`.
-    - Receipt / Payment Reference: `RCP-LIB-2026-441`.
-  - Tap **Save Payment**.
+  - On the same fine sheet, tap **Record fine payment**:
+    - Paid amount (₹): `3.00`
+    - Payment receipt / reference: `RCP-LIB-2026-441`
+    - Tap **Record payment**.
   - **Expect** Fine status updates to `Paid`; Outstanding becomes `₹0.00`; Student 502 status is automatically unblocked.
 
 #### Damaged and Lost Incidents
+
 - [ ] 2.6.5 **Return Copy as Damaged**:
   - Issue copy `ACC-000004` to Student 501.
-  - Return copy `ACC-000004` selecting Condition `Damaged`:
-    - Damage Description: `Water stains and ripped pages from chapter 3`.
-    - Charge Member: `Yes` · Penalty Charge: `150.00`.
-  - Tap **Confirm Return**.
+  - Open loan sheet for `ACC-000004` → enter remarks `Water stains and ripped pages from chapter 3` → tap **Return damaged**.
   - **Expect**:
-    - Incident ticket created (`INC/<financialYear>/<seq>`); status is `Reported`.
+    - Incident ticket created (`INC/<financialYear>/<seq>`); status is `Reported`, type `damaged`.
     - Copy status transitions to `Damaged` (red pill); removed from circulation.
-    - Fine of `₹150.00` assessed against Student 501; member blocked pending payment.
-- [ ] 2.6.6 **Resolve Damaged Incident (Repair vs Replacement)**:
-  - Open **Lost & Damaged** → open incident for `ACC-000004`.
-  - Tap **Resolve Incident**:
-    - Resolution: `Repaired`.
-    - Repair Notes: `Rebound and dried by central bookbinder`.
-  - Tap **Confirm Resolution**.
-  - **Expect** Incident marked `Resolved`; Copy status restored to `Available`.
+- [ ] 2.6.6 **Resolve Damaged Incident**:
+  - Open **Lost & Damaged** from Library tiles → tap incident for `ACC-000004` to open `IncidentSheet`.
+  - Tap **Resolve incident**:
+    - Resolution: `Repaired (return to shelf)`
+    - Repair cost (₹): `150.00`
+    - Resolution remarks: `Rebound and dried by bookbinder`
+    - Tap Confirm.
+  - **Expect** Incident status marked `Resolved`; Copy status restored to `Available`.
 - [ ] 2.6.7 **Mark Book as Lost**:
-  - Issue a copy to Student 501. On loan sheet, tap **Mark Lost**:
-    - Replacement Book Cost: `299.00`.
-    - Administrative Processing Fee: `50.00`.
-    - Total Charge: `349.00`.
-  - Tap **Confirm Lost**.
-  - **Expect** Loan closed with status `Lost`; Copy status marked `Lost`; fine of `₹349.00` raised; incident recorded.
+  - Issue copy `ACC-000004` to Student 501.
+  - Open loan sheet → tap **Mark lost**:
+    - Reason for loss: `Misplaced during inter-school tour`
+    - Replacement charge (₹): `350.00`
+    - Tap **Confirm lost**.
+  - **Expect** Loan closed with status `Lost`; Copy status marked `Lost`; fine of `₹350.00` assessed against Student 501; member blocked pending settlement.
 
 ---
 
 ### 2.7 Inter-Library Transfers & Verification (Lib-7)
 
 #### Inter-Library Transfers
+
 - [ ] 2.7.1 **Request Inter-Library Transfer**:
-  - Open **Transfers** → tap **+ Request Transfer**:
-    - Origin Library (From): `Central High School Library` (`L1`, Campus 31).
-    - Destination Library (To): `Junior School Library` (`L2`, Campus 32).
-    - Copies: Add `ACC-000004` ("Pride and Prejudice").
-    - Reason: `Required for Class 8 inter-school literature workshop`.
-  - Tap **Submit Transfer Request**.
-  - **Expect** Transfer record created (`LTR/<financialYear>/<seq>`); status `Requested`; approvers notified.
+  - Open **Transfers** from Library tiles → tap FAB **New transfer**:
+    - In the scan field, scan or enter accession no. `ACC-000001` (From library auto-populates as `Central High School Library`; with one eligible library it is pre-selected).
+    - To library: Select `Junior School Library` (`L2`). The From library is not offered.
+    - Scan a copy from another library or an issued copy. **Expect** a message naming why it was refused.
+    - Remarks: `Required for Class 8 literature workshop`.
+    - Tap **Request transfer**.
+  - **Expect** the screen closes; the list shows `LTR/<financialYear>/<seq>` with status `Requested`.
 - [ ] 2.7.2 **Approve and Dispatch Transfer**:
-  - As authorized librarian/admin, tap **Approve Transfer**.
-  - Tap **Dispatch Transfer**.
-  - **Expect** Transfer status updates to `In Transit` (blue); copy `ACC-000004` marked `In Transit`; removed from `L1` shelf.
+  - Tap the transfer card to open the transfer screen (a card with `Needs your approval` is waiting on you):
+    - Tap **Approve transfer** and confirm (requires `library.settings`). Status becomes `Approved`.
+    - Tap **Dispatch copies** and confirm (requires `library.catalogue.manage` on the source campus).
+  - **Expect** the progress strip reaches `In transit`; copy `ACC-000001` marked `In Transit`.
 - [ ] 2.7.3 Negative: Issuing an In-Transit Copy:
-  - Attempt to issue `ACC-000004` while in transit.
+  - In Circulation, attempt to issue `ACC-000001` while in transit.
   - **Expect** rejected with error ("Copy is currently in transit between libraries").
 - [ ] 2.7.4 **Receive Transfer at Destination Library**:
-  - Switch user/view to Campus `32` (`Junior School Library L2`).
-  - Open transfer `LTR/...` → tap **Receive Copies**.
-  - Assign New Shelf: `Shelf J-08`.
-  - Tap **Confirm Receipt**.
-  - **Expect** Transfer marked `Received` (green); copy `ACC-000004` now belongs to `L2` and is available for circulation at `L2`.
+  - Open the transfer as a receiving librarian (`L2` campus; card shows `Confirm receipt on arrival`).
+  - Copies are ticked by default; set `ACC-000001` condition (Good / Fair / Poor), optionally enter a shelf and remarks.
+  - Tap **Confirm receipt (1)**.
+  - **Expect** Transfer marked `Received`; copy `ACC-000001` now belongs to `L2` with the chosen condition and is available for circulation at `L2`. Unticking a copy leaves it in transit (`Partly received`) and it can be received later.
+- [ ] 2.7.4a **Filters and visibility**:
+  - Use the status chips on the Transfers list. **Expect** the list narrows and an empty filter offers **Show all transfers**.
+  - As a librarian limited to one campus, **Expect** both outgoing and incoming transfers are listed.
 
 #### Library Stock Verification
+
 - [ ] 2.7.5 **Initiate Library Stock Verification**:
-  - Open **Stock Verification** → tap **+ New Verification**:
-    - Library: `Central High School Library` (`L1`).
-    - Title/Shelf Scope: All copies at `L1`.
-  - Tap **Start Verification**.
-  - **Expect** System snapshots expected shelf copies; issued copies on active loans are flagged as `On Loan` and excluded from shelf discrepancies.
-- [ ] 2.7.6 **Barcode Scanning & Discrepancy Reconciliation**:
-  - Scan all expected accession numbers except one (simulating a missing book).
-  - Scan an accession number belonging to `L2` (unexpected copy).
-  - **Expect** Verification screen categorizes copies into `Matched`, `Missing (1)`, and `Unexpected (1)`.
-  - Tap **Submit Verification**.
-  - Approve session: Mark missing copy as `Investigate` / `Lost` and unexpected copy as `Transferred In`.
-  - **Expect** Copy records and catalogue counts updated accordingly.
+  - Open **Stock verification** from Library tiles → tap FAB **New verification**:
+    - Library: Select `Central High School Library` (`L1`).
+    - Shelf: Leave blank (whole library) or enter shelf code.
+    - Tap **Start counting**.
+  - **Expect** Session created (`STK/...`); status `Counting`. Active loans are flagged as on loan and excluded from shelf discrepancies.
+- [ ] 2.7.6 **Barcode Scanning & Reconciliation**:
+  - In `VerificationSheet`, scan expected accession numbers into the scan field.
+  - Scan an unexpected copy (e.g. belonging to `L2`).
+  - Leave one shelf copy unscanned (simulating a missing book).
+  - Tap **Submit count**. Status moves to `Submitted`.
+  - Review corrections (as user with `library.settings`):
+    - Under Missing: tick checkbox **"Mark as lost"** for missing copy (unticked copies stay recorded for investigation).
+    - Under Unexpected: tick checkbox **"Move into this library"**.
+    - Tap **Approve corrections**.
+  - **Expect** Session status becomes `Approved`; copy records and catalogue counts update accordingly.
 
 ---
 
 ### 2.8 Dashboard, Reports, Import & Automation (Lib-8)
 
 #### Library Executive Dashboard
-- [ ] 2.8.1 **Dashboard KPI Validation**:
-  - Open **Library Dashboard**. Toggle between **All Libraries** and `Central High School Library (L1)`.
-  - **Expect** 12 KPI cards match actual database records:
-    - **Total Catalog Titles**
-    - **Total Book Copies**
-    - **Available Copies on Shelf**
-    - **Currently Issued Loans**
-    - **Overdue Loans**
-    - **Active Reservations (Waiting + Ready)**
-    - **Lost Copies Count**
-    - **Damaged Copies Count**
-    - **Student Members Enrolled**
-    - **Staff / Teacher Members Enrolled**
-    - **Pending Returns Expected Today**
-    - **Total Outstanding Fines Balance (₹)**
-  - Tapping each card opens the corresponding management screen.
 
-#### Library Management Reports (15 Reports)
-- [ ] 2.8.2 **Execute All 15 Library Reports**:
-  - Open **Reports** and verify each report with library and date range filters:
-    1. **Catalogue Master Register**
-    2. **Accession Register (All Copies)**
-    3. **Stock & Shelf Availability Report**
-    4. **Active Circulation & Issued Books**
-    5. **Overdue Loans & Aging Report** (shows days overdue and calculated fines)
-    6. **Member Borrowing History Report**
-    7. **Fines, Penalties & Collections Report** (totals row verified)
-    8. **Lost Books Register**
-    9. **Damaged Books & Incident Log**
-    10. **Book Acquisitions & Expenditures Report**
-    11. **Inter-Library Transfers Log**
-    12. **Stock Verification & Audit History**
-    13. **Most Popular / Highest Circulated Titles**
-    14. **Inactive / Zero-Circulation Titles**
-    15. **Member Category Utilization Summary**
+- [ ] 2.8.1 **Dashboard KPI Validation**:
+  - Open **Dashboard** from Library tiles. Toggle between **All Libraries** and `Central High School Library`.
+  - **Expect** 12 KPI cards match database counts:
+    1. **Book titles**: catalogue titles count.
+    2. **Physical copies**: total copies across selected scope.
+    3. **Available copies**: copies currently on shelf.
+    4. **Issued copies**: books currently on loan.
+    5. **Overdue books**: loans past their due date.
+    6. **Reserved books**: waiting and held reservations.
+    7. **Lost books**: copies marked lost.
+    8. **Damaged books**: copies in damaged state.
+    9. **Active student members**: enrolled active students.
+    10. **Active teacher members**: enrolled active teachers.
+    11. **Pending returns**: loans due today.
+    12. **Outstanding fines**: total uncollected fines balance (₹).
+
+#### Reports Suite (All 15 Library Reports)
+
+- [ ] 2.8.2 **Execute and Validate All 15 Library Reports**:
+  - Open **Reports** from Library tiles. Open each report and verify table columns:
+    1. **Book catalogue**: titles, authors, publishers, editions, years, ISBNs, categories.
+    2. **Accession register**: accession numbers, titles, libraries, shelves, acquired dates, prices.
+    3. **Library stock**: accession numbers, titles, shelves, statuses, conditions.
+    4. **Available books**: copies currently available on shelf.
+    5. **Issued books**: active loans, members, titles, accession numbers, issue/due dates.
+    6. **Overdue books**: active loans past due date, days overdue count.
+    7. **Member history**: historical issue, due, and return dates with statuses.
+    8. **Fine report**: fine numbers, members, types, amounts, waived, paid, outstanding.
+    9. **Lost books**: incident tickets, accession numbers, titles, charges.
+    10. **Damaged books**: incident tickets, severity, repair status, incident status.
+    11. **Acquisition report**: dates, numbers, sources (purchase/donation), copies count, prices.
+    12. **Transfer report**: transfers log with from/to libraries, copies count, statuses.
+    13. **Verification report**: audit sessions, shelves, expected, missing, unexpected counts.
+    14. **Popular books**: titles ranked by borrowing frequency in period.
+    15. **Inactive books**: titles with copies but zero loans in period.
 - [ ] 2.8.3 **Export Capabilities**:
-  - On **Accession Register** and **Fines & Collections** reports:
+  - On **Accession register** and **Fine report**:
     - Tap **Copy CSV** → **Expect** formatted CSV copied to clipboard.
-    - Tap **Download / Print PDF** → **Expect** formatted PDF opens with library header and totals summary.
+    - Tap **PDF** (or print action) → **Expect** PDF preview renders with library header and totals.
 
 #### Batch Import (CSV)
+
 - [ ] 2.8.4 **Import Catalogue CSV**:
-  - In **Import** → select **Catalogue Titles**.
-  - Upload CSV with header `title,authors,categoryCode,isbn13`:
-    - Row 1 (Good): `Discovery of India,Jawaharlal Nehru,HIS,9780143031031`
-    - Row 2 (Invalid Category): `Modern Physics,H.C. Verma,INVALID_CAT,9788177091878`
-    - Row 3 (Duplicate ISBN): `Wings of Fire,A.P.J. Abdul Kalam,HIS,9788173711466`
-  - **Expect** "1 of 3 records imported" with granular row-level error reports.
+  - In **Import** from Library tiles, select **Catalogue**.
+  - Paste CSV with header:
+
+    ```csv
+    title,authors,categoryCode,isbn13,publisher,year
+    Discovery of India,Jawaharlal Nehru,HIS,9780143031031,Penguin,2004
+    Modern Physics,H.C. Verma,INVALID_CAT,9788177091878,Bharti,2018
+    Wings of Fire: An Autobiography,A.P.J. Abdul Kalam,HIS,9788173711466,Universities Press,1999
+    ```
+
+  - Tap **Run import**.
+  - **Expect** summary shows 1 of 3 imported:
+    - Row 1: `Success`
+    - Row 2: `Error: Category code 'INVALID_CAT' does not exist`
+    - Row 3: `Error: Title with this ISBN-13 already exists`
 - [ ] 2.8.5 **Import Copies CSV**:
-  - Upload copies CSV (`isbn13,libraryCode,quantity,price`) for the newly imported title.
-  - **Expect** Generated accession numbers assigned and copies created as `Available`.
+  - Select **Copies** import.
+  - Paste CSV:
+
+    ```csv
+    isbn13,libraryCode,quantity,price,shelf,condition,date
+    9780143031031,L1,2,400.00,Shelf H-01,good,2026-01-15
+    ```
+
+  - Tap **Run import**.
+  - **Expect** Accession numbers generated and copies created as `Available`.
 
 #### Scheduled Notification Automation [JOB]
+
 - [ ] 2.8.6 **Execute `runDailyLibrary`**:
-  - Run the daily library scheduled callable.
+  - Trigger scheduled library callable.
   - **Expect**:
     - Loans due in 2 days receive `library-due-soon__...` outbox event.
     - Overdue loans past due date receive `library-overdue__...__<date>` outbox event.
     - Memberships expiring within 7 days receive `library-member-expiring__...`.
     - Reservation holds expiring within 24 hours receive `library-rsv-expiring__...`.
-    - Re-executing the job on the same day produces no duplicate outbox events.
+    - Re-executing on the same day produces no duplicate outbox events.
 
 ---
 
 ### 2.9 Permissions & Role Security (Library)
 
+Edit permissions in `schools/<schoolId>/userAccess/<uid>`:
+
 - [ ] 2.9.1 **Role: `teacher`**:
-  - Sign in as `teacher`. Open Library.
-  - **Expect** Access restricted to **Catalogue Search** and personal loan history. Circulation, Member management, Copies admin, and Reports are hidden.
+  - Set permissions: `library.catalogue.view`.
+  - Restart / reload app.
+  - **Expect**: Only Catalogue tile is accessible. Circulation, Members, Borrowing policies, Fines, Incidents, Transfers, Verification, and Reports are hidden.
 - [ ] 2.9.2 **Role: `principal`**:
-  - Sign in as `principal`.
-  - **Expect** Read-only access to Dashboard, Catalogue, Member registers, and Reports. Circulation desk operational buttons are disabled.
-- [ ] 2.9.3 **Role: `librarian` (Cross-Campus Scoping)**:
-  - Sign in as a librarian assigned exclusively to Campus `32` (`Junior School Library L2`).
-  - **Expect** Library views, loans, and circulation lists default to `L2`; queries cannot view or alter Campus `31` (`L1`) active loans or shelf copies.
-- [ ] 2.9.4 **Parent & Student Rules Validation**:
-  - Security rules ensure students and parents can read catalog titles and their own active loans/fines, but cannot write or modify records (`melos run firebase:test`).
+  - Set permissions: `library.catalogue.view`, `library.reports.view`, `library.members.view`.
+  - **Expect**: Access to Dashboard, Catalogue, Members, and Reports. Circulation desk operational buttons are hidden/disabled.
+- [ ] 2.9.3 **Role: `librarian` (Campus Scoping)**:
+  - In `userAccess/<uid>`, set `campusIds: [32]` (Campus 32 only) and `hasAllCampuses: false`.
+  - **Expect**: Library views and circulation default to `Junior School Library` (`L2`); queries exclude Campus 31 (`L1`) loans and copies.
 
 ---
 
 ## Part 3 – Cross-cutting
 
-- [ ] 3.1 Double-tap any save/issue/return button. **Expect** one record only.
-- [ ] 3.2 Stop the emulator mid-action, then act. **Expect** a clear "needs connection" style error, nothing half-saved.
-- [ ] 3.3 Open any list with no data. **Expect** an empty state, not a spinner or crash.
-- [ ] 3.4 Every created document has a matching `auditLogs` entry.
-- [ ] 3.5 `melos run firebase:test` passes (functions and rules tests use their own emulator ports through the project config).
+- [ ] 3.1 **Idempotency**: Double-tap any save/issue/return button. **Expect** one record only created.
+- [ ] 3.2 **Connection handling**: Stop the emulator mid-action, then act. **Expect** clear error prompt, no half-saved or corrupted state.
+- [ ] 3.3 **Empty states**: Open any master, stock, circulation, or report list with no data. **Expect** clean empty state with icon and message, no infinite spinner or crash.
+- [ ] 3.4 **Audit logging**: Every mutation via Cloud Functions creates a corresponding record in `schools/<schoolId>/auditLogs`.
+- [ ] 3.5 **Automated test suite**: `melos run firebase:test` passes with all functions and rules tests green.

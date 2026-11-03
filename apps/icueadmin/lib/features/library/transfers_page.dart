@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:icueadmin/features/library/widgets/transfer_request_sheet.dart';
-import 'package:icueadmin/features/library/widgets/transfer_sheet.dart';
+import 'package:go_router/go_router.dart';
+import 'package:icueadmin/features/library/widgets/transfer_card.dart';
+import 'package:icueadmin/features/library/widgets/transfer_widgets.dart';
+import 'package:icueadmin/routing/app_routes.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
@@ -9,82 +11,160 @@ class LibraryTransfersPage extends StatefulWidget {
   const LibraryTransfersPage({super.key});
 
   @override
-  State<LibraryTransfersPage> createState() => _LibTransfersPageState();
+  State<LibraryTransfersPage> createState() => _LibraryTransfersPageState();
 }
 
-class _LibTransfersPageState extends State<LibraryTransfersPage> {
+class _LibraryTransfersPageState extends State<LibraryTransfersPage> {
+  static const _statuses = <(String?, String)>[
+    (null, 'All'),
+    ('requested', 'Requested'),
+    ('approved', 'Approved'),
+    ('dispatched', 'In transit'),
+    ('partially_received', 'Partly received'),
+    ('received', 'Received'),
+  ];
+
+  String? _status;
+
+  /// False until the first fetch ends, so an earlier visit's rows never flash.
+  var _loaded = false;
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => context.read<LibraryProvider>().loadTransfers(),
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+  }
+
+  Future<void> _load() async {
+    final libraryProvider = context.read<LibraryProvider>();
+    // Access (campuses) and library names must be known before transfers are read.
+    if (libraryProvider.libraries.isEmpty) await libraryProvider.loadMasters();
+    await libraryProvider.loadTransfers();
+    if (mounted) setState(() => _loaded = true);
+  }
+
+  Future<void> _open(String route) async {
+    await context.push(route);
+    if (mounted) await _load();
   }
 
   @override
   Widget build(BuildContext context) {
     final libraryProvider = context.watch<LibraryProvider>();
-    String lib(String id) => libraryProvider.libraries
-        .firstWhere(
-          (schoolLibrary) => schoolLibrary.id == id,
-          orElse: () => SchoolLibrary(
-            id: id,
-            code: '',
-            name: id,
-            campusId: 0,
-            staffIds: const [],
-            active: true,
-          ),
-        )
-        .name;
+    final access = libraryProvider.access;
+    final theme = Theme.of(context);
+    final transfers = [
+      for (final transfer in libraryProvider.transfers)
+        if (_status == null || transfer.status == _status) transfer,
+    ];
+    final loading = !_loaded || libraryProvider.transfersLoading;
+    final failure = libraryProvider.errorMessage;
+
+    String name(String id) => libraryProvider.library(id)?.name ?? id;
+
+    Widget empty() => Center(
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          children: [
+            Icon(
+              Icons.swap_horiz_rounded,
+              size: 48,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              failure != null
+                  ? 'Could not load transfers'
+                  : _status == null
+                  ? 'No transfers yet'
+                  : 'No ${transferStatusLabel(_status!).toLowerCase()} transfers',
+              style: theme.textTheme.titleMedium,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              failure ?? 'Move copies between libraries. Each transfer is requested, approved, dispatched and then received.',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 16),
+            if (failure != null)
+              OutlinedButton.icon(
+                onPressed: _load,
+                icon: const Icon(Icons.refresh, size: 18),
+                label: const Text('Try again'),
+              )
+            else if (_status != null)
+              OutlinedButton(
+                onPressed: () => setState(() => _status = null),
+                child: const Text('Show all transfers'),
+              ),
+          ],
+        ),
+      ),
+    );
 
     return Scaffold(
       appBar: AppBar(title: const Text('Library Transfers')),
-      floatingActionButton:
-          libraryProvider.access.can('library.catalogue.manage')
+      floatingActionButton: access.can('library.catalogue.manage')
           ? FloatingActionButton.extended(
-              onPressed: () => TransferRequestSheet.show(context),
+              onPressed: () => _open(AppRoutes.libraryTransferForm),
               icon: const Icon(Icons.swap_horiz),
               label: const Text('New transfer'),
             )
           : null,
-      body: libraryProvider.transfers.isEmpty
-          ? Center(
-              child: Text(
-                libraryProvider.transfersLoading
-                    ? 'Loading…'
-                    : libraryProvider.errorMessage ?? 'No transfers yet',
-              ),
-            )
-          : ListView.builder(
-              itemCount:
-                  libraryProvider.transfers.length +
-                  (libraryProvider.hasMoreTransfers ? 1 : 0),
-              itemBuilder: (context, i) {
-                if (i >= libraryProvider.transfers.length) {
-                  return Center(
-                    child: TextButton(
-                      onPressed: libraryProvider.transfersLoading
-                          ? null
-                          : () => libraryProvider.loadTransfers(more: true),
-                      child: const Text('Load more'),
+      body: Column(
+        children: [
+          SizedBox(
+            height: 44,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              children: [
+                for (final (key, label) in _statuses)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: FilterChip(
+                      label: Text(label),
+                      selected: _status == key,
+                      showCheckmark: false,
+                      visualDensity: VisualDensity.compact,
+                      onSelected: (_) => setState(() => _status = key),
                     ),
-                  );
-                }
-                final transfer = libraryProvider.transfers[i];
-                return ListTile(
-                  title: Text(transfer.number),
-                  subtitle: Text(
-                    '${lib(transfer.fromLibraryId)} → ${lib(transfer.toLibraryId)} · '
-                    '${transfer.lineItems.length} copies',
                   ),
-                  trailing: Chip(
-                    label: Text(transferStatusLabel(transfer.status)),
-                  ),
-                  onTap: () => TransferSheet.show(context, transfer),
-                );
-              },
+              ],
             ),
+          ),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _load,
+              child: !_loaded || (loading && transfers.isEmpty)
+                  ? const Center(child: CircularProgressIndicator())
+                  : transfers.isEmpty
+                  ? empty()
+                  : ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 80),
+                      itemCount: transfers.length,
+                      itemBuilder: (context, index) {
+                        final transfer = transfers[index];
+                        return TransferCard(
+                          transfer: transfer,
+                          fromName: name(transfer.fromLibraryId),
+                          toName: name(transfer.toLibraryId),
+                          nextAction: transferNextAction(transfer, access),
+                          onTap: () => _open(
+                            '${AppRoutes.libraryTransferDetail}?id=${transfer.id}',
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -78,6 +78,14 @@ class StockService {
     ];
   }
 
+  Future<InventoryIssueRequest?> requestById(String id) async {
+    final document = await (await schoolCollection('inventoryIssueRequests'))
+        .doc(id)
+        .get();
+    final data = document.data();
+    return data == null ? null : InventoryIssueRequest.fromMap(id, data);
+  }
+
   Future<List<InventoryIssue>> issuesOf(
     InventoryIssueRequest issueRequest,
   ) async {

@@ -113,6 +113,8 @@ class _TransferFormPageState extends State<TransferFormPage> {
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
+                      // Re-created when the source changes, so a cleared choice is not shown.
+                      key: ValueKey('to-$_from-$_to'),
                       initialValue: _to,
                       isExpanded: true,
                       decoration: const InputDecoration(
@@ -124,7 +126,7 @@ class _TransferFormPageState extends State<TransferFormPage> {
                           DropdownMenuItem(
                             value: store.id,
                             child: Text(
-                              '${store.name} (${store.code}) · Campus ${store.campusId}',
+                              store.name,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),

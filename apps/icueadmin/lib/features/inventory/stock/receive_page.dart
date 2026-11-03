@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icueadmin/features/inventory/stock/line_editor.dart';
@@ -189,7 +190,7 @@ class _ReceivePageState extends State<ReceivePage> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
-                              '${_lines.length} items',
+                              '${_lines.length} ${_lines.length == 1 ? 'item' : 'items'}',
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: theme.colorScheme.onPrimaryContainer,
                                 fontWeight: FontWeight.w600,
@@ -204,6 +205,10 @@ class _ReceivePageState extends State<ReceivePage> {
                       receipt: true,
                       onChanged: () => setState(() {}),
                     ),
+                    if (_lines.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      _ReceiveSummaryBar(lines: _lines),
+                    ],
                   ],
                 ),
               ),
@@ -243,6 +248,100 @@ class _ReceivePageState extends State<ReceivePage> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _ReceiveSummaryBar extends StatelessWidget {
+  const _ReceiveSummaryBar({required this.lines});
+
+  final List<LineDraft> lines;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ListenableBuilder(
+      listenable: Listenable.merge([
+        for (final lineDraft in lines) ...[
+          lineDraft.quantity,
+          lineDraft.rejected,
+          lineDraft.cost,
+        ],
+      ]),
+      builder: (context, _) {
+        double totalAccepted = 0;
+        double totalRejected = 0;
+        double totalValuation = 0;
+        var hasValuation = false;
+
+        for (final lineDraft in lines) {
+          final accepted = double.tryParse(lineDraft.quantity.text.trim()) ?? 0;
+          final rejected = double.tryParse(lineDraft.rejected.text.trim()) ?? 0;
+          final unitCost = double.tryParse(lineDraft.cost.text.trim());
+          totalAccepted += accepted;
+          totalRejected += rejected;
+          if (unitCost != null && unitCost > 0 && accepted > 0) {
+            totalValuation += accepted * unitCost;
+            hasValuation = true;
+          }
+        }
+
+        if (totalAccepted == 0 && totalRejected == 0 && !hasValuation) {
+          return const SizedBox.shrink();
+        }
+
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: theme.colorScheme.primary.withValues(alpha: 0.2),
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.summarize_outlined,
+                size: 18,
+                color: theme.colorScheme.primary,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Wrap(
+                  spacing: 12,
+                  runSpacing: 4,
+                  children: [
+                    Text(
+                      'Accepted: ${formatQuantity(totalAccepted)}',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                    if (totalRejected > 0)
+                      Text(
+                        'Rejected: ${formatQuantity(totalRejected)}',
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.error,
+                        ),
+                      ),
+                    if (hasValuation)
+                      Text(
+                        'Total Value: ₹${totalValuation.toStringAsFixed(2)}',
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

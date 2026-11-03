@@ -200,6 +200,8 @@ class InventoryIssue {
     required this.number,
     required this.lineItems,
     required this.acknowledged,
+    this.recipientType,
+    this.recipientId,
     this.createdAt,
   });
 
@@ -209,6 +211,12 @@ class InventoryIssue {
         number: data['number'] as String? ?? '',
         lineItems: _rows(data['lineItems']).map(IssueLine.fromMap).toList(),
         acknowledged: data['acknowledgement'] != null,
+        recipientType:
+            (data['recipient'] as Map<String, dynamic>?)?['type'] as String?,
+        recipientId:
+            ((data['recipient'] as Map<String, dynamic>?)?['personErpId']
+                    as num?)
+                ?.toInt(),
         createdAt: _t(data['createdAt']),
       );
 
@@ -216,6 +224,10 @@ class InventoryIssue {
   final String number;
   final List<IssueLine> lineItems;
   final bool acknowledged;
+
+  /// staff | student | department
+  final String? recipientType;
+  final int? recipientId;
   final DateTime? createdAt;
 }
 
@@ -257,6 +269,9 @@ class InventoryTransfer {
     required this.status,
     required this.requested,
     required this.lineItems,
+    this.remarks,
+    this.dispatchedDate,
+    this.receivedDate,
     this.createdAt,
   });
 
@@ -280,6 +295,11 @@ class InventoryTransfer {
           ),
       ],
       lineItems: _rows(data['lineItems']).map(TransferLine.fromMap).toList(),
+      remarks: data['remarks'] as String?,
+      dispatchedDate:
+          (data['dispatch'] as Map<String, dynamic>?)?['date'] as String?,
+      receivedDate:
+          (data['receipt'] as Map<String, dynamic>?)?['date'] as String?,
       createdAt: _t(data['createdAt']),
     );
   }
@@ -295,6 +315,9 @@ class InventoryTransfer {
   final String status;
   final List<({String itemId, String? variantId, double quantity})> requested;
   final List<TransferLine> lineItems;
+  final String? remarks;
+  final String? dispatchedDate;
+  final String? receivedDate;
   final DateTime? createdAt;
 
   bool get inTransit =>

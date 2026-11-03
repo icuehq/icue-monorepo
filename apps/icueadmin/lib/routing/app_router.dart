@@ -53,15 +53,21 @@ import 'package:icueadmin/features/inventory/procurement/purchase_order_form_pag
 import 'package:icueadmin/features/inventory/procurement/purchase_order_receive_page.dart';
 import 'package:icueadmin/features/inventory/procurement/purchase_orders_page.dart';
 import 'package:icueadmin/features/inventory/procurement/purchase_request_form_page.dart';
+import 'package:icueadmin/features/inventory/procurement/purchase_request_page.dart';
 import 'package:icueadmin/features/inventory/procurement/purchase_requests_page.dart';
 import 'package:icueadmin/features/inventory/procurement/quotation_form_page.dart';
 import 'package:icueadmin/features/inventory/procurement/quotations_page.dart';
+import 'package:icueadmin/features/inventory/procurement/vendor_form_page.dart';
+import 'package:icueadmin/features/inventory/procurement/vendor_page.dart';
 import 'package:icueadmin/features/inventory/procurement/vendors_page.dart';
 import 'package:icueadmin/features/inventory/stock/issue_request_form_page.dart';
+import 'package:icueadmin/features/inventory/stock/issue_request_page.dart';
 import 'package:icueadmin/features/inventory/stock/issue_requests_page.dart';
+import 'package:icueadmin/features/inventory/stock/issue_return_page.dart';
 import 'package:icueadmin/features/inventory/stock/receive_page.dart';
 import 'package:icueadmin/features/inventory/stock/stock_page.dart';
 import 'package:icueadmin/features/inventory/stock/transfer_form_page.dart';
+import 'package:icueadmin/features/inventory/stock/transfer_page.dart';
 import 'package:icueadmin/features/inventory/stock/transfers_page.dart';
 import 'package:icueadmin/features/inventory/stock/unavailable_page.dart';
 import 'package:icueadmin/features/inventory/store_form_page.dart';
@@ -84,6 +90,8 @@ import 'package:icueadmin/features/library/library_home_page.dart';
 import 'package:icueadmin/features/library/members_page.dart';
 import 'package:icueadmin/features/library/policies_page.dart';
 import 'package:icueadmin/features/library/reservations_page.dart';
+import 'package:icueadmin/features/library/transfer_form_page.dart';
+import 'package:icueadmin/features/library/transfer_page.dart';
 import 'package:icueadmin/features/library/transfers_page.dart';
 import 'package:icueadmin/features/library/verification_page.dart';
 import 'package:icueadmin/features/logbook/add_complaint_page.dart';
@@ -246,9 +254,33 @@ GoRouter createRouter({
         builder: (context, state) => const IssueRequestFormPage(),
       ),
       GoRoute(
+        path: AppRoutes.inventoryRequestDetail,
+        name: AppRoutes.inventoryRequestDetailName,
+        builder: (context, state) =>
+            IssueRequestPage(requestId: state.uri.queryParameters['id'] ?? ''),
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryIssueReturn,
+        name: AppRoutes.inventoryIssueReturnName,
+        builder: (context, state) =>
+            IssueReturnPage(issue: state.extra! as InventoryIssue),
+      ),
+      GoRoute(
         path: AppRoutes.inventoryVendors,
         name: AppRoutes.inventoryVendorsName,
         builder: (context, state) => const VendorsPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryVendorDetail,
+        name: AppRoutes.inventoryVendorDetailName,
+        builder: (context, state) =>
+            VendorPage(vendorId: state.uri.queryParameters['id'] ?? ''),
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryVendorForm,
+        name: AppRoutes.inventoryVendorFormName,
+        builder: (context, state) =>
+            VendorFormPage(vendorId: state.uri.queryParameters['id']),
       ),
       GoRoute(
         path: AppRoutes.inventoryPurchaseRequests,
@@ -260,6 +292,13 @@ GoRouter createRouter({
         name: AppRoutes.inventoryPurchaseRequestFormName,
         builder: (context, state) => PurchaseRequestFormPage(
           existing: state.extra as InventoryPurchaseRequest?,
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryPurchaseRequestDetail,
+        name: AppRoutes.inventoryPurchaseRequestDetailName,
+        builder: (context, state) => PurchaseRequestPage(
+          requestId: state.uri.queryParameters['id'] ?? '',
         ),
       ),
       GoRoute(
@@ -367,6 +406,13 @@ GoRouter createRouter({
         builder: (context, state) => const TransferFormPage(),
       ),
       GoRoute(
+        path: AppRoutes.inventoryTransferDetail,
+        name: AppRoutes.inventoryTransferDetailName,
+        builder: (context, state) => StockTransferPage(
+          transferId: state.uri.queryParameters['id'] ?? '',
+        ),
+      ),
+      GoRoute(
         path: AppRoutes.inventoryUnavailable,
         name: AppRoutes.inventoryUnavailableName,
         builder: (context, state) => const UnavailablePage(),
@@ -432,6 +478,18 @@ GoRouter createRouter({
         path: AppRoutes.libraryTransfers,
         name: AppRoutes.libraryTransfersName,
         builder: (context, state) => const LibraryTransfersPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.libraryTransferForm,
+        name: AppRoutes.libraryTransferFormName,
+        builder: (context, state) => const LibraryTransferFormPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.libraryTransferDetail,
+        name: AppRoutes.libraryTransferDetailName,
+        builder: (context, state) => LibraryTransferPage(
+          transferId: state.uri.queryParameters['id'] ?? '',
+        ),
       ),
       GoRoute(
         path: AppRoutes.libraryVerification,

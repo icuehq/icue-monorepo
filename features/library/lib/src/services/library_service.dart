@@ -250,15 +250,34 @@ class LibraryService {
     );
   }
 
-  /// A page of inter-library transfers, newest first.
-  Future<PagedResult<LibraryTransfer>> transfers({
-    DocumentSnapshot<Map<String, dynamic>>? after,
-  }) async => fetchPage(
-    (await schoolCollection('libraryTransfers'))
-        .orderBy('createdAt', descending: true),
-    (document) => LibraryTransfer.fromMap(document.id, document.data()!),
-    after: after,
-  );
+  /// Transfers leaving or arriving on the user's campuses, newest first. Rules need the campus filter on
+  /// both sides, so the two lists are fetched separately and merged.
+  Future<List<LibraryTransfer>> transfers(ModuleAccess access) async {
+    final base = await schoolCollection('libraryTransfers');
+    final queries = [
+      access.restrictToCampuses(base),
+      if (!access.hasAllCampuses)
+        access.restrictToCampuses(base, field: 'toCampusId'),
+    ];
+    final byId = <String, LibraryTransfer>{};
+    for (final query in queries.whereType<Query<Map<String, dynamic>>>()) {
+      final snapshot = await query
+          .orderBy('createdAt', descending: true)
+          .limit(50)
+          .get();
+      for (final document in snapshot.docs) {
+        byId[document.id] = LibraryTransfer.fromMap(
+          document.id,
+          document.data(),
+        );
+      }
+    }
+    return byId.values.toList()..sort(
+      (first, second) => (second.createdAt ?? DateTime(0)).compareTo(
+        first.createdAt ?? DateTime(0),
+      ),
+    );
+  }
 
   /// A page of stock verification sessions, newest first.
   Future<PagedResult<LibraryVerification>> verifications({

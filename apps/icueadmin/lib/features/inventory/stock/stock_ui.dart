@@ -60,10 +60,7 @@ class StoreDropdown extends StatelessWidget {
         for (final store in stores)
           DropdownMenuItem(
             value: store.id,
-            child: Text(
-              '${store.name} (${store.code})',
-              overflow: TextOverflow.ellipsis,
-            ),
+            child: Text(store.name, overflow: TextOverflow.ellipsis),
           ),
       ],
       onChanged: onChanged,

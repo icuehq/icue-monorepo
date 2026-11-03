@@ -1,9 +1,8 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icueadmin/features/inventory/stock/issue_request_card.dart';
-import 'package:icueadmin/features/inventory/stock/request_sheet.dart';
 import 'package:icueadmin/routing/app_routes.dart';
-import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -18,6 +17,9 @@ class IssueRequestsPage extends StatefulWidget {
 class _IssueRequestsPageState extends State<IssueRequestsPage> {
   String? _status;
 
+  /// False until the first fetch ends, so stale rows from an earlier visit never flash.
+  var _loaded = false;
+
   Future<void> _load() async {
     final inventoryProvider = context.read<InventoryProvider>();
     if (inventoryProvider.stores.isEmpty) await inventoryProvider.loadMasters();
@@ -27,6 +29,23 @@ class _IssueRequestsPageState extends State<IssueRequestsPage> {
         status: _status,
       );
     }
+    if (mounted) setState(() => _loaded = true);
+  }
+
+  void _filter(String? status) {
+    if (status == _status) return;
+    setState(() => _status = status);
+    _load();
+  }
+
+  Future<void> _newRequest() async {
+    await context.push(AppRoutes.inventoryRequestForm);
+    if (mounted) await _load();
+  }
+
+  Future<void> _open(InventoryIssueRequest request) async {
+    await context.push('${AppRoutes.inventoryRequestDetail}?id=${request.id}');
+    if (mounted) await _load();
   }
 
   @override
@@ -63,10 +82,7 @@ class _IssueRequestsPageState extends State<IssueRequestsPage> {
       appBar: AppBar(title: const Text('Issue Requests')),
       floatingActionButton: canRequest
           ? FloatingActionButton.extended(
-              onPressed: () async {
-                await context.push(AppRoutes.inventoryRequestForm);
-                if (mounted) await _load();
-              },
+              onPressed: _newRequest,
               icon: const Icon(Icons.add_rounded),
               label: const Text('New request'),
             )
@@ -88,10 +104,7 @@ class _IssueRequestsPageState extends State<IssueRequestsPage> {
                       selected: _status == key,
                       showCheckmark: false,
                       visualDensity: VisualDensity.compact,
-                      onSelected: (_) {
-                        setState(() => _status = key);
-                        _load();
-                      },
+                      onSelected: (_) => _filter(key),
                     ),
                   ),
               ],
@@ -102,10 +115,11 @@ class _IssueRequestsPageState extends State<IssueRequestsPage> {
             child: Row(
               children: [
                 Text(
-                  stockProvider.isLoading && stockProvider.requests.isEmpty
+                  !_loaded || stockProvider.isLoading
                       ? 'Loading requests…'
-                      : '${stockProvider.requests.length} request${stockProvider.requests.length == 1 ? '' : 's'}'
-                            '${_status != null ? ' in ${_status!.replaceAll('_', ' ')}' : ''}',
+                      : '${stockProvider.requests.length} '
+                            '${_status == null ? '' : '${humanizeStatus(_status!).toLowerCase()} '}'
+                            'request${stockProvider.requests.length == 1 ? '' : 's'}',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                     fontWeight: FontWeight.w500,
@@ -117,9 +131,9 @@ class _IssueRequestsPageState extends State<IssueRequestsPage> {
           Expanded(
             child: RefreshIndicator(
               onRefresh: _load,
-              child: stockProvider.requests.isEmpty
+              child: !_loaded || stockProvider.requests.isEmpty
                   ? Center(
-                      child: stockProvider.isLoading
+                      child: !_loaded || stockProvider.isLoading
                           ? const CircularProgressIndicator()
                           : SingleChildScrollView(
                               physics: const AlwaysScrollableScrollPhysics(),
@@ -147,8 +161,10 @@ class _IssueRequestsPageState extends State<IssueRequestsPage> {
                                     ),
                                     const SizedBox(height: 16),
                                     Text(
-                                      _status != null
-                                          ? 'No $_status requests'
+                                      stockProvider.errorMessage != null
+                                          ? 'Could not load requests'
+                                          : _status != null
+                                          ? 'No ${humanizeStatus(_status!).toLowerCase()} requests'
                                           : 'No issue requests',
                                       style: theme.textTheme.titleMedium
                                           ?.copyWith(
@@ -157,9 +173,10 @@ class _IssueRequestsPageState extends State<IssueRequestsPage> {
                                     ),
                                     const SizedBox(height: 6),
                                     Text(
-                                      _status != null
-                                          ? 'There are currently no requests with this status filter.'
-                                          : 'Submit an issue request to withdraw supplies or equipment from store stock.',
+                                      stockProvider.errorMessage ??
+                                          (_status != null
+                                              ? 'There are currently no requests with this status filter.'
+                                              : 'Submit an issue request to withdraw supplies or equipment from store stock.'),
                                       textAlign: TextAlign.center,
                                       style: theme.textTheme.bodySmall
                                           ?.copyWith(
@@ -169,12 +186,18 @@ class _IssueRequestsPageState extends State<IssueRequestsPage> {
                                           ),
                                     ),
                                     const SizedBox(height: 18),
-                                    if (_status != null)
+                                    if (stockProvider.errorMessage != null)
                                       OutlinedButton.icon(
-                                        onPressed: () {
-                                          setState(() => _status = null);
-                                          _load();
-                                        },
+                                        onPressed: _load,
+                                        icon: const Icon(
+                                          Icons.refresh,
+                                          size: 18,
+                                        ),
+                                        label: const Text('Try again'),
+                                      )
+                                    else if (_status != null)
+                                      OutlinedButton.icon(
+                                        onPressed: () => _filter(null),
                                         icon: const Icon(
                                           Icons.filter_alt_off_outlined,
                                           size: 18,
@@ -183,12 +206,7 @@ class _IssueRequestsPageState extends State<IssueRequestsPage> {
                                       )
                                     else if (canRequest)
                                       FilledButton.icon(
-                                        onPressed: () async {
-                                          await context.push(
-                                            AppRoutes.inventoryRequestForm,
-                                          );
-                                          if (mounted) await _load();
-                                        },
+                                        onPressed: _newRequest,
                                         icon: const Icon(Icons.add, size: 18),
                                         label: const Text('New request'),
                                       ),
@@ -206,13 +224,7 @@ class _IssueRequestsPageState extends State<IssueRequestsPage> {
                           request: issueRequest,
                           storeName: storeName(issueRequest.storeId),
                           itemName: stockProvider.itemName,
-                          onTap: () async {
-                            await showFormSheet(
-                              context,
-                              () => RequestSheet(request: issueRequest),
-                            );
-                            if (mounted) await _load();
-                          },
+                          onTap: () => _open(issueRequest),
                         );
                       },
                     ),

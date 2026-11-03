@@ -60,61 +60,405 @@ class LineEditor extends StatelessWidget {
   /// Show rejected quantity, unit cost, batch number and expiry.
   final bool receipt;
 
+  Future<void> _addItem(BuildContext context) async {
+    final picked = await pickItem(context);
+    if (picked == null) return;
+    final draft = LineDraft(picked.item, picked.variant);
+    if (receipt &&
+        picked.item.defaultPrice != null &&
+        picked.item.defaultPrice! > 0) {
+      draft.cost.text = picked.item.defaultPrice!.toStringAsFixed(2);
+    }
+    lineItems.add(draft);
+    onChanged();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    if (lineItems.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHighest.withValues(
+            alpha: 0.25,
+          ),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
+          ),
+        ),
+        child: Column(
+          children: [
+            Icon(
+              receipt
+                  ? Icons.move_to_inbox_rounded
+                  : Icons.inventory_2_outlined,
+              size: 40,
+              color: theme.colorScheme.outline,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              receipt ? 'No items to receive' : 'No items added',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              receipt
+                  ? 'Select items to receive them into the chosen store'
+                  : 'Add items and specify the quantities',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.outline,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 14),
+            FilledButton.tonalIcon(
+              icon: const Icon(Icons.add_rounded, size: 18),
+              label: const Text('Add item'),
+              onPressed: () => _addItem(context),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (final (n, l) in lineItems.indexed)
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          l.variant == null
-                              ? l.item.name
-                              : '${l.item.name} · ${l.variant!.sku}',
-                          style: Theme.of(context).textTheme.titleSmall,
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close_rounded),
-                        onPressed: () {
-                          lineItems.removeAt(n).dispose();
-                          onChanged();
-                        },
-                      ),
-                    ],
+        for (final (index, lineDraft) in lineItems.indexed)
+          _LineCard(
+            lineDraft: lineDraft,
+            receipt: receipt,
+            quantityLabel: quantityLabel,
+            onRemove: () {
+              lineItems.removeAt(index).dispose();
+              onChanged();
+            },
+          ),
+        const SizedBox(height: 4),
+        OutlinedButton.icon(
+          icon: const Icon(Icons.add_rounded),
+          label: const Text('Add another item'),
+          style: OutlinedButton.styleFrom(
+            minimumSize: const Size.fromHeight(44),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          onPressed: () => _addItem(context),
+        ),
+      ],
+    );
+  }
+}
+
+class _LineCard extends StatelessWidget {
+  const _LineCard({
+    required this.lineDraft,
+    required this.receipt,
+    required this.quantityLabel,
+    required this.onRemove,
+  });
+
+  final LineDraft lineDraft;
+  final bool receipt;
+  final String quantityLabel;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final item = lineDraft.item;
+    final variant = lineDraft.variant;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer.withValues(
+                    alpha: 0.4,
                   ),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _num(
-                          l.quantity,
-                          receipt ? 'Accepted' : quantityLabel,
-                        ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.inventory_2_outlined,
+                  size: 20,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.name,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
                       ),
-                      if (receipt) ...[
-                        const SizedBox(width: 8),
-                        Expanded(child: _num(l.rejected, 'Rejected')),
-                        const SizedBox(width: 8),
-                        Expanded(child: _num(l.cost, 'Unit cost')),
+                    ),
+                    const SizedBox(height: 4),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: [
+                        if (item.code.isNotEmpty)
+                          _TagBadge(label: '#${item.code}'),
+                        if (variant != null)
+                          _TagBadge(
+                            label: variant.attrs.isNotEmpty
+                                ? variant.attrs.values.join(' · ')
+                                : variant.sku,
+                            color: theme.colorScheme.primary,
+                            backgroundColor: theme.colorScheme.primaryContainer
+                                .withValues(alpha: 0.35),
+                          ),
+                        if (item.stockUnit.isNotEmpty)
+                          _TagBadge(label: 'Unit: ${item.stockUnit}'),
+                        if (item.tracking == Tracking.batch)
+                          _TagBadge(
+                            label: 'Batch tracked',
+                            color: theme.colorScheme.tertiary,
+                            backgroundColor: theme.colorScheme.tertiaryContainer
+                                .withValues(alpha: 0.35),
+                          ),
                       ],
-                    ],
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.delete_outline_rounded, size: 20),
+                tooltip: 'Remove item',
+                color: theme.colorScheme.error,
+                onPressed: onRemove,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (receipt) ...[
+            // Row 1: Quantities
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: lineDraft.quantity,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: 'Accepted',
+                      hintText: '0',
+                      prefixIcon: const Icon(
+                        Icons.check_circle_outline_rounded,
+                        color: Colors.green,
+                      ),
+                      suffixText: item.stockUnit.isNotEmpty
+                          ? item.stockUnit
+                          : null,
+                    ),
+                    validator: (currentValue) {
+                      final value = (currentValue ?? '').trim();
+                      if (value.isEmpty) return 'Required';
+                      final number = double.tryParse(value);
+                      if (number == null || number <= 0) return 'Must be > 0';
+                      return null;
+                    },
                   ),
-                  if (receipt && l.item.tracking == Tracking.batch)
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextFormField(
+                    controller: lineDraft.rejected,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: 'Rejected (optional)',
+                      hintText: '0',
+                      prefixIcon: const Icon(
+                        Icons.cancel_outlined,
+                        color: Colors.redAccent,
+                      ),
+                      suffixText: item.stockUnit.isNotEmpty
+                          ? item.stockUnit
+                          : null,
+                    ),
+                    validator: (currentValue) {
+                      final value = (currentValue ?? '').trim();
+                      if (value.isEmpty) return null;
+                      final number = double.tryParse(value);
+                      if (number == null || number < 0) return 'Invalid';
+                      return null;
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            // Row 2: Unit cost & line subtotal
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: lineDraft.cost,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: 'Unit cost (₹)',
+                      hintText:
+                          item.defaultPrice != null && item.defaultPrice! > 0
+                          ? item.defaultPrice!.toStringAsFixed(2)
+                          : '0.00',
+                      prefixIcon: const Icon(Icons.currency_rupee_rounded),
+                      helperText: item.stockUnit.isNotEmpty
+                          ? 'Per ${item.stockUnit}'
+                          : 'Per unit',
+                    ),
+                    validator: (currentValue) {
+                      final value = (currentValue ?? '').trim();
+                      if (value.isEmpty) return null;
+                      final number = double.tryParse(value);
+                      if (number == null || number < 0) return 'Invalid';
+                      return null;
+                    },
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ListenableBuilder(
+                    listenable: Listenable.merge([
+                      lineDraft.quantity,
+                      lineDraft.cost,
+                    ]),
+                    builder: (context, _) {
+                      final accepted =
+                          double.tryParse(lineDraft.quantity.text.trim()) ?? 0;
+                      final unitCost =
+                          double.tryParse(lineDraft.cost.text.trim()) ?? 0;
+                      final hasCalculation = accepted > 0 && unitCost > 0;
+                      final subtotal = accepted * unitCost;
+
+                      return Container(
+                        height: 56,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: hasCalculation
+                              ? theme.colorScheme.primaryContainer.withValues(
+                                  alpha: 0.25,
+                                )
+                              : theme.colorScheme.surfaceContainerHighest
+                                    .withValues(alpha: 0.35),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: hasCalculation
+                                ? theme.colorScheme.primary.withValues(
+                                    alpha: 0.3,
+                                  )
+                                : theme.colorScheme.outlineVariant,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Line Subtotal',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.outline,
+                                fontSize: 10,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              hasCalculation
+                                  ? '₹ ${subtotal.toStringAsFixed(2)}'
+                                  : '—',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: hasCalculation
+                                    ? theme.colorScheme.primary
+                                    : theme.colorScheme.outline,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+            if (item.tracking == Tracking.batch) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest.withValues(
+                    alpha: 0.25,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: theme.colorScheme.outlineVariant.withValues(
+                      alpha: 0.6,
+                    ),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.qr_code_2_rounded,
+                          size: 16,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Batch Tracking',
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
                     Row(
                       children: [
                         Expanded(
                           child: TextFormField(
-                            controller: l.batchNumber,
+                            controller: lineDraft.batchNumber,
                             decoration: const InputDecoration(
-                              labelText: 'Batch no.',
+                              labelText: 'Batch number',
+                              prefixIcon: Icon(Icons.tag_rounded),
                             ),
                             validator: (value) => (value ?? '').trim().isEmpty
                                 ? 'Required'
@@ -124,10 +468,10 @@ class LineEditor extends StatelessWidget {
                         const SizedBox(width: 8),
                         Expanded(
                           child: TextFormField(
-                            controller: l.expiry,
+                            controller: lineDraft.expiry,
                             readOnly: true,
                             decoration: const InputDecoration(
-                              labelText: 'Expiry',
+                              labelText: 'Expiry date',
                               suffixIcon: Icon(Icons.event_rounded),
                             ),
                             validator: (value) =>
@@ -148,7 +492,7 @@ class LineEditor extends StatelessWidget {
                                 initialDate: DateTime.now(),
                               );
                               if (date != null) {
-                                l.expiry.text = date
+                                lineDraft.expiry.text = date
                                     .toIso8601String()
                                     .substring(0, 10);
                               }
@@ -157,38 +501,62 @@ class LineEditor extends StatelessWidget {
                         ),
                       ],
                     ),
-                ],
+                  ],
+                ),
               ),
+            ],
+          ] else ...[
+            TextFormField(
+              controller: lineDraft.quantity,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              decoration: InputDecoration(
+                labelText: quantityLabel,
+                prefixIcon: const Icon(Icons.numbers_rounded),
+                suffixText: item.stockUnit.isNotEmpty ? item.stockUnit : null,
+              ),
+              validator: (currentValue) {
+                final value = (currentValue ?? '').trim();
+                if (value.isEmpty) return 'Required';
+                final number = double.tryParse(value);
+                return number == null || number <= 0 ? 'Invalid' : null;
+              },
             ),
-          ),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: TextButton.icon(
-            icon: const Icon(Icons.add_rounded),
-            label: const Text('Add item'),
-            onPressed: () async {
-              final picked = await pickItem(context);
-              if (picked == null) return;
-              lineItems.add(LineDraft(picked.item, picked.variant));
-              onChanged();
-            },
-          ),
-        ),
-      ],
+          ],
+        ],
+      ),
     );
   }
+}
 
-  Widget _num(TextEditingController controller, String label) => TextFormField(
-    controller: controller,
-    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-    decoration: InputDecoration(labelText: label),
-    validator: (currentValue) {
-      final value = (currentValue ?? '').trim();
-      if (value.isEmpty) {
-        return label == 'Rejected' || label == 'Unit cost' ? null : 'Required';
-      }
-      final number = double.tryParse(value);
-      return number == null || number < 0 ? 'Invalid' : null;
-    },
-  );
+class _TagBadge extends StatelessWidget {
+  const _TagBadge({required this.label, this.color, this.backgroundColor});
+
+  final String label;
+  final Color? color;
+  final Color? backgroundColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final foregroundColor = color ?? theme.colorScheme.onSurfaceVariant;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color:
+            backgroundColor ??
+            theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: foregroundColor,
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
 }

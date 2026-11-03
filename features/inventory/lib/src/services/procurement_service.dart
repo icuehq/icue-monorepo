@@ -19,8 +19,27 @@ class ProcurementService {
     ];
   }
 
-  Future<void> saveVendor(Map<String, Object?> data) =>
-      saveMasterDocument('inventoryVendors', data, onCreate: {'documents': []});
+  /// Edits the vendor `id`, or adds a new one under an auto-generated Firestore ID.
+  Future<void> saveVendor(Map<String, Object?> data) async {
+    final fields = {...data};
+    final id = fields.remove('id') as String?;
+    final collection = await schoolCollection('inventoryVendors');
+    if (id != null) {
+      await collection.doc(id).update({
+        ...fields,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      return;
+    }
+    await collection.add({
+      'status': 'active',
+      ...fields,
+      'documents': <Object?>[],
+      'createdBy': uid,
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
 
   Future<void> setVendorActive(String id, {required bool active}) =>
       setMasterActive('inventoryVendors', id, active: active);

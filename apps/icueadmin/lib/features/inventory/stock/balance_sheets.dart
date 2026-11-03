@@ -160,6 +160,7 @@ class _AdjustState extends State<_Adjust> with _Submit {
     key: form,
     child: Column(
       mainAxisSize: MainAxisSize.min,
+      spacing: 16,
       children: [
         Text('Currently ${formatQuantity(widget.balance.available)} available'),
         TextFormField(
@@ -225,6 +226,7 @@ class _ReportState extends State<_Report> with _Submit {
     key: form,
     child: Column(
       mainAxisSize: MainAxisSize.min,
+      spacing: 16,
       children: [
         DropdownButtonFormField<String>(
           initialValue: _reason,

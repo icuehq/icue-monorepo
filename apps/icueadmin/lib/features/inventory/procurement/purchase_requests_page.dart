@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icueadmin/features/inventory/procurement/purchase_request_card.dart';
-import 'package:icueadmin/features/inventory/procurement/purchase_request_sheet.dart';
+import 'package:icueadmin/features/inventory/procurement/purchase_request_rules.dart';
 import 'package:icueadmin/routing/app_routes.dart';
-import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -19,17 +18,37 @@ class _PurchaseRequestsPageState extends State<PurchaseRequestsPage> {
   final _searchController = TextEditingController();
   String _selectedStatus = 'all';
 
+  /// False until the first fetch ends, so an earlier visit's rows never flash.
+  var _loaded = false;
+
+  /// Chips group statuses; counts and filtering both use these.
+  static const _groups = <(String, String, List<String>)>[
+    ('pending', 'Pending', ['pending']),
+    ('approved', 'Approved', ['approved', 'partially_ordered']),
+    ('ordered', 'Ordered', ['ordered']),
+    ('draft', 'Draft', ['draft']),
+    ('revision_requested', 'Returned', ['revision_requested']),
+    ('rejected', 'Rejected', ['rejected']),
+    ('cancelled', 'Cancelled', ['cancelled']),
+  ];
+
   Future<void> _load() async {
     final inventoryProvider = context.read<InventoryProvider>();
     if (inventoryProvider.categories.isEmpty) {
       await inventoryProvider.loadMasters();
     }
     if (mounted) {
+      // All statuses are fetched once; the chips filter (and count) them here.
       await context.read<ProcurementProvider>().loadRequests(
         inventoryProvider.access,
-        status: _selectedStatus == 'all' ? null : _selectedStatus,
       );
     }
+    if (mounted) setState(() => _loaded = true);
+  }
+
+  Future<void> _open(String route) async {
+    await context.push(route);
+    if (mounted) await _load();
   }
 
   @override
@@ -54,35 +73,26 @@ class _PurchaseRequestsPageState extends State<PurchaseRequestsPage> {
     final allRequests = procurementProvider.requests;
     final query = _searchController.text.trim().toLowerCase();
 
-    final filteredRequests = allRequests.where((req) {
-      if (_selectedStatus != 'all' && req.status != _selectedStatus) {
-        return false;
-      }
-      if (query.isNotEmpty) {
-        final matchesNumber = req.number.toLowerCase().contains(query);
-        final matchesPurpose = req.purpose.toLowerCase().contains(query);
-        if (!matchesNumber && !matchesPurpose) return false;
-      }
-      return true;
-    }).toList();
+    final selectedStatuses = _groups
+        .where((group) => group.$1 == _selectedStatus)
+        .firstOrNull
+        ?.$3;
+    final filteredRequests = [
+      for (final request in allRequests)
+        if ((selectedStatuses == null ||
+                selectedStatuses.contains(request.status)) &&
+            (query.isEmpty ||
+                request.number.toLowerCase().contains(query) ||
+                request.purpose.toLowerCase().contains(query)))
+          request,
+    ];
+    final failure = procurementProvider.errorMessage;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Purchase Requests'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            tooltip: 'Refresh',
-            onPressed: _load,
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Purchase Requests')),
       floatingActionButton: canRequest
           ? FloatingActionButton.extended(
-              onPressed: () async {
-                await context.push(AppRoutes.inventoryPurchaseRequestForm);
-                if (mounted) await _load();
-              },
+              onPressed: () => _open(AppRoutes.inventoryPurchaseRequestForm),
               icon: const Icon(Icons.add_rounded),
               label: const Text('New Request'),
             )
@@ -127,36 +137,14 @@ class _PurchaseRequestsPageState extends State<PurchaseRequestsPage> {
             child: Row(
               children: [
                 _buildFilterChip('all', 'All (${allRequests.length})'),
-                const SizedBox(width: 8),
-                _buildFilterChip(
-                  'pending',
-                  'Pending (${allRequests.where((r) => r.isPending).length})',
-                ),
-                const SizedBox(width: 8),
-                _buildFilterChip(
-                  'approved',
-                  'Approved (${allRequests.where((r) => r.status == "approved" || r.status == "partially_ordered").length})',
-                ),
-                const SizedBox(width: 8),
-                _buildFilterChip(
-                  'draft',
-                  'Draft (${allRequests.where((r) => r.status == "draft").length})',
-                ),
-                const SizedBox(width: 8),
-                _buildFilterChip(
-                  'revision_requested',
-                  'Returned (${allRequests.where((r) => r.status == "revision_requested").length})',
-                ),
-                const SizedBox(width: 8),
-                _buildFilterChip(
-                  'rejected',
-                  'Rejected (${allRequests.where((r) => r.status == "rejected").length})',
-                ),
-                const SizedBox(width: 8),
-                _buildFilterChip(
-                  'cancelled',
-                  'Cancelled (${allRequests.where((r) => r.status == "cancelled").length})',
-                ),
+                for (final (key, label, statuses) in _groups)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8),
+                    child: _buildFilterChip(
+                      key,
+                      '$label (${allRequests.where((r) => statuses.contains(r.status)).length})',
+                    ),
+                  ),
               ],
             ),
           ),
@@ -167,7 +155,9 @@ class _PurchaseRequestsPageState extends State<PurchaseRequestsPage> {
           Expanded(
             child: RefreshIndicator(
               onRefresh: _load,
-              child: procurementProvider.isLoading && allRequests.isEmpty
+              child:
+                  !_loaded ||
+                      (procurementProvider.isLoading && allRequests.isEmpty)
                   ? const Center(child: CircularProgressIndicator())
                   : filteredRequests.isEmpty
                   ? Center(
@@ -183,20 +173,23 @@ class _PurchaseRequestsPageState extends State<PurchaseRequestsPage> {
                             ),
                             const SizedBox(height: 12),
                             Text(
-                              query.isNotEmpty
+                              failure != null
+                                  ? 'Could not load requests'
+                                  : query.isNotEmpty
                                   ? 'No requests matching "$query"'
                                   : _selectedStatus == 'all'
                                   ? 'No purchase requests found'
-                                  : 'No $_selectedStatus requests',
+                                  : 'No requests in this status',
                               style: theme.textTheme.titleMedium?.copyWith(
                                 color: theme.colorScheme.onSurfaceVariant,
                               ),
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              canRequest
-                                  ? 'Raise a requisition to procure materials or assets for your campus.'
-                                  : 'Purchase requests will appear here once submitted.',
+                              failure ??
+                                  (canRequest
+                                      ? 'Raise a requisition to procure materials or assets for your campus.'
+                                      : 'Purchase requests will appear here once submitted.'),
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: theme.colorScheme.outline,
                               ),
@@ -215,15 +208,14 @@ class _PurchaseRequestsPageState extends State<PurchaseRequestsPage> {
                         return PurchaseRequestCard(
                           request: purchaseRequest,
                           getItemName: procurementProvider.itemName,
-                          onTap: () async {
-                            await showFormSheet(
-                              context,
-                              () => PurchaseRequestSheet(
-                                request: purchaseRequest,
-                              ),
-                            );
-                            if (mounted) await _load();
-                          },
+                          nextAction: purchaseNextAction(
+                            purchaseRequest,
+                            access,
+                            procurementProvider.uid,
+                          ),
+                          onTap: () => _open(
+                            '${AppRoutes.inventoryPurchaseRequestDetail}?id=${purchaseRequest.id}',
+                          ),
                         );
                       },
                     ),
@@ -239,10 +231,7 @@ class _PurchaseRequestsPageState extends State<PurchaseRequestsPage> {
     return ChoiceChip(
       label: Text(label),
       selected: selected,
-      onSelected: (_) {
-        setState(() => _selectedStatus = key);
-        _load();
-      },
+      onSelected: (_) => setState(() => _selectedStatus = key),
     );
   }
 }

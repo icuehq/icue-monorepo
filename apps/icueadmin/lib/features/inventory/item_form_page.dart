@@ -202,7 +202,7 @@ class _ItemFormPageState extends State<ItemFormPage> {
                     for (final unit in inventoryProvider.units)
                       DropdownMenuItem(
                         value: unit.code,
-                        child: Text('${unit.name} (${unit.code})'),
+                        child: Text(unit.name),
                       ),
                   ],
                   validator: (value) => value == null ? 'Required' : null,

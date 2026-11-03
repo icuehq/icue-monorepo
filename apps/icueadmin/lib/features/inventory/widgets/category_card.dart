@@ -137,7 +137,7 @@ class _CategoryCardState extends State<CategoryCard> {
           InkWell(
             onTap: hasSubs
                 ? () => setState(() => _expanded = !_expanded)
-                : () => widget.onViewItems(category),
+                : null,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               child: Row(
@@ -323,75 +323,72 @@ class _SubcategoryRow extends StatelessWidget {
     final theme = Theme.of(context);
     final category = subcategory;
 
-    return InkWell(
-      onTap: onViewItems,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(28, 10, 14, 10),
-        child: Row(
-          children: [
-            Icon(
-              Icons.subdirectory_arrow_right_rounded,
-              size: 18,
-              color: theme.colorScheme.outline,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          category.name,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(28, 10, 14, 10),
+      child: Row(
+        children: [
+          Icon(
+            Icons.subdirectory_arrow_right_rounded,
+            size: 18,
+            color: theme.colorScheme.outline,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        category.name,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      if (!category.active) ...[
-                        const SizedBox(width: 8),
-                        const InactiveBadge(),
-                      ],
-                    ],
-                  ),
-                  const SizedBox(height: 3),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 4,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      CategoryCodeBadge(code: category.code),
-                      TrackingBadge(tracking: category.suggestedTracking),
-                    ],
-                  ),
-                  if (category.description != null &&
-                      category.description!.trim().isNotEmpty) ...[
-                    const SizedBox(height: 3),
-                    Text(
-                      category.description!.trim(),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                        fontSize: 11,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
+                    if (!category.active) ...[
+                      const SizedBox(width: 8),
+                      const InactiveBadge(),
+                    ],
                   ],
+                ),
+                const SizedBox(height: 3),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    CategoryCodeBadge(code: category.code),
+                    TrackingBadge(tracking: category.suggestedTracking),
+                  ],
+                ),
+                if (category.description != null &&
+                    category.description!.trim().isNotEmpty) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    category.description!.trim(),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontSize: 11,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
-              ),
+              ],
             ),
-            _CategoryMenuButton(
-              canEdit: canEdit,
-              isActive: category.active,
-              isSub: true,
-              onViewItems: onViewItems,
-              onEdit: onEdit,
-              onAddSub: null,
-              onToggleActive: onToggleActive,
-            ),
-          ],
-        ),
+          ),
+          _CategoryMenuButton(
+            canEdit: canEdit,
+            isActive: category.active,
+            isSub: true,
+            onViewItems: onViewItems,
+            onEdit: onEdit,
+            onAddSub: null,
+            onToggleActive: onToggleActive,
+          ),
+        ],
       ),
     );
   }

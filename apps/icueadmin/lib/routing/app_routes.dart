@@ -201,8 +201,20 @@ abstract final class AppRoutes {
   static const String inventoryRequestForm = '/layout.inventory/requests/new';
   static const String inventoryRequestFormName = 'inventoryRequestForm';
 
+  static const String inventoryRequestDetail =
+      '/layout.inventory/requests/detail';
+  static const String inventoryRequestDetailName = 'inventoryRequestDetail';
+
+  static const String inventoryIssueReturn =
+      '/layout.inventory/requests/return';
+  static const String inventoryIssueReturnName = 'inventoryIssueReturn';
+
   static const String inventoryTransfers = '/layout.inventory/transfers';
   static const String inventoryTransfersName = 'inventoryTransfers';
+
+  static const String inventoryTransferDetail =
+      '/layout.inventory/transfers/detail';
+  static const String inventoryTransferDetailName = 'inventoryTransferDetail';
 
   static const String inventoryTransferForm = '/layout.inventory/transfers/new';
   static const String inventoryTransferFormName = 'inventoryTransferForm';
@@ -230,6 +242,13 @@ abstract final class AppRoutes {
   static const String inventoryVendors = '/layout.inventory/vendors';
   static const String inventoryVendorsName = 'inventoryVendors';
 
+  static const String inventoryVendorDetail =
+      '/layout.inventory/vendors/detail';
+  static const String inventoryVendorDetailName = 'inventoryVendorDetail';
+
+  static const String inventoryVendorForm = '/layout.inventory/vendors/form';
+  static const String inventoryVendorFormName = 'inventoryVendorForm';
+
   static const String inventoryPurchaseRequests =
       '/layout.inventory/purchase-requests';
   static const String inventoryPurchaseRequestsName =
@@ -239,6 +258,11 @@ abstract final class AppRoutes {
       '/layout.inventory/purchase-requests/form';
   static const String inventoryPurchaseRequestFormName =
       'inventoryPurchaseRequestForm';
+
+  static const String inventoryPurchaseRequestDetail =
+      '/layout.inventory/purchase-requests/detail';
+  static const String inventoryPurchaseRequestDetailName =
+      'inventoryPurchaseRequestDetail';
 
   static const String inventoryQuotations = '/layout.inventory/quotations';
   static const String inventoryQuotationsName = 'inventoryQuotations';
@@ -314,6 +338,13 @@ abstract final class AppRoutes {
   static const String libraryIncidentsName = 'libraryIncidents';
   static const String libraryTransfers = '/layout.library/transfers';
   static const String libraryTransfersName = 'libraryTransfers';
+
+  static const String libraryTransferForm = '/layout.library/transfers/new';
+  static const String libraryTransferFormName = 'libraryTransferForm';
+
+  static const String libraryTransferDetail =
+      '/layout.library/transfers/detail';
+  static const String libraryTransferDetailName = 'libraryTransferDetail';
   static const String libraryVerification = '/layout.library/verification';
   static const String libraryVerificationName = 'libraryVerification';
   static const String libraryDashboard = '/layout.library/dashboard';

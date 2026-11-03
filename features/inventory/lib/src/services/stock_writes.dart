@@ -283,12 +283,14 @@ class StockWrites {
         Map<String, dynamic>.from(line as Map),
     ];
     if (lines.isEmpty) _fail('Add at least one item');
+    // Batches of one item are separate balances, so the batch is part of the key.
     final lineKeys = {
       for (final line in lines)
-        '${line['itemId']}__${line['variantId'] ?? '-'}',
+        '${line['itemId']}__${line['variantId'] ?? '-'}__'
+            '${_blankToNull(line['batchNumber']) ?? '-'}',
     };
     if (lineKeys.length != lines.length) {
-      _fail('Each item (and variant) may appear once');
+      _fail('Each item, variant and batch may appear once');
     }
 
     final storeRef = await _doc('inventoryStores/$storeId');

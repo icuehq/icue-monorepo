@@ -8,6 +8,7 @@ class TransferCard extends StatelessWidget {
     required this.fromStoreName,
     required this.toStoreName,
     required this.getItemName,
+    this.nextAction,
     this.onTap,
     super.key,
   });
@@ -16,6 +17,7 @@ class TransferCard extends StatelessWidget {
   final String fromStoreName;
   final String toStoreName;
   final String Function(String itemId) getItemName;
+  final String? nextAction;
   final VoidCallback? onTap;
 
   @override
@@ -275,6 +277,27 @@ class TransferCard extends StatelessWidget {
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
+              ],
+
+              if (nextAction != null) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.bolt_rounded,
+                      size: 16,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      nextAction!,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
               ],
 
               // Shortfall warning banner if discrepancy exists

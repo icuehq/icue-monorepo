@@ -585,6 +585,20 @@
       ]
     },
     {
+      "collectionGroup": "libraryTransfers",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "toCampusId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "libraryMembers",
       "queryScope": "COLLECTION",
       "fields": [

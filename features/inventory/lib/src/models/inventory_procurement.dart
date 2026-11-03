@@ -7,7 +7,6 @@ DateTime? _t(Object? value) => value is Timestamp ? value.toDate() : null;
 class InventoryVendor {
   const InventoryVendor({
     required this.id,
-    required this.code,
     required this.name,
     required this.categoryIds,
     required this.active,
@@ -23,7 +22,6 @@ class InventoryVendor {
   factory InventoryVendor.fromMap(String id, Map<String, dynamic> data) =>
       InventoryVendor(
         id: id,
-        code: data['code'] as String? ?? '',
         name: data['name'] as String? ?? '',
         contactPerson: data['contactPerson'] as String?,
         phone: data['phone'] as String?,
@@ -41,7 +39,6 @@ class InventoryVendor {
       );
 
   final String id;
-  final String code;
   final String name;
   final String? contactPerson;
   final String? phone;
