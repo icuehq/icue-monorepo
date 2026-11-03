@@ -106,8 +106,12 @@ describe('inventory stock', () => {
       expiryDate,
     });
     await rcv({
-      lineItems: [batch('LATE', day(90), 5), batch('SOON', day(10), 5), batch('OLD', day(-1), 5)],
+      lineItems: [batch('LATE', day(90), 5), batch('SOON', day(10), 5), batch('OLD', day(1), 5)],
     });
+    // Expired batches cannot be received, so the batch expires after receipt.
+    await db()
+      .doc(`schools/${SCHOOL_ID}/inventoryBalances/${firstStore}__${med}__-__OLD`)
+      .update({ expiryDate: day(-1) });
     const id = await approved(8, med);
     const issue = await run(stock.issueCreate, {
       issueRequestId: id,

@@ -1,4 +1,6 @@
-import 'package:icue_firebase/icue_firebase.dart';
+import 'package:school_library/src/models/library_incidents.g.dart';
+
+export 'library_incidents.g.dart';
 
 String incidentResolutionLabel(String? value) => switch (value) {
   'repaired' => 'Repaired',
@@ -9,89 +11,7 @@ String incidentResolutionLabel(String? value) => switch (value) {
   _ => value ?? '–',
 };
 
-/// A lost or damaged book incident (FRS 11.14).
-class LibraryIncident {
-  const LibraryIncident({
-    required this.id,
-    required this.incidentNumber,
-    required this.type,
-    required this.copyId,
-    required this.accessionNumber,
-    required this.catalogueId,
-    required this.libraryId,
-    required this.campusId,
-    required this.status,
-    required this.reportedDate,
-    this.memberId,
-    this.memberType,
-    this.personErpId,
-    this.loanId,
-    this.severity,
-    this.description,
-    this.charge = 0,
-    this.repairCost,
-    this.repairStatus,
-    this.resolution,
-    this.resolutionRemarks,
-    this.resolvedAt,
-    this.createdAt,
-  });
-
-  factory LibraryIncident.fromMap(String id, Map<String, dynamic> data) =>
-      LibraryIncident(
-        id: id,
-        incidentNumber: data['incidentNumber'] as String? ?? id,
-        type: data['type'] as String? ?? 'damaged',
-        copyId: data['copyId'] as String? ?? '',
-        accessionNumber: data['accessionNumber'] as String? ?? '',
-        catalogueId: data['catalogueId'] as String? ?? '',
-        libraryId: data['libraryId'] as String? ?? '',
-        campusId: (data['campusId'] as num? ?? 0).toInt(),
-        status: data['status'] as String? ?? 'open',
-        reportedDate: data['reportedDate'] as String? ?? '',
-        memberId: data['memberId'] as String?,
-        memberType: data['memberType'] as String?,
-        personErpId: (data['personErpId'] as num?)?.toInt(),
-        loanId: data['loanId'] as String?,
-        severity: data['severity'] as String?,
-        description: data['description'] as String?,
-        charge: (data['charge'] as num? ?? 0).toDouble(),
-        repairCost: (data['repairCost'] as num?)?.toDouble(),
-        repairStatus: data['repairStatus'] as String?,
-        resolution: data['resolution'] as String?,
-        resolutionRemarks: data['resolutionRemarks'] as String?,
-        resolvedAt: data['resolvedAt'] is Timestamp
-            ? (data['resolvedAt'] as Timestamp).toDate()
-            : null,
-        createdAt: data['createdAt'] is Timestamp
-            ? (data['createdAt'] as Timestamp).toDate()
-            : null,
-      );
-
-  final String id;
-  final String incidentNumber;
-  final String type;
-  final String copyId;
-  final String accessionNumber;
-  final String catalogueId;
-  final String libraryId;
-  final int campusId;
-  final String status;
-  final String reportedDate;
-  final String? memberId;
-  final String? memberType;
-  final int? personErpId;
-  final String? loanId;
-  final String? severity;
-  final String? description;
-  final double charge;
-  final double? repairCost;
-  final String? repairStatus;
-  final String? resolution;
-  final String? resolutionRemarks;
-  final DateTime? resolvedAt;
-  final DateTime? createdAt;
-
+extension LibraryIncidentMembers on LibraryIncident {
   bool get isOpen => status == 'open';
   String? get memberLabel => personErpId == null
       ? null

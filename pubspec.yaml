@@ -30,6 +30,7 @@ workspace:
 
 dev_dependencies:
   melos: ^8.9.0
+  yaml: ^3.1.3
 
 melos:
   scripts:
@@ -40,6 +41,14 @@ melos:
     format:
       description: Format all Dart code.
       run: dart format .
+
+    gen:contracts:
+      description: Regenerate Dart and TypeScript contracts from contracts/*.yaml.
+      run: dart run tool/gen_contracts.dart
+
+    check:contracts:
+      description: Fail if the generated contract files are out of sync with contracts/*.yaml.
+      run: dart run tool/gen_contracts.dart --check
 
     naming:check:
       description: Fail on abbreviated names, module prefixes and uid prefixes in Inventory and Library code (docs/naming-map.md).

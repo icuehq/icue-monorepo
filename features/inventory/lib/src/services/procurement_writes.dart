@@ -19,10 +19,6 @@ class ProcurementWrites {
     'inventory-invoice-cancel',
   };
 
-  static const _editable = ['draft', 'revision_requested'];
-  static const _cancellable = [..._editable, 'pending', 'approved'];
-  static const _orderable = ['approved', 'partially_ordered'];
-
   Future<Map<String, dynamic>> run(String name, Map<String, Object?> data) =>
       switch (name) {
         'inventory-purchaseRequest-save' => _savePurchaseRequest(data),
@@ -205,7 +201,7 @@ class ProcurementWrites {
     if (request['createdBy'] != _uid) {
       _fail('Only the requester can change this request');
     }
-    if (!_editable.contains(request['status'])) {
+    if (!editablePurchaseRequestStatuses.contains(request['status'])) {
       _fail('Request is ${request['status']}');
     }
   }
@@ -275,7 +271,7 @@ class ProcurementWrites {
     if (request['createdBy'] != _uid) {
       _fail('Only the requester can cancel this request');
     }
-    if (!_cancellable.contains(request['status'])) {
+    if (!cancellablePurchaseRequestStatuses.contains(request['status'])) {
       _fail('Request is ${request['status']}');
     }
     final anyOrdered = (request['lineItems'] as List).any(
@@ -301,7 +297,7 @@ class ProcurementWrites {
       id,
       'Purchase request',
     );
-    if (!_orderable.contains(request['status'])) {
+    if (!orderablePurchaseRequestStatuses.contains(request['status'])) {
       _fail('Request is ${request['status']}; it must be approved');
     }
     return request;

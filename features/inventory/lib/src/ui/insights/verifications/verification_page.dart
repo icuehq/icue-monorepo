@@ -1,6 +1,7 @@
 import 'package:admin_ui/admin_ui.dart';
 import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_firebase/icue_firebase.dart' show VerificationReason;
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -281,7 +282,7 @@ class _VerificationPageState extends State<VerificationPage> {
                     value: _reasons[verificationLine.balanceId],
                     hint: const Text('Reason'),
                     items: [
-                      for (final reason in VerificationLine.reasons)
+                      for (final reason in VerificationReason.values)
                         DropdownMenuItem(
                           value: reason,
                           child: Text(humanizeStatus(reason)),

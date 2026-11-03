@@ -19,6 +19,7 @@ export 'package:firebase_storage/firebase_storage.dart'
 
 export 'src/analytics_service.dart';
 export 'src/backend.dart';
+export 'src/contracts.g.dart';
 export 'src/crashlytics_service.dart';
 export 'src/emulator.dart' show emulatorCustomToken, emulatorHost, usesEmulator;
 export 'src/notification_service.dart' show NotificationService;

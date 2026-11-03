@@ -75,7 +75,7 @@ class _MaintenanceFormSheetState extends State<MaintenanceFormSheet> {
           ),
           labelled(
             'Priority',
-            InventoryMaintenance.priorities,
+            MaintenancePriority.values,
             _priority,
             (value) => setState(() => _priority = value!),
           ),

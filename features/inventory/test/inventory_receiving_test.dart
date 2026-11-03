@@ -15,7 +15,7 @@ void main() {
         },
       ],
     });
-    expect(purchaseOrder.lineItems.single.due, 50);
+    expect(purchaseOrder.lineItems.single.due, 60); // rejected units stay due
     expect(purchaseOrder.canReceive, isTrue);
     expect(
       InventoryPurchaseOrder.fromMap('p', {'status': 'draft'}).canReceive,

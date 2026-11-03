@@ -1,0 +1,436 @@
+# Inventory contracts shared by Flutter and Cloud Functions.
+# Edit here, then run `melos run gen:contracts`. Never edit the generated files.
+# Format: collections (names under schools/{schoolId}/), enums (values are the
+# exact stored strings), constants (checked subsets of an enum) and documents
+# (field name -> type: string|int|double|bool|timestamp|list<T>|map<T>|<Enum>|<Document>;
+# a trailing `?` allows null).
+
+collections:
+  - inventoryAssetAssignments
+  - inventoryAssets
+  - inventoryBalances
+  - inventoryCategories
+  - inventoryInvoices
+  - inventoryIssueRequests
+  - inventoryIssues
+  - inventoryItems
+  - inventoryMaintenanceJobs
+  - inventoryMovements
+  - inventoryPurchaseOrders
+  - inventoryPurchaseRequests
+  - inventoryQuotations
+  - inventoryReceipts
+  - inventoryStores
+  - inventoryUnits
+  - inventoryVendors
+  - inventoryVerifications
+
+enums:
+  PurchaseRequestStatus:
+    doc: Lifecycle of a purchase request; ordered quantities move it to partially_ordered / ordered.
+    values: [draft, revision_requested, pending, approved, partially_ordered, ordered, rejected, cancelled]
+
+  AssetStatus:
+    doc: Lifecycle of a physical asset.
+    values: [available, assigned, under_maintenance, under_repair, lost, damaged, retired, disposed]
+  AssetCondition:
+    doc: Physical condition of an asset.
+    values: [new, good, fair, poor, damaged]
+  MaintenancePriority:
+    doc: Urgency of a maintenance job.
+    values: [low, medium, high, urgent]
+  MaintenanceStatus:
+    doc: Lifecycle of a maintenance job.
+    values: [open, assigned, in_progress, waiting_for_parts, completed, cancelled]
+  VerificationReason:
+    doc: Why a counted quantity differs from the expected one.
+    values: [missing, excess, count_correction, other]
+
+constants:
+  editablePurchaseRequestStatuses:
+    doc: The requester may edit and resubmit these.
+    enum: PurchaseRequestStatus
+    values: [draft, revision_requested]
+  cancellablePurchaseRequestStatuses:
+    doc: A request may be cancelled in these statuses, while nothing has been ordered.
+    enum: PurchaseRequestStatus
+    values: [draft, revision_requested, pending, approved]
+  orderablePurchaseRequestStatuses:
+    doc: Quotations and purchase orders may be raised against these.
+    enum: PurchaseRequestStatus
+    values: [approved, partially_ordered]
+
+# Dart view models, generated to <modelsDir>/<file>.g.dart. Field: type, or {type, key, default, notEquals, present, doc, from};
+# key is the Firestore key (dotted for nested), from is a raw Dart expression over data/id.
+modelsPackage: inventory
+modelsDir: features/inventory/lib/src/models
+models:
+  inventory_assets:
+    InventoryAsset:
+      doc: "One physical asset (`inventoryAssets`)."
+      id: id
+      fields:
+        assetId: { type: string, doc: "Human asset ID (`AST/2026-27/000001`); also the barcode / QR value." }
+        name: string
+        itemId: string
+        campusId: int
+        storeId: string
+        status: { type: string, default: available }
+        condition: { type: string, default: good }
+        serialNumber: string?
+        make: string?
+        model: string?
+        purchaseOrderId: string?
+        vendorId: string?
+        purchaseDate: string?
+        price: double?
+        warrantyStart: { type: string?, key: warranty.start }
+        warrantyEnd: { type: string?, key: warranty.end }
+        location: string?
+        assignedTo: { type: AssetCustodian?, from: "AssetCustodian.from(data['assignedTo'])" }
+        activeAssignmentId: string?
+        activeMaintenanceId: string?
+        nextServiceDate: string?
+        rfidTag: string?
+    InventoryAssignment:
+      doc: "A custody record (`inventoryAssetAssignments`); a transfer or return closes it and keeps it."
+      id: id
+      fields:
+        assignee: { type: AssetCustodian, from: "AssetCustodian.from(data['assignee']) ?? const AssetCustodian('staff', 0)" }
+        assignedDate: day
+        location: string?
+        expectedReturn: string?
+        conditionOut: string?
+        conditionIn: string?
+        returnedDate: string?
+        closedAs: { type: string?, doc: "`returned`, `transferred` or `lost`; null while active." }
+        acknowledged: { type: bool, key: acknowledgement, present: "true" }
+    AssetEvent:
+      doc: "One line of an asset's timeline (`inventoryAssets/{id}/history`)."
+      fields:
+        type: string
+        performedAt: { type: DateTime?, from: "(data['performedAt'] as dynamic)?.toDate() as DateTime?" }
+        detail: { type: String?, from: "[ for (final value in const [ 'number', 'issue', 'reason', 'remarks', 'condition', ]) if (data[value] != null && '${data[value]}'.isNotEmpty) '${data[value]}', ].join(' \u00b7 ')" }
+    InventoryMaintenance:
+      doc: "A maintenance request (`inventoryMaintenanceJobs`)."
+      id: id
+      fields:
+        number: string
+        assetId: string
+        assetCode: string
+        assetName: string
+        issue: string
+        priority: { type: string, default: medium }
+        status: { type: string, default: open }
+        reportedDate: day
+        technician: string?
+        repairDetails: string?
+        cost: double?
+        completedDate: string?
+        nextServiceDate: string?
+        parts: { type: List<PartUsed>, from: "[ for (final value in data['partsUsed'] is List ? data['partsUsed'] as List : []) PartUsed( itemId: (value as Map)['itemId'] as String? ?? '', quantity: readDouble(value['quantity']), ), ]" }
+  inventory_insights:
+    InventoryVerification:
+      doc: "One verification session (`inventoryVerifications`)."
+      id: id
+      fields:
+        number: string
+        storeId: string
+        storeName: string
+        status: { type: string, default: counting }
+        date: { type: string, key: verifiedDate }
+        campusId: int
+        lineCount: int
+        differenceCount: int?
+        remarks: string?
+        approvalComment: { type: string?, key: approval.comment }
+    VerificationLine:
+      doc: "One counted balance of a session (`inventoryVerifications/{id}/lineItems`)."
+      fields:
+        balanceId: string
+        itemId: string
+        batchNumber: string?
+        reason: string?
+        remarks: string?
+        expected: num
+        counted: num?
+  inventory_masters:
+    InventoryCategory:
+      id: id
+      fields:
+        code: string
+        name: string
+        description: string?
+        parentId: string?
+        suggestedTracking: Tracking
+        active: { type: bool, key: status, notEquals: inactive }
+    InventoryUnit:
+      takesId: true
+      fields:
+        code: { type: String, from: "id" }
+        name: { type: string, default: "$id" }
+    InventoryItem:
+      id: id
+      fields:
+        code: string
+        name: string
+        categoryId: string
+        subcategoryId: string?
+        description: string?
+        stockUnit: string
+        tracking: Tracking
+        reorderLevel: double?
+        defaultPrice: double?
+        preferredVendorId: string?
+        active: { type: bool, key: status, notEquals: inactive }
+    InventoryVariant:
+      id: id
+      fields:
+        sku: string
+        attrs: map<string>
+        active: { type: bool, key: status, notEquals: inactive }
+    InventoryStore:
+      id: id
+      fields:
+        code: string
+        name: string
+        campusId: int
+        description: string?
+        location: string?
+        storekeeperIds: list<int>
+        active: { type: bool, key: status, notEquals: inactive }
+  inventory_orders:
+    OrderLine:
+      doc: "A quotation line (`quantity`) or a purchase-order line (`quantityOrdered`)."
+      fields:
+        itemId: string
+        variantId: string?
+        quantity: { type: double, from: "readDouble(data['quantity'] ?? data['quantityOrdered'])" }
+        unitPrice: double
+        quantityReceived: double
+        quantityAccepted: double
+        quantityRejected: double
+    InventoryQuotation:
+      id: id
+      fields:
+        number: string
+        vendorId: string
+        status: { type: string, default: draft }
+        lineItems: list<OrderLine>
+        discount: double
+        tax: double
+        delivery: double
+        subtotal: double
+        total: double
+        remarks: string?
+        purchaseRequestId: string
+        vendorRef: string?
+        validUntil: string
+        quotationDate: string
+        deliveryDays: int?
+        selected: bool
+        selectionReason: string?
+    InventoryPurchaseOrder:
+      id: id
+      fields:
+        number: string
+        vendorId: string
+        status: { type: string, default: draft }
+        lineItems: list<OrderLine>
+        discount: double
+        tax: double
+        delivery: double
+        subtotal: double
+        total: double
+        remarks: string?
+        purchaseRequestId: { type: String, from: "(data['purchaseRequestIds'] is List && (data['purchaseRequestIds'] as List).isNotEmpty) ? (data['purchaseRequestIds'] as List).first as String : ''" }
+        campusId: int
+        deliveryCampusId: int
+        quotationId: string?
+        purchaseOrderDate: string
+        expectedDate: string
+        terms: string?
+        revision: int
+        ackRef: { type: string?, key: acknowledgement.vendorRef }
+  inventory_procurement:
+    InventoryVendor:
+      id: id
+      fields:
+        name: string
+        contactPerson: string?
+        phone: string?
+        email: string?
+        address: string?
+        taxNumber: string?
+        website: string?
+        remarks: string?
+        categoryIds: list<string>
+        active: { type: bool, key: status, notEquals: inactive }
+    PurchaseRequestLine:
+      fields:
+        itemId: string
+        variantId: string?
+        quantity: double
+        estimatedPrice: double
+        quantityOrdered: double
+    PurchaseRequestHistoryEntry:
+      doc: "One step of the retained approval history (submit, approve, reject, revise, cancel)."
+      fields:
+        action: string
+        comment: string?
+        performedAt: timestamp?
+    InventoryPurchaseRequest:
+      id: id
+      fields:
+        number: string
+        campusId: int
+        departmentId: int?
+        status: { type: string, default: draft }
+        priority: { type: string, default: normal }
+        purpose: string
+        remarks: string?
+        requiredDate: string
+        total: double
+        createdBy: string
+        createdAt: timestamp?
+        lineItems: list<PurchaseRequestLine>
+        history: list<PurchaseRequestHistoryEntry>
+  inventory_receiving:
+    GoodsReceiptLine:
+      fields:
+        itemId: string
+        variantId: string?
+        accepted: { type: double, key: quantityAccepted }
+        rejected: { type: double, key: quantityRejected }
+        condition: string?
+        batchNumber: string?
+    InventoryGoodsReceipt:
+      doc: "One delivery against a purchase order (`inventoryReceipts` with `source: purchase_order`)."
+      id: id
+      fields:
+        number: string
+        date: { type: string, key: transactionDate }
+        result: { type: string, key: inspection.result, default: accepted, doc: "`accepted`, `partial` or `rejected`." }
+        reference: string?
+        remarks: string?
+        lineItems: list<GoodsReceiptLine>
+    InventoryInvoice:
+      doc: "A vendor invoice record. Payment fields mirror what Finance reports; nothing is paid from here."
+      id: id
+      fields:
+        invoiceNumber: string
+        vendorId: string
+        purchaseOrderId: string
+        purchaseOrderNumber: string
+        invoiceDate: string
+        dueDate: string?
+        paymentStatus: { type: string, default: unpaid }
+        subtotal: double
+        tax: double
+        discount: double
+        total: double
+        paidAmount: double
+        outstanding: double
+        receiptIds: list<string>
+        remarks: string?
+        paymentRef: { type: string?, key: payment.reference }
+  inventory_stock:
+    InventoryBalance:
+      id: id
+      fields:
+        storeId: string
+        itemId: string
+        variantId: string?
+        batchNumber: string?
+        expiryDate: string?
+        available: { type: double, key: quantityAvailable }
+        damaged: { type: double, key: quantityDamaged }
+        expired: { type: double, key: quantityExpired }
+        receivedTotal: { type: double, key: totalQuantityReceived }
+        issuedTotal: { type: double, key: totalQuantityIssued, doc: "Net of returns: what is currently out with recipients." }
+        value: double
+        isBelowReorderLevel: bool
+    InventoryMovement:
+      fields:
+        type: string
+        quantity: double
+        bucket: { type: string, default: available }
+        referenceType: string
+        transactionDate: string
+        batchNumber: string?
+        createdAt: timestamp?
+    RequestLine:
+      fields:
+        itemId: string
+        variantId: string?
+        requested: { type: double, key: quantityRequested }
+        approved: { type: double?, key: quantityApproved }
+        issued: { type: double, key: quantityIssued }
+    InventoryIssueRequest:
+      id: id
+      fields:
+        number: string
+        storeId: string
+        campusId: int
+        purpose: string
+        destination: string?
+        status: { type: string, doc: "pending | approved | rejected | partially_issued | issued | cancelled | closed" }
+        createdBy: string
+        approvalComment: { type: string?, key: approval.comment }
+        lineItems: list<RequestLine>
+        createdAt: timestamp?
+    IssueLine:
+      fields:
+        balanceId: string
+        itemId: string
+        variantId: string?
+        batchNumber: string?
+        quantity: double
+        returned: { type: double, key: quantityReturned }
+    InventoryIssue:
+      id: id
+      fields:
+        number: string
+        lineItems: list<IssueLine>
+        acknowledged: { type: bool, key: acknowledgement, present: "true" }
+        recipientType: { type: string?, key: recipient.type, doc: "staff | student | department" }
+        recipientId: { type: int?, key: recipient.personErpId }
+        createdAt: timestamp?
+    TransferLine:
+      fields:
+        itemId: string
+        variantId: string?
+        batchNumber: string?
+        dispatched: { type: double, key: quantityDispatched }
+        received: { type: double, key: quantityReceived }
+        discrepancy: double
+    InventoryUnavailable:
+      id: id
+      fields:
+        itemId: string
+        variantId: string?
+        storeId: string
+        batchNumber: string?
+        quantity: double
+        bucket: string?
+        reason: string
+        remarks: string?
+        status: { type: string, doc: "open | in_repair | resolved" }
+        resolution: string?
+        createdAt: timestamp?
+    InventoryTransfer:
+      id: id
+      fields:
+        number: string
+        fromStoreId: { type: string, key: from.storeId }
+        toStoreId: { type: string, key: to.storeId }
+        fromCampusId: { type: int, key: from.campusId }
+        toCampusId: { type: int, key: to.campusId }
+        status: { type: string, doc: "requested | approved | dispatched | partially_received | received | cancelled" }
+        requested: { type: "List<({String itemId, String? variantId, double quantity})>", from: "[ for (final row in _rows(data['requested'])) ( itemId: row['itemId'] as String? ?? '', variantId: row['variantId'] as String?, quantity: readDouble(row['quantity']), ), ]" }
+        lineItems: list<TransferLine>
+        remarks: string?
+        dispatchedDate: { type: string?, key: dispatch.date }
+        receivedDate: { type: string?, key: receipt.date }
+        createdAt: timestamp?
+        createdBy: string

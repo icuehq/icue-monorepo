@@ -196,7 +196,7 @@ class _MaintenanceUpdateSheetState extends State<MaintenanceUpdateSheet> {
             if (_done) ...[
               labelled(
                 'Condition after repair',
-                InventoryAsset.conditions,
+                AssetCondition.values,
                 _condition,
                 (value) => _condition = value,
               ),

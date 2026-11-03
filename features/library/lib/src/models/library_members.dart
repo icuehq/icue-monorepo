@@ -1,4 +1,6 @@
-import 'package:icue_firebase/icue_firebase.dart' show readList;
+import 'package:school_library/src/models/library_members.g.dart';
+
+export 'library_members.g.dart';
 
 const fineTypes = {
   'none': 'No fine',
@@ -6,109 +8,13 @@ const fineTypes = {
   'flat': 'Flat amount',
 };
 
-/// Borrowing rules of one member category in one library (FRS 11.8).
-class LibraryPolicy {
-  const LibraryPolicy({
-    required this.id,
-    required this.name,
-    required this.libraryId,
-    required this.memberCategory,
-    required this.maxBooks,
-    required this.loanDays,
-    required this.maxRenewals,
-    required this.fineType,
-    required this.fineAmount,
-    required this.graceDays,
-    required this.canReserve,
-    required this.overdueRenewal,
-    required this.restrictedCategoryIds,
-    required this.active,
-    this.maxFine,
-  });
-
-  factory LibraryPolicy.fromMap(String id, Map<String, dynamic> data) =>
-      LibraryPolicy(
-        id: id,
-        name: data['name'] as String? ?? '',
-        libraryId: data['libraryId'] as String? ?? '',
-        memberCategory: data['memberCategory'] as String? ?? '',
-        maxBooks: (data['maxBooks'] as num? ?? 0).toInt(),
-        loanDays: (data['loanDays'] as num? ?? 0).toInt(),
-        maxRenewals: (data['maxRenewals'] as num? ?? 0).toInt(),
-        fineType: data['fineType'] as String? ?? 'none',
-        fineAmount: (data['fineAmount'] as num? ?? 0).toDouble(),
-        graceDays: (data['graceDays'] as num? ?? 0).toInt(),
-        maxFine: (data['maxFine'] as num?)?.toDouble(),
-        canReserve: data['canReserve'] == true,
-        overdueRenewal: data['overdueRenewal'] == true,
-        restrictedCategoryIds: readList<String>(data['restrictedCategoryIds']),
-        active: data['status'] != 'inactive',
-      );
-
-  final String id;
-  final String name;
-  final String libraryId;
-  final String memberCategory;
-  final int maxBooks;
-  final int loanDays;
-  final int maxRenewals;
-  final String fineType;
-  final double fineAmount;
-  final int graceDays;
-  final double? maxFine;
-  final bool canReserve;
-  final bool overdueRenewal;
-  final List<String> restrictedCategoryIds;
-  final bool active;
-
+extension LibraryPolicyMembers on LibraryPolicy {
   String get summary =>
       '$maxBooks book${maxBooks == 1 ? '' : 's'} · $loanDays days · '
       '$maxRenewals renewal${maxRenewals == 1 ? '' : 's'}';
 }
 
-/// A student or teacher who may borrow (FRS 11.7); the ERP person is only referenced by ID.
-class LibraryMember {
-  const LibraryMember({
-    required this.id,
-    required this.memberType,
-    required this.personErpId,
-    required this.memberCategory,
-    required this.libraryIds,
-    required this.start,
-    required this.activeLoans,
-    required this.blocked,
-    required this.active,
-    this.classId,
-    this.end,
-  });
-
-  factory LibraryMember.fromMap(String id, Map<String, dynamic> data) =>
-      LibraryMember(
-        id: id,
-        memberType: data['memberType'] as String? ?? 'student',
-        personErpId: (data['personErpId'] as num? ?? 0).toInt(),
-        classId: (data['classId'] as num?)?.toInt(),
-        memberCategory: data['memberCategory'] as String? ?? '',
-        libraryIds: readList<String>(data['libraryIds']),
-        start: data['start'] as String? ?? '',
-        end: data['end'] as String?,
-        activeLoans: (data['activeLoans'] as num? ?? 0).toInt(),
-        blocked: data['blocked'] == true,
-        active: data['status'] != 'inactive',
-      );
-
-  final String id;
-  final String memberType;
-  final int personErpId;
-  final int? classId;
-  final String memberCategory;
-  final List<String> libraryIds;
-  final String start;
-  final String? end;
-  final int activeLoans;
-  final bool blocked;
-  final bool active;
-
+extension LibraryMemberMembers on LibraryMember {
   bool get isStudent => memberType == 'student';
   String get label => '${isStudent ? 'Student' : 'Teacher'} #$personErpId';
 }

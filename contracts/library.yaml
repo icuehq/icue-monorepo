@@ -1,0 +1,326 @@
+# Library contracts shared by Flutter and Cloud Functions. See contracts/inventory.yaml for the format.
+
+collections:
+  - libraryAcquisitions
+  - libraryCatalogue
+  - libraryCopies
+  - libraryFines
+  - libraryLoans
+  - libraryMembers
+  - libraryReservations
+  - libraryTransfers
+  - libraryVerifications
+
+enums:
+  LoanStatus:
+    doc: Lifecycle of a loan.
+    values: [active, returned, lost]
+  MemberType:
+    doc: Who a library member is in the ERP.
+    values: [student, teacher]
+
+documents:
+  LibraryLoan:
+    doc: One issue of a copy to a member.
+    collection: libraryLoans
+    fields:
+      number: string
+      memberId: string
+      memberType: MemberType
+      personErpId: int
+      copyId: string
+      accessionNumber: string
+      catalogueId: string
+      libraryId: string
+      campusId: int
+      issuedDate: string
+      dueDate: string
+      remarks: string?
+      renewals: list<LoanRenewal>
+      policySnapshot: LoanPolicySnapshot
+      status: LoanStatus
+      issuedBy: string
+      issuedAt: timestamp
+      returnNumber: string?
+      returnedDate: string?
+      condition: string?
+      overdueDays: int?
+      returnRemarks: string?
+      receivedBy: string?
+      returnedAt: timestamp?
+      updatedAt: timestamp?
+  LoanRenewal:
+    doc: Embedded in a loan on each renewal.
+    fields:
+      renewedDate: string
+      previousDueDate: string
+      newDueDate: string
+      performedBy: string
+  LoanPolicySnapshot:
+    doc: Policy values frozen on the loan at issue so later policy edits never move its due date.
+    fields:
+      name: string
+      maxBooks: int
+      loanDays: int
+      maxRenewals: int
+      fineType: string
+      fineAmount: double
+      graceDays: int
+      maxFine: double?
+      overdueRenewal: bool
+
+# Dart view models, generated to <modelsDir>/<file>.g.dart. Field: type, or {type, key, default, notEquals, present, doc, from};
+# key is the Firestore key (dotted for nested), from is a raw Dart expression over data/id.
+modelsPackage: school_library
+modelsDir: features/library/lib/src/models
+models:
+  library_copies:
+    LibraryCopy:
+      doc: "One physical book. The document ID is the accession number."
+      id: id
+      fields:
+        accessionNumber: { type: string, default: "$id" }
+        catalogueId: string
+        libraryId: string
+        campusId: int
+        shelf: string?
+        barcode: string?
+        rfidTag: string?
+        condition: { type: string, default: good }
+        status: { type: string, default: available }
+        price: double
+        source: string?
+        vendorOrDonor: string?
+        acquiredDate: string?
+        remarks: string?
+        heldReservationId: string?
+    LibraryAcquisition:
+      id: id
+      fields:
+        number: string
+        type: { type: string, default: purchase }
+        catalogueId: string
+        libraryId: string
+        quantity: int
+        price: double
+        date: string?
+        vendorOrDonor: string?
+        reference: string?
+  library_fines:
+    LibraryFineWaiver:
+      fields:
+        amount: double
+        reason: string
+        performedBy: string
+        performedAt: string
+    LibraryFinePayment:
+      fields:
+        amount: double
+        reference: string?
+        date: string?
+        performedBy: string?
+    LibraryFine:
+      doc: "A library fine (overdue, lost book replacement, damaged penalty)."
+      id: id
+      fields:
+        fineNumber: { type: string, default: "$id" }
+        memberId: string
+        memberType: { type: string, default: student }
+        personErpId: int
+        libraryId: string
+        campusId: int
+        type: { type: string, default: overdue }
+        amount: double
+        waived: double
+        paid: double
+        outstanding: double
+        status: { type: string, default: outstanding }
+        loanId: string?
+        incidentId: string?
+        accessionNumber: string?
+        catalogueId: string?
+        fineCalculation: json?
+        waivers: list<LibraryFineWaiver>
+        payments: list<LibraryFinePayment>
+        createdAt: timestamp?
+  library_incidents:
+    LibraryIncident:
+      doc: "A lost or damaged book incident (FRS 11.14)."
+      id: id
+      fields:
+        incidentNumber: { type: string, default: "$id" }
+        type: { type: string, default: damaged }
+        copyId: string
+        accessionNumber: string
+        catalogueId: string
+        libraryId: string
+        campusId: int
+        status: { type: string, default: open }
+        reportedDate: string
+        memberId: string?
+        memberType: string?
+        personErpId: int?
+        loanId: string?
+        severity: string?
+        description: string?
+        charge: double
+        repairCost: double?
+        repairStatus: string?
+        resolution: string?
+        resolutionRemarks: string?
+        resolvedAt: timestamp?
+        createdAt: timestamp?
+  library_loans:
+    LibraryLoan:
+      document: LibraryLoan
+      doc: "One issue of a copy to a member (FRS 11.9\u201311.11). Policy values are frozen on the loan at issue."
+      id: id
+      fields:
+        number: string
+        memberId: string
+        memberType: { type: string, default: student }
+        personErpId: int
+        copyId: string
+        accessionNumber: string
+        catalogueId: string
+        libraryId: string
+        issuedDate: string
+        dueDate: string
+        renewals: { type: int, length: true }
+        maxRenewals: { type: int, key: policySnapshot.maxRenewals }
+        status: { type: string, default: active }
+        returnedDate: string?
+        condition: string?
+        overdueDays: int?
+  library_masters:
+    SchoolLibrary:
+      id: id
+      fields:
+        code: string
+        name: string
+        campusId: int
+        description: string?
+        location: string?
+        staffIds: list<int>
+        contact: string?
+        hours: string?
+        active: { type: bool, key: status, notEquals: inactive }
+    LibraryCategory:
+      id: id
+      fields:
+        code: string
+        name: string
+        description: string?
+        parentId: string?
+        active: { type: bool, key: status, notEquals: inactive }
+    LibraryBook:
+      doc: "A catalogue title (FRS 11.4). Search rows carry only the list fields, so the detail-only ones (description, pages, class number, keywords) are empty there."
+      id: id
+      fields:
+        title: string
+        subtitle: string?
+        authors: list<string>
+        isbn10: string?
+        isbn13: string?
+        publisher: string?
+        edition: string?
+        year: int?
+        language: string?
+        categoryId: string
+        description: string?
+        pages: int?
+        classificationNumber: string?
+        keywords: list<string>
+        active: { type: bool, key: status, notEquals: inactive }
+  library_members:
+    LibraryPolicy:
+      doc: "Borrowing rules of one member category in one library (FRS 11.8)."
+      id: id
+      fields:
+        name: string
+        libraryId: string
+        memberCategory: string
+        maxBooks: int
+        loanDays: int
+        maxRenewals: int
+        fineType: { type: string, default: none }
+        fineAmount: double
+        graceDays: int
+        maxFine: double?
+        canReserve: bool
+        overdueRenewal: bool
+        restrictedCategoryIds: list<string>
+        active: { type: bool, key: status, notEquals: inactive }
+    LibraryMember:
+      doc: "A student or teacher who may borrow (FRS 11.7); the ERP person is only referenced by ID."
+      id: id
+      fields:
+        memberType: { type: string, default: student }
+        personErpId: int
+        classId: int?
+        memberCategory: string
+        libraryIds: list<string>
+        start: string
+        end: string?
+        activeLoans: int
+        blocked: bool
+        active: { type: bool, key: status, notEquals: inactive }
+  library_reservations:
+    LibraryReservation:
+      doc: "A book reservation placed by a member (FRS 11.12)."
+      id: id
+      fields:
+        number: string
+        memberId: string
+        memberType: { type: string, default: student }
+        personErpId: int
+        catalogueId: string
+        title: string
+        libraryId: string
+        campusId: int
+        status: { type: string, default: waiting }
+        heldCopyId: string?
+        holdUntil: string?
+        fulfilledLoanId: string?
+        fulfilledCopyId: string?
+        createdAt: timestamp?
+  library_transfers:
+    LibraryTransferLine:
+      doc: "One copy on a transfer; [received] flips when the destination confirms it."
+      fields:
+        copyId: string
+        accessionNumber: string
+        received: bool
+        condition: string?
+    LibraryTransfer:
+      doc: "A transfer of copies between two libraries of the school (FRS 11.15)."
+      id: id
+      fields:
+        number: { type: string, default: "$id" }
+        fromLibraryId: string
+        toLibraryId: string
+        campusId: int
+        toCampusId: int
+        status: { type: string, default: requested }
+        lineItems: list<LibraryTransferLine>
+        createdAt: timestamp?
+        requestedDate: string?
+        dispatchedDate: string?
+        receivedDate: string?
+        remarks: string?
+  library_verifications:
+    LibraryVerification:
+      doc: "A library stock verification session (FRS 11.16). Copy IDs are accession numbers."
+      id: id
+      fields:
+        number: { type: string, default: "$id" }
+        libraryName: string
+        status: { type: string, default: counting }
+        expected: list<string>
+        onLoanCopyIds: list<string>
+        scanned: list<string>
+        missing: list<string>
+        unexpected: list<string>
+        investigate: list<string>
+        shelf: string?
+        verifiedDate: string?

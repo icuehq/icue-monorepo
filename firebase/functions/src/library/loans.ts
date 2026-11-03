@@ -1,6 +1,12 @@
 import { FieldValue, type DocumentData, type DocumentReference } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import type { CallableContext } from '../shared/callable';
+import {
+  Collections,
+  LoanStatus,
+  type LibraryLoan,
+  type LoanPolicySnapshot,
+} from '../shared/contracts';
 import { todayIST, addDays, daysBetween } from '../shared/dates';
 import { serverTimestamp } from '../shared/firestore';
 import { nextNumber } from '../shared/keys';
@@ -23,7 +29,7 @@ const SNAPSHOT = [
   'graceDays',
   'maxFine',
   'overdueRenewal',
-] as const;
+] as const satisfies (keyof LoanPolicySnapshot)[];
 
 /** Overdue fine from the loan's policy snapshot (FRS 11.13): per day or flat after the grace days, capped at `maxFine`. */
 function overdueFineAmount(policy: Record<string, unknown>, overdueDays: number): number {
@@ -76,12 +82,12 @@ async function raiseOverdueFine(
 }
 
 async function loadLoan(context: CallableContext, loanId: string) {
-  const ref = context.doc(`libraryLoans/${loanId}`);
+  const ref = context.doc(`${Collections.libraryLoans}/${loanId}`);
   const snapshot = await context.transaction.get(ref);
   if (!snapshot.exists) throw missing('libraryLoan');
   const loan = snapshot.data()!;
   context.requireCampus(loan.campusId);
-  if (loan.status !== 'active') throw failed(`Loan is ${loan.status}`);
+  if (loan.status !== LoanStatus.active) throw failed(`Loan is ${loan.status}`);
   return { ref, loan };
 }
 
@@ -135,9 +141,11 @@ export const loans = {
       if (title && policy.restrictedCategoryIds.includes(title.categoryId))
         throw failed('This category is restricted for the member');
 
-      const loan = context.newDoc('libraryLoans');
+      const loan = context.newDoc(Collections.libraryLoans);
       const number = await nextNumber(context, 'LIS');
-      const snapshot = Object.fromEntries(SNAPSHOT.map((field) => [field, policy[field] ?? null]));
+      const snapshot = Object.fromEntries(
+        SNAPSHOT.map((field) => [field, policy[field] ?? null]),
+      ) as unknown as LoanPolicySnapshot;
       const after = {
         number,
         memberId: memberSnapshot.id,
@@ -153,8 +161,8 @@ export const loans = {
         remarks: i.remarks ?? null,
         renewals: [],
         policySnapshot: snapshot,
-        status: 'active',
-      };
+        status: LoanStatus.active,
+      } satisfies Partial<LibraryLoan>;
       context.set(loan, { ...after, issuedBy: context.uid, issuedAt: serverTimestamp() });
       context.update(cRef, {
         status: 'issued',
@@ -203,13 +211,13 @@ export const loans = {
       const overdueDays = Math.max(0, daysBetween(loan.dueDate, today));
       const returnNumber = await nextNumber(context, 'LRT');
       const after = {
-        status: 'returned',
+        status: LoanStatus.returned,
         returnNumber,
         returnedDate: today,
         condition: i.condition,
         overdueDays,
         returnRemarks: i.remarks ?? null,
-      };
+      } satisfies Partial<LibraryLoan>;
       context.update(ref, { ...after, receivedBy: context.uid, returnedAt: serverTimestamp() });
 
       const fineAmount = overdueFineAmount(loan.policySnapshot ?? {}, overdueDays);
@@ -270,7 +278,7 @@ export const loans = {
       context.audit({
         action: 'libraryLoan.return',
         documentPath: ref.path,
-        before: { status: 'active' },
+        before: { status: LoanStatus.active },
         after,
       });
       return { id: ref.id, returnNumber, overdueDays };
@@ -305,7 +313,7 @@ export const loans = {
       const today = todayIST();
       const charge = i.charge ?? copy.price ?? 0;
       const after = {
-        status: 'lost',
+        status: LoanStatus.lost,
         lostDate: today,
         lostRemarks: i.reason ?? null,
         charge,
@@ -360,7 +368,7 @@ export const loans = {
       context.audit({
         action: 'libraryLoan.markLost',
         documentPath: ref.path,
-        before: { status: 'active' },
+        before: { status: LoanStatus.active },
         after,
       });
       return { id: ref.id, charge };

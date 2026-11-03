@@ -187,7 +187,7 @@ class _AssetFormPageState extends State<AssetFormPage> {
             ),
             labelled(
               'Condition',
-              InventoryAsset.conditions,
+              AssetCondition.values,
               _condition,
               (value) => setState(() => _condition = value!),
             ),

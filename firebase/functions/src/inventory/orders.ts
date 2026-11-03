@@ -1,6 +1,11 @@
 import { type DocumentData, type DocumentReference } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import type { CallableContext } from '../shared/callable';
+import {
+  Collections,
+  orderablePurchaseRequestStatuses,
+  PurchaseRequestStatus,
+} from '../shared/contracts';
 import { isoDate, todayIST } from '../shared/dates';
 import { serverTimestamp } from '../shared/firestore';
 import { nextNumber } from '../shared/keys';
@@ -18,7 +23,6 @@ import { assertUniqueLines, lineItemKey, lineKey, positiveQuantity } from './sto
 
 /** Purchase orders (FRS 10.16). Quotations are client writes; receiving is in receiving.ts. */
 
-const OPEN_PURCHASE_REQUEST_STATUSES = ['approved', 'partially_ordered'];
 const roundToCents = (amount: number) => Math.round(amount * 100) / 100;
 
 interface Line {
@@ -46,11 +50,11 @@ async function loadPurchaseRequest(
   context: CallableContext,
   purchaseRequestId: string,
 ): Promise<{ ref: DocumentReference; purchaseRequest: DocumentData }> {
-  const ref = context.doc(`inventoryPurchaseRequests/${purchaseRequestId}`);
+  const ref = context.doc(`${Collections.inventoryPurchaseRequests}/${purchaseRequestId}`);
   const purchaseRequest = (await context.transaction.get(ref)).data();
   if (!purchaseRequest) throw missing('Purchase request');
   context.requireCampus(purchaseRequest.campusId);
-  if (!OPEN_PURCHASE_REQUEST_STATUSES.includes(purchaseRequest.status))
+  if (!orderablePurchaseRequestStatuses.includes(purchaseRequest.status))
     throw failed(`Request is ${purchaseRequest.status}; it must be approved`);
   return { ref, purchaseRequest };
 }
@@ -70,10 +74,10 @@ async function loadDoc(
 /** Request status follows the ordered quantity of its lines (set by PO issue / cancel). */
 function purchaseRequestStatus(lineItems: { quantity: number; quantityOrdered: number }[]) {
   if (lineItems.every((lineItem) => lineItem.quantityOrdered >= lineItem.quantity))
-    return 'ordered';
+    return PurchaseRequestStatus.ordered;
   return lineItems.some((lineItem) => lineItem.quantityOrdered > 0)
-    ? 'partially_ordered'
-    : 'approved';
+    ? PurchaseRequestStatus.partiallyOrdered
+    : PurchaseRequestStatus.approved;
 }
 
 /** Moves ordered quantity on the request by [sign] × each PO line (floored at 0) and updates its status. */
@@ -416,7 +420,7 @@ export const orders = {
         throw failed(`Order is ${purchaseOrder.status}`);
       if (purchaseOrder.status !== 'draft') {
         const purchaseRequestRef = context.doc(
-          `inventoryPurchaseRequests/${purchaseOrder.purchaseRequestIds[0]}`,
+          `${Collections.inventoryPurchaseRequests}/${purchaseOrder.purchaseRequestIds[0]}`,
         );
         const purchaseRequest = (await context.transaction.get(purchaseRequestRef)).data();
         if (purchaseRequest) {
@@ -466,7 +470,7 @@ export const orders = {
         throw failed('A reason is required to close an order that is not fully received');
       if (purchaseOrder.status !== 'fully_received') {
         const purchaseRequestRef = context.doc(
-          `inventoryPurchaseRequests/${purchaseOrder.purchaseRequestIds[0]}`,
+          `${Collections.inventoryPurchaseRequests}/${purchaseOrder.purchaseRequestIds[0]}`,
         );
         const purchaseRequest = (await context.transaction.get(purchaseRequestRef)).data();
         if (purchaseRequest) {

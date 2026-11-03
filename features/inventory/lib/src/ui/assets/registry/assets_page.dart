@@ -2,6 +2,7 @@ import 'package:admin_ui/admin_ui.dart';
 import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_firebase/icue_firebase.dart' show AssetStatus;
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/assets/registry/widgets/asset_sheet.dart';
 import 'package:inventory/src/ui/assets/shared/asset_ui.dart';
@@ -107,7 +108,7 @@ class _AssetsPageState extends State<AssetsPage> {
                   value: _status,
                   items: [
                     const DropdownMenuItem(child: Text('All statuses')),
-                    for (final status in InventoryAsset.statuses)
+                    for (final status in AssetStatus.values)
                       DropdownMenuItem(
                         value: status,
                         child: Text(humanizeStatus(status)),

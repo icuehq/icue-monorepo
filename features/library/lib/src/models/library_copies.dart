@@ -1,3 +1,7 @@
+import 'package:school_library/src/models/library_copies.g.dart';
+
+export 'library_copies.g.dart';
+
 const copyConditions = ['good', 'fair', 'poor'];
 
 /// Statuses a librarian may set by hand (the callable rejects the rest).
@@ -9,107 +13,10 @@ const copyManualStatuses = [
   'withdrawn',
 ];
 
-/// One physical book. The document ID is the accession number.
-class LibraryCopy {
-  const LibraryCopy({
-    required this.id,
-    required this.accessionNumber,
-    required this.catalogueId,
-    required this.libraryId,
-    required this.campusId,
-    required this.condition,
-    required this.status,
-    required this.price,
-    this.shelf,
-    this.barcode,
-    this.rfidTag,
-    this.source,
-    this.vendorOrDonor,
-    this.acquiredDate,
-    this.remarks,
-    this.heldReservationId,
-  });
-
-  factory LibraryCopy.fromMap(String id, Map<String, dynamic> data) =>
-      LibraryCopy(
-        id: id,
-        accessionNumber: data['accessionNumber'] as String? ?? id,
-        catalogueId: data['catalogueId'] as String? ?? '',
-        libraryId: data['libraryId'] as String? ?? '',
-        campusId: (data['campusId'] as num? ?? 0).toInt(),
-        shelf: data['shelf'] as String?,
-        barcode: data['barcode'] as String?,
-        rfidTag: data['rfidTag'] as String?,
-        condition: data['condition'] as String? ?? 'good',
-        status: data['status'] as String? ?? 'available',
-        price: (data['price'] as num? ?? 0).toDouble(),
-        source: data['source'] as String?,
-        vendorOrDonor: data['vendorOrDonor'] as String?,
-        acquiredDate: data['acquiredDate'] as String?,
-        remarks: data['remarks'] as String?,
-        heldReservationId: data['heldReservationId'] as String?,
-      );
-
-  final String id;
-  final String accessionNumber;
-  final String catalogueId;
-  final String libraryId;
-  final int campusId;
-  final String? shelf;
-  final String? barcode;
-  final String? rfidTag;
-  final String condition;
-  final String status;
-  final double price;
-  final String? source;
-  final String? vendorOrDonor;
-  final String? acquiredDate;
-  final String? remarks;
-  final String? heldReservationId;
-
+extension LibraryCopyMembers on LibraryCopy {
   /// Lost and withdrawn copies are final; issued/reserved/in-transit belong to circulation.
   bool get canChangeStatus =>
       copyManualStatuses.contains(status) &&
       status != 'lost' &&
       status != 'withdrawn';
-}
-
-class LibraryAcquisition {
-  const LibraryAcquisition({
-    required this.id,
-    required this.number,
-    required this.type,
-    required this.catalogueId,
-    required this.libraryId,
-    required this.quantity,
-    required this.price,
-    this.date,
-    this.vendorOrDonor,
-    this.reference,
-  });
-
-  factory LibraryAcquisition.fromMap(String id, Map<String, dynamic> data) =>
-      LibraryAcquisition(
-        id: id,
-        number: data['number'] as String? ?? '',
-        type: data['type'] as String? ?? 'purchase',
-        catalogueId: data['catalogueId'] as String? ?? '',
-        libraryId: data['libraryId'] as String? ?? '',
-        quantity: (data['quantity'] as num? ?? 0).toInt(),
-        price: (data['price'] as num? ?? 0).toDouble(),
-        date: data['date'] as String?,
-        vendorOrDonor: data['vendorOrDonor'] as String?,
-        reference: data['reference'] as String?,
-      );
-
-  final String id;
-  final String number;
-  final String type;
-  final String catalogueId;
-  final String libraryId;
-  final int quantity;
-  final double price;
-  final String? date;
-  final String? vendorOrDonor;
-  final String? reference;
 }

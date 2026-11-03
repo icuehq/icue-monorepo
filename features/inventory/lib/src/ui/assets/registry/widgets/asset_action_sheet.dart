@@ -144,7 +144,7 @@ class _AssetActionSheetState extends State<AssetActionSheet> {
                   : _a == AssetAction.giveBack
                   ? 'Condition at return'
                   : 'Condition',
-              InventoryAsset.conditions,
+              AssetCondition.values,
               _condition,
               (value) => setState(() => _condition = value!),
             ),

@@ -2,88 +2,16 @@
 
 import 'package:icue_firebase/icue_firebase.dart'
     show ReportColumn, readDay, readNumber, readString;
+import 'package:inventory/src/models/inventory_insights.g.dart';
 
-/// One verification session (`inventoryVerifications`).
-class InventoryVerification {
-  const InventoryVerification({
-    required this.id,
-    required this.number,
-    required this.storeId,
-    required this.storeName,
-    required this.campusId,
-    required this.status,
-    required this.lineCount,
-    required this.date,
-    this.differenceCount,
-    this.remarks,
-    this.approvalComment,
-  });
+export 'inventory_insights.g.dart';
 
-  factory InventoryVerification.fromMap(String id, Map<String, dynamic> data) =>
-      InventoryVerification(
-        id: id,
-        number: data['number'] as String? ?? '',
-        storeId: data['storeId'] as String? ?? '',
-        storeName: data['storeName'] as String? ?? '',
-        campusId: readNumber(data['campusId']).toInt(),
-        status: data['status'] as String? ?? 'counting',
-        lineCount: readNumber(data['lineCount']).toInt(),
-        date: data['verifiedDate'] as String? ?? '',
-        differenceCount: (data['differenceCount'] as num?)?.toInt(),
-        remarks: data['remarks'] as String?,
-        approvalComment: (data['approval'] as Map?)?['comment'] as String?,
-      );
-
-  /// `counting` → `submitted` → `applied` (a rejected session goes back to `counting`).
-  final String id;
-  final String number;
-  final String storeId;
-  final String storeName;
-  final String status;
-  final String date;
-  final int campusId;
-  final int lineCount;
-  final int? differenceCount;
-  final String? remarks;
-  final String? approvalComment;
-
+extension InventoryVerificationMembers on InventoryVerification {
   bool get counting => status == 'counting';
   bool get submitted => status == 'submitted';
 }
 
-/// One counted balance of a session (`inventoryVerifications/{id}/lineItems`).
-class VerificationLine {
-  const VerificationLine({
-    required this.balanceId,
-    required this.itemId,
-    required this.expected,
-    this.batchNumber,
-    this.counted,
-    this.reason,
-    this.remarks,
-  });
-
-  factory VerificationLine.fromMap(Map<String, dynamic> data) =>
-      VerificationLine(
-        balanceId: data['balanceId'] as String? ?? '',
-        itemId: data['itemId'] as String? ?? '',
-        batchNumber: data['batchNumber'] as String?,
-        expected: readNumber(data['expected']),
-        counted: data['counted'] as num?,
-        reason: data['reason'] as String?,
-        remarks: data['remarks'] as String?,
-      );
-
-  static const reasons = ['missing', 'excess', 'count_correction', 'other'];
-
-  final String balanceId;
-  final String itemId;
-  final String? batchNumber;
-  final String? reason;
-  final String? remarks;
-  final num expected;
-  final num? counted;
-
+extension VerificationLineMembers on VerificationLine {
   num? get difference => counted == null ? null : counted! - expected;
 }
 

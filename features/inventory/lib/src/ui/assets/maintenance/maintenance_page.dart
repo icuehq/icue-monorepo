@@ -1,6 +1,7 @@
 import 'package:admin_ui/admin_ui.dart';
 import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_firebase/icue_firebase.dart' show MaintenanceStatus;
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/assets/maintenance/widgets/maintenance_form_sheet.dart';
 import 'package:inventory/src/ui/assets/maintenance/widgets/maintenance_update_sheet.dart';
@@ -56,7 +57,7 @@ class _MaintenancePageState extends State<MaintenancePage> {
               value: _status,
               items: [
                 const DropdownMenuItem(child: Text('All statuses')),
-                for (final status in InventoryMaintenance.statuses)
+                for (final status in MaintenanceStatus.values)
                   DropdownMenuItem(
                     value: status,
                     child: Text(humanizeStatus(status)),
