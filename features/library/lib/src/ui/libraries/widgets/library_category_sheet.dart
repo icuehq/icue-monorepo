@@ -13,7 +13,7 @@ class LibraryCategorySheet extends StatefulWidget {
     BuildContext context, {
     LibraryCategory? category,
     String? parentId,
-  }) => showFormSheet(
+  }) => showFormPage(
     context,
     () => LibraryCategorySheet(category: category, parentId: parentId),
   );

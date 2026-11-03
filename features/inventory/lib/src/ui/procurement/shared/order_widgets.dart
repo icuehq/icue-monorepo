@@ -1,6 +1,12 @@
 import 'package:admin_ui/admin_ui.dart';
 import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+/// Digits with at most [places] decimals, for quantities and amounts.
+List<TextInputFormatter> decimalOnly([int places = 2]) => [
+  FilteringTextInputFormatter.allow(RegExp('^\\d*\\.?\\d{0,$places}\$')),
+];
 
 /// One editable quotation / PO line: item label, quantity and unit price.
 class OrderLineInput {
@@ -78,6 +84,7 @@ class OrderLineCard extends StatelessWidget {
                 child: TextFormField(
                   controller: line.quantity,
                   keyboardType: _num,
+                  inputFormatters: decimalOnly(3),
                   decoration: const InputDecoration(labelText: 'Quantity'),
                   onChanged: (_) => onChanged(),
                   validator: (value) {
@@ -92,6 +99,7 @@ class OrderLineCard extends StatelessWidget {
                   controller: line.price,
                   readOnly: line.priceLocked,
                   keyboardType: _num,
+                  inputFormatters: decimalOnly(),
                   decoration: InputDecoration(
                     labelText: line.priceLocked
                         ? 'Unit price (quoted)'
@@ -140,6 +148,7 @@ class OrderTotals extends StatelessWidget {
       child: TextFormField(
         controller: controller,
         keyboardType: OrderLineCard._num,
+        inputFormatters: decimalOnly(),
         decoration: InputDecoration(labelText: label),
         onChanged: (_) => onChanged(),
         validator: optionalNumber,

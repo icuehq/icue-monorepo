@@ -20,6 +20,7 @@ import 'package:inventory/src/ui/masters/stores/stores_page.dart';
 import 'package:inventory/src/ui/masters/units/units_page.dart';
 import 'package:inventory/src/ui/procurement/invoices/invoices_page.dart';
 import 'package:inventory/src/ui/procurement/purchase_orders/purchase_order_form_page.dart';
+import 'package:inventory/src/ui/procurement/purchase_orders/purchase_order_page.dart';
 import 'package:inventory/src/ui/procurement/purchase_orders/purchase_order_receive_page.dart';
 import 'package:inventory/src/ui/procurement/purchase_orders/purchase_orders_page.dart';
 import 'package:inventory/src/ui/procurement/purchase_requests/purchase_request_form_page.dart';
@@ -40,6 +41,7 @@ import 'package:inventory/src/ui/stock/transfers/transfer_form_page.dart';
 import 'package:inventory/src/ui/stock/transfers/transfer_page.dart';
 import 'package:inventory/src/ui/stock/transfers/transfers_page.dart';
 import 'package:inventory/src/ui/stock/unavailable/unavailable_page.dart';
+import 'package:inventory/src/ui/stock/unavailable/unavailable_resolve_page.dart';
 
 /// Inventory screens as go_router routes; mount inside the app's shell.
 List<RouteBase> inventoryRoutes() => [
@@ -185,6 +187,12 @@ List<RouteBase> inventoryRoutes() => [
     builder: (context, state) => const PurchaseOrdersPage(),
   ),
   GoRoute(
+    path: InventoryRoutes.inventoryPurchaseOrderDetail,
+    name: InventoryRoutes.inventoryPurchaseOrderDetailName,
+    builder: (context, state) =>
+        PurchaseOrderPage(order: state.extra! as InventoryPurchaseOrder),
+  ),
+  GoRoute(
     path: InventoryRoutes.inventoryPurchaseOrderForm,
     name: InventoryRoutes.inventoryPurchaseOrderFormName,
     builder: (context, state) {
@@ -276,5 +284,12 @@ List<RouteBase> inventoryRoutes() => [
     path: InventoryRoutes.inventoryUnavailable,
     name: InventoryRoutes.inventoryUnavailableName,
     builder: (context, state) => const UnavailablePage(),
+  ),
+  GoRoute(
+    path: InventoryRoutes.inventoryUnavailableResolve,
+    name: InventoryRoutes.inventoryUnavailableResolveName,
+    builder: (context, state) => UnavailableResolvePage(
+      unavailableId: state.uri.queryParameters['id'] ?? '',
+    ),
   ),
 ];

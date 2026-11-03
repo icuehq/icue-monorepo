@@ -16,7 +16,7 @@ class InvoiceFormSheet extends StatefulWidget {
   static Future<void> show(
     BuildContext context,
     InventoryPurchaseOrder order,
-  ) => showFormSheet(context, () => InvoiceFormSheet(order: order));
+  ) => showFormPage(context, () => InvoiceFormSheet(order: order));
 
   @override
   State<InvoiceFormSheet> createState() => _InvoiceFormSheetState();

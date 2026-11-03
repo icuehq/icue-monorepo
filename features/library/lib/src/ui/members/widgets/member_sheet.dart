@@ -19,7 +19,7 @@ class MemberSheet extends StatefulWidget {
     LibraryMember? member,
     String? type,
     int? personErpId,
-  }) => showFormSheet(
+  }) => showFormPage(
     context,
     () => MemberSheet(member: member, type: type, personErpId: personErpId),
   );

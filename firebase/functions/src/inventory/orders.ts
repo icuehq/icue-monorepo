@@ -6,9 +6,8 @@ import {
   orderablePurchaseRequestStatuses,
   PurchaseRequestStatus,
 } from '../shared/contracts';
-import { dayTimestamp, isoDate, todayIST } from '../shared/dates';
+import { dayTimestamp, isoDate } from '../shared/dates';
 import { serverTimestamp } from '../shared/firestore';
-import { nextNumber } from '../shared/keys';
 import {
   defineCallable,
   failed,
@@ -19,9 +18,9 @@ import {
   text,
   usable,
 } from '../shared/masters';
-import { assertUniqueLines, lineItemKey, lineKey, positiveQuantity } from './stock';
+import { lineItemKey, lineKey } from './stock';
 
-/** Purchase orders (FRS 10.16). Quotations are client writes; receiving is in receiving.ts. */
+/** Purchase orders (FRS 10.16). Quotations and draft POs are client writes (`ProcurementWrites`); receiving is in receiving.ts. */
 
 const roundToCents = (amount: number) => Math.round(amount * 100) / 100;
 
@@ -113,139 +112,7 @@ function shiftOrdered(
   });
 }
 
-const header = {
-  discount: money.default(0),
-  tax: money.default(0),
-  delivery: money.default(0),
-  remarks: z.string().trim().max(500).nullish(),
-};
-
 export const orders = {
-  /** Draft PO against an approved request; with a quotation the vendor and unit prices come from it. */
-  purchaseOrderSave: defineCallable({
-    name: 'inventory.purchaseOrder.save',
-    permission: 'inventory.procure.operate',
-    input: z.object({
-      id: id.optional(),
-      purchaseRequestId: id,
-      quotationId: id.nullish(),
-      vendorId: id.nullish(),
-      deliveryCampusId: z.number().int().nullish(),
-      expectedDate: isoDate,
-      terms: text(2000),
-      lineItems: z
-        .array(
-          z.object({ ...lineKey, quantityOrdered: positiveQuantity, unitPrice: money.default(0) }),
-        )
-        .min(1)
-        .max(50),
-      ...header,
-    }),
-    handler: async (context, i) => {
-      const { purchaseRequest: purchaseRequest } = await loadPurchaseRequest(
-        context,
-        i.purchaseRequestId,
-      );
-      assertUniqueLines(i.lineItems);
-      let vendorId = i.vendorId;
-      let quoted: { itemId: string; variantId?: string | null; unitPrice: number }[] | null = null;
-      if (i.quotationId) {
-        const quotation = (
-          await context.transaction.get(context.doc(`inventoryQuotations/${i.quotationId}`))
-        ).data();
-        if (!quotation || quotation.purchaseRequestId !== i.purchaseRequestId)
-          throw failed('Quotation does not belong to this request');
-        if (!quotation.selected) throw failed('Quotation is not the selected one');
-        vendorId = quotation.vendorId;
-        quoted = quotation.lineItems;
-      }
-      if (!vendorId) throw failed('Vendor is required');
-      usable(
-        await context.transaction.get(context.doc(`inventoryVendors/${vendorId}`)),
-        'Vendor',
-        false,
-      );
-      const campus = i.deliveryCampusId ?? purchaseRequest.campusId;
-      context.requireCampus(campus);
-      if (i.expectedDate < todayIST()) throw failed('Expected delivery date is in the past');
-      const lineItems = i.lineItems.map((lineItem) => {
-        const quotedLine = quoted?.find(
-          (quotedLineItem) => lineItemKey(quotedLineItem) === lineItemKey(lineItem),
-        );
-        if (quoted && !quotedLine) throw failed('Order lines must be lines of the quotation');
-        return {
-          itemId: lineItem.itemId,
-          variantId: lineItem.variantId ?? null,
-          quantity: lineItem.quantityOrdered,
-          unitPrice: quotedLine ? quotedLine.unitPrice : lineItem.unitPrice,
-        };
-      });
-      checkRemaining(purchaseRequest, lineItems);
-      const orderTotals = totals(lineItems, i);
-      const stored = lineItems.map((lineItem) => ({
-        itemId: lineItem.itemId,
-        variantId: lineItem.variantId,
-        quantityOrdered: lineItem.quantity,
-        quantityReceived: 0,
-        quantityAccepted: 0,
-        quantityRejected: 0,
-        unitPrice: lineItem.unitPrice,
-      }));
-      const fields = {
-        vendorId,
-        quotationId: i.quotationId ?? null,
-        deliveryCampusId: campus,
-        expectedDate: dayTimestamp(i.expectedDate),
-        terms: i.terms ?? null,
-        lineItems: stored,
-        discount: i.discount,
-        tax: i.tax,
-        delivery: i.delivery,
-        remarks: i.remarks ?? null,
-        ...orderTotals,
-        updatedAt: serverTimestamp(),
-      };
-      if (i.id) {
-        const { ref, document: purchaseOrder } = await loadDoc(
-          context,
-          `inventoryPurchaseOrders/${i.id}`,
-          'Purchase order',
-        );
-        if (purchaseOrder.status !== 'draft') throw failed('Only draft orders can be edited');
-        if (purchaseOrder.purchaseRequestIds[0] !== i.purchaseRequestId)
-          throw failed('Request cannot change');
-        context.update(ref, fields);
-        context.audit({
-          action: 'inventoryPurchaseOrder.update',
-          documentPath: ref.path,
-          before: { total: purchaseOrder.total },
-          after: { total: orderTotals.total },
-        });
-        return { id: ref.id, number: purchaseOrder.number as string };
-      }
-      const ref = context.newDoc('inventoryPurchaseOrders');
-      const number = await nextNumber(context, 'PO');
-      context.set(ref, {
-        ...fields,
-        number,
-        purchaseRequestIds: [i.purchaseRequestId],
-        campusId: purchaseRequest.campusId,
-        purchaseOrderDate: dayTimestamp(todayIST()),
-        status: 'draft',
-        acknowledgement: null,
-        revision: 0,
-        createdAt: serverTimestamp(),
-        createdBy: context.uid,
-      });
-      context.audit({
-        action: 'inventoryPurchaseOrder.create',
-        documentPath: ref.path,
-        after: { number, total: orderTotals.total },
-      });
-      return { id: ref.id, number };
-    },
-  }),
-
   /** Issuing reserves the ordered quantity on the request (its `quantityOrdered`). */
   purchaseOrderIssue: defineCallable({
     name: 'inventory.purchaseOrder.issue',

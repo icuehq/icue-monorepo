@@ -150,6 +150,49 @@ export async function seedQuotation(
   return ref.id;
 }
 
+/** A draft purchase order (as the client leaves it); lines are `{ itemId, quantityOrdered, unitPrice }`. */
+export async function seedPurchaseOrder(
+  purchaseRequestId: string,
+  vendorId: string,
+  lines: { itemId: string; quantityOrdered: number; unitPrice: number }[],
+  options: { deliveryCampusId?: number; discount?: number; tax?: number } = {},
+): Promise<string> {
+  const ref = db().collection(`${SCHOOL}/inventoryPurchaseOrders`).doc();
+  const subtotal = lines.reduce((sum, line) => sum + line.quantityOrdered * line.unitPrice, 0);
+  const { discount = 0, tax = 0 } = options;
+  await ref.set({
+    number: 'PO/TEST/000001',
+    purchaseRequestIds: [purchaseRequestId],
+    vendorId,
+    quotationId: null,
+    campusId: 31,
+    deliveryCampusId: options.deliveryCampusId ?? 31,
+    purchaseOrderDate: dayTimestamp(todayIST()),
+    expectedDate: dayTimestamp(todayIST()),
+    terms: null,
+    remarks: null,
+    lineItems: lines.map((line) => ({
+      ...line,
+      variantId: null,
+      quantityReceived: 0,
+      quantityAccepted: 0,
+      quantityRejected: 0,
+    })),
+    discount,
+    tax,
+    delivery: 0,
+    subtotal,
+    total: subtotal - discount + tax,
+    status: 'draft',
+    acknowledgement: null,
+    revision: 0,
+    createdBy: 'proc',
+    createdAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
+  });
+  return ref.id;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Row = Record<string, any>;
 

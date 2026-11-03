@@ -372,11 +372,14 @@ Open **Stock** from Inventory tiles.
   - Open the PR (tap its card) → tap **Edit** in the bottom bar.
   - Change `PEN-BLU-01` quantity from `120` to `100` (Estimated total updates to ₹2,76,500.00).
   - Tap **Save as draft**. **Expect** PR card reflects updated quantity 100.
-- [ ] 1.3.6 Submit PR 1:
-  - Open the PR → tap **Submit**.
-  - **Expect** the screen refreshes in place: status `Pending`, and History logs the submission. The card on the list shows `Awaiting your decision` for approvers.
+- [ ] 1.3.6 Submit PR 1 (as the requester who created it; PR 1 is still `Draft`):
+  - Open the PR (tap its card). The bottom bar shows **Edit** and **Submit**.
+  - Tap **Submit**. **Expect** a "Submitted for approval" message and the same screen refreshes in place: status pill `Pending`, a new entry in **History** for the submission, and the bottom bar is gone (the requester has nothing more to do; only the ⋮ menu's **Cancel request** remains).
+  - Go back to **Purchase requests**. **Expect** the PR 1 card now shows `Pending`; the line `Draft: submit for approval` is gone.
+  - Sign in as a user with `inventory.purchaseRequest.approve` for Campus 31 and open the list. **Expect** the PR 1 card shows `Awaiting your decision`.
 - [ ] 1.3.7 Negative: Permissions:
-  - Open PR 1 with a user lacking `inventory.purchaseRequest.approve`. **Expect** the Approve, Return and Reject buttons are not visible.
+  - Sign in as a user **without** `inventory.purchaseRequest.approve` (e.g. the requester) and open the `Pending` PR 1. **Expect** no **Approve**, **Return** or **Reject** buttons anywhere on the screen, and no `Awaiting your decision` line on its list card.
+  - A user who has `inventory.purchaseRequest.approve` does see all three buttons on a `Pending` request (see 1.3.8).
 
 #### PR Revision & Approval Workflow
 
@@ -404,7 +407,7 @@ Open **Stock** from Inventory tiles.
   - Line 1 (`PEN-BLU-01`, 100 pc): Unit Price `14.50`
   - Line 2 (`LAP-DELL-15`, 2 pc): Unit Price `54000.00`
   - Subtotal: ₹1,09,450.00
-  - Tap **Save and finalize** (Note: only finalized quotations can be selected).
+  - Tap **Record Quotation** (a quotation saved as draft cannot be selected until recorded; its card then has a **Record Quotation** button).
   - **Expect** Quotation 1 created with status `Final`.
 - [ ] 1.3.12 Tap **+ Add quotation** again:
   - Vendor: Select `Global Tech & Lab Instruments` (Vendor 2)
@@ -414,19 +417,20 @@ Open **Stock** from Inventory tiles.
   - Line 1 (`PEN-BLU-01`, 100 pc): Unit Price `15.50`
   - Line 2 (`LAP-DELL-15`, 2 pc): Unit Price `53500.00`
   - Subtotal: ₹1,08,550.00
-  - Tap **Save and finalize**.
+  - Tap **Record Quotation**.
   - **Expect** Quotation 2 created with status `Final`.
-- [ ] 1.3.13 Comparative Matrix & Selection:
-  - On `QuotationsPage`, observe side-by-side comparative cards with lowest line prices highlighted.
-  - On Quotation 1 (Apex), tap **Select quotation**:
-    - Dialog prompts for mandatory reason. Enter: `Shorter lead time of 5 days and local support warranty.`
-    - Tap **Confirm**.
-  - **Expect** Quotation 1 is marked `Selected` (green badge); Quotation 2 remains unselected. Action button **"Create Purchase Order"** appears.
+- [ ] 1.3.13 Comparative Matrix & Selection (screen `Quotations · PR/…`):
+  - The top card **Price Comparison Table** has one column per vendor (Apex, Global) and rows for each PR item (unit price), `Total Amount`, `Delivery Lead Time` and `Validity`. **Expect** Apex: `₹14.50`, `₹54,000.00`, total `₹1,09,450.00`, `5 days`; Global: `₹15.50`, `₹53,500.00`, total `₹1,08,550.00`, `12 days`. Only the `Total Amount` of the cheapest quote (Global) is green; unit prices are not highlighted.
+  - Under **Quotation Details** there is one card per quotation. **Expect** the Global card has a `Lowest Quote` badge and neither card is selected yet. Each card lists its dates, lead time, line items (`100 × ₹14.50` = `₹1,450.00`, …), subtotal and total, and has a **Select this Quote** button at the bottom right.
+  - On the Apex card tap **Select this Quote**. A dialog `Select QT/…?` opens with a `Selection reason *` field.
+    - Tap **Select Quotation** with the field empty. **Expect** the dialog stays open with "A reason is required".
+    - Enter `Shorter lead time of 5 days and local support warranty.` and tap **Select Quotation**.
+  - **Expect** the Apex card gets a green border and a green `SELECTED` badge, shows `Reason: Shorter lead time of 5 days and local support warranty.`, and its button becomes **Create PO from Quote**. The Global card is unselected and still shows **Select this Quote**.
 
 #### Purchase Orders (Inv-4)
 
 - [ ] 1.3.14 Create PO from Selected Quotation:
-  - Tap **Create Purchase Order** from selected Quotation 1 (or from PR sheet).
+  - On the Apex card tap **Create PO from Quote** (the PR screen's **Direct PO** creates a PO without a quotation; do not use it here).
   - **Expect** form pre-filled with Vendor `Apex Educational Supplies Ltd.`, Campus `Campus 31`, lines (`100` pens @ ₹14.50, `2` laptops @ ₹54,000.00), Subtotal ₹1,09,450.00.
   - Tax (₹): Enter amount `19701.00` (18% tax amount). Total updates to ₹1,29,151.00.
   - Expected Delivery Date: Next week (`YYYY-MM-DD`).

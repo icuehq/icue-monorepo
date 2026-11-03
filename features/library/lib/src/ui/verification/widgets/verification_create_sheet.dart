@@ -8,7 +8,7 @@ class VerificationCreateSheet extends StatefulWidget {
   const VerificationCreateSheet({super.key});
 
   static Future<void> show(BuildContext context) =>
-      showFormSheet(context, () => const VerificationCreateSheet());
+      showFormPage(context, () => const VerificationCreateSheet());
 
   @override
   State<VerificationCreateSheet> createState() =>

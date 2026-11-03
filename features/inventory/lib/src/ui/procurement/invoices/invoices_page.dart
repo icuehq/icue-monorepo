@@ -217,7 +217,7 @@ class _InvoicesPageState extends State<InvoicesPage> {
                             invoice.vendorId,
                           ),
                           onTap: () async {
-                            await showFormSheet(
+                            await showFormPage(
                               context,
                               () => InvoiceSheet(invoice: invoice),
                             );

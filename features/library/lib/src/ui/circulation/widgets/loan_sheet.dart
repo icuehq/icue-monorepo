@@ -15,7 +15,7 @@ class LoanSheet extends StatefulWidget {
     BuildContext context,
     LibraryLoan loan,
     String title,
-  ) => showFormSheet(context, () => LoanSheet(loan: loan, title: title));
+  ) => showFormPage(context, () => LoanSheet(loan: loan, title: title));
 
   @override
   State<LoanSheet> createState() => _LoanSheetState();

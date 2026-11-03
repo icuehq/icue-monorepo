@@ -1,7 +1,7 @@
 import 'package:core_ui/core_ui.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 
-/// Client-side purchase request, quotation and invoice writes.
+/// Client-side purchase request, quotation, draft purchase order and invoice writes.
 ///
 /// Business checks live here, not in `firestore.rules`. There is no audit log,
 /// no approver notification, no campus check, and no re-validation of items,
@@ -15,6 +15,7 @@ class ProcurementWrites {
     'inventory-purchaseRequest-cancel',
     'inventory-quotation-save',
     'inventory-quotation-select',
+    'inventory-purchaseOrder-save',
     'inventory-invoice-save',
     'inventory-invoice-setPayment',
     'inventory-invoice-cancel',
@@ -28,6 +29,7 @@ class ProcurementWrites {
         'inventory-purchaseRequest-cancel' => _cancelPurchaseRequest(data),
         'inventory-quotation-save' => _saveQuotation(data),
         'inventory-quotation-select' => _selectQuotation(data),
+        'inventory-purchaseOrder-save' => _savePurchaseOrder(data),
         'inventory-invoice-save' => _saveInvoice(data),
         'inventory-invoice-setPayment' => _setInvoicePayment(data),
         'inventory-invoice-cancel' => _cancelInvoice(data),
@@ -450,6 +452,136 @@ class ProcurementWrites {
     });
     await batch.commit();
     return {'id': reference.id, 'number': quotation['number']};
+  }
+
+  // --- purchase orders (drafts; issue and later steps are callables) -------
+
+  Future<Map<String, dynamic>> _savePurchaseOrder(
+    Map<String, Object?> data,
+  ) async {
+    final requestId = data['purchaseRequestId']! as String;
+    final request = await _loadOrderableRequest(requestId);
+    final lines = _lines(data['lineItems']);
+    if (lines.isEmpty) _fail('Add at least one item');
+    _requireUniqueLines(lines);
+    var vendorId = data['vendorId'] as String?;
+    List<Map<String, dynamic>>? quoted;
+    final quotationId = data['quotationId'] as String?;
+    if (quotationId != null) {
+      final (reference: _, data: quotation) = await _load(
+        'inventoryQuotations',
+        quotationId,
+        'Quotation',
+      );
+      if (quotation['purchaseRequestId'] != requestId) {
+        _fail('Quotation does not belong to this request');
+      }
+      if (quotation['selected'] != true) {
+        _fail('Quotation is not the selected one');
+      }
+      vendorId = quotation['vendorId'] as String;
+      quoted = _lines(quotation['lineItems']);
+    }
+    if (vendorId == null) _fail('Vendor is required');
+    final vendor = (await (await _reference(
+      'inventoryVendors',
+      vendorId,
+    )).get()).data();
+    if (vendor == null) _fail('Vendor not found');
+    if (vendor['status'] != 'active') _fail('Vendor is inactive');
+    final expectedDate = data['expectedDate']! as String;
+    if (expectedDate.compareTo(_today) < 0) {
+      _fail('Expected delivery date is in the past');
+    }
+    final requestLines = _lines(request['lineItems']);
+    final storedLines = <Map<String, Object?>>[];
+    for (final line in lines) {
+      final quotedLine = quoted
+          ?.where((candidate) => _lineKey(candidate) == _lineKey(line))
+          .firstOrNull;
+      if (quoted != null && quotedLine == null) {
+        _fail('Order lines must be lines of the quotation');
+      }
+      final requestLine = requestLines
+          .where((candidate) => _lineKey(candidate) == _lineKey(line))
+          .firstOrNull;
+      if (requestLine == null)
+        _fail('Order lines must be lines of the request');
+      final quantity = line['quantityOrdered']! as num;
+      if (quantity <= 0) _fail('Quantity must be above zero');
+      if (quantity >
+          (requestLine['quantity']! as num) -
+              (requestLine['quantityOrdered']! as num)) {
+        _fail('Ordered quantity exceeds what the request still needs');
+      }
+      storedLines.add({
+        'itemId': line['itemId'],
+        'variantId': line['variantId'],
+        'quantityOrdered': quantity,
+        'quantityReceived': 0,
+        'quantityAccepted': 0,
+        'quantityRejected': 0,
+        'unitPrice': quotedLine?['unitPrice'] ?? line['unitPrice'] ?? 0,
+      });
+    }
+    final discount = (data['discount'] as num?) ?? 0;
+    final tax = (data['tax'] as num?) ?? 0;
+    final delivery = (data['delivery'] as num?) ?? 0;
+    final totals = _totals(
+      [
+        for (final line in storedLines)
+          {'quantity': line['quantityOrdered'], 'unitPrice': line['unitPrice']},
+      ],
+      discount: discount,
+      tax: tax,
+      delivery: delivery,
+    );
+    final fields = {
+      'vendorId': vendorId,
+      'quotationId': quotationId,
+      'deliveryCampusId': data['deliveryCampusId'] ?? request['campusId'],
+      'expectedDate': dayTimestamp(expectedDate),
+      'terms': _blankToNull(data['terms']),
+      'lineItems': storedLines,
+      'discount': discount,
+      'tax': tax,
+      'delivery': delivery,
+      'remarks': _blankToNull(data['remarks']),
+      'subtotal': totals.subtotal,
+      'total': totals.total,
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+    final id = data['id'] as String?;
+    if (id != null) {
+      final (:reference, data: existing) = await _load(
+        'inventoryPurchaseOrders',
+        id,
+        'Purchase order',
+      );
+      if (existing['status'] != 'draft') {
+        _fail('Only draft orders can be edited');
+      }
+      if ((existing['purchaseRequestIds'] as List).first != requestId) {
+        _fail('Request cannot change');
+      }
+      await reference.update(fields);
+      return {'id': id, 'number': existing['number']};
+    }
+    final number = await _nextNumber('PO');
+    final reference = (await schoolCollection('inventoryPurchaseOrders')).doc();
+    await reference.set({
+      ...fields,
+      'number': number,
+      'purchaseRequestIds': [requestId],
+      'campusId': request['campusId'],
+      'purchaseOrderDate': dayTimestamp(_today),
+      'status': 'draft',
+      'acknowledgement': null,
+      'revision': 0,
+      'createdAt': FieldValue.serverTimestamp(),
+      'createdBy': _uid,
+    });
+    return {'id': reference.id, 'number': number};
   }
 
   // --- invoices ------------------------------------------------------------

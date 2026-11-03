@@ -1,6 +1,7 @@
 import 'package:admin_ui/admin_ui.dart';
 import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/procurement/shared/order_widgets.dart';
 import 'package:inventory/src/ui/procurement/shared/procurement_ui.dart';
@@ -250,6 +251,10 @@ class _QuotationFormPageState extends State<QuotationFormPage> {
                           child: TextFormField(
                             controller: _days,
                             keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                              LengthLimitingTextInputFormatter(3),
+                            ],
                             decoration: const InputDecoration(
                               labelText: 'Lead time (days)',
                               hintText: 'e.g. 7',

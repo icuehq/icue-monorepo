@@ -11,7 +11,7 @@ class IncidentSheet extends StatefulWidget {
   final LibraryIncident incident;
 
   static Future<void> show(BuildContext context, LibraryIncident incident) =>
-      showFormSheet(context, () => IncidentSheet(incident: incident));
+      showFormPage(context, () => IncidentSheet(incident: incident));
 
   @override
   State<IncidentSheet> createState() => _IncidentSheetState();

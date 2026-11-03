@@ -44,7 +44,7 @@ class _VerificationsPageState extends State<VerificationsPage> {
               icon: const Icon(Icons.add),
               label: const Text('New'),
               onPressed: () async {
-                await showFormSheet(
+                await showFormPage(
                   context,
                   () => const _NewVerificationSheet(),
                 );

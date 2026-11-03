@@ -10,7 +10,7 @@ class ReservationSheet extends StatefulWidget {
   final LibraryBook? book;
 
   static Future<void> show(BuildContext context, {LibraryBook? book}) =>
-      showFormSheet(context, () => ReservationSheet(book: book));
+      showFormPage(context, () => ReservationSheet(book: book));
 
   @override
   State<ReservationSheet> createState() => _ReservationSheetState();

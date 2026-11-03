@@ -1,8 +1,7 @@
-import 'package:admin_ui/admin_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/procurement/purchase_orders/widgets/purchase_order_card.dart';
-import 'package:inventory/src/ui/procurement/purchase_orders/widgets/purchase_order_sheet.dart';
 import 'package:provider/provider.dart';
 
 /// Purchase orders (FRS 10.16) on the caller's campuses. Created from a request's quotations or the request sheet.
@@ -216,9 +215,9 @@ class _PurchaseOrdersPageState extends State<PurchaseOrdersPage> {
                             purchaseOrder.vendorId,
                           ),
                           onTap: () async {
-                            await showFormSheet(
-                              context,
-                              () => PurchaseOrderSheet(order: purchaseOrder),
+                            await context.push(
+                              InventoryRoutes.inventoryPurchaseOrderDetail,
+                              extra: purchaseOrder,
                             );
                             if (mounted) await _load();
                           },

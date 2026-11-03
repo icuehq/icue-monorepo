@@ -6,7 +6,7 @@ import { procurement as p } from '../src/inventory/procurement';
 import { receiving as r } from '../src/inventory/receiving';
 import { runCallable, type CallableDef } from '../src/shared/callable';
 import { dayTimestamp } from '../src/shared/dates';
-import { receiveStock, seedPurchaseRequest } from './fixtures';
+import { receiveStock, seedPurchaseOrder, seedPurchaseRequest } from './fixtures';
 import { clearFirestore, db } from './setup';
 
 const SCHOOL_ID = '12';
@@ -116,19 +116,9 @@ describe('assets and maintenance', () => {
     const purchaseRequest = await seedPurchaseRequest([
       { itemId: laptop, quantity: 3, estimatedPrice: 500 },
     ]);
-    const purchaseOrder = (
-      await run(
-        o.purchaseOrderSave,
-        {
-          purchaseRequestId: purchaseRequest,
-          vendorId: vendor,
-          expectedDate: day(7),
-          deliveryCampusId: 31,
-          lineItems: [{ itemId: laptop, quantityOrdered: 3, unitPrice: 450 }],
-        },
-        'proc',
-      )
-    ).id;
+    const purchaseOrder = await seedPurchaseOrder(purchaseRequest, vendor, [
+      { itemId: laptop, quantityOrdered: 3, unitPrice: 450 },
+    ]);
     await run(o.purchaseOrderIssue, { id: purchaseOrder }, 'proc');
     const reg = () =>
       run(a.register, { itemId: laptop, storeId: store, purchaseOrderId: purchaseOrder });

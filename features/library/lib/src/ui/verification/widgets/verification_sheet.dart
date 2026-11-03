@@ -10,7 +10,7 @@ class VerificationSheet extends StatefulWidget {
   final String id;
 
   static Future<void> show(BuildContext context, String id) =>
-      showFormSheet(context, () => VerificationSheet(id: id));
+      showFormPage(context, () => VerificationSheet(id: id));
 
   @override
   State<VerificationSheet> createState() => _VerificationSheetState();

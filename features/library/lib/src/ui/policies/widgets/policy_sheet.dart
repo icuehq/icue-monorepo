@@ -11,7 +11,7 @@ class PolicySheet extends StatefulWidget {
   final LibraryPolicy? policy;
 
   static Future<void> show(BuildContext context, {LibraryPolicy? policy}) =>
-      showFormSheet(context, () => PolicySheet(policy: policy));
+      showFormPage(context, () => PolicySheet(policy: policy));
 
   @override
   State<PolicySheet> createState() => _PolicySheetState();

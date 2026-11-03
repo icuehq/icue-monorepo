@@ -70,7 +70,14 @@ service cloud.firestore {
     match /schools/{schoolId}/inventoryInvoices/{id} {
       allow write: if inSchool(schoolId) && can(schoolId, 'inventory.procure.operate');
     }
-    // Sequence counters (PR/QT numbers) are bumped by clients that hold any permission (parents hold none).
+    // Draft purchase orders only; issue, revise, cancel and receiving stay callables.
+    match /schools/{schoolId}/inventoryPurchaseOrders/{id} {
+      allow create: if inSchool(schoolId) && can(schoolId, 'inventory.procure.operate')
+        && request.resource.data.status == 'draft';
+      allow update: if inSchool(schoolId) && can(schoolId, 'inventory.procure.operate')
+        && resource.data.status == 'draft' && request.resource.data.status == 'draft';
+    }
+    // Sequence counters (PR/QT/PO numbers) are bumped by clients that hold any permission (parents hold none).
     match /schools/{schoolId}/counters/{id} {
       allow read, write: if inSchool(schoolId) && access(schoolId).permissions.size() > 0;
     }

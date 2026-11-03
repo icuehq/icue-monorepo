@@ -8,7 +8,7 @@ class IncidentReportSheet extends StatefulWidget {
   const IncidentReportSheet({super.key});
 
   static Future<void> show(BuildContext context) =>
-      showFormSheet(context, () => const IncidentReportSheet());
+      showFormPage(context, () => const IncidentReportSheet());
 
   @override
   State<IncidentReportSheet> createState() => _IncidentReportSheetState();

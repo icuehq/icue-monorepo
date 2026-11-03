@@ -34,7 +34,7 @@ class _AssetSheetState extends State<AssetSheet> {
   /// Opens [then] over this sheet, then closes this one so the list reloads with fresh data.
   Future<void> _open(Widget Function() then) async {
     final navigator = Navigator.of(context);
-    await showFormSheet(context, then);
+    await showFormPage(context, then);
     if (mounted) navigator.pop();
   }
 

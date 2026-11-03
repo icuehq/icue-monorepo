@@ -173,6 +173,7 @@ class CategorySearchBar extends StatelessWidget {
               icon: const Icon(Icons.add_rounded, size: 20),
               label: const Text('New Category'),
               style: FilledButton.styleFrom(
+                minimumSize: const Size(0, 44),
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 12,

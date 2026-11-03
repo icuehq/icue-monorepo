@@ -80,6 +80,11 @@ class InventoryRoutes {
   static const String inventoryUnavailable = '/layout.inventory/unavailable';
   static const String inventoryUnavailableName = 'inventoryUnavailable';
 
+  static const String inventoryUnavailableResolve =
+      '/layout.inventory/unavailable/resolve';
+  static const String inventoryUnavailableResolveName =
+      'inventoryUnavailableResolve';
+
   static const String inventoryVendors = '/layout.inventory/vendors';
   static const String inventoryVendorsName = 'inventoryVendors';
 
@@ -115,6 +120,11 @@ class InventoryRoutes {
   static const String inventoryPurchaseOrders =
       '/layout.inventory/purchase-orders';
   static const String inventoryPurchaseOrdersName = 'inventoryPurchaseOrders';
+
+  static const String inventoryPurchaseOrderDetail =
+      '/layout.inventory/purchase-orders/detail';
+  static const String inventoryPurchaseOrderDetailName =
+      'inventoryPurchaseOrderDetail';
 
   static const String inventoryPurchaseOrderForm =
       '/layout.inventory/purchase-orders/form';

@@ -21,7 +21,7 @@ class BalanceActions extends StatelessWidget {
     final navigator = Navigator.of(context);
     Future<void> open(Widget Function() form) async {
       navigator.pop();
-      await showFormSheet(navigator.context, form);
+      await showFormPage(navigator.context, form);
     }
 
     return Column(

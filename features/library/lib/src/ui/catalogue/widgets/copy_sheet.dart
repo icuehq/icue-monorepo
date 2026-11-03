@@ -16,7 +16,7 @@ class CopySheet extends StatefulWidget {
     BuildContext context,
     LibraryCopy copy,
     String title,
-  ) => showFormSheet(context, () => CopySheet(copy: copy, title: title));
+  ) => showFormPage(context, () => CopySheet(copy: copy, title: title));
 
   @override
   State<CopySheet> createState() => _CopySheetState();

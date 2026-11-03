@@ -114,6 +114,9 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
     final theme = Theme.of(context);
     final access = context.read<InventoryProvider>().access;
     final campuses = {...access.campusIds, ?_campus}.toList();
+    // A single campus needs no choice.
+    final singleCampus = campuses.length == 1;
+    if (singleCampus) _campus = campuses.first;
 
     return Scaffold(
       appBar: AppBar(
@@ -159,29 +162,31 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
                     const SizedBox(height: 16),
                     Row(
                       children: [
-                        Expanded(
-                          child: DropdownButtonFormField<int>(
-                            initialValue: _campus,
-                            isExpanded: true,
-                            decoration: const InputDecoration(
-                              labelText: 'Campus *',
-                              prefixIcon: Icon(Icons.school_outlined),
+                        if (!singleCampus) ...[
+                          Expanded(
+                            child: DropdownButtonFormField<int>(
+                              initialValue: _campus,
+                              isExpanded: true,
+                              decoration: const InputDecoration(
+                                labelText: 'Campus *',
+                                prefixIcon: Icon(Icons.school_outlined),
+                              ),
+                              items: [
+                                for (final value in campuses)
+                                  DropdownMenuItem(
+                                    value: value,
+                                    child: Text('Campus $value'),
+                                  ),
+                              ],
+                              onChanged: widget.existing == null
+                                  ? (value) => _campus = value
+                                  : null,
+                              validator: (value) =>
+                                  value == null ? 'Required' : null,
                             ),
-                            items: [
-                              for (final value in campuses)
-                                DropdownMenuItem(
-                                  value: value,
-                                  child: Text('Campus $value'),
-                                ),
-                            ],
-                            onChanged: widget.existing == null
-                                ? (value) => _campus = value
-                                : null,
-                            validator: (value) =>
-                                value == null ? 'Required' : null,
                           ),
-                        ),
-                        const SizedBox(width: 12),
+                          const SizedBox(width: 12),
+                        ],
                         Expanded(
                           child: DropdownButtonFormField<String>(
                             initialValue: _priority,

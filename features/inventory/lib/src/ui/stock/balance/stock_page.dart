@@ -448,7 +448,7 @@ class _StockPageState extends State<StockPage> {
                           itemCode: item?.code,
                           stockUnit: item?.stockUnit,
                           reorderLevel: item?.reorderLevel,
-                          onTap: () => showFormSheet(
+                          onTap: () => showFormPage(
                             context,
                             () => BalanceActions(balance: balance),
                           ),

@@ -4,7 +4,7 @@ import { orders as o } from '../src/inventory/orders';
 import { procurement as p } from '../src/inventory/procurement';
 import { runCallable, type CallableDef } from '../src/shared/callable';
 import { dayTimestamp } from '../src/shared/dates';
-import { seedPurchaseRequest, seedQuotation } from './fixtures';
+import { seedPurchaseOrder, seedPurchaseRequest } from './fixtures';
 import { clearFirestore, db } from './setup';
 
 const SCHOOL_ID = '12';
@@ -26,25 +26,11 @@ const code = (promise: Promise<unknown>) =>
   );
 
 describe('purchase orders', () => {
-  let pen: string, ink: string, firstVendor: string, secondVendor: string, purchaseRequest: string;
-  const quote = (vendorId: string, selected = false) =>
-    seedQuotation(
-      purchaseRequest,
-      vendorId,
-      [
-        { itemId: pen, quantity: 100, unitPrice: 4 },
-        { itemId: ink, quantity: 20, unitPrice: 10 },
-      ],
-      { selected, validUntil: day(10) },
-    );
-  const purchaseOrder = (extra: Record<string, unknown> = {}) =>
-    run(o.purchaseOrderSave, {
-      purchaseRequestId: purchaseRequest,
-      vendorId: firstVendor,
-      expectedDate: day(7),
-      lineItems: [{ itemId: pen, quantityOrdered: 60, unitPrice: 5 }],
-      ...extra,
-    });
+  let pen: string, ink: string, firstVendor: string, purchaseRequest: string;
+  const purchaseOrder = (
+    lines = [{ itemId: pen, quantityOrdered: 60, unitPrice: 5 }],
+    options: { discount?: number; tax?: number } = {},
+  ) => seedPurchaseOrder(purchaseRequest, firstVendor, lines, options);
   const purchaseRequestLines = async () =>
     (await get(`inventoryPurchaseRequests/${purchaseRequest}`))!;
 
@@ -99,108 +85,42 @@ describe('purchase orders', () => {
       ).then((result) => result.id as string);
     [pen, ink] = [await item('PEN'), await item('INK')];
     firstVendor = (await run(p.vendorUpsert, { code: 'V1', name: 'Acme' }, '1')).id;
-    secondVendor = (await run(p.vendorUpsert, { code: 'V2', name: 'Bolt' }, '1')).id;
     purchaseRequest = await seedPurchaseRequest([
       { itemId: pen, quantity: 100, estimatedPrice: 5 },
       { itemId: ink, quantity: 20, estimatedPrice: 10 },
     ]);
   });
 
-  it('PO: quotation prices win, issue reserves quantity, cancel releases it', async () => {
-    const quotation = await quote(secondVendor);
-    expect(await code(purchaseOrder({ quotationId: quotation }))).toBe('failed-precondition'); // not selected
-    await db()
-      .doc(`schools/${SCHOOL_ID}/inventoryQuotations/${quotation}`)
-      .update({ selected: true, selectionReason: 'best' });
-    const definition = await purchaseOrder({
-      quotationId: quotation,
-      vendorId: firstVendor,
-      discount: 10,
-      tax: 5,
-    });
-    expect(definition.number).toMatch(/^PO\/\d{4}-\d{2}\/000001$/);
-    expect(await get(`inventoryPurchaseOrders/${definition.id}`)).toMatchObject({
-      vendorId: secondVendor,
-      status: 'draft',
-      subtotal: 240,
-      total: 235,
-      purchaseRequestIds: [purchaseRequest],
-      lineItems: [{ unitPrice: 4, quantityOrdered: 60, quantityReceived: 0 }],
-    });
-    expect(
-      await code(
-        purchaseOrder({
-          quotationId: quotation,
-          lineItems: [{ itemId: pen, quantityOrdered: 101 }],
-        }),
-      ),
-    ).toBe('failed-precondition');
-    expect(
-      await code(
-        purchaseOrder({
-          vendorId: firstVendor,
-          lineItems: [
-            { itemId: pen, quantityOrdered: 1 },
-            { itemId: pen, quantityOrdered: 1 },
-          ],
-        }),
-      ),
-    ).toBe('failed-precondition');
-    expect(await code(purchaseOrder({ expectedDate: day(-1) }))).toBe('failed-precondition');
+  it('PO: issue reserves quantity, cancel releases it', async () => {
+    const definition = await purchaseOrder();
+    expect(await get(`inventoryPurchaseOrders/${definition}`)).toMatchObject({ status: 'draft' });
 
-    await run(o.purchaseOrderIssue, { id: definition.id });
+    await run(o.purchaseOrderIssue, { id: definition });
     expect((await purchaseRequestLines()).status).toBe('partially_ordered');
     expect((await purchaseRequestLines()).lineItems[0].quantityOrdered).toBe(60);
-    expect(await code(run(o.purchaseOrderIssue, { id: definition.id }))).toBe(
-      'failed-precondition',
-    );
-    expect(
-      await code(
-        run(o.purchaseOrderSave, {
-          id: definition.id,
-          purchaseRequestId: purchaseRequest,
-          vendorId: firstVendor,
-          expectedDate: day(3),
-          lineItems: [{ itemId: pen, quantityOrdered: 1 }],
-        }),
-      ),
-    ).toBe('failed-precondition');
-    expect(await code(purchaseOrder({ lineItems: [{ itemId: pen, quantityOrdered: 41 }] }))).toBe(
-      'failed-precondition',
-    ); // only 40 left
+    expect(await code(run(o.purchaseOrderIssue, { id: definition }))).toBe('failed-precondition');
+    // only 40 pens are left on the request
+    const tooMany = await purchaseOrder([{ itemId: pen, quantityOrdered: 41, unitPrice: 5 }]);
+    expect(await code(run(o.purchaseOrderIssue, { id: tooMany }))).toBe('failed-precondition');
 
-    const rest = await purchaseOrder({
-      lineItems: [
-        { itemId: pen, quantityOrdered: 40 },
-        { itemId: ink, quantityOrdered: 20, unitPrice: 9 },
-      ],
-    });
-    await run(o.purchaseOrderIssue, { id: rest.id });
+    const rest = await purchaseOrder([
+      { itemId: pen, quantityOrdered: 40, unitPrice: 5 },
+      { itemId: ink, quantityOrdered: 20, unitPrice: 9 },
+    ]);
+    await run(o.purchaseOrderIssue, { id: rest });
     expect((await purchaseRequestLines()).status).toBe('ordered');
-    await run(o.purchaseOrderCancel, { id: rest.id, reason: 'wrong vendor' });
-    expect(await get(`inventoryPurchaseOrders/${rest.id}`)).toMatchObject({
+    await run(o.purchaseOrderCancel, { id: rest, reason: 'wrong vendor' });
+    expect(await get(`inventoryPurchaseOrders/${rest}`)).toMatchObject({
       status: 'cancelled',
       cancelReason: 'wrong vendor',
     });
-    expect((await purchaseRequestLines()).status).toBe('partially_ordered');
-    await run(o.purchaseOrderCancel, { id: definition.id, reason: 'again' });
+    await run(o.purchaseOrderCancel, { id: definition, reason: 'again' });
     expect((await purchaseRequestLines()).status).toBe('approved');
-    expect(await code(run(o.purchaseOrderIssue, { id: definition.id }))).toBe(
-      'failed-precondition',
-    );
-  });
-
-  it('each order line is checked against its own request line', async () => {
-    expect(await code(purchaseOrder({ lineItems: [{ itemId: ink, quantityOrdered: 21 }] }))).toBe(
-      'failed-precondition',
-    ); // ink asks for 20; pen's 100 must not count
-    expect(await code(purchaseOrder({ lineItems: [{ itemId: ink, quantityOrdered: 20 }] }))).toBe(
-      'ok',
-    );
+    expect(await code(run(o.purchaseOrderIssue, { id: definition }))).toBe('failed-precondition');
   });
 
   it('acknowledge, revise (recorded), close, and campus scope', async () => {
-    const id = (await purchaseOrder()).id as string;
+    const id = await purchaseOrder();
     expect(await code(run(o.purchaseOrderAcknowledge, { id }))).toBe('failed-precondition'); // draft
     expect(await code(run(o.purchaseOrderIssue, { id }, 'far'))).toBe('permission-denied');
     await run(o.purchaseOrderIssue, { id });

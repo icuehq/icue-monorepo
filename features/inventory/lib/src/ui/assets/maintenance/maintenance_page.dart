@@ -92,7 +92,7 @@ class _MaintenancePageState extends State<MaintenancePage> {
                           isThreeLine: true,
                           trailing: StatusChip(maintenance.status),
                           onTap: () async {
-                            await showFormSheet(
+                            await showFormPage(
                               context,
                               () => MaintenanceSheet(job: maintenance),
                             );
@@ -116,7 +116,7 @@ class MaintenanceSheet extends StatelessWidget {
 
   Future<void> _go(BuildContext context, Widget Function() form) async {
     final navigator = Navigator.of(context);
-    await showFormSheet(context, form);
+    await showFormPage(context, form);
     navigator.pop();
   }
 

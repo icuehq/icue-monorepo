@@ -5,7 +5,14 @@ import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:inventory/inventory.dart';
+import 'package:inventory/src/ui/procurement/quotations/widgets/quotation_comparison.dart';
+import 'package:inventory/src/ui/procurement/quotations/widgets/quotation_details.dart';
 import 'package:provider/provider.dart';
+
+/// The app theme stretches buttons to full width; inside a Row they must size to content.
+const _inlineButton = ButtonStyle(
+  minimumSize: WidgetStatePropertyAll(Size(0, 40)),
+);
 
 /// Quotations of one request (FRS 10.15): side-by-side comparison, select the preferred one.
 class QuotationsPage extends StatefulWidget {
@@ -28,48 +35,55 @@ class _QuotationsPageState extends State<QuotationsPage> {
   }
 
   Future<void> _select(InventoryQuotation quotation) async {
-    final reason = TextEditingController();
-    final ok = await showDialog<bool>(
+    // The dialog owns the controller: disposing it here would break the closing animation.
+    final text = await showDialog<String>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text('Select ${quotation.number}?'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Specify why this quotation is selected (e.g. lowest evaluated price, earliest delivery, vendor reliability).',
-              style: Theme.of(dialogContext).textTheme.bodySmall,
+      builder: (dialogContext) {
+        final reason = TextEditingController();
+        String? error;
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) => AlertDialog(
+            title: Text('Select ${quotation.number}?'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Specify why this quotation is selected (e.g. lowest evaluated price, earliest delivery, vendor reliability).',
+                  style: Theme.of(dialogContext).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: reason,
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    labelText: 'Selection reason *',
+                    hintText: 'e.g. Lowest total cost and fastest delivery',
+                    errorText: error,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: reason,
-              autofocus: true,
-              decoration: const InputDecoration(
-                labelText: 'Selection reason *',
-                hintText: 'e.g. Lowest total cost and fastest delivery',
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Cancel'),
               ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
+              FilledButton(
+                onPressed: () {
+                  if (reason.text.trim().isEmpty) {
+                    return setDialogState(() => error = 'A reason is required');
+                  }
+                  Navigator.pop(dialogContext, reason.text.trim());
+                },
+                child: const Text('Select Quotation'),
+              ),
+            ],
           ),
-          FilledButton(
-            onPressed: () {
-              if (reason.text.trim().isEmpty) return;
-              Navigator.pop(dialogContext, true);
-            },
-            child: const Text('Select Quotation'),
-          ),
-        ],
-      ),
+        );
+      },
     );
-    final text = reason.text.trim();
-    reason.dispose();
-    if (ok != true || !mounted) return;
+    if (text == null || !mounted) return;
     final procurementProvider = context.read<ProcurementProvider>();
     final result = await procurementProvider.act('inventory-quotation-select', {
       'id': quotation.id,
@@ -82,6 +96,43 @@ class _QuotationsPageState extends State<QuotationsPage> {
         procurementProvider.errorMessage ?? 'Could not select quotation',
       );
     } else {
+      await _load();
+    }
+  }
+
+  /// Records a draft as final so it can be selected.
+  Future<void> _finalize(InventoryQuotation quotation) async {
+    final procurementProvider = context.read<ProcurementProvider>();
+    final result = await procurementProvider.act('inventory-quotation-save', {
+      'id': quotation.id,
+      'purchaseRequestId': quotation.purchaseRequestId,
+      'vendorId': quotation.vendorId,
+      'vendorRef': quotation.vendorRef ?? '',
+      'validUntil': quotation.validUntil,
+      'deliveryDays': quotation.deliveryDays,
+      'lineItems': [
+        for (final line in quotation.lineItems)
+          {
+            'itemId': line.itemId,
+            'variantId': ?line.variantId,
+            'quantity': line.quantity,
+            'unitPrice': line.unitPrice,
+          },
+      ],
+      'discount': quotation.discount,
+      'tax': quotation.tax,
+      'delivery': quotation.delivery,
+      'remarks': quotation.remarks ?? '',
+      'final': true,
+    });
+    if (!mounted) return;
+    if (result == null) {
+      showMessage(
+        context,
+        procurementProvider.errorMessage ?? 'Could not record quotation',
+      );
+    } else {
+      showMessage(context, 'Quotation recorded');
       await _load();
     }
   }
@@ -159,139 +210,14 @@ class _QuotationsPageState extends State<QuotationsPage> {
                     ),
             )
           : ListView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
               children: [
                 // Comparison Header Card
-                Card(
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(color: theme.colorScheme.outlineVariant),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.compare_arrows_rounded,
-                              size: 20,
-                              color: theme.colorScheme.primary,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Price Comparison Table',
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: DataTable(
-                            headingRowColor: WidgetStateProperty.all(
-                              theme.colorScheme.surfaceContainerHighest
-                                  .withValues(alpha: 0.5),
-                            ),
-                            columns: [
-                              const DataColumn(
-                                label: Text(
-                                  'Item / Metric',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                              for (final quotation in quotations)
-                                DataColumn(
-                                  label: Text(
-                                    procurementProvider.vendorName(
-                                      quotation.vendorId,
-                                    ),
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: quotation.selected
-                                          ? theme.colorScheme.primary
-                                          : null,
-                                    ),
-                                  ),
-                                ),
-                            ],
-                            rows: [
-                              for (final id in items)
-                                DataRow(
-                                  cells: [
-                                    DataCell(
-                                      Text(procurementProvider.itemName(id)),
-                                    ),
-                                    for (final quotation in quotations)
-                                      DataCell(
-                                        Text(
-                                          quotation.lineItems
-                                              .where(
-                                                (line) => line.itemId == id,
-                                              )
-                                              .map(
-                                                (line) =>
-                                                    line.unitPrice.toRupees(),
-                                              )
-                                              .join(),
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              DataRow(
-                                cells: [
-                                  const DataCell(
-                                    Text(
-                                      'Total Amount',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                  for (final quotation in quotations)
-                                    DataCell(
-                                      Text(
-                                        quotation.total.toRupees(),
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: quotation.total == lowestTotal
-                                              ? Colors.green[800]
-                                              : null,
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                              DataRow(
-                                cells: [
-                                  const DataCell(Text('Delivery Lead Time')),
-                                  for (final quotation in quotations)
-                                    DataCell(
-                                      Text(
-                                        quotation.deliveryDays != null
-                                            ? '${quotation.deliveryDays} days'
-                                            : 'Not specified',
-                                      ),
-                                    ),
-                                ],
-                              ),
-                              DataRow(
-                                cells: [
-                                  const DataCell(Text('Validity')),
-                                  for (final quotation in quotations)
-                                    DataCell(Text(quotation.validUntil)),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                QuotationComparison(
+                  quotations: quotations,
+                  itemIds: items,
+                  vendorName: procurementProvider.vendorName,
+                  itemName: procurementProvider.itemName,
                 ),
                 const SizedBox(height: 16),
 
@@ -445,12 +371,17 @@ class _QuotationsPageState extends State<QuotationsPage> {
                               ),
                             ),
                           ],
+                          QuotationDetails(
+                            quotation: quotation,
+                            itemName: procurementProvider.itemName,
+                          ),
                           const SizedBox(height: 12),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
-                              if (quotation.isDraft)
+                              if (quotation.isDraft) ...[
                                 OutlinedButton.icon(
+                                  style: _inlineButton,
                                   icon: const Icon(
                                     Icons.edit_outlined,
                                     size: 16,
@@ -460,9 +391,20 @@ class _QuotationsPageState extends State<QuotationsPage> {
                                     InventoryRoutes.inventoryQuotationForm,
                                     (purchaseRequest, quotation),
                                   ),
-                                )
-                              else if (!quotation.selected)
+                                ),
+                                const SizedBox(width: 8),
                                 FilledButton.icon(
+                                  style: _inlineButton,
+                                  icon: const Icon(
+                                    Icons.check_circle_outline,
+                                    size: 16,
+                                  ),
+                                  label: const Text('Record Quotation'),
+                                  onPressed: () => _finalize(quotation),
+                                ),
+                              ] else if (!quotation.selected)
+                                FilledButton.icon(
+                                  style: _inlineButton,
                                   icon: const Icon(
                                     Icons.check_circle_outline,
                                     size: 16,
@@ -472,6 +414,7 @@ class _QuotationsPageState extends State<QuotationsPage> {
                                 )
                               else
                                 FilledButton.icon(
+                                  style: _inlineButton,
                                   icon: const Icon(
                                     Icons.shopping_cart_checkout_rounded,
                                     size: 16,

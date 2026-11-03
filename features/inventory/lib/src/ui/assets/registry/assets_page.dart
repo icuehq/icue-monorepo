@@ -51,7 +51,7 @@ class _AssetsPageState extends State<AssetsPage> {
       showMessage(context, assetsProvider.errorMessage ?? 'No asset "$code"');
       return;
     }
-    await showFormSheet(context, () => AssetSheet(asset: asset));
+    await showFormPage(context, () => AssetSheet(asset: asset));
     if (mounted) await _load();
   }
 
@@ -140,7 +140,7 @@ class _AssetsPageState extends State<AssetsPage> {
                           ),
                           trailing: StatusChip(asset.status),
                           onTap: () async {
-                            await showFormSheet(
+                            await showFormPage(
                               context,
                               () => AssetSheet(asset: asset),
                             );

@@ -164,7 +164,7 @@ class ProcurementProvider extends ChangeNotifier {
     }
   }
 
-  /// Runs a client write (purchase requests, quotations, invoices) or else a callable; returns its result (`id`, `number`) or null with [errorMessage] set.
+  /// Runs a client write (purchase requests, quotations, draft purchase orders, invoices) or else a callable; returns its result (`id`, `number`) or null with [errorMessage] set.
   Future<Map<String, dynamic>?> act(
     String value,
     Map<String, Object?> data, {

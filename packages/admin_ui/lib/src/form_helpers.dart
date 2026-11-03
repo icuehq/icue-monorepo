@@ -26,19 +26,23 @@ Future<bool> submitAndClose<P extends ErrorReporting>(
   return saved;
 }
 
-Future<void> showFormSheet(BuildContext context, Widget Function() form) =>
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (context) => Padding(
-        padding: EdgeInsets.fromLTRB(
-          20,
-          0,
-          20,
-          MediaQuery.viewInsetsOf(context).bottom + 20,
+/// Opens [form] on its own full screen; it closes with `Navigator.pop`.
+Future<void> showFormPage(BuildContext context, Widget Function() form) =>
+    pushFormPage<void>(context, form);
+
+/// Like [showFormPage], completing with the value the form pops with.
+Future<T?> pushFormPage<T>(BuildContext context, Widget Function() form) =>
+    Navigator.of(context, rootNavigator: true).push<T>(
+      MaterialPageRoute(
+        builder: (_) => Scaffold(
+          appBar: AppBar(),
+          body: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: form(),
+            ),
+          ),
         ),
-        child: SingleChildScrollView(child: form()),
       ),
     );
 

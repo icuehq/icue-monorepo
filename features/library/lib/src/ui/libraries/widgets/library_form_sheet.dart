@@ -9,7 +9,7 @@ class LibraryFormSheet extends StatefulWidget {
   final SchoolLibrary? library;
 
   static Future<void> show(BuildContext context, {SchoolLibrary? library}) =>
-      showFormSheet(context, () => LibraryFormSheet(library: library));
+      showFormPage(context, () => LibraryFormSheet(library: library));
 
   @override
   State<LibraryFormSheet> createState() => _LibraryFormSheetState();

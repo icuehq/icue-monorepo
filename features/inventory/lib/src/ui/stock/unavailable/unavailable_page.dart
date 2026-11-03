@@ -1,8 +1,7 @@
-import 'package:admin_ui/admin_ui.dart';
 import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:inventory/inventory.dart';
-import 'package:inventory/src/ui/stock/unavailable/widgets/unavailable_resolve_sheet.dart';
 import 'package:provider/provider.dart';
 
 /// Open damaged / expired stock (FRS 10.12) and how it is resolved.
@@ -152,12 +151,8 @@ class _UnavailablePageState extends State<UnavailablePage> {
                           child: InkWell(
                             onTap: canResolve
                                 ? () async {
-                                    await showFormSheet(
-                                      context,
-                                      () => UnavailableResolveSheet(
-                                        unavailable: item,
-                                        storeName: storeName(item.storeId),
-                                      ),
+                                    await context.push(
+                                      '${InventoryRoutes.inventoryUnavailableResolve}?id=${item.id}',
                                     );
                                     if (mounted) await _load();
                                   }

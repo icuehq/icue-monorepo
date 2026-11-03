@@ -191,6 +191,9 @@ class _PurchaseOrderFormPageState extends State<PurchaseOrderFormPage> {
     final theme = Theme.of(context);
     final access = context.read<InventoryProvider>().access;
     final campuses = {...access.campusIds, _campus}.toList();
+    // A single campus needs no choice.
+    final singleCampus = campuses.length == 1;
+    if (singleCampus) _campus = campuses.first;
     final vendors = context.watch<ProcurementProvider>().vendors.where(
       (vendor) => vendor.active || vendor.id == _vendor,
     );
@@ -251,23 +254,25 @@ class _PurchaseOrderFormPageState extends State<PurchaseOrderFormPage> {
                           : null,
                       validator: (value) => value == null ? 'Required' : null,
                     ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<int>(
-                      initialValue: _campus,
-                      decoration: const InputDecoration(
-                        labelText: 'Delivery Campus *',
-                        prefixIcon: Icon(Icons.school_outlined),
+                    if (!singleCampus) ...[
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<int>(
+                        initialValue: _campus,
+                        decoration: const InputDecoration(
+                          labelText: 'Delivery Campus *',
+                          prefixIcon: Icon(Icons.school_outlined),
+                        ),
+                        items: [
+                          for (final value in campuses)
+                            DropdownMenuItem(
+                              value: value,
+                              child: Text('Campus $value'),
+                            ),
+                        ],
+                        onChanged: (value) =>
+                            setState(() => _campus = value ?? _campus),
                       ),
-                      items: [
-                        for (final value in campuses)
-                          DropdownMenuItem(
-                            value: value,
-                            child: Text('Campus $value'),
-                          ),
-                      ],
-                      onChanged: (value) =>
-                          setState(() => _campus = value ?? _campus),
-                    ),
+                    ],
                   ],
                 ),
               ),
@@ -313,6 +318,7 @@ class _PurchaseOrderFormPageState extends State<PurchaseOrderFormPage> {
                     TextFormField(
                       controller: _terms,
                       maxLines: 2,
+                      maxLength: 500,
                       decoration: const InputDecoration(
                         labelText: 'Terms and conditions',
                         hintText: 'e.g. 100% on delivery, 30 days warranty',
@@ -322,6 +328,7 @@ class _PurchaseOrderFormPageState extends State<PurchaseOrderFormPage> {
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: _remarks,
+                      maxLength: 500,
                       decoration: const InputDecoration(
                         labelText: 'Remarks / Dispatch Notes',
                         prefixIcon: Icon(Icons.notes_rounded),

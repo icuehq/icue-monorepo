@@ -11,7 +11,7 @@ class FineSheet extends StatefulWidget {
   final LibraryFine fine;
 
   static Future<void> show(BuildContext context, LibraryFine fine) =>
-      showFormSheet(context, () => FineSheet(fine: fine));
+      showFormPage(context, () => FineSheet(fine: fine));
 
   @override
   State<FineSheet> createState() => _FineSheetState();
@@ -246,15 +246,19 @@ class _FineSheetState extends State<FineSheet> {
           Row(
             children: [
               if (canWaive)
-                FilledButton.tonal(
-                  onPressed: _busy ? null : _waive,
-                  child: const Text('Waive'),
+                Expanded(
+                  child: FilledButton.tonal(
+                    onPressed: _busy ? null : _waive,
+                    child: const Text('Waive'),
+                  ),
                 ),
               if (canWaive && canPay) const SizedBox(width: 8),
               if (canPay)
-                FilledButton(
-                  onPressed: _busy ? null : _recordPayment,
-                  child: const Text('Record payment'),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: _busy ? null : _recordPayment,
+                    child: const Text('Record payment'),
+                  ),
                 ),
             ],
           ),

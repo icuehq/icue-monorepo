@@ -4,7 +4,7 @@ import { orders as o } from '../src/inventory/orders';
 import { procurement as p } from '../src/inventory/procurement';
 import { receiving as r } from '../src/inventory/receiving';
 import { runCallable, type CallableDef } from '../src/shared/callable';
-import { seedPurchaseRequest } from './fixtures';
+import { seedPurchaseOrder, seedPurchaseRequest } from './fixtures';
 import { clearFirestore, db } from './setup';
 
 const SCHOOL_ID = '12';
@@ -17,8 +17,6 @@ const run = (definition: CallableDef<any, any>, data: Record<string, unknown>, u
     { requestId: `req-${String(++requestSequence).padStart(6, '0')}`, ...data },
   );
 const get = async (path: string) => (await db().doc(`schools/${SCHOOL_ID}/${path}`).get()).data();
-const day = (offset: number) =>
-  new Date(Date.now() + 330 * 60_000 + offset * 86_400_000).toISOString().slice(0, 10);
 const code = (promise: Promise<unknown>) =>
   promise.then(
     () => 'ok',
@@ -103,18 +101,10 @@ describe('goods receiving', () => {
       { itemId: pen, quantity: 100, estimatedPrice: 5 },
       { itemId: ink, quantity: 20, estimatedPrice: 10 },
     ]);
-    purchaseOrder = (
-      await run(o.purchaseOrderSave, {
-        purchaseRequestId: purchaseRequest,
-        vendorId: firstVendor,
-        expectedDate: day(7),
-        deliveryCampusId: 31,
-        lineItems: [
-          { itemId: pen, quantityOrdered: 100, unitPrice: 5 },
-          { itemId: ink, quantityOrdered: 20, unitPrice: 10 },
-        ],
-      })
-    ).id;
+    purchaseOrder = await seedPurchaseOrder(purchaseRequest, firstVendor, [
+      { itemId: pen, quantityOrdered: 100, unitPrice: 5 },
+      { itemId: ink, quantityOrdered: 20, unitPrice: 10 },
+    ]);
   });
 
   it('receives in several deliveries, validates quantities and moves the order and request to done', async () => {

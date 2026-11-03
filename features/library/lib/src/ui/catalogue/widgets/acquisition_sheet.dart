@@ -12,20 +12,7 @@ class AcquisitionSheet extends StatefulWidget {
   final LibraryBook book;
 
   static Future<List<String>?> show(BuildContext context, LibraryBook book) =>
-      showModalBottomSheet<List<String>>(
-        context: context,
-        isScrollControlled: true,
-        showDragHandle: true,
-        builder: (context) => Padding(
-          padding: EdgeInsets.fromLTRB(
-            20,
-            0,
-            20,
-            MediaQuery.viewInsetsOf(context).bottom + 20,
-          ),
-          child: SingleChildScrollView(child: AcquisitionSheet(book: book)),
-        ),
-      );
+      pushFormPage<List<String>>(context, () => AcquisitionSheet(book: book));
 
   @override
   State<AcquisitionSheet> createState() => _AcquisitionSheetState();
