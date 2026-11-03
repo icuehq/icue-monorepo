@@ -445,7 +445,7 @@ export const orders = {
     },
   }),
 
-  /** Closing a PO that is not fully received needs a reason. Known limit: unreceived quantity stays counted as ordered on the request. */
+  /** Closing a PO that is not fully received needs a reason. The unreceived quantity is released back to the request. */
   purchaseOrderClose: defineCallable({
     name: 'inventory.purchaseOrder.close',
     permission: 'inventory.procure.operate',
@@ -464,6 +464,27 @@ export const orders = {
         throw failed(`Order is ${purchaseOrder.status}`);
       if (purchaseOrder.status !== 'fully_received' && !i.reason)
         throw failed('A reason is required to close an order that is not fully received');
+      if (purchaseOrder.status !== 'fully_received') {
+        const purchaseRequestRef = context.doc(
+          `inventoryPurchaseRequests/${purchaseOrder.purchaseRequestIds[0]}`,
+        );
+        const purchaseRequest = (await context.transaction.get(purchaseRequestRef)).data();
+        if (purchaseRequest) {
+          // The unreceived remainder goes back to the request so a new order can cover it.
+          const remainder = (
+            purchaseOrder.lineItems as {
+              itemId: string;
+              variantId: string | null;
+              quantityOrdered: number;
+              quantityAccepted: number;
+            }[]
+          ).map((lineItem) => ({
+            ...lineItem,
+            quantity: Math.max(0, lineItem.quantityOrdered - lineItem.quantityAccepted),
+          }));
+          shiftOrdered(context, purchaseRequestRef, purchaseRequest, { lineItems: remainder }, -1);
+        }
+      }
       context.update(ref, {
         status: 'closed',
         closeReason: i.reason ?? null,

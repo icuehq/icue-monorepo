@@ -6,30 +6,13 @@ import 'package:inventory/src/models/inventory_stock.dart';
 /// Stock (Inv-2): reads from Firestore, every write is a callable.
 @lazySingleton
 class StockService {
-  Future<Query<Map<String, dynamic>>> _q(String path) async {
-    final claims =
-        (await FirebaseAuth.instance.currentUser!.getIdTokenResult()).claims;
-    return FirebaseFirestore.instance.collection(
-      'schools/${claims?['schoolId']}/$path',
-    );
-  }
-
   String get uid => FirebaseAuth.instance.currentUser!.uid;
-
-  /// Rules require the campus filter on every list (`all` users need none).
-  Query<Map<String, dynamic>>? _scoped(
-    Query<Map<String, dynamic>> query,
-    ModuleAccess access, [
-    String field = 'campusId',
-  ]) {
-    return access.restrictToCampuses(query, field: field);
-  }
 
   Future<PagedResult<InventoryBalance>> balances(
     InventoryStore store, {
     DocumentSnapshot<Map<String, dynamic>>? after,
   }) async => fetchPage(
-    (await _q('inventoryBalances'))
+    (await schoolCollection('inventoryBalances'))
         .where('campusId', isEqualTo: store.campusId)
         .where('storeId', isEqualTo: store.id)
         .orderBy('itemId'),
@@ -42,7 +25,7 @@ class StockService {
     InventoryBalance balance,
     int campusId,
   ) async {
-    final snapshot = await (await _q('inventoryMovements'))
+    final snapshot = await (await schoolCollection('inventoryMovements'))
         .where('campusId', isEqualTo: campusId)
         .where('balanceId', isEqualTo: balance.id)
         .orderBy('createdAt', descending: true)
@@ -59,12 +42,12 @@ class StockService {
     ModuleAccess access, {
     String? status,
   }) async {
-    final base = await _q('inventoryIssueRequests');
+    final base = await schoolCollection('inventoryIssueRequests');
     final wide =
         access.can('inventory.stock.view') ||
         access.can('inventory.issue.approve');
     var query = wide
-        ? _scoped(base, access)
+        ? access.restrictToCampuses(base)
         : base.where('createdBy', isEqualTo: uid);
     if (query == null) return [];
     if (status != null) query = query.where('status', isEqualTo: status);
@@ -89,7 +72,7 @@ class StockService {
   Future<List<InventoryIssue>> issuesOf(
     InventoryIssueRequest issueRequest,
   ) async {
-    final snapshot = await (await _q('inventoryIssues'))
+    final snapshot = await (await schoolCollection('inventoryIssues'))
         .where('campusId', isEqualTo: issueRequest.campusId)
         .where('issueRequestId', isEqualTo: issueRequest.id)
         .get();
@@ -100,36 +83,18 @@ class StockService {
   }
 
   /// Transfers leaving or arriving on the user's campuses.
-  Future<List<InventoryTransfer>> transfers(ModuleAccess access) async {
-    final base = await _q('inventoryTransfers');
-    final queries = [
-      _scoped(base, access),
-      if (!access.hasAllCampuses) _scoped(base, access, 'toCampusId'),
-    ];
-    final byId = <String, InventoryTransfer>{};
-    for (final query in queries.whereType<Query<Map<String, dynamic>>>()) {
-      final snapshot = await query
-          .orderBy('createdAt', descending: true)
-          .limit(50)
-          .get();
-      for (final document in snapshot.docs) {
-        byId[document.id] = InventoryTransfer.fromMap(
-          document.id,
-          document.data(),
-        );
-      }
-    }
-    return byId.values.toList()..sort(
-      (currentTransfer, transfer) => (transfer.createdAt ?? DateTime(0))
-          .compareTo(currentTransfer.createdAt ?? DateTime(0)),
-    );
-  }
+  Future<List<InventoryTransfer>> transfers(ModuleAccess access) async =>
+      fetchCampusBothSides(
+        await schoolCollection('inventoryTransfers'),
+        access,
+        InventoryTransfer.fromMap,
+        (transfer) => transfer.createdAt,
+      );
 
   Future<List<InventoryUnavailable>> unavailable(ModuleAccess access) async {
-    final query = _scoped(
-      await _q('inventoryUnavailableStock'),
-      access,
-    )?.where('status', whereIn: ['open', 'in_repair']);
+    final query = access
+        .restrictToCampuses(await schoolCollection('inventoryUnavailableStock'))
+        ?.where('status', whereIn: ['open', 'in_repair']);
     if (query == null) return [];
     final snapshot = await query
         .orderBy('createdAt', descending: true)
@@ -143,7 +108,7 @@ class StockService {
 
   /// Every store in the school (transfer destinations may be on another campus).
   Future<List<InventoryStore>> allStores() async {
-    final snapshot = await (await _q('inventoryStores')).get();
+    final snapshot = await (await schoolCollection('inventoryStores')).get();
     return [
       for (final document in snapshot.docs)
         InventoryStore.fromMap(document.id, document.data()),
@@ -155,7 +120,7 @@ class StockService {
     final out = <String, InventoryItem>{};
     final list = ids.toSet().toList();
     for (var i = 0; i < list.length; i += 30) {
-      final snapshot = await (await _q('inventoryItems'))
+      final snapshot = await (await schoolCollection('inventoryItems'))
           .where(FieldPath.documentId, whereIn: list.skip(i).take(30).toList())
           .get();
       for (final document in snapshot.docs) {

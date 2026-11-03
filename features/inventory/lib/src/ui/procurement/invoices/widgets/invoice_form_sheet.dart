@@ -25,9 +25,7 @@ class _InvoiceFormSheetState extends State<InvoiceFormSheet> {
   final _form = GlobalKey<FormState>();
   final _requestId = newRequestId();
   final _invoiceNumber = TextEditingController();
-  final _date = TextEditingController(
-    text: DateTime.now().toIso8601String().substring(0, 10),
-  );
+  final _date = TextEditingController(text: todayIST());
   late final _due = TextEditingController(text: widget.order.expectedDate);
   late final _subtotal = TextEditingController(
     text: widget.order.subtotal.toStringAsFixed(2),

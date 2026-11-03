@@ -81,7 +81,7 @@ export async function runDailyLibrary(schoolId: string, today = todayIST()): Pro
 
 /** 07:00 IST, every school. */
 export const dailyLibrary = onSchedule(
-  { schedule: '0 7 * * *', timeZone: 'Asia/Kolkata' },
+  { schedule: '0 7 * * *', timeZone: 'Asia/Kolkata', timeoutSeconds: 540 },
   async () => {
     await forEachSchool(runDailyLibrary);
   },

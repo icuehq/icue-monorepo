@@ -11,7 +11,7 @@ import { clearFirestore, db } from './setup';
 
 const SCHOOL_ID = '12';
 let requestSequence = 0;
- 
+
 const run = (definition: CallableDef<any, any>, data: Record<string, unknown>, uid = '1') =>
   runCallable(
     definition,
@@ -148,6 +148,17 @@ describe('library fines and incidents', () => {
     expect(secondWaiver).toMatchObject({ outstanding: 0, status: 'waived' });
     expect((await get(`libraryFines/${fineId}`))!.status).toBe('waived');
     // Member is now unblocked
+    expect((await get('libraryMembers/student_501'))!.blocked).toBe(false);
+  });
+
+  it('a hand-set block is not lifted by paying fines', async () => {
+    const issued = await issue();
+    await set(`libraryLoans/${issued.id}`, { dueDate: day(-5) });
+    await run(loans.loanReturn, { id: issued.id, condition: 'good' });
+    await run(members.memberSetBlocked, { id: 'student_501', blocked: true, reason: 'Misconduct' });
+    await run(fines.fineSetPayment, { id: `${issued.id}__overdue`, paidAmount: 15 });
+    expect((await get('libraryMembers/student_501'))!.blocked).toBe(true);
+    await run(members.memberSetBlocked, { id: 'student_501', blocked: false });
     expect((await get('libraryMembers/student_501'))!.blocked).toBe(false);
   });
 

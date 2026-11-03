@@ -22,6 +22,26 @@ const FINES = ['none', 'per_day', 'flat'] as const;
 
 export const policyId = (libraryId: string, memberCategory: string) =>
   `${libraryId}_${memberCategory}`;
+/** Why [member] cannot borrow or reserve in [libraryId] today, or null when they can. */
+export function ineligibleReason(
+  member: {
+    status?: string;
+    blocked?: boolean;
+    start?: string;
+    end?: string | null;
+    libraryIds?: string[];
+  },
+  libraryId: string,
+  today: string,
+): string | null {
+  if (member.status !== 'active') return 'Member is inactive';
+  if (member.blocked) return 'Member is blocked';
+  if ((member.start && member.start > today) || (member.end && member.end < today))
+    return 'Membership is not valid today';
+  if (!member.libraryIds?.includes(libraryId)) return 'Member has no access to this library';
+  return null;
+}
+
 export const memberId = (type: string, personErpId: number) => `${type}_${personErpId}`;
 
 export const members = {
@@ -186,6 +206,39 @@ export const members = {
         documentPath: ref.path,
         before: { status: member.status },
         after: { status: i.status },
+      });
+      return { id: ref.id };
+    },
+  }),
+
+  /** Hand-set block (or lift). Fines block members on their own; this one is never lifted by paying them. */
+  memberSetBlocked: defineCallable({
+    name: 'library.member.setBlocked',
+    permission: 'library.circulation.operate',
+    input: z.object({
+      id,
+      blocked: z.boolean(),
+      reason: z.string().trim().max(500).nullish(),
+    }),
+    handler: async (context, i) => {
+      const ref = context.doc(`libraryMembers/${i.id}`);
+      const snapshot = await context.transaction.get(ref);
+      if (!snapshot.exists) throw missing('libraryMember');
+      const member = snapshot.data()!;
+      for (const campusId of member.campusIds as number[]) context.requireCampus(campusId);
+      if (i.blocked && !i.reason) throw failed('A reason is required to block a member');
+      context.update(ref, {
+        blocked: i.blocked,
+        blockedBy: i.blocked ? 'manual' : null,
+        blockReason: i.blocked ? i.reason : null,
+        updatedAt: serverTimestamp(),
+      });
+      context.audit({
+        action: 'libraryMember.block',
+        documentPath: ref.path,
+        before: { blocked: member.blocked ?? false },
+        after: { blocked: i.blocked },
+        reason: i.reason ?? undefined,
       });
       return { id: ref.id };
     },

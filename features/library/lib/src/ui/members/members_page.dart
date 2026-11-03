@@ -155,27 +155,82 @@ class _MemberTile extends StatelessWidget {
       isThreeLine: true,
       onTap: canEdit ? () => MemberSheet.show(context, member: member) : null,
       trailing: canEdit
-          ? IconButton(
-              tooltip: member.active ? 'Deactivate' : 'Activate',
-              icon: Icon(
-                member.active
-                    ? Icons.toggle_on_rounded
-                    : Icons.toggle_off_rounded,
-              ),
-              onPressed: () async {
-                if (!await libraryProvider.setMemberActive(
-                      member.id,
-                      active: !member.active,
-                    ) &&
-                    context.mounted) {
-                  showMessage(
-                    context,
-                    libraryProvider.errorMessage ?? 'Failed',
-                  );
-                }
-              },
+          ? Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  tooltip: member.blocked ? 'Unblock' : 'Block',
+                  icon: Icon(
+                    member.blocked
+                        ? Icons.lock_open_rounded
+                        : Icons.block_rounded,
+                  ),
+                  onPressed: () => _toggleBlock(context, libraryProvider),
+                ),
+                _activeToggle(context, libraryProvider),
+              ],
             )
           : null,
     );
   }
+
+  Future<void> _toggleBlock(
+    BuildContext context,
+    LibraryProvider libraryProvider,
+  ) async {
+    String? reason;
+    if (!member.blocked) {
+      final controller = TextEditingController();
+      reason = await showDialog<String>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('Block ${member.label}'),
+          content: TextField(
+            controller: controller,
+            maxLength: 500,
+            autofocus: true,
+            decoration: const InputDecoration(labelText: 'Reason'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Back'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(minimumSize: Size.zero),
+              onPressed: () => Navigator.pop(context, controller.text.trim()),
+              child: const Text('Block'),
+            ),
+          ],
+        ),
+      );
+      controller.dispose();
+      if (reason == null || reason.isEmpty) return;
+    }
+    final saved = await libraryProvider.setMemberBlocked(
+      member.id,
+      blocked: !member.blocked,
+      reason: reason,
+    );
+    if (!saved && context.mounted) {
+      showMessage(context, libraryProvider.errorMessage ?? 'Failed');
+    }
+  }
+
+  Widget _activeToggle(BuildContext context, LibraryProvider libraryProvider) =>
+      IconButton(
+        tooltip: member.active ? 'Deactivate' : 'Activate',
+        icon: Icon(
+          member.active ? Icons.toggle_on_rounded : Icons.toggle_off_rounded,
+        ),
+        onPressed: () async {
+          if (!await libraryProvider.setMemberActive(
+                member.id,
+                active: !member.active,
+              ) &&
+              context.mounted) {
+            showMessage(context, libraryProvider.errorMessage ?? 'Failed');
+          }
+        },
+      );
 }

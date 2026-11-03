@@ -582,6 +582,18 @@ class ProcurementWrites {
         'date': (data['paidDate'] as String?) ?? _today,
         'performedBy': _uid,
       },
+      // Every update is kept: `amount` is what this entry added (negative for a correction).
+      'payments': FieldValue.arrayUnion([
+        {
+          'amount': _roundToCents(
+            paidAmount - ((invoice['paidAmount'] as num?) ?? 0),
+          ),
+          'paidAmount': paidAmount,
+          'reference': _blankToNull(data['reference']),
+          'date': (data['paidDate'] as String?) ?? _today,
+          'performedBy': _uid,
+        },
+      ]),
       'updatedAt': FieldValue.serverTimestamp(),
     });
     return {'id': reference.id, 'paymentStatus': paymentStatus};

@@ -20,6 +20,7 @@ class _AssetFormPageState extends State<AssetFormPage> {
   final _requestId = newRequestId();
   final _name = TextEditingController();
   final _serial = TextEditingController();
+  final _quantity = TextEditingController(text: '1');
   final _make = TextEditingController();
   final _model = TextEditingController();
   final _price = TextEditingController();
@@ -49,6 +50,7 @@ class _AssetFormPageState extends State<AssetFormPage> {
     for (final controller in [
       _name,
       _serial,
+      _quantity,
       _make,
       _model,
       _price,
@@ -88,12 +90,21 @@ class _AssetFormPageState extends State<AssetFormPage> {
       showMessage(context, 'Choose an asset item');
       return;
     }
+    final quantity = int.tryParse(_quantity.text.trim()) ?? 1;
+    if (quantity > 1 && _opt(_serial) != null) {
+      showMessage(
+        context,
+        'A serial number belongs to one unit; use quantity 1',
+      );
+      return;
+    }
     setState(() => _busy = true);
     await assetSubmit(
       context,
       (assetsProvider) => assetsProvider.act('inventory-asset-register', {
         'itemId': _item!.id,
         'storeId': _store,
+        'quantity': quantity,
         'name': _opt(_name),
         'serialNumber': _opt(_serial),
         'make': _opt(_make),
@@ -106,7 +117,7 @@ class _AssetFormPageState extends State<AssetFormPage> {
         'condition': _condition,
         'location': _opt(_location),
       }, requestId: _requestId),
-      done: 'Asset registered',
+      done: quantity > 1 ? '$quantity assets registered' : 'Asset registered',
     );
     if (mounted) setState(() => _busy = false);
   }
@@ -147,6 +158,20 @@ class _AssetFormPageState extends State<AssetFormPage> {
             StoreDropdown(
               value: _store,
               onChanged: (value) => setState(() => _store = value),
+            ),
+            TextFormField(
+              controller: _quantity,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Quantity',
+                helperText: 'Identical units registered together (up to 50)',
+              ),
+              validator: (value) {
+                final number = int.tryParse(value?.trim() ?? '');
+                return number == null || number < 1 || number > 50
+                    ? 'Enter 1 to 50'
+                    : null;
+              },
             ),
             TextFormField(
               controller: _serial,

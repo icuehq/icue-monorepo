@@ -6,7 +6,7 @@ import { clearFirestore, db } from './setup';
 const SCHOOL_ID = '12';
 const ALL = ['inventory.settings', 'inventory.items.manage'];
 let requestSequence = 0;
- 
+
 const run = (definition: CallableDef<any, any>, data: Record<string, unknown>, uid = '1') =>
   runCallable(
     definition,

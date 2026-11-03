@@ -1,4 +1,4 @@
-import { FieldValue, type DocumentReference } from 'firebase-admin/firestore';
+import { FieldValue, type DocumentData, type DocumentReference } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import type { CallableContext } from '../shared/callable';
 import { todayIST, addDays, daysBetween } from '../shared/dates';
@@ -6,8 +6,10 @@ import { serverTimestamp } from '../shared/firestore';
 import { nextNumber } from '../shared/keys';
 import { defineCallable, failed, id, missing, optionalText } from '../shared/masters';
 import { enqueue } from '../shared/outbox';
-import { policyId } from './members';
-import { memberAndLibrarians, memberTo } from './notify';
+import { fineBlock, raiseFine } from './fines';
+import { openIncident } from './incidents';
+import { ineligibleReason, policyId } from './members';
+import { memberTo } from './notify';
 import { release, waitingQuery } from './reservations';
 
 /** Policy values copied onto the loan so later policy edits never move its due date (FRS 11.8). */
@@ -22,6 +24,56 @@ const SNAPSHOT = [
   'maxFine',
   'overdueRenewal',
 ] as const;
+
+/** Overdue fine from the loan's policy snapshot (FRS 11.13): per day or flat after the grace days, capped at `maxFine`. */
+function overdueFineAmount(policy: Record<string, unknown>, overdueDays: number): number {
+  const grace = (policy.graceDays as number) ?? 0;
+  if (overdueDays <= grace) return 0;
+  const rate = (policy.fineAmount as number) ?? 0;
+  let amount = 0;
+  if (policy.fineType === 'per_day') amount = (overdueDays - grace) * rate;
+  else if (policy.fineType === 'flat') amount = rate;
+  const max = policy.maxFine as number | null | undefined;
+  if (typeof max === 'number' && max > 0 && amount > max) amount = max;
+  return Math.round(amount * 100) / 100;
+}
+
+/** Queues the overdue fine document and its notification; the caller blocks the member. */
+async function raiseOverdueFine(
+  context: CallableContext,
+  fineId: string,
+  loanId: string,
+  loan: DocumentData,
+  memberId: string,
+  member: DocumentData,
+  amount: number,
+  overdueDays: number,
+): Promise<void> {
+  const policy = loan.policySnapshot ?? {};
+  const fRef = await raiseFine(context, {
+    id: fineId,
+    type: 'overdue',
+    amount,
+    memberId,
+    member,
+    source: loan,
+    loanId,
+    calculation: {
+      overdueDays,
+      graceDays: policy.graceDays ?? 0,
+      fineType: policy.fineType,
+      fineAmount: policy.fineAmount,
+      maxFine: policy.maxFine,
+    },
+  });
+  await enqueue(context, `library-fine__${fineId}`, {
+    to: memberTo(member.memberType, member.personErpId),
+    category: 'library.fine',
+    title: 'Fine recorded',
+    body: `${loan.accessionNumber}: overdue fine of ${amount} for ${overdueDays} day(s).`,
+    data: { fineId: fRef.id },
+  });
+}
 
 async function loadLoan(context: CallableContext, loanId: string) {
   const ref = context.doc(`libraryLoans/${loanId}`);
@@ -53,12 +105,8 @@ export const loans = {
       const copy = copySnapshot.data()!;
       context.requireCampus(copy.campusId);
 
-      if (member.status !== 'active') throw failed('Member is inactive');
-      if (member.blocked) throw failed('Member is blocked');
-      if (member.start > today || (member.end && member.end < today))
-        throw failed('Membership is not valid today');
-      if (!member.libraryIds.includes(copy.libraryId))
-        throw failed('Member has no access to this library');
+      const ineligible = ineligibleReason(member, copy.libraryId, today);
+      if (ineligible) throw failed(ineligible);
       // A held copy goes only to the member it is held for, within the hold period (FRS 11.12).
       let held: DocumentReference | undefined;
       if (copy.status === 'reserved') {
@@ -88,7 +136,7 @@ export const loans = {
         throw failed('This category is restricted for the member');
 
       const loan = context.newDoc('libraryLoans');
-      const number = await nextNumber(context, 'ISS');
+      const number = await nextNumber(context, 'LIS');
       const snapshot = Object.fromEntries(SNAPSHOT.map((field) => [field, policy[field] ?? null]));
       const after = {
         number,
@@ -153,7 +201,7 @@ export const loans = {
       if (snapshot.data()?.activeLoanId !== ref.id) throw failed('Copy is not on this loan');
       const today = todayIST();
       const overdueDays = Math.max(0, daysBetween(loan.dueDate, today));
-      const returnNumber = await nextNumber(context, 'RET');
+      const returnNumber = await nextNumber(context, 'LRT');
       const after = {
         status: 'returned',
         returnNumber,
@@ -164,63 +212,18 @@ export const loans = {
       };
       context.update(ref, { ...after, receivedBy: context.uid, returnedAt: serverTimestamp() });
 
-      const policy = loan.policySnapshot ?? {};
-      const grace = (policy.graceDays as number) ?? 0;
-      let fineAmount = 0;
-      if (overdueDays > grace) {
-        const rate = (policy.fineAmount as number) ?? 0;
-        if (policy.fineType === 'per_day') {
-          fineAmount = (overdueDays - grace) * rate;
-        } else if (policy.fineType === 'flat') {
-          fineAmount = rate;
-        }
-        const max = policy.maxFine as number | null | undefined;
-        if (typeof max === 'number' && max > 0 && fineAmount > max) {
-          fineAmount = max;
-        }
-        fineAmount = Math.round(fineAmount * 100) / 100;
-      }
-
+      const fineAmount = overdueFineAmount(loan.policySnapshot ?? {}, overdueDays);
       if (fineAmount > 0 && memberSnapshot.exists) {
-        const member = memberSnapshot.data()!;
-        const fineNumber = await nextNumber(context, 'FIN');
-        const fRef = context.doc(`libraryFines/${ref.id}__overdue`);
-        context.set(fRef, {
-          fineNumber,
-          loanId: ref.id,
-          memberId: memberSnapshot.id,
-          memberType: member.memberType,
-          personErpId: member.personErpId,
-          catalogueId: loan.catalogueId,
-          accessionNumber: loan.accessionNumber,
-          libraryId: loan.libraryId,
-          campusId: loan.campusId,
-          type: 'overdue',
-          amount: fineAmount,
-          waived: 0,
-          paid: 0,
-          outstanding: fineAmount,
-          status: 'outstanding',
-          fineCalculation: {
-            overdueDays,
-            graceDays: grace,
-            fineType: policy.fineType,
-            fineAmount: policy.fineAmount,
-            maxFine: policy.maxFine,
-          },
-          waivers: [],
-          payments: [],
-          createdAt: serverTimestamp(),
-          createdBy: context.uid,
-          updatedAt: serverTimestamp(),
-        });
-        await enqueue(context, `library-fine__${ref.id}__overdue`, {
-          to: memberTo(member.memberType, member.personErpId),
-          category: 'library.fine',
-          title: 'Fine recorded',
-          body: `${loan.accessionNumber}: overdue fine of ${fineAmount} for ${overdueDays} day(s).`,
-          data: { fineId: fRef.id },
-        });
+        await raiseOverdueFine(
+          context,
+          `${ref.id}__overdue`,
+          ref.id,
+          loan,
+          memberSnapshot.id,
+          memberSnapshot.data()!,
+          fineAmount,
+          overdueDays,
+        );
       }
 
       if (i.condition === 'damaged') {
@@ -229,46 +232,19 @@ export const loans = {
           activeLoanId: null,
           updatedAt: serverTimestamp(),
         });
-        const incidentNumber = await nextNumber(context, 'INC');
-        const incRef = context.newDoc('libraryIncidents');
-        const member = memberSnapshot.exists ? memberSnapshot.data()! : null;
-        const copy = snapshot.data()!;
-        context.set(incRef, {
-          incidentNumber,
+        await openIncident(context, {
           type: 'damaged',
+          copy: snapshot.data()!,
           copyId: snapshot.id,
-          accessionNumber: copy.accessionNumber,
-          catalogueId: copy.catalogueId,
-          libraryId: copy.libraryId,
-          campusId: copy.campusId,
           memberId: memberSnapshot.exists ? memberSnapshot.id : null,
-          memberType: member ? member.memberType : null,
-          personErpId: member ? member.personErpId : null,
+          member: memberSnapshot.exists ? memberSnapshot.data()! : null,
           loanId: ref.id,
-          reportedDate: today,
-          reportedBy: context.uid,
           severity: 'moderate',
           description: i.remarks ?? 'Returned in damaged condition',
-          photos: [],
           charge: 0,
           repairStatus: 'none',
-          status: 'open',
-          resolution: null,
-          resolvedAt: null,
-          createdAt: serverTimestamp(),
-          createdBy: context.uid,
-          updatedAt: serverTimestamp(),
-        });
-        await enqueue(context, `library-incident__${incRef.id}`, {
-          to: memberAndLibrarians(
-            member?.memberType ?? '',
-            member?.personErpId ?? null,
-            copy.campusId,
-          ),
-          category: 'library.incident',
           title: 'Damaged book recorded',
-          body: `${copy.accessionNumber} was returned damaged.`,
-          data: { incidentId: incRef.id },
+          body: `${snapshot.data()!.accessionNumber} was returned damaged.`,
         });
       } else {
         await release(context, cRef, loan);
@@ -284,8 +260,11 @@ export const loans = {
       if (memberSnapshot.exists) {
         const member = memberSnapshot.data()!;
         const activeLoans = Math.max(0, (member.activeLoans ?? 0) - 1);
-        const blocked = fineAmount > 0 ? true : member.blocked;
-        context.update(mRef, { activeLoans, blocked, updatedAt: serverTimestamp() });
+        context.update(mRef, {
+          activeLoans,
+          ...(fineAmount > 0 ? fineBlock(member) : {}),
+          updatedAt: serverTimestamp(),
+        });
       }
 
       context.audit({
@@ -319,9 +298,8 @@ export const loans = {
         context.transaction.get(mRef),
       ]);
       if (!snapshot.exists) throw missing('libraryCopy');
-      if (!memberSnapshot.exists) throw missing('libraryMember');
       const copy = snapshot.data()!;
-      const member = memberSnapshot.data()!;
+      const member = memberSnapshot.exists ? memberSnapshot.data()! : null;
       if (copy.activeLoanId !== ref.id) throw failed('Copy is not on this loan');
 
       const today = todayIST();
@@ -335,35 +313,25 @@ export const loans = {
       context.update(ref, { ...after, receivedBy: context.uid, returnedAt: serverTimestamp() });
       context.update(cRef, { status: 'lost', activeLoanId: null, updatedAt: serverTimestamp() });
 
-      const activeLoans = Math.max(0, (member.activeLoans ?? 0) - 1);
-      const blocked = charge > 0 ? true : member.blocked;
-      context.update(mRef, { activeLoans, blocked, updatedAt: serverTimestamp() });
+      if (member) {
+        const activeLoans = Math.max(0, (member.activeLoans ?? 0) - 1);
+        context.update(mRef, {
+          activeLoans,
+          ...(charge > 0 ? fineBlock(member) : {}),
+          updatedAt: serverTimestamp(),
+        });
+      }
 
-      if (charge > 0) {
-        const fineNumber = await nextNumber(context, 'FIN');
-        const fRef = context.doc(`libraryFines/${ref.id}__lost`);
-        context.set(fRef, {
-          fineNumber,
-          loanId: ref.id,
-          memberId: memberSnapshot.id,
-          memberType: member.memberType,
-          personErpId: member.personErpId,
-          catalogueId: loan.catalogueId,
-          accessionNumber: loan.accessionNumber,
-          libraryId: loan.libraryId,
-          campusId: loan.campusId,
+      if (member && charge > 0) {
+        const fRef = await raiseFine(context, {
+          id: `${ref.id}__lost`,
           type: 'lost',
           amount: charge,
-          waived: 0,
-          paid: 0,
-          outstanding: charge,
-          status: 'outstanding',
-          fineCalculation: { copyPrice: copy.price, charge },
-          waivers: [],
-          payments: [],
-          createdAt: serverTimestamp(),
-          createdBy: context.uid,
-          updatedAt: serverTimestamp(),
+          memberId: memberSnapshot.id,
+          member,
+          source: loan,
+          loanId: ref.id,
+          calculation: { copyPrice: copy.price, charge },
         });
         await enqueue(context, `library-fine__${ref.id}__lost`, {
           to: memberTo(member.memberType, member.personErpId),
@@ -374,40 +342,19 @@ export const loans = {
         });
       }
 
-      const incidentNumber = await nextNumber(context, 'INC');
-      const incRef = context.newDoc('libraryIncidents');
-      await enqueue(context, `library-incident__${incRef.id}`, {
-        to: memberAndLibrarians(member.memberType, member.personErpId, loan.campusId),
-        category: 'library.incident',
-        title: 'Lost book recorded',
-        body: `${loan.accessionNumber} was marked lost.`,
-        data: { incidentId: incRef.id },
-      });
-      context.set(incRef, {
-        incidentNumber,
+      await openIncident(context, {
         type: 'lost',
+        copy,
         copyId: snapshot.id,
-        accessionNumber: copy.accessionNumber,
-        catalogueId: copy.catalogueId,
-        libraryId: copy.libraryId,
-        campusId: copy.campusId,
-        memberId: memberSnapshot.id,
-        memberType: member.memberType,
-        personErpId: member.personErpId,
+        memberId: member ? memberSnapshot.id : null,
+        member,
         loanId: ref.id,
-        reportedDate: today,
-        reportedBy: context.uid,
         severity: null,
         description: i.reason ?? 'Marked lost during loan',
-        photos: [],
         charge,
         repairStatus: null,
-        status: 'open',
-        resolution: null,
-        resolvedAt: null,
-        createdAt: serverTimestamp(),
-        createdBy: context.uid,
-        updatedAt: serverTimestamp(),
+        title: 'Lost book recorded',
+        body: `${loan.accessionNumber} was marked lost.`,
       });
 
       context.audit({
@@ -439,6 +386,25 @@ export const loans = {
         throw failed('Overdue loans cannot be renewed');
       if (!(await waitingQuery(context, loan.catalogueId, loan.libraryId, 1)).empty)
         throw failed('Another member is waiting for this title');
+      // The days already overdue are fined now: renewing moves the due date, so the return would never see them.
+      const overdueDays = Math.max(0, daysBetween(loan.dueDate, today));
+      const fineAmount = overdueFineAmount(policy, overdueDays);
+      if (fineAmount > 0) {
+        await raiseOverdueFine(
+          context,
+          `${ref.id}__overdue__r${loan.renewals.length + 1}`,
+          ref.id,
+          loan,
+          loan.memberId,
+          member,
+          fineAmount,
+          overdueDays,
+        );
+        context.update(context.doc(`libraryMembers/${loan.memberId}`), {
+          ...fineBlock(member),
+          updatedAt: serverTimestamp(),
+        });
+      }
       const dueDate = addDays(loan.dueDate > today ? loan.dueDate : today, policy.loanDays);
       const renewals = [
         ...loan.renewals,

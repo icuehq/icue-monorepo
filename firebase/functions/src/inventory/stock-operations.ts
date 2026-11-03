@@ -1,14 +1,7 @@
 import { z } from 'zod';
 import { todayIST } from '../shared/dates';
 import { serverTimestamp } from '../shared/firestore';
-import {
-  defineCallable,
-  failed,
-  id,
-  missing,
-  optionalText,
-  usable,
-} from '../shared/masters';
+import { defineCallable, failed, id, missing, optionalText, usable } from '../shared/masters';
 import { enqueue } from '../shared/outbox';
 import {
   assertUniqueLines,
@@ -189,6 +182,7 @@ export const stock = {
       const issueRef = context.doc(`inventoryIssues/${i.issueId}`);
       const issue = (await context.transaction.get(issueRef)).data();
       if (!issue) throw missing('Issue');
+      context.requireCampus(issue.campusId);
       const stockData = new Stock(context, i);
       const dest = i.storeId ?? issue.storeId;
       const store = await stockData.store(dest);
@@ -309,12 +303,75 @@ export const stock = {
         status: 'requested',
         ...stockData.header(from.campusId),
       });
+      await enqueue(context, `inventory-transfer-requested__${ref.id}`, {
+        to: { permission: 'inventory.adjustment.approve', campusId: from.campusId },
+        category: 'inventory.transfer',
+        title: 'Transfer needs approval',
+        body: `${number} is waiting for your approval.`,
+        data: { id: ref.id },
+      });
       context.audit({
         action: 'inventoryTransfer.request',
         documentPath: ref.path,
         after: { number },
       });
       return { id: ref.id, number };
+    },
+  }),
+
+  /** A different user with stock-approval rights releases a requested transfer for dispatch. */
+  transferApprove: defineCallable({
+    name: 'inventory.transfer.approve',
+    permission: 'inventory.adjustment.approve',
+    input: z.object({ id }),
+    handler: async (context, i) => {
+      const ref = context.doc(`inventoryTransfers/${i.id}`);
+      const transfer = (await context.transaction.get(ref)).data();
+      if (!transfer) throw missing('Transfer');
+      context.requireCampus(transfer.from.campusId);
+      if (transfer.status !== 'requested') throw failed(`Transfer is ${transfer.status}`);
+      if (transfer.createdBy === context.uid)
+        throw failed('A different user must approve this transfer');
+      context.update(ref, {
+        status: 'approved',
+        approval: { performedBy: context.uid, performedAt: serverTimestamp() },
+        updatedAt: serverTimestamp(),
+      });
+      context.audit({
+        action: 'inventoryTransfer.approve',
+        documentPath: ref.path,
+        before: { status: transfer.status },
+        after: { status: 'approved' },
+      });
+      return { id: i.id };
+    },
+  }),
+
+  /** A requested or approved transfer can be withdrawn until it is dispatched (nothing has moved yet). */
+  transferCancel: defineCallable({
+    name: 'inventory.transfer.cancel',
+    permission: 'inventory.stock.operate',
+    input: z.object({ id, reason: z.string().trim().min(1).max(500) }),
+    handler: async (context, i) => {
+      const ref = context.doc(`inventoryTransfers/${i.id}`);
+      const transfer = (await context.transaction.get(ref)).data();
+      if (!transfer) throw missing('Transfer');
+      context.requireCampus(transfer.from.campusId);
+      if (transfer.status !== 'requested' && transfer.status !== 'approved')
+        throw failed(`Transfer is ${transfer.status}`);
+      context.update(ref, {
+        status: 'cancelled',
+        cancelReason: i.reason,
+        cancelledBy: context.uid,
+        updatedAt: serverTimestamp(),
+      });
+      context.audit({
+        action: 'inventoryTransfer.cancel',
+        documentPath: ref.path,
+        before: { status: transfer.status },
+        reason: i.reason,
+      });
+      return { id: i.id };
     },
   }),
 
@@ -327,7 +384,7 @@ export const stock = {
       const ref = context.doc(`inventoryTransfers/${i.id}`);
       const transfer = (await context.transaction.get(ref)).data();
       if (!transfer) throw missing('Transfer');
-      if (transfer.status !== 'requested') throw failed(`Transfer is ${transfer.status}`);
+      if (transfer.status !== 'approved') throw failed(`Transfer is ${transfer.status}`);
       const stockData = new Stock(context, i);
       await stockData.store(transfer.from.storeId);
       const out = [];
@@ -441,8 +498,24 @@ export const stock = {
       }
       const complete = rows.every((row) => row.quantityReceived >= row.quantityDispatched);
       const close = complete || i.final;
-      if (close)
-        for (const row of rows) row.discrepancy = row.quantityDispatched - row.quantityReceived;
+      if (close) {
+        for (const row of rows) {
+          row.discrepancy = row.quantityDispatched - row.quantityReceived;
+          if (row.discrepancy <= 0) continue;
+          // The stock already left the source at dispatch; register the loss so stock and value reconcile.
+          const item = await stockData.item(row.itemId, row.variantId, true);
+          const sourceBalance = await stockData.existing(row.balanceId, item);
+          unavailableEntry(stockData, sourceBalance, row.discrepancy, {
+            bucket: null,
+            reason: 'lost',
+            remarks: `Transfer ${transfer.number} shortfall`,
+            referenceType: 'transfer',
+            referenceId: i.id,
+            status: 'resolved',
+            resolution: 'write_off',
+          });
+        }
+      }
       context.update(ref, {
         lineItems: rows,
         status: close ? 'received' : 'partially_received',
@@ -452,6 +525,10 @@ export const stock = {
           performedAt: serverTimestamp(),
           remarks: i.remarks ?? null,
         },
+        receipts: [
+          ...((transfer.receipts as Row[] | undefined) ?? []),
+          { performedBy: context.uid, date: stockData.date, remarks: i.remarks ?? null },
+        ],
         updatedAt: serverTimestamp(),
       });
       context.audit({
@@ -564,7 +641,7 @@ export const stock = {
       const referenceId = ref.id;
       if (
         i.reason === 'expired' &&
-        !(balance.data.expiryDate && balance.data.expiryDate <= todayIST())
+        !(balance.data.expiryDate && balance.data.expiryDate < todayIST())
       )
         throw failed('Batch has not expired');
       const type =

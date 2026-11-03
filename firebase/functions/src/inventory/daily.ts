@@ -149,7 +149,7 @@ export async function runDailyInventory(schoolId: string, today = todayIST()): P
 
 /** 06:00 IST, every school. Idempotent: expiry is re-checked per balance and notification keys are deterministic. */
 export const dailyInventory = onSchedule(
-  { schedule: '0 6 * * *', timeZone: 'Asia/Kolkata' },
+  { schedule: '0 6 * * *', timeZone: 'Asia/Kolkata', timeoutSeconds: 540 },
   async () => {
     await forEachSchool(runDailyInventory);
   },

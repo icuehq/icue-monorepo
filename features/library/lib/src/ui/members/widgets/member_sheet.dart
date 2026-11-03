@@ -40,9 +40,7 @@ class _MemberSheetState extends State<MemberSheet> {
     text: widget.member?.memberCategory,
   );
   late final _start = TextEditingController(
-    text:
-        widget.member?.start ??
-        DateTime.now().toIso8601String().substring(0, 10),
+    text: widget.member?.start ?? todayIST(),
   );
   late final _end = TextEditingController(text: widget.member?.end);
   late String _type = widget.member?.memberType ?? widget.type ?? 'student';

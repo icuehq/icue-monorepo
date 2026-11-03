@@ -12,6 +12,8 @@ class StockWrites {
     'inventory-receipt-confirm',
     'inventory-issueRequest-submit',
     'inventory-issueRequest-decide',
+    'inventory-issueRequest-cancel',
+    'inventory-issueRequest-close',
   };
 
   static const _sources = [
@@ -27,6 +29,8 @@ class StockWrites {
         'inventory-receipt-confirm' => _confirmReceipt(data),
         'inventory-issueRequest-submit' => _submitIssueRequest(data),
         'inventory-issueRequest-decide' => _decideIssueRequest(data),
+        'inventory-issueRequest-cancel' => _endIssueRequest(data, cancel: true),
+        'inventory-issueRequest-close' => _endIssueRequest(data, cancel: false),
         _ => throw ArgumentError.value(name, 'name'),
       };
 
@@ -103,6 +107,9 @@ class StockWrites {
     final reference = await _doc('inventoryIssueRequests/$id');
     final current = (await reference.get()).data();
     if (current == null) _fail('Issue request not found');
+    if (current['createdBy'] == uid) {
+      _fail('A different user must decide on your request');
+    }
     final approvedLines = <Map<String, dynamic>>[];
     if (approve) {
       final lines = (current['lineItems'] as List).cast<Map<String, dynamic>>();
@@ -139,6 +146,39 @@ class StockWrites {
           'performedBy': uid,
           'performedAt': FieldValue.serverTimestamp(),
           'comment': comment,
+        },
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    });
+    return {'id': id};
+  }
+
+  /// The requester withdraws a pending request (`cancel`), or a stock operator closes what is
+  /// still outstanding on an approved / partly issued one (`close`). Either needs a reason.
+  Future<Map<String, dynamic>> _endIssueRequest(
+    Map<String, Object?> data, {
+    required bool cancel,
+  }) async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final id = data['id']! as String;
+    final reason = _blankToNull(data['reason']);
+    if (reason == null) _fail('A reason is required');
+    final reference = await _doc('inventoryIssueRequests/$id');
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
+      final request = (await transaction.get(reference)).data();
+      if (request == null) _fail('Issue request not found');
+      final status = request['status'];
+      if (cancel
+          ? status != 'pending' || request['createdBy'] != uid
+          : status != 'approved' && status != 'partially_issued') {
+        _fail('Request is $status');
+      }
+      transaction.update(reference, {
+        'status': cancel ? 'cancelled' : 'closed',
+        'closure': {
+          'performedBy': uid,
+          'performedAt': FieldValue.serverTimestamp(),
+          'reason': reason,
         },
         'updatedAt': FieldValue.serverTimestamp(),
       });
@@ -382,7 +422,15 @@ class StockWrites {
         final available = have + line.accepted;
         final unitCost =
             (have * cost + line.accepted * line.unitCost) / available;
-        final expiry = balance?['expiryDate'] as String? ?? line.expiryDate;
+        final storedExpiry = balance?['expiryDate'] as String?;
+        if (storedExpiry != null &&
+            line.expiryDate != null &&
+            storedExpiry != line.expiryDate) {
+          _fail(
+            'Batch ${line.batchNumber} already exists with expiry $storedExpiry',
+          );
+        }
+        final expiry = storedExpiry ?? line.expiryDate;
         transaction.set(line.balanceRef, {
           'campusId': campusId,
           'storeId': storeId,

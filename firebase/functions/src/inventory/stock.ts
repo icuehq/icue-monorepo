@@ -110,6 +110,7 @@ export class Stock {
   /** Stock-tracked item; variant is required exactly when the item declares variant attributes. */
   async item(itemId: string, variantId?: string | null, inactiveOk = false): Promise<DocumentData> {
     let item = this.items.get(itemId);
+    if (item && !inactiveOk && item.status !== 'active') throw failed(`Item is inactive`);
     if (!item) {
       item = usable(
         await this.context.transaction.get(this.context.doc(`inventoryItems/${itemId}`)),
@@ -163,7 +164,12 @@ export class Stock {
     if (cached) return cached;
     const ref = this.context.doc(`inventoryBalances/${bid}`);
     const snapshot = await this.context.transaction.get(ref);
-    if (snapshot.exists) return this.track(bid, ref, snapshot.data()!, item);
+    if (snapshot.exists) {
+      const have = snapshot.data()!.expiryDate;
+      if (batch.expiryDate && have && batch.expiryDate !== have)
+        throw failed(`Batch ${batch.batchNumber} already exists with expiry ${have}`);
+      return this.track(bid, ref, snapshot.data()!, item);
+    }
     if (!create) throw failed(`No stock of ${item.name} in this store`);
     const store = (
       await this.context.transaction.get(this.context.doc(`inventoryStores/${storeId}`))

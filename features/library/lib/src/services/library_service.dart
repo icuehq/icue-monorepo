@@ -250,34 +250,14 @@ class LibraryService {
     );
   }
 
-  /// Transfers leaving or arriving on the user's campuses, newest first. Rules need the campus filter on
-  /// both sides, so the two lists are fetched separately and merged.
-  Future<List<LibraryTransfer>> transfers(ModuleAccess access) async {
-    final base = await schoolCollection('libraryTransfers');
-    final queries = [
-      access.restrictToCampuses(base),
-      if (!access.hasAllCampuses)
-        access.restrictToCampuses(base, field: 'toCampusId'),
-    ];
-    final byId = <String, LibraryTransfer>{};
-    for (final query in queries.whereType<Query<Map<String, dynamic>>>()) {
-      final snapshot = await query
-          .orderBy('createdAt', descending: true)
-          .limit(50)
-          .get();
-      for (final document in snapshot.docs) {
-        byId[document.id] = LibraryTransfer.fromMap(
-          document.id,
-          document.data(),
-        );
-      }
-    }
-    return byId.values.toList()..sort(
-      (first, second) => (second.createdAt ?? DateTime(0)).compareTo(
-        first.createdAt ?? DateTime(0),
-      ),
-    );
-  }
+  /// Transfers leaving or arriving on the user's campuses, newest first.
+  Future<List<LibraryTransfer>> transfers(ModuleAccess access) async =>
+      fetchCampusBothSides(
+        await schoolCollection('libraryTransfers'),
+        access,
+        LibraryTransfer.fromMap,
+        (transfer) => transfer.createdAt,
+      );
 
   /// A page of stock verification sessions, newest first.
   Future<PagedResult<LibraryVerification>> verifications({
@@ -402,6 +382,28 @@ class LibraryService {
   Future<void> dispatchTransfer(String id, {String? requestId}) =>
       _call('library-transfer-dispatch', {'id': id}, requestId);
 
+  Future<void> cancelTransfer(String id, String reason, {String? requestId}) =>
+      _call('library-transfer-cancel', {'id': id, 'reason': reason}, requestId);
+
+  Future<void> closeTransferShort(
+    String id,
+    String reason, {
+    String? requestId,
+  }) => _call('library-transfer-closeShort', {
+    'id': id,
+    'reason': reason,
+  }, requestId);
+
+  Future<void> setMemberBlocked(
+    String id, {
+    required bool blocked,
+    String? reason,
+  }) => _call('library-member-setBlocked', {
+    'id': id,
+    'blocked': blocked,
+    'reason': ?reason,
+  });
+
   Future<void> receiveTransfer(
     Map<String, Object?> data, {
     String? requestId,
@@ -463,7 +465,7 @@ class LibraryService {
     ModuleAccess access, {
     SchoolLibrary? library,
   }) async {
-    final today = DateTime.now().toIso8601String().substring(0, 10);
+    final today = todayIST();
     Future<num?> count(
       String collection,
       Query<Map<String, dynamic>> Function(Query<Map<String, dynamic>> query)
@@ -502,48 +504,59 @@ class LibraryService {
       }
     }
 
-    num? fines;
-    try {
-      final query = _scoped(
-        await schoolCollection('libraryFines'),
-        access,
-        library: library,
-      );
-      fines = query == null
-          ? 0
-          : (await query
-                    .where('status', whereIn: ['outstanding', 'partially_paid'])
-                    .aggregate(sum('outstanding'))
-                    .get())
-                .getSum('outstanding');
-    } catch (_) {}
-    return {
+    Future<num?> fines() async {
+      try {
+        final query = _scoped(
+          await schoolCollection('libraryFines'),
+          access,
+          library: library,
+        );
+        return query == null
+            ? 0
+            : (await query
+                      .where(
+                        'status',
+                        whereIn: ['outstanding', 'partially_paid'],
+                      )
+                      .aggregate(sum('outstanding'))
+                      .get())
+                  .getSum('outstanding');
+      } catch (_) {
+        return null;
+      }
+    }
+
+    final figures = <String, Future<num?>>{
       // The catalogue is school-wide; a library has no titles of its own.
       'titles': library == null
-          ? await count('libraryCatalogue', (query) => query, scoped: false)
-          : null,
-      'copies': await count('libraryCopies', (query) => query),
-      'available': await copies('available'),
-      'issued': await copies('issued'),
-      'lost': await copies('lost'),
-      'damaged': await copies('damaged'),
-      'overdue': await count(
+          ? count('libraryCatalogue', (query) => query, scoped: false)
+          : Future.value(),
+      'copies': count('libraryCopies', (query) => query),
+      'available': copies('available'),
+      'issued': copies('issued'),
+      'lost': copies('lost'),
+      'damaged': copies('damaged'),
+      'overdue': count(
         'libraryLoans',
         (query) => query
             .where('status', isEqualTo: 'active')
             .where('dueDate', isLessThan: today),
       ),
-      'pending': await count(
+      'pending': count(
         'libraryLoans',
         (query) => query.where('status', isEqualTo: 'active'),
       ),
-      'reserved': await count(
+      'reserved': count(
         'libraryReservations',
         (query) => query.where('status', whereIn: ['waiting', 'ready']),
       ),
-      'students': await members('student'),
-      'teachers': await members('teacher'),
-      'fines': fines,
+      'students': members('student'),
+      'teachers': members('teacher'),
+      'fines': fines(),
+    };
+    final values = await Future.wait(figures.values);
+    return {
+      for (final (index, key) in figures.keys.indexed) key: values[index],
     };
   }
 
@@ -598,12 +611,7 @@ class LibraryService {
       );
     }
     if (def.overdue) {
-      query = query
-          .where(
-            'dueDate',
-            isLessThan: DateTime.now().toIso8601String().substring(0, 10),
-          )
-          .orderBy('dueDate');
+      query = query.where('dueDate', isLessThan: todayIST()).orderBy('dueDate');
     } else if (def.dateField != null) {
       final currentValue = def.dateField!;
       final isTimestamp = const {'createdAt'}.contains(currentValue);

@@ -116,6 +116,15 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'lineItems', 'approval', 'updatedAt'])
         && request.resource.data.approval.performedBy == request.auth.uid;
     }
+    // The requester may withdraw a pending request; a stock operator may close one still awaiting issue.
+    match /schools/{schoolId}/inventoryIssueRequests/{id} {
+      allow update: if inSchool(schoolId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'closure', 'updatedAt'])
+        && request.resource.data.closure.performedBy == request.auth.uid
+        && ((resource.data.createdBy == request.auth.uid && resource.data.status == 'pending' && request.resource.data.status == 'cancelled')
+          || (can(schoolId, 'inventory.stock.operate') && onCampus(schoolId, resource.data.campusId)
+            && resource.data.status in ['approved', 'partially_issued'] && request.resource.data.status == 'closed'));
+    }
     // Requesters see their own requests; approvers and stock users see the campus's.
     match /schools/{schoolId}/inventoryIssueRequests/{id} {
       allow read: if inSchool(schoolId) && (resource.data.createdBy == request.auth.uid

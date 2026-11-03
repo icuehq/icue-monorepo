@@ -77,6 +77,8 @@ class _IssueRequestsPageState extends State<IssueRequestsPage> {
       ('partially_issued', 'Partially issued'),
       ('issued', 'Issued'),
       ('rejected', 'Rejected'),
+      ('cancelled', 'Cancelled'),
+      ('closed', 'Closed'),
     ];
 
     return Scaffold(

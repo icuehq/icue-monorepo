@@ -57,7 +57,7 @@ class _TransfersPageState extends State<TransfersPage> {
     final allTransfers = stockProvider.transfers;
     final filteredTransfers = allTransfers.where((transfer) {
       if (_selectedFilter == 'requested') {
-        return transfer.status == 'requested';
+        return transfer.preDispatch;
       }
       if (_selectedFilter == 'in_transit') {
         return transfer.inTransit;
@@ -98,7 +98,7 @@ class _TransfersPageState extends State<TransfersPage> {
                 const SizedBox(width: 8),
                 _buildFilterChip(
                   'requested',
-                  'Requested (${allTransfers.where((t) => t.status == "requested").length})',
+                  'Requested (${allTransfers.where((t) => t.preDispatch).length})',
                 ),
                 const SizedBox(width: 8),
                 _buildFilterChip(
@@ -170,7 +170,11 @@ class _TransfersPageState extends State<TransfersPage> {
                           fromStoreName: storeName(transfer.fromStoreId),
                           toStoreName: storeName(transfer.toStoreId),
                           getItemName: stockProvider.itemName,
-                          nextAction: transferNextAction(transfer, access),
+                          nextAction: transferNextAction(
+                            transfer,
+                            access,
+                            stockProvider.uid,
+                          ),
                           onTap: () => _open(
                             '${InventoryRoutes.inventoryTransferDetail}?id=${transfer.id}',
                           ),

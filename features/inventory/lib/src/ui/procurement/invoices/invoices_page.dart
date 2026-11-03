@@ -1,5 +1,6 @@
 import 'package:admin_ui/admin_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_firebase/icue_firebase.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/procurement/invoices/widgets/invoice_card.dart';
 import 'package:inventory/src/ui/procurement/invoices/widgets/invoice_sheet.dart';
@@ -17,7 +18,7 @@ class _InvoicesPageState extends State<InvoicesPage> {
   final _searchController = TextEditingController();
   String _selectedStatus = 'all';
 
-  String get _today => DateTime.now().toIso8601String().substring(0, 10);
+  String get _today => todayIST();
 
   Future<void> _load() async {
     final inventoryProvider = context.read<InventoryProvider>();

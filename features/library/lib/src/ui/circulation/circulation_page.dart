@@ -1,5 +1,6 @@
 import 'package:admin_ui/admin_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_firebase/icue_firebase.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/circulation/widgets/loan_sheet.dart';
@@ -74,7 +75,7 @@ class _CirculationPageState extends State<CirculationPage> {
   @override
   Widget build(BuildContext context) {
     final libraryProvider = context.watch<LibraryProvider>();
-    final today = DateTime.now().toIso8601String().substring(0, 10);
+    final today = todayIST();
     return Scaffold(
       appBar: AppBar(title: const Text('Circulation')),
       body: Column(

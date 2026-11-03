@@ -90,8 +90,8 @@ class InsightsService {
     ModuleAccess access, {
     InventoryStore? store,
   }) async {
-    final today = DateTime.now().toIso8601String().substring(0, 10);
-    final soon = DateTime.now()
+    final today = todayIST();
+    final soon = DateTime.parse(today)
         .add(const Duration(days: 30))
         .toIso8601String()
         .substring(0, 10);
@@ -138,58 +138,66 @@ class InsightsService {
       Query<Map<String, dynamic>> Function(Query<Map<String, dynamic>> query) f,
     ) => count('inventoryBalances', f, byStore: true);
     const open = ['issued', 'acknowledged', 'partially_received'];
-    final purchaseRequests = await count(
+    final purchaseRequests = count(
       'inventoryPurchaseRequests',
       (query) => query.where('status', isEqualTo: 'pending'),
     );
-    final issues = await count(
+    final issues = count(
       'inventoryIssueRequests',
       (query) => query.where('status', isEqualTo: 'pending'),
     );
-    num? items;
-    try {
-      items = (await (await schoolCollection(
-        'inventoryItems',
-      )).where('status', isEqualTo: 'active').count().get()).count;
-    } catch (_) {}
-    return {
-      'items': items,
-      'available': await total('quantityAvailable'),
-      'value': await total('value'),
-      'low': await bal(
+    Future<num?> items() async {
+      try {
+        return (await (await schoolCollection(
+          'inventoryItems',
+        )).where('status', isEqualTo: 'active').count().get()).count;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    final figures = <String, Future<num?>>{
+      'items': items(),
+      'available': total('quantityAvailable'),
+      'value': total('value'),
+      'low': bal(
         (query) => query.where('isBelowReorderLevel', isEqualTo: true),
       ),
-      'out': await bal(
-        (query) => query.where('quantityAvailable', isEqualTo: 0),
-      ),
-      'expiring': await bal(
+      'out': bal((query) => query.where('quantityAvailable', isEqualTo: 0)),
+      'expiring': bal(
         (query) => query
             .where('earliestExpiryDate', isGreaterThanOrEqualTo: today)
             .where('earliestExpiryDate', isLessThanOrEqualTo: soon),
       ),
-      'expired': await bal(
+      'expired': bal(
         (query) => query.where('earliestExpiryDate', isLessThan: today),
       ),
       'prs': purchaseRequests,
-      'approvals': purchaseRequests == null && issues == null
-          ? null
-          : (purchaseRequests ?? 0) + (issues ?? 0),
-      'pos': await count(
+      'approvals': Future.wait([purchaseRequests, issues]).then(
+        (pair) => pair[0] == null && pair[1] == null
+            ? null
+            : (pair[0] ?? 0) + (pair[1] ?? 0),
+      ),
+      'pos': count(
         'inventoryPurchaseOrders',
         (query) => query.where('status', whereIn: open),
       ),
-      'receipts': await count(
+      'receipts': count(
         'inventoryPurchaseOrders',
         (query) => query.where('status', whereIn: ['issued', 'acknowledged']),
       ),
-      'assets': await count('inventoryAssets', (query) => query),
-      'maint': await count(
+      'assets': count('inventoryAssets', (query) => query),
+      'maint': count(
         'inventoryAssets',
         (query) => query.where(
           'status',
           whereIn: ['under_maintenance', 'under_repair'],
         ),
       ),
+    };
+    final values = await Future.wait(figures.values);
+    return {
+      for (final (index, key) in figures.keys.indexed) key: values[index],
     };
   }
 

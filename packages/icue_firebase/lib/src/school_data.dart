@@ -2,15 +2,20 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+String? _schoolUid;
+Object? _schoolId;
+
 /// A collection of the school the signed-in user belongs to (`schools/{schoolId}/{path}`).
+/// The school never changes for a user, so the token is read once per sign-in.
 Future<CollectionReference<Map<String, dynamic>>> schoolCollection(
   String path,
 ) async {
-  final tokenResult = await FirebaseAuth.instance.currentUser!
-      .getIdTokenResult();
-  return FirebaseFirestore.instance.collection(
-    'schools/${tokenResult.claims?['schoolId']}/$path',
-  );
+  final user = FirebaseAuth.instance.currentUser!;
+  if (_schoolUid != user.uid) {
+    _schoolId = (await user.getIdTokenResult()).claims?['schoolId'];
+    _schoolUid = user.uid;
+  }
+  return FirebaseFirestore.instance.collection('schools/$_schoolId/$path');
 }
 
 /// Plain client CRUD for a master collection under the school ([path]).
@@ -35,20 +40,22 @@ Future<void> saveMasterDocument(
   }
   final code = fields['code']! as String;
   final document = collection.doc(code.trim().toLowerCase());
-  if ((await document.get()).exists) {
-    throw FirebaseException(
-      plugin: 'cloud_firestore',
-      code: 'already-exists',
-      message: '"$code" already exists',
-    );
-  }
-  await document.set({
-    'status': 'active',
-    ...fields,
-    ...onCreate,
-    'createdBy': FirebaseAuth.instance.currentUser!.uid,
-    'createdAt': FieldValue.serverTimestamp(),
-    'updatedAt': FieldValue.serverTimestamp(),
+  await FirebaseFirestore.instance.runTransaction((transaction) async {
+    if ((await transaction.get(document)).exists) {
+      throw FirebaseException(
+        plugin: 'cloud_firestore',
+        code: 'already-exists',
+        message: '"$code" already exists',
+      );
+    }
+    transaction.set(document, {
+      'status': 'active',
+      ...fields,
+      ...onCreate,
+      'createdBy': FirebaseAuth.instance.currentUser!.uid,
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
   });
 }
 
@@ -140,4 +147,42 @@ class ReportColumn<Names> {
 
   /// Total shown under the table (cells must be numbers).
   final bool sum;
+}
+
+/// Today's calendar day in India Standard Time (`yyyy-MM-dd`), as the backend dates records.
+String todayIST() => DateTime.now()
+    .toUtc()
+    .add(const Duration(hours: 5, minutes: 30))
+    .toIso8601String()
+    .substring(0, 10);
+
+/// Newest [limit] documents leaving or arriving on the user's campuses (`campusId` / `toCampusId`),
+/// merged newest first. Rules need the campus filter on both sides, so the two lists are fetched apart.
+Future<List<T>> fetchCampusBothSides<T>(
+  Query<Map<String, dynamic>> base,
+  ModuleAccess access,
+  T Function(String id, Map<String, dynamic> data) parse,
+  DateTime? Function(T item) createdAt, {
+  int limit = 50,
+}) async {
+  final queries = [
+    access.restrictToCampuses(base),
+    if (!access.hasAllCampuses)
+      access.restrictToCampuses(base, field: 'toCampusId'),
+  ];
+  final byId = <String, T>{};
+  for (final query in queries.whereType<Query<Map<String, dynamic>>>()) {
+    final snapshot = await query
+        .orderBy('createdAt', descending: true)
+        .limit(limit)
+        .get();
+    for (final document in snapshot.docs) {
+      byId[document.id] = parse(document.id, document.data());
+    }
+  }
+  return byId.values.toList()..sort(
+    (first, second) => (createdAt(second) ?? DateTime(0)).compareTo(
+      createdAt(first) ?? DateTime(0),
+    ),
+  );
 }

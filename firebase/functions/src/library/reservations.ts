@@ -13,7 +13,8 @@ import { nextNumber } from '../shared/keys';
 import { defineCallable, failed, id, missing, usable } from '../shared/masters';
 import { enqueue } from '../shared/outbox';
 import { forEachSchool } from '../shared/scheduled';
-import { policyId } from './members';
+import { ineligibleReason, policyId } from './members';
+import { memberTo } from './notify';
 
 const DEFAULT_HOLD_DAYS = 3;
 /** Waiting rows read per freed copy; members who are no longer eligible are skipped, so read a few extra. */
@@ -51,13 +52,7 @@ export async function nextWaiting(
     const member = (
       await context.transaction.get(context.doc(`libraryMembers/${snapshot.data().memberId}`))
     ).data();
-    if (
-      member?.status === 'active' &&
-      !member.blocked &&
-      member.start <= today &&
-      (!member.end || member.end >= today)
-    )
-      out.push(snapshot);
+    if (member && !ineligibleReason(member, libraryId, today)) out.push(snapshot);
   }
   return out;
 }
@@ -94,10 +89,7 @@ export async function hold(
     updatedAt: serverTimestamp(),
   });
   await enqueue(context, `library-reservation-ready__${reservationSnapshot.id}`, {
-    to:
-      reservation.memberType === 'student'
-        ? { wardStudentIds: [reservation.personErpId] }
-        : { personErpIds: [reservation.personErpId] },
+    to: memberTo(reservation.memberType, reservation.personErpId),
     category: 'library.reservation',
     title: 'Reserved book is ready',
     body: `${reservation.title}: collect it by ${holdUntil}.`,
@@ -147,12 +139,8 @@ export const reservations = {
       context.requireCampus(library.campusId);
       const title = usable(category, 'Title', false);
 
-      if (member.status !== 'active') throw failed('Member is inactive');
-      if (member.blocked) throw failed('Member is blocked');
-      if (member.start > today || (member.end && member.end < today))
-        throw failed('Membership is not valid today');
-      if (!member.libraryIds.includes(i.libraryId))
-        throw failed('Member has no access to this library');
+      const ineligible = ineligibleReason(member, i.libraryId, today);
+      if (ineligible) throw failed(ineligible);
       const policy = (
         await context.transaction.get(
           context.doc(`libraryBorrowingPolicies/${policyId(i.libraryId, member.memberCategory)}`),
@@ -282,7 +270,7 @@ export async function runHoldExpiry(schoolId: string, today = todayIST()): Promi
 
 /** Hourly, every school (architecture §5.2). */
 export const holdExpiry = onSchedule(
-  { schedule: '0 * * * *', timeZone: 'Asia/Kolkata' },
+  { schedule: '0 * * * *', timeZone: 'Asia/Kolkata', timeoutSeconds: 540 },
   async () => {
     await forEachSchool(runHoldExpiry);
   },

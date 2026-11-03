@@ -7,6 +7,7 @@ Color transferStatusColor(String status) => switch (status) {
   'dispatched' => Colors.purple.shade700,
   'partially_received' => Colors.deepOrange.shade700,
   'received' => Colors.green.shade700,
+  'cancelled' => Colors.grey.shade700,
   _ => Colors.orange.shade800,
 };
 

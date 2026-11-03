@@ -33,7 +33,7 @@ class OrderLine {
   final double quantityRejected;
 
   /// Still to be delivered or rejected on a purchase order line.
-  double get due => quantity - quantityAccepted - quantityRejected;
+  double get due => quantity - quantityAccepted;
 }
 
 List<OrderLine> _lines(Object? currentValue) => [

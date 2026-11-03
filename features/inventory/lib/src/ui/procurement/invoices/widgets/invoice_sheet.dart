@@ -1,5 +1,6 @@
 import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_firebase/icue_firebase.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/procurement/shared/order_widgets.dart';
 import 'package:inventory/src/ui/procurement/shared/procurement_ui.dart';
@@ -60,7 +61,7 @@ class InvoiceSheet extends StatelessWidget {
     final canOperate = context.read<InventoryProvider>().access.can(
       'inventory.procure.operate',
     );
-    final today = DateTime.now().toIso8601String().substring(0, 10);
+    final today = todayIST();
     final status = i.statusOn(today);
     final isOverdue = status == 'overdue';
     final vendor = procurementProvider.vendorName(i.vendorId);

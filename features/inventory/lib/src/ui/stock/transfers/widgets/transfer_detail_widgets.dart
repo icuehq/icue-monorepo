@@ -28,7 +28,7 @@ class TransferSummaryCard extends StatelessWidget {
     final muted = theme.colorScheme.onSurfaceVariant;
     final color = transferStatusColor(transfer.status);
     final level = switch (transfer.status) {
-      'requested' => 0,
+      'requested' || 'approved' || 'cancelled' => 0,
       'dispatched' => 1,
       _ => 2,
     };
@@ -164,7 +164,7 @@ class TransferLinesCard extends StatelessWidget {
     final theme = Theme.of(context);
     final muted = theme.colorScheme.onSurfaceVariant;
     final entering = receiveControllers;
-    final requestedOnly = transfer.status == 'requested';
+    final requestedOnly = transfer.preDispatch;
     return Card(
       elevation: 0,
       margin: const EdgeInsets.only(bottom: 12),

@@ -169,14 +169,17 @@ class _IssueRequestPageState extends State<IssueRequestPage> {
     );
   }
 
-  Future<String?> _askReason() => showDialog<String>(
+  Future<String?> _askReason({
+    String title = 'Reject request',
+    String action = 'Reject',
+  }) => showDialog<String>(
     context: context,
     builder: (context) {
       final reason = TextEditingController();
       String? error;
       return StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Reject request'),
+          title: Text(title),
           content: TextField(
             controller: reason,
             autofocus: true,
@@ -204,13 +207,37 @@ class _IssueRequestPageState extends State<IssueRequestPage> {
                 }
                 Navigator.pop(context, reason.text.trim());
               },
-              child: const Text('Reject'),
+              child: Text(action),
             ),
           ],
         ),
       );
     },
   );
+
+  Future<void> _end(
+    InventoryIssueRequest request, {
+    required bool cancel,
+  }) async {
+    final reason = await _askReason(
+      title: cancel ? 'Cancel request' : 'Close request',
+      action: cancel ? 'Cancel request' : 'Close request',
+    );
+    if (reason == null || !mounted) return;
+    await _run(
+      () => stockSubmit(
+        context,
+        (stockProvider) => stockProvider.act(
+          cancel
+              ? 'inventory-issueRequest-cancel'
+              : 'inventory-issueRequest-close',
+          {'id': request.id, 'reason': reason},
+        ),
+        close: false,
+        done: cancel ? 'Request cancelled' : 'Request closed',
+      ),
+    );
+  }
 
   Future<void> _issue(InventoryIssueRequest request) async {
     final recipientId = _recipientId;
@@ -415,7 +442,25 @@ class _IssueRequestPageState extends State<IssueRequestPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: Text(request?.number ?? 'Issue request')),
+      appBar: AppBar(
+        title: Text(request?.number ?? 'Issue request'),
+        actions: [
+          if (request != null &&
+              request.isPending &&
+              request.createdBy == stockProvider.uid)
+            TextButton(
+              onPressed: _busy ? null : () => _end(request, cancel: true),
+              child: const Text('Cancel request'),
+            ),
+          if (request != null &&
+              request.isIssuable &&
+              access.can('inventory.stock.operate'))
+            TextButton(
+              onPressed: _busy ? null : () => _end(request, cancel: false),
+              child: const Text('Close request'),
+            ),
+        ],
+      ),
       body: body,
       bottomNavigationBar: request == null ? null : _actionBar(request, access),
     );

@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type { CallableContext } from '../shared/callable';
 import { isoDate, todayIST } from '../shared/dates';
 import { serverTimestamp } from '../shared/firestore';
-import { claimUniqueKey, nextNumber, uniqueKeyRef } from '../shared/keys';
+import { claimUniqueKey, nextNumber, nextNumbers, uniqueKeyRef } from '../shared/keys';
 import {
   defineCallable,
   failed,
@@ -18,6 +18,8 @@ import { lineKey, stockPerson, positiveQuantity, Stock } from './stock';
 
 /** Individual assets: registration, custody, condition, retirement (FRS 10.19) and maintenance (FRS 10.20). */
 
+/** Units registered by one call; each adds a few writes to the transaction. */
+const MAX_BULK = 50;
 const condition = z.enum(['new', 'good', 'fair', 'poor', 'damaged']);
 // Maintenance status drives the asset status (architecture §6): `restoreTo` is what the asset was before.
 const LIVE = ['open', 'assigned', 'in_progress', 'waiting_for_parts'];
@@ -116,13 +118,14 @@ async function closeAssignment(
 }
 
 export const assets = {
-  /** One physical asset per call; the asset ID (`AST/<financialYear>/<seq>`) doubles as its barcode / QR value. */
+  /** One asset, or `quantity` identical ones (no serial number) per call; the asset ID (`AST/<financialYear>/<seq>`) doubles as its barcode / QR value. */
   register: defineCallable({
     name: 'inventory.asset.register',
     permission: 'inventory.assets.manage',
     input: z.object({
       itemId: id,
       storeId: id,
+      quantity: z.number().int().min(1).max(MAX_BULK).default(1),
       name: z.string().trim().min(1).max(120).optional(),
       serialNumber: text(120),
       make: text(120),
@@ -150,6 +153,8 @@ export const assets = {
         false,
       );
       context.requireCampus(store.campusId);
+      if (i.quantity > 1 && i.serialNumber)
+        throw failed('Serial numbers are per unit; register units with a serial one at a time');
       if (i.warrantyStart && i.warrantyEnd && i.warrantyEnd < i.warrantyStart)
         throw failed('Warranty ends before it starts');
       let { vendorId, price } = { vendorId: i.vendorId ?? null, price: i.price ?? null };
@@ -176,50 +181,58 @@ export const assets = {
               .where('itemId', '==', i.itemId),
           )
         ).size;
-        if (done >= line.quantityAccepted)
-          throw failed('Every accepted unit of this item is already registered');
+        if (done + i.quantity > line.quantityAccepted)
+          throw failed(
+            done >= line.quantityAccepted
+              ? 'Every accepted unit of this item is already registered'
+              : `Only ${line.quantityAccepted - done} accepted unit(s) left to register`,
+          );
         vendorId = purchaseOrder.vendorId;
         price ??= line.unitPrice;
       }
-      const assetId = await nextNumber(context, 'AST');
-      const ref = context.newDoc('inventoryAssets');
-      await claimUniqueKey(context, 'inventoryAsset', assetId, ref.path);
-      const asset = {
-        assetId,
-        itemId: i.itemId,
-        name: i.name ?? item.name,
-        categoryId: item.categoryId,
-        serialNumber: i.serialNumber ?? null,
-        make: i.make ?? null,
-        model: i.model ?? null,
-        purchaseOrderId: i.purchaseOrderId ?? null,
-        vendorId,
-        purchaseDate: i.purchaseDate ?? null,
-        price,
-        warranty: { start: i.warrantyStart ?? null, end: i.warrantyEnd ?? null },
-        condition: i.condition,
-        campusId: store.campusId,
-        storeId: i.storeId,
-        location: i.location ?? null,
-        status: 'available',
-        activeAssignmentId: null,
-        assignedTo: null,
-        activeMaintenanceId: null,
-        nextServiceDate: null,
-        rfidTag: null,
-        imagePath: null,
-        createdAt: serverTimestamp(),
-        createdBy: context.uid,
-        updatedAt: serverTimestamp(),
-      };
-      context.set(ref, asset);
-      hist(context, ref, asset, 'registered', { condition: i.condition });
-      context.audit({
-        action: 'inventoryAsset.register',
-        documentPath: ref.path,
-        after: { assetId, itemId: i.itemId },
-      });
-      return { id: ref.id, number: assetId };
+      const numbers = await nextNumbers(context, 'AST', i.quantity);
+      const ids: string[] = [];
+      for (const assetId of numbers) {
+        const ref = context.newDoc('inventoryAssets');
+        await claimUniqueKey(context, 'inventoryAsset', assetId, ref.path);
+        const asset = {
+          assetId,
+          itemId: i.itemId,
+          name: i.name ?? item.name,
+          categoryId: item.categoryId,
+          serialNumber: i.serialNumber ?? null,
+          make: i.make ?? null,
+          model: i.model ?? null,
+          purchaseOrderId: i.purchaseOrderId ?? null,
+          vendorId,
+          purchaseDate: i.purchaseDate ?? null,
+          price,
+          warranty: { start: i.warrantyStart ?? null, end: i.warrantyEnd ?? null },
+          condition: i.condition,
+          campusId: store.campusId,
+          storeId: i.storeId,
+          location: i.location ?? null,
+          status: 'available',
+          activeAssignmentId: null,
+          assignedTo: null,
+          activeMaintenanceId: null,
+          nextServiceDate: null,
+          rfidTag: null,
+          imagePath: null,
+          createdAt: serverTimestamp(),
+          createdBy: context.uid,
+          updatedAt: serverTimestamp(),
+        };
+        context.set(ref, asset);
+        hist(context, ref, asset, 'registered', { condition: i.condition });
+        context.audit({
+          action: 'inventoryAsset.register',
+          documentPath: ref.path,
+          after: { assetId, itemId: i.itemId },
+        });
+        ids.push(ref.id);
+      }
+      return { id: ids[0], number: numbers[0], ids, numbers };
     },
   }),
 

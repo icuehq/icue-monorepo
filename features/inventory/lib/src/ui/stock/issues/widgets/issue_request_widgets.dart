@@ -9,6 +9,7 @@ Color issueStatusColor(String status) => switch (status) {
   'partially_issued' => Colors.purple.shade700,
   'issued' => Colors.green.shade700,
   'rejected' => Colors.red.shade700,
+  'cancelled' || 'closed' => Colors.grey.shade700,
   _ => Colors.orange.shade800,
 };
 

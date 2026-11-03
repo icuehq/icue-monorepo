@@ -1,3 +1,4 @@
+import type { DocumentData } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import type { CallableContext } from '../shared/callable';
 import { todayIST } from '../shared/dates';
@@ -5,12 +6,74 @@ import { serverTimestamp } from '../shared/firestore';
 import { nextNumber } from '../shared/keys';
 import { defineCallable, failed, id, missing, optionalText } from '../shared/masters';
 import { enqueue } from '../shared/outbox';
+import { copyFields, fineBlock, raiseFine } from './fines';
 import { memberAndLibrarians } from './notify';
 import { release } from './reservations';
 
 const INCIDENT_TYPES = ['lost', 'damaged'] as const;
 const SEVERITIES = ['minor', 'moderate', 'severe'] as const;
 const RESOLUTIONS = ['repaired', 'replaced', 'written_off', 'charged', 'dismissed'] as const;
+
+/** Queues an open incident for a copy (and the member held responsible, if any) with its notification. */
+export async function openIncident(
+  context: CallableContext,
+  incident: {
+    type: (typeof INCIDENT_TYPES)[number];
+    copy: DocumentData;
+    copyId: string;
+    memberId?: string | null;
+    member?: DocumentData | null;
+    loanId?: string | null;
+    severity: string | null;
+    description: string | null;
+    charge: number;
+    repairStatus: string | null;
+    title: string;
+    body: string;
+  },
+) {
+  const ref = context.newDoc('libraryIncidents');
+  const incidentNumber = await nextNumber(context, 'INC');
+  const member = incident.member ?? null;
+  const after = {
+    incidentNumber,
+    type: incident.type,
+    copyId: incident.copyId,
+    ...copyFields(incident.copy),
+    memberId: member ? incident.memberId : null,
+    memberType: member ? member.memberType : null,
+    personErpId: member ? member.personErpId : null,
+    ...(incident.loanId ? { loanId: incident.loanId } : {}),
+    severity: incident.severity,
+    description: incident.description,
+    photos: [],
+    charge: incident.charge,
+    repairStatus: incident.repairStatus,
+    status: 'open',
+    resolution: null,
+    resolvedAt: null,
+    reportedDate: todayIST(),
+    reportedBy: context.uid,
+  };
+  context.set(ref, {
+    ...after,
+    createdAt: serverTimestamp(),
+    createdBy: context.uid,
+    updatedAt: serverTimestamp(),
+  });
+  await enqueue(context, `library-incident__${ref.id}`, {
+    to: memberAndLibrarians(
+      (member?.memberType as string) ?? '',
+      (member?.personErpId as number) ?? null,
+      incident.copy.campusId,
+    ),
+    category: 'library.incident',
+    title: incident.title,
+    body: incident.body,
+    data: { incidentId: ref.id },
+  });
+  return { ref, incidentNumber, after };
+}
 
 async function loadIncident(context: CallableContext, incidentId: string) {
   const ref = context.doc(`libraryIncidents/${incidentId}`);
@@ -70,91 +133,46 @@ export const incidents = {
         member = mSnap.data()!;
       }
 
-      const incRef = context.newDoc('libraryIncidents');
-      const incidentNumber = await nextNumber(context, 'INC');
-      const today = todayIST();
-
-      const after = {
+      const {
+        ref: incRef,
         incidentNumber,
+        after,
+      } = await openIncident(context, {
         type: i.type,
+        copy,
         copyId: cRef.id,
-        accessionNumber: copy.accessionNumber,
-        catalogueId: copy.catalogueId,
-        libraryId: copy.libraryId,
-        campusId: copy.campusId,
-        memberId: member ? i.memberId : null,
-        memberType: member ? member.memberType : null,
-        personErpId: member ? member.personErpId : null,
+        memberId: i.memberId,
+        member,
         severity: i.type === 'damaged' ? i.severity : null,
         description: i.description ?? null,
-        photos: [],
         charge: i.charge,
         repairStatus: i.type === 'damaged' ? 'none' : null,
-        status: 'open',
-        resolution: null,
-        resolvedAt: null,
-        reportedDate: today,
-        reportedBy: context.uid,
-      };
-
-      context.set(incRef, {
-        ...after,
-        createdAt: serverTimestamp(),
-        createdBy: context.uid,
-        updatedAt: serverTimestamp(),
+        title: `${i.type === 'lost' ? 'Lost' : 'Damaged'} book recorded`,
+        body: `${copy.accessionNumber} was reported ${i.type}.`,
       });
 
-      // Update copy status: lost or damaged copies are taken off circulation
-      const newCopyStatus = i.type === 'lost' ? 'lost' : 'damaged';
+      // Lost or damaged copies are taken off circulation.
       context.update(cRef, {
-        status: newCopyStatus,
+        status: i.type === 'lost' ? 'lost' : 'damaged',
         activeLoanId: null,
         heldReservationId: null,
         updatedAt: serverTimestamp(),
       });
 
-      // If a member is responsible and charge > 0, raise a fine and block the member
       if (member && mRef && i.charge > 0) {
-        const fineNumber = await nextNumber(context, 'FIN');
-        const fRef = context.doc(`libraryFines/inc_${incRef.id}__${i.type}`);
-        context.set(fRef, {
-          fineNumber,
-          incidentId: incRef.id,
-          loanId: null,
-          memberId: i.memberId,
-          memberType: member.memberType,
-          personErpId: member.personErpId,
-          catalogueId: copy.catalogueId,
-          accessionNumber: copy.accessionNumber,
-          libraryId: copy.libraryId,
-          campusId: copy.campusId,
+        await raiseFine(context, {
+          id: `inc_${incRef.id}__${i.type}`,
           type: i.type,
           amount: i.charge,
-          waived: 0,
-          paid: 0,
-          outstanding: i.charge,
-          status: 'outstanding',
-          fineCalculation: { incidentNumber, type: i.type, severity: i.severity, charge: i.charge },
-          waivers: [],
-          payments: [],
-          createdAt: serverTimestamp(),
-          createdBy: context.uid,
-          updatedAt: serverTimestamp(),
+          memberId: i.memberId!,
+          member,
+          source: copy,
+          incidentId: incRef.id,
+          calculation: { incidentNumber, type: i.type, severity: i.severity, charge: i.charge },
         });
-        context.update(mRef, { blocked: true, updatedAt: serverTimestamp() });
+        context.update(mRef, { ...fineBlock(member), updatedAt: serverTimestamp() });
       }
 
-      await enqueue(context, `library-incident__${incRef.id}`, {
-        to: memberAndLibrarians(
-          (member?.memberType as string) ?? '',
-          (member?.personErpId as number) ?? null,
-          copy.campusId,
-        ),
-        category: 'library.incident',
-        title: `${i.type === 'lost' ? 'Lost' : 'Damaged'} book recorded`,
-        body: `${copy.accessionNumber} was reported ${i.type}.`,
-        data: { incidentId: incRef.id },
-      });
       context.audit({ action: 'libraryIncident.report', documentPath: incRef.path, after });
       return { id: incRef.id, number: incidentNumber };
     },
@@ -197,6 +215,12 @@ export const incidents = {
       } else if (i.resolution === 'written_off') {
         repairStatus = 'writeoff';
         context.update(cRef, { status: 'withdrawn', updatedAt: serverTimestamp() });
+      } else if (
+        (i.resolution === 'replaced' || i.resolution === 'charged') &&
+        (i.resolution === 'replaced' || copy.status === 'lost')
+      ) {
+        // A replaced or paid-for lost copy is gone for good (a replacement comes in as a new acquisition).
+        context.update(cRef, { status: 'withdrawn', updatedAt: serverTimestamp() });
       }
 
       // If additional charge is levied and member is on incident and not already charged
@@ -205,37 +229,22 @@ export const incidents = {
         const mRef = context.doc(`libraryMembers/${incident.memberId}`);
         const mSnap = await context.transaction.get(mRef);
         if (mSnap.exists) {
-          const fineNumber = await nextNumber(context, 'FIN');
-          const fRef = context.doc(`libraryFines/inc_${ref.id}__penalty`);
-          context.set(fRef, {
-            fineNumber,
-            incidentId: ref.id,
-            loanId: incident.loanId ?? null,
-            memberId: incident.memberId,
-            memberType: incident.memberType,
-            personErpId: incident.personErpId,
-            catalogueId: incident.catalogueId,
-            accessionNumber: incident.accessionNumber,
-            libraryId: incident.libraryId,
-            campusId: incident.campusId,
+          await raiseFine(context, {
+            id: `inc_${ref.id}__penalty`,
             type: incident.type,
             amount: difference,
-            waived: 0,
-            paid: 0,
-            outstanding: difference,
-            status: 'outstanding',
-            fineCalculation: {
+            memberId: incident.memberId,
+            member: mSnap.data()!,
+            source: incident,
+            loanId: incident.loanId ?? null,
+            incidentId: ref.id,
+            calculation: {
               incidentNumber: incident.incidentNumber,
               resolution: i.resolution,
               charge: difference,
             },
-            waivers: [],
-            payments: [],
-            createdAt: serverTimestamp(),
-            createdBy: context.uid,
-            updatedAt: serverTimestamp(),
           });
-          context.update(mRef, { blocked: true, updatedAt: serverTimestamp() });
+          context.update(mRef, { ...fineBlock(mSnap.data()!), updatedAt: serverTimestamp() });
         }
       }
 

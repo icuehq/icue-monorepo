@@ -7,6 +7,7 @@ Color _statusColor(String status) => switch (status) {
   'partially_issued' => Colors.purple.shade700,
   'issued' => Colors.green.shade700,
   'rejected' => Colors.red.shade700,
+  'cancelled' || 'closed' => Colors.grey.shade700,
   _ => Colors.orange.shade800,
 };
 
@@ -15,6 +16,7 @@ Color _statusBgColor(String status) => switch (status) {
   'partially_issued' => Colors.purple.withValues(alpha: 0.12),
   'issued' => Colors.green.withValues(alpha: 0.12),
   'rejected' => Colors.red.withValues(alpha: 0.12),
+  'cancelled' || 'closed' => Colors.grey.withValues(alpha: 0.12),
   _ => Colors.orange.withValues(alpha: 0.12),
 };
 
@@ -23,6 +25,7 @@ IconData _statusIcon(String status) => switch (status) {
   'partially_issued' => Icons.timelapse_outlined,
   'issued' => Icons.done_all_rounded,
   'rejected' => Icons.cancel_outlined,
+  'cancelled' || 'closed' => Icons.block_outlined,
   _ => Icons.hourglass_top_rounded,
 };
 

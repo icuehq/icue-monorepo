@@ -154,7 +154,7 @@ class InventoryIssueRequest {
   final String purpose;
   final String? destination;
 
-  /// pending | approved | rejected | partially_issued | issued
+  /// pending | approved | rejected | partially_issued | issued | cancelled | closed
   final String status;
   final String createdBy;
   final String? approvalComment;
@@ -273,6 +273,7 @@ class InventoryTransfer {
     this.dispatchedDate,
     this.receivedDate,
     this.createdAt,
+    this.createdBy = '',
   });
 
   factory InventoryTransfer.fromMap(String id, Map<String, dynamic> data) {
@@ -301,6 +302,7 @@ class InventoryTransfer {
       receivedDate:
           (data['receipt'] as Map<String, dynamic>?)?['date'] as String?,
       createdAt: _t(data['createdAt']),
+      createdBy: data['createdBy'] as String? ?? '',
     );
   }
 
@@ -311,7 +313,7 @@ class InventoryTransfer {
   final int fromCampusId;
   final int toCampusId;
 
-  /// requested | dispatched | partially_received | received
+  /// requested | approved | dispatched | partially_received | received | cancelled
   final String status;
   final List<({String itemId, String? variantId, double quantity})> requested;
   final List<TransferLine> lineItems;
@@ -319,6 +321,10 @@ class InventoryTransfer {
   final String? dispatchedDate;
   final String? receivedDate;
   final DateTime? createdAt;
+  final String createdBy;
+
+  /// Nothing has left the source store yet.
+  bool get preDispatch => status == 'requested' || status == 'approved';
 
   bool get inTransit =>
       status == 'dispatched' || status == 'partially_received';

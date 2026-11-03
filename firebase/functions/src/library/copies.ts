@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { CallableContext } from '../shared/callable';
-import { isoDate } from '../shared/dates';
+import { isoDate, todayIST } from '../shared/dates';
 import { serverTimestamp } from '../shared/firestore';
 import { claimUniqueKey, nextNumber, uniqueKeyRef } from '../shared/keys';
 import { defineCallable, failed, id, missing, optionalText, usable } from '../shared/masters';
@@ -65,7 +65,7 @@ export const copies = {
         (((await context.transaction.get(counter)).data()?.next as number | undefined) ?? 0) + 1;
       context.set(counter, { next: first + i.quantity - 1, updatedAt: serverTimestamp() });
 
-      const date = i.date ?? new Date().toISOString().slice(0, 10);
+      const date = i.date ?? todayIST();
       const acq = context.newDoc('libraryAcquisitions');
       const number = await nextNumber(context, 'ACQ');
       const ids = Array.from({ length: i.quantity }, (_, offset) =>
@@ -186,7 +186,7 @@ export const copies = {
     },
   }),
 
-  /** Maintenance, damage, loss and withdrawal. Lost and withdrawn copies never become available again. */
+  /** Maintenance, damage, loss and withdrawal. Lost and withdrawn copies never become available again here (a lost copy that turns up is released by dismissing its incident). */
   copySetStatus: defineCallable({
     name: 'library.copy.setStatus',
     permission: 'library.catalogue.manage',

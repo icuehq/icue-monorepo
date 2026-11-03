@@ -19,6 +19,9 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
 
   final LibraryService _service;
 
+  /// Latest load per list; an older response never overwrites a newer filter's list.
+  final Map<String, int> _generation = {};
+
   ModuleAccess access = const ModuleAccess();
   List<SchoolLibrary> libraries = [];
   List<LibraryCategory> categories = [];
@@ -122,7 +125,8 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     String? categoryId,
     bool clearCategory = false,
   }) async {
-    if (booksLoading || (more && !hasMoreBooks)) return;
+    if (more && (booksLoading || !hasMoreBooks)) return;
+    final generation = _generation['books'] = (_generation['books'] ?? 0) + 1;
     if (!more) {
       bookSearch = search ?? bookSearch;
       bookCategoryId = clearCategory ? null : (categoryId ?? bookCategoryId);
@@ -139,6 +143,7 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
           categoryId: bookCategoryId,
           after: _cursor,
         );
+        if (generation != _generation['books']) return;
         if (!more) books.clear();
         books.addAll(page.items);
         _cursor = page.cursor;
@@ -149,6 +154,7 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
           categoryId: bookCategoryId,
           offset: _searchOffset,
         );
+        if (generation != _generation['books']) return;
         if (!more) books.clear();
         books.addAll(page.items);
         _searchOffset += page.items.length;
@@ -157,14 +163,18 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     } catch (error) {
       errorMessage = callableErrorMessage(error);
     } finally {
-      booksLoading = false;
-      notifyListeners();
+      if (generation == _generation['books']) {
+        booksLoading = false;
+        notifyListeners();
+      }
     }
   }
 
   /// (Re)loads the first page of [type] members, or the next one when [more] is true.
   Future<void> loadMembers({bool more = false, String? type}) async {
-    if (membersLoading || (more && !hasMoreMembers)) return;
+    if (more && (membersLoading || !hasMoreMembers)) return;
+    final generation = _generation['members'] =
+        (_generation['members'] ?? 0) + 1;
     if (!more) {
       memberType = type ?? memberType;
       _memberCursor = null;
@@ -174,6 +184,7 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     notifyListeners();
     try {
       final page = await _service.members(memberType, after: _memberCursor);
+      if (generation != _generation['members']) return;
       if (!more) members.clear();
       members.addAll(page.items);
       _memberCursor = page.cursor;
@@ -181,20 +192,24 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     } catch (error) {
       errorMessage = callableErrorMessage(error);
     } finally {
-      membersLoading = false;
-      notifyListeners();
+      if (generation == _generation['members']) {
+        membersLoading = false;
+        notifyListeners();
+      }
     }
   }
 
   /// (Re)loads the first page of active loans, or the next one when [more] is true.
   Future<void> loadLoans({bool more = false}) async {
-    if (loansLoading || (more && !hasMoreLoans)) return;
+    if (more && (loansLoading || !hasMoreLoans)) return;
+    final generation = _generation['loans'] = (_generation['loans'] ?? 0) + 1;
     if (!more) _loanCursor = null;
     loansLoading = true;
     errorMessage = null;
     notifyListeners();
     try {
       final page = await _service.loans('active', after: _loanCursor);
+      if (generation != _generation['loans']) return;
       if (!more) loans.clear();
       loans.addAll(page.items);
       _loanCursor = page.cursor;
@@ -202,14 +217,18 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     } catch (error) {
       errorMessage = callableErrorMessage(error);
     } finally {
-      loansLoading = false;
-      notifyListeners();
+      if (generation == _generation['loans']) {
+        loansLoading = false;
+        notifyListeners();
+      }
     }
   }
 
   /// (Re)loads the first page of reservations, or the next one when [more] is true.
   Future<void> loadReservations({bool more = false, String? status}) async {
-    if (reservationsLoading || (more && !hasMoreReservations)) return;
+    if (more && (reservationsLoading || !hasMoreReservations)) return;
+    final generation = _generation['reservations'] =
+        (_generation['reservations'] ?? 0) + 1;
     if (!more) {
       reservationStatus = status ?? reservationStatus;
       _reservationCursor = null;
@@ -222,6 +241,7 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
         reservationStatus,
         after: _reservationCursor,
       );
+      if (generation != _generation['reservations']) return;
       if (!more) reservations.clear();
       reservations.addAll(page.items);
       _reservationCursor = page.cursor;
@@ -229,14 +249,17 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     } catch (error) {
       errorMessage = callableErrorMessage(error);
     } finally {
-      reservationsLoading = false;
-      notifyListeners();
+      if (generation == _generation['reservations']) {
+        reservationsLoading = false;
+        notifyListeners();
+      }
     }
   }
 
   /// (Re)loads the first page of fines, or the next one when [more] is true.
   Future<void> loadFines({bool more = false, String? status}) async {
-    if (finesLoading || (more && !hasMoreFines)) return;
+    if (more && (finesLoading || !hasMoreFines)) return;
+    final generation = _generation['fines'] = (_generation['fines'] ?? 0) + 1;
     if (!more) {
       fineStatus = status ?? fineStatus;
       _fineCursor = null;
@@ -249,6 +272,7 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
         status: fineStatus == 'all' ? null : fineStatus,
         after: _fineCursor,
       );
+      if (generation != _generation['fines']) return;
       if (!more) fines.clear();
       fines.addAll(page.items);
       _fineCursor = page.cursor;
@@ -256,8 +280,10 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     } catch (error) {
       errorMessage = callableErrorMessage(error);
     } finally {
-      finesLoading = false;
-      notifyListeners();
+      if (generation == _generation['fines']) {
+        finesLoading = false;
+        notifyListeners();
+      }
     }
   }
 
@@ -265,7 +291,9 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
 
   /// (Re)loads the first page of incidents, or the next one when [more] is true.
   Future<void> loadIncidents({bool more = false, String? status}) async {
-    if (incidentsLoading || (more && !hasMoreIncidents)) return;
+    if (more && (incidentsLoading || !hasMoreIncidents)) return;
+    final generation = _generation['incidents'] =
+        (_generation['incidents'] ?? 0) + 1;
     if (!more) {
       incidentStatus = status ?? incidentStatus;
       _incidentCursor = null;
@@ -278,6 +306,7 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
         status: incidentStatus == 'all' ? null : incidentStatus,
         after: _incidentCursor,
       );
+      if (generation != _generation['incidents']) return;
       if (!more) incidents.clear();
       incidents.addAll(page.items);
       _incidentCursor = page.cursor;
@@ -285,8 +314,10 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     } catch (error) {
       errorMessage = callableErrorMessage(error);
     } finally {
-      incidentsLoading = false;
-      notifyListeners();
+      if (generation == _generation['incidents']) {
+        incidentsLoading = false;
+        notifyListeners();
+      }
     }
   }
 
@@ -317,13 +348,16 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   }
 
   Future<void> loadVerifications({bool more = false}) async {
-    if (verificationsLoading || (more && !hasMoreVerifications)) return;
+    if (more && (verificationsLoading || !hasMoreVerifications)) return;
+    final generation = _generation['verifications'] =
+        (_generation['verifications'] ?? 0) + 1;
     if (!more) _verificationCursor = null;
     verificationsLoading = true;
     errorMessage = null;
     notifyListeners();
     try {
       final page = await _service.verifications(after: _verificationCursor);
+      if (generation != _generation['verifications']) return;
       if (!more) verifications.clear();
       verifications.addAll(page.items);
       _verificationCursor = page.cursor;
@@ -331,8 +365,10 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     } catch (error) {
       errorMessage = callableErrorMessage(error);
     } finally {
-      verificationsLoading = false;
-      notifyListeners();
+      if (generation == _generation['verifications']) {
+        verificationsLoading = false;
+        notifyListeners();
+      }
     }
   }
 
@@ -520,6 +556,23 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
 
   Future<bool> dispatchTransfer(String id) =>
       _write(() => _service.dispatchTransfer(id), reload: loadTransfers);
+
+  Future<bool> cancelTransfer(String id, String reason) =>
+      _write(() => _service.cancelTransfer(id, reason), reload: loadTransfers);
+
+  Future<bool> closeTransferShort(String id, String reason) => _write(
+    () => _service.closeTransferShort(id, reason),
+    reload: loadTransfers,
+  );
+
+  Future<bool> setMemberBlocked(
+    String id, {
+    required bool blocked,
+    String? reason,
+  }) => _write(
+    () => _service.setMemberBlocked(id, blocked: blocked, reason: reason),
+    reload: loadMembers,
+  );
 
   Future<bool> receiveTransfer(Map<String, Object?> data) =>
       _write(() => _service.receiveTransfer(data), reload: loadTransfers);

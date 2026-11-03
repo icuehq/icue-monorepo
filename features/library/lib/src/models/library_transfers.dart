@@ -6,6 +6,7 @@ String transferStatusLabel(String value) => switch (value) {
   'dispatched' => 'In transit',
   'partially_received' => 'Partly received',
   'received' => 'Received',
+  'cancelled' => 'Cancelled',
   _ => value,
 };
 

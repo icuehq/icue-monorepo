@@ -21,6 +21,7 @@ class _LibraryTransfersPageState extends State<LibraryTransfersPage> {
     ('dispatched', 'In transit'),
     ('partially_received', 'Partly received'),
     ('received', 'Received'),
+    ('cancelled', 'Cancelled'),
   ];
 
   String? _status;

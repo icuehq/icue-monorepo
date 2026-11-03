@@ -1,5 +1,6 @@
 import 'package:admin_ui/admin_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_firebase/icue_firebase.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
@@ -49,7 +50,7 @@ class _LoanSheetState extends State<LoanSheet> {
   @override
   Widget build(BuildContext context) {
     final loan = widget.loan;
-    final today = DateTime.now().toIso8601String().substring(0, 10);
+    final today = todayIST();
     final late = loan.overdueOn(today);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

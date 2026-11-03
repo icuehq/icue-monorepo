@@ -8,7 +8,7 @@ import { clearFirestore, db } from './setup';
 
 const SCHOOL_ID = '12';
 let requestSequence = 0;
- 
+
 const run = (definition: CallableDef<any, any>, data: Record<string, unknown>, uid = 'proc') =>
   runCallable(
     definition,
@@ -241,6 +241,12 @@ describe('purchase orders', () => {
     expect(await code(run(o.purchaseOrderClose, { id }))).toBe('failed-precondition'); // reason needed
     await run(o.purchaseOrderClose, { id, reason: 'vendor short-shipped' });
     expect(await get(`inventoryPurchaseOrders/${id}`)).toMatchObject({ status: 'closed' });
+    // The unreceived quantity went back to the request, so it can be ordered again.
+    const released = await get(`inventoryPurchaseRequests/${purchaseRequest}`);
+    expect(released!.status).toBe('approved');
+    expect(
+      released!.lineItems.every((line: { quantityOrdered: number }) => line.quantityOrdered === 0),
+    ).toBe(true);
     expect(await code(run(o.purchaseOrderCancel, { id, reason: 'x' }))).toBe('failed-precondition');
   });
 });

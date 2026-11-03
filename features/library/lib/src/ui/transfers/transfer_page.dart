@@ -83,6 +83,56 @@ class _LibraryTransferPageState extends State<LibraryTransferPage> {
     );
   }
 
+  Future<String?> _askReason(String title) async {
+    final controller = TextEditingController();
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: TextField(
+          controller: controller,
+          maxLength: 500,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: 'Reason'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Back'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(minimumSize: Size.zero),
+            onPressed: () => Navigator.pop(context, controller.text.trim()),
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    return reason == null || reason.isEmpty ? null : reason;
+  }
+
+  Future<void> _cancel(LibraryTransfer transfer) async {
+    final reason = await _askReason('Cancel ${transfer.number}');
+    if (reason == null || !mounted) return;
+    await _run(
+      (libraryProvider) => libraryProvider.cancelTransfer(transfer.id, reason),
+      'Transfer cancelled',
+    );
+  }
+
+  Future<void> _closeShort(LibraryTransfer transfer) async {
+    final reason = await _askReason(
+      'Close short: ${transfer.pending.length} copies not received',
+    );
+    if (reason == null || !mounted) return;
+    await _run(
+      (libraryProvider) =>
+          libraryProvider.closeTransferShort(transfer.id, reason),
+      'Transfer closed; missing copies marked lost',
+    );
+  }
+
   Future<void> _approve(LibraryTransfer transfer) async {
     final confirmed = await _confirm(
       'Approve transfer',
@@ -214,7 +264,24 @@ class _LibraryTransferPageState extends State<LibraryTransferPage> {
         transferWaitingFor(transfer).isNotEmpty;
 
     return Scaffold(
-      appBar: AppBar(title: Text(transfer.number)),
+      appBar: AppBar(
+        title: Text(transfer.number),
+        actions: [
+          if ((transfer.status == 'requested' ||
+                  transfer.status == 'approved') &&
+              access.can('library.catalogue.manage') &&
+              onCampus(access, transfer.campusId))
+            TextButton(
+              onPressed: _busy ? null : () => _cancel(transfer),
+              child: const Text('Cancel transfer'),
+            ),
+          if (receiving)
+            TextButton(
+              onPressed: _busy ? null : () => _closeShort(transfer),
+              child: const Text('Close short'),
+            ),
+        ],
+      ),
       body: RefreshIndicator(
         onRefresh: _load,
         child: ListView(

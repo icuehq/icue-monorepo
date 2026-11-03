@@ -132,21 +132,26 @@ export async function deliver(
   const messages: TokenMessage[] = [];
   const tokenRefs: FirebaseFirestore.DocumentReference[] = [];
   const recipients = await resolveRecipients(db, schoolId, outboxEvent.to);
+  const notifiedRefs: FirebaseFirestore.DocumentReference[] = [];
   for (const uid of recipients) {
+    const notificationRef = db.doc(`schools/${schoolId}/notifications/${key}__${uid}`);
     try {
-      await db.doc(`schools/${schoolId}/notifications/${key}__${uid}`).create({
+      await notificationRef.create({
         uid,
         category: outboxEvent.category,
         title: outboxEvent.title,
         body: outboxEvent.body,
         data: outboxEvent.data ?? {},
         read: false,
+        pushed: false,
         createdAt: serverTimestamp(),
       });
     } catch (error) {
-      if ((error as { code?: number }).code === 6) continue; // ALREADY_EXISTS: handled by an earlier attempt
-      throw error;
+      if ((error as { code?: number }).code !== 6) throw error;
+      // Created by an earlier attempt: skip only when its push already went out.
+      if ((await notificationRef.get()).data()?.pushed === true) continue;
     }
+    notifiedRefs.push(notificationRef);
     const device = await db.doc(`devices/${uid}`).get();
     if (device.data()?.mute?.[outboxEvent.category] === true) continue; // not get('mute.x'): categories contain dots
     for (const snapshot of (await db.collection(`devices/${uid}/tokens`).get()).docs) {
@@ -171,6 +176,7 @@ export async function deliver(
       ),
     );
   }
+  await Promise.all(notifiedRefs.map((ref) => ref.update({ pushed: true })));
   await outboxRef.update({
     status: 'sent',
     sentAt: serverTimestamp(),

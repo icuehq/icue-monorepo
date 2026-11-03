@@ -111,10 +111,8 @@ export const receiving = {
         if (!orderLine) throw failed('Receiving lines must be lines of the order');
         const got = lineItem.quantityAccepted + lineItem.quantityRejected;
         if (got <= 0) throw failed('Each line needs a quantity');
-        if (
-          got >
-          orderLine.quantityOrdered - orderLine.quantityAccepted - orderLine.quantityRejected
-        )
+        // Only accepted units fill the order; rejected ones leave it open for a replacement delivery.
+        if (got > orderLine.quantityOrdered - orderLine.quantityAccepted)
           throw failed('Received quantity exceeds what is still due on the order');
         // Asset units are counted on the order but never enter stock; each is registered individually (`inventory-asset-register`).
         const asset =
@@ -170,8 +168,7 @@ export const receiving = {
           : 'partial';
       const full = purchaseOrderLines.every(
         (purchaseOrderLine) =>
-          purchaseOrderLine.quantityAccepted + purchaseOrderLine.quantityRejected >=
-          purchaseOrderLine.quantityOrdered,
+          purchaseOrderLine.quantityAccepted >= purchaseOrderLine.quantityOrdered,
       );
       const status = full ? 'fully_received' : 'partially_received';
       context.set(ref, {

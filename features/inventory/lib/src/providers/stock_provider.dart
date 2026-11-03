@@ -58,14 +58,18 @@ class StockProvider extends ChangeNotifier {
     if (need.isNotEmpty) items.addAll(await _service.itemsByIds(need));
   }
 
+  var _balancesLoad = 0;
+
   Future<void> loadBalances(InventoryStore store, {bool more = false}) async {
-    if (isLoading || (more && !hasMoreBalances)) return;
+    if (more && (isLoading || !hasMoreBalances)) return;
+    final load = ++_balancesLoad;
     if (!more) {
       this.store = store;
       _cursor = null;
     }
     await _load(() async {
       final page = await _service.balances(store, after: _cursor);
+      if (load != _balancesLoad) return;
       if (!more) balances.clear();
       balances.addAll(page.items);
       _cursor = page.cursor;

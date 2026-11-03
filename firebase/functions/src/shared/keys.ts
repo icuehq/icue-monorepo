@@ -11,22 +11,29 @@ export function financialYearOf(date: Date): string {
 }
 
 /**
- * Next sequential number `TYPE/2026-27/000123` from `counters/{TYPE_fy}`.
- * Known limit: one number per type per transaction (a second call reads the same
- * counter); add a `count` parameter when bulk numbering (accessions) needs it.
+ * The next [count] sequential numbers `TYPE/2026-27/000123` from `counters/{TYPE_fy}`.
+ * Known limit: one call per type per transaction (a second call reads the same counter).
  */
-export async function nextNumber(
+export async function nextNumbers(
   context: CallableContext,
   type: string,
+  count: number,
   date = new Date(),
-): Promise<string> {
+): Promise<string[]> {
   const financialYear = financialYearOf(date);
   const ref = context.doc(`counters/${type}_${financialYear}`);
   const snapshot = await context.transaction.get(ref);
-  const next = ((snapshot.data()?.next as number | undefined) ?? 0) + 1;
-  context.set(ref, { next, updatedAt: serverTimestamp() });
-  return `${type}/${financialYear}/${String(next).padStart(6, '0')}`;
+  const first = ((snapshot.data()?.next as number | undefined) ?? 0) + 1;
+  context.set(ref, { next: first + count - 1, updatedAt: serverTimestamp() });
+  return Array.from(
+    { length: count },
+    (_, offset) => `${type}/${financialYear}/${String(first + offset).padStart(6, '0')}`,
+  );
 }
+
+/** Next sequential number `TYPE/2026-27/000123`. */
+export const nextNumber = async (context: CallableContext, type: string, date = new Date()) =>
+  (await nextNumbers(context, type, 1, date))[0];
 
 /** `uniqueKeys` document ID of [value]; codes are case-insensitive. */
 export const uniqueKeyId = (keyType: string, value: string) =>

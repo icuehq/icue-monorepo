@@ -186,7 +186,7 @@ class TransferCard extends StatelessWidget {
               const SizedBox(height: 12),
 
               // Items summary
-              if (transfer.status == 'requested') ...[
+              if (transfer.preDispatch) ...[
                 for (final line in transfer.requested.take(3))
                   Padding(
                     padding: const EdgeInsets.only(bottom: 4),
@@ -348,6 +348,13 @@ class TransferCard extends StatelessWidget {
           icon: Icons.pending_actions_rounded,
           foreground: Colors.amber[900]!,
           background: Colors.amber.withValues(alpha: 0.15),
+        );
+      case 'approved':
+        return _StatusConfig(
+          label: 'Approved',
+          icon: Icons.thumb_up_alt_outlined,
+          foreground: Colors.teal[800]!,
+          background: Colors.teal.withValues(alpha: 0.15),
         );
       case 'dispatched':
         return _StatusConfig(

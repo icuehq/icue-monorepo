@@ -9,7 +9,7 @@ import { clearFirestore, db } from './setup';
 
 const SCHOOL_ID = '12';
 let requestSequence = 0;
- 
+
 const run = (definition: CallableDef<any, any>, data: Record<string, unknown>, uid = 'proc') =>
   runCallable(
     definition,
@@ -152,20 +152,22 @@ describe('goods receiving', () => {
         { quantityReceived: 0 },
       ],
     });
-    expect(await code(receive([{ itemId: pen, quantityAccepted: 51 }]))).toBe(
+    expect(await code(receive([{ itemId: pen, quantityAccepted: 61 }]))).toBe(
       'failed-precondition',
-    ); // 50 still due
+    ); // 60 still due: rejected units do not fill the order
     expect(await code(run(o.purchaseOrderCancel, { id: purchaseOrder, reason: 'x' }))).toBe(
       'failed-precondition',
     );
 
     const secondReceipt = await receive([
-      { itemId: pen, quantityAccepted: 50 },
+      { itemId: pen, quantityAccepted: 60 },
       { itemId: ink, quantityAccepted: 0, quantityRejected: 20 },
     ]);
-    expect(secondReceipt.purchaseOrderStatus).toBe('fully_received');
-    expect((await balance(pen)).quantityAvailable).toBe(90);
+    expect(secondReceipt.purchaseOrderStatus).toBe('partially_received'); // ink was all rejected, still due
+    expect((await balance(pen)).quantityAvailable).toBe(100);
     expect(await get(`inventoryBalances/${store}__${ink}__-__-`)).toBeUndefined(); // rejected stock never enters the store
+    const replacement = await receive([{ itemId: ink, quantityAccepted: 20 }]);
+    expect(replacement.purchaseOrderStatus).toBe('fully_received');
     expect((await get(`inventoryPurchaseRequests/${purchaseRequest}`))!.status).toBe('completed');
     expect(await code(receive([{ itemId: pen, quantityAccepted: 1 }]))).toBe('failed-precondition'); // fully received
   });

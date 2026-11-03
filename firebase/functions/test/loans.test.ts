@@ -9,7 +9,7 @@ import { clearFirestore, db } from './setup';
 
 const SCHOOL_ID = '12';
 let requestSequence = 0;
- 
+
 const run = (definition: CallableDef<any, any>, data: Record<string, unknown>, uid = '1') =>
   runCallable(
     definition,
@@ -142,6 +142,20 @@ describe('library circulation', () => {
     });
     await set(`libraryLoans/${result.id}`, { 'policySnapshot.overdueRenewal': true });
     expect((await run(loans.loanRenew, { id: result.id })).dueDate).toBe(day(7));
+  });
+
+  it('overdue renewal fines the days already overdue and blocks the member', async () => {
+    const result = await issue();
+    await set(`libraryLoans/${result.id}`, {
+      dueDate: day(-3),
+      'policySnapshot.overdueRenewal': true,
+      'policySnapshot.fineType': 'per_day',
+      'policySnapshot.fineAmount': 2,
+    });
+    await run(loans.loanRenew, { id: result.id });
+    const fine = await get(`libraryFines/${result.id}__overdue__r1`);
+    expect(fine).toMatchObject({ type: 'overdue', amount: 6, status: 'outstanding' });
+    expect((await get('libraryMembers/student_501'))!.blocked).toBe(true);
   });
 
   it('return: good makes the copy available, records overdue days, frees the limit; second return fails', async () => {

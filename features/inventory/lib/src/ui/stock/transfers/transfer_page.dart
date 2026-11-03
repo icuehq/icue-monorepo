@@ -137,6 +137,57 @@ class _StockTransferPageState extends State<StockTransferPage> {
     );
   }
 
+  Future<void> _approve(InventoryTransfer transfer) async {
+    final confirmed = await _confirm(
+      'Approve transfer',
+      'Approve ${transfer.number}? The source store can then dispatch the stock.',
+      'Approve',
+    );
+    if (!confirmed || !mounted) return;
+    await _run(
+      (stockProvider) => stockProvider.act('inventory-transfer-approve', {
+        'id': transfer.id,
+      }, requestId: _requestId),
+      'Transfer approved',
+    );
+  }
+
+  Future<void> _cancel(InventoryTransfer transfer) async {
+    final reason = TextEditingController();
+    final given = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Cancel ${transfer.number}'),
+        content: TextField(
+          controller: reason,
+          autofocus: true,
+          maxLength: 500,
+          decoration: const InputDecoration(labelText: 'Reason'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Back'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(minimumSize: Size.zero),
+            onPressed: () => Navigator.pop(context, reason.text.trim()),
+            child: const Text('Cancel transfer'),
+          ),
+        ],
+      ),
+    );
+    reason.dispose();
+    if (given == null || given.isEmpty || !mounted) return;
+    await _run(
+      (provider) => provider.act('inventory-transfer-cancel', {
+        'id': transfer.id,
+        'reason': given,
+      }, requestId: _requestId),
+      'Transfer cancelled',
+    );
+  }
+
   Future<void> _confirmReceipt(InventoryTransfer transfer) async {
     final stockProvider = context.read<StockProvider>();
     final lineItems = <Map<String, Object?>>[];
@@ -217,13 +268,26 @@ class _StockTransferPageState extends State<StockTransferPage> {
             .firstOrNull
             ?.name ??
         id;
+    final canApprove = canApproveTransfer(transfer, access, stockProvider.uid);
     final canDispatch = canDispatchTransfer(transfer, access);
     final canReceive = canReceiveTransfer(transfer, access);
     final waiting =
-        !canDispatch && !canReceive && transferWaitingFor(transfer).isNotEmpty;
+        !canApprove &&
+        !canDispatch &&
+        !canReceive &&
+        transferWaitingFor(transfer).isNotEmpty;
 
     return Scaffold(
-      appBar: AppBar(title: Text(transfer.number)),
+      appBar: AppBar(
+        title: Text(transfer.number),
+        actions: [
+          if (canCancelTransfer(transfer, access))
+            TextButton(
+              onPressed: _busy ? null : () => _cancel(transfer),
+              child: const Text('Cancel transfer'),
+            ),
+        ],
+      ),
       body: RefreshIndicator(
         onRefresh: _load,
         child: ListView(
@@ -280,7 +344,7 @@ class _StockTransferPageState extends State<StockTransferPage> {
           ],
         ),
       ),
-      bottomNavigationBar: canDispatch || canReceive
+      bottomNavigationBar: canApprove || canDispatch || canReceive
           ? Material(
               elevation: 8,
               child: SafeArea(
@@ -289,6 +353,8 @@ class _StockTransferPageState extends State<StockTransferPage> {
                   child: FilledButton.icon(
                     onPressed: _busy
                         ? null
+                        : canApprove
+                        ? () => _approve(transfer)
                         : canDispatch
                         ? () => _dispatch(
                             transfer,
@@ -296,12 +362,18 @@ class _StockTransferPageState extends State<StockTransferPage> {
                           )
                         : () => _confirmReceipt(transfer),
                     icon: Icon(
-                      canDispatch
+                      canApprove
+                          ? Icons.thumb_up_alt_outlined
+                          : canDispatch
                           ? Icons.local_shipping_outlined
                           : Icons.check_circle_outline,
                     ),
                     label: Text(
-                      canDispatch ? 'Dispatch transfer' : 'Confirm receipt',
+                      canApprove
+                          ? 'Approve transfer'
+                          : canDispatch
+                          ? 'Dispatch transfer'
+                          : 'Confirm receipt',
                     ),
                   ),
                 ),

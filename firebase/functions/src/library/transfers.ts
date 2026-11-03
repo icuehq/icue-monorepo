@@ -5,6 +5,7 @@ import { serverTimestamp } from '../shared/firestore';
 import { nextNumber } from '../shared/keys';
 import { defineCallable, failed, id, missing, optionalText, usable } from '../shared/masters';
 import { enqueue } from '../shared/outbox';
+import { openIncident } from './incidents';
 import { holdDays, hold, nextWaiting } from './reservations';
 
 const CONDITIONS = ['good', 'fair', 'poor'] as const;
@@ -105,6 +106,8 @@ export const transfers = {
     handler: async (context, i) => {
       const { ref, transfer } = await loadTransfer(context, i.id, 'campusId');
       if (transfer.status !== 'requested') throw failed(`Transfer is ${transfer.status}`);
+      if (transfer.requestedBy === context.uid)
+        throw failed('A different user must approve this transfer');
       context.update(ref, {
         status: 'approved',
         approvedBy: context.uid,
@@ -116,6 +119,31 @@ export const transfers = {
         documentPath: ref.path,
         before: { status: transfer.status },
         after: { status: 'approved' },
+      });
+      return { id: ref.id };
+    },
+  }),
+
+  /** Withdraws or rejects a transfer before dispatch; the copies never left the shelf. */
+  transferCancel: defineCallable({
+    name: 'library.transfer.cancel',
+    permission: 'library.catalogue.manage',
+    input: z.object({ id, reason: z.string().trim().min(1).max(500) }),
+    handler: async (context, i) => {
+      const { ref, transfer } = await loadTransfer(context, i.id, 'campusId');
+      if (transfer.status !== 'requested' && transfer.status !== 'approved')
+        throw failed(`Transfer is ${transfer.status}`);
+      context.update(ref, {
+        status: 'cancelled',
+        cancelReason: i.reason,
+        cancelledBy: context.uid,
+        updatedAt: serverTimestamp(),
+      });
+      context.audit({
+        action: 'libraryTransfer.cancel',
+        documentPath: ref.path,
+        before: { status: transfer.status },
+        reason: i.reason,
       });
       return { id: ref.id };
     },
@@ -270,6 +298,60 @@ export const transfers = {
         after: { status, copyIds: ids },
       });
       return { id: ref.id, status };
+    },
+  }),
+
+  /** Closes a transfer whose remaining copies never arrived: each is marked lost and gets an incident. */
+  transferCloseShort: defineCallable({
+    name: 'library.transfer.closeShort',
+    permission: 'library.catalogue.manage',
+    input: z.object({ id, reason: z.string().trim().min(1).max(500) }),
+    handler: async (context, i) => {
+      const { ref, transfer } = await loadTransfer(context, i.id, 'toCampusId');
+      if (transfer.status !== 'dispatched' && transfer.status !== 'partially_received')
+        throw failed(`Transfer is ${transfer.status}`);
+      const missingIds = (transfer.lineItems as { copyId: string; received: boolean }[])
+        .filter((lineItem) => !lineItem.received)
+        .map((lineItem) => lineItem.copyId);
+      if (!missingIds.length) throw failed('Every copy has arrived');
+      const snapshots = await context.transaction.getAll(
+        ...missingIds.map((copyId) => context.doc(`libraryCopies/${copyId}`)),
+      );
+      for (const snapshot of snapshots) {
+        const copy = snapshot.data();
+        if (!copy) throw missing('libraryCopy');
+        context.update(snapshot.ref, {
+          status: 'lost',
+          transferId: null,
+          updatedAt: serverTimestamp(),
+        });
+        await openIncident(context, {
+          type: 'lost',
+          copy,
+          copyId: snapshot.id,
+          severity: null,
+          description: `Lost in transit (${transfer.number}): ${i.reason}`,
+          charge: 0,
+          repairStatus: null,
+          title: 'Lost book recorded',
+          body: `${copy.accessionNumber} did not arrive in transfer ${transfer.number}.`,
+        });
+      }
+      context.update(ref, {
+        status: 'received',
+        closedShort: true,
+        shortfall: missingIds,
+        closeReason: i.reason,
+        receivedDate: todayIST(),
+        updatedAt: serverTimestamp(),
+      });
+      context.audit({
+        action: 'libraryTransfer.closeShort',
+        documentPath: ref.path,
+        after: { shortfall: missingIds },
+        reason: i.reason,
+      });
+      return { id: ref.id, shortfall: missingIds.length };
     },
   }),
 };

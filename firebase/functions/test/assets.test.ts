@@ -10,7 +10,7 @@ import { clearFirestore, db } from './setup';
 
 const SCHOOL_ID = '12';
 let requestSequence = 0;
- 
+
 const run = (definition: CallableDef<any, any>, data: Record<string, unknown>, uid = 'asset') =>
   runCallable(
     definition,
@@ -149,6 +149,21 @@ describe('assets and maintenance', () => {
     });
     await reg();
     expect(await code(reg())).toBe('failed-precondition'); // only 2 accepted
+  });
+
+  it('registers several identical units in one call, within the accepted quantity', async () => {
+    const bulk = await run(a.register, { itemId: laptop, storeId: store, quantity: 3 });
+    expect(bulk.ids).toHaveLength(3);
+    expect(new Set(bulk.numbers).size).toBe(3);
+    expect(await get(`inventoryAssets/${bulk.ids[2]}`)).toMatchObject({ status: 'available' });
+    expect(
+      await code(
+        run(a.register, { itemId: laptop, storeId: store, quantity: 2, serialNumber: 'X' }),
+      ),
+    ).toBe('failed-precondition'); // a serial number belongs to one unit
+    expect(await code(run(a.register, { itemId: laptop, storeId: store, quantity: 51 }))).toBe(
+      'invalid-argument',
+    );
   });
 
   it('assign, transfer and return keep history; one custodian at a time', async () => {

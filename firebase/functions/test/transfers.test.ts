@@ -12,7 +12,7 @@ import { clearFirestore, db } from './setup';
 
 const SCHOOL_ID = '12';
 let requestSequence = 0;
- 
+
 const run = (definition: CallableDef<any, any>, data: Record<string, unknown>, uid = '1') =>
   runCallable(
     definition,
@@ -34,6 +34,13 @@ describe('library transfers and stock verification', () => {
           'library.catalogue.manage',
           'library.circulation.operate',
         ],
+        campusIds: [31, 32],
+        hasAllCampuses: false,
+      });
+    await db()
+      .doc(`schools/${SCHOOL_ID}/userAccess/approver`)
+      .set({
+        permissions: ['library.settings', 'library.catalogue.manage'],
         campusIds: [31, 32],
         hasAllCampuses: false,
       });
@@ -68,6 +75,46 @@ describe('library transfers and stock verification', () => {
       { fromLibraryId: mainLibrary, toLibraryId: secondLibrary, copyIds },
       'src',
     );
+
+  it('a transfer can be withdrawn before dispatch, cannot be approved by its requester, and can close short', async () => {
+    const withdrawn = await request();
+    await expect(
+      run(transfers.transferCancel, { id: withdrawn.id, reason: '' }, 'src'),
+    ).rejects.toThrow();
+    await run(transfers.transferCancel, { id: withdrawn.id, reason: 'Not needed' }, 'src');
+    expect((await get(`libraryTransfers/${withdrawn.id}`))?.status).toBe('cancelled');
+
+    const own = await run(
+      transfers.transferRequest,
+      {
+        fromLibraryId: mainLibrary,
+        toLibraryId: secondLibrary,
+        copyIds: ['ACC-000001', 'ACC-000002'],
+      },
+      'approver',
+    );
+    await expect(run(transfers.transferApprove, { id: own.id }, 'approver')).rejects.toThrow(
+      /different user/,
+    );
+    await run(transfers.transferApprove, { id: own.id });
+    await run(transfers.transferDispatch, { id: own.id }, 'src');
+    await run(
+      transfers.transferReceive,
+      { id: own.id, copies: [{ copyId: 'ACC-000001' }] },
+      'dest',
+    );
+    const closed = await run(
+      transfers.transferCloseShort,
+      { id: own.id, reason: 'Never arrived' },
+      'dest',
+    );
+    expect(closed.shortfall).toBe(1);
+    expect(await get(`libraryTransfers/${own.id}`)).toMatchObject({
+      status: 'received',
+      closedShort: true,
+    });
+    expect((await get('libraryCopies/ACC-000002'))?.status).toBe('lost');
+  });
 
   it('request → approve → dispatch → receive moves copies; in-transit copies cannot be issued', async () => {
     const transfer = await request();
@@ -275,16 +322,20 @@ describe('library transfers and stock verification', () => {
       ).rejects.toThrow(/submitted/);
 
       await expect(
-        run(verification.verificationApprove, { id: session.id, lost: ['ACC-000001'] }),
+        run(verification.verificationApprove, { id: session.id, lost: ['ACC-000001'] }, 'approver'),
       ).rejects.toThrow(/missing/);
       await expect(
         run(verification.verificationApprove, { id: session.id, lost: ['ACC-000002'] }, 'src'),
       ).rejects.toThrow(/Not allowed/);
-      await run(verification.verificationApprove, {
-        id: session.id,
-        lost: ['ACC-000002'],
-        move: ['ACC-000004'],
-      });
+      await run(
+        verification.verificationApprove,
+        {
+          id: session.id,
+          lost: ['ACC-000002'],
+          move: ['ACC-000004'],
+        },
+        'approver',
+      );
       expect((await get('libraryCopies/ACC-000002'))?.status).toBe('lost');
       expect(await get('libraryCopies/ACC-000004')).toMatchObject({
         libraryId: mainLibrary,
@@ -309,7 +360,7 @@ describe('library transfers and stock verification', () => {
         accessionNumbers: ['ACC-000001'],
       });
       await run(verification.verificationSubmit, { id: session.id });
-      await run(verification.verificationApprove, { id: session.id });
+      await run(verification.verificationApprove, { id: session.id }, 'approver');
       expect((await get(`libraryVerifications/${session.id}`))?.investigate).toEqual([
         'ACC-000002',
         'ACC-000003',
