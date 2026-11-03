@@ -111,11 +111,11 @@ All module data lives under the school: `schools/{schoolId}/<collection>/{docId}
 
 Common fields on every document: `campusId`, `createdAt`, `createdBy` (uid), `updatedAt`, `status`.
 
-**ERP references are IDs only** (D7): `personErpId`, `classId`, `departmentId`, `academicYearId`. Screens resolve names through the existing Node APIs, batching the IDs of the visible page. Consequences, accepted:
+**ERP references are IDs only** (D7): `personErpId`, `classId`, `departmentId`. Screens resolve names through the existing Node APIs, batching the IDs of the visible page. Consequences, accepted:
 
 - The server trusts the ERP IDs it receives from users holding the operating permission; it cannot check that a student ID belongs to the school. Every such write is audited with the actor.
 - Search by person name happens in Node (pick the person), then Firestore is queried by `personErpId`.
-- Report exports run in Flutter (§9) so name columns can be filled from Node. Transactions also carry `transactionDate`, `financialYear` (financial year, derived from date: Apr–Mar, e.g. `2026-27`) and `academicYearId` (academic year ID from ERP) — stamped once, never rewritten (FRS 13).
+- Report exports run in Flutter (§9) so name columns can be filled from Node. Transactions also carry `transactionDate`, `financialYear` (financial year, derived from date: Apr–Mar, e.g. `2026-27`) — stamped once, never rewritten (FRS 13).
 
 ### 4.1 Shared
 
@@ -142,7 +142,7 @@ Common fields on every document: `campusId`, `createdAt`, `createdBy` (uid), `up
 | `inventoryStores` | code, name, campusId, location, storekeeperIds, status | Department/location is a field on the store or balance |
 | `inventoryBalances/{storeId__itemId__variantId__batchId}` | quantityAvailable, quantityReserved, quantityDamaged, quantityExpired, totalQuantityReceived, totalQuantityIssued, unitCost, value, batchNumber, manufacturingDate, expiryDate, isBelowReorderLevel | **The only stock balance.** One doc per store × item × variant × batch (`-` when not applicable). |
 | `inventoryMovements` | type (`receive`, `issue`, `return`, `transfer_out`, `transfer_in`, `adjust`, `expire`, `damage`, `writeoff`, `restore`), balanceId, itemId, storeId, quantity (signed), bucket, refType, refId, unitCost | Append-only ledger. Never updated. |
-| `inventoryIssueRequests` | lineItems `[{itemId, variantId, quantityRequested, quantityApproved, quantityIssued}]`, itemIds, requester, departmentId, purpose, status, approval `{by, at, comment}` | FRS 10.8 |
+| `inventoryIssueRequests` | lineItems `[{itemId, variantId, quantityRequested, quantityApproved, quantityIssued}]`, itemIds, requester, purpose, status, approval `{by, at, comment}` | FRS 10.8 |
 | `inventoryIssues` | requestId, lineItems `[{balanceId, quantity}]`, recipient `{type, personErpId}`, issuedBy, recipientAck | One per issuance (partials allowed) |
 | `inventoryReturns` | issueId, lineItems `[{balanceId, quantityUsable, quantityDamaged}]`, inspection | `quantityReturned ≤ issued − returned` |
 | `inventoryTransfers` | from `{campusId, storeId}`, to, `campusId` (source) + `toCampusId` for rules, `requested` `[{itemId, variantId, quantity}]`, lines (set at dispatch, one per batch) `[{balanceId, quantityDispatched, quantityReceived, discrepancy}]`, status `requested | dispatched | partially_received | received` | In-transit = dispatched − received on open transfers |
@@ -204,7 +204,7 @@ Names below are logical; they deploy as `<group>-<name>` (`session.sync` → `se
 | Session | `session.sync` |
 | Settings | `config.setRolePermissions`, `inventory.setSettings`, `library.setSettings` |
 | Inventory masters | `inventory.seedDefaults`, `inventory.item.search`. Categories, units, stores, items, variants and vendors are client Firestore writes (`firestore.rules`); the bulk importer reuses their server handlers internally. |
-| Stock | Receive Stock and issue request submit/decide are client transactions (`StockWrites`). `inventory.issue.create`, `inventory.issue.acknowledge`, `inventory.return.create`, `inventory.transfer.request/dispatch/receive`, `inventory.adjustment.create/approve`, `inventory.unavailable.report/resolve` |
+| Stock | Receive Stock, issue request submit/decide, issuing stock, acknowledging an issue, returns, transfer requests, approvals, cancellations, dispatches, receipts, stock adjustments, and unavailable-stock reports and resolutions are client transactions (`StockWrites`). `inventory.adjustment.approve` |
 | Procurement | `inventory.purchaseOrder.save/issue/revise/acknowledge/cancel/close/receive`. Purchase requests, quotations and invoices are client Firestore writes (`ProcurementWrites`). |
 | Assets | `inventory.asset.register`, `inventory.asset.assign/return/transfer/setCondition/retire`, `inventory.maintenance.save/setStatus` |
 | Verification | `inventory.verification.create/count/submit/decide` (approve creates adjustments referencing the session; reject reopens counting) |

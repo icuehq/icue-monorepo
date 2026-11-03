@@ -61,12 +61,17 @@ export const stockPerson = z.object({
   type: z.enum(['staff', 'student', 'department']),
   personErpId: z.number().int(),
 });
-/** Header fields stamped on every transaction (FRS 13): date defaults to today (IST), `academicYearId` is the ERP academic year. */
+/** Header fields stamped on every transaction (FRS 13): date defaults to today (IST). */
 export const transactionFields = {
   date: isoDate.optional(),
-  academicYearId: z.number().int().nullish(),
 };
 export const lineKey = { itemId: id, variantId: id.nullish() };
+/** Batch identity of a stock line (FRS 10.7). */
+export const batch = {
+  batchNumber: z.string().trim().min(1).max(40).nullish(),
+  manufacturingDate: isoDate.nullish(),
+  expiryDate: isoDate.nullish(),
+};
 
 /** Identifies a line by item and variant. */
 export const lineItemKey = (lineItem: { itemId?: string; variantId?: string | null }) =>
@@ -90,7 +95,6 @@ export const balanceId = (
 export class Stock {
   readonly date: string;
   readonly financialYear: string;
-  readonly academicYearId: number | null;
   private readonly bals = new Map<string, StockBalance>();
   private readonly items = new Map<string, DocumentData>();
   private readonly moves: DocumentData[] = [];
@@ -98,12 +102,11 @@ export class Stock {
 
   constructor(
     readonly context: CallableContext,
-    header: { date?: string; academicYearId?: number | null } = {},
+    header: { date?: string } = {},
   ) {
     this.date = header.date ?? todayIST();
     if (this.date > todayIST()) throw failed('Date cannot be in the future');
     this.financialYear = financialYearOf(new Date(`${this.date}T12:00:00+05:30`));
-    this.academicYearId = header.academicYearId ?? null;
   }
 
   /** Store the caller may operate on; inactive stores are rejected for new transactions unless [inactiveOk]. */
@@ -345,7 +348,6 @@ export class Stock {
       unitCost: movement.unitCost ?? balance.data.unitCost,
       transactionDate: dayTimestamp(this.date),
       financialYear: this.financialYear,
-      academicYearId: this.academicYearId,
       seq: this.seq++,
       createdAt: serverTimestamp(),
       createdBy: this.context.uid,
@@ -412,7 +414,6 @@ export class Stock {
       campusId: storeCampus,
       transactionDate: dayTimestamp(this.date),
       financialYear: this.financialYear,
-      academicYearId: this.academicYearId,
       createdAt: serverTimestamp(),
       createdBy: this.context.uid,
       updatedAt: serverTimestamp(),

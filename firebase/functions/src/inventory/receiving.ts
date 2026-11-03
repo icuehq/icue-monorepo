@@ -3,6 +3,7 @@ import type { CallableContext } from '../shared/callable';
 import { serverTimestamp } from '../shared/firestore';
 import { defineCallable, failed, id, missing, optionalText } from '../shared/masters';
 import {
+  batch,
   assertUniqueLines,
   type StoredBatch,
   lineItemKey,
@@ -10,7 +11,6 @@ import {
   Stock,
   transactionFields,
 } from './stock';
-import { batch } from './stock-operations';
 
 /** Goods receiving against purchase orders (FRS 10.17). Vendor invoices are client writes. */
 

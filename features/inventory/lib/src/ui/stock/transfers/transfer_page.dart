@@ -268,7 +268,7 @@ class _StockTransferPageState extends State<StockTransferPage> {
             .firstOrNull
             ?.name ??
         id;
-    final canApprove = canApproveTransfer(transfer, access, stockProvider.uid);
+    final canApprove = canApproveTransfer(transfer, access);
     final canDispatch = canDispatchTransfer(transfer, access);
     final canReceive = canReceiveTransfer(transfer, access);
     final waiting =

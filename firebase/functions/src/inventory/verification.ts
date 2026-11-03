@@ -200,8 +200,6 @@ export const verification = {
       if (!session) throw missing('Verification');
       context.requireCampus(session.campusId);
       if (session.status !== 'submitted') throw failed(`Verification is ${session.status}`);
-      if (session.submittedBy === context.uid)
-        throw failed('A different user must review this count');
       if (i.decision === 'reject' && !i.comment) throw failed('Give a reason for rejecting');
       const approval = {
         performedBy: context.uid,

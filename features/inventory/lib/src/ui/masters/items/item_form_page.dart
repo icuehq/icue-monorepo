@@ -85,7 +85,8 @@ class _ItemFormPageState extends State<ItemFormPage> {
     ];
     final subs = [
       for (final category in inventoryProvider.categories)
-        if (category.parentId == _categoryId &&
+        if (_categoryId != null &&
+            category.parentId == _categoryId &&
             (category.active || category.id == _existingItem?.subcategoryId))
           category,
     ];

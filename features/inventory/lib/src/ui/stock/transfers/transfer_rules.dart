@@ -11,14 +11,9 @@ bool canDispatchTransfer(InventoryTransfer transfer, ModuleAccess access) =>
     access.can('inventory.stock.operate') &&
     _onCampus(access, transfer.fromCampusId);
 
-/// A stock approver other than the requester releases a requested transfer for dispatch.
-bool canApproveTransfer(
-  InventoryTransfer transfer,
-  ModuleAccess access,
-  String uid,
-) =>
+/// A stock approver releases a requested transfer for dispatch.
+bool canApproveTransfer(InventoryTransfer transfer, ModuleAccess access) =>
     transfer.status == 'requested' &&
-    transfer.createdBy != uid &&
     access.can('inventory.adjustment.approve') &&
     _onCampus(access, transfer.fromCampusId);
 
@@ -35,12 +30,8 @@ bool canReceiveTransfer(InventoryTransfer transfer, ModuleAccess access) =>
     _onCampus(access, transfer.toCampusId);
 
 /// What this user should do next on [transfer], or null when nothing waits on them.
-String? transferNextAction(
-  InventoryTransfer transfer,
-  ModuleAccess access,
-  String uid,
-) {
-  if (canApproveTransfer(transfer, access, uid)) return 'Needs your approval';
+String? transferNextAction(InventoryTransfer transfer, ModuleAccess access) {
+  if (canApproveTransfer(transfer, access)) return 'Needs your approval';
   if (canDispatchTransfer(transfer, access)) return 'Ready to dispatch';
   if (canReceiveTransfer(transfer, access)) return 'Confirm receipt on arrival';
   return null;

@@ -170,11 +170,7 @@ class _TransfersPageState extends State<TransfersPage> {
                           fromStoreName: storeName(transfer.fromStoreId),
                           toStoreName: storeName(transfer.toStoreId),
                           getItemName: stockProvider.itemName,
-                          nextAction: transferNextAction(
-                            transfer,
-                            access,
-                            stockProvider.uid,
-                          ),
+                          nextAction: transferNextAction(transfer, access),
                           onTap: () => _open(
                             '${InventoryRoutes.inventoryTransferDetail}?id=${transfer.id}',
                           ),

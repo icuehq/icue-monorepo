@@ -103,7 +103,6 @@ class InventoryPurchaseRequest {
     required this.id,
     required this.number,
     required this.campusId,
-    this.departmentId,
     required this.status,
     required this.priority,
     required this.purpose,
@@ -123,7 +122,6 @@ class InventoryPurchaseRequest {
     id: id,
     number: data['number'] as String? ?? '',
     campusId: (data['campusId'] as num? ?? 0).toInt(),
-    departmentId: (data['departmentId'] as num?)?.toInt(),
     status: data['status'] as String? ?? 'draft',
     priority: data['priority'] as String? ?? 'normal',
     purpose: data['purpose'] as String? ?? '',
@@ -147,7 +145,6 @@ class InventoryPurchaseRequest {
   final String id;
   final String number;
   final int campusId;
-  final int? departmentId;
   final String status;
   final String priority;
   final String purpose;

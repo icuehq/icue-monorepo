@@ -135,7 +135,6 @@ class ProcurementWrites {
         },
     ];
     final fields = {
-      'departmentId': data['departmentId'],
       'requiredDate': dayTimestamp(requiredDate),
       'priority': data['priority'] ?? 'normal',
       'purpose': (data['purpose']! as String).trim(),

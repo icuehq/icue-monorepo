@@ -283,7 +283,6 @@ models:
       fields:
         number: string
         campusId: int
-        departmentId: int?
         status: { type: string, default: draft }
         priority: { type: string, default: normal }
         purpose: string

@@ -91,18 +91,32 @@ service cloud.firestore {
         && coll in ['inventoryBalances', 'inventoryMovements', 'inventoryReceipts', 'inventoryIssues', 'inventoryReturns', 'inventoryAdjustments', 'inventoryUnavailableStock']
         && can(schoolId, 'inventory.stock.view') && onCampus(schoolId, resource.data.campusId);
     }
-    // Receive Stock is a client transaction: stock operators on the campus create receipts and ledger rows (never edit
-    // them) and create/update the receiving store's balances.
+    // Receive Stock, issuing stock and returns are client transactions: stock operators on the campus create receipts, issues, returns, unavailable-stock
+    // entries and ledger rows (never edit them) and create/update the store's balances.
     match /schools/{schoolId}/{coll}/{id} {
-      allow create: if inSchool(schoolId) && coll in ['inventoryReceipts', 'inventoryMovements']
+      allow create: if inSchool(schoolId) && coll in ['inventoryReceipts', 'inventoryIssues', 'inventoryReturns', 'inventoryAdjustments', 'inventoryUnavailableStock', 'inventoryMovements']
         && can(schoolId, 'inventory.stock.operate') && onCampus(schoolId, request.resource.data.campusId)
         && request.resource.data.createdBy == request.auth.uid;
+    }
+    // A return only moves an issue's returned quantities.
+    match /schools/{schoolId}/inventoryIssues/{id} {
+      allow update: if inSchool(schoolId) && can(schoolId, 'inventory.stock.operate')
+        && onCampus(schoolId, resource.data.campusId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lineItems', 'updatedAt']);
+    }
+    // Acknowledging an issue only fills its empty acknowledgement.
+    match /schools/{schoolId}/inventoryIssues/{id} {
+      allow update: if inSchool(schoolId) && can(schoolId, 'inventory.stock.operate')
+        && onCampus(schoolId, resource.data.campusId)
+        && resource.data.acknowledgement == null
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['acknowledgement', 'updatedAt'])
+        && request.resource.data.acknowledgement.performedBy == request.auth.uid;
     }
     match /schools/{schoolId}/inventoryBalances/{id} {
       allow create, update: if inSchool(schoolId) && can(schoolId, 'inventory.stock.operate')
         && onCampus(schoolId, request.resource.data.campusId);
     }
-    // Submitting and approving/rejecting an issue request are client writes; issuing stays with Functions.
+    // Submitting, approving/rejecting and issuing against an issue request, and acknowledging an issue, are client writes.
     match /schools/{schoolId}/inventoryIssueRequests/{id} {
       allow create: if inSchool(schoolId) && can(schoolId, 'inventory.issue.request')
         && onCampus(schoolId, request.resource.data.campusId)
@@ -115,6 +129,14 @@ service cloud.firestore {
         && request.resource.data.status in ['approved', 'rejected']
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'lineItems', 'approval', 'updatedAt'])
         && request.resource.data.approval.performedBy == request.auth.uid;
+    }
+    // Issuing stock only moves an approved request's issued quantities and status.
+    match /schools/{schoolId}/inventoryIssueRequests/{id} {
+      allow update: if inSchool(schoolId) && can(schoolId, 'inventory.stock.operate')
+        && onCampus(schoolId, resource.data.campusId)
+        && resource.data.status in ['approved', 'partially_issued']
+        && request.resource.data.status in ['partially_issued', 'issued']
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'lineItems', 'updatedAt']);
     }
     // The requester may withdraw a pending request; a stock operator may close one still awaiting issue.
     match /schools/{schoolId}/inventoryIssueRequests/{id} {
@@ -129,6 +151,66 @@ service cloud.firestore {
     match /schools/{schoolId}/inventoryIssueRequests/{id} {
       allow read: if inSchool(schoolId) && (resource.data.createdBy == request.auth.uid
         || ((can(schoolId, 'inventory.stock.view') || can(schoolId, 'inventory.issue.approve')) && onCampus(schoolId, resource.data.campusId)));
+    }
+    // Requesting, approving, cancelling, dispatching and receiving a transfer are client writes.
+    match /schools/{schoolId}/inventoryTransfers/{id} {
+      allow create: if inSchool(schoolId) && can(schoolId, 'inventory.stock.operate')
+        && onCampus(schoolId, request.resource.data.campusId)
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.status == 'requested';
+    }
+    // Approving a transfer moves a requested one to approved, by an approver on the source campus.
+    match /schools/{schoolId}/inventoryTransfers/{id} {
+      allow update: if inSchool(schoolId) && can(schoolId, 'inventory.adjustment.approve')
+        && onCampus(schoolId, resource.data.campusId)
+        && resource.data.status == 'requested'
+        && request.resource.data.status == 'approved'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'approval', 'updatedAt'])
+        && request.resource.data.approval.performedBy == request.auth.uid;
+    }
+    // A requested or approved transfer can be withdrawn by a stock operator on the source campus, with a reason.
+    match /schools/{schoolId}/inventoryTransfers/{id} {
+      allow update: if inSchool(schoolId) && can(schoolId, 'inventory.stock.operate')
+        && onCampus(schoolId, resource.data.campusId)
+        && resource.data.status in ['requested', 'approved']
+        && request.resource.data.status == 'cancelled'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'cancelReason', 'cancelledBy', 'updatedAt'])
+        && request.resource.data.cancelledBy == request.auth.uid
+        && request.resource.data.cancelReason.size() > 0;
+    }
+    // Dispatching sends an approved transfer out, by a stock operator on the source campus.
+    match /schools/{schoolId}/inventoryTransfers/{id} {
+      allow update: if inSchool(schoolId) && can(schoolId, 'inventory.stock.operate')
+        && onCampus(schoolId, resource.data.campusId)
+        && resource.data.status == 'approved'
+        && request.resource.data.status == 'dispatched'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lineItems', 'status', 'dispatch', 'updatedAt'])
+        && request.resource.data.dispatch.performedBy == request.auth.uid;
+    }
+    // Receiving records what arrived, by a stock operator on the destination campus.
+    match /schools/{schoolId}/inventoryTransfers/{id} {
+      allow update: if inSchool(schoolId) && can(schoolId, 'inventory.stock.operate')
+        && onCampus(schoolId, resource.data.toCampusId)
+        && resource.data.status in ['dispatched', 'partially_received']
+        && request.resource.data.status in ['partially_received', 'received']
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lineItems', 'status', 'receipt', 'receipts', 'updatedAt'])
+        && request.resource.data.receipt.performedBy == request.auth.uid;
+    }
+    // A transfer shortfall is registered against the source store by the receiving campus.
+    match /schools/{schoolId}/inventoryUnavailableStock/{id} {
+      allow create: if inSchool(schoolId) && can(schoolId, 'inventory.stock.operate')
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.referenceType == 'transfer'
+        && request.resource.data.status == 'resolved'
+        && onCampus(schoolId, get(/databases/$(db)/documents/schools/$(schoolId)/inventoryTransfers/$(request.resource.data.referenceId)).data.toCampusId);
+    }
+    // Resolving an unavailable-stock entry: restore, repair or write off, by a stock operator on its campus.
+    match /schools/{schoolId}/inventoryUnavailableStock/{id} {
+      allow update: if inSchool(schoolId) && can(schoolId, 'inventory.stock.operate')
+        && onCampus(schoolId, resource.data.campusId)
+        && resource.data.status in ['open', 'in_repair']
+        && request.resource.data.status in ['in_repair', 'resolved']
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'resolution', 'resolutionNote', 'resolvedAt', 'resolvedBy', 'updatedAt']);
     }
     // Either end of a transfer may read it.
     match /schools/{schoolId}/inventoryTransfers/{id} {

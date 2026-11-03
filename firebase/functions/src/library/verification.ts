@@ -180,8 +180,6 @@ export const verification = {
     handler: async (context, i) => {
       const { ref, verification: session } = await loadSession(context, i.id);
       if (session.status !== 'submitted') throw failed(`Verification is ${session.status}`);
-      if (session.submittedBy === context.uid)
-        throw failed('A different user must approve this count');
       const missingIds = new Set(list(session, 'missing'));
       const unexpected = new Set(list(session, 'unexpected'));
       if (i.lost.some((copyId) => !missingIds.has(copyId)))

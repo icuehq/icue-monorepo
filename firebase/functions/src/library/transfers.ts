@@ -106,8 +106,6 @@ export const transfers = {
     handler: async (context, i) => {
       const { ref, transfer } = await loadTransfer(context, i.id, 'campusId');
       if (transfer.status !== 'requested') throw failed(`Transfer is ${transfer.status}`);
-      if (transfer.requestedBy === context.uid)
-        throw failed('A different user must approve this transfer');
       context.update(ref, {
         status: 'approved',
         approvedBy: context.uid,

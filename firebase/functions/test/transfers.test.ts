@@ -93,9 +93,6 @@ describe('library transfers and stock verification', () => {
       },
       'approver',
     );
-    await expect(run(transfers.transferApprove, { id: own.id }, 'approver')).rejects.toThrow(
-      /different user/,
-    );
     await run(transfers.transferApprove, { id: own.id });
     await run(transfers.transferDispatch, { id: own.id }, 'src');
     await run(

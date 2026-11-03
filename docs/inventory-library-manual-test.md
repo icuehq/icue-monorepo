@@ -189,7 +189,7 @@ Open **Stock** from Inventory tiles.
   - Destination: `Main Exam Hall - Block A`
   - Line items: Tap **+ Add item** → select `PEN-BLU-01`, Quantity: `30`.
   - Tap **Submit request**.
-- [ ] **Expect** request created with number `REQ/<year>/<seq>`. Status is `Pending`. Appears under `All` and `Pending` filter chips with count badge `1`.
+- [ ] **Expect** request created with number `ISR/<financialYear>/<seq>`. Status is `Pending`. Appears under `All` and `Pending` filter chips with count badge `1`.
 
 #### 1.2.6 Approve Issue Request
 

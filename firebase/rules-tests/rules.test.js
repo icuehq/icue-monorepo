@@ -185,7 +185,134 @@ describe('inventory stock', () => {
     await assertSucceeds(write('op', 'inventoryBalances/a31', { campusId: 31 }));
     await assertFails(write('op', 'inventoryBalances/a32', { campusId: 32 }));
     await assertFails(write('view', 'inventoryBalances/a31', { campusId: 31 }));
-    await assertFails(write('op', 'inventoryIssues/n1', { campusId: 31, createdBy: 'op' }));
+    await assertSucceeds(write('op', 'inventoryIssues/n1', { campusId: 31, createdBy: 'op' }));
+    await assertFails(write('op', 'inventoryIssues/n2', { campusId: 32, createdBy: 'op' }));
+    await assertFails(write('view', 'inventoryIssues/n3', { campusId: 31, createdBy: 'view' }));
+  });
+
+  it('acknowledge issue: operators on the campus fill the empty acknowledgement once', async () => {
+    const acknowledge = (user, data, path = 'inventoryIssues/a31') => updateDoc(doc(db(user), `schools/12/${path}`), data);
+    const receipt = { acknowledgement: { performedBy: 'op' }, updatedAt: 1 };
+    await assertFails(acknowledge('view', receipt));
+    await assertFails(acknowledge('op', receipt, 'inventoryIssues/a32'));
+    await assertFails(acknowledge('op', { ...receipt, campusId: 32 }));
+    await assertFails(acknowledge('op', { ...receipt, acknowledgement: { performedBy: 'someone' } }));
+    await assertSucceeds(acknowledge('op', receipt));
+    await assertFails(acknowledge('op', { ...receipt, updatedAt: 2 }));
+  });
+
+  it('returns: operators write returns and register entries, and only move the issue's returned quantities', async () => {
+    const write = (user, path, data) => setDoc(doc(db(user), `schools/12/${path}`), data);
+    for (const collectionName of ['inventoryReturns', 'inventoryAdjustments', 'inventoryUnavailableStock']) {
+      await assertSucceeds(write('op', `${collectionName}/n1`, { campusId: 31, createdBy: 'op' }));
+      await assertFails(write('op', `${collectionName}/n2`, { campusId: 32, createdBy: 'op' }));
+      await assertFails(write('view', `${collectionName}/n3`, { campusId: 31, createdBy: 'view' }));
+    }
+    const update = (user, data) => updateDoc(doc(db(user), 'schools/12/inventoryIssues/a31'), data);
+    await assertFails(update('view', { lineItems: [], updatedAt: 1 }));
+    await assertFails(update('op', { lineItems: [], updatedAt: 1, campusId: 32 }));
+    await assertSucceeds(update('op', { lineItems: [], updatedAt: 1 }));
+  });
+
+  it('transfer request: operators create requested transfers from their campus, as themselves', async () => {
+    const request = (user, data) => setDoc(doc(db(user), 'schools/12/inventoryTransfers/n1'), data);
+    const data = { campusId: 31, toCampusId: 32, createdBy: 'op', status: 'requested' };
+    await assertFails(request('view', { ...data, createdBy: 'view' }));
+    await assertFails(request('op', { ...data, campusId: 32 }));
+    await assertFails(request('op', { ...data, createdBy: 'someone' }));
+    await assertFails(request('op', { ...data, status: 'approved' }));
+    await assertSucceeds(request('op', data));
+  });
+
+  it('transfer approve: approvers on the source campus move a requested transfer to approved', async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      const firestore = context.firestore();
+      await setDoc(doc(firestore, 'schools/12/userAccess/tapr'), { permissions: ['inventory.adjustment.approve'], campusIds: [31], hasAllCampuses: false });
+      await setDoc(doc(firestore, 'schools/12/inventoryTransfers/t1'), { campusId: 31, toCampusId: 32, status: 'requested' });
+    });
+    const approve = (user, data) => updateDoc(doc(db(user), 'schools/12/inventoryTransfers/t1'), data);
+    const approval = { status: 'approved', approval: { performedBy: 'tapr' }, updatedAt: 1 };
+    await assertFails(approve('op', { ...approval, approval: { performedBy: 'op' } }));
+    await assertFails(approve('tapr', { ...approval, approval: { performedBy: 'someone' } }));
+    await assertFails(approve('tapr', { ...approval, campusId: 32 }));
+    await assertFails(approve('tapr', { ...approval, status: 'dispatched' }));
+    await assertSucceeds(approve('tapr', approval));
+    await assertFails(approve('tapr', approval));
+  });
+
+  it('transfer cancel: operators on the source campus withdraw a pre-dispatch transfer with a reason', async () => {
+    await env.withSecurityRulesDisabled((context) =>
+      setDoc(doc(context.firestore(), 'schools/12/inventoryTransfers/t2'), { campusId: 31, toCampusId: 32, status: 'approved' }),
+    );
+    const cancel = (user, data, path = 'inventoryTransfers/t2') => updateDoc(doc(db(user), `schools/12/${path}`), data);
+    const cancellation = { status: 'cancelled', cancelReason: 'Wrong store', cancelledBy: 'op', updatedAt: 1 };
+    await assertFails(cancel('view', { ...cancellation, cancelledBy: 'view' }));
+    await assertFails(cancel('op', { ...cancellation, cancelledBy: 'someone' }));
+    await assertFails(cancel('op', { ...cancellation, cancelReason: '' }));
+    await assertFails(cancel('op', { ...cancellation, campusId: 32 }));
+    await assertSucceeds(cancel('op', cancellation));
+    await assertFails(cancel('op', cancellation));
+  });
+
+  it('transfer dispatch: operators on the source campus send an approved transfer out', async () => {
+    await env.withSecurityRulesDisabled((context) =>
+      setDoc(doc(context.firestore(), 'schools/12/inventoryTransfers/t3'), { campusId: 31, toCampusId: 32, status: 'approved' }),
+    );
+    const dispatch = (user, data) => updateDoc(doc(db(user), 'schools/12/inventoryTransfers/t3'), data);
+    const sent = { status: 'dispatched', lineItems: [], dispatch: { performedBy: 'op' }, updatedAt: 1 };
+    await assertFails(dispatch('view', { ...sent, dispatch: { performedBy: 'view' } }));
+    await assertFails(dispatch('op', { ...sent, dispatch: { performedBy: 'someone' } }));
+    await assertFails(dispatch('op', { ...sent, campusId: 32 }));
+    await assertFails(dispatch('op', { ...sent, status: 'received' }));
+    await assertSucceeds(dispatch('op', sent));
+    await assertFails(dispatch('op', sent));
+  });
+
+  it('transfer receive: operators on the destination campus record arrivals and register shortfalls', async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      const firestore = context.firestore();
+      await setDoc(doc(firestore, 'schools/12/userAccess/dest'), { permissions: ['inventory.stock.operate'], campusIds: [32], hasAllCampuses: false });
+      await setDoc(doc(firestore, 'schools/12/inventoryTransfers/t4'), { campusId: 31, toCampusId: 32, status: 'dispatched' });
+    });
+    const receive = (user, data) => updateDoc(doc(db(user), 'schools/12/inventoryTransfers/t4'), data);
+    const arrived = { status: 'received', lineItems: [], receipt: { performedBy: 'dest' }, receipts: [], updatedAt: 1 };
+    await assertFails(receive('op', { ...arrived, receipt: { performedBy: 'op' } }));
+    await assertFails(receive('dest', { ...arrived, receipt: { performedBy: 'someone' } }));
+    await assertFails(receive('dest', { ...arrived, status: 'dispatched' }));
+    await assertSucceeds(receive('dest', arrived));
+    await assertFails(receive('dest', arrived));
+    const lost = { campusId: 31, createdBy: 'dest', referenceType: 'transfer', referenceId: 't4', status: 'resolved' };
+    const register = (user, data) => setDoc(doc(db(user), 'schools/12/inventoryUnavailableStock/lost1'), data);
+    await assertFails(register('op', { ...lost, createdBy: 'op' }));
+    await assertFails(register('dest', { ...lost, createdBy: 'someone' }));
+    await assertFails(register('dest', { ...lost, status: 'open' }));
+    await assertSucceeds(register('dest', lost));
+  });
+
+  it('resolve unavailable stock: operators on the campus close open entries, resolution fields only', async () => {
+    await env.withSecurityRulesDisabled((context) =>
+      setDoc(doc(context.firestore(), 'schools/12/inventoryUnavailableStock/u1'), { campusId: 31, status: 'open' }),
+    );
+    const resolve = (user, data, path = 'inventoryUnavailableStock/u1') => updateDoc(doc(db(user), `schools/12/${path}`), data);
+    const resolution = { status: 'resolved', resolution: 'dispose', resolutionNote: null, resolvedAt: 1, resolvedBy: 'op', updatedAt: 1 };
+    await assertFails(resolve('view', resolution));
+    await assertFails(resolve('op', { ...resolution, campusId: 32 }));
+    await assertFails(resolve('op', { ...resolution, quantity: 0 }));
+    await assertSucceeds(resolve('op', resolution));
+    await assertFails(resolve('op', resolution));
+  });
+
+  it('issue stock: operators move an approved request to issued, nothing else', async () => {
+    const issue = (user, data) => updateDoc(doc(db(user), 'schools/12/inventoryIssueRequests/r1'), data);
+    await env.withSecurityRulesDisabled((context) =>
+      updateDoc(doc(context.firestore(), 'schools/12/inventoryIssueRequests/r1'), { status: 'approved' }),
+    );
+    const issued = { status: 'issued', lineItems: [], updatedAt: 1 };
+    await assertFails(issue('view', issued));
+    await assertFails(issue('op', { ...issued, createdBy: 'op' }));
+    await assertFails(issue('op', { ...issued, status: 'approved' }));
+    await assertSucceeds(issue('op', issued));
+    await assertFails(issue('op', { ...issued, status: 'partially_issued' }));
   });
 
   it('issue request submit: requesters create pending requests on their campus, as themselves', async () => {

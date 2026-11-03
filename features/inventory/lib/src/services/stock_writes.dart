@@ -1,7 +1,7 @@
 import 'package:core_ui/core_ui.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 
-/// Client-side stock writes: Receive Stock (`inventory-receipt-confirm`) issue request submit and approve/reject.
+/// Client-side stock writes: Receive Stock (`inventory-receipt-confirm`), issue request submit and approve/reject, issuing stock (`inventory-issue-create`) confirming an issue's receipt returns against an issue requesting, approving, cancelling, dispatching and receiving a transfer, stock adjustments and unavailable stock.
 ///
 /// One Firestore transaction writes the receipt, its balances, the ledger rows
 /// and the GRN counter. Business checks live here and in `firestore.rules`
@@ -15,7 +15,26 @@ class StockWrites {
     'inventory-issueRequest-decide',
     'inventory-issueRequest-cancel',
     'inventory-issueRequest-close',
+    'inventory-issue-create',
+    'inventory-issue-acknowledge',
+    'inventory-return-create',
+    'inventory-transfer-request',
+    'inventory-transfer-approve',
+    'inventory-transfer-cancel',
+    'inventory-transfer-dispatch',
+    'inventory-transfer-receive',
+    'inventory-adjustment-create',
+    'inventory-unavailable-report',
+    'inventory-unavailable-resolve',
   };
+
+  static const _adjustmentReasons = [
+    'count_correction',
+    'data_entry',
+    'missing',
+    'excess',
+    'other',
+  ];
 
   static const _sources = [
     'opening',
@@ -32,6 +51,17 @@ class StockWrites {
         'inventory-issueRequest-decide' => _decideIssueRequest(data),
         'inventory-issueRequest-cancel' => _endIssueRequest(data, cancel: true),
         'inventory-issueRequest-close' => _endIssueRequest(data, cancel: false),
+        'inventory-issue-create' => _issueStock(data),
+        'inventory-issue-acknowledge' => _acknowledgeIssue(data),
+        'inventory-return-create' => _createReturn(data),
+        'inventory-transfer-request' => _requestTransfer(data),
+        'inventory-transfer-approve' => _approveTransfer(data),
+        'inventory-transfer-cancel' => _cancelTransfer(data),
+        'inventory-transfer-dispatch' => _dispatchTransfer(data),
+        'inventory-transfer-receive' => _receiveTransfer(data),
+        'inventory-adjustment-create' => _adjustStock(data),
+        'inventory-unavailable-report' => _reportUnavailable(data),
+        'inventory-unavailable-resolve' => _resolveUnavailable(data),
         _ => throw ArgumentError.value(name, 'name'),
       };
 
@@ -57,13 +87,14 @@ class StockWrites {
   Future<Map<String, dynamic>> _stockItem(
     Transaction transaction,
     String itemId,
-    String? variantId,
-  ) async {
+    String? variantId, {
+    bool inactiveOk = false,
+  }) async {
     final item = (await transaction.get(await _doc('inventoryItems/$itemId')))
         .data();
     if (item == null) _fail('Item not found');
     final name = item['name'];
-    if (item['status'] != 'active') _fail('$name is inactive');
+    if (!inactiveOk && item['status'] != 'active') _fail('$name is inactive');
     if (item['tracking'] == 'asset') {
       _fail('$name is an individual asset; assets are managed separately');
     }
@@ -77,7 +108,9 @@ class StockWrites {
         await _doc('inventoryItems/$itemId/variants/$variantId'),
       )).data();
       if (variant == null) _fail('Variant not found');
-      if (variant['status'] != 'active') _fail('Variant is inactive');
+      if (!inactiveOk && variant['status'] != 'active') {
+        _fail('Variant is inactive');
+      }
     }
     return item;
   }
@@ -101,9 +134,6 @@ class StockWrites {
     final reference = await _doc('inventoryIssueRequests/$id');
     final current = (await reference.get()).data();
     if (current == null) _fail('Issue request not found');
-    if (current['createdBy'] == uid) {
-      _fail('A different user must decide on your request');
-    }
     final approvedLines = <Map<String, dynamic>>[];
     if (approve) {
       final lines = (current['lineItems'] as List).cast<Map<String, dynamic>>();
@@ -270,7 +300,6 @@ class StockWrites {
       transaction.set(requestRef, {
         'number': requestNumber,
         'storeId': storeId,
-        'departmentId': data['departmentId'],
         'destination': _blankToNull(data['destination']),
         'purpose': purpose,
         'remarks': _blankToNull(data['remarks']),
@@ -291,7 +320,6 @@ class StockWrites {
         'campusId': store['campusId'],
         'transactionDate': dayTimestamp(todayIST()),
         'financialYear': financialYear,
-        'academicYearId': null,
         'createdAt': FieldValue.serverTimestamp(),
         'createdBy': user.uid,
         'updatedAt': FieldValue.serverTimestamp(),
@@ -406,69 +434,33 @@ class StockWrites {
         'next': next,
         'updatedAt': FieldValue.serverTimestamp(),
       });
-      final academicYearId = data['academicYearId'];
       var sequence = 0;
       for (final line in prepared) {
         if (line.accepted <= 0) continue;
-        final balance = line.balance;
-        final have = (balance?['quantityAvailable'] as num? ?? 0).toDouble();
-        final cost = (balance?['unitCost'] as num? ?? 0).toDouble();
-        final available = have + line.accepted;
-        final unitCost =
-            (have * cost + line.accepted * line.unitCost) / available;
-        final storedExpiry = readDayOrNull(balance?['expiryDate']);
-        if (storedExpiry != null &&
-            line.expiryDate != null &&
-            storedExpiry != line.expiryDate) {
-          _fail(
-            'Batch ${line.batchNumber} already exists with expiry $storedExpiry',
-          );
-        }
-        final expiry = storedExpiry ?? line.expiryDate;
-        transaction.set(line.balanceRef, {
-          'campusId': campusId,
-          'storeId': storeId,
-          'itemId': line.itemId,
-          'variantId': line.variantId,
-          'batchNumber': line.batchNumber,
-          'manufacturingDate': balance?['manufacturingDate'],
-          'expiryDate': dayTimestampOrNull(expiry),
-          'quantityAvailable': available,
-          'quantityReserved': balance?['quantityReserved'] ?? 0,
-          'quantityDamaged': balance?['quantityDamaged'] ?? 0,
-          'quantityExpired': balance?['quantityExpired'] ?? 0,
-          'totalQuantityReceived':
-              (balance?['totalQuantityReceived'] as num? ?? 0) + line.accepted,
-          'totalQuantityIssued': balance?['totalQuantityIssued'] ?? 0,
-          'unitCost': unitCost,
-          'value': (available * unitCost * 100).round() / 100,
-          'isBelowReorderLevel':
-              line.reorderLevel != null && available <= line.reorderLevel!,
-          'earliestExpiryDate': dayTimestampOrNull(expiry),
-          'createdAt': balance?['createdAt'] ?? FieldValue.serverTimestamp(),
-          'createdBy': balance?['createdBy'] ?? uid,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-        transaction.set(movements.doc(), {
-          'type': 'receive',
-          'balanceId': line.balanceId,
-          'itemId': line.itemId,
-          'variantId': line.variantId,
-          'storeId': storeId,
-          'campusId': campusId,
-          'batchNumber': line.batchNumber,
-          'quantity': line.accepted,
-          'bucket': 'available',
-          'referenceType': 'receipt',
-          'referenceId': receiptRef.id,
-          'unitCost': line.unitCost,
-          'transactionDate': dayTimestamp(today),
-          'financialYear': financialYear,
-          'academicYearId': academicYearId,
-          'seq': sequence++,
-          'createdAt': FieldValue.serverTimestamp(),
-          'createdBy': uid,
-        });
+        _addStock(
+          transaction,
+          movements,
+          reference: line.balanceRef,
+          balance: line.balance,
+          storeId: storeId,
+          campusId: campusId,
+          itemId: line.itemId,
+          variantId: line.variantId,
+          batchNumber: line.batchNumber,
+          expiryDate: line.expiryDate,
+          quantity: line.accepted,
+          unitCost: line.unitCost,
+          reorderLevel: line.reorderLevel,
+          type: 'receive',
+          referenceType: 'receipt',
+          referenceId: receiptRef.id,
+          sequence: sequence++,
+          ledger: {
+            'transactionDate': dayTimestamp(today),
+            'financialYear': financialYear,
+            'createdBy': uid,
+          },
+        );
       }
       transaction.set(receiptRef, {
         'number': grnNumber,
@@ -497,7 +489,6 @@ class StockWrites {
         'campusId': campusId,
         'transactionDate': dayTimestamp(today),
         'financialYear': financialYear,
-        'academicYearId': academicYearId,
         'createdAt': FieldValue.serverTimestamp(),
         'createdBy': uid,
         'updatedAt': FieldValue.serverTimestamp(),
@@ -506,6 +497,1466 @@ class StockWrites {
     });
     return {'id': receiptRef.id, 'number': number};
   }
+
+  /// The recipient's receipt of an issue is confirmed once.
+  Future<Map<String, dynamic>> _acknowledgeIssue(
+    Map<String, Object?> data,
+  ) async {
+    final id = data['id']! as String;
+    final reference = await _doc('inventoryIssues/$id');
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
+      final issue = (await transaction.get(reference)).data();
+      if (issue == null) _fail('Issue not found');
+      if (issue['acknowledgement'] != null) _fail('Already acknowledged');
+      transaction.update(reference, {
+        'acknowledgement': {
+          'performedBy': FirebaseAuth.instance.currentUser!.uid,
+          'performedAt': FieldValue.serverTimestamp(),
+          'remarks': _blankToNull(data['remarks']),
+        },
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    });
+    return {'id': id};
+  }
+
+  /// A store-to-store transfer request; approval, dispatch and receipt follow.
+  Future<Map<String, dynamic>> _requestTransfer(
+    Map<String, Object?> data,
+  ) async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final financialYear = _financialYear;
+    final fromStoreId = data['fromStoreId']! as String;
+    final toStoreId = data['toStoreId']! as String;
+    if (fromStoreId == toStoreId) _fail('Source and destination must differ');
+    final lines = [
+      for (final line in (data['lineItems']! as List))
+        Map<String, dynamic>.from(line as Map),
+    ];
+    if (lines.isEmpty) _fail('Add at least one item');
+    final lineKeys = {
+      for (final line in lines)
+        '${line['itemId']}__${line['variantId'] ?? '-'}',
+    };
+    if (lineKeys.length != lines.length) {
+      _fail('Each item (and variant) may appear once');
+    }
+    if (lines.any((line) => ((line['quantity'] as num?) ?? 0) <= 0)) {
+      _fail('Each line needs a quantity');
+    }
+
+    final fromRef = await _doc('inventoryStores/$fromStoreId');
+    final toRef = await _doc('inventoryStores/$toStoreId');
+    final counterRef = await _doc('counters/TRF_$financialYear');
+    final transferRef = (await schoolCollection('inventoryTransfers')).doc();
+    final number = await FirebaseFirestore.instance.runTransaction((
+      transaction,
+    ) async {
+      final from = (await transaction.get(fromRef)).data();
+      if (from == null) _fail('Store not found');
+      if (from['status'] != 'active') _fail('Store is inactive');
+      final to = (await transaction.get(toRef)).data();
+      if (to == null) _fail('Destination store not found');
+      if (to['status'] != 'active') _fail('Destination store is inactive');
+      final next =
+          ((await transaction.get(counterRef)).data()?['next'] as num? ?? 0)
+              .toInt() +
+          1;
+      for (final line in lines) {
+        await _stockItem(
+          transaction,
+          line['itemId']! as String,
+          line['variantId'] as String?,
+        );
+      }
+      final transferNumber =
+          'TRF/$financialYear/${next.toString().padLeft(6, '0')}';
+      transaction.set(counterRef, {
+        'next': next,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      transaction.set(transferRef, {
+        'number': transferNumber,
+        'from': {'campusId': from['campusId'], 'storeId': fromStoreId},
+        'to': {'campusId': to['campusId'], 'storeId': toStoreId},
+        'toCampusId': to['campusId'],
+        'remarks': _blankToNull(data['remarks']),
+        'requested': [
+          for (final line in lines)
+            {
+              'itemId': line['itemId'],
+              'variantId': line['variantId'],
+              'quantity': line['quantity'],
+            },
+        ],
+        'lineItems': <Object?>[],
+        'itemIds': [for (final line in lines) line['itemId']],
+        'status': 'requested',
+        'campusId': from['campusId'],
+        'transactionDate': dayTimestamp(todayIST()),
+        'financialYear': financialYear,
+        'createdAt': FieldValue.serverTimestamp(),
+        'createdBy': uid,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      return transferNumber;
+    });
+    return {'id': transferRef.id, 'number': number};
+  }
+
+  /// Releases a requested transfer for dispatch.
+  Future<Map<String, dynamic>> _approveTransfer(
+    Map<String, Object?> data,
+  ) async {
+    final id = data['id']! as String;
+    final reference = await _doc('inventoryTransfers/$id');
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
+      final status = (await transaction.get(reference)).data()?['status'];
+      if (status == null) _fail('Transfer not found');
+      if (status != 'requested') _fail('Transfer is $status');
+      transaction.update(reference, {
+        'status': 'approved',
+        'approval': {
+          'performedBy': FirebaseAuth.instance.currentUser!.uid,
+          'performedAt': FieldValue.serverTimestamp(),
+        },
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    });
+    return {'id': id};
+  }
+
+  /// Withdraws a transfer before dispatch; nothing has moved yet.
+  Future<Map<String, dynamic>> _cancelTransfer(
+    Map<String, Object?> data,
+  ) async {
+    final id = data['id']! as String;
+    final reason = _blankToNull(data['reason']);
+    if (reason == null || reason.length > 500) {
+      _fail('A reason is required (500 characters at most)');
+    }
+    final reference = await _doc('inventoryTransfers/$id');
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
+      final status = (await transaction.get(reference)).data()?['status'];
+      if (status == null) _fail('Transfer not found');
+      if (status != 'requested' && status != 'approved') {
+        _fail('Transfer is $status');
+      }
+      transaction.update(reference, {
+        'status': 'cancelled',
+        'cancelReason': reason,
+        'cancelledBy': FirebaseAuth.instance.currentUser!.uid,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    });
+    return {'id': id};
+  }
+
+  /// Takes back issued stock: usable units return to the balance they came from,
+  /// damaged ones go to the damaged bucket and the unavailable-stock register.
+  Future<Map<String, dynamic>> _createReturn(Map<String, Object?> data) async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final today = todayIST();
+    final financialYear = _financialYear;
+    final issueId = data['issueId']! as String;
+    final returnedBy = Map<String, dynamic>.from(data['returnedBy']! as Map);
+    final lines = [
+      for (final line in (data['lineItems']! as List))
+        Map<String, dynamic>.from(line as Map),
+    ];
+    if (lines.isEmpty) _fail('Add at least one item');
+    if ({for (final line in lines) line['balanceId']}.length != lines.length) {
+      _fail('Each line may appear once');
+    }
+
+    final issueRef = await _doc('inventoryIssues/$issueId');
+    final counterRef = await _doc('counters/RET_$financialYear');
+    final returnRef = (await schoolCollection('inventoryReturns')).doc();
+    final movements = await schoolCollection('inventoryMovements');
+    final unavailable = await schoolCollection('inventoryUnavailableStock');
+
+    final number = await FirebaseFirestore.instance.runTransaction((
+      transaction,
+    ) async {
+      // All reads first.
+      final issue = (await transaction.get(issueRef)).data();
+      if (issue == null) _fail('Issue not found');
+      final storeId = issue['storeId']! as String;
+      final campusId = issue['campusId'];
+      final store = (await transaction.get(
+        await _doc('inventoryStores/$storeId'),
+      )).data();
+      if (store == null) _fail('Store not found');
+      if (store['status'] != 'active') _fail('Store is inactive');
+      final next =
+          ((await transaction.get(counterRef)).data()?['next'] as num? ?? 0)
+              .toInt() +
+          1;
+      final issueLines = [
+        for (final line in (issue['lineItems'] as List))
+          Map<String, dynamic>.from(line as Map),
+      ];
+
+      final plans = <_ReturnPlan>[];
+      for (final line in lines) {
+        final usable = (line['quantityUsable'] as num? ?? 0).toDouble();
+        final damaged = (line['quantityDamaged'] as num? ?? 0).toDouble();
+        final quantity = usable + damaged;
+        final issueLine = issueLines.firstWhere(
+          (candidate) => candidate['balanceId'] == line['balanceId'],
+          orElse: () => _fail('Line is not on the issue'),
+        );
+        if (usable < 0 || damaged < 0 || quantity <= 0) {
+          _fail('Each line needs a quantity');
+        }
+        final outstanding =
+            (issueLine['quantity'] as num) -
+            (issueLine['quantityReturned'] as num);
+        if (quantity > outstanding) {
+          _fail('Only $outstanding outstanding for this line');
+        }
+        final item = await _stockItem(
+          transaction,
+          issueLine['itemId']! as String,
+          issueLine['variantId'] as String?,
+          inactiveOk: true,
+        );
+        final reference = await _doc('inventoryBalances/${line['balanceId']}');
+        final balance = (await transaction.get(reference)).data();
+        if (balance == null) _fail('No stock of ${item['name']} in this store');
+        plans.add(
+          _ReturnPlan(
+            issueLine: issueLine,
+            reference: reference,
+            balance: balance,
+            usable: usable,
+            damaged: damaged,
+            reorderLevel: (item['reorderLevel'] as num?)?.toDouble(),
+          ),
+        );
+      }
+
+      // Then writes.
+      final returnNumber =
+          'RET/$financialYear/${next.toString().padLeft(6, '0')}';
+      transaction.set(counterRef, {
+        'next': next,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      var sequence = 0;
+      for (final plan in plans) {
+        final balance = plan.balance;
+        final available = (balance['quantityAvailable'] as num) + plan.usable;
+        final unitCost = (balance['unitCost'] as num).toDouble();
+        transaction.update(plan.reference, {
+          'quantityAvailable': available,
+          'quantityDamaged': (balance['quantityDamaged'] as num) + plan.damaged,
+          'totalQuantityIssued':
+              (balance['totalQuantityIssued'] as num) -
+              plan.usable -
+              plan.damaged,
+          'value': (available * unitCost * 100).round() / 100,
+          'isBelowReorderLevel':
+              plan.reorderLevel != null && available <= plan.reorderLevel!,
+          'earliestExpiryDate': available > 0 ? balance['expiryDate'] : null,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+        for (final (bucket, quantity) in [
+          ('available', plan.usable),
+          ('damaged', plan.damaged),
+        ]) {
+          if (quantity <= 0) continue;
+          transaction.set(movements.doc(), {
+            'type': 'return',
+            'balanceId': plan.reference.id,
+            'itemId': balance['itemId'],
+            'variantId': balance['variantId'],
+            'storeId': storeId,
+            'campusId': campusId,
+            'batchNumber': balance['batchNumber'],
+            'quantity': quantity,
+            'bucket': bucket,
+            'referenceType': 'return',
+            'referenceId': returnRef.id,
+            'unitCost': unitCost,
+            'transactionDate': dayTimestamp(today),
+            'financialYear': financialYear,
+            'seq': sequence++,
+            'createdAt': FieldValue.serverTimestamp(),
+            'createdBy': uid,
+          });
+        }
+        if (plan.damaged > 0) {
+          transaction.set(unavailable.doc(), {
+            'balanceId': plan.reference.id,
+            'itemId': balance['itemId'],
+            'variantId': balance['variantId'],
+            'storeId': storeId,
+            'batchNumber': balance['batchNumber'],
+            'quantity': plan.damaged,
+            'bucket': 'damaged',
+            'reason': 'damaged_return',
+            'remarks': null,
+            'evidence': null,
+            'referenceType': 'return',
+            'referenceId': returnRef.id,
+            'status': 'open',
+            'resolution': null,
+            'resolvedAt': null,
+            'reportedBy': uid,
+            'campusId': campusId,
+            'transactionDate': dayTimestamp(today),
+            'financialYear': financialYear,
+            'createdAt': FieldValue.serverTimestamp(),
+            'createdBy': uid,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
+        plan.issueLine['quantityReturned'] =
+            (plan.issueLine['quantityReturned'] as num) +
+            plan.usable +
+            plan.damaged;
+      }
+      transaction.set(returnRef, {
+        'number': returnNumber,
+        'issueId': issueId,
+        'storeId': storeId,
+        'returnedBy': returnedBy,
+        'remarks': _blankToNull(data['remarks']),
+        'lineItems': [
+          for (final plan in plans)
+            {
+              'balanceId': plan.reference.id,
+              'itemId': plan.issueLine['itemId'],
+              'variantId': plan.issueLine['variantId'],
+              'quantityUsable': plan.usable,
+              'quantityDamaged': plan.damaged,
+            },
+        ],
+        'inspection': {
+          'performedBy': uid,
+          'performedAt': FieldValue.serverTimestamp(),
+        },
+        'campusId': campusId,
+        'transactionDate': dayTimestamp(today),
+        'financialYear': financialYear,
+        'createdAt': FieldValue.serverTimestamp(),
+        'createdBy': uid,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      transaction.update(issueRef, {
+        'lineItems': issueLines,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      return returnNumber;
+    });
+    return {'id': returnRef.id, 'number': number};
+  }
+
+  /// Queries cannot run inside a transaction: find each line's balances first,
+  /// then re-read them in the transaction so the quantities are current.
+  Future<Map<String, List<DocumentReference<Map<String, dynamic>>>>>
+  _candidateBalances(
+    Object? campusId,
+    String storeId,
+    List<Map<String, dynamic>> lines,
+  ) async {
+    final balances = await schoolCollection('inventoryBalances');
+    return {
+      for (final line in lines)
+        '${line['itemId']}__${line['variantId'] ?? '-'}': [
+          for (final document
+              in (await balances
+                      .where('campusId', isEqualTo: campusId)
+                      .where('storeId', isEqualTo: storeId)
+                      .where('itemId', isEqualTo: line['itemId'])
+                      .get())
+                  .docs)
+            if (document.data()['variantId'] == line['variantId'])
+              document.reference,
+        ],
+    };
+  }
+
+  /// First-expiry-first-out picks covering [quantity]; expired batches never qualify.
+  Future<List<_IssuePick>> _allocateStock(
+    Transaction transaction,
+    List<DocumentReference<Map<String, dynamic>>> references,
+    double quantity,
+    Object? itemName,
+  ) async {
+    final today = todayIST();
+    final available = <_IssueBalance>[];
+    for (final reference in references) {
+      final balance = (await transaction.get(reference)).data();
+      final expiry = readDayOrNull(balance?['expiryDate']);
+      if (balance != null &&
+          (balance['quantityAvailable'] as num) > 0 &&
+          (expiry == null || expiry.compareTo(today) >= 0)) {
+        available.add(_IssueBalance(reference, balance, expiry));
+      }
+    }
+    // First expiry first; stock without an expiry last.
+    available.sort(
+      (left, right) =>
+          (left.expiry ?? '9999-12-31').compareTo(right.expiry ?? '9999-12-31'),
+    );
+    var left = quantity;
+    final picks = <_IssuePick>[];
+    for (final balance in available) {
+      if (left <= 0) break;
+      final take = left < balance.quantityAvailable
+          ? left
+          : balance.quantityAvailable;
+      picks.add(_IssuePick(balance, take));
+      left -= take;
+    }
+    if (left > 0) _fail('Insufficient stock of $itemName');
+    return picks;
+  }
+
+  /// Takes a pick out of its balance and appends the ledger row ([ledger] holds the shared fields).
+  /// A negative pick puts stock back (adjustments).
+  void _takeStock(
+    Transaction transaction,
+    CollectionReference<Map<String, dynamic>> movements,
+    _IssuePick pick, {
+    required String type,
+    required String referenceType,
+    required String referenceId,
+    required double? reorderLevel,
+    required int sequence,
+    required Map<String, Object?> ledger,
+  }) {
+    final balance = pick.balance;
+    final available = balance.quantityAvailable - pick.quantity;
+    final unitCost = (balance.data['unitCost'] as num).toDouble();
+    transaction.update(balance.reference, {
+      'quantityAvailable': available,
+      if (type == 'issue')
+        'totalQuantityIssued':
+            (balance.data['totalQuantityIssued'] as num) + pick.quantity,
+      'value': (available * unitCost * 100).round() / 100,
+      'isBelowReorderLevel': reorderLevel != null && available <= reorderLevel,
+      'earliestExpiryDate': available > 0 ? balance.data['expiryDate'] : null,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+    transaction.set(movements.doc(), {
+      'type': type,
+      'balanceId': balance.reference.id,
+      'itemId': balance.data['itemId'],
+      'variantId': balance.data['variantId'],
+      'batchNumber': balance.data['batchNumber'],
+      'quantity': -pick.quantity,
+      'bucket': 'available',
+      'referenceType': referenceType,
+      'referenceId': referenceId,
+      'unitCost': unitCost,
+      'seq': sequence,
+      'createdAt': FieldValue.serverTimestamp(),
+      ...ledger,
+    });
+  }
+
+  /// Sends an approved transfer out: stock leaves the source (first expiry first)
+  /// and stays in transit until the destination receives it.
+  Future<Map<String, dynamic>> _dispatchTransfer(
+    Map<String, Object?> data,
+  ) async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final today = todayIST();
+    final financialYear = _financialYear;
+    final id = data['id']! as String;
+    final transferRef = await _doc('inventoryTransfers/$id');
+    final transfer = (await transferRef.get()).data();
+    if (transfer == null) _fail('Transfer not found');
+    final storeId = (transfer['from'] as Map)['storeId']! as String;
+    final campusId = (transfer['from'] as Map)['campusId'];
+    final requested = [
+      for (final line in (transfer['requested'] as List))
+        Map<String, dynamic>.from(line as Map),
+    ];
+    final candidateRefs = await _candidateBalances(
+      campusId,
+      storeId,
+      requested,
+    );
+    final storeRef = await _doc('inventoryStores/$storeId');
+    final movements = await schoolCollection('inventoryMovements');
+
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
+      // All reads first.
+      final current = (await transaction.get(transferRef)).data();
+      if (current == null) _fail('Transfer not found');
+      if (current['status'] != 'approved') {
+        _fail('Transfer is ${current['status']}');
+      }
+      final store = (await transaction.get(storeRef)).data();
+      if (store == null) _fail('Store not found');
+      if (store['status'] != 'active') _fail('Store is inactive');
+      final plans = <_IssuePlan>[];
+      for (final line in requested) {
+        final itemId = line['itemId']! as String;
+        final variantId = line['variantId'] as String?;
+        final quantity = (line['quantity']! as num).toDouble();
+        final item = await _stockItem(
+          transaction,
+          itemId,
+          variantId,
+          inactiveOk: true,
+        );
+        plans.add(
+          _IssuePlan(
+            itemId: itemId,
+            variantId: variantId,
+            quantity: quantity,
+            requestLine: line,
+            reorderLevel: (item['reorderLevel'] as num?)?.toDouble(),
+            picks: await _allocateStock(
+              transaction,
+              candidateRefs['${itemId}__${variantId ?? '-'}']!,
+              quantity,
+              item['name'],
+            ),
+          ),
+        );
+      }
+
+      // Then writes.
+      var sequence = 0;
+      final dispatched = <Map<String, Object?>>[];
+      for (final plan in plans) {
+        for (final pick in plan.picks) {
+          final balance = pick.balance;
+          _takeStock(
+            transaction,
+            movements,
+            pick,
+            type: 'transfer_out',
+            referenceType: 'transfer',
+            referenceId: id,
+            reorderLevel: plan.reorderLevel,
+            sequence: sequence++,
+            ledger: {
+              'storeId': storeId,
+              'campusId': campusId,
+              'transactionDate': dayTimestamp(today),
+              'financialYear': financialYear,
+              'createdBy': uid,
+            },
+          );
+          dispatched.add({
+            'itemId': plan.itemId,
+            'variantId': plan.variantId,
+            'balanceId': balance.reference.id,
+            'batchNumber': balance.data['batchNumber'],
+            'manufacturingDate': balance.data['manufacturingDate'],
+            'expiryDate': balance.data['expiryDate'],
+            'unitCost': (balance.data['unitCost'] as num).toDouble(),
+            'quantityDispatched': pick.quantity,
+            'quantityReceived': 0,
+            'discrepancy': 0,
+          });
+        }
+      }
+      transaction.update(transferRef, {
+        'lineItems': dispatched,
+        'status': 'dispatched',
+        'dispatch': {
+          'performedBy': uid,
+          'date': dayTimestamp(today),
+          'performedAt': FieldValue.serverTimestamp(),
+        },
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    });
+    return {'id': id};
+  }
+
+  /// Adds [quantity] to a balance (created when missing) at weighted-average cost
+  /// and appends the ledger row ([ledger] holds the shared fields).
+  void _addStock(
+    Transaction transaction,
+    CollectionReference<Map<String, dynamic>> movements, {
+    required DocumentReference<Map<String, dynamic>> reference,
+    required Map<String, dynamic>? balance,
+    required String storeId,
+    required Object? campusId,
+    required String itemId,
+    required String? variantId,
+    required String? batchNumber,
+    required String? expiryDate,
+    required double quantity,
+    required double unitCost,
+    required double? reorderLevel,
+    required String type,
+    required String referenceType,
+    required String referenceId,
+    required int sequence,
+    required Map<String, Object?> ledger,
+    Object? manufacturingDate,
+  }) {
+    final have = (balance?['quantityAvailable'] as num? ?? 0).toDouble();
+    final cost = (balance?['unitCost'] as num? ?? 0).toDouble();
+    final available = have + quantity;
+    final averageCost = (have * cost + quantity * unitCost) / available;
+    final storedExpiry = readDayOrNull(balance?['expiryDate']);
+    if (storedExpiry != null &&
+        expiryDate != null &&
+        storedExpiry != expiryDate) {
+      _fail('Batch $batchNumber already exists with expiry $storedExpiry');
+    }
+    final expiry = storedExpiry ?? expiryDate;
+    transaction.set(reference, {
+      'campusId': campusId,
+      'storeId': storeId,
+      'itemId': itemId,
+      'variantId': variantId,
+      'batchNumber': batchNumber,
+      'manufacturingDate': balance?['manufacturingDate'] ?? manufacturingDate,
+      'expiryDate': dayTimestampOrNull(expiry),
+      'quantityAvailable': available,
+      'quantityReserved': balance?['quantityReserved'] ?? 0,
+      'quantityDamaged': balance?['quantityDamaged'] ?? 0,
+      'quantityExpired': balance?['quantityExpired'] ?? 0,
+      'totalQuantityReceived':
+          (balance?['totalQuantityReceived'] as num? ?? 0) + quantity,
+      'totalQuantityIssued': balance?['totalQuantityIssued'] ?? 0,
+      'unitCost': averageCost,
+      'value': (available * averageCost * 100).round() / 100,
+      'isBelowReorderLevel': reorderLevel != null && available <= reorderLevel,
+      'earliestExpiryDate': dayTimestampOrNull(expiry),
+      'createdAt': balance?['createdAt'] ?? FieldValue.serverTimestamp(),
+      'createdBy':
+          balance?['createdBy'] ?? FirebaseAuth.instance.currentUser!.uid,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+    transaction.set(movements.doc(), {
+      'type': type,
+      'balanceId': reference.id,
+      'itemId': itemId,
+      'variantId': variantId,
+      'storeId': storeId,
+      'campusId': campusId,
+      'batchNumber': batchNumber,
+      'quantity': quantity,
+      'bucket': 'available',
+      'referenceType': referenceType,
+      'referenceId': referenceId,
+      'unitCost': unitCost,
+      'seq': sequence,
+      'createdAt': FieldValue.serverTimestamp(),
+      ...ledger,
+    });
+  }
+
+  /// The destination confirms what arrived. A partial receipt keeps the transfer
+  /// open; `final` closes it and registers any shortfall as lost stock.
+  Future<Map<String, dynamic>> _receiveTransfer(
+    Map<String, Object?> data,
+  ) async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final today = todayIST();
+    final financialYear = _financialYear;
+    final id = data['id']! as String;
+    final close = data['final'] == true;
+    final remarks = _blankToNull(data['remarks']);
+    final lines = [
+      for (final line in (data['lineItems'] as List? ?? const []))
+        Map<String, dynamic>.from(line as Map),
+    ];
+    if (lines.isEmpty && !close) _fail('Enter the received quantities');
+    final transferRef = await _doc('inventoryTransfers/$id');
+    final movements = await schoolCollection('inventoryMovements');
+    final unavailable = await schoolCollection('inventoryUnavailableStock');
+
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
+      // All reads first.
+      final transfer = (await transaction.get(transferRef)).data();
+      if (transfer == null) _fail('Transfer not found');
+      final status = transfer['status'];
+      if (status != 'dispatched' && status != 'partially_received') {
+        _fail('Transfer is $status');
+      }
+      final to = transfer['to'] as Map;
+      final from = transfer['from'] as Map;
+      final rows = [
+        for (final row in (transfer['lineItems'] as List))
+          Map<String, dynamic>.from(row as Map),
+      ];
+      final plans = <_TransferReceipt>[];
+      for (final line in lines) {
+        final index = line['index']! as int;
+        if (index < 0 || index >= rows.length) _fail('Unknown transfer line');
+        final row = rows[index];
+        final quantity = (line['quantityReceived']! as num).toDouble();
+        if (quantity <= 0) _fail('Each line needs a quantity');
+        if (quantity >
+            (row['quantityDispatched'] as num) -
+                (row['quantityReceived'] as num)) {
+          _fail('Received more than was dispatched');
+        }
+        final item = await _stockItem(
+          transaction,
+          row['itemId']! as String,
+          row['variantId'] as String?,
+          inactiveOk: true,
+        );
+        final batchNumber = row['batchNumber'] as String?;
+        final reference = await _doc(
+          'inventoryBalances/${[to['storeId'], row['itemId'], row['variantId'] ?? '-', batchNumber == null ? '-' : Uri.encodeComponent(batchNumber)].join('__')}',
+        );
+        plans.add(
+          _TransferReceipt(
+            row: row,
+            quantity: quantity,
+            reference: reference,
+            balance: (await transaction.get(reference)).data(),
+            reorderLevel: (item['reorderLevel'] as num?)?.toDouble(),
+          ),
+        );
+      }
+
+      // Then writes.
+      var sequence = 0;
+      for (final plan in plans) {
+        final row = plan.row;
+        _addStock(
+          transaction,
+          movements,
+          reference: plan.reference,
+          balance: plan.balance,
+          storeId: to['storeId']! as String,
+          campusId: to['campusId'],
+          itemId: row['itemId']! as String,
+          variantId: row['variantId'] as String?,
+          batchNumber: row['batchNumber'] as String?,
+          expiryDate: readDayOrNull(row['expiryDate']),
+          manufacturingDate: row['manufacturingDate'],
+          quantity: plan.quantity,
+          unitCost: (row['unitCost'] as num).toDouble(),
+          reorderLevel: plan.reorderLevel,
+          type: 'transfer_in',
+          referenceType: 'transfer',
+          referenceId: id,
+          sequence: sequence++,
+          ledger: {
+            'transactionDate': dayTimestamp(today),
+            'financialYear': financialYear,
+            'createdBy': uid,
+          },
+        );
+        row['quantityReceived'] =
+            (row['quantityReceived'] as num) + plan.quantity;
+      }
+      final complete = rows.every(
+        (row) =>
+            (row['quantityReceived'] as num) >=
+            (row['quantityDispatched'] as num),
+      );
+      final closed = complete || close;
+      if (closed) {
+        for (final row in rows) {
+          final shortfall =
+              (row['quantityDispatched'] as num) -
+              (row['quantityReceived'] as num);
+          row['discrepancy'] = shortfall;
+          if (shortfall <= 0) continue;
+          // The stock already left the source at dispatch; register the loss so stock and value reconcile.
+          transaction.set(unavailable.doc(), {
+            'balanceId': row['balanceId'],
+            'itemId': row['itemId'],
+            'variantId': row['variantId'],
+            'storeId': from['storeId'],
+            'batchNumber': row['batchNumber'],
+            'quantity': shortfall,
+            'bucket': null,
+            'reason': 'lost',
+            'remarks': 'Transfer ${transfer['number']} shortfall',
+            'evidence': null,
+            'referenceType': 'transfer',
+            'referenceId': id,
+            'status': 'resolved',
+            'resolution': 'write_off',
+            'resolvedAt': null,
+            'reportedBy': uid,
+            'campusId': from['campusId'],
+            'transactionDate': dayTimestamp(today),
+            'financialYear': financialYear,
+            'createdAt': FieldValue.serverTimestamp(),
+            'createdBy': uid,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
+      }
+      final receiptEntry = {
+        'performedBy': uid,
+        'date': dayTimestamp(today),
+        'remarks': remarks,
+      };
+      transaction.update(transferRef, {
+        'lineItems': rows,
+        'status': closed ? 'received' : 'partially_received',
+        'receipt': {
+          ...receiptEntry,
+          'performedAt': FieldValue.serverTimestamp(),
+        },
+        'receipts': [
+          ...((transfer['receipts'] as List?) ?? const []),
+          receiptEntry,
+        ],
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    });
+    return {'id': id};
+  }
+
+  /// A manual correction of one balance's available quantity, with a reason.
+  Future<Map<String, dynamic>> _adjustStock(Map<String, Object?> data) async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final today = todayIST();
+    final financialYear = _financialYear;
+    final storeId = data['storeId']! as String;
+    final itemId = data['itemId']! as String;
+    final variantId = data['variantId'] as String?;
+    final batchNumber = _blankToNull(data['batchNumber']);
+    final delta = (data['delta']! as num).toDouble();
+    final reason = data['reason']! as String;
+    final remarks = _blankToNull(data['remarks']);
+    if (delta == 0 || delta.abs() > 1000000) {
+      _fail('Quantity change must not be 0');
+    }
+    if (!_adjustmentReasons.contains(reason)) _fail('Invalid reason');
+    if (reason == 'other' && remarks == null) _fail('Describe the reason');
+    if (remarks != null && remarks.length > 500) _fail('Note is too long');
+    if ((reason == 'missing' && delta > 0) ||
+        (reason == 'excess' && delta < 0)) {
+      _fail('Reason does not match the direction');
+    }
+
+    final storeRef = await _doc('inventoryStores/$storeId');
+    final balanceRef = await _doc(
+      'inventoryBalances/${[storeId, itemId, variantId ?? '-', batchNumber == null ? '-' : Uri.encodeComponent(batchNumber)].join('__')}',
+    );
+    final counterRef = await _doc('counters/ADJ_$financialYear');
+    final adjustmentRef = (await schoolCollection('inventoryAdjustments'))
+        .doc();
+    final movements = await schoolCollection('inventoryMovements');
+
+    final number = await FirebaseFirestore.instance.runTransaction((
+      transaction,
+    ) async {
+      // All reads first.
+      final store = (await transaction.get(storeRef)).data();
+      if (store == null) _fail('Store not found');
+      if (store['status'] != 'active') _fail('Store is inactive');
+      final item = await _stockItem(transaction, itemId, variantId);
+      final balance = (await transaction.get(balanceRef)).data();
+      if (balance == null) _fail('No stock of ${item['name']} in this store');
+      final before = (balance['quantityAvailable'] as num).toDouble();
+      if (before + delta < 0) {
+        _fail('Insufficient stock ($before available)');
+      }
+      final next =
+          ((await transaction.get(counterRef)).data()?['next'] as num? ?? 0)
+              .toInt() +
+          1;
+
+      // Then writes.
+      final adjustmentNumber =
+          'ADJ/$financialYear/${next.toString().padLeft(6, '0')}';
+      transaction.set(counterRef, {
+        'next': next,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      // A negative pick puts stock back, so one helper moves the balance both ways.
+      _takeStock(
+        transaction,
+        movements,
+        _IssuePick(
+          _IssueBalance(
+            balanceRef,
+            balance,
+            readDayOrNull(balance['expiryDate']),
+          ),
+          -delta,
+        ),
+        type: 'adjust',
+        referenceType: 'adjustment',
+        referenceId: adjustmentRef.id,
+        reorderLevel: (item['reorderLevel'] as num?)?.toDouble(),
+        sequence: 0,
+        ledger: {
+          'storeId': storeId,
+          'campusId': store['campusId'],
+          'transactionDate': dayTimestamp(today),
+          'financialYear': financialYear,
+          'createdBy': uid,
+        },
+      );
+      transaction.set(adjustmentRef, {
+        'number': adjustmentNumber,
+        'balanceId': balanceRef.id,
+        'itemId': itemId,
+        'variantId': variantId,
+        'storeId': storeId,
+        'batchNumber': batchNumber,
+        'before': before,
+        'delta': delta,
+        'after': before + delta,
+        'reason': reason,
+        'remarks': remarks,
+        'evidence': null,
+        'approval': null,
+        'status': 'completed',
+        'campusId': store['campusId'],
+        'transactionDate': dayTimestamp(today),
+        'financialYear': financialYear,
+        'createdAt': FieldValue.serverTimestamp(),
+        'createdBy': uid,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      return adjustmentNumber;
+    });
+    return {'id': adjustmentRef.id, 'number': number};
+  }
+
+  static const _bucketFields = {
+    'damaged': 'quantityDamaged',
+    'expired': 'quantityExpired',
+  };
+
+  /// A ledger row for one bucket of a balance.
+  void _writeMovement(
+    Transaction transaction,
+    CollectionReference<Map<String, dynamic>> movements,
+    DocumentReference<Map<String, dynamic>> balanceRef,
+    Map<String, dynamic> balance, {
+    required String type,
+    required String bucket,
+    required double quantity,
+    required String referenceId,
+    required int sequence,
+    required Map<String, Object?> ledger,
+  }) {
+    transaction.set(movements.doc(), {
+      'type': type,
+      'balanceId': balanceRef.id,
+      'itemId': balance['itemId'],
+      'variantId': balance['variantId'],
+      'batchNumber': balance['batchNumber'],
+      'quantity': quantity,
+      'bucket': bucket,
+      'referenceType': 'unavailable',
+      'referenceId': referenceId,
+      'unitCost': balance['unitCost'],
+      'seq': sequence,
+      'createdAt': FieldValue.serverTimestamp(),
+      ...ledger,
+    });
+  }
+
+  /// Moves usable stock out of `quantityAvailable` into the unavailable-stock register.
+  Future<Map<String, dynamic>> _reportUnavailable(
+    Map<String, Object?> data,
+  ) async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final today = todayIST();
+    final financialYear = _financialYear;
+    final storeId = data['storeId']! as String;
+    final itemId = data['itemId']! as String;
+    final variantId = data['variantId'] as String?;
+    final batchNumber = _blankToNull(data['batchNumber']);
+    final quantity = (data['quantity']! as num).toDouble();
+    final reason = data['reason']! as String;
+    final remarks = _blankToNull(data['remarks']);
+    if (quantity <= 0) _fail('Enter a quantity');
+    if (!const ['damaged', 'expired', 'lost'].contains(reason)) {
+      _fail('Invalid reason');
+    }
+    if (remarks == null || remarks.length > 500) {
+      _fail('Details are required (500 characters at most)');
+    }
+    final bucket = reason == 'lost' ? null : reason;
+
+    final storeRef = await _doc('inventoryStores/$storeId');
+    final balanceRef = await _doc(
+      'inventoryBalances/${[storeId, itemId, variantId ?? '-', batchNumber == null ? '-' : Uri.encodeComponent(batchNumber)].join('__')}',
+    );
+    final entryRef = (await schoolCollection('inventoryUnavailableStock'))
+        .doc();
+    final movements = await schoolCollection('inventoryMovements');
+
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
+      // All reads first.
+      final store = (await transaction.get(storeRef)).data();
+      if (store == null) _fail('Store not found');
+      if (store['status'] != 'active') _fail('Store is inactive');
+      final item = await _stockItem(
+        transaction,
+        itemId,
+        variantId,
+        inactiveOk: true,
+      );
+      final balance = (await transaction.get(balanceRef)).data();
+      if (balance == null) _fail('No stock of ${item['name']} in this store');
+      final expiry = readDayOrNull(balance['expiryDate']);
+      if (reason == 'expired' &&
+          (expiry == null || expiry.compareTo(today) >= 0)) {
+        _fail('Batch has not expired');
+      }
+      final available = (balance['quantityAvailable'] as num) - quantity;
+      if (available < 0) {
+        _fail('Insufficient stock (${balance['quantityAvailable']} available)');
+      }
+
+      // Then writes.
+      final type = switch (reason) {
+        'damaged' => 'damage',
+        'expired' => 'expire',
+        _ => 'writeoff',
+      };
+      final ledger = <String, Object?>{
+        'storeId': storeId,
+        'campusId': store['campusId'],
+        'transactionDate': dayTimestamp(today),
+        'financialYear': financialYear,
+        'createdBy': uid,
+      };
+      final unitCost = (balance['unitCost'] as num).toDouble();
+      final reorderLevel = (item['reorderLevel'] as num?)?.toDouble();
+      transaction.update(balanceRef, {
+        'quantityAvailable': available,
+        if (bucket != null)
+          _bucketFields[bucket]!:
+              (balance[_bucketFields[bucket]] as num) + quantity,
+        'value': (available * unitCost * 100).round() / 100,
+        'isBelowReorderLevel':
+            reorderLevel != null && available <= reorderLevel,
+        'earliestExpiryDate': available > 0 ? balance['expiryDate'] : null,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      _writeMovement(
+        transaction,
+        movements,
+        balanceRef,
+        balance,
+        type: type,
+        bucket: 'available',
+        quantity: -quantity,
+        referenceId: entryRef.id,
+        sequence: 0,
+        ledger: ledger,
+      );
+      if (bucket != null) {
+        _writeMovement(
+          transaction,
+          movements,
+          balanceRef,
+          balance,
+          type: type,
+          bucket: bucket,
+          quantity: quantity,
+          referenceId: entryRef.id,
+          sequence: 1,
+          ledger: ledger,
+        );
+      }
+      transaction.set(entryRef, {
+        'balanceId': balanceRef.id,
+        'itemId': itemId,
+        'variantId': variantId,
+        'storeId': storeId,
+        'batchNumber': batchNumber,
+        'quantity': quantity,
+        'bucket': bucket,
+        'reason': reason,
+        'remarks': remarks,
+        'evidence': null,
+        'referenceType': 'unavailable',
+        'referenceId': entryRef.id,
+        'status': bucket == null ? 'resolved' : 'open',
+        'resolution': bucket == null ? 'write_off' : null,
+        'resolvedAt': null,
+        'reportedBy': uid,
+        ...ledger,
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    });
+    return {'id': entryRef.id};
+  }
+
+  /// Closes an unavailable-stock entry: restore it, send it to repair, or write it off.
+  Future<Map<String, dynamic>> _resolveUnavailable(
+    Map<String, Object?> data,
+  ) async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final today = todayIST();
+    final financialYear = _financialYear;
+    final id = data['id']! as String;
+    final resolution = data['resolution']! as String;
+    final remarks = _blankToNull(data['remarks']);
+    if (!const [
+      'restore',
+      'repair',
+      'dispose',
+      'write_off',
+      'vendor_return',
+      'other',
+    ].contains(resolution)) {
+      _fail('Invalid resolution');
+    }
+    if (resolution == 'other' && remarks == null) {
+      _fail('Describe the resolution');
+    }
+    if (remarks != null && remarks.length > 500) _fail('Note is too long');
+
+    final entryRef = await _doc('inventoryUnavailableStock/$id');
+    final movements = await schoolCollection('inventoryMovements');
+
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
+      // All reads first.
+      final entry = (await transaction.get(entryRef)).data();
+      if (entry == null) _fail('Entry not found');
+      final status = entry['status'];
+      final repair = resolution == 'repair';
+      final canRepair = status == 'open' && entry['bucket'] == 'damaged';
+      if ((status != 'open' && status != 'in_repair') ||
+          (repair && !canRepair)) {
+        _fail('Entry is $status');
+      }
+      final bucket = entry['bucket'] as String?;
+      final quantity = (entry['quantity'] as num).toDouble();
+      DocumentReference<Map<String, dynamic>>? balanceRef;
+      Map<String, dynamic>? balance;
+      double? reorderLevel;
+      if (!repair) {
+        final item = await _stockItem(
+          transaction,
+          entry['itemId']! as String,
+          entry['variantId'] as String?,
+          inactiveOk: true,
+        );
+        reorderLevel = (item['reorderLevel'] as num?)?.toDouble();
+        balanceRef = await _doc('inventoryBalances/${entry['balanceId']}');
+        balance = (await transaction.get(balanceRef)).data();
+        if (balance == null) _fail('Balance not found');
+        final expiry = readDayOrNull(balance['expiryDate']);
+        if (resolution == 'restore' &&
+            expiry != null &&
+            expiry.compareTo(today) < 0) {
+          _fail('Expired batches cannot return to usable stock');
+        }
+      }
+
+      // Then writes.
+      if (!repair) {
+        final field = _bucketFields[bucket]!;
+        final inBucket = balance![field] as num;
+        if (inBucket < quantity) {
+          _fail('Insufficient stock ($inBucket $bucket)');
+        }
+        final restore = resolution == 'restore';
+        final available =
+            (balance['quantityAvailable'] as num) + (restore ? quantity : 0);
+        final unitCost = (balance['unitCost'] as num).toDouble();
+        transaction.update(balanceRef!, {
+          field: inBucket - quantity,
+          'quantityAvailable': available,
+          'value': (available * unitCost * 100).round() / 100,
+          'isBelowReorderLevel':
+              reorderLevel != null && available <= reorderLevel,
+          'earliestExpiryDate': available > 0 ? balance['expiryDate'] : null,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+        final ledger = <String, Object?>{
+          'storeId': entry['storeId'],
+          'campusId': entry['campusId'],
+          'transactionDate': dayTimestamp(today),
+          'financialYear': financialYear,
+          'createdBy': uid,
+        };
+        final type = restore ? 'restore' : 'writeoff';
+        _writeMovement(
+          transaction,
+          movements,
+          balanceRef,
+          balance,
+          type: type,
+          bucket: bucket!,
+          quantity: -quantity,
+          referenceId: id,
+          sequence: 0,
+          ledger: ledger,
+        );
+        if (restore) {
+          _writeMovement(
+            transaction,
+            movements,
+            balanceRef,
+            balance,
+            type: type,
+            bucket: 'available',
+            quantity: quantity,
+            referenceId: id,
+            sequence: 1,
+            ledger: ledger,
+          );
+        }
+      }
+      transaction.update(entryRef, {
+        'status': repair ? 'in_repair' : 'resolved',
+        'resolution': resolution,
+        'resolutionNote': remarks,
+        if (!repair) ...{
+          'resolvedAt': FieldValue.serverTimestamp(),
+          'resolvedBy': uid,
+        },
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    });
+    return {'id': id};
+  }
+
+  /// Issues approved stock to a recipient, first-expiry-first-out per line.
+  Future<Map<String, dynamic>> _issueStock(Map<String, Object?> data) async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final today = todayIST();
+    final financialYear = _financialYear;
+    final requestId = data['issueRequestId']! as String;
+    final recipient = Map<String, dynamic>.from(data['recipient']! as Map);
+    final lines = [
+      for (final line in (data['lineItems']! as List))
+        Map<String, dynamic>.from(line as Map),
+    ];
+    if (lines.isEmpty) _fail('Add at least one item');
+    final lineKeys = {
+      for (final line in lines)
+        '${line['itemId']}__${line['variantId'] ?? '-'}',
+    };
+    if (lineKeys.length != lines.length) {
+      _fail('Each item (and variant) may appear once');
+    }
+    if (lines.any((line) => ((line['quantity'] as num?) ?? 0) <= 0)) {
+      _fail('Each line needs a quantity');
+    }
+
+    final requestRef = await _doc('inventoryIssueRequests/$requestId');
+    final request = (await requestRef.get()).data();
+    if (request == null) _fail('Issue request not found');
+    final storeId = request['storeId']! as String;
+    final campusId = request['campusId'];
+
+    final candidateRefs = await _candidateBalances(campusId, storeId, lines);
+
+    final counterRef = await _doc('counters/ISS_$financialYear');
+    final issueRef = (await schoolCollection('inventoryIssues')).doc();
+    final movements = await schoolCollection('inventoryMovements');
+
+    final number = await FirebaseFirestore.instance.runTransaction((
+      transaction,
+    ) async {
+      // All reads first.
+      final current = (await transaction.get(requestRef)).data();
+      if (current == null) _fail('Issue request not found');
+      final status = current['status'];
+      if (status != 'approved' && status != 'partially_issued') {
+        _fail('Request is $status');
+      }
+      final next =
+          ((await transaction.get(counterRef)).data()?['next'] as num? ?? 0)
+              .toInt() +
+          1;
+      final requestLines = [
+        for (final line in (current['lineItems'] as List))
+          Map<String, dynamic>.from(line as Map),
+      ];
+
+      final plans = <_IssuePlan>[];
+      for (final line in lines) {
+        final itemId = line['itemId']! as String;
+        final variantId = line['variantId'] as String?;
+        final quantity = (line['quantity']! as num).toDouble();
+        final requestLine = requestLines.firstWhere(
+          (candidate) =>
+              candidate['itemId'] == itemId &&
+              candidate['variantId'] == variantId,
+          orElse: () => _fail('Item is not on the request'),
+        );
+        if ((requestLine['quantityIssued'] as num) + quantity >
+            (requestLine['quantityApproved'] as num)) {
+          _fail('Issue exceeds the approved quantity');
+        }
+        final item = await _stockItem(
+          transaction,
+          itemId,
+          variantId,
+          inactiveOk: true,
+        );
+        final picks = await _allocateStock(
+          transaction,
+          candidateRefs['${itemId}__${variantId ?? '-'}']!,
+          quantity,
+          item['name'],
+        );
+        plans.add(
+          _IssuePlan(
+            itemId: itemId,
+            variantId: variantId,
+            quantity: quantity,
+            requestLine: requestLine,
+            reorderLevel: (item['reorderLevel'] as num?)?.toDouble(),
+            picks: picks,
+          ),
+        );
+      }
+
+      // Then writes.
+      final issueNumber =
+          'ISS/$financialYear/${next.toString().padLeft(6, '0')}';
+      transaction.set(counterRef, {
+        'next': next,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      var sequence = 0;
+      final issuedRows = <Map<String, Object?>>[];
+      for (final plan in plans) {
+        for (final pick in plan.picks) {
+          final balance = pick.balance;
+          final unitCost = (balance.data['unitCost'] as num).toDouble();
+          _takeStock(
+            transaction,
+            movements,
+            pick,
+            type: 'issue',
+            referenceType: 'issue',
+            referenceId: issueRef.id,
+            reorderLevel: plan.reorderLevel,
+            sequence: sequence++,
+            ledger: {
+              'storeId': storeId,
+              'campusId': campusId,
+              'transactionDate': dayTimestamp(today),
+              'financialYear': financialYear,
+              'createdBy': uid,
+            },
+          );
+          issuedRows.add({
+            'itemId': plan.itemId,
+            'variantId': plan.variantId,
+            'balanceId': balance.reference.id,
+            'batchNumber': balance.data['batchNumber'],
+            'manufacturingDate': balance.data['manufacturingDate'],
+            'expiryDate': balance.data['expiryDate'],
+            'unitCost': unitCost,
+            'quantity': pick.quantity,
+            'quantityReturned': 0,
+          });
+        }
+        plan.requestLine['quantityIssued'] =
+            (plan.requestLine['quantityIssued'] as num) + plan.quantity;
+      }
+      final done = requestLines.every(
+        (line) =>
+            (line['quantityIssued'] as num) >=
+            (line['quantityApproved'] as num),
+      );
+      transaction.set(issueRef, {
+        'number': issueNumber,
+        'issueRequestId': requestId,
+        'storeId': storeId,
+        'recipient': recipient,
+        'issuedBy': uid,
+        'remarks': _blankToNull(data['remarks']),
+        'lineItems': issuedRows,
+        'itemIds': {for (final plan in plans) plan.itemId}.toList(),
+        'acknowledgement': null,
+        'campusId': campusId,
+        'transactionDate': dayTimestamp(today),
+        'financialYear': financialYear,
+        'createdAt': FieldValue.serverTimestamp(),
+        'createdBy': uid,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      transaction.update(requestRef, {
+        'lineItems': requestLines,
+        'status': done ? 'issued' : 'partially_issued',
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      return issueNumber;
+    });
+    return {'id': issueRef.id, 'number': number};
+  }
+}
+
+class _ReturnPlan {
+  _ReturnPlan({
+    required this.issueLine,
+    required this.reference,
+    required this.balance,
+    required this.usable,
+    required this.damaged,
+    required this.reorderLevel,
+  });
+
+  final Map<String, dynamic> issueLine;
+  final DocumentReference<Map<String, dynamic>> reference;
+  final Map<String, dynamic> balance;
+  final double usable;
+  final double damaged;
+  final double? reorderLevel;
+}
+
+class _TransferReceipt {
+  _TransferReceipt({
+    required this.row,
+    required this.quantity,
+    required this.reference,
+    required this.balance,
+    required this.reorderLevel,
+  });
+
+  final Map<String, dynamic> row;
+  final double quantity;
+  final DocumentReference<Map<String, dynamic>> reference;
+  final Map<String, dynamic>? balance;
+  final double? reorderLevel;
+}
+
+class _IssueBalance {
+  _IssueBalance(this.reference, this.data, this.expiry);
+
+  final DocumentReference<Map<String, dynamic>> reference;
+  final Map<String, dynamic> data;
+  final String? expiry;
+
+  double get quantityAvailable => (data['quantityAvailable'] as num).toDouble();
+}
+
+class _IssuePick {
+  _IssuePick(this.balance, this.quantity);
+
+  final _IssueBalance balance;
+  final double quantity;
+}
+
+class _IssuePlan {
+  _IssuePlan({
+    required this.itemId,
+    required this.variantId,
+    required this.quantity,
+    required this.requestLine,
+    required this.reorderLevel,
+    required this.picks,
+  });
+
+  final String itemId;
+  final String? variantId;
+  final double quantity;
+  final Map<String, dynamic> requestLine;
+  final double? reorderLevel;
+  final List<_IssuePick> picks;
 }
 
 class _ReceiptLine {

@@ -1,9 +1,20 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { masters } from '../src/inventory/masters';
-import { stock } from '../src/inventory/stock-operations';
 import { runCallable, type CallableDef } from '../src/shared/callable';
 import { dayTimestamp } from '../src/shared/dates';
-import { receiveStock, seedIssueRequest } from './fixtures';
+import {
+  adjustStock,
+  approveTransfer,
+  cancelTransfer,
+  dispatchTransfer,
+  receiveTransfer,
+  reportUnavailable,
+  resolveUnavailable,
+  issueStock,
+  requestTransfer,
+  receiveStock,
+  seedIssueRequest,
+} from './fixtures';
 import { clearFirestore, db } from './setup';
 
 const SCHOOL_ID = '12';
@@ -114,7 +125,7 @@ describe('inventory stock', () => {
       .doc(`schools/${SCHOOL_ID}/inventoryBalances/${firstStore}__${med}__-__OLD`)
       .update({ expiryDate: dayTimestamp(day(-1)) });
     const id = await approved(8, med);
-    const issue = await run(stock.issueCreate, {
+    const issue = await run(issueStock, {
       issueRequestId: id,
       recipient,
       lineItems: [{ itemId: med, quantity: 8 }],
@@ -127,7 +138,7 @@ describe('inventory stock', () => {
     // expired batch is never issuable, even when named explicitly
     const again = await approved(1, med);
     await expect(
-      run(stock.issueCreate, {
+      run(issueStock, {
         issueRequestId: again,
         recipient,
         lineItems: [{ itemId: med, quantity: 1, balanceId: `${firstStore}__${med}__-__OLD` }],
@@ -139,7 +150,7 @@ describe('inventory stock', () => {
     await penIn(10);
     const big = await request(11, pen, 'rejected');
     await expect(
-      run(stock.issueCreate, {
+      run(issueStock, {
         issueRequestId: big,
         recipient,
         lineItems: [{ itemId: pen, quantity: 1 }],
@@ -147,20 +158,20 @@ describe('inventory stock', () => {
     ).rejects.toMatchObject(fail('failed-precondition'));
 
     const id = await approved(6);
-    await run(stock.issueCreate, {
+    await run(issueStock, {
       issueRequestId: id,
       recipient,
       lineItems: [{ itemId: pen, quantity: 4 }],
     });
     expect((await get(`inventoryIssueRequests/${id}`))?.status).toBe('partially_issued');
     await expect(
-      run(stock.issueCreate, {
+      run(issueStock, {
         issueRequestId: id,
         recipient,
         lineItems: [{ itemId: pen, quantity: 3 }],
       }),
     ).rejects.toMatchObject(fail('failed-precondition'));
-    await run(stock.issueCreate, {
+    await run(issueStock, {
       issueRequestId: id,
       recipient,
       lineItems: [{ itemId: pen, quantity: 2 }],
@@ -182,14 +193,14 @@ describe('inventory stock', () => {
   it('availability is rechecked at issuance', async () => {
     await penIn(5);
     const id = await approved(5);
-    await run(stock.adjustmentCreate, {
+    await run(adjustStock, {
       storeId: firstStore,
       itemId: pen,
       delta: -3,
       reason: 'missing',
     });
     await expect(
-      run(stock.issueCreate, {
+      run(issueStock, {
         issueRequestId: id,
         recipient,
         lineItems: [{ itemId: pen, quantity: 5 }],
@@ -197,115 +208,60 @@ describe('inventory stock', () => {
     ).rejects.toMatchObject(fail('failed-precondition'));
   });
 
-  it('returns: usable back to stock, damaged to register, never more than outstanding', async () => {
-    await penIn(10);
-    const id = await approved(6);
-    const issue = await run(stock.issueCreate, {
-      issueRequestId: id,
-      recipient,
-      lineItems: [{ itemId: pen, quantity: 6 }],
-    });
-    const balanceId = `${firstStore}__${pen}__-__-`;
-    await expect(
-      run(stock.returnCreate, {
-        issueId: issue.id,
-        returnedBy: recipient,
-        lineItems: [{ balanceId, quantityUsable: 7 }],
-      }),
-    ).rejects.toMatchObject(fail('failed-precondition'));
-    await run(stock.returnCreate, {
-      issueId: issue.id,
-      returnedBy: recipient,
-      lineItems: [{ balanceId, quantityUsable: 3, quantityDamaged: 1 }],
-    });
-    expect(await balance(balanceId)).toMatchObject({
-      quantityAvailable: 7,
-      quantityDamaged: 1,
-      totalQuantityIssued: 2,
-    });
-    const reg = await db().collection(`schools/${SCHOOL_ID}/inventoryUnavailableStock`).get();
-    expect(reg.docs[0].data()).toMatchObject({ quantity: 1, bucket: 'damaged', status: 'open' });
-    await expect(
-      run(stock.returnCreate, {
-        issueId: issue.id,
-        returnedBy: recipient,
-        lineItems: [{ balanceId, quantityUsable: 3 }],
-      }),
-    ).rejects.toMatchObject(fail('failed-precondition'));
-    await run(stock.returnCreate, {
-      issueId: issue.id,
-      returnedBy: recipient,
-      lineItems: [{ balanceId, quantityUsable: 2 }],
-    });
-    expect((await balance(balanceId)).totalQuantityIssued).toBe(0);
-  });
-
   it('a requested transfer can be cancelled, a dispatched one cannot', async () => {
     await penIn(10);
     const request = () =>
-      run(stock.transferRequest, {
+      run(requestTransfer, {
         fromStoreId: firstStore,
         toStoreId: secondStore,
         lineItems: [{ itemId: pen, quantity: 3 }],
       });
     const withdrawn = await request();
-    await run(stock.transferCancel, { id: withdrawn.id, reason: 'Wrong store' });
+    await run(cancelTransfer, { id: withdrawn.id, reason: 'Wrong store' });
     expect((await get(`inventoryTransfers/${withdrawn.id}`))?.status).toBe('cancelled');
-    await expect(run(stock.transferDispatch, { id: withdrawn.id })).rejects.toMatchObject(
+    await expect(run(dispatchTransfer, { id: withdrawn.id })).rejects.toMatchObject(
       fail('failed-precondition'),
     );
     const sent = await request();
-    await expect(run(stock.transferDispatch, { id: sent.id })).rejects.toMatchObject(
+    await expect(run(dispatchTransfer, { id: sent.id })).rejects.toMatchObject(
       fail('failed-precondition'),
     ); // not approved yet
-    await expect(run(stock.transferApprove, { id: sent.id }, '1')).rejects.toMatchObject(
+    await expect(run(approveTransfer, { id: sent.id }, '1')).rejects.toMatchObject(
       fail('permission-denied'),
     );
-    const own = await run(
-      stock.transferRequest,
-      {
-        fromStoreId: firstStore,
-        toStoreId: secondStore,
-        lineItems: [{ itemId: pen, quantity: 1 }],
-      },
-      'tapr',
+    await run(approveTransfer, { id: sent.id }, 'tapr');
+    await run(dispatchTransfer, { id: sent.id });
+    await expect(run(cancelTransfer, { id: sent.id, reason: 'too late' })).rejects.toMatchObject(
+      fail('failed-precondition'),
     );
-    await expect(run(stock.transferApprove, { id: own.id }, 'tapr')).rejects.toThrow(
-      /different user/,
-    );
-    await run(stock.transferApprove, { id: sent.id }, 'tapr');
-    await run(stock.transferDispatch, { id: sent.id });
-    await expect(
-      run(stock.transferCancel, { id: sent.id, reason: 'too late' }),
-    ).rejects.toMatchObject(fail('failed-precondition'));
   });
 
   it('transfers: dispatch drops source, partial receipt, final records discrepancy', async () => {
     await penIn(10);
-    const transfer = await run(stock.transferRequest, {
+    const transfer = await run(requestTransfer, {
       fromStoreId: firstStore,
       toStoreId: secondStore,
       lineItems: [{ itemId: pen, quantity: 6 }],
     });
-    await run(stock.transferApprove, { id: transfer.id }, 'tapr');
-    await run(stock.transferDispatch, { id: transfer.id });
+    await run(approveTransfer, { id: transfer.id }, 'tapr');
+    await run(dispatchTransfer, { id: transfer.id });
     expect((await balance(`${firstStore}__${pen}__-__-`)).quantityAvailable).toBe(4);
-    await expect(run(stock.transferDispatch, { id: transfer.id })).rejects.toMatchObject(
+    await expect(run(dispatchTransfer, { id: transfer.id })).rejects.toMatchObject(
       fail('failed-precondition'),
     );
     await expect(
-      run(stock.transferReceive, {
+      run(receiveTransfer, {
         id: transfer.id,
         lineItems: [{ index: 0, quantityReceived: 7 }],
       }),
     ).rejects.toMatchObject(fail('failed-precondition'));
-    await run(stock.transferReceive, {
+    await run(receiveTransfer, {
       id: transfer.id,
       lineItems: [{ index: 0, quantityReceived: 4 }],
     });
     expect((await get(`inventoryTransfers/${transfer.id}`))?.status).toBe('partially_received');
     expect((await balance(`${secondStore}__${pen}__-__-`)).quantityAvailable).toBe(4);
-    await run(stock.transferReceive, { id: transfer.id, final: true });
+    await run(receiveTransfer, { id: transfer.id, final: true });
     expect(await get(`inventoryTransfers/${transfer.id}`)).toMatchObject({
       status: 'received',
       lineItems: [{ quantityReceived: 4, discrepancy: 2 }],
@@ -322,19 +278,19 @@ describe('inventory stock', () => {
       resolution: 'write_off',
     });
     await expect(
-      run(stock.transferRequest, {
+      run(requestTransfer, {
         fromStoreId: firstStore,
         toStoreId: firstStore,
         lineItems: [{ itemId: pen, quantity: 1 }],
       }),
     ).rejects.toMatchObject(fail('failed-precondition'));
-    const big = await run(stock.transferRequest, {
+    const big = await run(requestTransfer, {
       fromStoreId: firstStore,
       toStoreId: secondStore,
       lineItems: [{ itemId: pen, quantity: 50 }],
     });
-    await run(stock.transferApprove, { id: big.id }, 'tapr');
-    await expect(run(stock.transferDispatch, { id: big.id })).rejects.toMatchObject(
+    await run(approveTransfer, { id: big.id }, 'tapr');
+    await expect(run(dispatchTransfer, { id: big.id })).rejects.toMatchObject(
       fail('failed-precondition'),
     );
   });
@@ -342,7 +298,7 @@ describe('inventory stock', () => {
   it('adjustments: reasons, never below zero, immutable record with before/after', async () => {
     await penIn(5);
     await expect(
-      run(stock.adjustmentCreate, {
+      run(adjustStock, {
         storeId: firstStore,
         itemId: pen,
         delta: -6,
@@ -350,7 +306,7 @@ describe('inventory stock', () => {
       }),
     ).rejects.toMatchObject(fail('failed-precondition'));
     await expect(
-      run(stock.adjustmentCreate, {
+      run(adjustStock, {
         storeId: firstStore,
         itemId: pen,
         delta: 1,
@@ -358,9 +314,9 @@ describe('inventory stock', () => {
       }),
     ).rejects.toMatchObject(fail('failed-precondition'));
     await expect(
-      run(stock.adjustmentCreate, { storeId: firstStore, itemId: pen, delta: 1, reason: 'other' }),
+      run(adjustStock, { storeId: firstStore, itemId: pen, delta: 1, reason: 'other' }),
     ).rejects.toMatchObject(fail('failed-precondition'));
-    const first = await run(stock.adjustmentCreate, {
+    const first = await run(adjustStock, {
       storeId: firstStore,
       itemId: pen,
       delta: -2,
@@ -373,14 +329,14 @@ describe('inventory stock', () => {
       status: 'completed',
     });
     await expect(
-      run(stock.adjustmentCreate, {
+      run(adjustStock, {
         storeId: secondStore,
         itemId: pen,
         delta: -1,
         reason: 'missing',
       }),
     ).rejects.toMatchObject(fail('failed-precondition'));
-    await run(stock.adjustmentCreate, {
+    await run(adjustStock, {
       storeId: secondStore,
       itemId: pen,
       delta: 2,
@@ -392,7 +348,7 @@ describe('inventory stock', () => {
   it('unavailable stock: report, restore, write-off, repair; expired cannot be restored', async () => {
     await penIn(10);
     const key = { storeId: firstStore, itemId: pen };
-    const definition = await run(stock.unavailableReport, {
+    const definition = await run(reportUnavailable, {
       ...key,
       quantity: 4,
       reason: 'damaged',
@@ -403,22 +359,22 @@ describe('inventory stock', () => {
       quantityDamaged: 4,
     });
     await expect(
-      run(stock.unavailableReport, { ...key, quantity: 7, reason: 'damaged', remarks: 'x' }),
+      run(reportUnavailable, { ...key, quantity: 7, reason: 'damaged', remarks: 'x' }),
     ).rejects.toMatchObject(fail('failed-precondition'));
     await expect(
-      run(stock.unavailableReport, { ...key, quantity: 1, reason: 'expired', remarks: 'x' }),
+      run(reportUnavailable, { ...key, quantity: 1, reason: 'expired', remarks: 'x' }),
     ).rejects.toMatchObject(fail('failed-precondition'));
-    await run(stock.unavailableResolve, { id: definition.id, resolution: 'repair' });
+    await run(resolveUnavailable, { id: definition.id, resolution: 'repair' });
     expect((await get(`inventoryUnavailableStock/${definition.id}`))?.status).toBe('in_repair');
-    await run(stock.unavailableResolve, { id: definition.id, resolution: 'restore' });
+    await run(resolveUnavailable, { id: definition.id, resolution: 'restore' });
     expect(await balance(`${firstStore}__${pen}__-__-`)).toMatchObject({
       quantityAvailable: 10,
       quantityDamaged: 0,
     });
     await expect(
-      run(stock.unavailableResolve, { id: definition.id, resolution: 'restore' }),
+      run(resolveUnavailable, { id: definition.id, resolution: 'restore' }),
     ).rejects.toMatchObject(fail('failed-precondition'));
-    const lost = await run(stock.unavailableReport, {
+    const lost = await run(reportUnavailable, {
       ...key,
       quantity: 2,
       reason: 'lost',
@@ -436,7 +392,7 @@ describe('inventory stock', () => {
     await db()
       .doc(`schools/${SCHOOL_ID}/inventoryBalances/${firstStore}__${med}__-__E1`)
       .update({ expiryDate: dayTimestamp(day(-2)) });
-    const error = await run(stock.unavailableReport, {
+    const error = await run(reportUnavailable, {
       storeId: firstStore,
       itemId: med,
       batchNumber: 'E1',
@@ -449,22 +405,9 @@ describe('inventory stock', () => {
       quantityExpired: 3,
     });
     await expect(
-      run(stock.unavailableResolve, { id: error.id, resolution: 'restore' }),
+      run(resolveUnavailable, { id: error.id, resolution: 'restore' }),
     ).rejects.toMatchObject(fail('failed-precondition'));
-    await run(stock.unavailableResolve, { id: error.id, resolution: 'dispose' });
+    await run(resolveUnavailable, { id: error.id, resolution: 'dispose' });
     expect((await balance(`${firstStore}__${med}__-__E1`)).quantityExpired).toBe(0);
-  });
-
-  it('acknowledges an issue once', async () => {
-    await penIn(3);
-    const issue = await run(stock.issueCreate, {
-      issueRequestId: await approved(3),
-      recipient,
-      lineItems: [{ itemId: pen, quantity: 3 }],
-    });
-    await run(stock.issueAcknowledge, { id: issue.id });
-    await expect(run(stock.issueAcknowledge, { id: issue.id })).rejects.toMatchObject(
-      fail('failed-precondition'),
-    );
   });
 });

@@ -1,11 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { runDailyInventory } from '../src/inventory/daily';
 import { masters } from '../src/inventory/masters';
-import { stock } from '../src/inventory/stock-operations';
 import { verification as v } from '../src/inventory/verification';
 import { runCallable, type CallableDef } from '../src/shared/callable';
 import { dayTimestamp } from '../src/shared/dates';
-import { receiveStock } from './fixtures';
+import { adjustStock, receiveStock } from './fixtures';
 import { clearFirestore, db } from './setup';
 
 const SCHOOL_ID = '12';
@@ -200,7 +199,7 @@ describe('stock verification and daily job', () => {
   });
 
   it('out of stock is announced once when an issue empties a balance', async () => {
-    await run(stock.adjustmentCreate, {
+    await run(adjustStock, {
       storeId: store,
       itemId: ink,
       delta: -4,
