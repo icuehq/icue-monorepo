@@ -8,7 +8,7 @@ const root = new URL('..', import.meta.url).pathname;
 const include = [
   'firebase/functions/src', 'firebase/functions/test', 'firebase/functions/scripts', 'firebase/firestore.rules', 'firebase/rules-tests/rules.test.js',
   'features/inventory/lib', 'features/inventory/test', 'features/library/lib', 'features/library/test',
-  'apps/icueadmin/lib/features/inventory', 'apps/icueadmin/lib/features/library', 'apps/icueadmin/lib/widgets', 'packages/icue_firebase/lib/src/school_data.dart',
+  'features/inventory/lib/src/ui', 'features/library/lib/src/ui', 'packages/admin_ui/lib', 'packages/icue_firebase/lib/src/school_data.dart',
 ];
 const generated = /\.(g|module)\.dart$|injection\.config\.dart$/;
 

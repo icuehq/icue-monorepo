@@ -23,7 +23,7 @@ This document decides *how* the FRS is built. Functional behaviour stays defined
 | D9 | Teachers use `icueadmin`. Parents use the parent app (same `icueadmin` Firebase project, moving into this monorepo) and get **read-only** access to their wardStudentIds' records. Students never sign in. |
 | D11 | Two Firebase projects: `icueadmin-dev` and `icueadmin` (prod), with dev/prod app flavors (§14). |
 | D12 | Text search runs on a second **Enterprise-edition** Firestore database `search`, mirrored from `(default)` by a trigger and queried only through a callable (§10). `(default)` stays Standard. |
-| D10 | Code lives in `firebase/` (rules, indexes, functions) and `features/inventory`, `features/library` (Dart models/services/providers); UI in `apps/icueadmin`. |
+| D10 | Code lives in `firebase/` (rules, indexes, functions) and `features/inventory`, `features/library` (Dart models/services/providers/UI and routes; apps only mount `inventoryRoutes()` / `libraryRoutes()`). |
 
 ---
 

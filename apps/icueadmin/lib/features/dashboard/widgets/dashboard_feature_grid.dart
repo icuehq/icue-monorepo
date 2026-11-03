@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icueadmin/features/dashboard/widgets/sub_actions_sheet.dart';
 import 'package:icueadmin/routing/app_routes.dart';
+import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
+import 'package:school_library/school_library.dart';
 
 class DashboardFeatureGrid extends StatelessWidget {
   const DashboardFeatureGrid({super.key});
@@ -182,9 +184,9 @@ class DashboardFeatureGrid extends StatelessWidget {
                     final lowerRoute = item.routeState.toLowerCase();
 
                     if (lowerRoute.contains('inventory')) {
-                      context.push(AppRoutes.inventory);
+                      context.push(InventoryRoutes.inventory);
                     } else if (lowerRoute.contains('library')) {
-                      context.push(AppRoutes.library);
+                      context.push(LibraryRoutes.library);
                     } else if (lowerTitle.contains('add driver') ||
                         lowerRoute.contains('add-driver')) {
                       context.push(AppRoutes.addDriver);

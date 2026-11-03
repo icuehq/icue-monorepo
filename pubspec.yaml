@@ -8,6 +8,7 @@ workspace:
   - apps/icueadmin
   - apps/impl
   - packages/api_client
+  - packages/admin_ui
   - packages/core_ui
   - packages/local_storage
   - packages/icue_face_sdk

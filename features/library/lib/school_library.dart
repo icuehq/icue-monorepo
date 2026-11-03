@@ -13,3 +13,5 @@ export 'src/models/library_transfers.dart';
 export 'src/models/library_verifications.dart';
 export 'src/providers/library_provider.dart';
 export 'src/services/library_service.dart';
+export 'src/ui/library_router.dart';
+export 'src/ui/library_routes.dart';
