@@ -1,0 +1,7 @@
+{
+  "projects": {
+    "default": "icueadmin-dev",
+    "dev": "icueadmin-dev",
+    "prod": "icueadmin"
+  }
+}

@@ -1,8 +1,9 @@
+import 'dart:async';
+
+import 'package:auth/auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-
-import '../providers/auth_provider.dart';
 
 class LogoutDialog extends StatelessWidget {
   const LogoutDialog({super.key});
@@ -19,15 +20,31 @@ class LogoutDialog extends StatelessWidget {
         TextButton(
           child: const Text('No'),
           onPressed: () {
-            HapticFeedback.vibrate();
+            unawaited(HapticFeedback.vibrate());
             Navigator.of(context).pop();
           },
         ),
         FilledButton(
           child: const Text('Yes'),
           onPressed: () async {
-            HapticFeedback.vibrate();
-            Provider.of<AuthProvider>(context, listen: false).logout(context);
+            unawaited(HapticFeedback.vibrate());
+            final auth = context.read<AuthProvider>();
+            final navigator = Navigator.of(context)..pop();
+            unawaited(
+              showDialog<void>(
+                context: navigator.context,
+                barrierDismissible: false,
+                builder: (_) => const PopScope(
+                  canPop: false,
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              ),
+            );
+            try {
+              await auth.logout();
+            } finally {
+              if (navigator.mounted) navigator.pop();
+            }
           },
         ),
       ],

@@ -1,9 +1,0 @@
-{
-    "identityName": "com.thoughtniques.icueadmin",
-    "publisher": "CN=Thoughtniques",
-    "publisherDisplayName": "Thoughtniques",
-    "appDisplayName": "iCue Admin",
-    "msixVersion": "1.0.0.0",
-    "logoPath": "playstore.png",
-    "capabilities": "internetClient"
-  }

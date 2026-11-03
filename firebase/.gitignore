@@ -1,0 +1,6 @@
+node_modules/
+lib/
+*.log
+.firebase/
+.emulator-data*/
+.firebase.emulator.json

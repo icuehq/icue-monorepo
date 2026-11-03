@@ -2,24 +2,93 @@ name: icue_monorepo
 publish_to: none
 
 environment:
-  sdk: ^3.9.0
+  sdk: ^3.13.1
 
 workspace:
   - apps/icueadmin
+  - apps/impl
+  - packages/api_client
+  - packages/admin_ui
+  - packages/core_ui
+  - packages/local_storage
   - packages/icue_face_sdk
+  - packages/icue_firebase
+  - features/auth
+  - features/drivers
+  - features/vehicles
+  - features/routes
+  - features/announcements
+  - features/expenses
+  - features/logbook
+  - features/reports
+  - features/gatepass
+  - features/tracking
+  - features/drop_boarding
+  - features/attendance
+  - features/inventory
+  - features/library
 
 dev_dependencies:
-  flutter_lints: ^6.0.0
-  melos: ^8.2.2
+  melos: ^8.9.0
 
 melos:
   scripts:
-    clean:
-      exec: flutter clean
-      description: Clean build folders and artifacts across all packages and apps.
+    lint:
+      description: Analyze every package.
+      run: melos exec -c 5 -- flutter analyze --no-fatal-infos
+
     format:
-      exec: dart format .
-      description: Run dart format on all packages and apps in the workspace.
+      description: Format all Dart code.
+      run: dart format .
+
+    naming:check:
+      description: Fail on abbreviated names, module prefixes and uid prefixes in Inventory and Library code (docs/naming-map.md).
+      run: node tool/check-naming.mjs
+
     format:check:
-      exec: dart format --set-exit-if-changed .
-      description: Check dart format on all packages and apps in the workspace.
+      description: Fail if any file is unformatted.
+      run: dart format --set-exit-if-changed .
+
+    test:
+      description: Run tests in every package that has a test/ dir.
+      run: melos exec -c 3 --fail-fast -- flutter test
+      packageFilters:
+        dirExists: test
+
+    gen:
+      description: Run build_runner in packages that depend on it.
+      run: melos exec -c 3 -- dart run build_runner build --delete-conflicting-outputs
+      packageFilters:
+        dependsOn: build_runner
+
+    gen:watch:
+      description: Watch build_runner in packages that depend on it.
+      run: melos exec -- dart run build_runner watch --delete-conflicting-outputs
+      packageFilters:
+        dependsOn: build_runner
+
+    clean:
+      description: Flutter clean every package.
+      run: melos exec -c 5 -- flutter clean
+      packageFilters:
+        flutter: true
+
+    firebase:test:
+      description: Cloud Functions and Security Rules tests on the emulator.
+      run: cd firebase/functions && npm ci && npm test && cd ../rules-tests && npm ci && npm test
+
+    emulators:
+      description: Start Firebase emulators; loads and saves firebase/.emulator-data (Ctrl-C saves).
+      run: firebase/scripts/emulators.sh start standard
+
+    emulators:enterprise:
+      description: Same as emulators, but the Firestore emulator runs in Enterprise edition (own data dir firebase/.emulator-data-enterprise).
+      run: firebase/scripts/emulators.sh start enterprise
+
+    emulators:reset:
+      description: Delete the saved emulator data (both editions).
+      run: firebase/scripts/emulators.sh reset
+
+    outdated:
+      description: Show outdated dependencies.
+      run: melos exec -c 5 -- flutter pub outdated

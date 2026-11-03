@@ -44,10 +44,5 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# Security & Private Keys
-AuthKey_*.p8
-*.jks
-*.keystore
-*.pepk
-passwords.txt
-
+# Widget Preview related
+.widget_preview/

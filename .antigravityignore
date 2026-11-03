@@ -1,0 +1,26 @@
+# Secrets (never expose to the agent)
+AuthKey_*.p8
+*.pepk
+keystore.jks
+passwords.txt
+.env
+.env.*
+
+# Build output and tooling caches
+.dart_tool
+.idea
+.gradle
+.kotlin
+build
+*.iml
+node_modules
+pubspec.lock
+
+# Generated code
+*.g.dart
+*.module.dart
+injection.config.dart
+
+# Firebase local state
+firebase/.emulator-data
+firebase/functions/lib

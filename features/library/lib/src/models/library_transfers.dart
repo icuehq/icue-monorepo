@@ -1,0 +1,95 @@
+import 'package:icue_firebase/icue_firebase.dart';
+
+String transferStatusLabel(String value) => switch (value) {
+  'requested' => 'Requested',
+  'approved' => 'Approved',
+  'dispatched' => 'In transit',
+  'partially_received' => 'Partly received',
+  'received' => 'Received',
+  _ => value,
+};
+
+/// One copy on a transfer; [received] flips when the destination confirms it.
+class LibraryTransferLine {
+  const LibraryTransferLine({
+    required this.copyId,
+    required this.accessionNumber,
+    required this.received,
+    this.condition,
+  });
+
+  factory LibraryTransferLine.fromMap(Map<String, dynamic> data) =>
+      LibraryTransferLine(
+        copyId: data['copyId'] as String? ?? '',
+        accessionNumber: data['accessionNumber'] as String? ?? '',
+        received: data['received'] as bool? ?? false,
+        condition: data['condition'] as String?,
+      );
+
+  final String copyId;
+  final String accessionNumber;
+  final bool received;
+  final String? condition;
+}
+
+/// A transfer of copies between two libraries of the school (FRS 11.15).
+class LibraryTransfer {
+  const LibraryTransfer({
+    required this.id,
+    required this.number,
+    required this.fromLibraryId,
+    required this.toLibraryId,
+    required this.campusId,
+    required this.toCampusId,
+    required this.status,
+    required this.lineItems,
+    this.createdAt,
+    this.requestedDate,
+    this.dispatchedDate,
+    this.receivedDate,
+    this.remarks,
+  });
+
+  factory LibraryTransfer.fromMap(String id, Map<String, dynamic> data) =>
+      LibraryTransfer(
+        id: id,
+        number: data['number'] as String? ?? id,
+        fromLibraryId: data['fromLibraryId'] as String? ?? '',
+        toLibraryId: data['toLibraryId'] as String? ?? '',
+        campusId: (data['campusId'] as num? ?? 0).toInt(),
+        toCampusId: (data['toCampusId'] as num? ?? 0).toInt(),
+        status: data['status'] as String? ?? 'requested',
+        lineItems: [
+          for (final value in (data['lineItems'] as List? ?? const []))
+            LibraryTransferLine.fromMap(
+              Map<String, dynamic>.from(value as Map),
+            ),
+        ],
+        createdAt: data['createdAt'] is Timestamp
+            ? (data['createdAt'] as Timestamp).toDate()
+            : null,
+        requestedDate: data['requestedDate'] as String?,
+        dispatchedDate: data['dispatchedDate'] as String?,
+        receivedDate: data['receivedDate'] as String?,
+        remarks: data['remarks'] as String?,
+      );
+
+  final String id;
+  final String number;
+  final String fromLibraryId;
+  final String toLibraryId;
+  final int campusId;
+  final int toCampusId;
+  final String status;
+  final List<LibraryTransferLine> lineItems;
+  final DateTime? createdAt;
+  final String? requestedDate;
+  final String? dispatchedDate;
+  final String? receivedDate;
+  final String? remarks;
+
+  List<LibraryTransferLine> get pending => [
+    for (final transferLine in lineItems)
+      if (!transferLine.received) transferLine,
+  ];
+}

@@ -1,22 +1,32 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 class CacheImage extends StatelessWidget {
-  const CacheImage({super.key, required this.url, required this.size});
+  const CacheImage({required this.url, required this.size, super.key});
 
   final double size;
   final String url;
 
   @override
   Widget build(BuildContext context) {
-    return CachedNetworkImage(
-      imageUrl: url,
+    if (url.isEmpty || !url.startsWith('http')) {
+      return Image.asset(
+        'assets/logo.png',
+        width: size,
+        height: size,
+        errorBuilder: (_, _, _) => Icon(Icons.apps, size: size),
+      );
+    }
+
+    return Image.network(
+      url,
       width: size,
       height: size,
-      placeholder: (context, url) =>
-          Image.asset('assets/logo.png', width: size, height: size),
-      errorWidget: (context, url, error) =>
-          Image.asset('assets/logo.png', width: size, height: size),
+      errorBuilder: (context, error, stackTrace) => Image.asset(
+        'assets/logo.png',
+        width: size,
+        height: size,
+        errorBuilder: (_, _, _) => Icon(Icons.apps, size: size),
+      ),
     );
   }
 }

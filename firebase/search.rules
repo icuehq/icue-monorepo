@@ -1,0 +1,10 @@
+rules_version = '2';
+
+// The `search` database is a Functions-only mirror (Admin SDK bypasses rules): no client access.
+service cloud.firestore {
+  match /databases/{db}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

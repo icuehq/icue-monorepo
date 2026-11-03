@@ -14,7 +14,7 @@ import 'package:flutter/foundation.dart'
 ///   options: DefaultFirebaseOptions.currentPlatform,
 /// );
 /// ```
-class DefaultFirebaseOptionsProd {
+class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
       return web;
@@ -25,9 +25,15 @@ class DefaultFirebaseOptionsProd {
       case TargetPlatform.iOS:
         return ios;
       case TargetPlatform.macOS:
-        return macos;
+        throw UnsupportedError(
+          'DefaultFirebaseOptions have not been configured for macos - '
+          'you can reconfigure this by running the FlutterFire CLI again.',
+        );
       case TargetPlatform.windows:
-        return windows;
+        throw UnsupportedError(
+          'DefaultFirebaseOptions have not been configured for windows - '
+          'you can reconfigure this by running the FlutterFire CLI again.',
+        );
       case TargetPlatform.linux:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for linux - '
@@ -41,13 +47,13 @@ class DefaultFirebaseOptionsProd {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyDVY9W0dE30N1rULnO-qe037mq_LvEzXd4',
-    appId: '1:682367186948:web:b31259ffdb73e6bfb81d51',
+    apiKey: 'AIzaSyDxW98Oxgw7OQl-HLvF8_5GRu2ndpEahKY',
+    appId: '1:682367186948:web:6180308950468321b81d51',
     messagingSenderId: '682367186948',
     projectId: 'icueadmin',
     authDomain: 'icueadmin.firebaseapp.com',
     storageBucket: 'icueadmin.firebasestorage.app',
-    measurementId: 'G-4DLSTETS6E',
+    measurementId: 'G-52QVSG2H04',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
@@ -65,24 +71,5 @@ class DefaultFirebaseOptionsProd {
     projectId: 'icueadmin',
     storageBucket: 'icueadmin.firebasestorage.app',
     iosBundleId: 'com.thoughtniques.icueadmin',
-  );
-
-  static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyD5N-IPU0OBIUiCDEYFfEkd9LgDO_zIPjc',
-    appId: '1:682367186948:ios:5eac0ded1e1b29cab81d51',
-    messagingSenderId: '682367186948',
-    projectId: 'icueadmin',
-    storageBucket: 'icueadmin.firebasestorage.app',
-    iosBundleId: 'com.thoughtniques.icueadmin',
-  );
-
-  static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyDxW98Oxgw7OQl-HLvF8_5GRu2ndpEahKY',
-    appId: '1:682367186948:web:6180308950468321b81d51',
-    messagingSenderId: '682367186948',
-    projectId: 'icueadmin',
-    authDomain: 'icueadmin.firebaseapp.com',
-    storageBucket: 'icueadmin.firebasestorage.app',
-    measurementId: 'G-52QVSG2H04',
   );
 }
