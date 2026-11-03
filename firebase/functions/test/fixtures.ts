@@ -1,4 +1,8 @@
 import { FieldValue } from 'firebase-admin/firestore';
+import { z } from 'zod';
+import { lineKey, Stock, transactionFields } from '../src/inventory/stock';
+import { batch } from '../src/inventory/stock-operations';
+import { defineCallable, failed, id, money, optionalText } from '../src/shared/masters';
 import { db } from './setup';
 
 /** Documents the client writes directly (`firestore.rules`); the server only reads them, so tests seed them. */
@@ -125,4 +129,121 @@ export async function seedQuotation(
     updatedAt: FieldValue.serverTimestamp(),
   });
   return ref.id;
+}
+
+const lineItems = <T extends z.ZodType>(lineSchema: T) => z.array(lineSchema).min(1).max(50);
+
+/** Stock seeder for tests: Receive Stock itself is a client transaction (`StockWrites`). */
+export const receiveStock = defineCallable({
+  name: 'inventory.receipt.confirm',
+  permission: 'inventory.stock.operate',
+  input: z.object({
+    ...transactionFields,
+    storeId: id,
+    source: z.enum(['opening', 'adjustment', 'department_return', 'person_return', 'other']),
+    reference: optionalText,
+    remarks: optionalText,
+    lineItems: lineItems(
+      z.object({
+        ...lineKey,
+        ...batch,
+        quantityAccepted: z.number().min(0).max(1_000_000),
+        quantityRejected: z.number().min(0).max(1_000_000).default(0),
+        condition: z.string().trim().max(60).nullish(),
+        unitCost: money.nullish(),
+      }),
+    ),
+  }),
+  handler: async (context, i) => {
+    const stockData = new Stock(context, i);
+    const store = await stockData.store(i.storeId);
+    const ref = context.newDoc('inventoryReceipts');
+    const number = await stockData.num('GRN');
+    const out = [];
+    for (const lineItem of i.lineItems) {
+      if (lineItem.quantityAccepted + lineItem.quantityRejected <= 0)
+        throw failed('Each line needs a quantity');
+      const item = await stockData.item(lineItem.itemId, lineItem.variantId);
+      const lineBatch = stockData.batchOf(item, lineItem, true);
+      const unitCost = lineItem.unitCost ?? item.defaultPrice ?? 0;
+      if (lineItem.quantityAccepted > 0) {
+        stockData.receive(
+          await stockData.balance(i.storeId, item, lineItem.variantId, lineBatch, true),
+          lineItem.quantityAccepted,
+          'receive',
+          'receipt',
+          ref.id,
+          unitCost,
+        );
+      }
+      out.push({
+        itemId: lineItem.itemId,
+        variantId: lineItem.variantId ?? null,
+        ...lineBatch,
+        unitCost,
+        condition: lineItem.condition ?? null,
+        quantityReceived: lineItem.quantityAccepted + lineItem.quantityRejected,
+        quantityAccepted: lineItem.quantityAccepted,
+        quantityRejected: lineItem.quantityRejected,
+      });
+    }
+    context.set(ref, {
+      number,
+      storeId: i.storeId,
+      source: i.source,
+      reference: i.reference ?? null,
+      remarks: i.remarks ?? null,
+      lineItems: out,
+      itemIds: [...new Set(out.map((lineItem) => lineItem.itemId))],
+      attachments: [],
+      status: 'confirmed',
+      ...stockData.header(store.campusId),
+    });
+    context.audit({
+      action: 'inventoryReceipt.create',
+      documentPath: ref.path,
+      after: { number, source: i.source },
+    });
+    await stockData.finish();
+    return { id: ref.id, number };
+  },
+});
+
+/** An issue request as the client writes and decides it (`StockWrites`); the server only issues against it. */
+export async function seedIssueRequest(fields: {
+  storeId: string;
+  itemId: string;
+  quantity: number;
+  createdBy: string;
+  status?: 'pending' | 'approved' | 'rejected';
+}): Promise<string> {
+  const status = fields.status ?? 'pending';
+  const reference = db().collection(`${SCHOOL}/inventoryIssueRequests`).doc();
+  await reference.set({
+    number: `ISR/test/${reference.id}`,
+    storeId: fields.storeId,
+    departmentId: null,
+    destination: null,
+    purpose: 'Class',
+    remarks: null,
+    requesterId: null,
+    lineItems: [
+      {
+        itemId: fields.itemId,
+        variantId: null,
+        quantityRequested: fields.quantity,
+        quantityApproved: status === 'approved' ? fields.quantity : null,
+        quantityIssued: 0,
+      },
+    ],
+    itemIds: [fields.itemId],
+    status,
+    approval: status === 'pending' ? null : { performedBy: 'apr', comment: null },
+    campusId: 31,
+    transactionDate: new Date().toISOString().slice(0, 10),
+    createdAt: FieldValue.serverTimestamp(),
+    createdBy: fields.createdBy,
+    updatedAt: FieldValue.serverTimestamp(),
+  });
+  return reference.id;
 }

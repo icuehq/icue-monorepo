@@ -4,6 +4,7 @@ import 'package:injectable/injectable.dart';
 import 'package:inventory/src/models/inventory_masters.dart';
 import 'package:inventory/src/models/inventory_stock.dart';
 import 'package:inventory/src/services/stock_service.dart';
+import 'package:inventory/src/services/stock_writes.dart';
 
 /// Stock lists and actions. Needs `InventoryProvider.loadMasters()` first (access, stores).
 @lazySingleton
@@ -11,6 +12,7 @@ class StockProvider extends ChangeNotifier {
   StockProvider(this._service);
 
   final StockService _service;
+  final _writes = StockWrites();
 
   /// Item names for every id seen in a list (balances, requests, transfers…).
   final Map<String, InventoryItem> items = {};
@@ -114,7 +116,7 @@ class StockProvider extends ChangeNotifier {
     await _names(unavailable.map((unavailable) => unavailable.itemId));
   });
 
-  /// Runs a callable; returns its result (`id`, `number`) or null with [errorMessage] set.
+  /// Runs a client write (Receive Stock) or else a callable; returns its result (`id`, `number`) or null with [errorMessage] set.
   Future<Map<String, dynamic>?> act(
     String value,
     Map<String, Object?> data, {
@@ -122,7 +124,9 @@ class StockProvider extends ChangeNotifier {
   }) async {
     errorMessage = null;
     try {
-      return await _service.call(value, data, requestId: requestId);
+      return StockWrites.names.contains(value)
+          ? await _writes.run(value, data)
+          : await _service.call(value, data, requestId: requestId);
     } catch (error) {
       errorMessage = callableErrorMessage(error);
       notifyListeners();

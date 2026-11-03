@@ -1,7 +1,7 @@
 rules_version = '2';
 
 // Clients read; all writes go through Cloud Functions (Admin SDK bypasses rules).
-// Exceptions: own device tokens/mute, verification count lines (offline counting, Inv-8), the master collections, and purchase requests/quotations/invoices.
+// Exceptions: own device tokens/mute, Receive Stock (receipts, ledger rows, balances), issue request submit/approve, verification count lines (offline counting, Inv-8), the master collections, and purchase requests/quotations/invoices.
 service cloud.firestore {
   match /databases/{db}/documents {
     function signedIn() { return request.auth != null; }
@@ -90,6 +90,31 @@ service cloud.firestore {
       allow read: if inSchool(schoolId)
         && coll in ['inventoryBalances', 'inventoryMovements', 'inventoryReceipts', 'inventoryIssues', 'inventoryReturns', 'inventoryAdjustments', 'inventoryUnavailableStock']
         && can(schoolId, 'inventory.stock.view') && onCampus(schoolId, resource.data.campusId);
+    }
+    // Receive Stock is a client transaction: stock operators on the campus create receipts and ledger rows (never edit
+    // them) and create/update the receiving store's balances.
+    match /schools/{schoolId}/{coll}/{id} {
+      allow create: if inSchool(schoolId) && coll in ['inventoryReceipts', 'inventoryMovements']
+        && can(schoolId, 'inventory.stock.operate') && onCampus(schoolId, request.resource.data.campusId)
+        && request.resource.data.createdBy == request.auth.uid;
+    }
+    match /schools/{schoolId}/inventoryBalances/{id} {
+      allow create, update: if inSchool(schoolId) && can(schoolId, 'inventory.stock.operate')
+        && onCampus(schoolId, request.resource.data.campusId);
+    }
+    // Submitting and approving/rejecting an issue request are client writes; issuing stays with Functions.
+    match /schools/{schoolId}/inventoryIssueRequests/{id} {
+      allow create: if inSchool(schoolId) && can(schoolId, 'inventory.issue.request')
+        && onCampus(schoolId, request.resource.data.campusId)
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.status == 'pending';
+      // Approve / reject: only while pending, by an approver on the campus, touching only the decision fields.
+      allow update: if inSchool(schoolId) && can(schoolId, 'inventory.issue.approve')
+        && onCampus(schoolId, resource.data.campusId)
+        && resource.data.status == 'pending'
+        && request.resource.data.status in ['approved', 'rejected']
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'lineItems', 'approval', 'updatedAt'])
+        && request.resource.data.approval.performedBy == request.auth.uid;
     }
     // Requesters see their own requests; approvers and stock users see the campus's.
     match /schools/{schoolId}/inventoryIssueRequests/{id} {

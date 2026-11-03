@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icueadmin/features/inventory/stock/issue_return_sheet.dart';
 import 'package:icueadmin/features/inventory/stock/stock_ui.dart';
+import 'package:icueadmin/features/inventory/widgets/person_search_field.dart';
 import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
@@ -35,13 +36,14 @@ class RequestSheet extends StatefulWidget {
 
 class _RequestSheetState extends State<RequestSheet> {
   final _comment = TextEditingController();
-  late final _recipient = TextEditingController(text: widget.request.createdBy);
+  late int? _recipientId = int.tryParse(widget.request.createdBy);
   late final _approve = [
     for (final requestLine in widget.request.lineItems)
       TextEditingController(text: formatQuantity(requestLine.requested)),
   ];
   final _requestId = newRequestId();
   var _recipientType = 'staff';
+  String? _error;
   late final Future<List<InventoryIssue>> _issues = widget.request.isPending
       ? Future.value([])
       : context.read<StockProvider>().issuesOf(widget.request);
@@ -49,34 +51,43 @@ class _RequestSheetState extends State<RequestSheet> {
   @override
   void dispose() {
     _comment.dispose();
-    _recipient.dispose();
     for (final controller in _approve) {
       controller.dispose();
     }
     super.dispose();
   }
 
-  Future<void> _decide(bool approve) {
+  void _showFailure(bool succeeded) {
+    if (!mounted) return;
+    setState(
+      () => _error = succeeded
+          ? null
+          : context.read<StockProvider>().errorMessage,
+    );
+  }
+
+  Future<void> _decide(bool approve) async {
     if (!approve && _comment.text.trim().isEmpty) {
-      showMessage(context, 'Please enter a rejection comment');
-      return Future.value();
+      return showMessage(context, 'Please enter a rejection comment');
     }
-    return stockSubmit(
-      context,
-      (stockProvider) => stockProvider.act('inventory-issueRequest-decide', {
-        'id': widget.request.id,
-        'decision': approve ? 'approve' : 'reject',
-        'comment': _comment.text.trim(),
-        if (approve)
-          'lineItems': [
-            for (final (i, c) in _approve.indexed)
-              {
-                'index': i,
-                'quantityApproved': double.tryParse(c.text.trim()) ?? 0,
-              },
-          ],
-      }, requestId: _requestId),
-      done: approve ? 'Approved' : 'Rejected',
+    _showFailure(
+      await stockSubmit(
+        context,
+        (stockProvider) => stockProvider.act('inventory-issueRequest-decide', {
+          'id': widget.request.id,
+          'decision': approve ? 'approve' : 'reject',
+          'comment': _comment.text.trim(),
+          if (approve)
+            'lineItems': [
+              for (final (i, c) in _approve.indexed)
+                {
+                  'index': i,
+                  'quantityApproved': double.tryParse(c.text.trim()) ?? 0,
+                },
+            ],
+        }, requestId: _requestId),
+        done: approve ? 'Approved' : 'Rejected',
+      ),
     );
   }
 
@@ -88,26 +99,28 @@ class _RequestSheetState extends State<RequestSheet> {
   }
 
   Future<void> _issue() async {
-    final personErpId = int.tryParse(_recipient.text.trim());
+    final personErpId = _recipientId;
     if (personErpId == null) {
       return showMessage(context, 'Enter the recipient ERP ID');
     }
-    await stockSubmit(
-      context,
-      (stockProvider) => stockProvider.act('inventory-issue-create', {
-        'issueRequestId': widget.request.id,
-        'recipient': {'type': _recipientType, 'personErpId': personErpId},
-        'lineItems': [
-          for (final requestLine in widget.request.lineItems)
-            if ((requestLine.approved ?? 0) - requestLine.issued > 0)
-              {
-                'itemId': requestLine.itemId,
-                'variantId': ?requestLine.variantId,
-                'quantity': (requestLine.approved ?? 0) - requestLine.issued,
-              },
-        ],
-      }, requestId: _requestId),
-      done: 'Issued',
+    _showFailure(
+      await stockSubmit(
+        context,
+        (stockProvider) => stockProvider.act('inventory-issue-create', {
+          'issueRequestId': widget.request.id,
+          'recipient': {'type': _recipientType, 'personErpId': personErpId},
+          'lineItems': [
+            for (final requestLine in widget.request.lineItems)
+              if ((requestLine.approved ?? 0) - requestLine.issued > 0)
+                {
+                  'itemId': requestLine.itemId,
+                  'variantId': ?requestLine.variantId,
+                  'quantity': (requestLine.approved ?? 0) - requestLine.issued,
+                },
+          ],
+        }, requestId: _requestId),
+        done: 'Issued',
+      ),
     );
   }
 
@@ -303,6 +316,8 @@ class _RequestSheetState extends State<RequestSheet> {
               ),
           ],
 
+          if (_error != null)
+            Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
           // Approver Actions
           if (issueRequest.isPending &&
               access.can('inventory.issue.approve')) ...[
@@ -353,8 +368,9 @@ class _RequestSheetState extends State<RequestSheet> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SizedBox(
-                  width: 110,
+                  width: 140,
                   child: DropdownButtonFormField<String>(
+                    isExpanded: true,
                     initialValue: _recipientType,
                     decoration: const InputDecoration(labelText: 'Type'),
                     items: const [
@@ -374,19 +390,23 @@ class _RequestSheetState extends State<RequestSheet> {
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: TextFormField(
-                    controller: _recipient,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      labelText: 'Recipient ERP ID',
-                      helperText:
-                          'Default: Requester (${issueRequest.createdBy})',
-                      isDense: true,
-                    ),
+                  child: PersonSearchField(
+                    label: 'Recipient',
+                    onSelected: (person) =>
+                        setState(() => _recipientId = person.id),
                   ),
                 ),
               ],
             ),
+            if (_recipientId != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  'Issuing to: ${staffDisplayName(_recipientId!)}'
+                  '${_recipientId.toString() == issueRequest.createdBy ? ' (requester)' : ''}',
+                  style: theme.textTheme.bodySmall,
+                ),
+              ),
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,

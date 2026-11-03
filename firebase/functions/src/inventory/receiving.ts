@@ -129,7 +129,7 @@ export const receiving = {
         };
         if (!asset) {
           const item = await stock.item(lineItem.itemId, lineItem.variantId);
-          batch = stock.batchOf(item, lineItem);
+          batch = stock.batchOf(item, lineItem, true);
           if (lineItem.quantityAccepted > 0) {
             stock.receive(
               await stock.balance(i.storeId, item, lineItem.variantId, batch, true),

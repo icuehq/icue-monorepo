@@ -4,14 +4,13 @@ import { masters } from '../src/inventory/masters';
 import { orders as o } from '../src/inventory/orders';
 import { procurement as p } from '../src/inventory/procurement';
 import { receiving as r } from '../src/inventory/receiving';
-import { stock } from '../src/inventory/stock-operations';
 import { runCallable, type CallableDef } from '../src/shared/callable';
-import { seedPurchaseRequest } from './fixtures';
+import { receiveStock, seedPurchaseRequest } from './fixtures';
 import { clearFirestore, db } from './setup';
 
 const SCHOOL_ID = '12';
 let requestSequence = 0;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 const run = (definition: CallableDef<any, any>, data: Record<string, unknown>, uid = 'asset') =>
   runCallable(
     definition,
@@ -270,7 +269,7 @@ describe('assets and maintenance', () => {
     expect((await get(`inventoryAssets/${asset}`))!.status).toBe('under_repair');
 
     await run(
-      stock.receiptConfirm,
+      receiveStock,
       {
         storeId: store,
         source: 'opening',

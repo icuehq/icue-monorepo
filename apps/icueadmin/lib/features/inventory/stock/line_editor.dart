@@ -130,10 +130,20 @@ class LineEditor extends StatelessWidget {
                               labelText: 'Expiry',
                               suffixIcon: Icon(Icons.event_rounded),
                             ),
+                            validator: (value) =>
+                                (value ?? '').compareTo(
+                                          DateTime.now()
+                                              .toIso8601String()
+                                              .substring(0, 10),
+                                        ) <
+                                        0 &&
+                                    (value ?? '').isNotEmpty
+                                ? 'Expired batches cannot be received'
+                                : null,
                             onTap: () async {
                               final date = await showDatePicker(
                                 context: context,
-                                firstDate: DateTime(2000),
+                                firstDate: DateTime.now(),
                                 lastDate: DateTime(2100),
                                 initialDate: DateTime.now(),
                               );

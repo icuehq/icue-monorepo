@@ -135,12 +135,14 @@ export class Stock {
   }
 
   /** Batch identity for a line: only batch-tracked items carry a batch. */
-  batchOf(item: DocumentData, batch: Batch): Required<Batch> {
+  batchOf(item: DocumentData, batch: Batch, receiving = false): Required<Batch> {
     if (item.tracking !== 'batch')
       return { batchNumber: null, manufacturingDate: null, expiryDate: null };
     if (!batch.batchNumber) throw failed(`${item.name} needs a batch number`);
     if (batch.manufacturingDate && batch.expiryDate && batch.expiryDate < batch.manufacturingDate)
       throw failed('Expiry date is before manufacturing date');
+    if (receiving && batch.expiryDate && batch.expiryDate < todayIST())
+      throw failed('Expired batches cannot be received');
     return {
       batchNumber: batch.batchNumber,
       manufacturingDate: batch.manufacturingDate ?? null,

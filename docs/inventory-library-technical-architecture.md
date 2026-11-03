@@ -204,7 +204,7 @@ Names below are logical; they deploy as `<group>-<name>` (`session.sync` → `se
 | Session | `session.sync` |
 | Settings | `config.setRolePermissions`, `inventory.setSettings`, `library.setSettings` |
 | Inventory masters | `inventory.seedDefaults`, `inventory.item.search`. Categories, units, stores, items, variants and vendors are client Firestore writes (`firestore.rules`); the bulk importer reuses their server handlers internally. |
-| Stock | `inventory.receipt.confirm`, `inventory.issueRequest.submit/decide`, `inventory.issue.create`, `inventory.issue.acknowledge`, `inventory.return.create`, `inventory.transfer.request/dispatch/receive`, `inventory.adjustment.create/approve`, `inventory.unavailable.report/resolve` |
+| Stock | Receive Stock and issue request submit/decide are client transactions (`StockWrites`). `inventory.issue.create`, `inventory.issue.acknowledge`, `inventory.return.create`, `inventory.transfer.request/dispatch/receive`, `inventory.adjustment.create/approve`, `inventory.unavailable.report/resolve` |
 | Procurement | `inventory.purchaseOrder.save/issue/revise/acknowledge/cancel/close/receive`. Purchase requests, quotations and invoices are client Firestore writes (`ProcurementWrites`). |
 | Assets | `inventory.asset.register`, `inventory.asset.assign/return/transfer/setCondition/retire`, `inventory.maintenance.save/setStatus` |
 | Verification | `inventory.verification.create/count/submit/decide` (approve creates adjustments referencing the session; reject reopens counting) |

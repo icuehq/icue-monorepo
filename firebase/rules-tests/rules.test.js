@@ -145,6 +145,7 @@ describe('inventory stock', () => {
       const firestore = context.firestore();
       const access = (permissions, campusIds = [31]) => ({ permissions, campusIds, hasAllCampuses: false });
       await setDoc(doc(firestore, 'schools/12/userAccess/view'), access(['inventory.stock.view']));
+      await setDoc(doc(firestore, 'schools/12/userAccess/op'), access(['inventory.stock.operate']));
       await setDoc(doc(firestore, 'schools/12/userAccess/req'), access(['inventory.issue.request']));
       await setDoc(doc(firestore, 'schools/12/userAccess/apr'), access(['inventory.issue.approve']));
       await setDoc(doc(firestore, 'schools/12/userAccess/32'), access(['inventory.stock.view'], [32]));
@@ -152,7 +153,7 @@ describe('inventory stock', () => {
         await setDoc(doc(firestore, `schools/12/${collectionName}/a31`), { campusId: 31 });
         await setDoc(doc(firestore, `schools/12/${collectionName}/a32`), { campusId: 32 });
       }
-      await setDoc(doc(firestore, 'schools/12/inventoryIssueRequests/r1'), { campusId: 31, createdBy: 'req' });
+      await setDoc(doc(firestore, 'schools/12/inventoryIssueRequests/r1'), { campusId: 31, createdBy: 'req', status: 'pending' });
       await setDoc(doc(firestore, 'schools/12/inventoryTransfers/t1'), { campusId: 31, toCampusId: 32 });
       await setDoc(doc(firestore, 'schools/12/inventoryItems/i'), { name: 'i' });
       await setDoc(doc(firestore, 'schools/12/inventoryStores/s31'), { campusId: 31 });
@@ -170,6 +171,42 @@ describe('inventory stock', () => {
     const list = (campusIds) => getDocs(query(collection(db('view'), 'schools/12/inventoryBalances'), where('campusId', 'in', campusIds)));
     await assertSucceeds(list([31]));
     await assertFails(list([31, 32]));
+  });
+
+  it('receive stock: operators write receipts, ledger rows and balances on their campus only', async () => {
+    const write = (user, path, data) => setDoc(doc(db(user), `schools/12/${path}`), data);
+    for (const collectionName of ['inventoryReceipts', 'inventoryMovements']) {
+      await assertSucceeds(write('op', `${collectionName}/n1`, { campusId: 31, createdBy: 'op' }));
+      await assertFails(write('op', `${collectionName}/n2`, { campusId: 32, createdBy: 'op' }));
+      await assertFails(write('op', `${collectionName}/n3`, { campusId: 31, createdBy: 'someone' }));
+      await assertFails(write('view', `${collectionName}/n4`, { campusId: 31, createdBy: 'view' }));
+      await assertFails(write('op', `${collectionName}/a31`, { campusId: 31, createdBy: 'op' }));
+    }
+    await assertSucceeds(write('op', 'inventoryBalances/a31', { campusId: 31 }));
+    await assertFails(write('op', 'inventoryBalances/a32', { campusId: 32 }));
+    await assertFails(write('view', 'inventoryBalances/a31', { campusId: 31 }));
+    await assertFails(write('op', 'inventoryIssues/n1', { campusId: 31, createdBy: 'op' }));
+  });
+
+  it('issue request submit: requesters create pending requests on their campus, as themselves', async () => {
+    const submit = (user, data) => setDoc(doc(db(user), 'schools/12/inventoryIssueRequests/n1'), data);
+    await assertSucceeds(submit('req', { campusId: 31, createdBy: 'req', status: 'pending' }));
+    await assertFails(submit('req', { campusId: 32, createdBy: 'req', status: 'pending' }));
+    await assertFails(submit('req', { campusId: 31, createdBy: 'other', status: 'pending' }));
+    await assertFails(submit('req', { campusId: 31, createdBy: 'req', status: 'approved' }));
+    await assertFails(submit('view', { campusId: 31, createdBy: 'view', status: 'pending' }));
+    await assertFails(setDoc(doc(db('req'), 'schools/12/inventoryIssueRequests/r1'), { campusId: 31, createdBy: 'req', status: 'pending' }));
+  });
+
+  it('issue request decide: approvers on the campus decide pending requests, decision fields only', async () => {
+    const decide = (user, data, path = 'schools/12/inventoryIssueRequests/r1') => updateDoc(doc(db(user), path), data);
+    const decision = { status: 'approved', approval: { performedBy: 'apr' }, updatedAt: 1 };
+    await assertFails(decide('req', decision));
+    await assertFails(decide('apr', { ...decision, approval: { performedBy: 'someone' } }));
+    await assertFails(decide('apr', { ...decision, createdBy: 'apr' }));
+    await assertFails(decide('apr', { ...decision, status: 'issued' }));
+    await assertSucceeds(decide('apr', decision));
+    await assertFails(decide('apr', { ...decision, status: 'rejected' }));
   });
 
   it('issue requests: requester sees own, approvers see the campus', async () => {

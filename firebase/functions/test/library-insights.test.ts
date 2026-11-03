@@ -12,7 +12,7 @@ import { clearFirestore, db } from './setup';
 const SCHOOL_ID = '12';
 let requestSequence = 0;
 const auth = (uid = '1') => ({ uid, token: { schoolId: 12, personType: 'staff' } });
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 const run = (definition: CallableDef<any, any>, data: Record<string, unknown>, uid = '1') =>
   runCallable(definition, auth(uid), {
     requestId: `req-${String(++requestSequence).padStart(6, '0')}`,

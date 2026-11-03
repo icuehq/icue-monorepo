@@ -18,3 +18,4 @@ export 'src/services/insights_service.dart';
 export 'src/services/inventory_service.dart';
 export 'src/services/procurement_service.dart';
 export 'src/services/stock_service.dart';
+export 'src/services/stock_writes.dart';

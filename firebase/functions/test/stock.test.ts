@@ -2,13 +2,13 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { masters } from '../src/inventory/masters';
 import { stock } from '../src/inventory/stock-operations';
 import { runCallable, type CallableDef } from '../src/shared/callable';
-import { seedVariant } from './fixtures';
+import { receiveStock, seedIssueRequest } from './fixtures';
 import { clearFirestore, db } from './setup';
 
 const SCHOOL_ID = '12';
 const ADMIN = ['inventory.settings', 'inventory.items.manage', 'inventory.stock.operate'];
 let requestSequence = 0;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 const run = (definition: CallableDef<any, any>, data: Record<string, unknown>, uid = '1') =>
   runCallable(
     definition,
@@ -26,29 +26,17 @@ const day = (offset: number) =>
 const fail = (code: string) => ({ code });
 
 describe('inventory stock', () => {
-  let firstStore: string,
-    secondStore: string,
-    pen: string,
-    med: string,
-    shirt: string,
-    shirtM: string;
+  let firstStore: string, secondStore: string, pen: string, med: string;
   const rcv = (extra: Record<string, unknown>, storeId = firstStore) =>
-    run(stock.receiptConfirm, { storeId, source: 'opening', ...extra });
+    run(receiveStock, { storeId, source: 'opening', ...extra });
   const penIn = (quantity: number, cost = 10) =>
     rcv({ lineItems: [{ itemId: pen, quantityAccepted: quantity, unitCost: cost }] });
-  const request = async (quantity: number, itemId = pen) =>
-    (
-      await run(
-        stock.issueRequestSubmit,
-        { storeId: firstStore, purpose: 'Class', lineItems: [{ itemId, quantity }] },
-        'req',
-      )
-    ).id as string;
-  const approved = async (quantity: number, itemId = pen) => {
-    const id = await request(quantity, itemId);
-    await run(stock.issueRequestDecide, { id, decision: 'approve' }, 'apr');
-    return id;
-  };
+  const request = (
+    quantity: number,
+    itemId = pen,
+    status: 'pending' | 'approved' | 'rejected' = 'pending',
+  ) => seedIssueRequest({ storeId: firstStore, itemId, quantity, createdBy: 'req', status });
+  const approved = (quantity: number, itemId = pen) => request(quantity, itemId, 'approved');
   const recipient = { type: 'staff', personErpId: 7 };
 
   beforeEach(async () => {
@@ -88,8 +76,6 @@ describe('inventory stock', () => {
       }).then((result) => result.id as string);
     pen = await makeItem('PEN', { reorderLevel: 5 });
     med = await makeItem('MED', { tracking: 'batch' });
-    shirt = await makeItem('SHIRT', { variantAttrs: ['size'] });
-    shirtM = (await seedVariant({ itemId: shirt, code: 'SH-M', attrs: { size: 'M' } })).id;
     firstStore = (await run(masters.storeUpsert, { code: 'S1', name: 'Main', campusId: 31 })).id;
     secondStore = (await run(masters.storeUpsert, { code: 'S2', name: 'Branch', campusId: 31 })).id;
   });
@@ -107,30 +93,6 @@ describe('inventory stock', () => {
       value: 300,
     });
     expect(await moves()).toHaveLength(2);
-  });
-
-  it('validates lines: variants, batches, assets, empty, store campus, future date', async () => {
-    await expect(
-      rcv({ lineItems: [{ itemId: shirt, quantityAccepted: 1 }] }),
-    ).rejects.toMatchObject(fail('failed-precondition'));
-    await expect(rcv({ lineItems: [{ itemId: med, quantityAccepted: 1 }] })).rejects.toMatchObject(
-      fail('failed-precondition'),
-    );
-    await expect(rcv({ lineItems: [{ itemId: pen, quantityAccepted: 0 }] })).rejects.toMatchObject(
-      fail('failed-precondition'),
-    );
-    await expect(
-      rcv({ date: day(2), lineItems: [{ itemId: pen, quantityAccepted: 1 }] }),
-    ).rejects.toMatchObject(fail('failed-precondition'));
-    await expect(
-      run(
-        stock.receiptConfirm,
-        { storeId: firstStore, source: 'other', lineItems: [{ itemId: pen, quantityAccepted: 1 }] },
-        'far',
-      ),
-    ).rejects.toMatchObject(fail('permission-denied'));
-    await rcv({ lineItems: [{ itemId: shirt, variantId: shirtM, quantityAccepted: 3 }] });
-    expect((await balance(`${firstStore}__${shirt}__${shirtM}__-`)).quantityAvailable).toBe(3);
   });
 
   it('issue flow: approval limits, FEFO, no expired stock, partial issue, ledger', async () => {
@@ -165,24 +127,9 @@ describe('inventory stock', () => {
     ).rejects.toMatchObject(fail('failed-precondition'));
   });
 
-  it('approval is bounded by stock and by the request; reject needs a reason; partial issue', async () => {
+  it('a rejected request cannot be issued; partial issue', async () => {
     await penIn(10);
-    await expect(request(1, pen)).resolves.toBeTruthy();
-    const big = await request(11);
-    await expect(
-      run(stock.issueRequestDecide, { id: big, decision: 'approve' }, 'apr'),
-    ).rejects.toMatchObject(fail('failed-precondition'));
-    await expect(
-      run(stock.issueRequestDecide, { id: big, decision: 'reject' }, 'apr'),
-    ).rejects.toMatchObject(fail('failed-precondition'));
-    await run(
-      stock.issueRequestDecide,
-      { id: big, decision: 'reject', comment: 'No budget' },
-      'apr',
-    );
-    await expect(
-      run(stock.issueRequestDecide, { id: big, decision: 'approve' }, 'apr'),
-    ).rejects.toMatchObject(fail('failed-precondition'));
+    const big = await request(11, pen, 'rejected');
     await expect(
       run(stock.issueCreate, {
         issueRequestId: big,
@@ -224,13 +171,9 @@ describe('inventory stock', () => {
     ).toBe(true);
   });
 
-  it('only approvers decide; availability is rechecked at issuance', async () => {
+  it('availability is rechecked at issuance', async () => {
     await penIn(5);
-    const id = await request(5);
-    await expect(
-      run(stock.issueRequestDecide, { id, decision: 'approve' }, 'req'),
-    ).rejects.toMatchObject(fail('permission-denied'));
-    await run(stock.issueRequestDecide, { id, decision: 'approve' }, 'apr');
+    const id = await approved(5);
     await run(stock.adjustmentCreate, {
       storeId: firstStore,
       itemId: pen,
@@ -427,8 +370,11 @@ describe('inventory stock', () => {
     expect((await balance(`${firstStore}__${pen}__-__-`)).quantityAvailable).toBe(8);
 
     await rcv({
-      lineItems: [{ itemId: med, quantityAccepted: 3, batchNumber: 'E1', expiryDate: day(-2) }],
+      lineItems: [{ itemId: med, quantityAccepted: 3, batchNumber: 'E1', expiryDate: day(10) }],
     });
+    await db()
+      .doc(`schools/${SCHOOL_ID}/inventoryBalances/${firstStore}__${med}__-__E1`)
+      .update({ expiryDate: day(-2) });
     const error = await run(stock.unavailableReport, {
       storeId: firstStore,
       itemId: med,
@@ -446,24 +392,6 @@ describe('inventory stock', () => {
     ).rejects.toMatchObject(fail('failed-precondition'));
     await run(stock.unavailableResolve, { id: error.id, resolution: 'dispose' });
     expect((await balance(`${firstStore}__${med}__-__E1`)).quantityExpired).toBe(0);
-  });
-
-  it('is idempotent: a repeated requestId returns the first result without moving stock twice', async () => {
-    const body = {
-      requestId: 'same-request-1',
-      storeId: firstStore,
-      source: 'opening',
-      lineItems: [{ itemId: pen, quantityAccepted: 4 }],
-    };
-    const call = () =>
-      runCallable(
-        stock.receiptConfirm,
-        { uid: '1', token: { schoolId: 12, personType: 'staff' } },
-        body,
-      );
-    const first = await call();
-    expect(await call()).toEqual(first);
-    expect((await balance(`${firstStore}__${pen}__-__-`)).quantityAvailable).toBe(4);
   });
 
   it('acknowledges an issue once', async () => {

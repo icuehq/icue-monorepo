@@ -1,30 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:icueadmin/features/inventory/widgets/form_section_card.dart';
+import 'package:icueadmin/features/inventory/widgets/person_search_field.dart';
 import 'package:icueadmin/widgets/form_helpers.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
-
-// TODO: Connect to Node ERP staff lookup endpoint when available.
-class StaffOption {
-  const StaffOption({
-    required this.id,
-    required this.name,
-    required this.department,
-  });
-
-  final int id;
-  final String name;
-  final String department;
-}
-
-// TODO: Replace with live API search once the Node ERP endpoint is ready.
-const List<StaffOption> _sampleStaffList = [
-  StaffOption(id: 101, name: 'John Doe', department: 'Operations'),
-  StaffOption(id: 102, name: 'Sarah Smith', department: 'Science'),
-  StaffOption(id: 103, name: 'Michael Brown', department: 'Sports'),
-  StaffOption(id: 104, name: 'Emily Davis', department: 'Administration'),
-  StaffOption(id: 105, name: 'David Wilson', department: 'Logistics'),
-];
 
 class StoreFormPage extends StatefulWidget {
   const StoreFormPage({super.key, this.store});
@@ -44,7 +23,6 @@ class _StoreFormPageState extends State<StoreFormPage> {
   );
   late final _location = TextEditingController(text: _existingStore?.location);
   late final Set<int> _storekeeperIds = {...?_existingStore?.storekeeperIds};
-  TextEditingController? _staffSearchController;
   int? _campus;
   bool _busy = false;
 
@@ -75,40 +53,6 @@ class _StoreFormPageState extends State<StoreFormPage> {
       return 'STORE_${DateTime.now().millisecondsSinceEpoch.toRadixString(36).toUpperCase()}';
     }
     return cleaned.length > 40 ? cleaned.substring(0, 40) : cleaned;
-  }
-
-  String _staffDisplayName(int staffId) {
-    for (final staff in _sampleStaffList) {
-      if (staff.id == staffId) {
-        return '${staff.name} (#$staffId)';
-      }
-    }
-    return 'Staff #$staffId';
-  }
-
-  Iterable<StaffOption> _searchStaff(String query) {
-    final trimmed = query.trim().toLowerCase();
-    if (trimmed.isEmpty) return const [];
-    // TODO: Connect to Node ERP staff lookup endpoint when available.
-    final matches = _sampleStaffList.where((staff) {
-      return !_storekeeperIds.contains(staff.id) &&
-          (staff.name.toLowerCase().contains(trimmed) ||
-              staff.department.toLowerCase().contains(trimmed) ||
-              staff.id.toString().contains(trimmed));
-    }).toList();
-    final numericId = int.tryParse(trimmed);
-    if (numericId != null &&
-        !_storekeeperIds.contains(numericId) &&
-        !matches.any((staff) => staff.id == numericId)) {
-      matches.add(
-        StaffOption(
-          id: numericId,
-          name: 'Staff #$numericId',
-          department: 'ERP Staff',
-        ),
-      );
-    }
-    return matches;
   }
 
   Future<void> _save() async {
@@ -225,7 +169,7 @@ class _StoreFormPageState extends State<StoreFormPage> {
                           avatar: const CircleAvatar(
                             child: Icon(Icons.person_outline, size: 16),
                           ),
-                          label: Text(_staffDisplayName(staffId)),
+                          label: Text(staffDisplayName(staffId)),
                           deleteIcon: const Icon(Icons.close, size: 16),
                           onDeleted: () =>
                               setState(() => _storekeeperIds.remove(staffId)),
@@ -234,33 +178,13 @@ class _StoreFormPageState extends State<StoreFormPage> {
                   ),
                   const SizedBox(height: 8),
                 ],
-                Autocomplete<StaffOption>(
-                  displayStringForOption: (staff) =>
-                      '${staff.name} · ${staff.department} (#${staff.id})',
-                  optionsBuilder: (textEditingValue) =>
-                      _searchStaff(textEditingValue.text),
-                  onSelected: (staff) {
-                    setState(() => _storekeeperIds.add(staff.id));
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      _staffSearchController?.clear();
-                    });
-                  },
-                  fieldViewBuilder:
-                      (context, searchController, focusNode, onFieldSubmitted) {
-                        _staffSearchController = searchController;
-                        return TextField(
-                          controller: searchController,
-                          focusNode: focusNode,
-                          decoration: const InputDecoration(
-                            labelText: 'Add storekeeper',
-                            hintText: 'Search staff by name or ID…',
-                            prefixIcon: Icon(
-                              Icons.person_search_outlined,
-                              size: 20,
-                            ),
-                          ),
-                        );
-                      },
+                PersonSearchField(
+                  label: 'Add storekeeper',
+                  hint: 'Search staff by name or ID…',
+                  exclude: _storekeeperIds,
+                  clearOnSelect: true,
+                  onSelected: (staff) =>
+                      setState(() => _storekeeperIds.add(staff.id)),
                 ),
               ],
             ),

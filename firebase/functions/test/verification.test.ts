@@ -4,11 +4,12 @@ import { masters } from '../src/inventory/masters';
 import { stock } from '../src/inventory/stock-operations';
 import { verification as v } from '../src/inventory/verification';
 import { runCallable, type CallableDef } from '../src/shared/callable';
+import { receiveStock } from './fixtures';
 import { clearFirestore, db } from './setup';
 
 const SCHOOL_ID = '12';
 let requestSequence = 0;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 const run = (definition: CallableDef<any, any>, data: Record<string, unknown>, uid = '1') =>
   runCallable(
     definition,
@@ -82,7 +83,7 @@ describe('stock verification and daily job', () => {
       await makeItem('MED', { tracking: 'batch' }),
     ];
     store = (await run(masters.storeUpsert, { code: 'S1', name: 'Main', campusId: 31 })).id;
-    await run(stock.receiptConfirm, {
+    await run(receiveStock, {
       storeId: store,
       source: 'opening',
       lineItems: [
