@@ -7,7 +7,7 @@ import {
   type LibraryLoan,
   type LoanPolicySnapshot,
 } from '../shared/contracts';
-import { todayIST, addDays, daysBetween } from '../shared/dates';
+import { todayIST, addDays, daysBetween, dayTimestamp, timestampDay } from '../shared/dates';
 import { serverTimestamp } from '../shared/firestore';
 import { nextNumber } from '../shared/keys';
 import { defineCallable, failed, id, missing, optionalText } from '../shared/masters';
@@ -120,7 +120,8 @@ export const loans = {
         const reservation = (await context.transaction.get(held)).data();
         if (reservation?.memberId !== memberSnapshot.id || reservation.status !== 'ready')
           throw failed('Copy is held for another member');
-        if (reservation.holdUntil < today) throw failed('The hold on this copy has expired');
+        if (!reservation.holdUntil || timestampDay(reservation.holdUntil) < today)
+          throw failed('The hold on this copy has expired');
       } else if (copy.status !== 'available' || copy.activeLoanId)
         throw failed(`Copy is ${copy.status}`);
 
@@ -156,8 +157,8 @@ export const loans = {
         catalogueId: copy.catalogueId,
         libraryId: copy.libraryId,
         campusId: copy.campusId,
-        issuedDate: today,
-        dueDate: addDays(today, policy.loanDays),
+        issuedDate: dayTimestamp(today),
+        dueDate: dayTimestamp(addDays(today, policy.loanDays)),
         remarks: i.remarks ?? null,
         renewals: [],
         policySnapshot: snapshot,
@@ -182,11 +183,11 @@ export const loans = {
         to: memberTo(member.memberType, member.personErpId),
         category: 'library.loan',
         title: 'Book issued',
-        body: `${title?.title ?? copy.accessionNumber}: due back ${after.dueDate}.`,
+        body: `${title?.title ?? copy.accessionNumber}: due back ${timestampDay(after.dueDate)}.`,
         data: { loanId: loan.id },
       });
       context.audit({ action: 'libraryLoan.issue', documentPath: loan.path, after });
-      return { id: loan.id, number, dueDate: after.dueDate };
+      return { id: loan.id, number, dueDate: timestampDay(after.dueDate) };
     },
   }),
 
@@ -208,12 +209,12 @@ export const loans = {
       ]);
       if (snapshot.data()?.activeLoanId !== ref.id) throw failed('Copy is not on this loan');
       const today = todayIST();
-      const overdueDays = Math.max(0, daysBetween(loan.dueDate, today));
+      const overdueDays = Math.max(0, daysBetween(timestampDay(loan.dueDate), today));
       const returnNumber = await nextNumber(context, 'LRT');
       const after = {
         status: LoanStatus.returned,
         returnNumber,
-        returnedDate: today,
+        returnedDate: dayTimestamp(today),
         condition: i.condition,
         overdueDays,
         returnRemarks: i.remarks ?? null,
@@ -314,7 +315,7 @@ export const loans = {
       const charge = i.charge ?? copy.price ?? 0;
       const after = {
         status: LoanStatus.lost,
-        lostDate: today,
+        lostDate: dayTimestamp(today),
         lostRemarks: i.reason ?? null,
         charge,
       };
@@ -390,12 +391,13 @@ export const loans = {
       const today = todayIST();
       if (loan.renewals.length >= policy.maxRenewals)
         throw failed(`Renewal limit of ${policy.maxRenewals} reached`);
-      if (loan.dueDate < today && !policy.overdueRenewal)
+      const currentDue = timestampDay(loan.dueDate);
+      if (currentDue < today && !policy.overdueRenewal)
         throw failed('Overdue loans cannot be renewed');
       if (!(await waitingQuery(context, loan.catalogueId, loan.libraryId, 1)).empty)
         throw failed('Another member is waiting for this title');
       // The days already overdue are fined now: renewing moves the due date, so the return would never see them.
-      const overdueDays = Math.max(0, daysBetween(loan.dueDate, today));
+      const overdueDays = Math.max(0, daysBetween(currentDue, today));
       const fineAmount = overdueFineAmount(policy, overdueDays);
       if (fineAmount > 0) {
         await raiseOverdueFine(
@@ -413,11 +415,12 @@ export const loans = {
           updatedAt: serverTimestamp(),
         });
       }
-      const dueDate = addDays(loan.dueDate > today ? loan.dueDate : today, policy.loanDays);
+      const dueDay = addDays(currentDue > today ? currentDue : today, policy.loanDays);
+      const dueDate = dayTimestamp(dueDay);
       const renewals = [
         ...loan.renewals,
         {
-          renewedDate: today,
+          renewedDate: dayTimestamp(today),
           previousDueDate: loan.dueDate,
           newDueDate: dueDate,
           performedBy: context.uid,
@@ -430,7 +433,7 @@ export const loans = {
         before: { dueDate: loan.dueDate },
         after: { dueDate, count: renewals.length },
       });
-      return { id: ref.id, dueDate };
+      return { id: ref.id, dueDate: dueDay };
     },
   }),
 };

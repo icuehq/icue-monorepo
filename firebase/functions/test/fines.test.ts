@@ -6,6 +6,7 @@ import { loans } from '../src/library/loans';
 import { masters } from '../src/library/masters';
 import { members } from '../src/library/members';
 import { runCallable, type CallableDef } from '../src/shared/callable';
+import { dayTimestamp } from '../src/shared/dates';
 import { seedLibrary, seedLibraryCategory } from './fixtures';
 import { clearFirestore, db } from './setup';
 
@@ -91,7 +92,7 @@ describe('library fines and incidents', () => {
   it('overdue return calculates fine per policySnapshot, blocks member, writes libraryFines doc', async () => {
     const issued = await issue();
     // 5 days overdue: grace 2 days -> 3 fine days * 5/day = 15
-    await set(`libraryLoans/${issued.id}`, { dueDate: day(-5) });
+    await set(`libraryLoans/${issued.id}`, { dueDate: dayTimestamp(day(-5)) });
     const ret = await run(loans.loanReturn, { id: issued.id, condition: 'good' });
     expect(ret.overdueDays).toBe(5);
 
@@ -112,7 +113,7 @@ describe('library fines and incidents', () => {
 
   it('fine waiver: permission check, partial waive, full waive unblocks member', async () => {
     const issued = await issue();
-    await set(`libraryLoans/${issued.id}`, { dueDate: day(-5) });
+    await set(`libraryLoans/${issued.id}`, { dueDate: dayTimestamp(day(-5)) });
     await run(loans.loanReturn, { id: issued.id, condition: 'good' });
     const fineId = `${issued.id}__overdue`;
 
@@ -153,7 +154,7 @@ describe('library fines and incidents', () => {
 
   it('a hand-set block is not lifted by paying fines', async () => {
     const issued = await issue();
-    await set(`libraryLoans/${issued.id}`, { dueDate: day(-5) });
+    await set(`libraryLoans/${issued.id}`, { dueDate: dayTimestamp(day(-5)) });
     await run(loans.loanReturn, { id: issued.id, condition: 'good' });
     await run(members.memberSetBlocked, { id: 'student_501', blocked: true, reason: 'Misconduct' });
     await run(fines.fineSetPayment, { id: `${issued.id}__overdue`, paidAmount: 15 });
@@ -164,7 +165,7 @@ describe('library fines and incidents', () => {
 
   it('payment recording: partial payment, full payment unblocks member', async () => {
     const issued = await issue();
-    await set(`libraryLoans/${issued.id}`, { dueDate: day(-5) });
+    await set(`libraryLoans/${issued.id}`, { dueDate: dayTimestamp(day(-5)) });
     await run(loans.loanReturn, { id: issued.id, condition: 'good' });
     const fineId = `${issued.id}__overdue`;
 

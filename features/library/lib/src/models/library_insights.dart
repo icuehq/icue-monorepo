@@ -53,7 +53,7 @@ class LibraryReportDef {
   final String collection;
   final List<LibraryReportCol> cols;
 
-  /// Field holding the date the range filters (a `yyyy-MM-dd` string or a timestamp); null = no date filter.
+  /// Field holding the date the range filters (a Timestamp); null = no date filter.
   final String? dateField;
 
   /// Status choices offered to the user.
@@ -96,7 +96,7 @@ LibraryReportCol _money(String label, String value) => LibraryReportCol(
 );
 
 int _overdueDays(ReportRow data) {
-  final due = DateTime.tryParse(readString(data['dueDate']));
+  final due = DateTime.tryParse(readDay(data['dueDate']));
   if (due == null) return 0;
   final today = DateTime.now();
   final value = DateTime(

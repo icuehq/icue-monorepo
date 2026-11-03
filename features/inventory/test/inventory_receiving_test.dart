@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:icue_firebase/icue_firebase.dart';
 import 'package:inventory/inventory.dart';
 
 void main() {
@@ -39,7 +40,7 @@ void main() {
       InventoryInvoice invoice(String status, String? due) =>
           InventoryInvoice.fromMap('i', {
             'paymentStatus': status,
-            'dueDate': due,
+            'dueDate': dayTimestampOrNull(due),
             'total': 100,
           });
       expect(invoice('unpaid', '2026-10-01').statusOn('2026-11-01'), 'overdue');

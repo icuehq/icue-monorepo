@@ -6,6 +6,7 @@ import { loans } from '../src/library/loans';
 import { masters } from '../src/library/masters';
 import { members } from '../src/library/members';
 import { runCallable, type CallableDef } from '../src/shared/callable';
+import { dayTimestamp } from '../src/shared/dates';
 import { seedLibrary, seedLibraryCategory } from './fixtures';
 import { clearFirestore, db } from './setup';
 
@@ -90,7 +91,7 @@ describe('library notifications and import', () => {
     ).toMatchObject({ to: { wardStudentIds: [501] }, title: 'Book issued' });
     await db()
       .doc(`schools/${SCHOOL_ID}/libraryLoans/${issued.id}`)
-      .update({ dueDate: day(-3) });
+      .update({ dueDate: dayTimestamp(day(-3)) });
     await run(loans.loanReturn, { id: issued.id, condition: 'damaged' });
     const ids = (await outbox()).map((outboxEvent) => outboxEvent.id);
     expect(ids).toEqual(
@@ -117,14 +118,14 @@ describe('library notifications and import', () => {
     expect(ids).toContain(`library-member-expiring__student_501__${day(3)}`);
     await db()
       .doc(`schools/${SCHOOL_ID}/libraryLoans/${first.id}`)
-      .update({ dueDate: day(1) });
+      .update({ dueDate: dayTimestamp(day(1)) });
     await runDailyLibrary(SCHOOL_ID);
     expect((await outbox()).map((outboxEvent) => outboxEvent.id)).toContain(
       `library-due-soon__${first.id}`,
     );
     await db()
       .doc(`schools/${SCHOOL_ID}/libraryLoans/${first.id}`)
-      .update({ dueDate: day(-1) });
+      .update({ dueDate: dayTimestamp(day(-1)) });
     await runDailyLibrary(SCHOOL_ID);
     ids = (await outbox()).map((outboxEvent) => outboxEvent.id);
     expect(ids).toContain(`library-overdue__${first.id}__${day(0)}`);

@@ -38,7 +38,7 @@ class ReportDef {
     this.collection,
     this.cols, {
     this.dateField = 'createdAt',
-    this.isString = false,
+    this.isDay = false,
     this.hasDates = true,
     this.statuses = const [],
     this.fixedStatuses = const [],
@@ -52,8 +52,8 @@ class ReportDef {
   final String dateField;
   final List<ReportCol> cols;
 
-  /// Date field holds a `yyyy-MM-dd` string instead of a timestamp.
-  final bool isString;
+  /// Date field holds a calendar day (midnight India time) instead of an instant.
+  final bool isDay;
   final bool hasDates;
   final bool schoolWide;
 
@@ -147,11 +147,11 @@ final inventoryReports = <ReportDef>[
       _item(),
       _store('storeId'),
       _textColumn('Batch', 'batchNumber'),
-      _textColumn('Expires', 'earliestExpiryDate'),
+      _date('Expires', 'earliestExpiryDate'),
       _quantityColumn('Available', 'quantityAvailable', sum: true),
     ],
     dateField: 'earliestExpiryDate',
-    isString: true,
+    isDay: true,
   ),
   ReportDef(
     'purchases',

@@ -228,7 +228,7 @@ class _FineSheetState extends State<FineSheet> {
           Text('Waivers:', style: Theme.of(context).textTheme.labelMedium),
           for (final fineWaiver in fine.waivers)
             Text(
-              '• ${fineWaiver.amount.toRupees()} on ${fineWaiver.performedAt.toDateOrNull()?.toLocal().toNumericDateTime() ?? fineWaiver.performedAt} (${fineWaiver.reason})',
+              '• ${fineWaiver.amount.toRupees()} on ${fineWaiver.performedAt?.toLocal().toNumericDateTime() ?? '-'} (${fineWaiver.reason})',
               style: Theme.of(context).textTheme.bodySmall,
             ),
         ],

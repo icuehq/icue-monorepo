@@ -5,6 +5,7 @@ import { orders as o } from '../src/inventory/orders';
 import { procurement as p } from '../src/inventory/procurement';
 import { receiving as r } from '../src/inventory/receiving';
 import { runCallable, type CallableDef } from '../src/shared/callable';
+import { dayTimestamp } from '../src/shared/dates';
 import { receiveStock, seedPurchaseRequest } from './fixtures';
 import { clearFirestore, db } from './setup';
 
@@ -306,12 +307,12 @@ describe('assets and maintenance', () => {
       status: 'available',
       activeMaintenanceId: null,
       condition: 'good',
-      nextServiceDate: day(180),
+      nextServiceDate: dayTimestamp(day(180)),
     });
     expect(await get(`inventoryMaintenanceJobs/${maintenanceJob.id}`)).toMatchObject({
       status: 'completed',
       cost: 0,
-      completedDate: day(0),
+      completedDate: dayTimestamp(day(0)),
     });
     expect(await code(set({ status: 'in_progress' }))).toBe('failed-precondition'); // finished jobs stay as they are
   });

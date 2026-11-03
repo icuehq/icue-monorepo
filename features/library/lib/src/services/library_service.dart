@@ -541,7 +541,7 @@ class LibraryService {
         'libraryLoans',
         (query) => query
             .where('status', isEqualTo: 'active')
-            .where('dueDate', isLessThan: today),
+            .where('dueDate', isLessThan: dayTimestamp(today)),
       ),
       'pending': count(
         'libraryLoans',
@@ -612,7 +612,9 @@ class LibraryService {
       );
     }
     if (def.overdue) {
-      query = query.where('dueDate', isLessThan: todayIST()).orderBy('dueDate');
+      query = query
+          .where('dueDate', isLessThan: dayTimestamp(todayIST()))
+          .orderBy('dueDate');
     } else if (def.dateField != null) {
       final currentValue = def.dateField!;
       final isTimestamp = const {'createdAt'}.contains(currentValue);
@@ -620,14 +622,14 @@ class LibraryService {
           ? Timestamp.fromDate(
               DateTime.parse(value).add(Duration(days: end ? 1 : 0)),
             )
-          : value;
+          : dayTimestamp(value);
       if (fromS != null) {
         query = query.where(currentValue, isGreaterThanOrEqualTo: bound(fromS));
       }
       if (toS != null) {
         query = isTimestamp
             ? query.where(currentValue, isLessThan: bound(toS, end: true))
-            : query.where(currentValue, isLessThanOrEqualTo: toS);
+            : query.where(currentValue, isLessThanOrEqualTo: dayTimestamp(toS));
       }
       query = query.orderBy(currentValue, descending: true);
     } else if (def.schoolWide) {
@@ -655,9 +657,14 @@ class LibraryService {
       if (query == null) return [];
       if (dateField != null) {
         if (from != null) {
-          query = query.where(dateField, isGreaterThanOrEqualTo: from);
+          query = query.where(
+            dateField,
+            isGreaterThanOrEqualTo: dayTimestamp(from),
+          );
         }
-        if (to != null) query = query.where(dateField, isLessThanOrEqualTo: to);
+        if (to != null) {
+          query = query.where(dateField, isLessThanOrEqualTo: dayTimestamp(to));
+        }
         query = query.orderBy(dateField, descending: true);
       }
       return [

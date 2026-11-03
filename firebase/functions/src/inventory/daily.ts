@@ -1,7 +1,7 @@
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { CallableContext } from '../shared/callable';
-import { todayIST, addDays, weekOf } from '../shared/dates';
+import { todayIST, addDays, weekOf, dayTimestamp, timestampDay } from '../shared/dates';
 import { schoolCollection } from '../shared/firestore';
 import { enqueue, post } from '../shared/outbox';
 import { forEachSchool } from '../shared/scheduled';
@@ -26,7 +26,11 @@ async function expire(
     });
     const snapshot = await transaction.get(context.doc(`inventoryBalances/${balanceId}`));
     const balance = snapshot.data();
-    if (!balance?.expiryDate || balance.expiryDate >= today || !(balance.quantityAvailable > 0))
+    if (
+      !balance?.expiryDate ||
+      timestampDay(balance.expiryDate) >= today ||
+      !(balance.quantityAvailable > 0)
+    )
       return;
     const stock = new Stock(context);
     const item = await stock.item(balance.itemId, balance.variantId, true);
@@ -46,7 +50,7 @@ async function expire(
     unavailableEntry(stock, expiringBalance, quantity, {
       bucket: 'expired',
       reason: 'expired',
-      remarks: `Expired on ${balance.expiryDate}`,
+      remarks: `Expired on ${timestampDay(balance.expiryDate)}`,
       referenceType: 'job',
       referenceId,
     });
@@ -67,14 +71,16 @@ export async function runDailyInventory(schoolId: string, today = todayIST()): P
   const collection = (name: string) => schoolCollection(schoolId, name);
 
   for (const snapshot of (
-    await collection('inventoryBalances').where('earliestExpiryDate', '<', today).get()
+    await collection('inventoryBalances')
+      .where('earliestExpiryDate', '<', dayTimestamp(today))
+      .get()
   ).docs)
     await expire(db, schoolId, snapshot.id, today);
 
   const week = weekOf(today);
   const near = await collection('inventoryBalances')
-    .where('earliestExpiryDate', '>=', today)
-    .where('earliestExpiryDate', '<=', addDays(today, NEAR_DAYS))
+    .where('earliestExpiryDate', '>=', dayTimestamp(today))
+    .where('earliestExpiryDate', '<=', dayTimestamp(addDays(today, NEAR_DAYS)))
     .get();
   const byStore = new Map<string, { campusId: number; batchCount: number }>();
   for (const snapshot of near.docs) {
@@ -96,7 +102,7 @@ export async function runDailyInventory(schoolId: string, today = todayIST()): P
 
   const overdue = await collection('inventoryPurchaseOrders')
     .where('status', 'in', ['issued', 'acknowledged', 'partially_received'])
-    .where('expectedDate', '<', today)
+    .where('expectedDate', '<', dayTimestamp(today))
     .get();
   for (const snapshot of overdue.docs) {
     const purchaseOrder = snapshot.data();
@@ -104,29 +110,34 @@ export async function runDailyInventory(schoolId: string, today = todayIST()): P
       to: { permission: 'inventory.procure.operate', campusId: purchaseOrder.deliveryCampusId },
       category: 'inventory.purchaseOrder',
       title: 'Delivery overdue',
-      body: `${purchaseOrder.number} was due ${purchaseOrder.expectedDate}.`,
+      body: `${purchaseOrder.number} was due ${timestampDay(purchaseOrder.expectedDate)}.`,
       data: { purchaseOrderId: snapshot.id },
     });
   }
 
   const live = (assetStatus: string) => assetStatus !== 'retired' && assetStatus !== 'disposed';
   const warranty = await collection('inventoryAssets')
-    .where('warranty.end', '>=', today)
-    .where('warranty.end', '<=', addDays(today, NEAR_DAYS))
+    .where('warranty.end', '>=', dayTimestamp(today))
+    .where('warranty.end', '<=', dayTimestamp(addDays(today, NEAR_DAYS)))
     .get();
   for (const snapshot of warranty.docs.filter((asset) => live(asset.data().status))) {
     const asset = snapshot.data();
-    await post(db, schoolId, `inventory-warranty-ending__${snapshot.id}__${asset.warranty.end}`, {
-      to: { permission: 'inventory.assets.manage', campusId: asset.campusId },
-      category: 'inventory.asset',
-      title: 'Warranty ending',
-      body: `${asset.assetId} ${asset.name}: warranty ends ${asset.warranty.end}.`,
-      data: { assetId: snapshot.id },
-    });
+    await post(
+      db,
+      schoolId,
+      `inventory-warranty-ending__${snapshot.id}__${timestampDay(asset.warranty.end)}`,
+      {
+        to: { permission: 'inventory.assets.manage', campusId: asset.campusId },
+        category: 'inventory.asset',
+        title: 'Warranty ending',
+        body: `${asset.assetId} ${asset.name}: warranty ends ${timestampDay(asset.warranty.end)}.`,
+        data: { assetId: snapshot.id },
+      },
+    );
   }
 
   const service = await collection('inventoryAssets')
-    .where('nextServiceDate', '<=', addDays(today, 7))
+    .where('nextServiceDate', '<=', dayTimestamp(addDays(today, 7)))
     .get();
   for (const snapshot of service.docs.filter(
     (asset) => live(asset.data().status) && asset.data().nextServiceDate,
@@ -135,12 +146,12 @@ export async function runDailyInventory(schoolId: string, today = todayIST()): P
     await post(
       db,
       schoolId,
-      `inventory-maintenance-due__${snapshot.id}__${asset.nextServiceDate}`,
+      `inventory-maintenance-due__${snapshot.id}__${timestampDay(asset.nextServiceDate)}`,
       {
         to: { permission: 'inventory.assets.manage', campusId: asset.campusId },
         category: 'inventory.asset',
         title: 'Maintenance due',
-        body: `${asset.assetId} ${asset.name}: service due ${asset.nextServiceDate}.`,
+        body: `${asset.assetId} ${asset.name}: service due ${timestampDay(asset.nextServiceDate)}.`,
         data: { assetId: snapshot.id },
       },
     );

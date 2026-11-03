@@ -2,6 +2,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { lineKey, Stock, transactionFields } from '../src/inventory/stock';
 import { batch } from '../src/inventory/stock-operations';
+import { dayTimestamp } from '../src/shared/dates';
 import { defineCallable, failed, id, money, optionalText } from '../src/shared/masters';
 import { db } from './setup';
 
@@ -112,8 +113,8 @@ export async function seedQuotation(
     vendorId,
     campusId: 31,
     status: 'final',
-    validUntil: options.validUntil,
-    quotationDate: options.validUntil,
+    validUntil: dayTimestamp(options.validUntil),
+    quotationDate: dayTimestamp(options.validUntil),
     deliveryDays: null,
     lineItems: lines.map((line) => ({ ...line, variantId: null })),
     discount: 0,
@@ -240,7 +241,7 @@ export async function seedIssueRequest(fields: {
     status,
     approval: status === 'pending' ? null : { performedBy: 'apr', comment: null },
     campusId: 31,
-    transactionDate: new Date().toISOString().slice(0, 10),
+    transactionDate: dayTimestamp(new Date().toISOString().slice(0, 10)),
     createdAt: FieldValue.serverTimestamp(),
     createdBy: fields.createdBy,
     updatedAt: FieldValue.serverTimestamp(),

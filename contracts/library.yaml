@@ -33,8 +33,8 @@ documents:
       catalogueId: string
       libraryId: string
       campusId: int
-      issuedDate: string
-      dueDate: string
+      issuedDate: timestamp
+      dueDate: timestamp
       remarks: string?
       renewals: list<LoanRenewal>
       policySnapshot: LoanPolicySnapshot
@@ -42,7 +42,7 @@ documents:
       issuedBy: string
       issuedAt: timestamp
       returnNumber: string?
-      returnedDate: string?
+      returnedDate: timestamp?
       condition: string?
       overdueDays: int?
       returnRemarks: string?
@@ -52,9 +52,9 @@ documents:
   LoanRenewal:
     doc: Embedded in a loan on each renewal.
     fields:
-      renewedDate: string
-      previousDueDate: string
-      newDueDate: string
+      renewedDate: timestamp
+      previousDueDate: timestamp
+      newDueDate: timestamp
       performedBy: string
   LoanPolicySnapshot:
     doc: Policy values frozen on the loan at issue so later policy edits never move its due date.
@@ -91,7 +91,7 @@ models:
         price: double
         source: string?
         vendorOrDonor: string?
-        acquiredDate: string?
+        acquiredDate: day?
         remarks: string?
         heldReservationId: string?
     LibraryAcquisition:
@@ -103,7 +103,7 @@ models:
         libraryId: string
         quantity: int
         price: double
-        date: string?
+        date: day?
         vendorOrDonor: string?
         reference: string?
   library_fines:
@@ -112,12 +112,12 @@ models:
         amount: double
         reason: string
         performedBy: string
-        performedAt: string
+        performedAt: timestamp?
     LibraryFinePayment:
       fields:
         amount: double
         reference: string?
-        date: string?
+        date: day?
         performedBy: string?
     LibraryFine:
       doc: "A library fine (overdue, lost book replacement, damaged penalty)."
@@ -156,7 +156,7 @@ models:
         libraryId: string
         campusId: int
         status: { type: string, default: open }
-        reportedDate: string
+        reportedDate: day
         memberId: string?
         memberType: string?
         personErpId: int?
@@ -184,12 +184,12 @@ models:
         accessionNumber: string
         catalogueId: string
         libraryId: string
-        issuedDate: string
-        dueDate: string
+        issuedDate: day
+        dueDate: day
         renewals: { type: int, length: true }
         maxRenewals: { type: int, key: policySnapshot.maxRenewals }
         status: { type: string, default: active }
-        returnedDate: string?
+        returnedDate: day?
         condition: string?
         overdueDays: int?
   library_masters:
@@ -260,8 +260,8 @@ models:
         classId: int?
         memberCategory: string
         libraryIds: list<string>
-        start: string
-        end: string?
+        start: day
+        end: day?
         activeLoans: int
         blocked: bool
         active: { type: bool, key: status, notEquals: inactive }
@@ -280,7 +280,7 @@ models:
         campusId: int
         status: { type: string, default: waiting }
         heldCopyId: string?
-        holdUntil: string?
+        holdUntil: day?
         fulfilledLoanId: string?
         fulfilledCopyId: string?
         createdAt: timestamp?
@@ -304,9 +304,9 @@ models:
         status: { type: string, default: requested }
         lineItems: list<LibraryTransferLine>
         createdAt: timestamp?
-        requestedDate: string?
-        dispatchedDate: string?
-        receivedDate: string?
+        requestedDate: day?
+        dispatchedDate: day?
+        receivedDate: day?
         remarks: string?
   library_verifications:
     LibraryVerification:
@@ -323,4 +323,4 @@ models:
         unexpected: list<string>
         investigate: list<string>
         shelf: string?
-        verifiedDate: string?
+        verifiedDate: day?

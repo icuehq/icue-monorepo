@@ -133,8 +133,8 @@ export interface LibraryLoan {
   catalogueId: string;
   libraryId: string;
   campusId: number;
-  issuedDate: string;
-  dueDate: string;
+  issuedDate: Timestamp;
+  dueDate: Timestamp;
   remarks?: string | null;
   renewals: LoanRenewal[];
   policySnapshot: LoanPolicySnapshot;
@@ -142,7 +142,7 @@ export interface LibraryLoan {
   issuedBy: string;
   issuedAt: Timestamp;
   returnNumber?: string | null;
-  returnedDate?: string | null;
+  returnedDate?: Timestamp | null;
   condition?: string | null;
   overdueDays?: number | null;
   returnRemarks?: string | null;
@@ -153,9 +153,9 @@ export interface LibraryLoan {
 
 /** Embedded in a loan on each renewal. */
 export interface LoanRenewal {
-  renewedDate: string;
-  previousDueDate: string;
-  newDueDate: string;
+  renewedDate: Timestamp;
+  previousDueDate: Timestamp;
+  newDueDate: Timestamp;
   performedBy: string;
 }
 

@@ -1,7 +1,11 @@
-import { type DocumentData, type DocumentReference } from 'firebase-admin/firestore';
+import {
+  type DocumentData,
+  type DocumentReference,
+  type Timestamp,
+} from 'firebase-admin/firestore';
 import { z } from 'zod';
 import type { CallableContext } from '../shared/callable';
-import { isoDate, todayIST } from '../shared/dates';
+import { dayTimestamp, dayTimestampOrNull, isoDate, timestampDay, todayIST } from '../shared/dates';
 import { serverTimestamp } from '../shared/firestore';
 import { financialYearOf, nextNumber } from '../shared/keys';
 import { failed, id, missing, usable } from '../shared/masters';
@@ -44,6 +48,12 @@ export interface Batch {
   batchNumber?: string | null;
   manufacturingDate?: string | null;
   expiryDate?: string | null;
+}
+/** A batch as stored: its dates are Timestamps. */
+export interface StoredBatch {
+  batchNumber: string | null;
+  manufacturingDate: Timestamp | null;
+  expiryDate: Timestamp | null;
 }
 
 export const positiveQuantity = z.number().positive().max(1_000_000);
@@ -136,7 +146,7 @@ export class Stock {
   }
 
   /** Batch identity for a line: only batch-tracked items carry a batch. */
-  batchOf(item: DocumentData, batch: Batch, receiving = false): Required<Batch> {
+  batchOf(item: DocumentData, batch: Batch, receiving = false): StoredBatch {
     if (item.tracking !== 'batch')
       return { batchNumber: null, manufacturingDate: null, expiryDate: null };
     if (!batch.batchNumber) throw failed(`${item.name} needs a batch number`);
@@ -146,8 +156,8 @@ export class Stock {
       throw failed('Expired batches cannot be received');
     return {
       batchNumber: batch.batchNumber,
-      manufacturingDate: batch.manufacturingDate ?? null,
-      expiryDate: batch.expiryDate ?? null,
+      manufacturingDate: dayTimestampOrNull(batch.manufacturingDate),
+      expiryDate: dayTimestampOrNull(batch.expiryDate),
     };
   }
 
@@ -156,7 +166,7 @@ export class Stock {
     storeId: string,
     item: DocumentData,
     variantId: string | null | undefined,
-    batch: Required<Batch>,
+    batch: StoredBatch,
     create: boolean,
   ): Promise<StockBalance> {
     const bid = balanceId(storeId, item.id, variantId, batch.batchNumber);
@@ -166,8 +176,8 @@ export class Stock {
     const snapshot = await this.context.transaction.get(ref);
     if (snapshot.exists) {
       const have = snapshot.data()!.expiryDate;
-      if (batch.expiryDate && have && batch.expiryDate !== have)
-        throw failed(`Batch ${batch.batchNumber} already exists with expiry ${have}`);
+      if (batch.expiryDate && have && !batch.expiryDate.isEqual(have))
+        throw failed(`Batch ${batch.batchNumber} already exists with expiry ${timestampDay(have)}`);
       return this.track(bid, ref, snapshot.data()!, item);
     }
     if (!create) throw failed(`No stock of ${item.name} in this store`);
@@ -256,8 +266,10 @@ export class Stock {
           this.bals.get(balance.id) ?? this.track(balance.id, balance.ref, balance.data(), item),
       )
       .filter((balance) => balance.data.quantityAvailable > 0 && !this.expired(balance))
-      .sort((earlierBatch, right) =>
-        (earlierBatch.data.expiryDate ?? '9999').localeCompare(right.data.expiryDate ?? '9999'),
+      .sort(
+        (earlierBatch, right) =>
+          (earlierBatch.data.expiryDate?.toMillis() ?? Infinity) -
+          (right.data.expiryDate?.toMillis() ?? Infinity),
       );
     const out: { bal: StockBalance; quantity: number }[] = [];
     let left = need;
@@ -289,7 +301,7 @@ export class Stock {
   }
 
   private expired(balance: { data: DocumentData }): boolean {
-    return !!balance.data.expiryDate && balance.data.expiryDate < todayIST();
+    return !!balance.data.expiryDate && timestampDay(balance.data.expiryDate) < todayIST();
   }
 
   /**
@@ -331,7 +343,7 @@ export class Stock {
       referenceType: movement.referenceType,
       referenceId: movement.referenceId,
       unitCost: movement.unitCost ?? balance.data.unitCost,
-      transactionDate: this.date,
+      transactionDate: dayTimestamp(this.date),
       financialYear: this.financialYear,
       academicYearId: this.academicYearId,
       seq: this.seq++,
@@ -398,7 +410,7 @@ export class Stock {
   header(storeCampus: number) {
     return {
       campusId: storeCampus,
-      transactionDate: this.date,
+      transactionDate: dayTimestamp(this.date),
       financialYear: this.financialYear,
       academicYearId: this.academicYearId,
       createdAt: serverTimestamp(),

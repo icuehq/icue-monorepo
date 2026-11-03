@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { todayIST } from '../shared/dates';
+import { dayTimestamp, todayIST } from '../shared/dates';
 import { serverTimestamp } from '../shared/firestore';
 import { defineCallable, failed, id, missing, optionalText } from '../shared/masters';
 import { enqueue } from '../shared/outbox';
@@ -54,7 +54,7 @@ export const verification = {
         differenceCount: null,
         approval: null,
         adjustmentCount: 0,
-        verifiedDate: stock.date,
+        verifiedDate: dayTimestamp(stock.date),
         ...stock.header(store.campusId),
       });
       for (const snapshot of balances) {
@@ -265,7 +265,7 @@ export const verification = {
         approval,
         adjustmentCount: appliedCount,
         appliedAt: serverTimestamp(),
-        appliedDate: todayIST(),
+        appliedDate: dayTimestamp(todayIST()),
         updatedAt: serverTimestamp(),
       });
       context.audit({

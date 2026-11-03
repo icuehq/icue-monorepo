@@ -47,7 +47,7 @@ models:
         maxRenewals: { type: int, key: policySnapshot.maxRenewals }
 ```
 
-Field types: `string int double bool num day timestamp json`, `list<string|int|Model>`,
+Field types: `string int double bool num day timestamp json` (`day`: a Timestamp at midnight India time, read as `yyyy-MM-dd`), `list<string|int|Model>`,
 `map<string>`, another model, or a hand-written enum with a static `parse` (e.g. `Tracking`).
 `?` allows null. Options: `key` (Firestore key, dotted for nested), `default`, `notEquals`
 (`bool` from `key != 'x'`), `present` (`bool` from `key != null`), `length` (`int` from a list's

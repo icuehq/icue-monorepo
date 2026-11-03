@@ -3,6 +3,7 @@ import { masters } from '../src/inventory/masters';
 import { orders as o } from '../src/inventory/orders';
 import { procurement as p } from '../src/inventory/procurement';
 import { runCallable, type CallableDef } from '../src/shared/callable';
+import { dayTimestamp } from '../src/shared/dates';
 import { seedPurchaseRequest, seedQuotation } from './fixtures';
 import { clearFirestore, db } from './setup';
 
@@ -227,7 +228,7 @@ describe('purchase orders', () => {
       acknowledgement: null,
       revision: 1,
       total: 252,
-      expectedDate: day(9),
+      expectedDate: dayTimestamp(day(9)),
     });
     const revs = await db()
       .collection(`schools/${SCHOOL_ID}/inventoryPurchaseOrders/${id}/revisions`)

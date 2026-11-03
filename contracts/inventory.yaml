@@ -82,15 +82,15 @@ models:
         model: string?
         purchaseOrderId: string?
         vendorId: string?
-        purchaseDate: string?
+        purchaseDate: day?
         price: double?
-        warrantyStart: { type: string?, key: warranty.start }
-        warrantyEnd: { type: string?, key: warranty.end }
+        warrantyStart: { type: day?, key: warranty.start }
+        warrantyEnd: { type: day?, key: warranty.end }
         location: string?
         assignedTo: { type: AssetCustodian?, from: "AssetCustodian.from(data['assignedTo'])" }
         activeAssignmentId: string?
         activeMaintenanceId: string?
-        nextServiceDate: string?
+        nextServiceDate: day?
         rfidTag: string?
     InventoryAssignment:
       doc: "A custody record (`inventoryAssetAssignments`); a transfer or return closes it and keeps it."
@@ -99,10 +99,10 @@ models:
         assignee: { type: AssetCustodian, from: "AssetCustodian.from(data['assignee']) ?? const AssetCustodian('staff', 0)" }
         assignedDate: day
         location: string?
-        expectedReturn: string?
+        expectedReturn: day?
         conditionOut: string?
         conditionIn: string?
-        returnedDate: string?
+        returnedDate: day?
         closedAs: { type: string?, doc: "`returned`, `transferred` or `lost`; null while active." }
         acknowledged: { type: bool, key: acknowledgement, present: "true" }
     AssetEvent:
@@ -126,8 +126,8 @@ models:
         technician: string?
         repairDetails: string?
         cost: double?
-        completedDate: string?
-        nextServiceDate: string?
+        completedDate: day?
+        nextServiceDate: day?
         parts: { type: List<PartUsed>, from: "[ for (final value in data['partsUsed'] is List ? data['partsUsed'] as List : []) PartUsed( itemId: (value as Map)['itemId'] as String? ?? '', quantity: readDouble(value['quantity']), ), ]" }
   inventory_insights:
     InventoryVerification:
@@ -138,7 +138,7 @@ models:
         storeId: string
         storeName: string
         status: { type: string, default: counting }
-        date: { type: string, key: verifiedDate }
+        date: { type: day, key: verifiedDate }
         campusId: int
         lineCount: int
         differenceCount: int?
@@ -225,8 +225,8 @@ models:
         remarks: string?
         purchaseRequestId: string
         vendorRef: string?
-        validUntil: string
-        quotationDate: string
+        validUntil: day
+        quotationDate: day
         deliveryDays: int?
         selected: bool
         selectionReason: string?
@@ -247,8 +247,8 @@ models:
         campusId: int
         deliveryCampusId: int
         quotationId: string?
-        purchaseOrderDate: string
-        expectedDate: string
+        purchaseOrderDate: day
+        expectedDate: day
         terms: string?
         revision: int
         ackRef: { type: string?, key: acknowledgement.vendorRef }
@@ -289,7 +289,7 @@ models:
         priority: { type: string, default: normal }
         purpose: string
         remarks: string?
-        requiredDate: string
+        requiredDate: day
         total: double
         createdBy: string
         createdAt: timestamp?
@@ -309,7 +309,7 @@ models:
       id: id
       fields:
         number: string
-        date: { type: string, key: transactionDate }
+        date: { type: day, key: transactionDate }
         result: { type: string, key: inspection.result, default: accepted, doc: "`accepted`, `partial` or `rejected`." }
         reference: string?
         remarks: string?
@@ -322,8 +322,8 @@ models:
         vendorId: string
         purchaseOrderId: string
         purchaseOrderNumber: string
-        invoiceDate: string
-        dueDate: string?
+        invoiceDate: day
+        dueDate: day?
         paymentStatus: { type: string, default: unpaid }
         subtotal: double
         tax: double
@@ -342,7 +342,7 @@ models:
         itemId: string
         variantId: string?
         batchNumber: string?
-        expiryDate: string?
+        expiryDate: day?
         available: { type: double, key: quantityAvailable }
         damaged: { type: double, key: quantityDamaged }
         expired: { type: double, key: quantityExpired }
@@ -356,7 +356,7 @@ models:
         quantity: double
         bucket: { type: string, default: available }
         referenceType: string
-        transactionDate: string
+        transactionDate: day
         batchNumber: string?
         createdAt: timestamp?
     RequestLine:
@@ -430,7 +430,7 @@ models:
         requested: { type: "List<({String itemId, String? variantId, double quantity})>", from: "[ for (final row in _rows(data['requested'])) ( itemId: row['itemId'] as String? ?? '', variantId: row['variantId'] as String?, quantity: readDouble(row['quantity']), ), ]" }
         lineItems: list<TransferLine>
         remarks: string?
-        dispatchedDate: { type: string?, key: dispatch.date }
-        receivedDate: { type: string?, key: receipt.date }
+        dispatchedDate: { type: day?, key: dispatch.date }
+        receivedDate: { type: day?, key: receipt.date }
         createdAt: timestamp?
         createdBy: string

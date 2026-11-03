@@ -1,5 +1,6 @@
+import type { Timestamp } from 'firebase-admin/firestore';
 import { z } from 'zod';
-import { isoDate } from '../shared/dates';
+import { dayTimestamp, dayTimestampOrNull, isoDate, timestampDayOrNull } from '../shared/dates';
 import { serverTimestamp } from '../shared/firestore';
 import {
   defineCallable,
@@ -27,8 +28,8 @@ export function ineligibleReason(
   member: {
     status?: string;
     blocked?: boolean;
-    start?: string;
-    end?: string | null;
+    start?: Timestamp;
+    end?: Timestamp | null;
     libraryIds?: string[];
   },
   libraryId: string,
@@ -36,8 +37,9 @@ export function ineligibleReason(
 ): string | null {
   if (member.status !== 'active') return 'Member is inactive';
   if (member.blocked) return 'Member is blocked';
-  if ((member.start && member.start > today) || (member.end && member.end < today))
-    return 'Membership is not valid today';
+  const start = timestampDayOrNull(member.start);
+  const end = timestampDayOrNull(member.end);
+  if ((start && start > today) || (end && end < today)) return 'Membership is not valid today';
   if (!member.libraryIds?.includes(libraryId)) return 'Member has no access to this library';
   return null;
 }
@@ -166,8 +168,8 @@ export const members = {
         memberCategory: i.memberCategory,
         libraryIds,
         campusIds: [...campusIds],
-        start: i.start,
-        end: i.end ?? null,
+        start: dayTimestamp(i.start),
+        end: dayTimestampOrNull(i.end),
       };
       if (before) {
         context.update(ref, { ...after, updatedAt: serverTimestamp() });

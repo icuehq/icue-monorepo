@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { CallableContext } from '../shared/callable';
-import { todayIST } from '../shared/dates';
+import { dayTimestamp, todayIST } from '../shared/dates';
 import { serverTimestamp } from '../shared/firestore';
 import { nextNumber } from '../shared/keys';
 import { defineCallable, failed, id, missing, optionalText, usable } from '../shared/masters';
@@ -70,7 +70,7 @@ export const verification = {
         missing: [],
         unexpected: [],
         status: 'counting',
-        verifiedDate: todayIST(),
+        verifiedDate: dayTimestamp(todayIST()),
       };
       context.set(ref, {
         ...after,
@@ -143,7 +143,7 @@ export const verification = {
         status,
         missing: missingIds,
         submittedBy: context.uid,
-        submittedDate: todayIST(),
+        submittedDate: dayTimestamp(todayIST()),
         updatedAt: serverTimestamp(),
       });
       if (status === 'submitted') {
@@ -227,7 +227,7 @@ export const verification = {
         moved: i.move,
         investigate,
         approvedBy: context.uid,
-        approvedDate: todayIST(),
+        approvedDate: dayTimestamp(todayIST()),
         updatedAt: serverTimestamp(),
       });
       context.audit({

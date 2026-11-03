@@ -1,7 +1,8 @@
+import { Timestamp } from 'firebase-admin/firestore';
 import type { DocumentData, DocumentReference } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import type { CallableContext } from '../shared/callable';
-import { isoDate, todayIST } from '../shared/dates';
+import { dayTimestamp, isoDate, todayIST } from '../shared/dates';
 import { serverTimestamp } from '../shared/firestore';
 import { nextNumber } from '../shared/keys';
 import { defineCallable, failed, id, missing } from '../shared/masters';
@@ -125,7 +126,12 @@ export const fines = {
             : 'waived';
       const waivers = [
         ...(fine.waivers ?? []),
-        { amount: i.amount, reason: i.reason, performedBy: context.uid, performedAt: todayIST() },
+        {
+          amount: i.amount,
+          reason: i.reason,
+          performedBy: context.uid,
+          performedAt: Timestamp.now(),
+        },
       ];
 
       if (outstanding <= 0 && fine.memberId) {
@@ -173,7 +179,7 @@ export const fines = {
         {
           amount: i.paidAmount,
           reference: i.reference ?? null,
-          date: i.paidDate ?? todayIST(),
+          date: dayTimestamp(i.paidDate ?? todayIST()),
           performedBy: context.uid,
         },
       ];

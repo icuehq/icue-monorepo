@@ -200,7 +200,7 @@ class StockWrites {
           .where(
             (balance) =>
                 balance['variantId'] == variantId &&
-                ((balance['expiryDate'] as String?)?.compareTo(today) ?? 1) >=
+                (readDayOrNull(balance['expiryDate'])?.compareTo(today) ?? 1) >=
                     0,
           )
           .fold<double>(
@@ -289,7 +289,7 @@ class StockWrites {
         'status': 'pending',
         'approval': null,
         'campusId': store['campusId'],
-        'transactionDate': todayIST(),
+        'transactionDate': dayTimestamp(todayIST()),
         'financialYear': financialYear,
         'academicYearId': null,
         'createdAt': FieldValue.serverTimestamp(),
@@ -416,7 +416,7 @@ class StockWrites {
         final available = have + line.accepted;
         final unitCost =
             (have * cost + line.accepted * line.unitCost) / available;
-        final storedExpiry = balance?['expiryDate'] as String?;
+        final storedExpiry = readDayOrNull(balance?['expiryDate']);
         if (storedExpiry != null &&
             line.expiryDate != null &&
             storedExpiry != line.expiryDate) {
@@ -432,7 +432,7 @@ class StockWrites {
           'variantId': line.variantId,
           'batchNumber': line.batchNumber,
           'manufacturingDate': balance?['manufacturingDate'],
-          'expiryDate': expiry,
+          'expiryDate': dayTimestampOrNull(expiry),
           'quantityAvailable': available,
           'quantityReserved': balance?['quantityReserved'] ?? 0,
           'quantityDamaged': balance?['quantityDamaged'] ?? 0,
@@ -444,7 +444,7 @@ class StockWrites {
           'value': (available * unitCost * 100).round() / 100,
           'isBelowReorderLevel':
               line.reorderLevel != null && available <= line.reorderLevel!,
-          'earliestExpiryDate': expiry,
+          'earliestExpiryDate': dayTimestampOrNull(expiry),
           'createdAt': balance?['createdAt'] ?? FieldValue.serverTimestamp(),
           'createdBy': balance?['createdBy'] ?? uid,
           'updatedAt': FieldValue.serverTimestamp(),
@@ -462,7 +462,7 @@ class StockWrites {
           'referenceType': 'receipt',
           'referenceId': receiptRef.id,
           'unitCost': line.unitCost,
-          'transactionDate': today,
+          'transactionDate': dayTimestamp(today),
           'financialYear': financialYear,
           'academicYearId': academicYearId,
           'seq': sequence++,
@@ -483,7 +483,7 @@ class StockWrites {
               'variantId': line.variantId,
               'batchNumber': line.batchNumber,
               'manufacturingDate': null,
-              'expiryDate': line.expiryDate,
+              'expiryDate': dayTimestampOrNull(line.expiryDate),
               'unitCost': line.unitCost,
               'condition': line.condition,
               'quantityReceived': line.accepted + line.rejected,
@@ -495,7 +495,7 @@ class StockWrites {
         'attachments': <Object?>[],
         'status': 'confirmed',
         'campusId': campusId,
-        'transactionDate': today,
+        'transactionDate': dayTimestamp(today),
         'financialYear': financialYear,
         'academicYearId': academicYearId,
         'createdAt': FieldValue.serverTimestamp(),

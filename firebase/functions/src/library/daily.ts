@@ -1,6 +1,6 @@
 import { getFirestore } from 'firebase-admin/firestore';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
-import { todayIST, addDays } from '../shared/dates';
+import { todayIST, addDays, dayTimestamp, timestampDay } from '../shared/dates';
 import { schoolCollection } from '../shared/firestore';
 import { post } from '../shared/outbox';
 import { forEachSchool } from '../shared/scheduled';
@@ -17,8 +17,8 @@ export async function runDailyLibrary(schoolId: string, today = todayIST()): Pro
 
   const soon = await collection('libraryLoans')
     .where('status', '==', 'active')
-    .where('dueDate', '>=', today)
-    .where('dueDate', '<=', addDays(today, DUE_SOON_DAYS))
+    .where('dueDate', '>=', dayTimestamp(today))
+    .where('dueDate', '<=', dayTimestamp(addDays(today, DUE_SOON_DAYS)))
     .get();
   for (const snapshot of soon.docs) {
     const loan = snapshot.data();
@@ -26,14 +26,14 @@ export async function runDailyLibrary(schoolId: string, today = todayIST()): Pro
       to: memberTo(loan.memberType, loan.personErpId),
       category: 'library.loan',
       title: 'Book due soon',
-      body: `${loan.accessionNumber} is due on ${loan.dueDate}.`,
+      body: `${loan.accessionNumber} is due on ${timestampDay(loan.dueDate)}.`,
       data: { loanId: snapshot.id },
     });
   }
 
   const overdue = await collection('libraryLoans')
     .where('status', '==', 'active')
-    .where('dueDate', '<', today)
+    .where('dueDate', '<', dayTimestamp(today))
     .get();
   for (const snapshot of overdue.docs) {
     const loan = snapshot.data();
@@ -41,31 +41,36 @@ export async function runDailyLibrary(schoolId: string, today = todayIST()): Pro
       to: memberTo(loan.memberType, loan.personErpId),
       category: 'library.loan',
       title: 'Book overdue',
-      body: `${loan.accessionNumber} was due on ${loan.dueDate}. Please return it.`,
+      body: `${loan.accessionNumber} was due on ${timestampDay(loan.dueDate)}. Please return it.`,
       data: { loanId: snapshot.id },
     });
   }
 
   const ending = await collection('libraryMembers')
     .where('status', '==', 'active')
-    .where('end', '>=', today)
-    .where('end', '<=', addDays(today, MEMBERSHIP_DAYS))
+    .where('end', '>=', dayTimestamp(today))
+    .where('end', '<=', dayTimestamp(addDays(today, MEMBERSHIP_DAYS)))
     .get();
   for (const snapshot of ending.docs) {
     const member = snapshot.data();
-    await post(db, schoolId, `library-member-expiring__${snapshot.id}__${member.end}`, {
-      to: memberTo(member.memberType, member.personErpId),
-      category: 'library.member',
-      title: 'Library membership ending',
-      body: `The membership ends on ${member.end}.`,
-      data: { memberId: snapshot.id },
-    });
+    await post(
+      db,
+      schoolId,
+      `library-member-expiring__${snapshot.id}__${timestampDay(member.end)}`,
+      {
+        to: memberTo(member.memberType, member.personErpId),
+        category: 'library.member',
+        title: 'Library membership ending',
+        body: `The membership ends on ${timestampDay(member.end)}.`,
+        data: { memberId: snapshot.id },
+      },
+    );
   }
 
   const holds = await collection('libraryReservations')
     .where('status', '==', 'ready')
-    .where('holdUntil', '>=', today)
-    .where('holdUntil', '<=', addDays(today, 1))
+    .where('holdUntil', '>=', dayTimestamp(today))
+    .where('holdUntil', '<=', dayTimestamp(addDays(today, 1)))
     .get();
   for (const snapshot of holds.docs) {
     const reservation = snapshot.data();
@@ -73,7 +78,7 @@ export async function runDailyLibrary(schoolId: string, today = todayIST()): Pro
       to: memberTo(reservation.memberType, reservation.personErpId),
       category: 'library.reservation',
       title: 'Reserved book hold ending',
-      body: `${reservation.title}: collect it by ${reservation.holdUntil}.`,
+      body: `${reservation.title}: collect it by ${timestampDay(reservation.holdUntil)}.`,
       data: { reservationId: snapshot.id },
     });
   }

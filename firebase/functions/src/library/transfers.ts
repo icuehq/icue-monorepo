@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { CallableContext } from '../shared/callable';
-import { todayIST } from '../shared/dates';
+import { dayTimestamp, todayIST } from '../shared/dates';
 import { serverTimestamp } from '../shared/firestore';
 import { nextNumber } from '../shared/keys';
 import { defineCallable, failed, id, missing, optionalText, usable } from '../shared/masters';
@@ -77,7 +77,7 @@ export const transfers = {
         toCampusId: destinationLibrary.campusId,
         lineItems,
         status: 'requested',
-        requestedDate: todayIST(),
+        requestedDate: dayTimestamp(todayIST()),
         remarks: i.remarks ?? null,
       };
       context.set(ref, {
@@ -111,7 +111,7 @@ export const transfers = {
       context.update(ref, {
         status: 'approved',
         approvedBy: context.uid,
-        approvedDate: todayIST(),
+        approvedDate: dayTimestamp(todayIST()),
         updatedAt: serverTimestamp(),
       });
       context.audit({
@@ -178,7 +178,7 @@ export const transfers = {
       context.update(ref, {
         status: 'dispatched',
         dispatchedBy: context.uid,
-        dispatchedDate: todayIST(),
+        dispatchedDate: dayTimestamp(todayIST()),
         updatedAt: serverTimestamp(),
       });
       await enqueue(context, `library-transfer-dispatch__${ref.id}`, {
@@ -276,7 +276,7 @@ export const transfers = {
         lineItems,
         status,
         receivedBy: context.uid,
-        ...(status === 'received' ? { receivedDate: todayIST() } : {}),
+        ...(status === 'received' ? { receivedDate: dayTimestamp(todayIST()) } : {}),
         ...(i.remarks ? { receiptRemarks: i.remarks } : {}),
         updatedAt: serverTimestamp(),
       });
@@ -342,7 +342,7 @@ export const transfers = {
         closedShort: true,
         shortfall: missingIds,
         closeReason: i.reason,
-        receivedDate: todayIST(),
+        receivedDate: dayTimestamp(todayIST()),
         updatedAt: serverTimestamp(),
       });
       context.audit({

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { todayIST } from '../shared/dates';
+import { dayTimestamp, timestampDay, todayIST } from '../shared/dates';
 import { serverTimestamp } from '../shared/firestore';
 import { defineCallable, failed, id, missing, optionalText, usable } from '../shared/masters';
 import { enqueue } from '../shared/outbox';
@@ -424,7 +424,7 @@ export const stock = {
         status: 'dispatched',
         dispatch: {
           performedBy: context.uid,
-          date: stockData.date,
+          date: dayTimestamp(stockData.date),
           performedAt: serverTimestamp(),
         },
         updatedAt: serverTimestamp(),
@@ -521,13 +521,17 @@ export const stock = {
         status: close ? 'received' : 'partially_received',
         receipt: {
           performedBy: context.uid,
-          date: stockData.date,
+          date: dayTimestamp(stockData.date),
           performedAt: serverTimestamp(),
           remarks: i.remarks ?? null,
         },
         receipts: [
           ...((transfer.receipts as Row[] | undefined) ?? []),
-          { performedBy: context.uid, date: stockData.date, remarks: i.remarks ?? null },
+          {
+            performedBy: context.uid,
+            date: dayTimestamp(stockData.date),
+            remarks: i.remarks ?? null,
+          },
         ],
         updatedAt: serverTimestamp(),
       });
@@ -641,7 +645,7 @@ export const stock = {
       const referenceId = ref.id;
       if (
         i.reason === 'expired' &&
-        !(balance.data.expiryDate && balance.data.expiryDate < todayIST())
+        !(balance.data.expiryDate && timestampDay(balance.data.expiryDate) < todayIST())
       )
         throw failed('Batch has not expired');
       const type =
@@ -707,7 +711,7 @@ export const stock = {
         const balance = await stockData.existing(unavailableStock.balanceId, item);
         const reference = { referenceType: 'unavailable', referenceId: i.id };
         if (i.resolution === 'restore') {
-          if (balance.data.expiryDate && balance.data.expiryDate < todayIST())
+          if (balance.data.expiryDate && timestampDay(balance.data.expiryDate) < todayIST())
             throw failed('Expired batches cannot return to usable stock');
           stockData.move(balance, unavailableStock.bucket, -unavailableStock.quantity, {
             type: 'restore',

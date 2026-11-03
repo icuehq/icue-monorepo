@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:icue_firebase/icue_firebase.dart';
 import 'package:school_library/school_library.dart';
 
 void main() {
@@ -6,7 +7,7 @@ void main() {
     final loan = LibraryLoan.fromMap('x', {
       'memberType': 'teacher',
       'personErpId': 9,
-      'dueDate': '2026-11-01',
+      'dueDate': dayTimestamp('2026-11-01'),
       'renewals': [<String, Object?>{}],
       'policySnapshot': {'maxRenewals': 2},
       'status': 'active',
@@ -17,7 +18,7 @@ void main() {
     expect(loan.overdueOn('2026-11-01'), 0);
     expect(
       LibraryLoan.fromMap('y', {
-        'dueDate': '2026-01-01',
+        'dueDate': dayTimestamp('2026-01-01'),
         'status': 'returned',
       }).overdueOn('2026-11-01'),
       0,

@@ -4,6 +4,7 @@ import { loans } from '../src/library/loans';
 import { masters } from '../src/library/masters';
 import { members } from '../src/library/members';
 import { runCallable, type CallableDef } from '../src/shared/callable';
+import { dayTimestamp } from '../src/shared/dates';
 import { seedLibrary, seedLibraryCategory } from './fixtures';
 import { clearFirestore, db } from './setup';
 
@@ -105,7 +106,7 @@ describe('library circulation', () => {
     await expect(issue('ACC-000003')).rejects.toMatchObject({ code: 'failed-precondition' }); // maxBooks 2
     await set('libraryMembers/student_501', { activeLoans: 0, blocked: true });
     await expect(issue('ACC-000003')).rejects.toMatchObject({ code: 'failed-precondition' });
-    await set('libraryMembers/student_501', { blocked: false, end: '2021-01-01' });
+    await set('libraryMembers/student_501', { blocked: false, end: dayTimestamp('2021-01-01') });
     await expect(issue('ACC-000003')).rejects.toMatchObject({ code: 'failed-precondition' });
     await set('libraryMembers/student_501', { end: null, status: 'inactive' });
     await expect(issue('ACC-000003')).rejects.toMatchObject({ code: 'failed-precondition' });
@@ -136,7 +137,7 @@ describe('library circulation', () => {
 
   it('overdue renewal follows the policy snapshot', async () => {
     const result = await issue();
-    await set(`libraryLoans/${result.id}`, { dueDate: day(-3) });
+    await set(`libraryLoans/${result.id}`, { dueDate: dayTimestamp(day(-3)) });
     await expect(run(loans.loanRenew, { id: result.id })).rejects.toMatchObject({
       code: 'failed-precondition',
     });
@@ -147,7 +148,7 @@ describe('library circulation', () => {
   it('overdue renewal fines the days already overdue and blocks the member', async () => {
     const result = await issue();
     await set(`libraryLoans/${result.id}`, {
-      dueDate: day(-3),
+      dueDate: dayTimestamp(day(-3)),
       'policySnapshot.overdueRenewal': true,
       'policySnapshot.fineType': 'per_day',
       'policySnapshot.fineAmount': 2,
@@ -160,7 +161,7 @@ describe('library circulation', () => {
 
   it('return: good makes the copy available, records overdue days, frees the limit; second return fails', async () => {
     const result = await issue();
-    await set(`libraryLoans/${result.id}`, { dueDate: day(-2) });
+    await set(`libraryLoans/${result.id}`, { dueDate: dayTimestamp(day(-2)) });
     const ret = await run(loans.loanReturn, { id: result.id, condition: 'good' });
     expect(ret.overdueDays).toBe(2);
     expect(await get(`libraryLoans/${result.id}`)).toMatchObject({

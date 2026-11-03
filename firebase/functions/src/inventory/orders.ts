@@ -6,7 +6,7 @@ import {
   orderablePurchaseRequestStatuses,
   PurchaseRequestStatus,
 } from '../shared/contracts';
-import { isoDate, todayIST } from '../shared/dates';
+import { dayTimestamp, isoDate, todayIST } from '../shared/dates';
 import { serverTimestamp } from '../shared/firestore';
 import { nextNumber } from '../shared/keys';
 import {
@@ -195,7 +195,7 @@ export const orders = {
         vendorId,
         quotationId: i.quotationId ?? null,
         deliveryCampusId: campus,
-        expectedDate: i.expectedDate,
+        expectedDate: dayTimestamp(i.expectedDate),
         terms: i.terms ?? null,
         lineItems: stored,
         discount: i.discount,
@@ -230,7 +230,7 @@ export const orders = {
         number,
         purchaseRequestIds: [i.purchaseRequestId],
         campusId: purchaseRequest.campusId,
-        purchaseOrderDate: todayIST(),
+        purchaseOrderDate: dayTimestamp(todayIST()),
         status: 'draft',
         acknowledgement: null,
         revision: 0,
@@ -355,7 +355,7 @@ export const orders = {
         lineItems,
         ...charges,
         ...orderTotals,
-        expectedDate: i.expectedDate ?? purchaseOrder.expectedDate,
+        expectedDate: i.expectedDate ? dayTimestamp(i.expectedDate) : purchaseOrder.expectedDate,
         terms: i.terms === undefined ? purchaseOrder.terms : (i.terms ?? null),
         remarks: i.remarks === undefined ? purchaseOrder.remarks : (i.remarks ?? null),
         revision: purchaseOrder.revision + 1,

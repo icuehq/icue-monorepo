@@ -5,6 +5,7 @@ import { masters } from '../src/library/masters';
 import { members } from '../src/library/members';
 import { reservations, runHoldExpiry } from '../src/library/reservations';
 import { runCallable, type CallableDef } from '../src/shared/callable';
+import { dayTimestamp } from '../src/shared/dates';
 import { seedLibrary, seedLibraryCategory } from './fixtures';
 import { clearFirestore, db } from './setup';
 
@@ -104,7 +105,7 @@ describe('library reservations', () => {
     expect(await get(`libraryReservations/${first.id}`)).toMatchObject({
       status: 'ready',
       heldCopyId: 'ACC-000001',
-      holdUntil: day(3),
+      holdUntil: dayTimestamp(day(3)),
     });
     expect((await get(`libraryReservations/${second.id}`))!.status).toBe('waiting');
     expect(

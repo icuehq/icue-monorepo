@@ -26,8 +26,18 @@ void main() {
     expect(readList<int>([1, 2]), [1, 2]);
   });
 
-  test('readDay keeps the day of a stored string and ignores other values', () {
-    expect(readDay('2026-11-01T10:00'), '2026-11-01');
-    expect(readDay(null), '');
-  });
+  test(
+    'a day is stored as midnight India time and read back as the same day',
+    () {
+      final stamp = dayTimestamp('2026-11-01');
+      expect(
+        stamp.toDate().toUtc().toIso8601String(),
+        '2026-10-31T18:30:00.000Z',
+      );
+      expect(readDay(stamp), '2026-11-01');
+      expect(readDay(null), '');
+      expect(readDayOrNull('2026-11-01'), isNull);
+      expect(dayTimestampOrNull(''), isNull);
+    },
+  );
 }

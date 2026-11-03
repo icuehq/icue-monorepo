@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { masters } from '../src/inventory/masters';
 import { stock } from '../src/inventory/stock-operations';
 import { runCallable, type CallableDef } from '../src/shared/callable';
+import { dayTimestamp } from '../src/shared/dates';
 import { receiveStock, seedIssueRequest } from './fixtures';
 import { clearFirestore, db } from './setup';
 
@@ -111,7 +112,7 @@ describe('inventory stock', () => {
     // Expired batches cannot be received, so the batch expires after receipt.
     await db()
       .doc(`schools/${SCHOOL_ID}/inventoryBalances/${firstStore}__${med}__-__OLD`)
-      .update({ expiryDate: day(-1) });
+      .update({ expiryDate: dayTimestamp(day(-1)) });
     const id = await approved(8, med);
     const issue = await run(stock.issueCreate, {
       issueRequestId: id,
@@ -434,7 +435,7 @@ describe('inventory stock', () => {
     });
     await db()
       .doc(`schools/${SCHOOL_ID}/inventoryBalances/${firstStore}__${med}__-__E1`)
-      .update({ expiryDate: day(-2) });
+      .update({ expiryDate: dayTimestamp(day(-2)) });
     const error = await run(stock.unavailableReport, {
       storeId: firstStore,
       itemId: med,

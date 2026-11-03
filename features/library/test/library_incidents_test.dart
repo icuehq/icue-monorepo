@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:icue_firebase/icue_firebase.dart';
 import 'package:school_library/school_library.dart';
 
 void main() {
@@ -12,7 +13,7 @@ void main() {
       'libraryId': 'lib1',
       'campusId': 31,
       'status': 'open',
-      'reportedDate': '2026-11-01',
+      'reportedDate': dayTimestamp('2026-11-01'),
       'memberId': 'teacher_101',
       'memberType': 'teacher',
       'personErpId': 101,

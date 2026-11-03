@@ -7,7 +7,7 @@ import {
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { z } from 'zod';
 import { CallableContext } from '../shared/callable';
-import { todayIST, addDays } from '../shared/dates';
+import { todayIST, addDays, dayTimestamp, timestampDay } from '../shared/dates';
 import { serverTimestamp } from '../shared/firestore';
 import { nextNumber } from '../shared/keys';
 import { defineCallable, failed, id, missing, usable } from '../shared/masters';
@@ -75,11 +75,11 @@ export async function hold(
   days: number,
 ): Promise<void> {
   const reservation = reservationSnapshot.data()!;
-  const holdUntil = addDays(todayIST(), days);
+  const holdUntilDay = addDays(todayIST(), days);
   context.update(reservationSnapshot.ref, {
     status: 'ready',
     heldCopyId: copyId,
-    holdUntil,
+    holdUntil: dayTimestamp(holdUntilDay),
     readyAt: serverTimestamp(),
   });
   context.update(copyRef, {
@@ -92,7 +92,7 @@ export async function hold(
     to: memberTo(reservation.memberType, reservation.personErpId),
     category: 'library.reservation',
     title: 'Reserved book is ready',
-    body: `${reservation.title}: collect it by ${holdUntil}.`,
+    body: `${reservation.title}: collect it by ${holdUntilDay}.`,
     data: { reservationId: reservationSnapshot.id },
   });
 }
@@ -250,7 +250,7 @@ export async function runHoldExpiry(schoolId: string, today = todayIST()): Promi
   const due = await db
     .collection(`schools/${schoolId}/libraryReservations`)
     .where('status', '==', 'ready')
-    .where('holdUntil', '<', today)
+    .where('holdUntil', '<', dayTimestamp(today))
     .get();
   for (const snapshot of due.docs) {
     await db.runTransaction(async (transaction) => {
@@ -260,7 +260,7 @@ export async function runHoldExpiry(schoolId: string, today = todayIST()): Promi
         hasAllCampuses: true,
       });
       const reservation = (await transaction.get(snapshot.ref)).data();
-      if (reservation?.status !== 'ready' || reservation.holdUntil >= today) return;
+      if (reservation?.status !== 'ready' || timestampDay(reservation.holdUntil) >= today) return;
       await freeHeld(context, reservation.heldCopyId, snapshot.id);
       context.update(snapshot.ref, { status: 'expired', expiredAt: serverTimestamp() });
       context.flush();

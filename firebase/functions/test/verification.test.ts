@@ -4,6 +4,7 @@ import { masters } from '../src/inventory/masters';
 import { stock } from '../src/inventory/stock-operations';
 import { verification as v } from '../src/inventory/verification';
 import { runCallable, type CallableDef } from '../src/shared/callable';
+import { dayTimestamp } from '../src/shared/dates';
 import { receiveStock } from './fixtures';
 import { clearFirestore, db } from './setup';
 
@@ -169,7 +170,9 @@ describe('stock verification and daily job', () => {
   });
 
   it('daily job moves expired batches once and posts reminders', async () => {
-    expect((await get(`inventoryBalances/${bid(med, 'B1')}`))!.earliestExpiryDate).toBe(day(10));
+    expect((await get(`inventoryBalances/${bid(med, 'B1')}`))!.earliestExpiryDate).toEqual(
+      dayTimestamp(day(10)),
+    );
     await runDailyInventory(SCHOOL_ID, day(0));
     expect(await col('outbox')).toEqual(
       expect.arrayContaining([

@@ -4,7 +4,7 @@ import { serverTimestamp } from '../shared/firestore';
 import { defineCallable, failed, id, missing, optionalText } from '../shared/masters';
 import {
   assertUniqueLines,
-  type Batch,
+  type StoredBatch,
   lineItemKey,
   lineKey,
   Stock,
@@ -120,7 +120,7 @@ export const receiving = {
             ?.tracking === 'asset';
         if (asset && !Number.isInteger(lineItem.quantityAccepted + lineItem.quantityRejected))
           throw failed('Assets are received in whole units');
-        let batch: Required<Batch> = {
+        let batch: StoredBatch = {
           batchNumber: null,
           manufacturingDate: null,
           expiryDate: null,

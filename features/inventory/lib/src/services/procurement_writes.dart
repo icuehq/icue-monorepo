@@ -136,7 +136,7 @@ class ProcurementWrites {
     ];
     final fields = {
       'departmentId': data['departmentId'],
-      'requiredDate': requiredDate,
+      'requiredDate': dayTimestamp(requiredDate),
       'priority': data['priority'] ?? 'normal',
       'purpose': (data['purpose']! as String).trim(),
       'remarks': _blankToNull(data['remarks']),
@@ -184,7 +184,7 @@ class ProcurementWrites {
       'approval': null,
       'status': submit ? 'pending' : 'draft',
       'history': [if (submit) _historyEntry('submit')],
-      'requestedDate': _today,
+      'requestedDate': dayTimestamp(_today),
       'createdAt': FieldValue.serverTimestamp(),
       'createdBy': _uid,
       'updatedAt': FieldValue.serverTimestamp(),
@@ -368,8 +368,8 @@ class ProcurementWrites {
     final fields = {
       'vendorId': vendorId,
       'vendorRef': _blankToNull(data['vendorRef']),
-      'quotationDate': date,
-      'validUntil': validUntil,
+      'quotationDate': dayTimestamp(date),
+      'validUntil': dayTimestamp(validUntil),
       'deliveryDays': data['deliveryDays'],
       'lineItems': storedLines,
       'discount': discount,
@@ -422,7 +422,7 @@ class ProcurementWrites {
     if (quotation['status'] != 'final') {
       _fail('Only final quotations can be selected');
     }
-    if ((quotation['validUntil'] as String).compareTo(_today) < 0) {
+    if (readDay(quotation['validUntil']).compareTo(_today) < 0) {
       _fail('Quotation has expired');
     }
     final siblings = await (await schoolCollection('inventoryQuotations'))
@@ -494,8 +494,8 @@ class ProcurementWrites {
       data['discount']! as num,
     );
     final fields = {
-      'invoiceDate': invoiceDate,
-      'dueDate': dueDate,
+      'invoiceDate': dayTimestamp(invoiceDate),
+      'dueDate': dayTimestampOrNull(dueDate),
       'receiptIds': receiptIds,
       'subtotal': data['subtotal'],
       'tax': data['tax'],
@@ -570,7 +570,7 @@ class ProcurementWrites {
       'paymentStatus': paymentStatus,
       'payment': {
         'reference': _blankToNull(data['reference']),
-        'date': (data['paidDate'] as String?) ?? _today,
+        'date': dayTimestamp((data['paidDate'] as String?) ?? _today),
         'performedBy': _uid,
       },
       // Every update is kept: `amount` is what this entry added (negative for a correction).
@@ -581,7 +581,7 @@ class ProcurementWrites {
           ),
           'paidAmount': paidAmount,
           'reference': _blankToNull(data['reference']),
-          'date': (data['paidDate'] as String?) ?? _today,
+          'date': dayTimestamp((data['paidDate'] as String?) ?? _today),
           'performedBy': _uid,
         },
       ]),

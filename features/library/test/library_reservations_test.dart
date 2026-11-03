@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:icue_firebase/icue_firebase.dart';
 import 'package:school_library/school_library.dart';
 
 void main() {
@@ -14,7 +15,7 @@ void main() {
       'campusId': 10,
       'status': 'ready',
       'heldCopyId': 'ACC-000001',
-      'holdUntil': '2026-11-04',
+      'holdUntil': dayTimestamp('2026-11-04'),
     });
     expect(reservation.memberLabel, 'Student #501');
     expect(reservation.isReady, isTrue);

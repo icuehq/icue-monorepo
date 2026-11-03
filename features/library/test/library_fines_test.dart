@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:icue_firebase/icue_firebase.dart';
 import 'package:school_library/school_library.dart';
 
 void main() {
@@ -22,14 +23,14 @@ void main() {
           'amount': 5.0,
           'reason': 'Principal discretionary',
           'performedBy': '31',
-          'performedAt': '2026-11-01',
+          'performedAt': dayTimestamp('2026-11-01'),
         },
       ],
       'payments': [
         {
           'amount': 10.0,
           'reference': 'RCP-999',
-          'date': '2026-11-01',
+          'date': dayTimestamp('2026-11-01'),
           'performedBy': '31',
         },
       ],

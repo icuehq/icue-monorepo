@@ -125,15 +125,29 @@ double readDouble(Object? value) => readNumber(value).toDouble();
 
 String readString(Object? value) => value == null ? '' : '$value';
 
-/// A calendar day (`yyyy-MM-dd`) from a stored day string or a timestamp; empty when there is none.
-String readDay(Object? value) {
-  if (value is String) {
-    return value.length >= 10 ? value.substring(0, 10) : value;
-  }
-  return value is Timestamp
-      ? value.toDate().toIso8601String().substring(0, 10)
-      : '';
-}
+const _indiaOffset = Duration(hours: 5, minutes: 30);
+
+/// The India-time calendar day (`yyyy-MM-dd`) of a stored Timestamp; empty when there is none.
+String readDay(Object? value) => readDayOrNull(value) ?? '';
+
+/// Same as [readDay], null when there is no Timestamp.
+String? readDayOrNull(Object? value) => value is Timestamp
+    ? value
+          .toDate()
+          .toUtc()
+          .add(_indiaOffset)
+          .toIso8601String()
+          .substring(0, 10)
+    : null;
+
+/// Firestore value of a calendar day (`yyyy-MM-dd`): a Timestamp at midnight India time.
+Timestamp dayTimestamp(String day) => Timestamp.fromDate(
+  DateTime.parse('${day}T00:00:00Z').subtract(_indiaOffset),
+);
+
+/// Same as [dayTimestamp], null for a missing or empty day.
+Timestamp? dayTimestampOrNull(String? day) =>
+    day == null || day.isEmpty ? null : dayTimestamp(day);
 
 /// One document of a report as stored in Firestore.
 typedef ReportRow = Map<String, dynamic>;

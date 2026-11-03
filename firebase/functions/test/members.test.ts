@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { members } from '../src/library/members';
 import { runCallable, type CallableDef } from '../src/shared/callable';
+import { dayTimestamp } from '../src/shared/dates';
 import { seedLibrary, seedLibraryCategory } from './fixtures';
 import { clearFirestore, db } from './setup';
 
@@ -160,7 +161,7 @@ describe('library members and policies', () => {
     expect(await get('libraryMembers/student_501')).toMatchObject({
       activeLoans: 2,
       campusIds: [31, 32],
-      end: '2027-03-31',
+      end: dayTimestamp('2027-03-31'),
     });
     expect((await db().collection(`schools/${SCHOOL_ID}/libraryMembers`).get()).size).toBe(1);
     await run(members.memberUpsert, {

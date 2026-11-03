@@ -92,9 +92,9 @@ class InsightsService {
     InventoryStore? store,
   }) async {
     final today = todayIST();
-    final soon = DateTime.parse(today)
-        .add(const Duration(days: 30))
-        .toApiDate();
+    final soon = dayTimestamp(
+      DateTime.parse(today).add(const Duration(days: 30)).toApiDate(),
+    );
     Future<Query<Map<String, dynamic>>?> scope(
       String collection, {
       bool byStore = false,
@@ -166,11 +166,15 @@ class InsightsService {
       'out': bal((query) => query.where('quantityAvailable', isEqualTo: 0)),
       'expiring': bal(
         (query) => query
-            .where('earliestExpiryDate', isGreaterThanOrEqualTo: today)
+            .where(
+              'earliestExpiryDate',
+              isGreaterThanOrEqualTo: dayTimestamp(today),
+            )
             .where('earliestExpiryDate', isLessThanOrEqualTo: soon),
       ),
       'expired': bal(
-        (query) => query.where('earliestExpiryDate', isLessThan: today),
+        (query) =>
+            query.where('earliestExpiryDate', isLessThan: dayTimestamp(today)),
       ),
       'prs': purchaseRequests,
       'approvals': Future.wait([purchaseRequests, issues]).then(
@@ -225,7 +229,7 @@ class InsightsService {
     }
     if (def.hasDates) {
       Object bound(DateTime date) =>
-          def.isString ? date.toApiDate() : Timestamp.fromDate(date);
+          def.isDay ? dayTimestamp(date.toApiDate()) : Timestamp.fromDate(date);
       if (from != null) {
         query = query.where(def.dateField, isGreaterThanOrEqualTo: bound(from));
       }
@@ -235,7 +239,7 @@ class InsightsService {
           isLessThan: bound(to.add(const Duration(days: 1))),
         );
       }
-      query = query.orderBy(def.dateField, descending: !def.isString);
+      query = query.orderBy(def.dateField, descending: !def.isDay);
     }
     final snapshot = await query.limit(reportLimit).get();
     return [for (final document in snapshot.docs) document.data()];

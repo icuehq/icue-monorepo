@@ -1,7 +1,7 @@
 import { type DocumentData, type DocumentReference } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import type { CallableContext } from '../shared/callable';
-import { isoDate, todayIST } from '../shared/dates';
+import { dayTimestamp, dayTimestampOrNull, isoDate, todayIST } from '../shared/dates';
 import { serverTimestamp } from '../shared/firestore';
 import { claimUniqueKey, nextNumber, nextNumbers, uniqueKeyRef } from '../shared/keys';
 import {
@@ -83,10 +83,10 @@ function openAssignment(
     // A department ID is not a person's ERP ID, so it never matches a user's own-record rule.
     personErpId: i.assignee.type === 'department' ? null : i.assignee.personErpId,
     location: i.location ?? null,
-    assignedDate: todayIST(),
+    assignedDate: dayTimestamp(todayIST()),
     assignedAt: serverTimestamp(),
     assignedBy: context.uid,
-    expectedReturn: i.expectedReturn ?? null,
+    expectedReturn: dayTimestampOrNull(i.expectedReturn),
     conditionOut: condition,
     acknowledgement: i.acknowledged ? { performedAt: serverTimestamp() } : null,
     remarks: i.remarks ?? null,
@@ -109,7 +109,7 @@ async function closeAssignment(
   if (!(await context.transaction.get(ref)).exists) throw missing('Assignment');
   context.update(ref, {
     returnedAt: serverTimestamp(),
-    returnedDate: todayIST(),
+    returnedDate: dayTimestamp(todayIST()),
     returnedBy: context.uid,
     conditionIn: condition,
     closedAs,
@@ -205,9 +205,12 @@ export const assets = {
           model: i.model ?? null,
           purchaseOrderId: i.purchaseOrderId ?? null,
           vendorId,
-          purchaseDate: i.purchaseDate ?? null,
+          purchaseDate: dayTimestampOrNull(i.purchaseDate),
           price,
-          warranty: { start: i.warrantyStart ?? null, end: i.warrantyEnd ?? null },
+          warranty: {
+            start: dayTimestampOrNull(i.warrantyStart),
+            end: dayTimestampOrNull(i.warrantyEnd),
+          },
           condition: i.condition,
           campusId: store.campusId,
           storeId: i.storeId,
@@ -450,7 +453,7 @@ export const maintenance = {
         issue: i.issue,
         priority: i.priority,
         technician: i.technician ?? null,
-        nextServiceDate: i.nextServiceDate ?? null,
+        nextServiceDate: dayTimestampOrNull(i.nextServiceDate),
         updatedAt: serverTimestamp(),
       };
       if (i.id) {
@@ -463,7 +466,7 @@ export const maintenance = {
           throw failed(`Request is ${maintenanceJob.status}`);
         context.update(ref, {
           ...fields,
-          ...(i.reportedDate ? { reportedDate: i.reportedDate } : {}),
+          ...(i.reportedDate ? { reportedDate: dayTimestamp(i.reportedDate) } : {}),
         });
         context.audit({
           action: 'inventoryMaintenanceJobs.update',
@@ -488,7 +491,7 @@ export const maintenance = {
         assetCode: asset.assetId,
         assetName: asset.name,
         campusId: asset.campusId,
-        reportedDate: reported,
+        reportedDate: dayTimestamp(reported),
         reportedBy: context.uid,
         reportedByErpId: context.access.personErpId ?? null,
         repairDetails: null,
@@ -587,9 +590,11 @@ export const maintenance = {
         technician: technician ?? null,
         cost: cost ?? null,
         repairDetails: i.repairDetails ?? maintenanceJob.repairDetails,
-        nextServiceDate: i.nextServiceDate ?? maintenanceJob.nextServiceDate,
+        nextServiceDate: i.nextServiceDate
+          ? dayTimestamp(i.nextServiceDate)
+          : maintenanceJob.nextServiceDate,
         partsUsed: [...maintenanceJob.partsUsed, ...used],
-        completedDate: done ? todayIST() : null,
+        completedDate: done ? dayTimestamp(todayIST()) : null,
         updatedAt: serverTimestamp(),
       });
       const patch: Record<string, unknown> = { updatedAt: serverTimestamp() };
@@ -602,7 +607,9 @@ export const maintenance = {
               : maintenanceJob.restoreTo,
           activeMaintenanceId: null,
           ...(i.status === 'completed' && {
-            nextServiceDate: i.nextServiceDate ?? maintenanceJob.nextServiceDate,
+            nextServiceDate: i.nextServiceDate
+              ? dayTimestamp(i.nextServiceDate)
+              : maintenanceJob.nextServiceDate,
             ...(i.condition && { condition: i.condition }),
           }),
         });

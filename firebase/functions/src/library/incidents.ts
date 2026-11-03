@@ -1,7 +1,7 @@
 import type { DocumentData } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import type { CallableContext } from '../shared/callable';
-import { todayIST } from '../shared/dates';
+import { dayTimestamp, todayIST } from '../shared/dates';
 import { serverTimestamp } from '../shared/firestore';
 import { nextNumber } from '../shared/keys';
 import { defineCallable, failed, id, missing, optionalText } from '../shared/masters';
@@ -52,7 +52,7 @@ export async function openIncident(
     status: 'open',
     resolution: null,
     resolvedAt: null,
-    reportedDate: todayIST(),
+    reportedDate: dayTimestamp(todayIST()),
     reportedBy: context.uid,
   };
   context.set(ref, {
