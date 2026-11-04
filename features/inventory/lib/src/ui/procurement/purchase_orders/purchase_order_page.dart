@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/procurement/invoices/widgets/invoice_form_sheet.dart';
 import 'package:inventory/src/ui/procurement/purchase_orders/purchase_order_pdf.dart';
+import 'package:inventory/src/ui/procurement/purchase_orders/widgets/purchase_order_invoices_section.dart';
 import 'package:inventory/src/ui/procurement/purchase_orders/widgets/purchase_order_receipts_section.dart';
 import 'package:inventory/src/ui/procurement/purchase_orders/widgets/purchase_order_revision_dialog.dart';
 import 'package:inventory/src/ui/procurement/shared/procurement_ui.dart';
@@ -35,37 +36,14 @@ class PurchaseOrderPage extends StatelessWidget {
     String done, {
     bool required = true,
   }) async {
-    final controller = TextEditingController();
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(title),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: InputDecoration(
-            labelText: required ? 'Reason *' : 'Reason',
-            hintText: 'e.g. Discontinued item / Supplier cancellation',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Back'),
-          ),
-          FilledButton(
-            onPressed: () {
-              if (required && controller.text.trim().isEmpty) return;
-              Navigator.pop(dialogContext, true);
-            },
-            child: const Text('Confirm'),
-          ),
-        ],
-      ),
+    final reason = await askText(
+      context,
+      title: title,
+      label: required ? 'Reason *' : 'Reason',
+      hint: 'e.g. Discontinued item / Supplier cancellation',
+      required: required,
     );
-    final reason = controller.text.trim();
-    controller.dispose();
-    if (ok == true && context.mounted) {
+    if (reason != null && context.mounted) {
       await _act(context, value, {'reason': reason}, done);
     }
   }
@@ -342,11 +320,10 @@ class PurchaseOrderPage extends StatelessWidget {
               ),
             ),
 
-            // Receipts History
             PurchaseOrderReceiptsSection(orderId: purchaseOrder.id),
+            PurchaseOrderInvoicesSection(orderId: purchaseOrder.id),
             const SizedBox(height: 20),
 
-            // Actions
             if (canStockOperate && purchaseOrder.canReceive) ...[
               FilledButton.icon(
                 onPressed: () {
@@ -448,8 +425,14 @@ class PurchaseOrderPage extends StatelessWidget {
                   OutlinedButton.icon(
                     icon: const Icon(Icons.receipt_long_outlined),
                     label: const Text('Record Invoice'),
-                    onPressed: () =>
-                        InvoiceFormSheet.show(context, purchaseOrder),
+                    onPressed: () async {
+                      await InvoiceFormSheet.show(context, purchaseOrder);
+                      if (!context.mounted) return;
+                      await procurementProvider.loadInvoices(
+                        inventoryProvider.access,
+                        purchaseOrderId: purchaseOrder.id,
+                      );
+                    },
                   ),
                 if (canOperate && purchaseOrder.canRevise)
                   OutlinedButton.icon(

@@ -18,37 +18,15 @@ class InvoiceSheet extends StatelessWidget {
     bool number = false,
     String? initial,
   }) async {
-    final controller = TextEditingController(text: initial);
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(title),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          keyboardType: number
-              ? const TextInputType.numberWithOptions(decimal: true)
-              : null,
-          decoration: InputDecoration(
-            labelText: label,
-            hintText: number ? 'e.g. 1500.00' : 'Reason for cancellation',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Back'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Save'),
-          ),
-        ],
-      ),
+    final value = await askText(
+      context,
+      title: title,
+      label: label,
+      hint: number ? 'e.g. 1500.00' : 'Reason for cancellation',
+      initial: initial,
+      number: number,
     );
-    final value = controller.text.trim();
-    controller.dispose();
-    if (ok == true && context.mounted) await then(value);
+    if (value != null && context.mounted) await then(value);
   }
 
   @override

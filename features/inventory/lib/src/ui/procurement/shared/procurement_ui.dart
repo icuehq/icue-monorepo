@@ -27,3 +27,86 @@ Future<bool> procSubmit(
   if (close) navigator.pop();
   return true;
 }
+
+/// Asks for one line of text; null when dismissed. [required] blocks an empty answer.
+/// The dialog owns its controller so it outlives the closing animation.
+Future<String?> askText(
+  BuildContext context, {
+  required String title,
+  required String label,
+  String? hint,
+  String? initial,
+  bool number = false,
+  bool required = false,
+}) => showDialog<String>(
+  context: context,
+  builder: (_) => _AskTextDialog(
+    title: title,
+    label: label,
+    hint: hint,
+    initial: initial,
+    number: number,
+    required: required,
+  ),
+);
+
+class _AskTextDialog extends StatefulWidget {
+  const _AskTextDialog({
+    required this.title,
+    required this.label,
+    required this.hint,
+    required this.initial,
+    required this.number,
+    required this.required,
+  });
+
+  final String title;
+  final String label;
+  final String? hint;
+  final String? initial;
+  final bool number;
+  final bool required;
+
+  @override
+  State<_AskTextDialog> createState() => _AskTextDialogState();
+}
+
+class _AskTextDialogState extends State<_AskTextDialog> {
+  late final _controller = TextEditingController(text: widget.initial);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: Text(widget.title),
+    content: TextField(
+      controller: _controller,
+      autofocus: true,
+      keyboardType: widget.number
+          ? const TextInputType.numberWithOptions(decimal: true)
+          : null,
+      decoration: InputDecoration(
+        labelText: widget.label,
+        hintText: widget.hint,
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('Back'),
+      ),
+      FilledButton(
+        onPressed: () {
+          final value = _controller.text.trim();
+          if (widget.required && value.isEmpty) return;
+          Navigator.pop(context, value);
+        },
+        child: const Text('Confirm'),
+      ),
+    ],
+  );
+}
