@@ -473,11 +473,18 @@ Open **Stock** from Inventory tiles.
   - Enter Accepted `25`.
   - **Expect** inline validation error: "Only 15 due".
 - [ ] 1.3.20 Quick Action "Accept all due" & Full Receiving:
-  - Tap **Accept all due** button in header.
-  - **Expect** Line 1 accepted auto-fills with `15` (0 rejected), Line 2 accepted auto-fills with `2`.
-  - Select Destination store: `Central Main Store`. Enter Challan: `DC-APEX-7742`.
-  - Tap **Confirm receiving (2 items)**.
-  - **Expect** second GRN generated; all items fulfilled; PO status transitions to `Received` (`fully_received`); PR status updates to `Completed`.
+  - Start on the **Receive goods** screen of the same PO (open it again if you left it after 1.3.19). Clear the `25` typed in 1.3.19 first: tap **Clear quantities** (the clear-all icon next to **Accept all due**).
+  - Tap **Accept all due** (above the line list). It fills every line that still has quantity due with that due quantity and clears Rejected:
+    - Line 1 (`PEN-BLU-01`): Accepted becomes `15` (what is still due: `100 ordered - 80 accepted - 5 rejected`).
+    - Line 2 (`LAP-DELL-15`): Accepted becomes `2` (nothing received yet, so all `2` ordered are due).
+    - Rejected stays empty on both lines.
+  - Select Destination store: `Central Main Store`. Enter Delivery note / Challan no.: `DC-APEX-7742`.
+  - Tap **Confirm receiving (2 items)** (the number is the lines with an Accepted quantity).
+  - **Expect**:
+    - A second GRN is generated (`GRN/<financialYear>/<seq>`); the PO now lists two GRNs.
+    - Nothing is due on any line, and the PO status becomes `Received` (`fully_received`).
+    - The linked purchase request status becomes `Completed`.
+    - `PEN-BLU-01` stock in `Central Main Store` rises by `15` (total `95`). `LAP-DELL-15` is asset-tracked, so it does not enter stock; register it in 1.4.1.
 
 #### Vendor Invoices & Payment (Inv-5)
 

@@ -197,11 +197,11 @@ Flutter:
 
 Collections: `inventoryQuotations`, `inventoryPurchaseOrders` (+ `revisions` subcollection).
 
-Functions (`firebase/functions/src/inventory/orders.ts`, all `inventory.procure.operate`, campus scoped):
+Client writes in `ProcurementWrites` (`inventory.procure.operate`; the callables in `orders.ts` were removed):
 
 - [x] `inventory-quotation-save` (draft or final; lines must be approved-request lines, quantity within the request, totals computed; numbering `QT/<financialYear>/<seq>`), `inventory-quotation-select` (final, unexpired, reason required; one selected per request, blocked while a live PO uses the previous one)
-- [x] `inventory-purchaseOrder-save` (now a client write in `ProcurementWrites`, no callable or audit log; draft against an approved / partially ordered request; with a quotation the vendor and unit prices come from it; numbering `PO/<financialYear>/<seq>`), `inventory-purchaseOrder-issue` (reserves `quantityOrdered` on the request, sets `partially_ordered` / `ordered`), `inventory-purchaseOrder-revise` (header and unit prices; previous version kept in `revisions`; resets acknowledgement), `inventory-purchaseOrder-acknowledge`, `inventory-purchaseOrder-cancel` (releases ordered quantity), `inventory-purchaseOrder-close` (reason unless fully received)
-- [x] Tests: `test/orders.test.ts` (emulator)
+- [x] `inventory-purchaseOrder-save` (now a client write in `ProcurementWrites`, no callable or audit log; draft against an approved / partially ordered request; with a quotation the vendor and unit prices come from it; numbering `PO/<financialYear>/<seq>`), `inventory-purchaseOrder-issue` (now a client transaction in `ProcurementWrites`; reserves `quantityOrdered` on the request, sets `partially_ordered` / `ordered`), `inventory-purchaseOrder-revise` (header and unit prices; previous version kept in `revisions`; resets acknowledgement), `inventory-purchaseOrder-acknowledge`, `inventory-purchaseOrder-cancel` (releases ordered quantity), `inventory-purchaseOrder-close` (reason unless fully received)
+- [x] Tests: none for the client writes (the `orders.test.ts` callable tests were removed); `seedPurchaseOrder` / `issuePurchaseOrder` in `test/fixtures.ts` set up orders for the receiving and asset tests
 
 Rules and indexes:
 
@@ -221,7 +221,7 @@ Collections: `inventoryReceipts` (PO deliveries, `source: purchase_order`), `inv
 
 Functions (`firebase/functions/src/inventory/receiving.ts`):
 
-- [x] `inventory-purchaseOrder-receive` (`inventory.stock.operate`, store on the PO's delivery campus): one delivery per call, accepted ≤ still due per line, accepted enters stock at the PO unit price (batch rules as Inv-2), rejected is recorded only; PO becomes `partially_received` / `fully_received`; request becomes `completed` when its last live PO is fully received; cancelled / closed / draft / fully received POs reject
+- [x] `inventory-purchaseOrder-receive` (now a client transaction in `StockWrites`, no audit log; `inventory.stock.operate`, store on the PO's delivery campus): one delivery per call, accepted ≤ still due per line, accepted enters stock at the PO unit price (batch rules as Inv-2), rejected is recorded only; PO becomes `partially_received` / `fully_received`; request becomes `completed` when its last live PO is fully received; cancelled / closed / draft / fully received POs reject
 - [x] `inventory-invoice-save` (against a non-draft, non-cancelled PO; vendor from the PO; `receiptIds` must belong to it; invoice number unique per vendor via `uniqueKeys`; editable while unpaid), `inventory-invoice-setPayment` (cumulative paid amount ≤ total; `unpaid` / `partially_paid` / `paid`), `inventory-invoice-cancel` (unpaid only, releases the number) — all `inventory.procure.operate`, campus scoped
 - [x] Tests: `test/receiving.test.ts` (emulator)
 

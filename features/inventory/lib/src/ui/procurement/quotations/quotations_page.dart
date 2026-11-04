@@ -25,8 +25,12 @@ class QuotationsPage extends StatefulWidget {
 }
 
 class _QuotationsPageState extends State<QuotationsPage> {
-  Future<void> _load() =>
-      context.read<ProcurementProvider>().loadQuotations(widget.request.id);
+  Future<void> _load() async {
+    final procurementProvider = context.read<ProcurementProvider>();
+    final access = context.read<InventoryProvider>().access;
+    await procurementProvider.loadQuotations(widget.request.id);
+    await procurementProvider.loadOrders(access);
+  }
 
   @override
   void initState() {
@@ -136,6 +140,17 @@ class _QuotationsPageState extends State<QuotationsPage> {
       await _load();
     }
   }
+
+  /// The live (not cancelled) purchase order raised from [quotation], if any.
+  InventoryPurchaseOrder? _orderOf(
+    ProcurementProvider provider,
+    InventoryQuotation quotation,
+  ) => provider.orders
+      .where(
+        (order) =>
+            order.quotationId == quotation.id && order.status != 'cancelled',
+      )
+      .firstOrNull;
 
   Future<void> _open(String route, Object extra) async {
     await context.push(route, extra: extra);
@@ -411,6 +426,21 @@ class _QuotationsPageState extends State<QuotationsPage> {
                                   ),
                                   label: const Text('Select this Quote'),
                                   onPressed: () => _select(quotation),
+                                )
+                              else if (_orderOf(procurementProvider, quotation)
+                                  case final order?)
+                                OutlinedButton.icon(
+                                  style: _inlineButton,
+                                  icon: const Icon(
+                                    Icons.receipt_long_outlined,
+                                    size: 16,
+                                  ),
+                                  label: Text('View ${order.number}'),
+                                  onPressed: () => _open(
+                                    InventoryRoutes
+                                        .inventoryPurchaseOrderDetail,
+                                    order,
+                                  ),
                                 )
                               else
                                 FilledButton.icon(

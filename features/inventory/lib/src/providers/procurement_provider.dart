@@ -8,6 +8,7 @@ import 'package:inventory/src/models/inventory_receiving.dart';
 import 'package:inventory/src/services/procurement_service.dart';
 import 'package:inventory/src/services/procurement_writes.dart';
 import 'package:inventory/src/services/stock_service.dart';
+import 'package:inventory/src/services/stock_writes.dart';
 
 /// Vendors and purchase requests. Needs `InventoryProvider.loadMasters()` first (access).
 @lazySingleton
@@ -17,6 +18,7 @@ class ProcurementProvider extends ChangeNotifier {
   final ProcurementService _service;
   final StockService _stock;
   final _writes = ProcurementWrites();
+  final _stockWrites = StockWrites();
 
   final Map<String, InventoryItem> items = {};
   List<InventoryVendor> vendors = [];
@@ -174,6 +176,8 @@ class ProcurementProvider extends ChangeNotifier {
     try {
       return ProcurementWrites.names.contains(value)
           ? await _writes.run(value, data)
+          : StockWrites.names.contains(value)
+          ? await _stockWrites.run(value, data)
           : await _stock.call(value, data, requestId: requestId);
     } catch (error) {
       errorMessage = callableErrorMessage(error);

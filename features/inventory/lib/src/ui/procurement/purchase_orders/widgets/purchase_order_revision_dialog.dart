@@ -7,38 +7,80 @@ import 'package:provider/provider.dart';
 Future<Map<String, Object?>?> showPurchaseOrderRevisionDialog(
   BuildContext context, {
   required InventoryPurchaseOrder order,
-}) async {
-  final procurementProvider = context.read<ProcurementProvider>();
-  final prices = [
-    for (final orderLine in order.lineItems)
+}) => showDialog<Map<String, Object?>>(
+  context: context,
+  builder: (_) => _RevisionDialog(order: order),
+);
+
+/// Owns its controllers so they outlive the dialog's closing animation.
+class _RevisionDialog extends StatefulWidget {
+  const _RevisionDialog({required this.order});
+
+  final InventoryPurchaseOrder order;
+
+  @override
+  State<_RevisionDialog> createState() => _RevisionDialogState();
+}
+
+class _RevisionDialogState extends State<_RevisionDialog> {
+  late final _prices = [
+    for (final orderLine in widget.order.lineItems)
       TextEditingController(text: orderLine.unitPrice.toQuantityText()),
   ];
-  final reason = TextEditingController();
-  final expected = TextEditingController(text: order.expectedDate);
+  final _reason = TextEditingController();
+  late final _expected = TextEditingController(text: widget.order.expectedDate);
 
-  final ok = await showDialog<bool>(
-    context: context,
-    builder: (dialogContext) => AlertDialog(
-      title: Text('Revise ${order.number}'),
+  @override
+  void dispose() {
+    for (final controller in [..._prices, _reason, _expected]) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  void _save() {
+    if (_reason.text.trim().isEmpty) return;
+    Navigator.pop(context, <String, Object?>{
+      'reason': _reason.text.trim(),
+      'expectedDate': _expected.text,
+      'prices': [
+        for (final (index, orderLine) in widget.order.lineItems.indexed)
+          {
+            'itemId': orderLine.itemId,
+            'variantId': orderLine.variantId,
+            'unitPrice':
+                double.tryParse(_prices[index].text.trim()) ??
+                orderLine.unitPrice,
+          },
+      ],
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final procurementProvider = context.read<ProcurementProvider>();
+    return AlertDialog(
+      title: Text('Revise ${widget.order.number}'),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          spacing: 16,
           children: [
             TextField(
-              controller: reason,
+              controller: _reason,
               decoration: const InputDecoration(
                 labelText: 'Revision reason *',
                 hintText: 'e.g. Price fluctuation / renegotiated terms',
               ),
             ),
             const SizedBox(height: 8),
-            dateField(dialogContext, expected, 'Expected delivery date'),
+            dateField(context, _expected, 'Expected delivery date'),
             const SizedBox(height: 8),
-            for (final (index, orderLine) in order.lineItems.indexed)
+            for (final (index, orderLine) in widget.order.lineItems.indexed)
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: TextField(
-                  controller: prices[index],
+                  controller: _prices[index],
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
@@ -54,39 +96,11 @@ Future<Map<String, Object?>?> showPurchaseOrderRevisionDialog(
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.pop(dialogContext, false),
+          onPressed: () => Navigator.pop(context),
           child: const Text('Cancel'),
         ),
-        FilledButton(
-          onPressed: () {
-            if (reason.text.trim().isEmpty) return;
-            Navigator.pop(dialogContext, true);
-          },
-          child: const Text('Save Revision'),
-        ),
+        FilledButton(onPressed: _save, child: const Text('Save Revision')),
       ],
-    ),
-  );
-
-  final data = <String, Object?>{
-    'reason': reason.text.trim(),
-    'expectedDate': expected.text,
-    'prices': [
-      for (final (index, orderLine) in order.lineItems.indexed)
-        {
-          'itemId': orderLine.itemId,
-          'unitPrice':
-              double.tryParse(prices[index].text.trim()) ?? orderLine.unitPrice,
-        },
-    ],
-  };
-
-  for (final controller in [...prices, reason, expected]) {
-    controller.dispose();
+    );
   }
-
-  if (ok == true) {
-    return data;
-  }
-  return null;
 }

@@ -63,6 +63,11 @@ service cloud.firestore {
     match /schools/{schoolId}/inventoryPurchaseRequests/{id} {
       allow write: if inSchool(schoolId)
         && (can(schoolId, 'inventory.purchaseRequest.request') || can(schoolId, 'inventory.purchaseRequest.approve'));
+      // Issuing, cancelling or closing a purchase order moves its quantity on the request.
+      allow update: if inSchool(schoolId) && can(schoolId, 'inventory.procure.operate');
+      // The last fully received order completes its request.
+      allow update: if inSchool(schoolId) && can(schoolId, 'inventory.stock.operate')
+        && request.resource.data.status == 'completed';
     }
     match /schools/{schoolId}/inventoryQuotations/{id} {
       allow write: if inSchool(schoolId) && can(schoolId, 'inventory.procure.operate');
@@ -70,12 +75,19 @@ service cloud.firestore {
     match /schools/{schoolId}/inventoryInvoices/{id} {
       allow write: if inSchool(schoolId) && can(schoolId, 'inventory.procure.operate');
     }
-    // Draft purchase orders only; issue, revise, cancel and receiving stay callables.
+    // Purchase orders: client writes until cancelled or closed; receiving stays a callable.
     match /schools/{schoolId}/inventoryPurchaseOrders/{id} {
       allow create: if inSchool(schoolId) && can(schoolId, 'inventory.procure.operate')
         && request.resource.data.status == 'draft';
       allow update: if inSchool(schoolId) && can(schoolId, 'inventory.procure.operate')
-        && resource.data.status == 'draft' && request.resource.data.status == 'draft';
+        && !(resource.data.status in ['cancelled', 'closed']);
+      // Receiving goods moves an order to (partially / fully) received.
+      allow update: if inSchool(schoolId) && can(schoolId, 'inventory.stock.operate')
+        && onCampus(schoolId, resource.data.deliveryCampusId)
+        && request.resource.data.status in ['partially_received', 'fully_received'];
+    }
+    match /schools/{schoolId}/inventoryPurchaseOrders/{id}/revisions/{rev} {
+      allow create: if inSchool(schoolId) && can(schoolId, 'inventory.procure.operate');
     }
     // Sequence counters (PR/QT/PO numbers) are bumped by clients that hold any permission (parents hold none).
     match /schools/{schoolId}/counters/{id} {

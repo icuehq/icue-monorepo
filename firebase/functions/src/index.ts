@@ -3,8 +3,6 @@ import './region';
 import { assets, maintenance } from './inventory/assets';
 import { importRun } from './inventory/import';
 import { masters } from './inventory/masters';
-import { orders } from './inventory/orders';
-import { receiving } from './inventory/receiving';
 import { itemSearch } from './inventory/search';
 import { verification } from './inventory/verification';
 import { copies as libraryCopies } from './library/copies';
@@ -32,8 +30,6 @@ export { dailyLibrary } from './library/daily';
 
 // Inventory masters other than seedDefaults are written by the client or only through the importer.
 const mutations: AnyCallableDef[] = [
-  orders,
-  receiving,
   assets,
   maintenance,
   verification,

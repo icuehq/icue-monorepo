@@ -1,12 +1,16 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { assets as a, maintenance as m } from '../src/inventory/assets';
 import { masters } from '../src/inventory/masters';
-import { orders as o } from '../src/inventory/orders';
 import { procurement as p } from '../src/inventory/procurement';
-import { receiving as r } from '../src/inventory/receiving';
 import { runCallable, type CallableDef } from '../src/shared/callable';
 import { dayTimestamp } from '../src/shared/dates';
-import { receiveStock, seedPurchaseOrder, seedPurchaseRequest } from './fixtures';
+import {
+  issuePurchaseOrder,
+  receivePurchaseOrderUnits,
+  receiveStock,
+  seedPurchaseOrder,
+  seedPurchaseRequest,
+} from './fixtures';
 import { clearFirestore, db } from './setup';
 
 const SCHOOL_ID = '12';
@@ -119,19 +123,13 @@ describe('assets and maintenance', () => {
     const purchaseOrder = await seedPurchaseOrder(purchaseRequest, vendor, [
       { itemId: laptop, quantityOrdered: 3, unitPrice: 450 },
     ]);
-    await run(o.purchaseOrderIssue, { id: purchaseOrder }, 'proc');
+    await issuePurchaseOrder(purchaseOrder);
     const reg = () =>
       run(a.register, { itemId: laptop, storeId: store, purchaseOrderId: purchaseOrder });
     expect(await code(reg())).toBe('failed-precondition'); // nothing received yet
-    await run(
-      r.purchaseOrderReceive,
-      {
-        purchaseOrderId: purchaseOrder,
-        storeId: store,
-        lineItems: [{ itemId: laptop, quantityAccepted: 2, quantityRejected: 1 }],
-      },
-      'proc',
-    );
+    await receivePurchaseOrderUnits(purchaseOrder, [
+      { itemId: laptop, quantityAccepted: 2, quantityRejected: 1 },
+    ]);
     const assetDocument = await reg();
     expect(await get(`inventoryAssets/${assetDocument.id}`)).toMatchObject({
       vendorId: vendor,

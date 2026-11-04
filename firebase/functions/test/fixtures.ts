@@ -193,6 +193,48 @@ export async function seedPurchaseOrder(
   return ref.id;
 }
 
+/** Issues a seeded draft order as the client does: reserves its quantities on the request. */
+export async function issuePurchaseOrder(id: string): Promise<void> {
+  const orderRef = db().doc(`${SCHOOL}/inventoryPurchaseOrders/${id}`);
+  const order = (await orderRef.get()).data()!;
+  const requestRef = db().doc(`${SCHOOL}/inventoryPurchaseRequests/${order.purchaseRequestIds[0]}`);
+  const request = (await requestRef.get()).data()!;
+  const lineItems = (request.lineItems as Row[]).map((line) => {
+    const ordered = (order.lineItems as Row[]).find(
+      (candidate) => lineItemKey(candidate) === lineItemKey(line),
+    );
+    return ordered
+      ? { ...line, quantityOrdered: Number(line.quantityOrdered) + Number(ordered.quantityOrdered) }
+      : line;
+  });
+  const status = lineItems.every((line) => line.quantityOrdered >= line.quantity)
+    ? 'ordered'
+    : 'partially_ordered';
+  await requestRef.update({ lineItems, status });
+  await orderRef.update({ status: 'issued', issuedBy: 'proc' });
+}
+
+/** Marks units of an issued order as received, as the client's receiving transaction leaves its lines. */
+export async function receivePurchaseOrderUnits(
+  id: string,
+  received: { itemId: string; quantityAccepted: number; quantityRejected: number }[],
+): Promise<void> {
+  const ref = db().doc(`${SCHOOL}/inventoryPurchaseOrders/${id}`);
+  const lineItems = ((await ref.get()).data()!.lineItems as Row[]).map((line) => {
+    const units = received.find((candidate) => candidate.itemId === line.itemId);
+    return units
+      ? {
+          ...line,
+          quantityReceived: units.quantityAccepted + units.quantityRejected,
+          quantityAccepted: units.quantityAccepted,
+          quantityRejected: units.quantityRejected,
+        }
+      : line;
+  });
+  const full = lineItems.every((line) => line.quantityAccepted >= line.quantityOrdered);
+  await ref.update({ lineItems, status: full ? 'fully_received' : 'partially_received' });
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Row = Record<string, any>;
 

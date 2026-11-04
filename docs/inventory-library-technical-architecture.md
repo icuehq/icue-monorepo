@@ -205,7 +205,7 @@ Names below are logical; they deploy as `<group>-<name>` (`session.sync` → `se
 | Settings | `config.setRolePermissions`, `inventory.setSettings`, `library.setSettings` |
 | Inventory masters | `inventory.seedDefaults`, `inventory.item.search`. Categories, units, stores, items, variants and vendors are client Firestore writes (`firestore.rules`); the bulk importer reuses their server handlers internally. |
 | Stock | Receive Stock, issue request submit/decide, issuing stock, acknowledging an issue, returns, transfer requests, approvals, cancellations, dispatches, receipts, stock adjustments, and unavailable-stock reports and resolutions are client transactions (`StockWrites`). `inventory.adjustment.approve` |
-| Procurement | `inventory.purchaseOrder.issue/revise/acknowledge/cancel/close/receive`. Purchase requests, quotations, draft purchase orders (create and edit while `draft`) and invoices are client Firestore writes (`ProcurementWrites`). |
+| Procurement | Purchase requests, quotations, draft purchase orders (save, issue, revise, acknowledge, cancel, close, receive goods) and invoices are client Firestore writes (`ProcurementWrites`). |
 | Assets | `inventory.asset.register`, `inventory.asset.assign/return/transfer/setCondition/retire`, `inventory.maintenance.save/setStatus` |
 | Verification | `inventory.verification.create/count/submit/decide` (approve creates adjustments referencing the session; reject reopens counting) |
 | Library masters | `library.catalogue.upsert/setStatus/search`, `library.seedDefaults`, `library.policy.upsert`. Libraries and categories are client Firestore writes. |

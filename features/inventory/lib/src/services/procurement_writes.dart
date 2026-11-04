@@ -1,7 +1,7 @@
 import 'package:core_ui/core_ui.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 
-/// Client-side purchase request, quotation, draft purchase order and invoice writes.
+/// Client-side purchase request, quotation, purchase order (save, issue, revise, acknowledge, cancel, close) and invoice writes.
 ///
 /// Business checks live here, not in `firestore.rules`. There is no audit log,
 /// no approver notification, no campus check, and no re-validation of items,
@@ -16,25 +16,37 @@ class ProcurementWrites {
     'inventory-quotation-save',
     'inventory-quotation-select',
     'inventory-purchaseOrder-save',
+    'inventory-purchaseOrder-issue',
+    'inventory-purchaseOrder-revise',
+    'inventory-purchaseOrder-acknowledge',
+    'inventory-purchaseOrder-cancel',
+    'inventory-purchaseOrder-close',
     'inventory-invoice-save',
     'inventory-invoice-setPayment',
     'inventory-invoice-cancel',
   };
 
-  Future<Map<String, dynamic>> run(String name, Map<String, Object?> data) =>
-      switch (name) {
-        'inventory-purchaseRequest-save' => _savePurchaseRequest(data),
-        'inventory-purchaseRequest-submit' => _submitPurchaseRequest(data),
-        'inventory-purchaseRequest-decide' => _decidePurchaseRequest(data),
-        'inventory-purchaseRequest-cancel' => _cancelPurchaseRequest(data),
-        'inventory-quotation-save' => _saveQuotation(data),
-        'inventory-quotation-select' => _selectQuotation(data),
-        'inventory-purchaseOrder-save' => _savePurchaseOrder(data),
-        'inventory-invoice-save' => _saveInvoice(data),
-        'inventory-invoice-setPayment' => _setInvoicePayment(data),
-        'inventory-invoice-cancel' => _cancelInvoice(data),
-        _ => throw ArgumentError.value(name, 'name'),
-      };
+  Future<Map<String, dynamic>> run(
+    String name,
+    Map<String, Object?> data,
+  ) => switch (name) {
+    'inventory-purchaseRequest-save' => _savePurchaseRequest(data),
+    'inventory-purchaseRequest-submit' => _submitPurchaseRequest(data),
+    'inventory-purchaseRequest-decide' => _decidePurchaseRequest(data),
+    'inventory-purchaseRequest-cancel' => _cancelPurchaseRequest(data),
+    'inventory-quotation-save' => _saveQuotation(data),
+    'inventory-quotation-select' => _selectQuotation(data),
+    'inventory-purchaseOrder-save' => _savePurchaseOrder(data),
+    'inventory-purchaseOrder-issue' => _issuePurchaseOrder(data),
+    'inventory-purchaseOrder-revise' => _revisePurchaseOrder(data),
+    'inventory-purchaseOrder-acknowledge' => _acknowledgePurchaseOrder(data),
+    'inventory-purchaseOrder-cancel' => _endPurchaseOrder(data, cancel: true),
+    'inventory-purchaseOrder-close' => _endPurchaseOrder(data, cancel: false),
+    'inventory-invoice-save' => _saveInvoice(data),
+    'inventory-invoice-setPayment' => _setInvoicePayment(data),
+    'inventory-invoice-cancel' => _cancelInvoice(data),
+    _ => throw ArgumentError.value(name, 'name'),
+  };
 
   // --- shared helpers ------------------------------------------------------
 
@@ -454,7 +466,7 @@ class ProcurementWrites {
     return {'id': reference.id, 'number': quotation['number']};
   }
 
-  // --- purchase orders (drafts; issue and later steps are callables) -------
+  // --- purchase orders (receiving is a callable) ---------------------------
 
   Future<Map<String, dynamic>> _savePurchaseOrder(
     Map<String, Object?> data,
@@ -505,8 +517,9 @@ class ProcurementWrites {
       final requestLine = requestLines
           .where((candidate) => _lineKey(candidate) == _lineKey(line))
           .firstOrNull;
-      if (requestLine == null)
+      if (requestLine == null) {
         _fail('Order lines must be lines of the request');
+      }
       final quantity = line['quantityOrdered']! as num;
       if (quantity <= 0) _fail('Quantity must be above zero');
       if (quantity >
@@ -582,6 +595,262 @@ class ProcurementWrites {
       'createdBy': _uid,
     });
     return {'id': reference.id, 'number': number};
+  }
+
+  /// Issuing reserves the ordered quantity on the request (`quantityOrdered`) and
+  /// sets its status to `partially_ordered` / `ordered`.
+  Future<Map<String, dynamic>> _issuePurchaseOrder(
+    Map<String, Object?> data,
+  ) async {
+    final orderRef = await _reference(
+      'inventoryPurchaseOrders',
+      data['id']! as String,
+    );
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
+      final order = (await transaction.get(orderRef)).data();
+      if (order == null) _fail('Purchase order not found');
+      if (order['status'] != 'draft') _fail('Order is ${order['status']}');
+      final requestRef = await _reference(
+        'inventoryPurchaseRequests',
+        (order['purchaseRequestIds'] as List).first as String,
+      );
+      final request = (await transaction.get(requestRef)).data();
+      if (request == null) _fail('Purchase request not found');
+      if (!orderablePurchaseRequestStatuses.contains(request['status'])) {
+        _fail('Request is ${request['status']}; it must be approved');
+      }
+      final vendor = (await transaction.get(
+        await _reference('inventoryVendors', order['vendorId'] as String),
+      )).data();
+      if (vendor == null) _fail('Vendor not found');
+      if (vendor['status'] != 'active') _fail('Vendor is inactive');
+      final orderLines = _lines(order['lineItems']);
+      final requestLines = _lines(request['lineItems']);
+      for (final requestLine in requestLines) {
+        final orderLine = orderLines
+            .where((line) => _lineKey(line) == _lineKey(requestLine))
+            .firstOrNull;
+        if (orderLine == null) continue;
+        final quantity = orderLine['quantityOrdered']! as num;
+        final ordered = requestLine['quantityOrdered']! as num;
+        if (quantity > (requestLine['quantity']! as num) - ordered) {
+          _fail('Ordered quantity exceeds what the request still needs');
+        }
+        requestLine['quantityOrdered'] = ordered + quantity;
+      }
+      for (final orderLine in orderLines) {
+        if (!requestLines.any(
+          (line) => _lineKey(line) == _lineKey(orderLine),
+        )) {
+          _fail('Order lines must be lines of the request');
+        }
+      }
+      final allOrdered = requestLines.every(
+        (line) =>
+            (line['quantityOrdered']! as num) >= (line['quantity']! as num),
+      );
+      final anyOrdered = requestLines.any(
+        (line) => (line['quantityOrdered']! as num) > 0,
+      );
+      transaction
+        ..update(requestRef, {
+          'lineItems': requestLines,
+          'status': allOrdered
+              ? 'ordered'
+              : anyOrdered
+              ? 'partially_ordered'
+              : 'approved',
+          'updatedAt': FieldValue.serverTimestamp(),
+        })
+        ..update(orderRef, {
+          'status': 'issued',
+          'issuedAt': FieldValue.serverTimestamp(),
+          'issuedBy': _uid,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+    });
+    return {'id': orderRef.id};
+  }
+
+  /// Post-issue change: expected date, unit prices and (reason required) a
+  /// `revisions` snapshot of the previous version; resets the acknowledgement.
+  Future<Map<String, dynamic>> _revisePurchaseOrder(
+    Map<String, Object?> data,
+  ) async {
+    final reason = _blankToNull(data['reason']);
+    if (reason == null) _fail('A reason is required');
+    final orderRef = await _reference(
+      'inventoryPurchaseOrders',
+      data['id']! as String,
+    );
+    final prices = _lines((data['prices'] as List?) ?? const []);
+    return FirebaseFirestore.instance.runTransaction((transaction) async {
+      final order = (await transaction.get(orderRef)).data();
+      if (order == null) _fail('Purchase order not found');
+      if (!['issued', 'acknowledged'].contains(order['status'])) {
+        _fail('Order is ${order['status']}');
+      }
+      final lines = _lines(order['lineItems']);
+      for (final price in prices) {
+        final line = lines
+            .where((candidate) => _lineKey(candidate) == _lineKey(price))
+            .firstOrNull;
+        if (line == null) _fail('Price given for an item not on the order');
+        line['unitPrice'] = price['unitPrice'];
+      }
+      final discount = (data['discount'] as num?) ?? order['discount'] as num;
+      final tax = (data['tax'] as num?) ?? order['tax'] as num;
+      final delivery = (data['delivery'] as num?) ?? order['delivery'] as num;
+      final totals = _totals(
+        [
+          for (final line in lines)
+            {
+              'quantity': line['quantityOrdered'],
+              'unitPrice': line['unitPrice'],
+            },
+        ],
+        discount: discount,
+        tax: tax,
+        delivery: delivery,
+      );
+      final expectedDate = data['expectedDate'] as String?;
+      transaction
+        ..set(orderRef.collection('revisions').doc(), {
+          'snapshot': order,
+          'changedBy': _uid,
+          'reason': reason,
+          'performedAt': FieldValue.serverTimestamp(),
+        })
+        ..update(orderRef, {
+          'lineItems': lines,
+          'discount': discount,
+          'tax': tax,
+          'delivery': delivery,
+          'subtotal': totals.subtotal,
+          'total': totals.total,
+          'expectedDate': expectedDate == null
+              ? order['expectedDate']
+              : dayTimestamp(expectedDate),
+          'revision': (order['revision'] as num) + 1,
+          'status': 'issued',
+          'acknowledgement': null,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      return {'id': orderRef.id, 'number': order['number']};
+    });
+  }
+
+  Future<Map<String, dynamic>> _acknowledgePurchaseOrder(
+    Map<String, Object?> data,
+  ) async {
+    final (:reference, data: order) = await _load(
+      'inventoryPurchaseOrders',
+      data['id']! as String,
+      'Purchase order',
+    );
+    if (order['status'] != 'issued') _fail('Order is ${order['status']}');
+    await reference.update({
+      'status': 'acknowledged',
+      'acknowledgement': {
+        'performedBy': _uid,
+        'performedAt': FieldValue.serverTimestamp(),
+        'vendorRef': _blankToNull(data['vendorRef']),
+        'remarks': _blankToNull(data['remarks']),
+      },
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+    return {'id': reference.id, 'number': order['number']};
+  }
+
+  /// Cancel (nothing received yet) or close an order. Either gives the quantity it
+  /// still holds on the request back (a draft holds none), so a new order can cover it;
+  /// closing needs a reason unless fully received.
+  Future<Map<String, dynamic>> _endPurchaseOrder(
+    Map<String, Object?> data, {
+    required bool cancel,
+  }) async {
+    final reason = _blankToNull(data['reason']);
+    // A fully received order closes without a reason; checked once the status is known.
+    final orderRef = await _reference(
+      'inventoryPurchaseOrders',
+      data['id']! as String,
+    );
+    return FirebaseFirestore.instance.runTransaction((transaction) async {
+      final order = (await transaction.get(orderRef)).data();
+      if (order == null) _fail('Purchase order not found');
+      final status = order['status'];
+      if (!(cancel
+              ? ['draft', 'issued', 'acknowledged']
+              : [
+                  'issued',
+                  'acknowledged',
+                  'partially_received',
+                  'fully_received',
+                ])
+          .contains(status)) {
+        _fail('Order is $status');
+      }
+      if (reason == null && (cancel || status != 'fully_received')) {
+        _fail(
+          cancel ? 'A reason is required' : 'A reason is required to close an order that is not fully received',
+        );
+      }
+      final holdsQuantity = cancel
+          ? status != 'draft'
+          : status != 'fully_received';
+      final requestRef = await _reference(
+        'inventoryPurchaseRequests',
+        (order['purchaseRequestIds'] as List).first as String,
+      );
+      final request = holdsQuantity
+          ? (await transaction.get(requestRef)).data()
+          : null;
+      if (request != null) {
+        final released = _lines(order['lineItems']);
+        final requestLines = _lines(request['lineItems']);
+        for (final requestLine in requestLines) {
+          final line = released
+              .where(
+                (candidate) => _lineKey(candidate) == _lineKey(requestLine),
+              )
+              .firstOrNull;
+          if (line == null) continue;
+          // Closing releases only what was not accepted; cancelling, everything.
+          final quantity = cancel
+              ? line['quantityOrdered']! as num
+              : ((line['quantityOrdered']! as num) -
+                        (line['quantityAccepted']! as num))
+                    .clamp(0, double.infinity);
+          requestLine['quantityOrdered'] =
+              ((requestLine['quantityOrdered']! as num) - quantity).clamp(
+                0,
+                double.infinity,
+              );
+        }
+        final allOrdered = requestLines.every(
+          (line) =>
+              (line['quantityOrdered']! as num) >= (line['quantity']! as num),
+        );
+        final anyOrdered = requestLines.any(
+          (line) => (line['quantityOrdered']! as num) > 0,
+        );
+        transaction.update(requestRef, {
+          'lineItems': requestLines,
+          'status': allOrdered
+              ? 'ordered'
+              : anyOrdered
+              ? 'partially_ordered'
+              : 'approved',
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+      transaction.update(orderRef, {
+        'status': cancel ? 'cancelled' : 'closed',
+        cancel ? 'cancelReason' : 'closeReason': reason,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      return {'id': orderRef.id, 'number': order['number']};
+    });
   }
 
   // --- invoices ------------------------------------------------------------
