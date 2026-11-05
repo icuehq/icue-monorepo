@@ -1,0 +1,34 @@
+# Guide 1.2.7 (rejection reason required). Needs issue-request.yaml's helper stack; uses its own dummy request.
+# Skipped once the dummy request is Rejected (the Reject button only exists while Pending).
+appId: com.thoughtniques.icueadmin.dev
+---
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Issue requests
+- runFlow:
+    when:
+      notVisible: "ISR/.*Rejection test request.*"
+    commands:
+      - runFlow:
+          file: ../helpers/new-issue-request.yaml
+          env:
+            PURPOSE: Rejection test request
+            DESTINATION: Staff Room
+            QTY: "10"
+            ITEM: "Ballpoint Pen.*"
+- tapOn: "ISR/.*Rejection test request.*"
+- runFlow:
+    when:
+      visible: "Reject"
+    commands:
+      - tapOn: "Reject"
+      # while the dialog is open its confirm button is the only visible "Reject"
+      - tapOn: "Reject"
+      - assertVisible: "A reason is required"
+      - tapOn: "Reason.*"
+      - inputText: "Department monthly quota exceeded"
+      - pressKey: Enter
+      - tapOn: "Reject"
+- assertVisible: ".*Rejected.*"
+- assertVisible: ".*Department monthly quota exceeded.*"

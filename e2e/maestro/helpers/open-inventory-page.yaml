@@ -1,0 +1,41 @@
+# Open an Inventory hub tile. Env: PAGE (tile label). ~10 s per call.
+# Keeps the app running (a cold start costs ~13 s) and backs out to the Dashboard. The tile is tapped by screen
+# position when it is on the hub's first screen (helpers/hub-tile.js), otherwise by label after a scroll.
+appId: com.thoughtniques.icueadmin.dev
+---
+# Three plain backs reach the Dashboard from any depth we use (page -> hub -> Dashboard); an extra back on the
+# Dashboard only leaves the activity, and launchApp without stopping re-opens it. No conditions are evaluated:
+# each one costs a 1-7 s hierarchy wait.
+- back
+- back
+- back
+- launchApp:
+    stopApp: false
+- assertVisible: "Fleet Dashboard|Inventory|Library"
+- swipe:
+    start: "50%,80%"
+    end: "50%,20%"
+    duration: 150
+- swipe:
+    start: "50%,80%"
+    end: "50%,20%"
+    duration: 150
+- tapOn: "Inventory"
+- runScript:
+    file: hub-tile.js
+    env:
+      PAGE: ${PAGE}
+- runFlow:
+    when:
+      true: ${output.direct}
+    commands:
+      - tapOn:
+          point: ${output.point}
+- runFlow:
+    when:
+      true: ${!output.direct}
+    commands:
+      - scrollUntilVisible:
+          element: ${PAGE}
+          speed: 90
+      - tapOn: ${PAGE}

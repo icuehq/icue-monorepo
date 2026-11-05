@@ -1,0 +1,30 @@
+# Fill and save the New vendor form (Vendors page already open); category chip is Stationery.
+# Env: NAME, CONTACT, PHONE, EMAIL, GST, ADDRESS, REMARKS. Multi-line fields (address, remarks) go first:
+# Enter only adds a new line there, while in the single-line ones it closes the keyboard before saving.
+appId: com.thoughtniques.icueadmin.dev
+---
+- tapOn: "New vendor"
+- tapOn: "Address"
+- inputText: ${ADDRESS}
+- scrollUntilVisible:
+    element: "Remarks.*"
+- tapOn: "Remarks.*"
+- inputText: ${REMARKS}
+- scrollUntilVisible:
+    element: "Vendor name.*"
+    direction: UP
+- tapOn: "Vendor name.*"
+- inputText: ${NAME}
+- tapOn: "Contact person"
+- inputText: ${CONTACT}
+- tapOn: "Phone"
+- inputText: ${PHONE}
+- tapOn: "Email"
+- inputText: ${EMAIL}
+- tapOn: "GST.*"
+- inputText: ${GST}
+- pressKey: Enter
+- scrollUntilVisible:
+    element: "Stationery"
+- tapOn: "Stationery"
+- tapOn: "Save vendor"

@@ -1,0 +1,25 @@
+# Guide 1.2.9 (issue beyond available balance is refused). The app refuses at approval already
+# ("Approved quantity exceeds available stock"), so the request can never reach the issue step.
+# Skipped once the 500-pen request exists.
+appId: com.thoughtniques.icueadmin.dev
+---
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Issue requests
+- runFlow:
+    when:
+      notVisible: "ISR/.*Over balance test.*"
+    commands:
+      - runFlow:
+          file: ../helpers/new-issue-request.yaml
+          env:
+            PURPOSE: Over balance test
+            DESTINATION: Store Yard
+            QTY: "500"
+            ITEM: "Ballpoint Pen.*"
+- tapOn: "ISR/.*Over balance test.*"
+- tapOn: "Approve"
+- assertVisible: ".*exceeds available stock.*"
+# still pending and nothing was issued: stock is untouched
+- assertVisible: "Approve"

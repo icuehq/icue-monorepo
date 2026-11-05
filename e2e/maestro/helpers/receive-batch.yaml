@@ -1,0 +1,25 @@
+# One opening-stock receipt of MILK-PAST-01 into Central Main Store (Stock page already open).
+# Env: REF, QTY, BATCH, DAYS (expiry = today + DAYS).
+appId: com.thoughtniques.icueadmin.dev
+---
+- tapOn: "Receive stock"
+- tapOn: "Store"
+- tapOn: "Central Main Store"
+- tapOn: "Reference number.*"
+- inputText: ${REF}
+- tapOn: "Add item"
+- tapOn: "Pasteurized Milk.*"
+- tapOn: "Accepted"
+- inputText: ${QTY}
+- tapOn: "Batch number"
+- inputText: ${BATCH}
+- scrollUntilVisible:
+    element: "Expiry date"
+- tapOn: "Expiry date"
+- runFlow:
+    file: pick-date.yaml
+    env:
+      DAYS: ${DAYS}
+- scrollUntilVisible:
+    element: "Confirm Receiving"
+- tapOn: "Confirm Receiving"

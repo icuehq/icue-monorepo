@@ -1,0 +1,26 @@
+# Guide 1.2.1 (receive opening stock, consumable). Receiving is not idempotent, so it only runs
+# when the store has no PEN-BLU-01 balance yet. Needs items.yaml and stores.yaml first.
+appId: com.thoughtniques.icueadmin.dev
+---
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Stock
+- runFlow:
+    when:
+      notVisible: ".*PEN-BLU-01.*"
+    commands:
+      - tapOn: "Receive stock"
+      - tapOn: "Store"
+      - tapOn: "Central Main Store"
+      - tapOn: "Reference number.*"
+      - inputText: "OP-2024-PEN"
+      - tapOn: "Add item"
+      - tapOn: "Ballpoint Pen.*"
+      - tapOn: "Accepted"
+      - inputText: "100"
+      - scrollUntilVisible:
+          element: "Confirm Receiving"
+      - tapOn: "Confirm Receiving"
+- assertVisible: ".*PEN-BLU-01.*100 pcs.*available.*₹1,500.00"
+- assertVisible: "Value: ₹.*"

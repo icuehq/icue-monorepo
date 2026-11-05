@@ -1,0 +1,69 @@
+# Guide 1.1.1-1.1.4 (Categories). Create steps are skipped when the record already exists.
+appId: com.thoughtniques.icueadmin.dev
+---
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Categories
+
+# 1.1.1 default categories
+- runFlow:
+    when:
+      visible: "Add default categories & units"
+    commands:
+      - tapOn: "Add default categories & units"
+- assertVisible: "14 categories.*|1[4-9] categories.*|[2-9][0-9] categories.*"
+
+# 1.1.2 subcategory WRI under Stationery
+- scrollUntilVisible:
+    element: "Stationery.*"
+- runFlow:
+    when:
+      notVisible: ".*Writing Instruments.*"
+    commands:
+      - tapOn:
+          text: "Actions"
+          childOf:
+            text: "Stationery.*"
+      - tapOn: "Add subcategory"
+      - tapOn: "Code.*"
+      - inputText: "WRI"
+      - tapOn: "Name.*"
+      - inputText: "Writing Instruments"
+      - scrollUntilVisible:
+          element: "Create Category"
+      - tapOn: "Create Category"
+- scrollUntilVisible:
+    element: ".*Writing Instruments.*"
+
+# 1.1.3 root category ART (reopen the page so the list is at the top when the guard checks)
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Categories
+- runFlow:
+    when:
+      notVisible: "Art & Craft Supplies.*"
+    commands:
+      - tapOn: "Category"
+      - tapOn: "Code.*"
+      - inputText: "ART"
+      - tapOn: "Name.*"
+      - inputText: "Art & Craft Supplies"
+      - scrollUntilVisible:
+          element: "Create Category"
+      - tapOn: "Create Category"
+- assertVisible: "Art & Craft Supplies.*"
+
+# 1.1.4 negative: duplicate code STA is rejected
+- tapOn: "Category"
+- tapOn: "Code.*"
+- inputText: "STA"
+- tapOn: "Name.*"
+- inputText: "Duplicate Stationery"
+- scrollUntilVisible:
+    element: "Create Category"
+- tapOn: "Create Category"
+- scrollUntilVisible:
+    element: ".*already exists.*"
+    direction: UP

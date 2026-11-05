@@ -1,0 +1,63 @@
+# Guide 1.2.19 (low stock) and 1.1.15 (item details). Needs unavailable-writeoff.yaml first (PEN-BLU-01 at 60).
+#
+# App/guide discrepancy: isBelowReorderLevel is recomputed only when stock moves
+# (firebase/functions/src/inventory/stock.ts, finish()), so raising the reorder level alone does not flag the
+# existing balance. The flow therefore nudges the balance with +1 then -1 (back to 60) after the edit.
+appId: com.thoughtniques.icueadmin.dev
+---
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Items
+- tapOn: ".*PEN-BLU-01.*"
+
+# 1.1.15 item details
+- assertVisible: "Ballpoint Pen.*PEN-BLU-01.*Active"
+- assertVisible: "Classification.*Stationery.*Writing Instruments.*pcs.*Quantity.*"
+- assertVisible: "Active in catalog.*"
+- assertVisible: "Stock & pricing parameters.*Reorder alert level.*"
+
+# raise the reorder level to 70 (skipped once done); in edit mode the save button is "Update item"
+- runFlow:
+    when:
+      notVisible: "Stock & pricing parameters.*70 pcs.*"
+    commands:
+      - tapOn: "Edit item"
+      - scrollUntilVisible:
+          element: "Reorder level"
+      - tapOn: "Reorder level"
+      - eraseText: 6
+      - inputText: "70"
+      - scrollUntilVisible:
+          element: "Update item"
+      - tapOn: "Update item"
+- assertVisible: "Stock & pricing parameters.*Reorder alert level.*70 pcs.*"
+
+# nudge so the balance is re-evaluated, unless it is already flagged
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Stock
+- runFlow:
+    when:
+      notVisible: ".*PEN-BLU-01.*Low stock \\(reorder: 70\\).*"
+    commands:
+      - tapOn: ".*PEN-BLU-01.*"
+      - tapOn: "Adjust quantity"
+      - tapOn: "Change.*"
+      - inputText: "1"
+      - pressKey: Enter
+      - tapOn: "Apply adjustment"
+      - tapOn: ".*PEN-BLU-01.*"
+      - tapOn: "Adjust quantity"
+      - tapOn: "Change.*"
+      - inputText: "-1"
+      - pressKey: Enter
+      - tapOn: "Apply adjustment"
+
+# 1.2.19 warning on the card, header count, and the Low filter
+- assertVisible: ".*PEN-BLU-01.*60 pcs.*Low stock \\(reorder: 70\\).*"
+- assertVisible: "[0-9]+ low stock"
+- tapOn: "Low \\([0-9]+\\)"
+- assertVisible: ".*PEN-BLU-01.*"
+- assertNotVisible: ".*BATCH-M1.*"

@@ -1,0 +1,54 @@
+# Guide 1.3.23 (payment status transitions). Needs vendor-invoice.yaml first. App differs from the guide: the dialog
+# takes the cumulative "total paid so far" (no payment reference field), and Confirm returns to the list.
+# Each stage runs only for the matching status on the list card.
+appId: com.thoughtniques.icueadmin.dev
+---
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Vendor invoices
+- runFlow:
+    when:
+      visible: ".*INV-APEX-2026-104.*Unpaid.*"
+    commands:
+      - tapOn: ".*INV-APEX-2026-104.*"
+      - tapOn: "Update Payment Status"
+      - tapOn: "Total paid amount.*"
+      - eraseText: 10
+      - inputText: "50000"
+      - pressKey: Enter
+      - tapOn: "Confirm"
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Vendor invoices
+- runFlow:
+    when:
+      visible: ".*INV-APEX-2026-104.*Partially Paid.*"
+    commands:
+      - assertVisible: ".*INV-APEX-2026-104.*Partially Paid.*50,000.00.*79,101.00.*"
+      - tapOn: ".*INV-APEX-2026-104.*"
+      - tapOn: "Update Payment Status"
+      # more than the invoice total is refused
+      - tapOn: "Total paid amount.*"
+      - eraseText: 10
+      - inputText: "200000"
+      - pressKey: Enter
+      - tapOn: "Confirm"
+      - assertVisible: ".*exceeds the invoice total.*"
+      # the remaining balance settles it (reopen the dialog if the refusal closed it)
+      - runFlow:
+          when:
+            visible: "Update Payment Status"
+          commands:
+            - tapOn: "Update Payment Status"
+      - tapOn: "Total paid amount.*"
+      - eraseText: 10
+      - inputText: "129101"
+      - pressKey: Enter
+      - tapOn: "Confirm"
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Vendor invoices
+- assertVisible: ".*INV-APEX-2026-104.*Paid.*1,29,101.00.*"

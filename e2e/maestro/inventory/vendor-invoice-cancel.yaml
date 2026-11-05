@@ -1,0 +1,51 @@
+# Guide 1.3.24 (cancellation safeguards). Needs vendor-invoice-payment.yaml first (104 is Paid).
+# A second invoice (105) is recorded to have an Unpaid one to cancel. Skipped once cancelled.
+appId: com.thoughtniques.icueadmin.dev
+---
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Vendor invoices
+# a Paid invoice offers no cancel action
+- tapOn: ".*INV-APEX-2026-104.*"
+- assertVisible: "Paid"
+- assertNotVisible: "Cancel Invoice"
+
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Vendor invoices
+- runFlow:
+    when:
+      notVisible: ".*INV-APEX-2026-105.*"
+    commands:
+      - runFlow:
+          file: ../helpers/open-inventory-page.yaml
+          env:
+            PAGE: Purchase orders
+      - runFlow:
+          file: ../helpers/record-invoice.yaml
+          env:
+            NUMBER: INV-APEX-2026-105
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Vendor invoices
+- runFlow:
+    when:
+      visible: ".*INV-APEX-2026-105.*Unpaid.*"
+    commands:
+      - tapOn: ".*INV-APEX-2026-105.*"
+      - tapOn: "Cancel Invoice"
+      - tapOn: "Confirm"
+      - assertVisible: ".*[Rr]eason.*required.*"
+      # the refusal closes the dialog: reopen it
+      - tapOn: "Cancel Invoice"
+      - tapOn: "Cancellation reason.*"
+      - inputText: "Entered in error"
+      - tapOn: "Confirm"
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Vendor invoices
+- assertVisible: ".*INV-APEX-2026-105.*Cancelled.*"

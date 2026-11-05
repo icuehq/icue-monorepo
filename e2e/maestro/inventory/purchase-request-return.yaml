@@ -1,0 +1,22 @@
+# Guide 1.3.8 (approver returns the PR; a comment is required). Needs purchase-request-submit.yaml first.
+# Skipped once returned or later (the Return button only exists while Pending).
+appId: com.thoughtniques.icueadmin.dev
+---
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Purchase requests
+- tapOn: "PR/.*"
+- runFlow:
+    when:
+      visible: "Return"
+    commands:
+      - tapOn: "Return"
+      # while the dialog is open its confirm button is the only visible "Return"
+      - tapOn: "Return"
+      - assertVisible: "A comment is required"
+      - tapOn: "Comment.*"
+      - inputText: "Please reduce laptop quantity from 5 to 2 due to quarterly budget ceiling."
+      - tapOn: "Return"
+- assertVisible: "PR/.*Returned.*"
+- assertVisible: ".*reduce laptop quantity from 5 to 2.*"

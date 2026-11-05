@@ -1,0 +1,33 @@
+# Guide 1.2.17 (stock adjustment with reason). Runs only while PEN-BLU-01 is at 60 (after transfer-dispatch.yaml),
+# since an adjustment changes the balance. The default reason is already "Physical count correction".
+appId: com.thoughtniques.icueadmin.dev
+---
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Stock
+- runFlow:
+    when:
+      visible: ".*PEN-BLU-01.*60 pcs.*available.*"
+    commands:
+      - tapOn: ".*PEN-BLU-01.*"
+      - tapOn: "Adjust quantity"
+      - assertVisible: "Currently 60 available"
+      - assertVisible: "Reason.*Physical count correction"
+      - tapOn: "Change.*"
+      - inputText: "-3"
+      - tapOn: "Note"
+      - inputText: "Physical count audit discrepancy"
+      - pressKey: Enter
+      - tapOn: "Apply adjustment"
+- assertVisible: ".*PEN-BLU-01.*57 pcs.*available.*"
+
+# movement history shows the whole chain (also covers 1.2.1 history, and the 1.2.11 damaged routing)
+- tapOn: ".*PEN-BLU-01.*"
+- tapOn: "Movement history"
+- assertVisible: "Adjust · available.*adjustment.*-3"
+- assertVisible: "Receive · available.*receipt.*\\+100"
+- assertVisible: "Issue · available.*issue.*-30"
+- assertVisible: "Return · available.*return.*\\+10"
+- assertVisible: "Return · damaged.*return.*\\+5"
+- assertVisible: "Transfer out · available.*transfer.*-20"

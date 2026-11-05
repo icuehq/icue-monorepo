@@ -1,0 +1,34 @@
+# Guide 1.3.9 (requester edits laptop quantity 5 -> 2 and resubmits) and 1.3.10 (approver approves).
+# Needs purchase-request-return.yaml first. Each step runs only while its button exists
+# (Edit on a Returned PR, Approve on a Pending one).
+appId: com.thoughtniques.icueadmin.dev
+---
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Purchase requests
+- tapOn: "PR/.*"
+- runFlow:
+    when:
+      visible: "PR/.*Returned.*"
+    commands:
+      - tapOn: "Edit"
+      - tapOn:
+          text: "Quantity.*"
+          index: 1
+      - eraseText: 3
+      - inputText: "2"
+      - pressKey: Enter
+      - tapOn: "Submit for Approval"
+      - tapOn: "PR/.*"
+- assertVisible: "Items \\(2\\).*100 × ₹15.00.*2 × ₹55,000.00.*₹1,11,500.00.*"
+- runFlow:
+    when:
+      visible: "Approve"
+    commands:
+      - tapOn: "Approve"
+      - tapOn: "Approve"
+- assertVisible: "PR/.*Approved.*"
+- assertVisible: "Quotations"
+- assertVisible: "Direct PO"
+- assertVisible: "History.*Approve.*"

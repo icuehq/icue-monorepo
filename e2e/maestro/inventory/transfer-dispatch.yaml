@@ -1,0 +1,31 @@
+# Guide 1.2.15 (transfer dispatch). The app has an approval step the guide omits: Requested -> Approve -> Dispatch.
+# Needs transfer-request.yaml first. Each step runs only while its button exists.
+appId: com.thoughtniques.icueadmin.dev
+---
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Stock
+- tapOn: "Transfers"
+- tapOn: "TRF/.*"
+- runFlow:
+    when:
+      visible: "Approve transfer"
+    commands:
+      - tapOn: "Approve transfer"
+      - tapOn: "Approve"
+- runFlow:
+    when:
+      visible: "Dispatch transfer"
+    commands:
+      - tapOn: "Dispatch transfer"
+      - tapOn: "Dispatch"
+- assertVisible: ".*In transit.*"
+- assertNotVisible: "Dispatch transfer"
+
+# 20 units left Central Main Store (80 -> 60) and are in transit; Science Lab Store has none yet
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Stock
+- assertVisible: ".*PEN-BLU-01.*60 pcs.*available.*"

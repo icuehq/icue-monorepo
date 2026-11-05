@@ -1,0 +1,19 @@
+# Guide 1.2.5 (create issue request). Needs stock-receive.yaml first. Runs only when the request does not exist yet.
+appId: com.thoughtniques.icueadmin.dev
+---
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Issue requests
+- runFlow:
+    when:
+      notVisible: ".*Exam Hall Supplies for Midterms.*"
+    commands:
+      - runFlow:
+          file: ../helpers/new-issue-request.yaml
+          env:
+            PURPOSE: Exam Hall Supplies for Midterms
+            DESTINATION: Main Exam Hall - Block A
+            QTY: "30"
+            ITEM: "Ballpoint Pen.*"
+- assertVisible: "ISR/.*Exam Hall Supplies for Midterms.*Main Exam Hall - Block A.*× 30.*Central Main Store"

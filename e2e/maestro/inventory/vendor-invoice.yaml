@@ -1,0 +1,36 @@
+# Guide 1.3.21 (record the vendor invoice linking both GRNs) and 1.3.22 (duplicate invoice number refused).
+# Needs po-receive-full.yaml first. The invoice total follows the revised PO (1,29,101), not the guide's 1,29,033.
+appId: com.thoughtniques.icueadmin.dev
+---
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Vendor invoices
+- runFlow:
+    when:
+      notVisible: ".*INV-APEX-2026-104.*"
+    commands:
+      - runFlow:
+          file: ../helpers/open-inventory-page.yaml
+          env:
+            PAGE: Purchase orders
+      - runFlow:
+          file: ../helpers/record-invoice.yaml
+          env:
+            NUMBER: INV-APEX-2026-104
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Vendor invoices
+- assertVisible: ".*INV-APEX-2026-104.*Unpaid.*"
+
+# 1.3.22 the same number again for the same vendor is refused
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Purchase orders
+- runFlow:
+    file: ../helpers/record-invoice.yaml
+    env:
+      NUMBER: INV-APEX-2026-104
+- assertVisible: ".*already exists.*"

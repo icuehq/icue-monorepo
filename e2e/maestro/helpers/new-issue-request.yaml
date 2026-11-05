@@ -1,0 +1,30 @@
+# Create an issue request from Central Main Store (Issue requests page already open).
+# Env: PURPOSE, DESTINATION, QTY, ITEM (picker label regex, e.g. "Ballpoint Pen.*").
+appId: com.thoughtniques.icueadmin.dev
+---
+- tapOn: "New request"
+- tapOn: "Issue from store"
+- tapOn: "Central Main Store"
+- tapOn: "Purpose"
+- inputText: ${PURPOSE}
+- tapOn: "Destination.*"
+- inputText: ${DESTINATION}
+- tapOn: "Add item"
+- tapOn: ${ITEM}
+# The quantity EditText's accessibility node spans the whole item card, so its centre misses the field.
+# Works for the pen; the taller batch-tracked card needs a screen position (ponytail: emulator 1344x2992 layout).
+- runFlow:
+    when:
+      true: ${!ITEM.match(/Pasteurized/)}
+    commands:
+      - tapOn: ".*Unit: pcs.*Quantity.*"
+- runFlow:
+    when:
+      true: ${!!ITEM.match(/Pasteurized/)}
+    commands:
+      - tapOn:
+          point: "50%,57%"
+- inputText: ${QTY}
+- scrollUntilVisible:
+    element: "Submit Request"
+- tapOn: "Submit Request"

@@ -14,6 +14,9 @@ cd "$(dirname "$0")/.."
 EDITION=${2:-standard}
 DATA=.emulator-data
 [ "$EDITION" = enterprise ] && DATA=.emulator-data-enterprise
+# EMULATOR_DATA=<dir> keeps a separate data set (the e2e suite uses .emulator-data-e2e) so it never
+# touches development data. The app hard-codes the emulator ports: run one emulator set at a time.
+DATA=${EMULATOR_DATA:-$DATA}
 PROJECT=icueadmin-dev
 
 case "${1:-}" in
@@ -54,8 +57,13 @@ case "${1:-}" in
     exit "$status"
     ;;
   reset)
-    rm -rf .emulator-data .emulator-data-enterprise
-    echo "Removed firebase/.emulator-data and firebase/.emulator-data-enterprise"
+    if [ -n "${EMULATOR_DATA:-}" ]; then
+      rm -rf "$EMULATOR_DATA"
+      echo "Removed firebase/$EMULATOR_DATA"
+    else
+      rm -rf .emulator-data .emulator-data-enterprise
+      echo "Removed firebase/.emulator-data and firebase/.emulator-data-enterprise"
+    fi
     ;;
   *)
     echo "Usage: $0 start|reset" >&2

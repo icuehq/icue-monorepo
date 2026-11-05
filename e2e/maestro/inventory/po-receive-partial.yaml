@@ -1,0 +1,46 @@
+# Guide 1.3.18 (partial goods receiving: pen 80 accepted, 5 rejected; laptop left for the next delivery).
+# Needs purchase-order-revise.yaml first. Receiving is not repeatable, so it only runs while the PO shows
+# "0% received". Hints stay on filled fields: pen is index 0, laptop index 1.
+appId: com.thoughtniques.icueadmin.dev
+---
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Purchase orders
+- runFlow:
+    when:
+      visible: ".*0% received.*"
+    commands:
+      - tapOn: ".*PO/20.*"
+      - tapOn: "Receive Goods.*"
+      - tapOn: "Store"
+      - tapOn: "Central Main Store"
+      - tapOn: "Delivery note.*"
+      - inputText: "DC-APEX-7741"
+      - pressKey: Enter
+      - tapOn:
+          text: "Accepted"
+          index: 0
+      - inputText: "80"
+      - pressKey: Enter
+      - tapOn:
+          text: "Rejected"
+          index: 0
+      - inputText: "5"
+      - pressKey: Enter
+      - tapOn:
+          text: "Condition.*"
+          index: 0
+      - inputText: "5 broken tips during transit"
+      - pressKey: Enter
+      - tapOn: "Overall inspection remarks.*"
+      - inputText: "First consignment received; 5 pens rejected at inspection."
+      - pressKey: Enter
+      - scrollUntilVisible:
+          element: "Confirm receiving.*"
+      - tapOn: "Confirm receiving.*"
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Purchase orders
+- assertVisible: ".*PO/20.*Partially Received.*80 / 102 rec'd.*5 rej.*|.*PO/20.*Received.*"

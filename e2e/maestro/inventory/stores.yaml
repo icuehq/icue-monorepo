@@ -1,0 +1,42 @@
+# Guide 1.1.8-1.1.9 (Stores). Create steps are skipped when the store already exists.
+# App differs from the guide: with a single campus the Campus field is hidden (both stores get that campus),
+# so the Campus 31/32 expectations and 1.1.10 (campus locked on edit) cannot be checked with this user.
+appId: com.thoughtniques.icueadmin.dev
+---
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Stores
+
+# 1.1.8 Central Main Store with storekeeper 884
+- runFlow:
+    when:
+      notVisible: "Central Main Store.*"
+    commands:
+      - tapOn: "Add store"
+      - tapOn: "Store name.*"
+      - inputText: "Central Main Store"
+      - tapOn: "Location"
+      - inputText: "Admin Building Ground Floor"
+      - tapOn: "Description"
+      - inputText: "Main central distribution store"
+      - tapOn: "Store Keepers.*"
+      - inputText: "884"
+      - tapOn: "ID #884.*"
+      - tapOn: "Save store"
+- assertVisible: "Central Main Store.*1 keeper"
+
+# 1.1.9 Science Lab Store
+- runFlow:
+    when:
+      notVisible: "Science Lab Store.*"
+    commands:
+      - tapOn: "Add store"
+      - tapOn: "Store name.*"
+      - inputText: "Science Lab Store"
+      - tapOn: "Location"
+      - inputText: "Science Block 2nd Floor"
+      - tapOn: "Description"
+      - inputText: "Laboratory chemicals and apparatus store"
+      - tapOn: "Save store"
+- assertVisible: "Science Lab Store.*"

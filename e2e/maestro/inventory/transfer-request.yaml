@@ -1,0 +1,31 @@
+# Guide 1.2.13 (inter-store transfer request). Needs stock-receive.yaml and stores.yaml first.
+# 1.2.14 (same source and destination) cannot be entered: the destination list omits the source store.
+# Both stores are on one campus here, so there is no "Inter-campus" badge. Skipped once the transfer exists.
+appId: com.thoughtniques.icueadmin.dev
+---
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Stock
+- tapOn: "Transfers"
+- runFlow:
+    when:
+      notVisible: "TRF/.*"
+    commands:
+      - tapOn: "New Transfer"
+      - tapOn: "Source Store.*"
+      - tapOn: "Central Main Store"
+      - tapOn: "Destination Store.*"
+      # 1.2.14: the source store is not offered as destination
+      - assertNotVisible: "Central Main Store"
+      - tapOn: "Science Lab Store"
+      - tapOn: "Remarks.*"
+      - inputText: "Transfer surplus stationery to science faculty"
+      - pressKey: Enter
+      - tapOn: "Add item"
+      - tapOn: "Ballpoint Pen.*"
+      - tapOn: ".*Unit: pcs.*Quantity.*"
+      - inputText: "20"
+      - pressKey: Enter
+      - tapOn: "Request Transfer"
+- assertVisible: "TRF/.*Central Main Store.*Science Lab Store.*"

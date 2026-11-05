@@ -1,0 +1,21 @@
+# Create, approve and issue a request in one go (own approval, own issue: the signed-in user holds every role).
+# Env: PURPOSE, QTY, ITEM.
+appId: com.thoughtniques.icueadmin.dev
+---
+- runFlow:
+    file: open-inventory-page.yaml
+    env:
+      PAGE: Issue requests
+- runFlow:
+    file: new-issue-request.yaml
+    env:
+      PURPOSE: ${PURPOSE}
+      DESTINATION: Canteen
+      QTY: ${QTY}
+      ITEM: ${ITEM}
+- tapOn: "ISR/.*${PURPOSE}.*"
+- tapOn: "Approve"
+- scrollUntilVisible:
+    element: "Issue stock"
+- tapOn: "Issue stock"
+- assertVisible: "ISR/.*Issued.*"

@@ -1,0 +1,84 @@
+# Guide 1.1.11-1.1.14 (Items). Needs categories.yaml (incl. WRI) and units.yaml first.
+# Create steps are skipped when the item already exists. Tracking labels in the app:
+# Quantity / Batch / Individual asset (guide: quantity / batch & expiry / serialized asset).
+appId: com.thoughtniques.icueadmin.dev
+---
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Items
+
+# 1.1.11 PEN-BLU-01
+- runFlow:
+    when:
+      notVisible: ".*PEN-BLU-01.*"
+    commands:
+      - runFlow:
+          file: ../helpers/add-item.yaml
+          env:
+            CODE: PEN-BLU-01
+            NAME: Ballpoint Pen (Blue, 0.7mm)
+            CATEGORY: Stationery
+            SUBCATEGORY: Writing Instruments
+            TRACKING: Quantity
+            REORDER: "50"
+            PRICE: "15.00"
+- assertVisible: ".*PEN-BLU-01.*Stationery.*pcs.*Quantity.*Reorder: 50.*Price: 15"
+
+# 1.1.12 MILK-PAST-01 (batch)
+- runFlow:
+    when:
+      notVisible: ".*MILK-PAST-01.*"
+    commands:
+      - runFlow:
+          file: ../helpers/add-item.yaml
+          env:
+            CODE: MILK-PAST-01
+            NAME: Pasteurized Milk (500ml pouch)
+            CATEGORY: Kitchen supplies
+            SUBCATEGORY: ""
+            TRACKING: Batch
+            REORDER: "15"
+            PRICE: "30.00"
+- assertVisible: ".*MILK-PAST-01.*Kitchen supplies.*pcs.*Batch.*Reorder: 15.*Price: 30"
+
+# 1.1.13 LAP-DELL-15 (individual asset)
+- runFlow:
+    when:
+      notVisible: ".*LAP-DELL-15.*"
+    commands:
+      - runFlow:
+          file: ../helpers/add-item.yaml
+          env:
+            CODE: LAP-DELL-15
+            NAME: Dell Latitude 15 Core i5 Laptop
+            CATEGORY: IT equipment
+            SUBCATEGORY: ""
+            TRACKING: Individual asset
+            REORDER: "3"
+            PRICE: "45000.00"
+- assertVisible: ".*LAP-DELL-15.*IT equipment.*pcs.*Individual asset.*Reorder: 3.*Price: 45000"
+
+# 1.1.14 negative: duplicate code is rejected (snackbar, so assert right after the save)
+- runFlow:
+    file: ../helpers/add-item.yaml
+    env:
+      CODE: PEN-BLU-01
+      NAME: Duplicate Pen
+      CATEGORY: Stationery
+      SUBCATEGORY: ""
+      TRACKING: Quantity
+      REORDER: "1"
+      PRICE: "1"
+- assertVisible: ".*already exists.*"
+
+# 1.1.16 search narrows the list (reopen the page to leave the form)
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Items
+- tapOn: "Search by item name or code.*"
+- inputText: "pen"
+- pressKey: Enter
+- assertVisible: ".*PEN-BLU-01.*"
+- assertNotVisible: ".*LAP-DELL-15.*"

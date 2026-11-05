@@ -1,0 +1,24 @@
+# Guide 1.2.18 Case A (restore damaged units to usable stock). Needs stock-adjust.yaml first (57 available).
+# The resolution note is NOT entered: its keyboard cannot be dismissed (Back pops the page) and hides the
+# confirm button in the bottom bar. The button is labelled with the chosen action, so tap it before any typing.
+appId: com.thoughtniques.icueadmin.dev
+---
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Stock
+- tapOn: "Damaged / Expired"
+- runFlow:
+    when:
+      visible: ".*5 units.*Tap to resolve"
+    commands:
+      - tapOn: ".*5 units.*Tap to resolve"
+      - tapOn: "Return to usable stock.*"
+      - tapOn: "Return to usable stock"
+# a restored entry leaves the list (Open and Resolved both empty)
+- assertVisible: "Open \\(0\\)"
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Stock
+- assertVisible: ".*PEN-BLU-01.*62 pcs.*available.*"

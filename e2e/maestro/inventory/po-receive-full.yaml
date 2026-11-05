@@ -1,0 +1,39 @@
+# Guide 1.3.19 (accepting more than is due is refused) and 1.3.20 (Accept all due completes the PO).
+# App differs from the guide: the 5 rejected pens stay due (replacements), so 20 are due, not 15.
+# Needs po-receive-partial.yaml first. Runs while the PO is Partially Received.
+appId: com.thoughtniques.icueadmin.dev
+---
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Purchase orders
+- runFlow:
+    when:
+      visible: ".*Partially Received.*"
+    commands:
+      - tapOn: ".*PO/20.*"
+      - tapOn: "Receive Goods.*"
+      # 1.3.19 more than the due pens is refused (the inline error shows once Confirm is tapped)
+      - tapOn: "Store"
+      - tapOn: "Central Main Store"
+      - tapOn:
+          text: "Accepted"
+          index: 0
+      - inputText: "25"
+      - pressKey: Enter
+      - tapOn: "Confirm receiving.*"
+      - assertVisible: "Only 20 due"
+      # 1.3.20 clear and accept everything still due
+      - tapOn: "Clear quantities"
+      - tapOn: "Accept all due"
+      - tapOn: "Delivery note.*"
+      - inputText: "DC-APEX-7742"
+      - pressKey: Enter
+      - scrollUntilVisible:
+          element: "Confirm receiving.*"
+      - tapOn: "Confirm receiving.*"
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Purchase orders
+- assertVisible: ".*PO/20.*Received.*100% received.*"

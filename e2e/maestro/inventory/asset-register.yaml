@@ -1,0 +1,43 @@
+# Guide 1.4.1-1.4.3 (register two laptop units from the PO; the PO caps the count at its 2 accepted units).
+# Needs po-receive-full.yaml first. App differs from the guide: the form takes a Quantity (identical units) and
+# takes price/vendor from the PO. The list card shows name, AST id and location (no serial), so each unit is skipped
+# when its location is already listed.
+appId: com.thoughtniques.icueadmin.dev
+---
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Assets
+- runFlow:
+    when:
+      notVisible: ".*Room 102.*"
+    commands:
+      - runFlow:
+          file: ../helpers/register-asset.yaml
+          env:
+            NAME: Dell Latitude 15 - Admin 01
+            SERIAL: DELL-SN-78491
+            STORE: Central Main Store
+            LOCATION: Admin Building Ground Floor - Room 102
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Assets
+- runFlow:
+    when:
+      notVisible: ".*Room 204.*"
+    commands:
+      - runFlow:
+          file: ../helpers/register-asset.yaml
+          env:
+            NAME: Dell Latitude 15 - Lab 01
+            SERIAL: DELL-SN-78492
+            STORE: Science Lab Store
+            LOCATION: Science Block 2nd Floor - Room 204
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Assets
+- assertVisible: ".*AST/.*Room 102.*"
+- assertVisible: ".*AST/.*Room 204.*"
+- assertVisible: "Available"

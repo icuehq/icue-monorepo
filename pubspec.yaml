@@ -98,6 +98,14 @@ melos:
       description: Delete the saved emulator data (both editions).
       run: firebase/scripts/emulators.sh reset
 
+    e2e:emulators:
+      description: Emulators for the Maestro e2e suite with their own data (firebase/.emulator-data-e2e); stop the dev emulators first.
+      run: EMULATOR_DATA=.emulator-data-e2e firebase/scripts/emulators.sh start standard
+
+    e2e:reset:
+      description: Delete the e2e emulator data only; development data is untouched.
+      run: EMULATOR_DATA=.emulator-data-e2e firebase/scripts/emulators.sh reset
+
     outdated:
       description: Show outdated dependencies.
       run: melos exec -c 5 -- flutter pub outdated

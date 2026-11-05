@@ -1,0 +1,17 @@
+# Guide 1.3.6 (submit PR for approval). Needs purchase-request-edit.yaml first. Skipped once submitted
+# (the Submit button only exists on a draft). 1.3.7 (users without approve permission) cannot be checked:
+# the signed-in user holds every role.
+appId: com.thoughtniques.icueadmin.dev
+---
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Purchase requests
+- tapOn: "PR/.*"
+- runFlow:
+    when:
+      visible: "Submit"
+    commands:
+      - tapOn: "Submit"
+- assertVisible: "PR/.*Pending.*"
+- assertVisible: "History.*Submit.*"

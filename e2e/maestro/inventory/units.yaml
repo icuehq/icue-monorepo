@@ -1,0 +1,27 @@
+# Guide 1.1.6-1.1.7 (Units). Needs categories.yaml first: its "Add default categories & units" seeds the units.
+# App differs from the guide: the unit dialog has a single name field (no code) and title-cases it.
+appId: com.thoughtniques.icueadmin.dev
+---
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Units
+
+# 1.1.6 standard units
+- assertVisible: "Pieces"
+- assertVisible: "Boxes"
+- assertVisible: "Packets"
+
+# 1.1.7 add Ream
+- runFlow:
+    when:
+      notVisible: "Ream.*"
+    commands:
+      - tapOn: "Add unit"
+      - tapOn: "Unit name.*"
+      - inputText: "Ream (500 sheets)"
+      - tapOn:
+          text: "Add unit"
+          index: 1
+- scrollUntilVisible:
+    element: "Ream.*"

@@ -1,0 +1,47 @@
+# Guide 1.2.20 (earliest-expiry-first batch issuing). Needs stock-receive-batch.yaml first
+# (BATCH-M1 20 expiring in 5 days, BATCH-M2 10 expiring in 25 days). Each issue, with its intermediate check,
+# runs once; the final state is asserted every run.
+appId: com.thoughtniques.icueadmin.dev
+---
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Issue requests
+- runFlow:
+    when:
+      notVisible: "ISR/.*FEFO issue 1.*"
+    commands:
+      - runFlow:
+          file: ../helpers/request-approve-issue.yaml
+          env:
+            PURPOSE: FEFO issue 1
+            QTY: "15"
+            ITEM: "Pasteurized Milk.*"
+      - runFlow:
+          file: ../helpers/open-inventory-page.yaml
+          env:
+            PAGE: Stock
+      # 15 from BATCH-M1 (20 -> 5), BATCH-M2 untouched
+      - assertVisible: ".*MILK-PAST-01.*BATCH-M1.*5 pcs.*available.*"
+      - assertVisible: ".*MILK-PAST-01.*BATCH-M2.*10 pcs.*available.*"
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Issue requests
+- runFlow:
+    when:
+      notVisible: "ISR/.*FEFO issue 2.*"
+    commands:
+      - runFlow:
+          file: ../helpers/request-approve-issue.yaml
+          env:
+            PURPOSE: FEFO issue 2
+            QTY: "10"
+            ITEM: "Pasteurized Milk.*"
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Stock
+# remaining 5 of BATCH-M1 first (depleted: the row stays at 0), then 5 from BATCH-M2 (10 -> 5)
+- assertVisible: ".*MILK-PAST-01.*BATCH-M1.*[^0-9]0 pcs.*available.*"
+- assertVisible: ".*MILK-PAST-01.*BATCH-M2.*[^0-9]5 pcs.*available.*"

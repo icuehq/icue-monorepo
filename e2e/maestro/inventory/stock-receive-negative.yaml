@@ -1,0 +1,30 @@
+# Guide 1.2.3 (expired batch rejected) and 1.2.4 (asset-tracked item not receivable as stock).
+appId: com.thoughtniques.icueadmin.dev
+---
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Stock
+
+# 1.2.4 the laptop is absent from the item picker
+- tapOn: "Receive stock"
+- tapOn: "Add item"
+- assertVisible: ".*PEN-BLU-01.*"
+- assertNotVisible: ".*LAP-DELL-15.*"
+
+# 1.2.3 yesterday's expiry: the date picker refuses past dates ("Out of range."), so an expired batch cannot be entered
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Stock
+- tapOn: "Receive stock"
+- tapOn: "Add item"
+- tapOn: "Pasteurized Milk.*"
+- scrollUntilVisible:
+    element: "Expiry date"
+- tapOn: "Expiry date"
+- runFlow:
+    file: ../helpers/pick-date.yaml
+    env:
+      DAYS: "-1"
+- assertVisible: "Out of range."
