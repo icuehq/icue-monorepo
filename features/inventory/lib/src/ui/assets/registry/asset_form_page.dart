@@ -139,116 +139,119 @@ class _AssetFormPageState extends State<AssetFormPage> {
     ];
     return Scaffold(
       appBar: AppBar(title: const Text('Register asset')),
-      body: Form(
-        key: _form,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text(_item?.name ?? 'Choose asset item *'),
-              subtitle: _item == null ? null : Text(_item!.code),
-              trailing: const Icon(Icons.search),
-              onTap: _pick,
-            ),
-            TextFormField(
-              controller: _name,
-              decoration: const InputDecoration(labelText: 'Asset name'),
-            ),
-            StoreDropdown(
-              value: _store,
-              onChanged: (value) => setState(() => _store = value),
-            ),
-            TextFormField(
-              controller: _quantity,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Quantity',
-                helperText: 'Identical units registered together (up to 50)',
+      body: CenteredBody(
+        maxWidth: Breakpoints.formMaxWidth,
+        child: Form(
+          key: _form,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(_item?.name ?? 'Choose asset item *'),
+                subtitle: _item == null ? null : Text(_item!.code),
+                trailing: const Icon(Icons.search),
+                onTap: _pick,
               ),
-              validator: (value) {
-                final number = int.tryParse(value?.trim() ?? '');
-                return number == null || number < 1 || number > 50
-                    ? 'Enter 1 to 50'
-                    : null;
-              },
-            ),
-            TextFormField(
-              controller: _serial,
-              decoration: const InputDecoration(labelText: 'Serial number'),
-            ),
-            TextFormField(
-              controller: _make,
-              decoration: const InputDecoration(labelText: 'Manufacturer'),
-            ),
-            TextFormField(
-              controller: _model,
-              decoration: const InputDecoration(labelText: 'Model'),
-            ),
-            labelled(
-              'Condition',
-              AssetCondition.values,
-              _condition,
-              (value) => setState(() => _condition = value!),
-            ),
-            TextFormField(
-              controller: _location,
-              decoration: const InputDecoration(
-                labelText: 'Location (room, shelf)',
+              TextFormField(
+                controller: _name,
+                decoration: const InputDecoration(labelText: 'Asset name'),
               ),
-            ),
-            optionalDate(
-              context,
-              _purchased,
-              'Purchase date',
-              first: past,
-              last: now,
-            ),
-            TextFormField(
-              controller: _price,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
+              StoreDropdown(
+                value: _store,
+                onChanged: (value) => setState(() => _store = value),
               ),
-              decoration: const InputDecoration(labelText: 'Purchase price'),
-              validator: optionalNumber,
-            ),
-            optionalDate(
-              context,
-              _warrantyStart,
-              'Warranty start',
-              first: past,
-              last: now.add(const Duration(days: 3650)),
-            ),
-            optionalDate(
-              context,
-              _warrantyEnd,
-              'Warranty end',
-              first: past,
-              last: now.add(const Duration(days: 3650)),
-            ),
-            DropdownButtonFormField<String?>(
-              key: ValueKey(_item?.id),
-              initialValue: _poId,
-              decoration: const InputDecoration(
-                labelText: 'Purchase order (optional)',
-                helperText: 'Takes vendor and price from the order; limited to its accepted units',
+              TextFormField(
+                controller: _quantity,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Quantity',
+                  helperText: 'Identical units registered together (up to 50)',
+                ),
+                validator: (value) {
+                  final number = int.tryParse(value?.trim() ?? '');
+                  return number == null || number < 1 || number > 50
+                      ? 'Enter 1 to 50'
+                      : null;
+                },
               ),
-              items: [
-                const DropdownMenuItem(child: Text('None')),
-                for (final purchaseOrder in orders)
-                  DropdownMenuItem(
-                    value: purchaseOrder.id,
-                    child: Text(purchaseOrder.number),
-                  ),
-              ],
-              onChanged: (value) => setState(() => _poId = value),
-            ),
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: _busy ? null : _save,
-              child: Text(_busy ? 'Saving…' : 'Register'),
-            ),
-          ],
+              TextFormField(
+                controller: _serial,
+                decoration: const InputDecoration(labelText: 'Serial number'),
+              ),
+              TextFormField(
+                controller: _make,
+                decoration: const InputDecoration(labelText: 'Manufacturer'),
+              ),
+              TextFormField(
+                controller: _model,
+                decoration: const InputDecoration(labelText: 'Model'),
+              ),
+              labelled(
+                'Condition',
+                AssetCondition.values,
+                _condition,
+                (value) => setState(() => _condition = value!),
+              ),
+              TextFormField(
+                controller: _location,
+                decoration: const InputDecoration(
+                  labelText: 'Location (room, shelf)',
+                ),
+              ),
+              optionalDate(
+                context,
+                _purchased,
+                'Purchase date',
+                first: past,
+                last: now,
+              ),
+              TextFormField(
+                controller: _price,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(labelText: 'Purchase price'),
+                validator: optionalNumber,
+              ),
+              optionalDate(
+                context,
+                _warrantyStart,
+                'Warranty start',
+                first: past,
+                last: now.add(const Duration(days: 3650)),
+              ),
+              optionalDate(
+                context,
+                _warrantyEnd,
+                'Warranty end',
+                first: past,
+                last: now.add(const Duration(days: 3650)),
+              ),
+              DropdownButtonFormField<String?>(
+                key: ValueKey(_item?.id),
+                initialValue: _poId,
+                decoration: const InputDecoration(
+                  labelText: 'Purchase order (optional)',
+                  helperText: 'Takes vendor and price from the order; limited to its accepted units',
+                ),
+                items: [
+                  const DropdownMenuItem(child: Text('None')),
+                  for (final purchaseOrder in orders)
+                    DropdownMenuItem(
+                      value: purchaseOrder.id,
+                      child: Text(purchaseOrder.number),
+                    ),
+                ],
+                onChanged: (value) => setState(() => _poId = value),
+              ),
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: _busy ? null : _save,
+                child: Text(_busy ? 'Saving…' : 'Register'),
+              ),
+            ],
+          ),
         ),
       ),
     );

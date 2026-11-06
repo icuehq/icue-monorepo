@@ -1,0 +1,400 @@
+import 'package:flutter/material.dart';
+
+/// Width thresholds shared by every adaptive screen.
+abstract final class Breakpoints {
+  /// From here a module shows its side navigation and forms open as dialogs.
+  static const double wide = 900;
+
+  /// From here a list is drawn as a table instead of cards.
+  static const double table = 720;
+
+  /// From here card lists show two cards per row.
+  static const double twoColumns = 1000;
+
+  /// Widest content column on large monitors.
+  static const double contentMaxWidth = 1200;
+
+  /// Widest form column.
+  static const double formMaxWidth = 720;
+}
+
+extension BreakpointContext on BuildContext {
+  bool get isWide => MediaQuery.sizeOf(this).width >= Breakpoints.wide;
+}
+
+/// Keeps [child] in a centered column of at most [maxWidth] so pages do not stretch across a monitor.
+class CenteredBody extends StatelessWidget {
+  const CenteredBody({
+    required this.child,
+    this.maxWidth = Breakpoints.contentMaxWidth,
+    super.key,
+  });
+
+  final Widget child;
+  final double maxWidth;
+
+  @override
+  Widget build(BuildContext context) => Align(
+    alignment: Alignment.topCenter,
+    child: ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: maxWidth),
+      child: child,
+    ),
+  );
+}
+
+/// One table column of an [AdaptiveList].
+class AdaptiveColumn<T> {
+  const AdaptiveColumn({
+    required this.label,
+    required this.cell,
+    this.flex = 1,
+    this.alignment = Alignment.centerLeft,
+  });
+
+  AdaptiveColumn.text(
+    String label,
+    String Function(T item) value, {
+    int flex = 1,
+    AlignmentGeometry alignment = Alignment.centerLeft,
+  }) : this(
+         label: label,
+         flex: flex,
+         alignment: alignment,
+         cell: (context, item) =>
+             Text(value(item), maxLines: 2, overflow: TextOverflow.ellipsis),
+       );
+
+  final String label;
+  final int flex;
+  final AlignmentGeometry alignment;
+  final Widget Function(BuildContext context, T item) cell;
+}
+
+/// A table with a header row when there is room, the phone [cardBuilder] list otherwise.
+///
+/// [footer] (e.g. a "Load more" button) is appended in both layouts.
+class AdaptiveList<T> extends StatelessWidget {
+  const AdaptiveList({
+    required this.items,
+    required this.columns,
+    required this.cardBuilder,
+    this.onTap,
+    this.footer,
+    this.controller,
+    this.emptyMessage = 'No items found',
+    this.emptyIcon = Icons.inbox_outlined,
+    this.emptyAction,
+    this.padding,
+    this.fillWidth = false,
+    this.maxWidth,
+    super.key,
+  });
+
+  final List<T> items;
+  final List<AdaptiveColumn<T>> columns;
+  final Widget Function(BuildContext context, T item) cardBuilder;
+  final void Function(T item)? onTap;
+  final Widget? footer;
+
+  /// Scroll controller of the list, e.g. to load more near the end.
+  final ScrollController? controller;
+
+  final String emptyMessage;
+  final IconData emptyIcon;
+  final Widget? emptyAction;
+  final EdgeInsetsGeometry? padding;
+
+  /// Whether the table should span full width instead of being constrained by [maxWidth].
+  final bool fillWidth;
+
+  /// Max width when [fillWidth] is false. Defaults to [Breakpoints.contentMaxWidth].
+  final double? maxWidth;
+
+  Widget _buildEmptyState(ThemeData theme) => Center(
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest.withValues(
+                alpha: 0.5,
+              ),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              emptyIcon,
+              size: 32,
+              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            emptyMessage,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          if (emptyAction != null) ...[
+            const SizedBox(height: 12),
+            emptyAction!,
+          ],
+        ],
+      ),
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final theme = Theme.of(context);
+      final extra = footer == null ? 0 : 1;
+      if (constraints.maxWidth < Breakpoints.table) {
+        if (items.isEmpty && extra == 0) {
+          return _buildEmptyState(theme);
+        }
+        return ListView.builder(
+          controller: controller,
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: padding,
+          itemCount: items.length + extra,
+          itemBuilder: (context, index) => index >= items.length
+              ? footer!
+              : cardBuilder(context, items[index]),
+        );
+      }
+
+      final table = Padding(
+        padding: padding ?? const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        child: Container(
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.025),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerLowest,
+                  border: Border(
+                    bottom: BorderSide(
+                      color: theme.colorScheme.outlineVariant.withValues(
+                        alpha: 0.5,
+                      ),
+                    ),
+                  ),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 13,
+                ),
+                child: Row(
+                  children: [
+                    for (final column in columns)
+                      Expanded(
+                        flex: column.flex,
+                        child: Align(
+                          alignment: column.alignment,
+                          child: Text(
+                            column.label.toUpperCase(),
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant
+                                  .withValues(alpha: 0.85),
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.8,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: items.isEmpty && extra == 0
+                    ? _buildEmptyState(theme)
+                    : ListView.separated(
+                        controller: controller,
+                        itemCount: items.length + extra,
+                        separatorBuilder: (_, _) => Divider(
+                          height: 1,
+                          color: theme.colorScheme.outlineVariant.withValues(
+                            alpha: 0.35,
+                          ),
+                        ),
+                        itemBuilder: (context, index) {
+                          if (index >= items.length) return footer!;
+                          final item = items[index];
+                          return Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: onTap == null ? null : () => onTap!(item),
+                              hoverColor: theme.colorScheme.primary.withValues(
+                                alpha: 0.035,
+                              ),
+                              splashColor: theme.colorScheme.primary.withValues(
+                                alpha: 0.08,
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 13,
+                                ),
+                                child: Row(
+                                  children: [
+                                    for (final column in columns)
+                                      Expanded(
+                                        flex: column.flex,
+                                        child: Align(
+                                          alignment: column.alignment,
+                                          child: column.cell(context, item),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      if (fillWidth) return table;
+      return CenteredBody(
+        maxWidth: maxWidth ?? Breakpoints.contentMaxWidth,
+        child: table,
+      );
+    },
+  );
+}
+
+/// A card list that shows two cards per row once there is room, one per row otherwise.
+///
+/// Drop-in for `ListView.builder` / `ListView.separated`: [spacing] is the gap between cards.
+class AdaptiveCardList extends StatelessWidget {
+  const AdaptiveCardList({
+    required this.itemCount,
+    required this.itemBuilder,
+    this.padding = EdgeInsets.zero,
+    this.spacing = 0,
+    this.controller,
+    this.emptyMessage = 'No items found',
+    this.emptyIcon = Icons.inbox_outlined,
+    this.emptyAction,
+    super.key,
+  });
+
+  final int itemCount;
+  final IndexedWidgetBuilder itemBuilder;
+  final EdgeInsetsGeometry padding;
+  final double spacing;
+  final ScrollController? controller;
+  final String emptyMessage;
+  final IconData emptyIcon;
+  final Widget? emptyAction;
+
+  @override
+  Widget build(BuildContext context) {
+    if (itemCount == 0) {
+      final theme = Theme.of(context);
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest.withValues(
+                    alpha: 0.5,
+                  ),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  emptyIcon,
+                  size: 32,
+                  color: theme.colorScheme.onSurfaceVariant.withValues(
+                    alpha: 0.7,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                emptyMessage,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              if (emptyAction != null) ...[
+                const SizedBox(height: 12),
+                emptyAction!,
+              ],
+            ],
+          ),
+        ),
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < Breakpoints.twoColumns) {
+          return ListView.separated(
+            controller: controller,
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: padding,
+            itemCount: itemCount,
+            separatorBuilder: (_, _) => SizedBox(height: spacing),
+            itemBuilder: itemBuilder,
+          );
+        }
+        return ListView.builder(
+          controller: controller,
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: padding,
+          itemCount: (itemCount + 1) ~/ 2,
+          itemBuilder: (context, row) {
+            final first = row * 2;
+            return Padding(
+              padding: EdgeInsets.only(bottom: spacing),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: itemBuilder(context, first)),
+                  SizedBox(width: spacing == 0 ? 8 : spacing),
+                  Expanded(
+                    child: first + 1 < itemCount
+                        ? itemBuilder(context, first + 1)
+                        : const SizedBox.shrink(),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}

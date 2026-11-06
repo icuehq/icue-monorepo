@@ -3,7 +3,6 @@ import { importRows, toList, toNumber, toText, type ImportType } from '../shared
 import { copies } from './copies';
 import { cleanIsbn } from './isbn';
 import { masters } from './masters';
-import { members } from './members';
 
 const types: Record<string, ImportType> = {
   catalogue: {
@@ -11,7 +10,7 @@ const types: Record<string, ImportType> = {
     mapRow: async (row, lookup) => ({
       title: row.title,
       authors: toList(row.authors),
-      categoryId: await lookup('libraryCategory', row.categoryCode, 'Category'),
+      categoryId: await lookup('libraryCategory', row.category, 'Category'),
       isbn10: toText(row.isbn10),
       isbn13: toText(row.isbn13),
       publisher: toText(row.publisher),
@@ -29,26 +28,12 @@ const types: Record<string, ImportType> = {
     mapRow: async (row, lookup) => ({
       type: 'opening',
       catalogueId: await lookup('libraryTitle', `isbn:${cleanIsbn(row.isbn13 ?? '')}`, 'Title'),
-      libraryId: await lookup('library', row.libraryCode, 'Library'),
+      libraryId: await lookup('library', row.library, 'Library'),
       quantity: toNumber(row.quantity) ?? 1,
       price: toNumber(row.price),
       shelf: toText(row.shelf),
       condition: toText(row.condition)?.toLowerCase() ?? 'good',
       date: toText(row.date),
-    }),
-  },
-  members: {
-    callable: members.memberUpsert,
-    mapRow: async (row, lookup) => ({
-      memberType: row.memberType?.trim().toLowerCase(),
-      personErpId: toNumber(row.personErpId),
-      classId: toNumber(row.classId),
-      memberCategory: row.memberCategory,
-      libraryIds: await Promise.all(
-        toList(row.libraryCodes).map((code) => lookup('library', code, 'Library')),
-      ),
-      start: row.start,
-      end: toText(row.end),
     }),
   },
 };

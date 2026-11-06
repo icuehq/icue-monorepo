@@ -21,7 +21,8 @@ Future<CollectionReference<Map<String, dynamic>>> schoolCollection(
 /// Plain client CRUD for a master collection under the school ([path]).
 ///
 /// Edits (`id` present) update the document. Creates are keyed by the
-/// lowercased `code`, so an existing code is rejected. [onCreate] adds fields
+/// lowercased `code`, so an existing code is rejected; without a `code` the
+/// document gets an auto ID. [onCreate] adds fields
 /// that only a new document gets.
 Future<void> saveMasterDocument(
   String path,
@@ -38,8 +39,8 @@ Future<void> saveMasterDocument(
     });
     return;
   }
-  final code = fields['code']! as String;
-  final document = collection.doc(code.trim().toLowerCase());
+  final code = fields['code'] as String?;
+  final document = collection.doc(code?.trim().toLowerCase());
   await FirebaseFirestore.instance.runTransaction((transaction) async {
     if ((await transaction.get(document)).exists) {
       throw FirebaseException(

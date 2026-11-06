@@ -55,6 +55,11 @@ class _AssetsPageState extends State<AssetsPage> {
     if (mounted) await _load();
   }
 
+  Future<void> _open(InventoryAsset asset) async {
+    await showFormPage(context, () => AssetSheet(asset: asset));
+    if (mounted) await _load();
+  }
+
   @override
   Widget build(BuildContext context) {
     final assetsProvider = context.watch<AssetsProvider>();
@@ -92,65 +97,81 @@ class _AssetsPageState extends State<AssetsPage> {
               },
             )
           : null,
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-            child: Column(
-              children: [
-                ScanField(
-                  hint: 'Search or scan asset ID, tag, name or serial',
-                  onChanged: (value) => setState(() => _search = value.trim()),
-                  onScan: _scanned,
-                ),
-                DropdownButton<String?>(
-                  isExpanded: true,
-                  value: _status,
-                  items: [
-                    const DropdownMenuItem(child: Text('All statuses')),
-                    for (final status in AssetStatus.values)
-                      DropdownMenuItem(
-                        value: status,
-                        child: Text(humanizeStatus(status)),
-                      ),
-                  ],
-                  onChanged: (value) {
-                    _status = value;
-                    _load();
-                  },
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: shown.isEmpty
-                ? Center(
-                    child: assetsProvider.isLoading
-                        ? const CircularProgressIndicator()
-                        : Text(assetsProvider.errorMessage ?? 'No assets'),
-                  )
-                : ListView(
-                    children: [
-                      for (final asset in shown)
-                        ListTile(
-                          title: Text(asset.name),
-                          subtitle: Text(
-                            '${asset.assetId}${asset.assignedTo == null ? '' : ' · ${asset.assignedTo!.label}'}'
-                            '${asset.location == null ? '' : ' · ${asset.location}'}',
-                          ),
-                          trailing: StatusChip(asset.status),
-                          onTap: () async {
-                            await showFormPage(
-                              context,
-                              () => AssetSheet(asset: asset),
-                            );
-                            if (mounted) await _load();
-                          },
+      body: CenteredBody(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: Column(
+                children: [
+                  ScanField(
+                    hint: 'Search or scan asset ID, tag, name or serial',
+                    onChanged: (value) =>
+                        setState(() => _search = value.trim()),
+                    onScan: _scanned,
+                  ),
+                  DropdownButton<String?>(
+                    isExpanded: true,
+                    value: _status,
+                    items: [
+                      const DropdownMenuItem(child: Text('All statuses')),
+                      for (final status in AssetStatus.values)
+                        DropdownMenuItem(
+                          value: status,
+                          child: Text(humanizeStatus(status)),
                         ),
                     ],
+                    onChanged: (value) {
+                      _status = value;
+                      _load();
+                    },
                   ),
-          ),
-        ],
+                ],
+              ),
+            ),
+            Expanded(
+              child: shown.isEmpty
+                  ? Center(
+                      child: assetsProvider.isLoading
+                          ? const CircularProgressIndicator()
+                          : Text(assetsProvider.errorMessage ?? 'No assets'),
+                    )
+                  : AdaptiveList<InventoryAsset>(
+                      items: shown,
+                      onTap: _open,
+                      columns: [
+                        AdaptiveColumn.text(
+                          'Asset',
+                          (asset) => asset.name,
+                          flex: 2,
+                        ),
+                        AdaptiveColumn.text('ID', (asset) => asset.assetId),
+                        AdaptiveColumn.text(
+                          'Assigned to',
+                          (asset) => asset.assignedTo?.label ?? '—',
+                        ),
+                        AdaptiveColumn.text(
+                          'Location',
+                          (asset) => asset.location ?? '—',
+                        ),
+                        AdaptiveColumn(
+                          label: 'Status',
+                          cell: (context, asset) => StatusChip(asset.status),
+                        ),
+                      ],
+                      cardBuilder: (context, asset) => ListTile(
+                        title: Text(asset.name),
+                        subtitle: Text(
+                          '${asset.assetId}${asset.assignedTo == null ? '' : ' · ${asset.assignedTo!.label}'}'
+                          '${asset.location == null ? '' : ' · ${asset.location}'}',
+                        ),
+                        trailing: StatusChip(asset.status),
+                        onTap: () => _open(asset),
+                      ),
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }

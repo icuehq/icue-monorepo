@@ -73,36 +73,40 @@ class _InventoryDashboardPageState extends State<InventoryDashboardPage> {
             ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _load,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            DropdownButtonFormField<String?>(
-              initialValue: _storeId,
-              decoration: const InputDecoration(labelText: 'Store'),
-              items: [
-                const DropdownMenuItem(child: Text('All stores')),
-                for (final store in inventoryProvider.stores.where(
-                  (store) => store.active,
-                ))
-                  DropdownMenuItem(value: store.id, child: Text(store.name)),
-              ],
-              onChanged: (value) {
-                _storeId = value;
-                _load();
-              },
-            ),
-            const SizedBox(height: 16),
-            if (insightsProvider.isLoading && tiles.isEmpty)
-              const Center(child: CircularProgressIndicator())
-            else if (tiles.isEmpty)
-              Center(
-                child: Text(insightsProvider.errorMessage ?? 'Nothing to show'),
-              )
-            else
-              StatTileGrid(tiles: tiles),
-          ],
+      body: CenteredBody(
+        child: RefreshIndicator(
+          onRefresh: _load,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              DropdownButtonFormField<String?>(
+                initialValue: _storeId,
+                decoration: const InputDecoration(labelText: 'Store'),
+                items: [
+                  const DropdownMenuItem(child: Text('All stores')),
+                  for (final store in inventoryProvider.stores.where(
+                    (store) => store.active,
+                  ))
+                    DropdownMenuItem(value: store.id, child: Text(store.name)),
+                ],
+                onChanged: (value) {
+                  _storeId = value;
+                  _load();
+                },
+              ),
+              const SizedBox(height: 16),
+              if (insightsProvider.isLoading && tiles.isEmpty)
+                const Center(child: CircularProgressIndicator())
+              else if (tiles.isEmpty)
+                Center(
+                  child: Text(
+                    insightsProvider.errorMessage ?? 'Nothing to show',
+                  ),
+                )
+              else
+                StatTileGrid(tiles: tiles),
+            ],
+          ),
         ),
       ),
     );

@@ -43,66 +43,91 @@ class _MaintenancePageState extends State<MaintenancePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
+  Future<void> _open(InventoryMaintenance job) async {
+    await showFormPage(context, () => MaintenanceSheet(job: job));
+    if (mounted) await _load();
+  }
+
   @override
   Widget build(BuildContext context) {
     final assetsProvider = context.watch<AssetsProvider>();
     return Scaffold(
       appBar: AppBar(title: const Text('Maintenance')),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-            child: DropdownButton<String?>(
-              isExpanded: true,
-              value: _status,
-              items: [
-                const DropdownMenuItem(child: Text('All statuses')),
-                for (final status in MaintenanceStatus.values)
-                  DropdownMenuItem(
-                    value: status,
-                    child: Text(humanizeStatus(status)),
-                  ),
-              ],
-              onChanged: (value) {
-                _status = value;
-                _load();
-              },
+      body: CenteredBody(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: DropdownButton<String?>(
+                isExpanded: true,
+                value: _status,
+                items: [
+                  const DropdownMenuItem(child: Text('All statuses')),
+                  for (final status in MaintenanceStatus.values)
+                    DropdownMenuItem(
+                      value: status,
+                      child: Text(humanizeStatus(status)),
+                    ),
+                ],
+                onChanged: (value) {
+                  _status = value;
+                  _load();
+                },
+              ),
             ),
-          ),
-          Expanded(
-            child: assetsProvider.maintenance.isEmpty
-                ? Center(
-                    child: assetsProvider.isLoading
-                        ? const CircularProgressIndicator()
-                        : Text(
-                            assetsProvider.errorMessage ??
-                                'No maintenance requests',
-                          ),
-                  )
-                : ListView(
-                    children: [
-                      for (final maintenance in assetsProvider.maintenance)
-                        ListTile(
-                          title: Text(
-                            '${maintenance.number} · ${maintenance.assetName}',
-                          ),
-                          subtitle: Text(
-                            '${maintenance.issue}\n${maintenance.assetCode} · ${humanizeStatus(maintenance.priority)} priority · ${maintenance.reportedDate.toDisplayDay()}',
-                          ),
-                          isThreeLine: true,
-                          trailing: StatusChip(maintenance.status),
-                          onTap: () async {
-                            await showFormPage(
-                              context,
-                              () => MaintenanceSheet(job: maintenance),
-                            );
-                            if (mounted) await _load();
-                          },
+            Expanded(
+              child: assetsProvider.maintenance.isEmpty
+                  ? Center(
+                      child: assetsProvider.isLoading
+                          ? const CircularProgressIndicator()
+                          : Text(
+                              assetsProvider.errorMessage ??
+                                  'No maintenance requests',
+                            ),
+                    )
+                  : AdaptiveList<InventoryMaintenance>(
+                      items: assetsProvider.maintenance,
+                      onTap: _open,
+                      columns: [
+                        AdaptiveColumn.text('Request', (job) => job.number),
+                        AdaptiveColumn.text(
+                          'Asset',
+                          (job) => job.assetName,
+                          flex: 2,
                         ),
-                    ],
-                  ),
-          ),
-        ],
+                        AdaptiveColumn.text(
+                          'Issue',
+                          (job) => job.issue,
+                          flex: 3,
+                        ),
+                        AdaptiveColumn.text(
+                          'Priority',
+                          (job) => humanizeStatus(job.priority),
+                        ),
+                        AdaptiveColumn.text(
+                          'Reported',
+                          (job) => job.reportedDate.toDisplayDay(),
+                        ),
+                        AdaptiveColumn(
+                          label: 'Status',
+                          cell: (context, job) => StatusChip(job.status),
+                        ),
+                      ],
+                      cardBuilder: (context, maintenance) => ListTile(
+                        title: Text(
+                          '${maintenance.number} · ${maintenance.assetName}',
+                        ),
+                        subtitle: Text(
+                          '${maintenance.issue}\n${maintenance.assetCode} · ${humanizeStatus(maintenance.priority)} priority · ${maintenance.reportedDate.toDisplayDay()}',
+                        ),
+                        isThreeLine: true,
+                        trailing: StatusChip(maintenance.status),
+                        onTap: () => _open(maintenance),
+                      ),
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }

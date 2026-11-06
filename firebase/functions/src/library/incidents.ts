@@ -43,6 +43,7 @@ export async function openIncident(
     memberId: member ? incident.memberId : null,
     memberType: member ? member.memberType : null,
     personErpId: member ? member.personErpId : null,
+    memberName: member ? (member.name ?? null) : null,
     ...(incident.loanId ? { loanId: incident.loanId } : {}),
     severity: incident.severity,
     description: incident.description,

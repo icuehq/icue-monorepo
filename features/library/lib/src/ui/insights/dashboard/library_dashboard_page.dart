@@ -72,39 +72,43 @@ class _LibDashboardPageState extends State<LibraryDashboardPage> {
             ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _load,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            DropdownButtonFormField<String?>(
-              initialValue: _libraryId,
-              decoration: const InputDecoration(labelText: 'Library'),
-              items: [
-                const DropdownMenuItem(child: Text('All libraries')),
-                for (final schoolLibrary in libraryProvider.libraries.where(
-                  (schoolLibrary) => schoolLibrary.active,
-                ))
-                  DropdownMenuItem(
-                    value: schoolLibrary.id,
-                    child: Text(schoolLibrary.name),
+      body: CenteredBody(
+        child: RefreshIndicator(
+          onRefresh: _load,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              DropdownButtonFormField<String?>(
+                initialValue: _libraryId,
+                decoration: const InputDecoration(labelText: 'Library'),
+                items: [
+                  const DropdownMenuItem(child: Text('All libraries')),
+                  for (final schoolLibrary in libraryProvider.libraries.where(
+                    (schoolLibrary) => schoolLibrary.active,
+                  ))
+                    DropdownMenuItem(
+                      value: schoolLibrary.id,
+                      child: Text(schoolLibrary.name),
+                    ),
+                ],
+                onChanged: (value) {
+                  _libraryId = value;
+                  _load();
+                },
+              ),
+              const SizedBox(height: 16),
+              if (libraryProvider.insightsLoading && tiles.isEmpty)
+                const Center(child: CircularProgressIndicator())
+              else if (tiles.isEmpty)
+                Center(
+                  child: Text(
+                    libraryProvider.errorMessage ?? 'Nothing to show',
                   ),
-              ],
-              onChanged: (value) {
-                _libraryId = value;
-                _load();
-              },
-            ),
-            const SizedBox(height: 16),
-            if (libraryProvider.insightsLoading && tiles.isEmpty)
-              const Center(child: CircularProgressIndicator())
-            else if (tiles.isEmpty)
-              Center(
-                child: Text(libraryProvider.errorMessage ?? 'Nothing to show'),
-              )
-            else
-              StatTileGrid(tiles: tiles),
-          ],
+                )
+              else
+                StatTileGrid(tiles: tiles),
+            ],
+          ),
         ),
       ),
     );

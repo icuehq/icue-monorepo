@@ -3,7 +3,6 @@ import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:inventory/inventory.dart';
-import 'package:inventory/src/ui/shared/widgets/form_section_card.dart';
 import 'package:provider/provider.dart';
 
 class ItemDetailsPage extends StatefulWidget {
@@ -146,262 +145,269 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
             ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        children: [
-          // Hero Header Card
-          Card(
-            elevation: 0,
-            margin: const EdgeInsets.only(bottom: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-              side: BorderSide(
-                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+      body: CenteredBody(
+        maxWidth: 900,
+        child: ListView(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          children: [
+            // Hero Header Card
+            Card(
+              elevation: 0,
+              margin: const EdgeInsets.only(bottom: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+                side: BorderSide(
+                  color: theme.colorScheme.outlineVariant.withValues(
+                    alpha: 0.5,
+                  ),
+                ),
               ),
-            ),
-            color: theme.colorScheme.surface,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: item.active
-                              ? theme.colorScheme.primaryContainer.withValues(
-                                  alpha: 0.6,
-                                )
-                              : theme.colorScheme.surfaceContainerHighest,
-                          borderRadius: BorderRadius.circular(12),
+              color: theme.colorScheme.surface,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: item.active
+                                ? theme.colorScheme.primaryContainer.withValues(
+                                    alpha: 0.6,
+                                  )
+                                : theme.colorScheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            _trackingIcon(item.tracking),
+                            size: 26,
+                            color: item.active
+                                ? theme.colorScheme.primary
+                                : theme.colorScheme.onSurfaceVariant,
+                          ),
                         ),
-                        child: Icon(
-                          _trackingIcon(item.tracking),
-                          size: 26,
-                          color: item.active
-                              ? theme.colorScheme.primary
-                              : theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              item.name,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 18,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 6,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 3,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: theme
-                                        .colorScheme
-                                        .surfaceContainerHighest
-                                        .withValues(alpha: 0.6),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        Icons.qr_code_2_outlined,
-                                        size: 14,
-                                        color: theme.colorScheme.onSurface,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        item.code,
-                                        style: theme.textTheme.labelSmall
-                                            ?.copyWith(
-                                              fontWeight: FontWeight.w600,
-                                              fontFamily: 'monospace',
-                                            ),
-                                      ),
-                                    ],
-                                  ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                item.name,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 18,
                                 ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 3,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: item.active
-                                        ? theme.colorScheme.primaryContainer
-                                              .withValues(alpha: 0.5)
-                                        : theme.colorScheme.errorContainer
-                                              .withValues(alpha: 0.5),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    item.active ? 'Active' : 'Inactive',
-                                    style: theme.textTheme.labelSmall?.copyWith(
-                                      color: item.active
-                                          ? theme.colorScheme.primary
-                                          : theme.colorScheme.error,
-                                      fontWeight: FontWeight.w600,
+                              ),
+                              const SizedBox(height: 6),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 6,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: theme
+                                          .colorScheme
+                                          .surfaceContainerHighest
+                                          .withValues(alpha: 0.6),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.qr_code_2_outlined,
+                                          size: 14,
+                                          color: theme.colorScheme.onSurface,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          item.code,
+                                          style: theme.textTheme.labelSmall
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.w600,
+                                                fontFamily: 'monospace',
+                                              ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                ),
-                              ],
-                            ),
-                          ],
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: item.active
+                                          ? theme.colorScheme.primaryContainer
+                                                .withValues(alpha: 0.5)
+                                          : theme.colorScheme.errorContainer
+                                                .withValues(alpha: 0.5),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      item.active ? 'Active' : 'Inactive',
+                                      style: theme.textTheme.labelSmall
+                                          ?.copyWith(
+                                            color: item.active
+                                                ? theme.colorScheme.primary
+                                                : theme.colorScheme.error,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
+                      ],
+                    ),
+                    if (canEdit) ...[
+                      const Divider(height: 24),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                        title: const Text(
+                          'Active in catalog',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        subtitle: Text(
+                          item.active
+                              ? 'Available for purchase requests and stock issuance'
+                              : 'Hidden from new requests and purchases',
+                          style: TextStyle(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontSize: 12,
+                          ),
+                        ),
+                        value: item.active,
+                        onChanged: (value) async {
+                          if (await inventoryProvider.setItemActive(
+                            item.id,
+                            active: value,
+                          )) {
+                            await _load();
+                          } else if (context.mounted) {
+                            showMessage(
+                              context,
+                              inventoryProvider.errorMessage ?? 'Failed',
+                            );
+                          }
+                        },
                       ),
                     ],
-                  ),
-                  if (canEdit) ...[
-                    const Divider(height: 24),
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      dense: true,
-                      title: const Text(
-                        'Active in catalog',
-                        style: TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      subtitle: Text(
-                        item.active
-                            ? 'Available for purchase requests and stock issuance'
-                            : 'Hidden from new requests and purchases',
-                        style: TextStyle(
-                          color: theme.colorScheme.onSurfaceVariant,
-                          fontSize: 12,
-                        ),
-                      ),
-                      value: item.active,
-                      onChanged: (value) async {
-                        if (await inventoryProvider.setItemActive(
-                          item.id,
-                          active: value,
-                        )) {
-                          await _load();
-                        } else if (context.mounted) {
-                          showMessage(
-                            context,
-                            inventoryProvider.errorMessage ?? 'Failed',
-                          );
-                        }
-                      },
-                    ),
                   ],
-                ],
+                ),
               ),
             ),
-          ),
 
-          // Classification & Units Section
-          FormSectionCard(
-            title: 'Classification & units',
-            icon: Icons.category_outlined,
-            children: [
-              _infoRow(
-                context,
-                icon: Icons.folder_outlined,
-                label: 'Category',
-                value: category?.name ?? '—',
-                helper: subcategory != null ? 'Sub: ${subcategory.name}' : null,
-              ),
-              _infoRow(
-                context,
-                icon: Icons.straighten_outlined,
-                label: 'Stock unit',
-                value: item.stockUnit,
-                helper: 'Base unit used for physical inventory and balances',
-              ),
-              _infoRow(
-                context,
-                icon: Icons.track_changes_outlined,
-                label: 'Tracking method',
-                value: item.tracking.label,
-                helper: switch (item.tracking) {
-                  Tracking.quantity =>
-                    'Tracked in bulk quantities without serialization',
-                  Tracking.batch =>
-                    'Tracked with batch numbers and expiration dates',
-                  Tracking.asset =>
-                    'Tracked as individual serialized capital assets',
-                },
-              ),
-            ],
-          ),
-
-          // Stock & Pricing Controls
-          FormSectionCard(
-            title: 'Stock & pricing parameters',
-            icon: Icons.tune_outlined,
-            children: [
-              _infoRow(
-                context,
-                icon: Icons.refresh_outlined,
-                label: 'Reorder alert level',
-                value: reorder != null
-                    ? '${reorder % 1 == 0 ? reorder.toInt() : reorder} ${item.stockUnit}'
-                    : 'Not configured',
-                helper: reorder != null
-                    ? 'Triggers restock alert when available stock is low'
-                    : 'Configure in edit item to enable low-stock alerts',
-              ),
-              _infoRow(
-                context,
-                icon: Icons.payments_outlined,
-                label: 'Default purchase price',
-                value: price != null
-                    ? '${price.toRupees()} / ${item.stockUnit}'
-                    : 'Not configured',
-                helper:
-                    'Estimated unit cost auto-filled on purchase requisitions',
-              ),
-            ],
-          ),
-
-          // Description Section (if available)
-          if (item.description != null && item.description!.trim().isNotEmpty)
+            // Classification & Units Section
             FormSectionCard(
-              title: 'Description & specifications',
-              icon: Icons.notes_outlined,
+              title: 'Classification & units',
+              icon: Icons.category_outlined,
               children: [
-                Text(
-                  item.description!.trim(),
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    height: 1.5,
-                    color: theme.colorScheme.onSurface,
-                  ),
+                _infoRow(
+                  context,
+                  icon: Icons.folder_outlined,
+                  label: 'Category',
+                  value: category?.name ?? '—',
+                  helper: subcategory != null
+                      ? 'Sub: ${subcategory.name}'
+                      : null,
+                ),
+                _infoRow(
+                  context,
+                  icon: Icons.straighten_outlined,
+                  label: 'Stock unit',
+                  value: item.stockUnit,
+                  helper: 'Base unit used for physical inventory and balances',
+                ),
+                _infoRow(
+                  context,
+                  icon: Icons.track_changes_outlined,
+                  label: 'Tracking method',
+                  value: item.tracking.label,
+                  helper: switch (item.tracking) {
+                    Tracking.quantity =>
+                      'Tracked in bulk quantities without serialization',
+                    Tracking.batch =>
+                      'Tracked with batch numbers and expiration dates',
+                    Tracking.asset =>
+                      'Tracked as individual serialized capital assets',
+                  },
                 ),
               ],
             ),
 
-          const SizedBox(height: 8),
+            // Stock & Pricing Controls
+            FormSectionCard(
+              title: 'Stock & pricing parameters',
+              icon: Icons.tune_outlined,
+              children: [
+                _infoRow(
+                  context,
+                  icon: Icons.refresh_outlined,
+                  label: 'Reorder alert level',
+                  value: reorder != null
+                      ? '${reorder % 1 == 0 ? reorder.toInt() : reorder} ${item.stockUnit}'
+                      : 'Not configured',
+                  helper: reorder != null
+                      ? 'Triggers restock alert when available stock is low'
+                      : 'Configure in edit item to enable low-stock alerts',
+                ),
+                _infoRow(
+                  context,
+                  icon: Icons.payments_outlined,
+                  label: 'Default purchase price',
+                  value: price != null
+                      ? '${price.toRupees()} / ${item.stockUnit}'
+                      : 'Not configured',
+                  helper: 'Estimated unit cost auto-filled on purchase requisitions',
+                ),
+              ],
+            ),
 
-          // Action Buttons
-          OutlinedButton.icon(
-            onPressed: () => context.push(InventoryRoutes.inventoryStock),
-            icon: const Icon(Icons.stacked_bar_chart_outlined, size: 20),
-            label: const Text('View stock levels in stores'),
-            style: OutlinedButton.styleFrom(
-              minimumSize: const Size.fromHeight(46),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+            // Description Section (if available)
+            if (item.description != null && item.description!.trim().isNotEmpty)
+              FormSectionCard(
+                title: 'Description & specifications',
+                icon: Icons.notes_outlined,
+                children: [
+                  Text(
+                    item.description!.trim(),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      height: 1.5,
+                      color: theme.colorScheme.onSurface,
+                    ),
+                  ),
+                ],
+              ),
+
+            const SizedBox(height: 8),
+
+            // Action Buttons
+            OutlinedButton.icon(
+              onPressed: () => context.push(InventoryRoutes.inventoryStock),
+              icon: const Icon(Icons.stacked_bar_chart_outlined, size: 20),
+              label: const Text('View stock levels in stores'),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(46),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 24),
-        ],
+            const SizedBox(height: 24),
+          ],
+        ),
       ),
     );
   }

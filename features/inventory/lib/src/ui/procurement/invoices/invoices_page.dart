@@ -53,6 +53,11 @@ class _InvoicesPageState extends State<InvoicesPage> {
     super.dispose();
   }
 
+  Future<void> _openInvoice(InventoryInvoice invoice) async {
+    await showFormPage(context, () => InvoiceSheet(invoice: invoice));
+    if (mounted) await _load();
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -93,142 +98,169 @@ class _InvoicesPageState extends State<InvoicesPage> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // Search Bar
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search by invoice no., PO no. or vendor…',
-                prefixIcon: const Icon(Icons.search_rounded),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear_rounded),
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() {});
-                        },
-                      )
-                    : null,
-                isDense: true,
-                filled: true,
-                fillColor: theme.colorScheme.surfaceContainerHighest.withValues(
-                  alpha: 0.35,
+      body: CenteredBody(
+        child: Column(
+          children: [
+            // Search Bar
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'Search by invoice no., PO no. or vendor…',
+                  prefixIcon: const Icon(Icons.search_rounded),
+                  suffixIcon: _searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear_rounded),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() {});
+                          },
+                        )
+                      : null,
+                  isDense: true,
+                  filled: true,
+                  fillColor: theme.colorScheme.surfaceContainerHighest
+                      .withValues(alpha: 0.35),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none,
+                  ),
                 ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none,
-                ),
+                onChanged: (_) => setState(() {}),
               ),
-              onChanged: (_) => setState(() {}),
             ),
-          ),
 
-          // Horizontal Status Filter Chips
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                _buildFilterChip('all', 'All (${allInvoices.length})'),
-                const SizedBox(width: 8),
-                _buildFilterChip(
-                  'unpaid',
-                  'Unpaid (${allInvoices.where((i) => i.isUnpaid).length})',
-                ),
-                const SizedBox(width: 8),
-                _buildFilterChip(
-                  'partially_paid',
-                  'Partially Paid (${allInvoices.where((i) => i.paymentStatus == "partially_paid").length})',
-                ),
-                const SizedBox(width: 8),
-                _buildFilterChip(
-                  'paid',
-                  'Paid (${allInvoices.where((i) => i.paymentStatus == "paid").length})',
-                ),
-                const SizedBox(width: 8),
-                _buildFilterChip(
-                  'overdue',
-                  'Overdue (${allInvoices.where((i) => i.statusOn(_today) == "overdue").length})',
-                ),
-                const SizedBox(width: 8),
-                _buildFilterChip(
-                  'cancelled',
-                  'Cancelled (${allInvoices.where((i) => i.isCancelled).length})',
-                ),
-              ],
+            // Horizontal Status Filter Chips
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  _buildFilterChip('all', 'All (${allInvoices.length})'),
+                  const SizedBox(width: 8),
+                  _buildFilterChip(
+                    'unpaid',
+                    'Unpaid (${allInvoices.where((i) => i.isUnpaid).length})',
+                  ),
+                  const SizedBox(width: 8),
+                  _buildFilterChip(
+                    'partially_paid',
+                    'Partially Paid (${allInvoices.where((i) => i.paymentStatus == "partially_paid").length})',
+                  ),
+                  const SizedBox(width: 8),
+                  _buildFilterChip(
+                    'paid',
+                    'Paid (${allInvoices.where((i) => i.paymentStatus == "paid").length})',
+                  ),
+                  const SizedBox(width: 8),
+                  _buildFilterChip(
+                    'overdue',
+                    'Overdue (${allInvoices.where((i) => i.statusOn(_today) == "overdue").length})',
+                  ),
+                  const SizedBox(width: 8),
+                  _buildFilterChip(
+                    'cancelled',
+                    'Cancelled (${allInvoices.where((i) => i.isCancelled).length})',
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          const Divider(height: 1),
+            const SizedBox(height: 8),
+            const Divider(height: 1),
 
-          // Invoices List
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: _load,
-              child: procurementProvider.isLoading && allInvoices.isEmpty
-                  ? const Center(child: CircularProgressIndicator())
-                  : shown.isEmpty
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(32),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.receipt_outlined,
-                              size: 56,
-                              color: theme.colorScheme.outline,
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              query.isNotEmpty
-                                  ? 'No invoices matching "$query"'
-                                  : _selectedStatus == 'all'
-                                  ? 'No vendor invoices recorded'
-                                  : 'No $_selectedStatus invoices',
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Record vendor invoices directly against purchase orders once received.',
-                              style: theme.textTheme.bodySmall?.copyWith(
+            // Invoices List
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _load,
+                child: procurementProvider.isLoading && allInvoices.isEmpty
+                    ? const Center(child: CircularProgressIndicator())
+                    : shown.isEmpty
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(32),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.receipt_outlined,
+                                size: 56,
                                 color: theme.colorScheme.outline,
                               ),
-                              textAlign: TextAlign.center,
+                              const SizedBox(height: 12),
+                              Text(
+                                query.isNotEmpty
+                                    ? 'No invoices matching "$query"'
+                                    : _selectedStatus == 'all'
+                                    ? 'No vendor invoices recorded'
+                                    : 'No $_selectedStatus invoices',
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Record vendor invoices directly against purchase orders once received.',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.outline,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    : AdaptiveList<InventoryInvoice>(
+                        items: shown,
+                        onTap: _openInvoice,
+                        columns: [
+                          AdaptiveColumn.text(
+                            'Invoice',
+                            (invoice) => invoice.invoiceNumber,
+                          ),
+                          AdaptiveColumn.text(
+                            'Vendor',
+                            (invoice) => procurementProvider.vendorName(
+                              invoice.vendorId,
                             ),
-                          ],
+                            flex: 2,
+                          ),
+                          AdaptiveColumn.text(
+                            'Order',
+                            (invoice) => invoice.purchaseOrderNumber,
+                          ),
+                          AdaptiveColumn.text(
+                            'Dated',
+                            (invoice) => invoice.invoiceDate.toDisplayDay(),
+                          ),
+                          AdaptiveColumn.text(
+                            'Total',
+                            (invoice) => invoice.total.toRupees(),
+                          ),
+                          AdaptiveColumn.text(
+                            'Outstanding',
+                            (invoice) => invoice.outstanding.toRupees(),
+                          ),
+                          AdaptiveColumn.text(
+                            'Payment',
+                            (invoice) => humanizeStatus(invoice.paymentStatus),
+                          ),
+                        ],
+                        cardBuilder: (context, invoice) => Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
+                          child: InvoiceCard(
+                            invoice: invoice,
+                            vendorName: procurementProvider.vendorName(
+                              invoice.vendorId,
+                            ),
+                            onTap: () => _openInvoice(invoice),
+                          ),
                         ),
                       ),
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: shown.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        final invoice = shown[index];
-                        return InvoiceCard(
-                          invoice: invoice,
-                          vendorName: procurementProvider.vendorName(
-                            invoice.vendorId,
-                          ),
-                          onTap: () async {
-                            await showFormPage(
-                              context,
-                              () => InvoiceSheet(invoice: invoice),
-                            );
-                            if (mounted) await _load();
-                          },
-                        );
-                      },
-                    ),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

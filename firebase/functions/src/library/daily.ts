@@ -9,7 +9,6 @@ import { memberTo } from './notify';
 /** Daily library job (architecture §5.2): the FRS 11.17 date-driven notifications. Posting an existing key is a no-op, so reruns are safe. */
 
 const DUE_SOON_DAYS = 2;
-const MEMBERSHIP_DAYS = 7;
 
 export async function runDailyLibrary(schoolId: string, today = todayIST()): Promise<void> {
   const db = getFirestore();
@@ -44,27 +43,6 @@ export async function runDailyLibrary(schoolId: string, today = todayIST()): Pro
       body: `${loan.accessionNumber} was due on ${timestampDay(loan.dueDate)}. Please return it.`,
       data: { loanId: snapshot.id },
     });
-  }
-
-  const ending = await collection('libraryMembers')
-    .where('status', '==', 'active')
-    .where('end', '>=', dayTimestamp(today))
-    .where('end', '<=', dayTimestamp(addDays(today, MEMBERSHIP_DAYS)))
-    .get();
-  for (const snapshot of ending.docs) {
-    const member = snapshot.data();
-    await post(
-      db,
-      schoolId,
-      `library-member-expiring__${snapshot.id}__${timestampDay(member.end)}`,
-      {
-        to: memberTo(member.memberType, member.personErpId),
-        category: 'library.member',
-        title: 'Library membership ending',
-        body: `The membership ends on ${timestampDay(member.end)}.`,
-        data: { memberId: snapshot.id },
-      },
-    );
   }
 
   const holds = await collection('libraryReservations')

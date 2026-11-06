@@ -93,93 +93,96 @@ class _IssueReturnPageState extends State<IssueReturnPage> {
 
     return Scaffold(
       appBar: AppBar(title: Text('Return · ${issue.number}')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Text(
-            'Count what came back and split it between usable stock and damaged goods.',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+      body: CenteredBody(
+        maxWidth: 900,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            Text(
+              'Count what came back and split it between usable stock and damaged goods.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-          for (final (index, line) in issue.lineItems.indexed)
-            if (line.outstanding > 0)
-              IssueSection(
-                title: stockProvider.itemName(line.itemId),
-                trailing: Text(
-                  '${line.outstanding.toQuantityText()} to return',
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: theme.colorScheme.error,
-                    fontWeight: FontWeight.w700,
+            const SizedBox(height: 12),
+            for (final (index, line) in issue.lineItems.indexed)
+              if (line.outstanding > 0)
+                IssueSection(
+                  title: stockProvider.itemName(line.itemId),
+                  trailing: Text(
+                    '${line.outstanding.toQuantityText()} to return',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: theme.colorScheme.error,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (line.batchNumber != null)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Text(
-                          'Batch ${line.batchNumber}',
-                          style: theme.textTheme.bodySmall,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (line.batchNumber != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Text(
+                            'Batch ${line.batchNumber}',
+                            style: theme.textTheme.bodySmall,
+                          ),
                         ),
-                      ),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _usable[index],
-                            keyboardType: decimalKeyboard,
-                            inputFormatters: numberInput,
-                            decoration: InputDecoration(
-                              labelText: 'Usable',
-                              isDense: true,
-                              suffixIcon: IconButton(
-                                icon: const Icon(Icons.done_all, size: 18),
-                                tooltip: 'All usable',
-                                onPressed: () {
-                                  _usable[index].text = line.outstanding
-                                      .toQuantityText();
-                                  _damaged[index].clear();
-                                },
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _usable[index],
+                              keyboardType: decimalKeyboard,
+                              inputFormatters: numberInput,
+                              decoration: InputDecoration(
+                                labelText: 'Usable',
+                                isDense: true,
+                                suffixIcon: IconButton(
+                                  icon: const Icon(Icons.done_all, size: 18),
+                                  tooltip: 'All usable',
+                                  onPressed: () {
+                                    _usable[index].text = line.outstanding
+                                        .toQuantityText();
+                                    _damaged[index].clear();
+                                  },
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: TextField(
-                            controller: _damaged[index],
-                            keyboardType: decimalKeyboard,
-                            inputFormatters: numberInput,
-                            decoration: const InputDecoration(
-                              labelText: 'Damaged',
-                              isDense: true,
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: TextField(
+                              controller: _damaged[index],
+                              keyboardType: decimalKeyboard,
+                              inputFormatters: numberInput,
+                              decoration: const InputDecoration(
+                                labelText: 'Damaged',
+                                isDense: true,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-          IssueSection(
-            title: 'Returned by',
-            child: returnedBy != null
-                ? InputChip(
-                    avatar: const Icon(Icons.person_rounded, size: 18),
-                    label: Text(staffDisplayName(returnedBy)),
-                    onDeleted: () => setState(() => _returnedBy = null),
-                  )
-                : PersonSearchField(
-                    label: 'Staff member',
-                    hint: 'Search by name or enter an ID…',
-                    onSelected: (person) =>
-                        setState(() => _returnedBy = person.id),
+                        ],
+                      ),
+                    ],
                   ),
-          ),
-        ],
+                ),
+            IssueSection(
+              title: 'Returned by',
+              child: returnedBy != null
+                  ? InputChip(
+                      avatar: const Icon(Icons.person_rounded, size: 18),
+                      label: Text(staffDisplayName(returnedBy)),
+                      onDeleted: () => setState(() => _returnedBy = null),
+                    )
+                  : PersonSearchField(
+                      label: 'Staff member',
+                      hint: 'Search by name or enter an ID…',
+                      onSelected: (person) =>
+                          setState(() => _returnedBy = person.id),
+                    ),
+            ),
+          ],
+        ),
       ),
       bottomNavigationBar: Material(
         elevation: 8,

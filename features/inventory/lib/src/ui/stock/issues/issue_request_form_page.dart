@@ -58,144 +58,147 @@ class _IssueRequestFormPageState extends State<IssueRequestFormPage> {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(title: const Text('New Issue Request')),
-      body: Form(
-        key: _form,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: theme.colorScheme.outlineVariant),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.storefront_rounded,
-                          size: 20,
-                          color: theme.colorScheme.primary,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Store & Purpose',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
+      body: CenteredBody(
+        maxWidth: 900,
+        child: Form(
+          key: _form,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(color: theme.colorScheme.outlineVariant),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.storefront_rounded,
+                            size: 20,
+                            color: theme.colorScheme.primary,
                           ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Store & Purpose',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      StoreDropdown(
+                        label: 'Issue from store',
+                        value: _store,
+                        onChanged: (value) => setState(() => _store = value),
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _purpose,
+                        decoration: const InputDecoration(
+                          labelText: 'Purpose',
+                          hintText:
+                              'e.g. Science lab experiments, Staff training',
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    StoreDropdown(
-                      label: 'Issue from store',
-                      value: _store,
-                      onChanged: (value) => setState(() => _store = value),
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _purpose,
-                      decoration: const InputDecoration(
-                        labelText: 'Purpose',
-                        hintText:
-                            'e.g. Science lab experiments, Staff training',
+                        validator: requiredText,
                       ),
-                      validator: requiredText,
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _destination,
-                      decoration: const InputDecoration(
-                        labelText: 'Destination / Department (optional)',
-                        hintText: 'e.g. Senior Chemistry Lab, Block B',
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _destination,
+                        decoration: const InputDecoration(
+                          labelText: 'Destination / Department (optional)',
+                          hintText: 'e.g. Senior Chemistry Lab, Block B',
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: theme.colorScheme.outlineVariant),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.checklist_rounded,
-                          size: 20,
-                          color: theme.colorScheme.primary,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Requested Items',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
+              const SizedBox(height: 16),
+              Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(color: theme.colorScheme.outlineVariant),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.checklist_rounded,
+                            size: 20,
+                            color: theme.colorScheme.primary,
                           ),
-                        ),
-                        const Spacer(),
-                        if (_lines.isNotEmpty)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
+                          const SizedBox(width: 8),
+                          Text(
+                            'Requested Items',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
                             ),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.primaryContainer,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              '${_lines.length} items',
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: theme.colorScheme.onPrimaryContainer,
-                                fontWeight: FontWeight.w600,
+                          ),
+                          const Spacer(),
+                          if (_lines.isNotEmpty)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primaryContainer,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '${_lines.length} items',
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: theme.colorScheme.onPrimaryContainer,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    LineEditor(
-                      lineItems: _lines,
-                      onChanged: () => setState(() {}),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            FilledButton.icon(
-              onPressed: _busy ? null : _save,
-              icon: _busy
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
+                        ],
                       ),
-                    )
-                  : const Icon(Icons.send_rounded),
-              label: Text(_busy ? 'Submitting…' : 'Submit Request'),
-              style: FilledButton.styleFrom(
-                minimumSize: const Size.fromHeight(48),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                      const SizedBox(height: 12),
+                      LineEditor(
+                        lineItems: _lines,
+                        onChanged: () => setState(() {}),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 24),
+              FilledButton.icon(
+                onPressed: _busy ? null : _save,
+                icon: _busy
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.send_rounded),
+                label: Text(_busy ? 'Submitting…' : 'Submit Request'),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(48),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

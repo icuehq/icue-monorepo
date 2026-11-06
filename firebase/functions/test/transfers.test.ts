@@ -7,7 +7,7 @@ import { reservations } from '../src/library/reservations';
 import { transfers } from '../src/library/transfers';
 import { verification } from '../src/library/verification';
 import { runCallable, type CallableDef } from '../src/shared/callable';
-import { seedLibrary, seedLibraryCategory } from './fixtures';
+import { seedLibrary, seedLibraryCategory, person } from './fixtures';
 import { clearFirestore, db } from './setup';
 
 const SCHOOL_ID = '12';
@@ -50,7 +50,7 @@ describe('library transfers and stock verification', () => {
     await db()
       .doc(`schools/${SCHOOL_ID}/userAccess/src`)
       .set({ permissions: ['library.catalogue'], campusIds: [31], hasAllCampuses: false });
-    const category = (await seedLibraryCategory({ code: 'GEN', name: 'General' })).id;
+    const category = (await seedLibraryCategory({ name: 'General' })).id;
     title = (
       await run(masters.catalogueUpsert, {
         title: 'Wings of Fire',
@@ -58,8 +58,8 @@ describe('library transfers and stock verification', () => {
         categoryId: category,
       })
     ).id;
-    mainLibrary = (await seedLibrary({ code: 'L1', name: 'Main', campusId: 31 })).id;
-    secondLibrary = (await seedLibrary({ code: 'L2', name: 'Branch', campusId: 32 })).id;
+    mainLibrary = (await seedLibrary({ name: 'Main', campusId: 31 })).id;
+    secondLibrary = (await seedLibrary({ name: 'Branch', campusId: 32 })).id;
     await run(copies.acquisitionCreate, {
       type: 'purchase',
       catalogueId: title,
@@ -125,7 +125,7 @@ describe('library transfers and stock verification', () => {
 
     await run(members.policyUpsert, {
       libraryId: mainLibrary,
-      memberCategory: 'primary',
+      memberType: 'student',
       name: 'P',
       maxBooks: 2,
       loanDays: 7,
@@ -136,15 +136,8 @@ describe('library transfers and stock verification', () => {
       maxFine: 50,
       canReserve: true,
     });
-    await run(members.memberUpsert, {
-      memberType: 'student',
-      personErpId: 501,
-      memberCategory: 'primary',
-      libraryIds: [mainLibrary],
-      start: '2020-01-01',
-    });
     await expect(
-      run(loans.loanIssue, { memberId: 'student_501', copyId: 'ACC-000001' }),
+      run(loans.loanIssue, { person: person('student_501'), copyId: 'ACC-000001' }),
     ).rejects.toThrow(/in_transit/);
 
     // only the destination campus may receive
@@ -225,7 +218,7 @@ describe('library transfers and stock verification', () => {
     await run(copies.copySetStatus, { id: 'ACC-000004', status: 'damaged', reason: 'x' });
     await run(members.policyUpsert, {
       libraryId: secondLibrary,
-      memberCategory: 'primary',
+      memberType: 'student',
       name: 'P',
       maxBooks: 2,
       loanDays: 7,
@@ -236,15 +229,8 @@ describe('library transfers and stock verification', () => {
       maxFine: 50,
       canReserve: true,
     });
-    await run(members.memberUpsert, {
-      memberType: 'student',
-      personErpId: 502,
-      memberCategory: 'primary',
-      libraryIds: [secondLibrary],
-      start: '2020-01-01',
-    });
     await run(reservations.reservationCreate, {
-      memberId: 'student_502',
+      person: person('student_502'),
       catalogueId: title,
       libraryId: secondLibrary,
     });
@@ -272,7 +258,7 @@ describe('library transfers and stock verification', () => {
       }); // ACC-000004 in L2
       await run(members.policyUpsert, {
         libraryId: mainLibrary,
-        memberCategory: 'primary',
+        memberType: 'student',
         name: 'P',
         maxBooks: 2,
         loanDays: 7,
@@ -283,14 +269,7 @@ describe('library transfers and stock verification', () => {
         maxFine: 50,
         canReserve: true,
       });
-      await run(members.memberUpsert, {
-        memberType: 'student',
-        personErpId: 501,
-        memberCategory: 'primary',
-        libraryIds: [mainLibrary],
-        start: '2020-01-01',
-      });
-      await run(loans.loanIssue, { memberId: 'student_501', copyId: 'ACC-000003' });
+      await run(loans.loanIssue, { person: person('student_501'), copyId: 'ACC-000003' });
 
       const session = await run(verification.verificationCreate, { libraryId: mainLibrary });
       expect(await get(`libraryVerifications/${session.id}`)).toMatchObject({

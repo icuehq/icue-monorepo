@@ -47,7 +47,7 @@ describe('library masters', () => {
       .doc(`schools/${SCHOOL_ID}/userAccess/2`)
       .set({ permissions: ['library.members.view'], campusIds: [31], hasAllCampuses: false });
     await run(masters.seedDefaults, {});
-    category = (await seedLibraryCategory({ code: 'GEN', name: 'General' })).id;
+    category = (await seedLibraryCategory({ name: 'General' })).id;
   });
 
   const book = (extra: Record<string, unknown> = {}) =>
@@ -126,7 +126,7 @@ describe('library masters', () => {
       const secondBook = await book({
         title: 'Ignited Minds',
         authors: ['Abdul Kalam'],
-        categoryId: (await seedLibraryCategory({ code: 'X', name: 'X' })).id,
+        categoryId: (await seedLibraryCategory({ name: 'X' })).id,
       });
       for (const catalogueBook of [firstBook, secondBook])
         await applyCatalogueChange(

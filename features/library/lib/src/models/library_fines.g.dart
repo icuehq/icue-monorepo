@@ -62,6 +62,7 @@ class LibraryFine {
     required this.memberId,
     required this.memberType,
     required this.personErpId,
+    this.memberName,
     required this.libraryId,
     required this.campusId,
     required this.type,
@@ -87,6 +88,7 @@ class LibraryFine {
         memberId: data['memberId'] as String? ?? '',
         memberType: data['memberType'] as String? ?? 'student',
         personErpId: (data['personErpId'] as num? ?? 0).toInt(),
+        memberName: data['memberName'] as String?,
         libraryId: data['libraryId'] as String? ?? '',
         campusId: (data['campusId'] as num? ?? 0).toInt(),
         type: data['type'] as String? ?? 'overdue',
@@ -120,6 +122,7 @@ class LibraryFine {
   final String memberId;
   final String memberType;
   final int personErpId;
+  final String? memberName;
   final String libraryId;
   final int campusId;
   final String type;

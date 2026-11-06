@@ -166,110 +166,113 @@ class _UnavailableResolvePageState extends State<UnavailableResolvePage> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Resolve Stock')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Card(
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: theme.colorScheme.outlineVariant),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    stockProvider.itemName(item.itemId),
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
+      body: CenteredBody(
+        maxWidth: 900,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: theme.colorScheme.outlineVariant),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      stockProvider.itemName(item.itemId),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Store: $storeName'
-                    '${item.batchNumber == null ? '' : ' · Batch ${item.batchNumber}'}',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                    const SizedBox(height: 4),
+                    Text(
+                      'Store: $storeName'
+                      '${item.batchNumber == null ? '' : ' · Batch ${item.batchNumber}'}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '${item.quantity.toQuantityText()} units · '
-                    '${humanizeStatus(item.bucket ?? item.reason)} · '
-                    '${humanizeStatus(item.status)}'
-                    '${item.createdAt == null ? '' : ' · ${item.createdAt!.toNumericDate()}'}',
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: theme.colorScheme.error,
-                    ),
-                  ),
-                  if (item.remarks != null && item.remarks!.isNotEmpty) ...[
                     const SizedBox(height: 8),
-                    Text(item.remarks!, style: theme.textTheme.bodySmall),
+                    Text(
+                      '${item.quantity.toQuantityText()} units · '
+                      '${humanizeStatus(item.bucket ?? item.reason)} · '
+                      '${humanizeStatus(item.status)}'
+                      '${item.createdAt == null ? '' : ' · ${item.createdAt!.toNumericDate()}'}',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: theme.colorScheme.error,
+                      ),
+                    ),
+                    if (item.remarks != null && item.remarks!.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(item.remarks!, style: theme.textTheme.bodySmall),
+                    ],
                   ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'What should happen to this stock?',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            RadioGroup<String>(
+              groupValue: _selected,
+              onChanged: (value) {
+                if (!_busy) setState(() => _selected = value);
+              },
+              child: Column(
+                children: [
+                  for (final choice in choices)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Card(
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          side: BorderSide(
+                            color: _selected == choice.key
+                                ? choice.color
+                                : theme.colorScheme.outlineVariant,
+                            width: _selected == choice.key ? 2 : 1,
+                          ),
+                        ),
+                        child: RadioListTile<String>(
+                          value: choice.key,
+                          secondary: Icon(choice.icon, color: choice.color),
+                          title: Text(
+                            choice.title,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          subtitle: Text(choice.subtitle),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            'What should happen to this stock?',
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w600,
+            const SizedBox(height: 12),
+            TextField(
+              controller: _remarks,
+              enabled: !_busy,
+              maxLength: 500,
+              maxLines: 3,
+              decoration: InputDecoration(
+                labelText: _selected == 'other'
+                    ? 'Resolution note (required)'
+                    : 'Resolution note (optional)',
+                hintText: 'e.g. Broken packaging replaced by supplier',
+                prefixIcon: const Icon(Icons.edit_note_rounded),
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          RadioGroup<String>(
-            groupValue: _selected,
-            onChanged: (value) {
-              if (!_busy) setState(() => _selected = value);
-            },
-            child: Column(
-              children: [
-                for (final choice in choices)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Card(
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        side: BorderSide(
-                          color: _selected == choice.key
-                              ? choice.color
-                              : theme.colorScheme.outlineVariant,
-                          width: _selected == choice.key ? 2 : 1,
-                        ),
-                      ),
-                      child: RadioListTile<String>(
-                        value: choice.key,
-                        secondary: Icon(choice.icon, color: choice.color),
-                        title: Text(
-                          choice.title,
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        subtitle: Text(choice.subtitle),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _remarks,
-            enabled: !_busy,
-            maxLength: 500,
-            maxLines: 3,
-            decoration: InputDecoration(
-              labelText: _selected == 'other'
-                  ? 'Resolution note (required)'
-                  : 'Resolution note (optional)',
-              hintText: 'e.g. Broken packaging replaced by supplier',
-              prefixIcon: const Icon(Icons.edit_note_rounded),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
       bottomNavigationBar: Material(
         elevation: 8,

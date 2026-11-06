@@ -216,38 +216,43 @@ class _VerificationPageState extends State<VerificationPage> {
           ),
         ),
       ),
-      body: insightsProvider.lineItems.isEmpty
-          ? Center(
-              child: insightsProvider.isLoading
-                  ? const CircularProgressIndicator()
-                  : Text(insightsProvider.errorMessage ?? 'No lines'),
-            )
-          : ListView(
-              children: [
-                ListTile(
-                  title: Text('${_v.storeName} · ${humanizeStatus(_v.status)}'),
-                  subtitle: Text(
-                    [
-                      if (_v.remarks != null) _v.remarks!,
-                      if (_v.approvalComment != null)
-                        'Reviewer: ${_v.approvalComment}',
-                    ].join('\n'),
-                  ),
-                ),
-                if (editable)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: ScanField(
-                      hint: 'Scan item code to count',
-                      clearOnScan: true,
-                      onScan: (value) =>
-                          _scanned(value, insightsProvider.lineItems),
+      body: CenteredBody(
+        maxWidth: 900,
+        child: insightsProvider.lineItems.isEmpty
+            ? Center(
+                child: insightsProvider.isLoading
+                    ? const CircularProgressIndicator()
+                    : Text(insightsProvider.errorMessage ?? 'No lines'),
+              )
+            : ListView(
+                children: [
+                  ListTile(
+                    title: Text(
+                      '${_v.storeName} · ${humanizeStatus(_v.status)}',
+                    ),
+                    subtitle: Text(
+                      [
+                        if (_v.remarks != null) _v.remarks!,
+                        if (_v.approvalComment != null)
+                          'Reviewer: ${_v.approvalComment}',
+                      ].join('\n'),
                     ),
                   ),
-                for (final verificationLine in insightsProvider.lineItems)
-                  _line(verificationLine, insightsProvider, editable),
-              ],
-            ),
+                  if (editable)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: ScanField(
+                        hint: 'Scan item code to count',
+                        clearOnScan: true,
+                        onScan: (value) =>
+                            _scanned(value, insightsProvider.lineItems),
+                      ),
+                    ),
+                  for (final verificationLine in insightsProvider.lineItems)
+                    _line(verificationLine, insightsProvider, editable),
+                ],
+              ),
+      ),
     );
   }
 

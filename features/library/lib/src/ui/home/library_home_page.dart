@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
+import 'package:school_library/src/ui/routing/library_destinations.dart';
 
 class LibraryHomePage extends StatefulWidget {
   const LibraryHomePage({super.key});
@@ -23,102 +24,7 @@ class _LibraryHomePageState extends State<LibraryHomePage> {
   @override
   Widget build(BuildContext context) {
     final libraryProvider = context.watch<LibraryProvider>();
-    final view = libraryProvider.access.can('library.catalogue');
-    final tiles = <(String, String, String, bool)>[
-      (
-        'assets/dashboard/library-dashboard.png',
-        'Dashboard',
-        LibraryRoutes.libraryDashboard,
-        view,
-      ),
-      (
-        'assets/dashboard/library-catalogue.png',
-        'Catalogue',
-        LibraryRoutes.libraryCatalogue,
-        view,
-      ),
-      (
-        'assets/dashboard/library-copies.png',
-        'Copies',
-        LibraryRoutes.libraryCopies,
-        libraryProvider.access.can('library.catalogue'),
-      ),
-      (
-        'assets/dashboard/library-categories.png',
-        'Categories',
-        LibraryRoutes.libraryCategories,
-        view,
-      ),
-      (
-        'assets/dashboard/library-libraries.png',
-        'Libraries',
-        LibraryRoutes.libraryList,
-        view,
-      ),
-      (
-        'assets/dashboard/library-circulation.png',
-        'Circulation',
-        LibraryRoutes.libraryCirculation,
-        libraryProvider.access.can('library.circulation.operate'),
-      ),
-      (
-        'assets/dashboard/library-reservations.png',
-        'Reservations',
-        LibraryRoutes.libraryReservations,
-        libraryProvider.access.can('library.circulation.operate'),
-      ),
-      (
-        'assets/dashboard/library-members.png',
-        'Members',
-        LibraryRoutes.libraryMembers,
-        libraryProvider.access.can('library.members.view'),
-      ),
-      (
-        'assets/dashboard/library-policies.png',
-        'Borrowing policies',
-        LibraryRoutes.libraryPolicies,
-        libraryProvider.access.can('library.members.view'),
-      ),
-      (
-        'assets/dashboard/library-fines.png',
-        'Fines & Penalties',
-        LibraryRoutes.libraryFines,
-        libraryProvider.access.can('library.circulation.operate') ||
-            libraryProvider.access.can('library.fines.waive'),
-      ),
-      (
-        'assets/dashboard/library-incidents.png',
-        'Lost & Damaged',
-        LibraryRoutes.libraryIncidents,
-        libraryProvider.access.can('library.circulation.operate'),
-      ),
-      (
-        'assets/dashboard/library-transfers.png',
-        'Transfers',
-        LibraryRoutes.libraryTransfers,
-        libraryProvider.access.can('library.catalogue'),
-      ),
-      (
-        'assets/dashboard/library-stock-verification.png',
-        'Stock verification',
-        LibraryRoutes.libraryVerification,
-        libraryProvider.access.can('library.catalogue'),
-      ),
-      (
-        'assets/dashboard/reports.png',
-        'Reports',
-        LibraryRoutes.libraryReports,
-        libraryProvider.access.can('library.reports.view'),
-      ),
-      (
-        'assets/dashboard/library-import.png',
-        'Import',
-        LibraryRoutes.libraryImport,
-        libraryProvider.access.can('library.catalogue') ||
-            libraryProvider.access.can('library.circulation.operate'),
-      ),
-    ];
-    final visibleTiles = tiles.where((tile) => tile.$4).toList();
+    final visibleTiles = libraryEntries(libraryProvider.access);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Library')),
@@ -168,10 +74,10 @@ class _LibraryHomePageState extends State<LibraryHomePage> {
                   itemBuilder: (context, index) {
                     final item = visibleTiles[index];
                     return OptionGridCard(
-                      title: item.$2,
-                      iconAsset: item.$1,
+                      title: item.label,
+                      iconAsset: item.iconAsset,
                       iconSize: iconSize,
-                      onTap: () => context.push(item.$3),
+                      onTap: () => context.push(item.path),
                     );
                   },
                 );

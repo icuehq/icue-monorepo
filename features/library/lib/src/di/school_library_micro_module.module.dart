@@ -8,7 +8,10 @@
 import 'dart:async' as _i687;
 
 import 'package:injectable/injectable.dart' as _i526;
+import 'package:routes/routes.dart' as _i678;
 import 'package:school_library/src/providers/library_provider.dart' as _i1039;
+import 'package:school_library/src/services/library_people_service.dart'
+    as _i988;
 import 'package:school_library/src/services/library_service.dart' as _i904;
 
 class SchoolLibraryPackageModule extends _i526.MicroPackageModule {
@@ -16,8 +19,14 @@ class SchoolLibraryPackageModule extends _i526.MicroPackageModule {
   @override
   _i687.FutureOr<void> init(_i526.GetItHelper gh) {
     gh.lazySingleton<_i904.LibraryService>(() => _i904.LibraryService());
+    gh.lazySingleton<_i988.LibraryPeopleService>(
+      () => _i988.LibraryPeopleService(gh<_i678.RouteService>()),
+    );
     gh.lazySingleton<_i1039.LibraryProvider>(
-      () => _i1039.LibraryProvider(gh<_i904.LibraryService>()),
+      () => _i1039.LibraryProvider(
+        gh<_i904.LibraryService>(),
+        gh<_i988.LibraryPeopleService>(),
+      ),
     );
   }
 }

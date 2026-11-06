@@ -162,6 +162,7 @@ abstract final class LibraryLoanFields {
   static const memberId = 'memberId';
   static const memberType = 'memberType';
   static const personErpId = 'personErpId';
+  static const memberName = 'memberName';
   static const copyId = 'copyId';
   static const accessionNumber = 'accessionNumber';
   static const catalogueId = 'catalogueId';

@@ -1,7 +1,6 @@
 import 'package:admin_ui/admin_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:inventory/inventory.dart';
-import 'package:inventory/src/ui/shared/widgets/form_section_card.dart';
 import 'package:inventory/src/ui/shared/widgets/person_search_field.dart';
 import 'package:provider/provider.dart';
 
@@ -81,125 +80,130 @@ class _StoreFormPageState extends State<StoreFormPage> {
     }
     return Scaffold(
       appBar: AppBar(title: Text(editing ? 'Edit store' : 'Add store')),
-      body: Form(
-        key: _form,
-        child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-          children: [
-            FormSectionCard(
-              title: 'Store Details',
-              icon: Icons.store_outlined,
-              children: [
-                TextFormField(
-                  controller: _name,
-                  textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: 'Store name *',
-                    hintText: 'e.g. Central Science Lab Store',
-                    prefixIcon: Icon(Icons.badge_outlined, size: 20),
-                  ),
-                  validator: requiredText,
-                ),
-                if (campuses.length > 1)
-                  DropdownButtonFormField<int>(
-                    initialValue: _campus,
+      body: CenteredBody(
+        maxWidth: Breakpoints.formMaxWidth,
+        child: Form(
+          key: _form,
+          child: ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            children: [
+              FormSectionCard(
+                title: 'Store Details',
+                icon: Icons.store_outlined,
+                children: [
+                  TextFormField(
+                    controller: _name,
+                    textInputAction: TextInputAction.next,
                     decoration: const InputDecoration(
-                      labelText: 'Campus *',
-                      prefixIcon: Icon(Icons.school_outlined, size: 20),
+                      labelText: 'Store name *',
+                      hintText: 'e.g. Central Science Lab Store',
+                      prefixIcon: Icon(Icons.badge_outlined, size: 20),
                     ),
-                    items: [
-                      for (final value in campuses)
-                        DropdownMenuItem(
-                          value: value,
-                          child: Text('Campus $value'),
-                        ),
-                    ],
-                    onChanged: editing ? null : (value) => _campus = value,
-                    validator: (value) => value == null ? 'Required' : null,
+                    validator: requiredText,
                   ),
-                TextFormField(
-                  controller: _location,
-                  textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: 'Location',
-                    hintText: 'Building, floor or room number',
-                    prefixIcon: Icon(Icons.place_outlined, size: 20),
-                  ),
-                ),
-                TextFormField(
-                  controller: _description,
-                  maxLines: 3,
-                  minLines: 1,
-                  textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: 'Description',
-                    hintText: 'Optional notes or purpose of the store',
-                    prefixIcon: Icon(Icons.description_outlined, size: 20),
-                  ),
-                ),
-              ],
-            ),
-            FormSectionCard(
-              title: 'Store Keepers',
-              icon: Icons.people_outline,
-              children: [
-                if (_storekeeperIds.isNotEmpty) ...[
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final staffId in _storekeeperIds)
-                        Chip(
-                          avatar: const CircleAvatar(
-                            child: Icon(Icons.person_outline, size: 16),
+                  if (campuses.length > 1)
+                    DropdownButtonFormField<int>(
+                      initialValue: _campus,
+                      decoration: const InputDecoration(
+                        labelText: 'Campus *',
+                        prefixIcon: Icon(Icons.school_outlined, size: 20),
+                      ),
+                      items: [
+                        for (final value in campuses)
+                          DropdownMenuItem(
+                            value: value,
+                            child: Text('Campus $value'),
                           ),
-                          label: Text(staffDisplayName(staffId)),
-                          deleteIcon: const Icon(Icons.close, size: 16),
-                          onDeleted: () =>
-                              setState(() => _storekeeperIds.remove(staffId)),
-                        ),
-                    ],
+                      ],
+                      onChanged: editing ? null : (value) => _campus = value,
+                      validator: (value) => value == null ? 'Required' : null,
+                    ),
+                  TextFormField(
+                    controller: _location,
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(
+                      labelText: 'Location',
+                      hintText: 'Building, floor or room number',
+                      prefixIcon: Icon(Icons.place_outlined, size: 20),
+                    ),
                   ),
-                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _description,
+                    maxLines: 3,
+                    minLines: 1,
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(
+                      labelText: 'Description',
+                      hintText: 'Optional notes or purpose of the store',
+                      prefixIcon: Icon(Icons.description_outlined, size: 20),
+                    ),
+                  ),
                 ],
-                PersonSearchField(
-                  label: 'Add storekeeper',
-                  hint: 'Search staff by name or ID…',
-                  exclude: _storekeeperIds,
-                  clearOnSelect: true,
-                  onSelected: (staff) =>
-                      setState(() => _storekeeperIds.add(staff.id)),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: FilledButton.icon(
-                onPressed: _busy ? null : _save,
-                icon: _busy
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.check_circle_outline, size: 20),
-                label: Text(
-                  _busy ? 'Saving…' : (editing ? 'Update store' : 'Save store'),
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+              ),
+              FormSectionCard(
+                title: 'Store Keepers',
+                icon: Icons.people_outline,
+                children: [
+                  if (_storekeeperIds.isNotEmpty) ...[
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final staffId in _storekeeperIds)
+                          Chip(
+                            avatar: const CircleAvatar(
+                              child: Icon(Icons.person_outline, size: 16),
+                            ),
+                            label: Text(staffDisplayName(staffId)),
+                            deleteIcon: const Icon(Icons.close, size: 16),
+                            onDeleted: () =>
+                                setState(() => _storekeeperIds.remove(staffId)),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  PersonSearchField(
+                    label: 'Add storekeeper',
+                    hint: 'Search staff by name or ID…',
+                    exclude: _storekeeperIds,
+                    clearOnSelect: true,
+                    onSelected: (staff) =>
+                        setState(() => _storekeeperIds.add(staff.id)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: FilledButton.icon(
+                  onPressed: _busy ? null : _save,
+                  icon: _busy
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.check_circle_outline, size: 20),
+                  label: Text(
+                    _busy
+                        ? 'Saving…'
+                        : (editing ? 'Update store' : 'Save store'),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 24),
-          ],
+              const SizedBox(height: 24),
+            ],
+          ),
         ),
       ),
     );

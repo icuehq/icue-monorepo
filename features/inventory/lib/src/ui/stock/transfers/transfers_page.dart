@@ -1,3 +1,4 @@
+import 'package:admin_ui/admin_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:inventory/inventory.dart';
@@ -86,100 +87,104 @@ class _TransfersPageState extends State<TransfersPage> {
               label: const Text('New Transfer'),
             )
           : null,
-      body: Column(
-        children: [
-          // Filter Chips
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              children: [
-                _buildFilterChip('all', 'All (${allTransfers.length})'),
-                const SizedBox(width: 8),
-                _buildFilterChip(
-                  'requested',
-                  'Requested (${allTransfers.where((t) => t.preDispatch).length})',
-                ),
-                const SizedBox(width: 8),
-                _buildFilterChip(
-                  'in_transit',
-                  'In Transit (${allTransfers.where((t) => t.inTransit).length})',
-                ),
-                const SizedBox(width: 8),
-                _buildFilterChip(
-                  'received',
-                  'Received (${allTransfers.where((t) => t.status == "received").length})',
-                ),
-              ],
+      body: CenteredBody(
+        maxWidth: 900,
+        child: Column(
+          children: [
+            // Filter Chips
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  _buildFilterChip('all', 'All (${allTransfers.length})'),
+                  const SizedBox(width: 8),
+                  _buildFilterChip(
+                    'requested',
+                    'Requested (${allTransfers.where((t) => t.preDispatch).length})',
+                  ),
+                  const SizedBox(width: 8),
+                  _buildFilterChip(
+                    'in_transit',
+                    'In Transit (${allTransfers.where((t) => t.inTransit).length})',
+                  ),
+                  const SizedBox(width: 8),
+                  _buildFilterChip(
+                    'received',
+                    'Received (${allTransfers.where((t) => t.status == "received").length})',
+                  ),
+                ],
+              ),
             ),
-          ),
-          const Divider(height: 1),
-          // Transfer list
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: _load,
-              child:
-                  !_loaded || (stockProvider.isLoading && allTransfers.isEmpty)
-                  ? const Center(child: CircularProgressIndicator())
-                  : filteredTransfers.isEmpty
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(32),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.local_shipping_outlined,
-                              size: 56,
-                              color: theme.colorScheme.outline,
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              stockProvider.errorMessage != null
-                                  ? 'Could not load transfers'
-                                  : _selectedFilter == 'all'
-                                  ? 'No stock transfers found'
-                                  : 'No transfers in this status',
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              stockProvider.errorMessage ??
-                                  (canOperate
-                                      ? 'Initiate a new transfer between stores to move stock.'
-                                      : 'Stock transfers will appear here once requested.'),
-                              style: theme.textTheme.bodySmall?.copyWith(
+            const Divider(height: 1),
+            // Transfer list
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _load,
+                child:
+                    !_loaded ||
+                        (stockProvider.isLoading && allTransfers.isEmpty)
+                    ? const Center(child: CircularProgressIndicator())
+                    : filteredTransfers.isEmpty
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(32),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.local_shipping_outlined,
+                                size: 56,
                                 color: theme.colorScheme.outline,
                               ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: filteredTransfers.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        final transfer = filteredTransfers[index];
-                        return TransferCard(
-                          transfer: transfer,
-                          fromStoreName: storeName(transfer.fromStoreId),
-                          toStoreName: storeName(transfer.toStoreId),
-                          getItemName: stockProvider.itemName,
-                          nextAction: transferNextAction(transfer, access),
-                          onTap: () => _open(
-                            '${InventoryRoutes.inventoryTransferDetail}?id=${transfer.id}',
+                              const SizedBox(height: 12),
+                              Text(
+                                stockProvider.errorMessage != null
+                                    ? 'Could not load transfers'
+                                    : _selectedFilter == 'all'
+                                    ? 'No stock transfers found'
+                                    : 'No transfers in this status',
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                stockProvider.errorMessage ??
+                                    (canOperate
+                                        ? 'Initiate a new transfer between stores to move stock.'
+                                        : 'Stock transfers will appear here once requested.'),
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.outline,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
                           ),
-                        );
-                      },
-                    ),
+                        ),
+                      )
+                    : ListView.separated(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: filteredTransfers.length,
+                        separatorBuilder: (_, _) => const SizedBox(height: 12),
+                        itemBuilder: (context, index) {
+                          final transfer = filteredTransfers[index];
+                          return TransferCard(
+                            transfer: transfer,
+                            fromStoreName: storeName(transfer.fromStoreId),
+                            toStoreName: storeName(transfer.toStoreId),
+                            getItemName: stockProvider.itemName,
+                            nextAction: transferNextAction(transfer, access),
+                            onTap: () => _open(
+                              '${InventoryRoutes.inventoryTransferDetail}?id=${transfer.id}',
+                            ),
+                          );
+                        },
+                      ),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

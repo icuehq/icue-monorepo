@@ -6,7 +6,7 @@ import { members } from '../src/library/members';
 import { reservations, runHoldExpiry } from '../src/library/reservations';
 import { runCallable, type CallableDef } from '../src/shared/callable';
 import { dayTimestamp } from '../src/shared/dates';
-import { seedLibrary, seedLibraryCategory } from './fixtures';
+import { seedLibrary, seedLibraryCategory, person } from './fixtures';
 import { clearFirestore, db } from './setup';
 
 const SCHOOL_ID = '12';
@@ -20,24 +20,16 @@ const run = (definition: CallableDef<any, any>, data: Record<string, unknown>, u
   );
 const get = async (path: string) => (await db().doc(`schools/${SCHOOL_ID}/${path}`).get()).data();
 const set = (path: string, data: Record<string, unknown>) =>
-  db().doc(`schools/${SCHOOL_ID}/${path}`).update(data);
+  db().doc(`schools/${SCHOOL_ID}/${path}`).set(data, { merge: true });
 const day = (offset: number) =>
   new Date(Date.now() + 330 * 60_000 + offset * 86_400_000).toISOString().slice(0, 10);
 
 describe('library reservations', () => {
   let mainLibrary: string, title: string;
   const reserve = (memberId: string) =>
-    run(reservations.reservationCreate, { memberId, catalogueId: title, libraryId: mainLibrary });
-  const enrol = (personErpId: number) =>
-    run(members.memberUpsert, {
-      memberType: 'student',
-      personErpId,
-      memberCategory: 'primary',
-      libraryIds: [mainLibrary],
-      start: '2020-01-01',
-    });
+    run(reservations.reservationCreate, { person: person(memberId), catalogueId: title, libraryId: mainLibrary });
   const issue = (memberId: string, copyId = 'ACC-000001') =>
-    run(loans.loanIssue, { memberId, copyId });
+    run(loans.loanIssue, { person: person(memberId), copyId });
 
   beforeEach(async () => {
     await clearFirestore();
@@ -59,7 +51,7 @@ describe('library reservations', () => {
         campusIds: [99],
         hasAllCampuses: false,
       });
-    const category = (await seedLibraryCategory({ code: 'GEN', name: 'General' })).id;
+    const category = (await seedLibraryCategory({ name: 'General' })).id;
     title = (
       await run(masters.catalogueUpsert, {
         title: 'Wings of Fire',
@@ -67,7 +59,7 @@ describe('library reservations', () => {
         categoryId: category,
       })
     ).id;
-    mainLibrary = (await seedLibrary({ code: 'L1', name: 'Main', campusId: 31 })).id;
+    mainLibrary = (await seedLibrary({ name: 'Main', campusId: 31 })).id;
     await run(copies.acquisitionCreate, {
       type: 'donation',
       catalogueId: title,
@@ -76,7 +68,7 @@ describe('library reservations', () => {
     });
     await run(members.policyUpsert, {
       libraryId: mainLibrary,
-      memberCategory: 'primary',
+      memberType: 'student',
       name: 'Primary',
       maxBooks: 2,
       loanDays: 7,
@@ -84,7 +76,6 @@ describe('library reservations', () => {
       fineType: 'none',
       canReserve: true,
     });
-    for (const erpId of [501, 502, 503]) await enrol(erpId);
     await issue('student_501');
   });
 
@@ -133,13 +124,13 @@ describe('library reservations', () => {
     await expect(
       run(
         reservations.reservationCreate,
-        { memberId: 'student_503', catalogueId: title, libraryId: mainLibrary },
+        { person: person('student_503'), catalogueId: title, libraryId: mainLibrary },
         '2',
       ),
     ).rejects.toMatchObject({ code: 'permission-denied' });
-    await set(`libraryBorrowingPolicies/${mainLibrary}_primary`, { canReserve: false });
+    await set(`libraryBorrowingPolicies/${mainLibrary}_student`, { canReserve: false });
     await expect(reserve('student_503')).rejects.toMatchObject({ code: 'failed-precondition' });
-    await set(`libraryBorrowingPolicies/${mainLibrary}_primary`, { canReserve: true });
+    await set(`libraryBorrowingPolicies/${mainLibrary}_student`, { canReserve: true });
     await set('libraryMembers/student_503', { blocked: true });
     await expect(reserve('student_503')).rejects.toMatchObject({ code: 'failed-precondition' });
     await set('libraryMembers/student_503', { blocked: false });

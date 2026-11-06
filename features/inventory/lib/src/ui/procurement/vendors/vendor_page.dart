@@ -59,60 +59,63 @@ class VendorPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(vendor.name)),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Row(
-            children: [
-              Chip(
-                label: Text(vendor.active ? 'Active' : 'Inactive'),
-                visualDensity: VisualDensity.compact,
-                backgroundColor: vendor.active
-                    ? Colors.green.withValues(alpha: 0.15)
-                    : theme.colorScheme.errorContainer,
-              ),
-            ],
-          ),
-          if (!vendor.active)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text(
-                'Inactive vendors cannot be chosen on new quotations or orders.',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.error,
-                ),
-              ),
-            ),
-          const SizedBox(height: 8),
-          row(
-            Icons.person_outline_rounded,
-            'Contact person',
-            vendor.contactPerson,
-          ),
-          row(Icons.phone_outlined, 'Phone', vendor.phone),
-          row(Icons.email_outlined, 'Email', vendor.email),
-          row(Icons.language_rounded, 'Website', vendor.website),
-          row(Icons.location_on_outlined, 'Address', vendor.address),
-          row(Icons.receipt_long_outlined, 'GST / Tax ID', vendor.taxNumber),
-          row(Icons.notes_rounded, 'Remarks', vendor.remarks),
-          if (categoryNames.isNotEmpty) ...[
-            const Divider(height: 28),
-            Text(
-              'Supplied categories',
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 6,
+      body: CenteredBody(
+        maxWidth: 900,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            Row(
               children: [
-                for (final name in categoryNames) Chip(label: Text(name)),
+                Chip(
+                  label: Text(vendor.active ? 'Active' : 'Inactive'),
+                  visualDensity: VisualDensity.compact,
+                  backgroundColor: vendor.active
+                      ? Colors.green.withValues(alpha: 0.15)
+                      : theme.colorScheme.errorContainer,
+                ),
               ],
             ),
+            if (!vendor.active)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  'Inactive vendors cannot be chosen on new quotations or orders.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.error,
+                  ),
+                ),
+              ),
+            const SizedBox(height: 8),
+            row(
+              Icons.person_outline_rounded,
+              'Contact person',
+              vendor.contactPerson,
+            ),
+            row(Icons.phone_outlined, 'Phone', vendor.phone),
+            row(Icons.email_outlined, 'Email', vendor.email),
+            row(Icons.language_rounded, 'Website', vendor.website),
+            row(Icons.location_on_outlined, 'Address', vendor.address),
+            row(Icons.receipt_long_outlined, 'GST / Tax ID', vendor.taxNumber),
+            row(Icons.notes_rounded, 'Remarks', vendor.remarks),
+            if (categoryNames.isNotEmpty) ...[
+              const Divider(height: 28),
+              Text(
+                'Supplied categories',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: [
+                  for (final name in categoryNames) Chip(label: Text(name)),
+                ],
+              ),
+            ],
           ],
-        ],
+        ),
       ),
       bottomNavigationBar: canEdit
           ? Material(

@@ -179,137 +179,140 @@ class _VendorFormPageState extends State<VendorFormPage> {
       },
       child: Scaffold(
         appBar: AppBar(title: Text(_editing ? 'Edit vendor' : 'New vendor')),
-        body: Form(
-          key: _form,
-          onChanged: () {
-            if (!_dirty) setState(() => _dirty = true);
-          },
-          child: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              TextFormField(
-                controller: _name,
-                maxLength: 120,
-                textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(
-                  labelText: 'Vendor name *',
-                  hintText: 'e.g. Apex Office Supplies Pvt Ltd',
-                  prefixIcon: Icon(Icons.business_rounded),
-                ),
-                validator: requiredText,
-              ),
-              section('Contact'),
-              TextFormField(
-                controller: _contact,
-                maxLength: 120,
-                textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(
-                  labelText: 'Contact person',
-                  prefixIcon: Icon(Icons.person_outline_rounded),
-                ),
-                validator: (value) => _maxLength(value, 120),
-              ),
-              const SizedBox(height: 4),
-              TextFormField(
-                controller: _phone,
-                keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
-                  labelText: 'Phone',
-                  hintText: 'e.g. +91 98765 43210',
-                  prefixIcon: Icon(Icons.phone_outlined),
-                ),
-                validator: (value) => _optional(
-                  value,
-                  30,
-                  pattern: _phonePattern,
-                  message: 'Enter a valid phone number',
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _email,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  hintText: 'sales@apexsupplies.com',
-                  prefixIcon: Icon(Icons.email_outlined),
-                ),
-                validator: (value) => _optional(
-                  value,
-                  200,
-                  pattern: _emailPattern,
-                  message: 'Enter a valid email address',
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _website,
-                keyboardType: TextInputType.url,
-                decoration: const InputDecoration(
-                  labelText: 'Website',
-                  hintText: 'www.apexsupplies.com',
-                  prefixIcon: Icon(Icons.language_rounded),
-                ),
-                validator: _validateWebsite,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _address,
-                maxLines: 2,
-                maxLength: 500,
-                decoration: const InputDecoration(
-                  labelText: 'Address',
-                  prefixIcon: Icon(Icons.location_on_outlined),
-                ),
-              ),
-              section('Tax'),
-              TextFormField(
-                controller: _tax,
-                maxLength: 40,
-                textCapitalization: TextCapitalization.characters,
-                decoration: const InputDecoration(
-                  labelText: 'GST / Tax ID',
-                  hintText: 'e.g. 29AAAAA0000A1Z5',
-                  prefixIcon: Icon(Icons.receipt_long_outlined),
-                ),
-              ),
-              section('Supplied categories'),
-              if (categories.isEmpty)
-                Text(
-                  'No categories yet. Add item categories first to map vendors to them.',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+        body: CenteredBody(
+          maxWidth: Breakpoints.formMaxWidth,
+          child: Form(
+            key: _form,
+            onChanged: () {
+              if (!_dirty) setState(() => _dirty = true);
+            },
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                TextFormField(
+                  controller: _name,
+                  maxLength: 120,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: const InputDecoration(
+                    labelText: 'Vendor name *',
+                    hintText: 'e.g. Apex Office Supplies Pvt Ltd',
+                    prefixIcon: Icon(Icons.business_rounded),
                   ),
-                )
-              else
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 6,
-                  children: [
-                    for (final category in categories)
-                      FilterChip(
-                        label: Text(category.name),
-                        selected: _categories.contains(category.id),
-                        onSelected: (selected) => setState(() {
-                          _dirty = true;
-                          selected
-                              ? _categories.add(category.id)
-                              : _categories.remove(category.id);
-                        }),
-                      ),
-                  ],
+                  validator: requiredText,
                 ),
-              section('Notes'),
-              TextFormField(
-                controller: _remarks,
-                maxLines: 3,
-                maxLength: 500,
-                decoration: const InputDecoration(
-                  labelText: 'Remarks (optional)',
-                  prefixIcon: Icon(Icons.notes_rounded),
+                section('Contact'),
+                TextFormField(
+                  controller: _contact,
+                  maxLength: 120,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: const InputDecoration(
+                    labelText: 'Contact person',
+                    prefixIcon: Icon(Icons.person_outline_rounded),
+                  ),
+                  validator: (value) => _maxLength(value, 120),
                 ),
-              ),
-            ],
+                const SizedBox(height: 4),
+                TextFormField(
+                  controller: _phone,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: 'Phone',
+                    hintText: 'e.g. +91 98765 43210',
+                    prefixIcon: Icon(Icons.phone_outlined),
+                  ),
+                  validator: (value) => _optional(
+                    value,
+                    30,
+                    pattern: _phonePattern,
+                    message: 'Enter a valid phone number',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _email,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    hintText: 'sales@apexsupplies.com',
+                    prefixIcon: Icon(Icons.email_outlined),
+                  ),
+                  validator: (value) => _optional(
+                    value,
+                    200,
+                    pattern: _emailPattern,
+                    message: 'Enter a valid email address',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _website,
+                  keyboardType: TextInputType.url,
+                  decoration: const InputDecoration(
+                    labelText: 'Website',
+                    hintText: 'www.apexsupplies.com',
+                    prefixIcon: Icon(Icons.language_rounded),
+                  ),
+                  validator: _validateWebsite,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _address,
+                  maxLines: 2,
+                  maxLength: 500,
+                  decoration: const InputDecoration(
+                    labelText: 'Address',
+                    prefixIcon: Icon(Icons.location_on_outlined),
+                  ),
+                ),
+                section('Tax'),
+                TextFormField(
+                  controller: _tax,
+                  maxLength: 40,
+                  textCapitalization: TextCapitalization.characters,
+                  decoration: const InputDecoration(
+                    labelText: 'GST / Tax ID',
+                    hintText: 'e.g. 29AAAAA0000A1Z5',
+                    prefixIcon: Icon(Icons.receipt_long_outlined),
+                  ),
+                ),
+                section('Supplied categories'),
+                if (categories.isEmpty)
+                  Text(
+                    'No categories yet. Add item categories first to map vendors to them.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  )
+                else
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    children: [
+                      for (final category in categories)
+                        FilterChip(
+                          label: Text(category.name),
+                          selected: _categories.contains(category.id),
+                          onSelected: (selected) => setState(() {
+                            _dirty = true;
+                            selected
+                                ? _categories.add(category.id)
+                                : _categories.remove(category.id);
+                          }),
+                        ),
+                    ],
+                  ),
+                section('Notes'),
+                TextFormField(
+                  controller: _remarks,
+                  maxLines: 3,
+                  maxLength: 500,
+                  decoration: const InputDecoration(
+                    labelText: 'Remarks (optional)',
+                    prefixIcon: Icon(Icons.notes_rounded),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         bottomNavigationBar: Material(

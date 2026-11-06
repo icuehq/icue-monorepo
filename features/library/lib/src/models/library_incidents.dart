@@ -15,5 +15,6 @@ extension LibraryIncidentMembers on LibraryIncident {
   bool get isOpen => status == 'open';
   String? get memberLabel => personErpId == null
       ? null
-      : '${memberType == 'student' ? 'Student' : 'Teacher'} #$personErpId';
+      : memberName ??
+            '${memberType == 'student' ? 'Student' : 'Teacher'} #$personErpId';
 }

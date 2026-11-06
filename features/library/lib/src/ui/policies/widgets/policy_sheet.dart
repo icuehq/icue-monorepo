@@ -20,9 +20,7 @@ class PolicySheet extends StatefulWidget {
 class _PolicySheetState extends State<PolicySheet> {
   final _form = GlobalKey<FormState>();
   final _requestId = newRequestId();
-  late final _category = TextEditingController(
-    text: widget.policy?.memberCategory,
-  );
+  late String? _type = widget.policy?.memberType;
   late final _name = TextEditingController(text: widget.policy?.name);
   late final _books = TextEditingController(
     text: widget.policy?.maxBooks.toString(),
@@ -56,7 +54,6 @@ class _PolicySheetState extends State<PolicySheet> {
   @override
   void dispose() {
     for (final controller in [
-      _category,
       _name,
       _books,
       _days,
@@ -85,7 +82,7 @@ class _PolicySheetState extends State<PolicySheet> {
       context,
       () => context.read<LibraryProvider>().savePolicy({
         'libraryId': _libraryId,
-        'memberCategory': _category.text.trim().toLowerCase(),
+        'memberType': _type,
         'name': _name.text.trim(),
         'maxBooks': int.parse(_books.text.trim()),
         'loanDays': int.parse(_days.text.trim()),
@@ -129,17 +126,15 @@ class _PolicySheetState extends State<PolicySheet> {
             onChanged: editing ? null : (value) => _libraryId = value,
             validator: (value) => value == null ? 'Required' : null,
           ),
-          TextFormField(
-            controller: _category,
-            enabled: !editing,
-            decoration: const InputDecoration(
-              labelText: 'Member category *',
-              helperText: 'e.g. primary, secondary, teacher',
-            ),
-            validator: (value) =>
-                RegExp(r'^[a-zA-Z0-9_-]{1,30}$').hasMatch(value?.trim() ?? '')
-                ? null
-                : 'Letters, digits, - or _',
+          DropdownButtonFormField<String>(
+            initialValue: _type,
+            decoration: const InputDecoration(labelText: 'Applies to *'),
+            items: const [
+              DropdownMenuItem(value: 'student', child: Text('Students')),
+              DropdownMenuItem(value: 'teacher', child: Text('Teachers')),
+            ],
+            onChanged: editing ? null : (value) => _type = value,
+            validator: (value) => value == null ? 'Required' : null,
           ),
           TextFormField(
             controller: _name,

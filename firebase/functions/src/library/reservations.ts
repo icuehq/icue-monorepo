@@ -13,7 +13,7 @@ import { nextNumber } from '../shared/keys';
 import { defineCallable, failed, id, missing, usable } from '../shared/masters';
 import { enqueue } from '../shared/outbox';
 import { forEachSchool } from '../shared/scheduled';
-import { ineligibleReason, policyId } from './members';
+import { ineligibleReason, memberId, personInput, policyId, writeBorrower } from './members';
 import { memberTo } from './notify';
 
 const DEFAULT_HOLD_DAYS = 3;
@@ -44,7 +44,6 @@ export async function nextWaiting(
   libraryId: string,
   count: number,
 ): Promise<DocumentSnapshot[]> {
-  const today = todayIST();
   const out: DocumentSnapshot[] = [];
   for (const snapshot of (await waitingQuery(context, catalogueId, libraryId, count + LOOKAHEAD))
     .docs) {
@@ -52,7 +51,7 @@ export async function nextWaiting(
     const member = (
       await context.transaction.get(context.doc(`libraryMembers/${snapshot.data().memberId}`))
     ).data();
-    if (member && !ineligibleReason(member, libraryId, today)) out.push(snapshot);
+    if (member && !ineligibleReason(member)) out.push(snapshot);
   }
   return out;
 }
@@ -125,25 +124,24 @@ export const reservations = {
   reservationCreate: defineCallable({
     name: 'library.reservation.create',
     permission: 'library.circulation.operate',
-    input: z.object({ memberId: id, catalogueId: id, libraryId: id }),
+    input: z.object({ person: personInput, catalogueId: id, libraryId: id }),
     handler: async (context, i) => {
-      const today = todayIST();
+      const memberKey = memberId(i.person.memberType, i.person.personErpId);
       const [snapshot, libraryDocument, category] = await Promise.all([
-        context.transaction.get(context.doc(`libraryMembers/${i.memberId}`)),
+        context.transaction.get(context.doc(`libraryMembers/${memberKey}`)),
         context.transaction.get(context.doc(`libraries/${i.libraryId}`)),
         context.transaction.get(context.doc(`libraryCatalogue/${i.catalogueId}`)),
       ]);
-      if (!snapshot.exists) throw missing('libraryMember');
-      const member = snapshot.data()!;
+      const member = snapshot.data();
       const library = usable(libraryDocument, 'Library', false);
       context.requireCampus(library.campusId);
       const title = usable(category, 'Title', false);
 
-      const ineligible = ineligibleReason(member, i.libraryId, today);
+      const ineligible = ineligibleReason(member);
       if (ineligible) throw failed(ineligible);
       const policy = (
         await context.transaction.get(
-          context.doc(`libraryBorrowingPolicies/${policyId(i.libraryId, member.memberCategory)}`),
+          context.doc(`libraryBorrowingPolicies/${policyId(i.libraryId, i.person.memberType)}`),
         )
       ).data();
       if (!policy || policy.status !== 'active')
@@ -155,7 +153,7 @@ export const reservations = {
       const live = await context.transaction.get(
         context
           .coll('libraryReservations')
-          .where('memberId', '==', snapshot.id)
+          .where('memberId', '==', memberKey)
           .where('catalogueId', '==', i.catalogueId)
           .where('status', 'in', ['waiting', 'ready'])
           .limit(1),
@@ -164,7 +162,7 @@ export const reservations = {
       const loans = await context.transaction.get(
         context
           .coll('libraryLoans')
-          .where('memberId', '==', snapshot.id)
+          .where('memberId', '==', memberKey)
           .where('catalogueId', '==', i.catalogueId)
           .where('status', '==', 'active')
           .limit(1),
@@ -184,9 +182,10 @@ export const reservations = {
       const number = await nextNumber(context, 'RSV');
       const after = {
         number,
-        memberId: snapshot.id,
-        memberType: member.memberType,
-        personErpId: member.personErpId,
+        memberId: memberKey,
+        memberType: i.person.memberType,
+        personErpId: i.person.personErpId,
+        memberName: i.person.name,
         catalogueId: i.catalogueId,
         title: title.title,
         libraryId: i.libraryId,
@@ -197,6 +196,7 @@ export const reservations = {
         fulfilledLoanId: null,
         fulfilledCopyId: null,
       };
+      writeBorrower(context, snapshot.ref, member, i.person, library.campusId, 0);
       context.set(ref, { ...after, createdBy: context.uid, createdAt: serverTimestamp() });
       context.audit({ action: 'libraryReservation.create', documentPath: ref.path, after });
       return { id: ref.id, number };

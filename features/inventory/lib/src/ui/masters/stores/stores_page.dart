@@ -83,216 +83,286 @@ class _StoresPageState extends State<StoresPage> {
               label: const Text('Add store'),
             )
           : null,
-      body: inventoryProvider.isLoading && allStores.isEmpty
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: () => inventoryProvider.loadMasters(),
-              child: allStores.isEmpty
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(32),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              width: 80,
-                              height: 80,
-                              decoration: BoxDecoration(
-                                color: theme.colorScheme.primaryContainer
-                                    .withValues(alpha: 0.4),
-                                shape: BoxShape.circle,
+      body: CenteredBody(
+        child: inventoryProvider.isLoading && allStores.isEmpty
+            ? const Center(child: CircularProgressIndicator())
+            : RefreshIndicator(
+                onRefresh: () => inventoryProvider.loadMasters(),
+                child: allStores.isEmpty
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(32),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 80,
+                                height: 80,
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.primaryContainer
+                                      .withValues(alpha: 0.4),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.storefront_outlined,
+                                  size: 40,
+                                  color: theme.colorScheme.primary,
+                                ),
                               ),
-                              child: Icon(
-                                Icons.storefront_outlined,
-                                size: 40,
-                                color: theme.colorScheme.primary,
+                              const SizedBox(height: 20),
+                              Text(
+                                'No stores yet',
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Create stores to organize and track physical inventory across campuses.',
+                                textAlign: TextAlign.center,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                              if (canEdit) ...[
+                                const SizedBox(height: 20),
+                                FilledButton.icon(
+                                  onPressed: () => context.push(
+                                    InventoryRoutes.inventoryStoreForm,
+                                  ),
+                                  icon: const Icon(Icons.add, size: 18),
+                                  label: const Text('Create first store'),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      )
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                            child: SearchBar(
+                              controller: _searchController,
+                              hintText: 'Search stores by name or location…',
+                              leading: const Icon(Icons.search, size: 20),
+                              trailing: [
+                                if (_searchQuery.isNotEmpty)
+                                  IconButton(
+                                    icon: const Icon(Icons.clear, size: 18),
+                                    onPressed: () {
+                                      setState(() {
+                                        _searchController.clear();
+                                        _searchQuery = '';
+                                      });
+                                    },
+                                  ),
+                              ],
+                              elevation: const WidgetStatePropertyAll(0),
+                              backgroundColor: WidgetStatePropertyAll(
+                                theme.colorScheme.surfaceContainerHighest
+                                    .withValues(alpha: 0.5),
+                              ),
+                              shape: WidgetStatePropertyAll(
+                                RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  side: BorderSide(
+                                    color: theme.colorScheme.outlineVariant
+                                        .withValues(alpha: 0.5),
+                                  ),
+                                ),
+                              ),
+                              onChanged: (value) =>
+                                  setState(() => _searchQuery = value.trim()),
+                            ),
+                          ),
+                          if (campuses.length > 1) ...[
+                            SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              child: Row(
+                                children: [
+                                  FilterChip(
+                                    label: const Text('All Campuses'),
+                                    selected: _selectedCampus == null,
+                                    onSelected: (_) =>
+                                        setState(() => _selectedCampus = null),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  for (final campusId in campuses) ...[
+                                    FilterChip(
+                                      label: Text('Campus $campusId'),
+                                      selected: _selectedCampus == campusId,
+                                      onSelected: (selected) => setState(
+                                        () => _selectedCampus = selected
+                                            ? campusId
+                                            : null,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                  ],
+                                ],
                               ),
                             ),
-                            const SizedBox(height: 20),
-                            Text(
-                              'No stores yet',
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
+                            const SizedBox(height: 4),
+                          ],
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 4,
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Create stores to organize and track physical inventory across campuses.',
-                              textAlign: TextAlign.center,
-                              style: theme.textTheme.bodyMedium?.copyWith(
+                            child: Text(
+                              '${filteredStores.length} ${filteredStores.length == 1 ? 'store' : 'stores'}',
+                              style: theme.textTheme.labelMedium?.copyWith(
                                 color: theme.colorScheme.onSurfaceVariant,
                               ),
                             ),
-                            if (canEdit) ...[
-                              const SizedBox(height: 20),
-                              FilledButton.icon(
-                                onPressed: () => context.push(
-                                  InventoryRoutes.inventoryStoreForm,
-                                ),
-                                icon: const Icon(Icons.add, size: 18),
-                                label: const Text('Create first store'),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    )
-                  : Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                          child: SearchBar(
-                            controller: _searchController,
-                            hintText: 'Search stores by name or location…',
-                            leading: const Icon(Icons.search, size: 20),
-                            trailing: [
-                              if (_searchQuery.isNotEmpty)
-                                IconButton(
-                                  icon: const Icon(Icons.clear, size: 18),
-                                  onPressed: () {
-                                    setState(() {
-                                      _searchController.clear();
-                                      _searchQuery = '';
-                                    });
-                                  },
-                                ),
-                            ],
-                            elevation: const WidgetStatePropertyAll(0),
-                            backgroundColor: WidgetStatePropertyAll(
-                              theme.colorScheme.surfaceContainerHighest
-                                  .withValues(alpha: 0.5),
-                            ),
-                            shape: WidgetStatePropertyAll(
-                              RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                side: BorderSide(
-                                  color: theme.colorScheme.outlineVariant
-                                      .withValues(alpha: 0.5),
-                                ),
-                              ),
-                            ),
-                            onChanged: (value) =>
-                                setState(() => _searchQuery = value.trim()),
                           ),
-                        ),
-                        if (campuses.length > 1) ...[
-                          SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: Row(
-                              children: [
-                                FilterChip(
-                                  label: const Text('All Campuses'),
-                                  selected: _selectedCampus == null,
-                                  onSelected: (_) =>
-                                      setState(() => _selectedCampus = null),
-                                ),
-                                const SizedBox(width: 8),
-                                for (final campusId in campuses) ...[
-                                  FilterChip(
-                                    label: Text('Campus $campusId'),
-                                    selected: _selectedCampus == campusId,
-                                    onSelected: (selected) => setState(
-                                      () => _selectedCampus = selected
-                                          ? campusId
-                                          : null,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                ],
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                        ],
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 4,
-                          ),
-                          child: Text(
-                            '${filteredStores.length} ${filteredStores.length == 1 ? 'store' : 'stores'}',
-                            style: theme.textTheme.labelMedium?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: filteredStores.isEmpty
-                              ? Center(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(32),
-                                    child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Icon(
-                                          Icons.search_off_outlined,
-                                          size: 48,
-                                          color: theme
-                                              .colorScheme
-                                              .onSurfaceVariant,
-                                        ),
-                                        const SizedBox(height: 12),
-                                        Text(
-                                          'No matching stores',
-                                          style: theme.textTheme.titleSmall
-                                              ?.copyWith(
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          'Try clearing or modifying your search filter',
-                                          style: theme.textTheme.bodySmall
-                                              ?.copyWith(
-                                                color: theme
-                                                    .colorScheme
-                                                    .onSurfaceVariant,
-                                              ),
-                                        ),
-                                        const SizedBox(height: 12),
-                                        TextButton(
-                                          onPressed: () {
-                                            setState(() {
-                                              _searchController.clear();
-                                              _searchQuery = '';
-                                              _selectedCampus = null;
-                                            });
-                                          },
-                                          child: const Text('Clear filters'),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                )
-                              : ListView.builder(
-                                  padding: const EdgeInsets.fromLTRB(
-                                    16,
-                                    4,
-                                    16,
-                                    88,
-                                  ),
-                                  itemCount: filteredStores.length,
-                                  itemBuilder: (context, index) {
-                                    final store = filteredStores[index];
-                                    return StoreCard(
-                                      store: store,
-                                      canEdit: canEdit,
-                                      onEdit: (selectedStore) => context.push(
-                                        InventoryRoutes.inventoryStoreForm,
-                                        extra: selectedStore,
+                          Expanded(
+                            child: filteredStores.isEmpty
+                                ? Center(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(32),
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            Icons.search_off_outlined,
+                                            size: 48,
+                                            color: theme
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                          ),
+                                          const SizedBox(height: 12),
+                                          Text(
+                                            'No matching stores',
+                                            style: theme.textTheme.titleSmall
+                                                ?.copyWith(
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            'Try clearing or modifying your search filter',
+                                            style: theme.textTheme.bodySmall
+                                                ?.copyWith(
+                                                  color: theme
+                                                      .colorScheme
+                                                      .onSurfaceVariant,
+                                                ),
+                                          ),
+                                          const SizedBox(height: 12),
+                                          TextButton(
+                                            onPressed: () {
+                                              setState(() {
+                                                _searchController.clear();
+                                                _searchQuery = '';
+                                                _selectedCampus = null;
+                                              });
+                                            },
+                                            child: const Text('Clear filters'),
+                                          ),
+                                        ],
                                       ),
-                                      onToggleActive: (selectedStore) =>
-                                          _toggleActive(context, selectedStore),
-                                    );
-                                  },
-                                ),
-                        ),
-                      ],
-                    ),
-            ),
+                                    ),
+                                  )
+                                : AdaptiveList<InventoryStore>(
+                                    items: filteredStores,
+                                    columns: [
+                                      AdaptiveColumn(
+                                        label: 'Store',
+                                        flex: 2,
+                                        cell: (context, store) => Row(
+                                          children: [
+                                            if (!store.active)
+                                              const InactiveBadge(),
+                                            Flexible(child: Text(store.name)),
+                                          ],
+                                        ),
+                                      ),
+                                      AdaptiveColumn.text(
+                                        'Location',
+                                        (store) => store.location ?? '—',
+                                      ),
+                                      AdaptiveColumn.text(
+                                        'Campus',
+                                        (store) => 'Campus ${store.campusId}',
+                                      ),
+                                      AdaptiveColumn.text(
+                                        'Storekeepers',
+                                        (store) =>
+                                            '${store.storekeeperIds.length}',
+                                      ),
+                                      AdaptiveColumn(
+                                        label: '',
+                                        cell: (context, store) => canEdit
+                                            ? Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  IconButton(
+                                                    tooltip: 'Edit',
+                                                    icon: const Icon(
+                                                      Icons.edit_outlined,
+                                                    ),
+                                                    onPressed: () => context.push(
+                                                      InventoryRoutes
+                                                          .inventoryStoreForm,
+                                                      extra: store,
+                                                    ),
+                                                  ),
+                                                  IconButton(
+                                                    tooltip: store.active
+                                                        ? 'Deactivate'
+                                                        : 'Activate',
+                                                    icon: Icon(
+                                                      store.active
+                                                          ? Icons
+                                                                .toggle_on_rounded
+                                                          : Icons
+                                                                .toggle_off_rounded,
+                                                    ),
+                                                    onPressed: () =>
+                                                        _toggleActive(
+                                                          context,
+                                                          store,
+                                                        ),
+                                                  ),
+                                                ],
+                                              )
+                                            : const SizedBox.shrink(),
+                                      ),
+                                    ],
+                                    cardBuilder: (context, store) => Padding(
+                                      padding: const EdgeInsets.fromLTRB(
+                                        16,
+                                        4,
+                                        16,
+                                        4,
+                                      ),
+                                      child: StoreCard(
+                                        store: store,
+                                        canEdit: canEdit,
+                                        onEdit: (selectedStore) => context.push(
+                                          InventoryRoutes.inventoryStoreForm,
+                                          extra: selectedStore,
+                                        ),
+                                        onToggleActive: (selectedStore) =>
+                                            _toggleActive(
+                                              context,
+                                              selectedStore,
+                                            ),
+                                      ),
+                                    ),
+                                  ),
+                          ),
+                        ],
+                      ),
+              ),
+      ),
     );
   }
 }

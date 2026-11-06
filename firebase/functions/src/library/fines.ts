@@ -44,6 +44,7 @@ export async function raiseFine(
     memberId: fine.memberId,
     memberType: fine.member.memberType,
     personErpId: fine.member.personErpId,
+    memberName: fine.member.name ?? null,
     ...copyFields(fine.source),
     type: fine.type,
     amount: fine.amount,

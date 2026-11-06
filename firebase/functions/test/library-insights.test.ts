@@ -7,7 +7,7 @@ import { masters } from '../src/library/masters';
 import { members } from '../src/library/members';
 import { runCallable, type CallableDef } from '../src/shared/callable';
 import { dayTimestamp } from '../src/shared/dates';
-import { seedLibrary, seedLibraryCategory } from './fixtures';
+import { seedLibrary, seedLibraryCategory, person } from './fixtures';
 import { clearFirestore, db } from './setup';
 
 const SCHOOL_ID = '12';
@@ -48,7 +48,7 @@ describe('library notifications and import', () => {
     await db()
       .doc(`schools/${SCHOOL_ID}/userAccess/none`)
       .set({ permissions: ['library.catalogue'], campusIds: [31], hasAllCampuses: false });
-    const category = (await seedLibraryCategory({ code: 'GEN', name: 'General' })).id;
+    const category = (await seedLibraryCategory({ name: 'General' })).id;
     title = (
       await run(masters.catalogueUpsert, {
         title: 'Wings of Fire',
@@ -56,7 +56,7 @@ describe('library notifications and import', () => {
         categoryId: category,
       })
     ).id;
-    mainLibrary = (await seedLibrary({ code: 'L1', name: 'Main', campusId: 31 })).id;
+    mainLibrary = (await seedLibrary({ name: 'Main', campusId: 31 })).id;
     await run(copies.acquisitionCreate, {
       type: 'donation',
       catalogueId: title,
@@ -65,7 +65,7 @@ describe('library notifications and import', () => {
     });
     await run(members.policyUpsert, {
       libraryId: mainLibrary,
-      memberCategory: 'primary',
+      memberType: 'student',
       name: 'Primary',
       maxBooks: 2,
       loanDays: 7,
@@ -74,18 +74,10 @@ describe('library notifications and import', () => {
       fineAmount: 2,
       canReserve: true,
     });
-    await run(members.memberUpsert, {
-      memberType: 'student',
-      personErpId: 501,
-      memberCategory: 'primary',
-      libraryIds: [mainLibrary],
-      start: '2020-01-01',
-      end: day(3),
-    });
   });
 
   it("issue and return tell the member (the student's parents); an overdue return also reports the fine", async () => {
-    const issued = await run(loans.loanIssue, { memberId: 'student_501', copyId: 'ACC-000001' });
+    const issued = await run(loans.loanIssue, { person: person('student_501'), copyId: 'ACC-000001' });
     expect(
       (await outbox()).find((outboxEvent) => outboxEvent.id === `library-issued__${issued.id}`),
     ).toMatchObject({ to: { wardStudentIds: [501] }, title: 'Book issued' });
@@ -110,12 +102,12 @@ describe('library notifications and import', () => {
     });
   });
 
-  it('daily job: due soon, overdue, membership ending; reruns post nothing new', async () => {
-    const first = await run(loans.loanIssue, { memberId: 'student_501', copyId: 'ACC-000001' }); // due in 7 days
+  it('daily job: due soon and overdue, no membership notices; reruns post nothing new', async () => {
+    const first = await run(loans.loanIssue, { person: person('student_501'), copyId: 'ACC-000001' }); // due in 7 days
     await runDailyLibrary(SCHOOL_ID);
     let ids = (await outbox()).map((outboxEvent) => outboxEvent.id);
     expect(ids).not.toContain(`library-due-soon__${first.id}`);
-    expect(ids).toContain(`library-member-expiring__student_501__${day(3)}`);
+    expect(ids.some((id) => id.startsWith('library-member-expiring'))).toBe(false);
     await db()
       .doc(`schools/${SCHOOL_ID}/libraryLoans/${first.id}`)
       .update({ dueDate: dayTimestamp(day(1)) });
@@ -134,22 +126,22 @@ describe('library notifications and import', () => {
     expect((await outbox()).length).toBe(before);
   });
 
-  it('imports catalogue, copies and members through the single-record rules; bad rows and duplicates are reported', async () => {
+  it('imports catalogue and copies through the single-record rules; bad rows and duplicates are reported', async () => {
     const books = await imp('catalogue', [
       {
         title: 'Malgudi Days',
         authors: 'R. K. Narayan',
-        categoryCode: 'gen',
+        category: 'General',
         isbn13: '9780143039648',
         year: '2006',
       },
       {
         title: 'Malgudi Days',
         authors: 'R. K. Narayan',
-        categoryCode: 'gen',
+        category: 'General',
         isbn13: '9780143039648',
       },
-      { title: 'No category', authors: 'X', categoryCode: 'nope' },
+      { title: 'No category', authors: 'X', category: 'nope' },
     ]);
     expect(books.results.map((result) => result.ok)).toEqual([true, false, false]);
     expect(books.results[1].error).toMatch(/already exists/);
@@ -161,7 +153,7 @@ describe('library notifications and import', () => {
             {
               title: 'Malgudi Days',
               authors: 'R. K. Narayan',
-              categoryCode: 'gen',
+              category: 'General',
               isbn13: '9780143039648',
             },
           ],
@@ -173,47 +165,19 @@ describe('library notifications and import', () => {
     const cps = await imp(
       'copies',
       [
-        { isbn13: '978-0-14-303964-8', libraryCode: 'L1', quantity: '3', price: '250' },
-        { isbn13: '9780000000002', libraryCode: 'L1' },
+        { isbn13: '978-0-14-303964-8', library: 'Main', quantity: '3', price: '250' },
+        { isbn13: '9780000000002', library: 'Main' },
       ],
       '1',
       'imp_000002',
     );
     expect(cps.results.map((result) => result.ok)).toEqual([true, false]);
     expect((await db().collection(`schools/${SCHOOL_ID}/libraryCopies`).get()).size).toBe(4); // 1 from setup + 3 imported
-    const member = await imp(
-      'members',
-      [
-        {
-          memberType: 'student',
-          personErpId: '777',
-          memberCategory: 'primary',
-          libraryCodes: 'L1',
-          start: '2025-04-01',
-        },
-      ],
-      '1',
-      'imp_000003',
-    );
-    expect(member.created).toBe(1);
-    expect((await db().doc(`schools/${SCHOOL_ID}/libraryMembers/student_777`).get()).exists).toBe(
-      true,
-    );
+    await db()
+      .doc(`schools/${SCHOOL_ID}/userAccess/nobody`)
+      .set({ permissions: [], campusIds: [31], hasAllCampuses: false });
     await expect(
-      imp(
-        'members',
-        [
-          {
-            memberType: 'student',
-            personErpId: '778',
-            memberCategory: 'primary',
-            libraryCodes: 'L1',
-            start: '2025-04-01',
-          },
-        ],
-        'none',
-        'imp_000004',
-      ),
+      imp('catalogue', [{ title: 'Z', authors: 'Y', category: 'General' }], 'nobody', 'imp_000004'),
     ).rejects.toMatchObject({ code: 'permission-denied' });
   });
 });

@@ -14,7 +14,7 @@ import { codeDocId } from './masters';
 export const MAX_ROWS = 200;
 
 export type ImportRow = Record<string, string>;
-/** Finds the document ID behind a unique code (category code, library code, ISBN…); throws when it does not exist. */
+/** Finds the document ID behind a unique code (inventory category code, ISBN…; libraries and library categories are found by name); throws when it does not exist. */
 export type CodeLookup = (keyType: string, value: string, label: string) => Promise<string>;
 export interface ImportType {
   callable: AnyCallableDef;
@@ -30,11 +30,15 @@ export const toList = (value: string | undefined) =>
     .map((part) => part.trim())
     .filter(Boolean);
 
+/** Masters without a code, found by name. */
+const NAME_COLLECTIONS: Record<string, string> = {
+  library: 'libraries',
+  libraryCategory: 'libraryCategories',
+};
+
 /** Masters whose document ID is their lowercased code (no `uniqueKeys` entry). */
 const CODE_ID_COLLECTIONS: Record<string, string> = {
   inventoryCategory: 'inventoryCategories',
-  library: 'libraries',
-  libraryCategory: 'libraryCategories',
 };
 
 async function lookupByCode(
@@ -43,6 +47,19 @@ async function lookupByCode(
   value: string,
   label: string,
 ): Promise<string> {
+  const byName = NAME_COLLECTIONS[keyType];
+  if (byName) {
+    // These masters have no code: match the name, ignoring case.
+    const wanted = (value ?? '').trim().toLowerCase();
+    const documents = await getFirestore().collection(`schools/${schoolId}/${byName}`).get();
+    const match = documents.docs.find(
+      (document) => String(document.data().name).trim().toLowerCase() === wanted,
+    );
+    if (!wanted || !match) {
+      throw new HttpsError('failed-precondition', `${label} "${value}" not found`);
+    }
+    return match.id;
+  }
   const collection = CODE_ID_COLLECTIONS[keyType];
   if (collection) {
     const docId = codeDocId(value ?? '');

@@ -23,7 +23,7 @@ class QuotationComparison extends StatelessWidget {
     final items = itemIds;
     final lowestTotal = quotations
         .map((quotation) => quotation.total)
-        .reduce((a, b) => a < b ? a : b);
+        .reduce((first, second) => first < second ? first : second);
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(

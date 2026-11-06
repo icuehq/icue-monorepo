@@ -5,7 +5,7 @@ import { masters } from '../src/library/masters';
 import { members } from '../src/library/members';
 import { runCallable, type CallableDef } from '../src/shared/callable';
 import { dayTimestamp } from '../src/shared/dates';
-import { seedLibrary, seedLibraryCategory } from './fixtures';
+import { seedLibrary, seedLibraryCategory, person } from './fixtures';
 import { clearFirestore, db } from './setup';
 
 const SCHOOL_ID = '12';
@@ -24,7 +24,7 @@ const set = (path: string, data: Record<string, unknown>) =>
 describe('library circulation', () => {
   let mainLibrary: string, category: string, title: string;
   const issue = (copyId = 'ACC-000001', memberId = 'student_501') =>
-    run(loans.loanIssue, { memberId, copyId });
+    run(loans.loanIssue, { person: person(memberId), copyId });
   const day = (offset: number) =>
     new Date(Date.now() + 330 * 60_000 + offset * 86_400_000).toISOString().slice(0, 10);
 
@@ -48,7 +48,7 @@ describe('library circulation', () => {
         campusIds: [99],
         hasAllCampuses: false,
       });
-    category = (await seedLibraryCategory({ code: 'GEN', name: 'General' })).id;
+    category = (await seedLibraryCategory({ name: 'General' })).id;
     title = (
       await run(masters.catalogueUpsert, {
         title: 'Wings of Fire',
@@ -56,7 +56,7 @@ describe('library circulation', () => {
         categoryId: category,
       })
     ).id;
-    mainLibrary = (await seedLibrary({ code: 'L1', name: 'Main', campusId: 31 })).id;
+    mainLibrary = (await seedLibrary({ name: 'Main', campusId: 31 })).id;
     await run(copies.acquisitionCreate, {
       type: 'donation',
       catalogueId: title,
@@ -65,20 +65,13 @@ describe('library circulation', () => {
     });
     await run(members.policyUpsert, {
       libraryId: mainLibrary,
-      memberCategory: 'primary',
+      memberType: 'student',
       name: 'Primary',
       maxBooks: 2,
       loanDays: 7,
       maxRenewals: 1,
       fineType: 'none',
       canReserve: true,
-    });
-    await run(members.memberUpsert, {
-      memberType: 'student',
-      personErpId: 501,
-      memberCategory: 'primary',
-      libraryIds: [mainLibrary],
-      start: '2020-01-01',
     });
   });
 
@@ -99,34 +92,64 @@ describe('library circulation', () => {
     expect((await get('libraryMembers/student_501'))!.activeLoans).toBe(1);
   });
 
-  it('issue rules: copy taken, limit, inactive/blocked/expired member, no policy, restricted category, campus', async () => {
+  it('issue creates the borrower on first use and refreshes the name and class after', async () => {
+    expect(await get('libraryMembers/student_501')).toBeUndefined();
+    await run(loans.loanIssue, {
+      person: { memberType: 'student', personErpId: 501, name: 'Asha Rao', classId: 4 },
+      copyId: 'ACC-000001',
+    });
+    expect(await get('libraryMembers/student_501')).toMatchObject({
+      memberType: 'student',
+      personErpId: 501,
+      name: 'Asha Rao',
+      classId: 4,
+      campusIds: [31],
+      activeLoans: 1,
+      blocked: false,
+    });
+    await run(loans.loanIssue, {
+      person: { memberType: 'student', personErpId: 501, name: 'Asha R. Rao', classId: 5 },
+      copyId: 'ACC-000002',
+    });
+    expect(await get('libraryMembers/student_501')).toMatchObject({
+      name: 'Asha R. Rao',
+      classId: 5,
+      activeLoans: 2,
+    });
+    expect((await db().collection(`schools/${SCHOOL_ID}/libraryMembers`).get()).size).toBe(1);
+    const loanDocs = await db().collection(`schools/${SCHOOL_ID}/libraryLoans`).get();
+    const firstLoan = loanDocs.docs.find((doc) => doc.data().copyId === 'ACC-000001')!.data();
+    expect(firstLoan.memberName).toBe('Asha Rao');
+    await expect(
+      run(loans.loanIssue, {
+        person: { memberType: 'teacher', personErpId: 9, name: 'T' },
+        copyId: 'ACC-000003',
+      }),
+    ).rejects.toMatchObject({ code: 'failed-precondition' }); // no teacher policy in this library
+  });
+
+  it('issue rules: copy taken, limit, blocked member, no policy for the type, restricted category, campus', async () => {
     await issue();
     await expect(issue()).rejects.toMatchObject({ code: 'failed-precondition' });
     await issue('ACC-000002');
     await expect(issue('ACC-000003')).rejects.toMatchObject({ code: 'failed-precondition' }); // maxBooks 2
     await set('libraryMembers/student_501', { activeLoans: 0, blocked: true });
     await expect(issue('ACC-000003')).rejects.toMatchObject({ code: 'failed-precondition' });
-    await set('libraryMembers/student_501', { blocked: false, end: dayTimestamp('2021-01-01') });
-    await expect(issue('ACC-000003')).rejects.toMatchObject({ code: 'failed-precondition' });
-    await set('libraryMembers/student_501', { end: null, status: 'inactive' });
-    await expect(issue('ACC-000003')).rejects.toMatchObject({ code: 'failed-precondition' });
-    await set('libraryMembers/student_501', { status: 'active', memberCategory: 'none' });
-    await expect(issue('ACC-000003')).rejects.toMatchObject({ code: 'failed-precondition' });
-    await set('libraryMembers/student_501', { memberCategory: 'primary' });
-    await set(`libraryBorrowingPolicies/${mainLibrary}_primary`, {
+    await set('libraryMembers/student_501', { blocked: false });
+    await set(`libraryBorrowingPolicies/${mainLibrary}_student`, {
       restrictedCategoryIds: [category],
     });
     await expect(issue('ACC-000003')).rejects.toMatchObject({ code: 'failed-precondition' });
-    await set(`libraryBorrowingPolicies/${mainLibrary}_primary`, { restrictedCategoryIds: [] });
+    await set(`libraryBorrowingPolicies/${mainLibrary}_student`, { restrictedCategoryIds: [] });
     await expect(
-      run(loans.loanIssue, { memberId: 'student_501', copyId: 'ACC-000003' }, '2'),
+      run(loans.loanIssue, { person: person('student_501'), copyId: 'ACC-000003' }, '2'),
     ).rejects.toMatchObject({ code: 'permission-denied' });
     await expect(issue('ACC-000003')).resolves.toBeTruthy();
   });
 
   it('policy edits do not move existing due dates; renewal uses the frozen snapshot and limit', async () => {
     const result = await issue();
-    await set(`libraryBorrowingPolicies/${mainLibrary}_primary`, { loanDays: 30, maxRenewals: 5 });
+    await set(`libraryBorrowingPolicies/${mainLibrary}_student`, { loanDays: 30, maxRenewals: 5 });
     const first = await run(loans.loanRenew, { id: result.id });
     expect(first.dueDate).toBe(day(14));
     expect((await get(`libraryLoans/${result.id}`))!.renewals).toHaveLength(1);

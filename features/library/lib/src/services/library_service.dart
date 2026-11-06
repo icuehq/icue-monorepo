@@ -34,12 +34,16 @@ class LibraryService {
   }
 
   Future<List<SchoolLibrary>> libraries() async =>
-      (await _all('libraries', SchoolLibrary.fromMap))
-        ..sort((left, right) => left.code.compareTo(right.code));
+      (await _all('libraries', SchoolLibrary.fromMap))..sort(
+        (left, right) =>
+            left.name.toLowerCase().compareTo(right.name.toLowerCase()),
+      );
 
   Future<List<LibraryCategory>> categories() async =>
-      (await _all('libraryCategories', LibraryCategory.fromMap))
-        ..sort((left, right) => left.code.compareTo(right.code));
+      (await _all('libraryCategories', LibraryCategory.fromMap))..sort(
+        (left, right) =>
+            left.name.toLowerCase().compareTo(right.name.toLowerCase()),
+      );
 
   /// A page of titles by title, optionally within [categoryId] (Firestore query).
   Future<PagedResult<LibraryBook>> books({
@@ -335,12 +339,6 @@ class LibraryService {
   Future<void> setPolicyActive(String id, {required bool active}) =>
       _call('library-policy-setStatus', _status(id, active));
 
-  Future<void> saveMember(Map<String, Object?> data, {String? requestId}) =>
-      _call('library-member-upsert', data, requestId);
-
-  Future<void> setMemberActive(String id, {required bool active}) =>
-      _call('library-member-setStatus', _status(id, active));
-
   Future<void> issueLoan(Map<String, Object?> data, {String? requestId}) =>
       _call('library-loan-issue', data, requestId);
 
@@ -494,10 +492,9 @@ class LibraryService {
     Future<num?> members(String type) async {
       try {
         var query = (await schoolCollection('libraryMembers'))
-            .where('memberType', isEqualTo: type)
-            .where('status', isEqualTo: 'active');
+            .where('memberType', isEqualTo: type);
         if (library != null) {
-          query = query.where('libraryIds', arrayContains: library.id);
+          query = query.where('campusIds', arrayContains: library.campusId);
         }
         return (await query.count().get()).count;
       } catch (_) {

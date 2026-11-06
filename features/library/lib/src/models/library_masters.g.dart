@@ -5,13 +5,12 @@ import 'package:icue_firebase/icue_firebase.dart' show readList;
 class SchoolLibrary {
   const SchoolLibrary({
     required this.id,
-    required this.code,
     required this.name,
     required this.campusId,
     this.description,
     this.location,
-    required this.staffIds,
-    this.contact,
+    this.phone,
+    this.email,
     this.hours,
     required this.active,
   });
@@ -19,27 +18,23 @@ class SchoolLibrary {
   factory SchoolLibrary.fromMap(String id, Map<String, dynamic> data) =>
       SchoolLibrary(
         id: id,
-        code: data['code'] as String? ?? '',
         name: data['name'] as String? ?? '',
         campusId: (data['campusId'] as num? ?? 0).toInt(),
         description: data['description'] as String?,
         location: data['location'] as String?,
-        staffIds: [
-          for (final number in readList<num>(data['staffIds'])) number.toInt(),
-        ],
-        contact: data['contact'] as String?,
+        phone: data['phone'] as String?,
+        email: data['email'] as String?,
         hours: data['hours'] as String?,
         active: data['status'] != 'inactive',
       );
 
   final String id;
-  final String code;
   final String name;
   final int campusId;
   final String? description;
   final String? location;
-  final List<int> staffIds;
-  final String? contact;
+  final String? phone;
+  final String? email;
   final String? hours;
   final bool active;
 }
@@ -47,7 +42,6 @@ class SchoolLibrary {
 class LibraryCategory {
   const LibraryCategory({
     required this.id,
-    required this.code,
     required this.name,
     this.description,
     this.parentId,
@@ -57,7 +51,6 @@ class LibraryCategory {
   factory LibraryCategory.fromMap(String id, Map<String, dynamic> data) =>
       LibraryCategory(
         id: id,
-        code: data['code'] as String? ?? '',
         name: data['name'] as String? ?? '',
         description: data['description'] as String?,
         parentId: data['parentId'] as String?,
@@ -65,7 +58,6 @@ class LibraryCategory {
       );
 
   final String id;
-  final String code;
   final String name;
   final String? description;
   final String? parentId;

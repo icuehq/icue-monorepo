@@ -70,92 +70,129 @@ class _UnitsPageState extends State<UnitsPage> {
               label: const Text('Add unit'),
             )
           : null,
-      body: inventoryProvider.isLoading && allUnits.isEmpty
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: () => inventoryProvider.loadMasters(),
-              child: allUnits.isEmpty
-                  ? _EmptyUnitsView(
-                      canEdit: canEdit,
-                      onAddUnit: () => UnitDialog.show(context),
-                    )
-                  : Align(
-                      alignment: Alignment.topCenter,
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 960),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                              child: SearchBar(
-                                controller: _searchController,
-                                hintText: 'Search units…',
-                                leading: const Icon(Icons.search, size: 20),
-                                trailing: [
-                                  if (_searchQuery.isNotEmpty)
-                                    IconButton(
-                                      icon: const Icon(Icons.clear, size: 18),
-                                      onPressed: _clearSearch,
-                                    ),
-                                ],
-                                elevation: const WidgetStatePropertyAll(0),
-                                backgroundColor: WidgetStatePropertyAll(
-                                  theme.colorScheme.surfaceContainerHighest
-                                      .withValues(alpha: 0.5),
+      body: CenteredBody(
+        maxWidth: 900,
+        child: inventoryProvider.isLoading && allUnits.isEmpty
+            ? const Center(child: CircularProgressIndicator())
+            : RefreshIndicator(
+                onRefresh: () => inventoryProvider.loadMasters(),
+                child: allUnits.isEmpty
+                    ? _EmptyUnitsView(
+                        canEdit: canEdit,
+                        onAddUnit: () => UnitDialog.show(context),
+                      )
+                    : Align(
+                        alignment: Alignment.topCenter,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 960),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  12,
+                                  16,
+                                  8,
                                 ),
-                                shape: WidgetStatePropertyAll(
-                                  RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    side: BorderSide(
-                                      color: theme.colorScheme.outlineVariant
-                                          .withValues(alpha: 0.5),
+                                child: SearchBar(
+                                  controller: _searchController,
+                                  hintText: 'Search units…',
+                                  leading: const Icon(Icons.search, size: 20),
+                                  trailing: [
+                                    if (_searchQuery.isNotEmpty)
+                                      IconButton(
+                                        icon: const Icon(Icons.clear, size: 18),
+                                        onPressed: _clearSearch,
+                                      ),
+                                  ],
+                                  elevation: const WidgetStatePropertyAll(0),
+                                  backgroundColor: WidgetStatePropertyAll(
+                                    theme.colorScheme.surfaceContainerHighest
+                                        .withValues(alpha: 0.5),
+                                  ),
+                                  shape: WidgetStatePropertyAll(
+                                    RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      side: BorderSide(
+                                        color: theme.colorScheme.outlineVariant
+                                            .withValues(alpha: 0.5),
+                                      ),
                                     ),
                                   ),
-                                ),
-                                onChanged: (value) =>
-                                    setState(() => _searchQuery = value.trim()),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 4,
-                              ),
-                              child: Text(
-                                '${filteredUnits.length} ${filteredUnits.length == 1 ? 'unit' : 'units'}',
-                                style: theme.textTheme.labelMedium?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                  fontWeight: FontWeight.w500,
+                                  onChanged: (value) => setState(
+                                    () => _searchQuery = value.trim(),
+                                  ),
                                 ),
                               ),
-                            ),
-                            Expanded(
-                              child: filteredUnits.isEmpty
-                                  ? _NoSearchResultsView(
-                                      onClearSearch: _clearSearch,
-                                    )
-                                  : LayoutBuilder(
-                                      builder: (context, constraints) {
-                                        final isWide =
-                                            constraints.maxWidth >= 600;
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 4,
+                                ),
+                                child: Text(
+                                  '${filteredUnits.length} ${filteredUnits.length == 1 ? 'unit' : 'units'}',
+                                  style: theme.textTheme.labelMedium?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: filteredUnits.isEmpty
+                                    ? _NoSearchResultsView(
+                                        onClearSearch: _clearSearch,
+                                      )
+                                    : LayoutBuilder(
+                                        builder: (context, constraints) {
+                                          final isWide =
+                                              constraints.maxWidth >= 600;
 
-                                        if (isWide) {
-                                          return GridView.builder(
+                                          if (isWide) {
+                                            return GridView.builder(
+                                              padding:
+                                                  const EdgeInsets.fromLTRB(
+                                                    16,
+                                                    8,
+                                                    16,
+                                                    88,
+                                                  ),
+                                              gridDelegate:
+                                                  const SliverGridDelegateWithMaxCrossAxisExtent(
+                                                    maxCrossAxisExtent: 300,
+                                                    mainAxisExtent: 68,
+                                                    crossAxisSpacing: 10,
+                                                    mainAxisSpacing: 10,
+                                                  ),
+                                              itemCount: filteredUnits.length,
+                                              itemBuilder: (context, index) {
+                                                final unit =
+                                                    filteredUnits[index];
+                                                return UnitCard(
+                                                  unit: unit,
+                                                  canEdit: canEdit,
+                                                  onEdit: (selectedUnit) =>
+                                                      UnitDialog.show(
+                                                        context,
+                                                        unit: selectedUnit,
+                                                      ),
+                                                );
+                                              },
+                                            );
+                                          }
+
+                                          return ListView.separated(
                                             padding: const EdgeInsets.fromLTRB(
                                               16,
                                               8,
                                               16,
                                               88,
                                             ),
-                                            gridDelegate:
-                                                const SliverGridDelegateWithMaxCrossAxisExtent(
-                                                  maxCrossAxisExtent: 300,
-                                                  mainAxisExtent: 68,
-                                                  crossAxisSpacing: 10,
-                                                  mainAxisSpacing: 10,
-                                                ),
                                             itemCount: filteredUnits.length,
+                                            separatorBuilder: (
+                                              context,
+                                              index,
+                                            ) => const SizedBox(height: 8),
                                             itemBuilder: (context, index) {
                                               final unit = filteredUnits[index];
                                               return UnitCard(
@@ -169,39 +206,15 @@ class _UnitsPageState extends State<UnitsPage> {
                                               );
                                             },
                                           );
-                                        }
-
-                                        return ListView.separated(
-                                          padding: const EdgeInsets.fromLTRB(
-                                            16,
-                                            8,
-                                            16,
-                                            88,
-                                          ),
-                                          itemCount: filteredUnits.length,
-                                          separatorBuilder: (context, index) =>
-                                              const SizedBox(height: 8),
-                                          itemBuilder: (context, index) {
-                                            final unit = filteredUnits[index];
-                                            return UnitCard(
-                                              unit: unit,
-                                              canEdit: canEdit,
-                                              onEdit: (selectedUnit) =>
-                                                  UnitDialog.show(
-                                                    context,
-                                                    unit: selectedUnit,
-                                                  ),
-                                            );
-                                          },
-                                        );
-                                      },
-                                    ),
-                            ),
-                          ],
+                                        },
+                                      ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-            ),
+              ),
+      ),
     );
   }
 }

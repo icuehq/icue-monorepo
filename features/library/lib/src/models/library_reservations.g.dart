@@ -10,6 +10,7 @@ class LibraryReservation {
     required this.memberId,
     required this.memberType,
     required this.personErpId,
+    this.memberName,
     required this.catalogueId,
     required this.title,
     required this.libraryId,
@@ -29,6 +30,7 @@ class LibraryReservation {
         memberId: data['memberId'] as String? ?? '',
         memberType: data['memberType'] as String? ?? 'student',
         personErpId: (data['personErpId'] as num? ?? 0).toInt(),
+        memberName: data['memberName'] as String?,
         catalogueId: data['catalogueId'] as String? ?? '',
         title: data['title'] as String? ?? '',
         libraryId: data['libraryId'] as String? ?? '',
@@ -48,6 +50,7 @@ class LibraryReservation {
   final String memberId;
   final String memberType;
   final int personErpId;
+  final String? memberName;
   final String catalogueId;
   final String title;
   final String libraryId;

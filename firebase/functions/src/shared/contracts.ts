@@ -128,6 +128,7 @@ export interface LibraryLoan {
   memberId: string;
   memberType: MemberType;
   personErpId: number;
+  memberName?: string | null;
   copyId: string;
   accessionNumber: string;
   catalogueId: string;

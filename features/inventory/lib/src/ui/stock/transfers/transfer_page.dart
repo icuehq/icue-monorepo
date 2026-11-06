@@ -288,60 +288,63 @@ class _StockTransferPageState extends State<StockTransferPage> {
             ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _load,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            TransferSummaryCard(
-              transfer: transfer,
-              fromStoreName: storeName(transfer.fromStoreId),
-              toStoreName: storeName(transfer.toStoreId),
-            ),
-            if (waiting)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.hourglass_empty_rounded,
-                      size: 18,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        transferWaitingFor(transfer),
-                        style: theme.textTheme.bodySmall,
+      body: CenteredBody(
+        maxWidth: 900,
+        child: RefreshIndicator(
+          onRefresh: _load,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              TransferSummaryCard(
+                transfer: transfer,
+                fromStoreName: storeName(transfer.fromStoreId),
+                toStoreName: storeName(transfer.toStoreId),
+              ),
+              if (waiting)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.hourglass_empty_rounded,
+                        size: 18,
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          transferWaitingFor(transfer),
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+              TransferLinesCard(
+                transfer: transfer,
+                itemName: stockProvider.itemName,
+                receiveControllers: canReceive ? _receive : null,
               ),
-            TransferLinesCard(
-              transfer: transfer,
-              itemName: stockProvider.itemName,
-              receiveControllers: canReceive ? _receive : null,
-            ),
-            if (canReceive) ...[
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Close transfer after this receipt'),
-                subtitle: const Text(
-                  'Anything not received is recorded as a permanent shortfall',
+              if (canReceive) ...[
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Close transfer after this receipt'),
+                  subtitle: const Text(
+                    'Anything not received is recorded as a permanent shortfall',
+                  ),
+                  value: _closeTransfer,
+                  onChanged: (value) => setState(() => _closeTransfer = value),
                 ),
-                value: _closeTransfer,
-                onChanged: (value) => setState(() => _closeTransfer = value),
-              ),
-              TextField(
-                controller: _remarks,
-                maxLength: 500,
-                decoration: const InputDecoration(
-                  labelText: 'Receipt remarks (optional)',
+                TextField(
+                  controller: _remarks,
+                  maxLength: 500,
+                  decoration: const InputDecoration(
+                    labelText: 'Receipt remarks (optional)',
+                  ),
                 ),
-              ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
       bottomNavigationBar: canApprove || canDispatch || canReceive

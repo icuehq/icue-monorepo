@@ -1,3 +1,4 @@
+import 'package:admin_ui/src/adaptive.dart';
 import 'package:admin_ui/src/form_helpers.dart';
 import 'package:admin_ui/src/report_pdf.dart';
 import 'package:core_ui/core_ui.dart';
@@ -91,56 +92,59 @@ class _ReportScreenState extends State<ReportScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-            child: Column(
-              children: [
-                TextField(
-                  decoration: InputDecoration(
-                    hintText: widget.searchHint,
-                    prefixIcon: const Icon(Icons.search),
+      body: CenteredBody(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: Column(
+                children: [
+                  TextField(
+                    decoration: InputDecoration(
+                      hintText: widget.searchHint,
+                      prefixIcon: const Icon(Icons.search),
+                    ),
+                    onChanged: (value) =>
+                        setState(() => _search = value.trim()),
                   ),
-                  onChanged: (value) => setState(() => _search = value.trim()),
-                ),
-                widget.filters,
-              ],
+                  widget.filters,
+                ],
+              ),
             ),
-          ),
-          Expanded(
-            child: tableRows.isEmpty
-                ? Center(
-                    child: widget.isLoading
-                        ? const CircularProgressIndicator()
-                        : Text(widget.errorMessage ?? 'No rows'),
-                  )
-                : SingleChildScrollView(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: DataTable(
-                        columns: [
-                          for (final heading in widget.header)
-                            DataColumn(label: Text(heading)),
-                        ],
-                        rows: [
-                          for (final row in tableRows)
-                            DataRow(
-                              cells: [
-                                for (final cell in row) DataCell(Text(cell)),
-                              ],
-                            ),
-                        ],
+            Expanded(
+              child: tableRows.isEmpty
+                  ? Center(
+                      child: widget.isLoading
+                          ? const CircularProgressIndicator()
+                          : Text(widget.errorMessage ?? 'No rows'),
+                    )
+                  : SingleChildScrollView(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: DataTable(
+                          columns: [
+                            for (final heading in widget.header)
+                              DataColumn(label: Text(heading)),
+                          ],
+                          rows: [
+                            for (final row in tableRows)
+                              DataRow(
+                                cells: [
+                                  for (final cell in row) DataCell(Text(cell)),
+                                ],
+                              ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-          ),
-          if (widget.footerNote != null)
-            Padding(
-              padding: const EdgeInsets.all(8),
-              child: Text(widget.footerNote!),
             ),
-        ],
+            if (widget.footerNote != null)
+              Padding(
+                padding: const EdgeInsets.all(8),
+                child: Text(widget.footerNote!),
+              ),
+          ],
+        ),
       ),
     );
   }

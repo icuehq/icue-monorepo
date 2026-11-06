@@ -16,5 +16,6 @@ extension LibraryReservationMembers on LibraryReservation {
   bool get isReady => status == 'ready';
   bool get isLive => isWaiting || isReady;
   String get memberLabel =>
+      memberName ??
       '${memberType == 'student' ? 'Student' : 'Teacher'} #$personErpId';
 }

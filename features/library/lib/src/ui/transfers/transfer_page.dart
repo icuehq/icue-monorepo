@@ -282,140 +282,144 @@ class _LibraryTransferPageState extends State<LibraryTransferPage> {
             ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _load,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            TransferSummary(
-              transfer: transfer,
-              fromName:
-                  libraryProvider.library(transfer.fromLibraryId)?.name ??
-                  transfer.fromLibraryId,
-              toName:
-                  libraryProvider.library(transfer.toLibraryId)?.name ??
-                  transfer.toLibraryId,
-            ),
-            if (waiting)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.hourglass_empty_rounded,
-                      size: 18,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        transferWaitingFor(transfer),
-                        style: theme.textTheme.bodySmall,
-                      ),
-                    ),
-                  ],
-                ),
+      body: CenteredBody(
+        maxWidth: 900,
+        child: RefreshIndicator(
+          onRefresh: _load,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              TransferSummary(
+                transfer: transfer,
+                fromName:
+                    libraryProvider.library(transfer.fromLibraryId)?.name ??
+                    transfer.fromLibraryId,
+                toName:
+                    libraryProvider.library(transfer.toLibraryId)?.name ??
+                    transfer.toLibraryId,
               ),
-            Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: theme.colorScheme.outlineVariant),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            'Copies (${transfer.lineItems.length})',
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                        if (receiving)
-                          TextButton(
-                            onPressed: () => setState(() {
-                              if (arrived.length == transfer.pending.length) {
-                                _missing.addAll(
-                                  transfer.pending.map((line) => line.copyId),
-                                );
-                              } else {
-                                _missing.clear();
-                              }
-                            }),
-                            child: Text(
-                              arrived.length == transfer.pending.length
-                                  ? 'Clear all'
-                                  : 'Select all',
-                            ),
-                          ),
-                      ],
-                    ),
-                    for (final line in transfer.lineItems)
-                      if (receiving && !line.received)
-                        TransferReceiveRow(
-                          line: line,
-                          selected: !_missing.contains(line.copyId),
-                          condition: _conditions[line.copyId] ?? 'good',
-                          onSelected: (value) => setState(
-                            () => value
-                                ? _missing.remove(line.copyId)
-                                : _missing.add(line.copyId),
-                          ),
-                          onCondition: (value) =>
-                              setState(() => _conditions[line.copyId] = value),
-                        )
-                      else
-                        ListTile(
-                          dense: true,
-                          contentPadding: EdgeInsets.zero,
-                          leading: Icon(
-                            line.received
-                                ? Icons.check_circle_rounded
-                                : Icons.local_shipping_outlined,
-                            color: line.received
-                                ? Colors.green.shade700
-                                : theme.colorScheme.outline,
-                          ),
-                          title: Text(line.accessionNumber),
-                          subtitle: Text(
-                            line.received
-                                ? 'Received${line.condition == null ? '' : ' · ${line.condition} condition'}'
-                                : transfer.status == 'requested' ||
-                                      transfer.status == 'approved'
-                                ? 'Not dispatched yet'
-                                : 'In transit',
-                          ),
-                        ),
-                    if (receiving) ...[
-                      const Divider(height: 24),
-                      TextField(
-                        controller: _shelf,
-                        maxLength: 120,
-                        decoration: const InputDecoration(
-                          labelText: 'Shelf (optional)',
-                          helperText: 'Where the received copies are placed',
-                        ),
+              if (waiting)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.hourglass_empty_rounded,
+                        size: 18,
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: _remarks,
-                        maxLength: 500,
-                        decoration: const InputDecoration(
-                          labelText: 'Receipt remarks (optional)',
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          transferWaitingFor(transfer),
+                          style: theme.textTheme.bodySmall,
                         ),
                       ),
                     ],
-                  ],
+                  ),
+                ),
+              Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(color: theme.colorScheme.outlineVariant),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Copies (${transfer.lineItems.length})',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          if (receiving)
+                            TextButton(
+                              onPressed: () => setState(() {
+                                if (arrived.length == transfer.pending.length) {
+                                  _missing.addAll(
+                                    transfer.pending.map((line) => line.copyId),
+                                  );
+                                } else {
+                                  _missing.clear();
+                                }
+                              }),
+                              child: Text(
+                                arrived.length == transfer.pending.length
+                                    ? 'Clear all'
+                                    : 'Select all',
+                              ),
+                            ),
+                        ],
+                      ),
+                      for (final line in transfer.lineItems)
+                        if (receiving && !line.received)
+                          TransferReceiveRow(
+                            line: line,
+                            selected: !_missing.contains(line.copyId),
+                            condition: _conditions[line.copyId] ?? 'good',
+                            onSelected: (value) => setState(
+                              () => value
+                                  ? _missing.remove(line.copyId)
+                                  : _missing.add(line.copyId),
+                            ),
+                            onCondition: (value) => setState(
+                              () => _conditions[line.copyId] = value,
+                            ),
+                          )
+                        else
+                          ListTile(
+                            dense: true,
+                            contentPadding: EdgeInsets.zero,
+                            leading: Icon(
+                              line.received
+                                  ? Icons.check_circle_rounded
+                                  : Icons.local_shipping_outlined,
+                              color: line.received
+                                  ? Colors.green.shade700
+                                  : theme.colorScheme.outline,
+                            ),
+                            title: Text(line.accessionNumber),
+                            subtitle: Text(
+                              line.received
+                                  ? 'Received${line.condition == null ? '' : ' · ${line.condition} condition'}'
+                                  : transfer.status == 'requested' ||
+                                        transfer.status == 'approved'
+                                  ? 'Not dispatched yet'
+                                  : 'In transit',
+                            ),
+                          ),
+                      if (receiving) ...[
+                        const Divider(height: 24),
+                        TextField(
+                          controller: _shelf,
+                          maxLength: 120,
+                          decoration: const InputDecoration(
+                            labelText: 'Shelf (optional)',
+                            helperText: 'Where the received copies are placed',
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _remarks,
+                          maxLength: 500,
+                          decoration: const InputDecoration(
+                            labelText: 'Receipt remarks (optional)',
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: _actionBar(transfer, access, arrived),

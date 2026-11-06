@@ -23,13 +23,20 @@ void main() {
     expect(row.active, isTrue);
   });
 
-  test('SchoolLibrary parses staff ids', () {
+  test('SchoolLibrary parses contact details and joins them on one line', () {
     final schoolLibrary = SchoolLibrary.fromMap('l1', {
-      'code': 'MAIN',
       'name': 'Main',
       'campusId': 31,
-      'staffIds': [5, 6],
+      'phone': '+91 98765 43210',
+      'email': 'library@school.edu',
     });
-    expect(schoolLibrary.staffIds, [5, 6]);
+    expect(schoolLibrary.contactLine, '+91 98765 43210 · library@school.edu');
+    expect(
+      SchoolLibrary.fromMap('l2', {
+        'name': 'Junior',
+        'campusId': 31,
+      }).contactLine,
+      isEmpty,
+    );
   });
 }

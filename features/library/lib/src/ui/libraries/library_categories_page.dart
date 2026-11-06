@@ -3,108 +3,325 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
-import 'package:school_library/src/ui/libraries/widgets/library_category_sheet.dart';
+import 'package:school_library/src/ui/libraries/widgets/library_category_card.dart';
+import 'package:school_library/src/ui/libraries/widgets/library_category_controls.dart';
+import 'package:school_library/src/ui/libraries/widgets/library_category_dialog.dart';
 
-class LibraryCategoriesPage extends StatelessWidget {
+class LibraryCategoriesPage extends StatefulWidget {
   const LibraryCategoriesPage({super.key});
+
+  @override
+  State<LibraryCategoriesPage> createState() => _LibraryCategoriesPageState();
+}
+
+class _LibraryCategoriesPageState extends State<LibraryCategoriesPage> {
+  final _searchController = TextEditingController();
+  var _statusFilter = LibraryCategoryStatusFilter.all;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final libraryProvider = context.read<LibraryProvider>();
+      if (libraryProvider.categories.isEmpty) libraryProvider.loadMasters();
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _clearFilters() {
+    setState(() {
+      _searchController.clear();
+      _statusFilter = LibraryCategoryStatusFilter.all;
+    });
+  }
+
+  Future<void> _toggleActive(
+    LibraryProvider provider,
+    LibraryCategory category,
+  ) async {
+    final success = await provider.setCategoryActive(
+      category.id,
+      active: !category.active,
+    );
+    if (!success && mounted) {
+      showMessage(context, provider.errorMessage ?? 'Could not update status');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final libraryProvider = context.watch<LibraryProvider>();
     final canEdit = libraryProvider.access.can('library.catalogue');
-    final rows = <(LibraryCategory, bool)>[
-      for (final category in libraryProvider.topCategories) ...[
-        (category, false),
-        for (final category in libraryProvider.categories.where(
-          (category) => category.parentId == category.id,
-        ))
-          (category, true),
-      ],
+    final query = _searchController.text.trim().toLowerCase();
+    final isSearching = query.isNotEmpty;
+
+    // Hierarchy: Top-level categories and orphan categories
+    final topCategories = libraryProvider.topCategories;
+    final topCategoryIds = topCategories.map((category) => category.id).toSet();
+    final allTopCategories = [
+      ...topCategories,
+      ...libraryProvider.categories.where(
+        (category) =>
+            category.parentId != null &&
+            !topCategoryIds.contains(category.parentId),
+      ),
     ];
+
+    // Filter categories & nested subcategories
+    final matchingGroups = <(LibraryCategory, List<LibraryCategory>)>[];
+    var totalSubsCount = 0;
+
+    for (final top in allTopCategories) {
+      final topSubs = libraryProvider.categories
+          .where((candidate) => candidate.parentId == top.id)
+          .toList();
+
+      final topMatchesStatus = switch (_statusFilter) {
+        LibraryCategoryStatusFilter.all => true,
+        LibraryCategoryStatusFilter.active => top.active,
+        LibraryCategoryStatusFilter.inactive => !top.active,
+      };
+
+      final topMatchesQuery =
+          !isSearching ||
+          top.name.toLowerCase().contains(query) ||
+          (top.description?.toLowerCase().contains(query) ?? false);
+
+      final matchingSubs = topSubs.where((sub) {
+        final subStatusOk = switch (_statusFilter) {
+          LibraryCategoryStatusFilter.all => true,
+          LibraryCategoryStatusFilter.active => sub.active,
+          LibraryCategoryStatusFilter.inactive => !sub.active,
+        };
+        if (!subStatusOk) return false;
+
+        if (!isSearching) return true;
+        return sub.name.toLowerCase().contains(query) ||
+            (sub.description?.toLowerCase().contains(query) ?? false);
+      }).toList();
+
+      final includeTop =
+          (topMatchesStatus && topMatchesQuery) || matchingSubs.isNotEmpty;
+
+      if (includeTop) {
+        final effectiveSubs = isSearching && !topMatchesQuery
+            ? matchingSubs
+            : topSubs.where((sub) {
+                return switch (_statusFilter) {
+                  LibraryCategoryStatusFilter.all => true,
+                  LibraryCategoryStatusFilter.active => sub.active,
+                  LibraryCategoryStatusFilter.inactive => !sub.active,
+                };
+              }).toList();
+
+        matchingGroups.add((top, effectiveSubs));
+        totalSubsCount += effectiveSubs.length;
+      }
+    }
+
+    final hasAnyCategories = libraryProvider.categories.isNotEmpty;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Book categories')),
-      floatingActionButton: canEdit
+      appBar: AppBar(
+        title: const Text('Book categories'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded),
+            tooltip: 'Reload',
+            onPressed: () => libraryProvider.loadMasters(),
+          ),
+        ],
+      ),
+      floatingActionButton: canEdit && hasAnyCategories
           ? FloatingActionButton.extended(
-              onPressed: () => LibraryCategorySheet.show(context),
+              onPressed: () => LibraryCategoryDialog.show(context),
               icon: const Icon(Icons.add_rounded),
               label: const Text('Category'),
             )
           : null,
-      body: rows.isEmpty
-          ? Center(
-              child: libraryProvider.isLoading
-                  ? const CircularProgressIndicator()
-                  : SeedDefaultsButton<LibraryProvider>(
-                      label: 'Add default categories',
-                      canSeed: (provider) =>
-                          provider.access.can('library.catalogue'),
-                      seed: (provider) => provider.seedDefaults(),
-                    ),
-            )
-          : ListView(
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isWide = constraints.maxWidth >= 720;
+          final isTwoColumn = constraints.maxWidth >= 880;
+          final contentPadding = EdgeInsets.symmetric(
+            horizontal: isWide ? 24.0 : 16.0,
+            vertical: 16.0,
+          );
+
+          if (libraryProvider.isLoading && !hasAnyCategories) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (!hasAnyCategories) {
+            return LibraryCategoryEmptyState(
+              canEdit: canEdit,
+              onAdd: () => LibraryCategoryDialog.show(context),
+            );
+          }
+
+          return RefreshIndicator(
+            onRefresh: () => libraryProvider.loadMasters(),
+            child: ListView(
+              padding: contentPadding,
               children: [
-                for (final (c, isSub) in rows)
-                  ListTile(
-                    contentPadding: EdgeInsets.only(
-                      left: isSub ? 40 : 16,
-                      right: 8,
+                LibraryCategorySearchBar(
+                  searchController: _searchController,
+                  isWide: isWide,
+                  canEdit: canEdit,
+                  statusFilter: _statusFilter,
+                  onSearchChanged: (_) => setState(() {}),
+                  onFilterChanged: (filter) =>
+                      setState(() => _statusFilter = filter),
+                  onAddCategory: () => LibraryCategoryDialog.show(context),
+                ),
+                const SizedBox(height: 12),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Text(
+                    '${matchingGroups.length} ${matchingGroups.length == 1 ? 'category' : 'categories'} · $totalSubsCount ${totalSubsCount == 1 ? 'subcategory' : 'subcategories'}',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.outline,
+                      fontWeight: FontWeight.w500,
                     ),
-                    title: Text(c.name),
-                    subtitle: Text(c.code),
-                    leading: c.active ? null : const InactiveBadge(),
-                    trailing: PopupMenuButton<String>(
-                      onSelected: (value) => _onMenu(context, value, c),
-                      itemBuilder: (_) => [
-                        const PopupMenuItem(
-                          value: 'books',
-                          child: Text('View books'),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                if (matchingGroups.isEmpty)
+                  LibraryCategoryNoResultsState(
+                    query: query,
+                    onClear: _clearFilters,
+                  )
+                else if (isTwoColumn)
+                  _TwoColumnCategoryLayout(
+                    groups: matchingGroups,
+                    canEdit: canEdit,
+                    isSearching: isSearching,
+                    onViewBooks: (category) => context.push(
+                      '${LibraryRoutes.libraryCatalogue}?category=${category.id}',
+                    ),
+                    onEdit: (category) =>
+                        LibraryCategoryDialog.show(context, category: category),
+                    onAddSubcategory: (category) => LibraryCategoryDialog.show(
+                      context,
+                      parentId: category.id,
+                    ),
+                    onToggleActive: (category) =>
+                        _toggleActive(libraryProvider, category),
+                  )
+                else
+                  Column(
+                    children: [
+                      for (final (top, subs) in matchingGroups)
+                        LibraryCategoryCard(
+                          key: ValueKey(top.id),
+                          category: top,
+                          subcategories: subs,
+                          canEdit: canEdit,
+                          initiallyExpanded: isSearching,
+                          onViewBooks: (category) => context.push(
+                            '${LibraryRoutes.libraryCatalogue}?category=${category.id}',
+                          ),
+                          onEdit: (category) => LibraryCategoryDialog.show(
+                            context,
+                            category: category,
+                          ),
+                          onAddSubcategory: (category) =>
+                              LibraryCategoryDialog.show(
+                                context,
+                                parentId: category.id,
+                              ),
+                          onToggleActive: (category) =>
+                              _toggleActive(libraryProvider, category),
                         ),
-                        if (canEdit) ...[
-                          const PopupMenuItem(
-                            value: 'edit',
-                            child: Text('Edit'),
-                          ),
-                          if (!isSub)
-                            const PopupMenuItem(
-                              value: 'sub',
-                              child: Text('Add subcategory'),
-                            ),
-                          PopupMenuItem(
-                            value: 'toggle',
-                            child: Text(c.active ? 'Deactivate' : 'Activate'),
-                          ),
-                        ],
-                      ],
-                    ),
+                    ],
                   ),
               ],
             ),
+          );
+        },
+      ),
     );
   }
+}
 
-  Future<void> _onMenu(
-    BuildContext context,
-    String value,
-    LibraryCategory category,
-  ) async {
-    final libraryProvider = context.read<LibraryProvider>();
-    switch (value) {
-      case 'books':
-        await context.push(
-          '${LibraryRoutes.libraryCatalogue}?category=${category.id}',
-        );
-      case 'edit':
-        await LibraryCategorySheet.show(context, category: category);
-      case 'sub':
-        await LibraryCategorySheet.show(context, parentId: category.id);
-      case 'toggle':
-        if (!await libraryProvider.setCategoryActive(
-              category.id,
-              active: !category.active,
-            ) &&
-            context.mounted) {
-          showMessage(context, libraryProvider.errorMessage ?? 'Failed');
-        }
+class _TwoColumnCategoryLayout extends StatelessWidget {
+  const _TwoColumnCategoryLayout({
+    required this.groups,
+    required this.canEdit,
+    required this.isSearching,
+    required this.onViewBooks,
+    required this.onEdit,
+    required this.onAddSubcategory,
+    required this.onToggleActive,
+  });
+
+  final List<(LibraryCategory, List<LibraryCategory>)> groups;
+  final bool canEdit;
+  final bool isSearching;
+  final ValueChanged<LibraryCategory> onViewBooks;
+  final ValueChanged<LibraryCategory> onEdit;
+  final ValueChanged<LibraryCategory> onAddSubcategory;
+  final ValueChanged<LibraryCategory> onToggleActive;
+
+  @override
+  Widget build(BuildContext context) {
+    final leftCol = <(LibraryCategory, List<LibraryCategory>)>[];
+    final rightCol = <(LibraryCategory, List<LibraryCategory>)>[];
+
+    for (var i = 0; i < groups.length; i++) {
+      if (i.isEven) {
+        leftCol.add(groups[i]);
+      } else {
+        rightCol.add(groups[i]);
+      }
     }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            children: [
+              for (final (top, subs) in leftCol)
+                LibraryCategoryCard(
+                  key: ValueKey(top.id),
+                  category: top,
+                  subcategories: subs,
+                  canEdit: canEdit,
+                  initiallyExpanded: isSearching,
+                  onViewBooks: onViewBooks,
+                  onEdit: onEdit,
+                  onAddSubcategory: onAddSubcategory,
+                  onToggleActive: onToggleActive,
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            children: [
+              for (final (top, subs) in rightCol)
+                LibraryCategoryCard(
+                  key: ValueKey(top.id),
+                  category: top,
+                  subcategories: subs,
+                  canEdit: canEdit,
+                  initiallyExpanded: isSearching,
+                  onViewBooks: onViewBooks,
+                  onEdit: onEdit,
+                  onAddSubcategory: onAddSubcategory,
+                  onToggleActive: onToggleActive,
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 }

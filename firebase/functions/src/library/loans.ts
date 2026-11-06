@@ -1,4 +1,4 @@
-import { FieldValue, type DocumentData, type DocumentReference } from 'firebase-admin/firestore';
+import { type DocumentData, type DocumentReference } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import type { CallableContext } from '../shared/callable';
 import {
@@ -14,7 +14,7 @@ import { defineCallable, failed, id, missing, optionalText } from '../shared/mas
 import { enqueue } from '../shared/outbox';
 import { fineBlock, raiseFine } from './fines';
 import { openIncident } from './incidents';
-import { ineligibleReason, policyId } from './members';
+import { ineligibleReason, memberId, personInput, policyId, writeBorrower } from './members';
 import { memberTo } from './notify';
 import { release, waitingQuery } from './reservations';
 
@@ -96,29 +96,30 @@ export const loans = {
   loanIssue: defineCallable({
     name: 'library.loan.issue',
     permission: 'library.circulation.operate',
-    input: z.object({ memberId: id, copyId: id, remarks: optionalText }),
+    input: z.object({ person: personInput, copyId: id, remarks: optionalText }),
     handler: async (context, i) => {
       const today = todayIST();
-      const mRef = context.doc(`libraryMembers/${i.memberId}`);
+      const memberKey = memberId(i.person.memberType, i.person.personErpId);
+      const mRef = context.doc(`libraryMembers/${memberKey}`);
       const cRef = context.doc(`libraryCopies/${i.copyId}`);
       const [memberSnapshot, copySnapshot] = await Promise.all([
         context.transaction.get(mRef),
         context.transaction.get(cRef),
       ]);
-      if (!memberSnapshot.exists) throw missing('libraryMember');
       if (!copySnapshot.exists) throw missing('libraryCopy');
-      const member = memberSnapshot.data()!;
+      // A person the Library has not seen before is created at the end of this issue.
+      const member = memberSnapshot.data();
       const copy = copySnapshot.data()!;
       context.requireCampus(copy.campusId);
 
-      const ineligible = ineligibleReason(member, copy.libraryId, today);
+      const ineligible = ineligibleReason(member);
       if (ineligible) throw failed(ineligible);
       // A held copy goes only to the member it is held for, within the hold period (FRS 11.12).
       let held: DocumentReference | undefined;
       if (copy.status === 'reserved') {
         held = context.doc(`libraryReservations/${copy.heldReservationId}`);
         const reservation = (await context.transaction.get(held)).data();
-        if (reservation?.memberId !== memberSnapshot.id || reservation.status !== 'ready')
+        if (reservation?.memberId !== memberKey || reservation.status !== 'ready')
           throw failed('Copy is held for another member');
         if (!reservation.holdUntil || timestampDay(reservation.holdUntil) < today)
           throw failed('The hold on this copy has expired');
@@ -128,13 +129,13 @@ export const loans = {
       const policy = (
         await context.transaction.get(
           context.doc(
-            `libraryBorrowingPolicies/${policyId(copy.libraryId, member.memberCategory)}`,
+            `libraryBorrowingPolicies/${policyId(copy.libraryId, i.person.memberType)}`,
           ),
         )
       ).data();
       if (!policy || policy.status !== 'active')
         throw failed('No active borrowing policy for this member');
-      if (member.activeLoans >= policy.maxBooks)
+      if ((member?.activeLoans ?? 0) >= policy.maxBooks)
         throw failed(`Borrowing limit of ${policy.maxBooks} reached`);
       const title = (
         await context.transaction.get(context.doc(`libraryCatalogue/${copy.catalogueId}`))
@@ -149,9 +150,10 @@ export const loans = {
       ) as unknown as LoanPolicySnapshot;
       const after = {
         number,
-        memberId: memberSnapshot.id,
-        memberType: member.memberType,
-        personErpId: member.personErpId,
+        memberId: memberKey,
+        memberType: i.person.memberType,
+        personErpId: i.person.personErpId,
+        memberName: i.person.name,
         copyId: copySnapshot.id,
         accessionNumber: copy.accessionNumber,
         catalogueId: copy.catalogueId,
@@ -178,9 +180,9 @@ export const loans = {
           fulfilledCopyId: copySnapshot.id,
           fulfilledAt: serverTimestamp(),
         });
-      context.update(mRef, { activeLoans: FieldValue.increment(1), updatedAt: serverTimestamp() });
+      writeBorrower(context, mRef, member, i.person, copy.campusId, 1);
       await enqueue(context, `library-issued__${loan.id}`, {
-        to: memberTo(member.memberType, member.personErpId),
+        to: memberTo(i.person.memberType, i.person.personErpId),
         category: 'library.loan',
         title: 'Book issued',
         body: `${title?.title ?? copy.accessionNumber}: due back ${timestampDay(after.dueDate)}.`,
@@ -386,7 +388,7 @@ export const loans = {
       const member = (
         await context.transaction.get(context.doc(`libraryMembers/${loan.memberId}`))
       ).data();
-      if (member?.status !== 'active' || member.blocked) throw failed('Member cannot renew');
+      if (!member || member.blocked) throw failed('Member cannot renew');
       const policy = loan.policySnapshot;
       const today = todayIST();
       if (loan.renewals.length >= policy.maxRenewals)

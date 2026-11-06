@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { members } from '../src/library/members';
 import { runCallable, type CallableDef } from '../src/shared/callable';
-import { dayTimestamp } from '../src/shared/dates';
 import { seedLibrary, seedLibraryCategory } from './fixtures';
 import { clearFirestore, db } from './setup';
 
@@ -21,8 +20,8 @@ describe('library members and policies', () => {
   const policy = (extra: Record<string, unknown> = {}) =>
     run(members.policyUpsert, {
       libraryId: mainLibrary,
-      memberCategory: 'primary',
-      name: 'Primary',
+      memberType: 'student',
+      name: 'Students',
       maxBooks: 1,
       loanDays: 7,
       maxRenewals: 1,
@@ -31,17 +30,6 @@ describe('library members and policies', () => {
       canReserve: true,
       ...extra,
     });
-  const enrol = (extra: Record<string, unknown> = {}) =>
-    run(members.memberUpsert, {
-      memberType: 'student',
-      personErpId: 501,
-      classId: 4,
-      memberCategory: 'primary',
-      libraryIds: [mainLibrary],
-      start: '2026-06-01',
-      ...extra,
-    });
-
   beforeEach(async () => {
     await clearFirestore();
     await db()
@@ -65,14 +53,14 @@ describe('library members and policies', () => {
         campusIds: [31],
         hasAllCampuses: false,
       });
-    category = (await seedLibraryCategory({ code: 'REF', name: 'Reference' })).id;
-    mainLibrary = (await seedLibrary({ code: 'L1', name: 'Main', campusId: 31 })).id;
-    secondLibrary = (await seedLibrary({ code: 'L2', name: 'Junior', campusId: 32 })).id;
+    category = (await seedLibraryCategory({ name: 'Reference' })).id;
+    mainLibrary = (await seedLibrary({ name: 'Main', campusId: 31 })).id;
+    secondLibrary = (await seedLibrary({ name: 'Junior', campusId: 32 })).id;
   });
 
-  it('policy: one per library and category, saving again edits it', async () => {
+  it('policy: one per library and person type, saving again edits it', async () => {
     const first = await policy({ restrictedCategoryIds: [category, category] });
-    expect(first.id).toBe(`${mainLibrary}_primary`);
+    expect(first.id).toBe(`${mainLibrary}_student`);
     expect(await get(`libraryBorrowingPolicies/${first.id}`)).toMatchObject({
       campusId: 31,
       maxBooks: 1,
@@ -86,7 +74,7 @@ describe('library members and policies', () => {
       status: 'active',
     });
     await policy({ libraryId: secondLibrary });
-    await policy({ memberCategory: 'teacher' });
+    await policy({ memberType: 'teacher' });
     expect(
       (await db().collection(`schools/${SCHOOL_ID}/libraryBorrowingPolicies`).get()).size,
     ).toBe(3);
@@ -94,10 +82,13 @@ describe('library members and policies', () => {
     expect((await get(`libraryBorrowingPolicies/${first.id}`))!.status).toBe('inactive');
   });
 
-  it('policy rules: fine needs an amount, no fine clears amounts, permission, campus, unknown category', async () => {
+  it('policy rules: fine needs an amount, no fine clears amounts, only student or teacher, permission, campus, unknown category', async () => {
     await expect(policy({ fineAmount: 0 })).rejects.toMatchObject({ code: 'invalid-argument' });
+    await expect(policy({ memberType: 'parent' })).rejects.toMatchObject({
+      code: 'invalid-argument',
+    });
     await policy({ fineType: 'none', fineAmount: 5, maxFine: 9 });
-    expect(await get(`libraryBorrowingPolicies/${mainLibrary}_primary`)).toMatchObject({
+    expect(await get(`libraryBorrowingPolicies/${mainLibrary}_student`)).toMatchObject({
       fineAmount: 0,
       maxFine: null,
     });
@@ -110,7 +101,7 @@ describe('library members and policies', () => {
         members.policyUpsert,
         {
           libraryId: mainLibrary,
-          memberCategory: 'x',
+          memberType: 'student',
           name: 'x',
           maxBooks: 1,
           loanDays: 1,
@@ -127,7 +118,7 @@ describe('library members and policies', () => {
         members.policyUpsert,
         {
           libraryId: secondLibrary,
-          memberCategory: 'x',
+          memberType: 'student',
           name: 'x',
           maxBooks: 1,
           loanDays: 1,
@@ -140,80 +131,8 @@ describe('library members and policies', () => {
     ).rejects.toMatchObject({ code: 'permission-denied' });
     await db().doc(`schools/${SCHOOL_ID}/libraries/${mainLibrary}`).update({ status: 'inactive' });
     await policy({ maxBooks: 2 }); // existing policy of an inactive library stays editable
-    await expect(policy({ memberCategory: 'new' })).rejects.toMatchObject({
+    await expect(policy({ memberType: 'teacher' })).rejects.toMatchObject({
       code: 'failed-precondition',
     });
-  });
-
-  it('member: deterministic ID, no duplicates, loans preserved on edit', async () => {
-    const member = await enrol();
-    expect(member.id).toBe('student_501');
-    expect(await get('libraryMembers/student_501')).toMatchObject({
-      personErpId: 501,
-      classId: 4,
-      campusIds: [31],
-      status: 'active',
-      activeLoans: 0,
-      blocked: false,
-    });
-    await db().doc(`schools/${SCHOOL_ID}/libraryMembers/student_501`).update({ activeLoans: 2 });
-    await enrol({ libraryIds: [mainLibrary, secondLibrary], end: '2027-03-31' });
-    expect(await get('libraryMembers/student_501')).toMatchObject({
-      activeLoans: 2,
-      campusIds: [31, 32],
-      end: dayTimestamp('2027-03-31'),
-    });
-    expect((await db().collection(`schools/${SCHOOL_ID}/libraryMembers`).get()).size).toBe(1);
-    await run(members.memberUpsert, {
-      memberType: 'teacher',
-      personErpId: 501,
-      memberCategory: 'teacher',
-      libraryIds: [mainLibrary],
-      start: '2026-06-01',
-      classId: 9,
-    });
-    expect(await get('libraryMembers/teacher_501')).toMatchObject({ classId: null });
-  });
-
-  it('member rules: dates, permission, campus, inactive library, status toggle', async () => {
-    await expect(enrol({ end: '2026-05-01' })).rejects.toMatchObject({ code: 'invalid-argument' });
-    await expect(
-      run(
-        members.memberUpsert,
-        {
-          memberType: 'student',
-          personErpId: 1,
-          memberCategory: 'p',
-          libraryIds: [mainLibrary],
-          start: '2026-06-01',
-        },
-        '2',
-      ),
-    ).rejects.toMatchObject({ code: 'permission-denied' });
-    await expect(
-      run(
-        members.memberUpsert,
-        {
-          memberType: 'student',
-          personErpId: 1,
-          memberCategory: 'p',
-          libraryIds: [secondLibrary],
-          start: '2026-06-01',
-        },
-        '3',
-      ),
-    ).rejects.toMatchObject({ code: 'permission-denied' });
-    await db()
-      .doc(`schools/${SCHOOL_ID}/libraries/${secondLibrary}`)
-      .update({ status: 'inactive' });
-    await expect(enrol({ libraryIds: [secondLibrary] })).rejects.toMatchObject({
-      code: 'failed-precondition',
-    });
-    await enrol();
-    await run(members.memberSetStatus, { id: 'student_501', status: 'inactive' });
-    expect((await get('libraryMembers/student_501'))!.status).toBe('inactive');
-    await expect(
-      run(members.memberSetStatus, { id: 'student_999', status: 'active' }),
-    ).rejects.toMatchObject({ code: 'not-found' });
   });
 });

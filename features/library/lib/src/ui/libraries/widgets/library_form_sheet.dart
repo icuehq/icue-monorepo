@@ -17,126 +17,448 @@ class LibraryFormSheet extends StatefulWidget {
 
 class _LibraryFormSheetState extends State<LibraryFormSheet> {
   final _form = GlobalKey<FormState>();
-  late final _code = TextEditingController(text: widget.library?.code);
   late final _name = TextEditingController(text: widget.library?.name);
   late final _description = TextEditingController(
     text: widget.library?.description,
   );
   late final _location = TextEditingController(text: widget.library?.location);
-  late final _contact = TextEditingController(text: widget.library?.contact);
+  late final _phone = TextEditingController(text: widget.library?.phone);
+  late final _email = TextEditingController(text: widget.library?.email);
   late final _hours = TextEditingController(text: widget.library?.hours);
-  // ponytail: ERP staff IDs typed in; a staff picker needs the Node staff endpoint.
-  late final _staff = TextEditingController(
-    text: widget.library?.staffIds.join(', '),
-  );
   late int? _campus = widget.library?.campusId;
   bool _busy = false;
+  bool _submitted = false;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    final access = context.read<LibraryProvider>().access;
+    if (_campus == null && access.campusIds.length == 1) {
+      _campus = access.campusIds.first;
+    }
+  }
 
   @override
   void dispose() {
     for (final controller in [
-      _code,
       _name,
       _description,
       _location,
-      _contact,
+      _phone,
+      _email,
       _hours,
-      _staff,
     ]) {
       controller.dispose();
     }
     super.dispose();
   }
 
-  String? _staffError(String? currentValue) =>
-      splitList(currentValue ?? '')
-          .every((value) => int.tryParse(value) != null)
-      ? null
-      : 'Comma-separated staff IDs';
+  /// Optional; 7 to 15 digits, with an optional leading + and spaces, dashes or brackets between them.
+  String? _validatePhone(String? value) {
+    final phone = value?.trim() ?? '';
+    if (phone.isEmpty) return null;
+    final digits = phone.replaceAll(RegExp(r'[\s\-()]'), '');
+    return RegExp(r'^\+?\d{7,15}$').hasMatch(digits)
+        ? null
+        : 'Enter a valid phone number';
+  }
+
+  String? _validateEmail(String? value) {
+    final email = value?.trim() ?? '';
+    if (email.isEmpty) return null;
+    return RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email)
+        ? null
+        : 'Enter a valid email address';
+  }
+
+  /// Required, and unique among libraries (compared ignoring case).
+  String? _validateName(String? value) {
+    final required = requiredText(value);
+    if (required != null) return required;
+    final name = value!.trim().toLowerCase();
+    final exists = context.read<LibraryProvider>().libraries.any(
+      (library) =>
+          library.id != widget.library?.id &&
+          library.name.trim().toLowerCase() == name,
+    );
+    return exists ? '"${value.trim()}" already exists' : null;
+  }
 
   Future<void> _save() async {
+    setState(() {
+      _submitted = true;
+      _errorMessage = null;
+    });
     if (!_form.currentState!.validate()) return;
     setState(() => _busy = true);
     final schoolLibrary = widget.library;
-    await submitAndClose<LibraryProvider>(
+    final provider = context.read<LibraryProvider>();
+    final saved = await submitAndClose<LibraryProvider>(
       context,
-      () => context.read<LibraryProvider>().saveLibrary({
-        if (schoolLibrary != null)
-          'id': schoolLibrary.id
-        else
-          'code': _code.text.trim(),
+      () => provider.saveLibrary({
+        if (schoolLibrary != null) 'id': schoolLibrary.id,
         'name': _name.text.trim(),
         'campusId': _campus,
         'description': blankToNull(_description),
         'location': blankToNull(_location),
-        'contact': blankToNull(_contact),
+        'phone': blankToNull(_phone),
+        'email': blankToNull(_email),
         'hours': blankToNull(_hours),
-        'staffIds': [
-          for (final value in splitList(_staff.text)) int.parse(value),
-        ],
       }),
     );
-    if (mounted) setState(() => _busy = false);
+    if (mounted && !saved) {
+      setState(() {
+        _busy = false;
+        _errorMessage = provider.errorMessage ?? 'Could not save library';
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final access = context.read<LibraryProvider>().access;
     final editing = widget.library != null;
     final campuses = {...access.campusIds, ?_campus}.toList();
+
+    final isMultiCol = context.isWide;
+    // With one campus there is nothing to choose.
+    final askCampus = campuses.length > 1;
+
     return Form(
       key: _form,
+      autovalidateMode: _submitted
+          ? AutovalidateMode.onUserInteraction
+          : AutovalidateMode.disabled,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          TextFormField(
-            controller: _code,
-            enabled: !editing,
-            textCapitalization: TextCapitalization.characters,
-            decoration: const InputDecoration(labelText: 'Library code *'),
-            validator: requiredText,
-          ),
-          TextFormField(
-            controller: _name,
-            decoration: const InputDecoration(labelText: 'Library name *'),
-            validator: requiredText,
-          ),
-          DropdownButtonFormField<int>(
-            initialValue: _campus,
-            decoration: const InputDecoration(labelText: 'Campus *'),
-            items: [
-              for (final value in campuses)
-                DropdownMenuItem(value: value, child: Text('Campus $value')),
+          // Header
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  Icons.local_library_outlined,
+                  color: theme.colorScheme.primary,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      editing ? 'Edit Library' : 'New Library',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      editing
+                          ? 'Update the name, location, schedule and contact details.'
+                          : 'Set up a new library branch and operating schedule.',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
-            onChanged: editing ? null : (value) => _campus = value,
-            validator: (value) => value == null ? 'Required' : null,
           ),
-          TextFormField(
-            controller: _location,
-            decoration: const InputDecoration(labelText: 'Location'),
-          ),
-          TextFormField(
-            controller: _hours,
-            decoration: const InputDecoration(labelText: 'Opening hours'),
-          ),
-          TextFormField(
-            controller: _contact,
-            decoration: const InputDecoration(labelText: 'Contact details'),
-          ),
-          TextFormField(
-            controller: _description,
-            decoration: const InputDecoration(labelText: 'Description'),
-          ),
-          TextFormField(
-            controller: _staff,
-            decoration: const InputDecoration(labelText: 'Librarian staff IDs'),
-            validator: _staffError,
+          const SizedBox(height: 20),
+
+          // Error Callout
+          if (_errorMessage != null) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.error.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: theme.colorScheme.error.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.error_outline_rounded,
+                    color: theme.colorScheme.error,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      _errorMessage!,
+                      style: TextStyle(
+                        color: theme.colorScheme.error,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // Section 1: Basic Details
+          _FormSection(
+            title: 'Library Details',
+            icon: Icons.badge_outlined,
+            children: [
+              TextFormField(
+                controller: _name,
+                textInputAction: TextInputAction.next,
+                decoration: const InputDecoration(
+                  labelText: 'Library name *',
+                  hintText: 'e.g. Central Campus Library',
+                  prefixIcon: Icon(Icons.business_outlined, size: 20),
+                ),
+                validator: _validateName,
+              ),
+              if (askCampus) ...[
+                const SizedBox(height: 14),
+                _buildCampusField(editing, campuses),
+              ],
+            ],
           ),
           const SizedBox(height: 16),
-          FilledButton(
-            onPressed: _busy ? null : _save,
-            child: Text(_busy ? 'Saving…' : 'Save'),
+
+          // Section 2: Location & Schedule
+          _FormSection(
+            title: 'Location & Operating Schedule',
+            icon: Icons.place_outlined,
+            children: [
+              if (isMultiCol)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: _buildLocationField()),
+                    const SizedBox(width: 14),
+                    Expanded(child: _buildHoursField()),
+                  ],
+                )
+              else ...[
+                _buildLocationField(),
+                const SizedBox(height: 14),
+                _buildHoursField(),
+              ],
+              const SizedBox(height: 14),
+            ],
           ),
+          const SizedBox(height: 16),
+
+          // Section 3: Contact & notes
+          _FormSection(
+            title: 'Contact & Notes',
+            icon: Icons.contact_phone_outlined,
+            children: [
+              if (isMultiCol)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: _buildPhoneField()),
+                    const SizedBox(width: 14),
+                    Expanded(child: _buildEmailField()),
+                  ],
+                )
+              else ...[
+                _buildPhoneField(),
+                const SizedBox(height: 14),
+                _buildEmailField(),
+              ],
+              const SizedBox(height: 14),
+              TextFormField(
+                controller: _description,
+                minLines: 2,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  labelText: 'Description / Notes',
+                  hintText: 'Additional details about collections, rules…',
+                  prefixIcon: Icon(Icons.notes_rounded, size: 20),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          // Actions
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              OutlinedButton(
+                onPressed: _busy ? null : () => Navigator.of(context).pop(),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text('Cancel'),
+              ),
+              const SizedBox(width: 12),
+              FilledButton.icon(
+                onPressed: _busy ? null : _save,
+                icon: _busy
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.check_rounded, size: 18),
+                label: Text(
+                  _busy
+                      ? 'Saving…'
+                      : (editing ? 'Save changes' : 'Create library'),
+                ),
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCampusField(bool editing, List<int> campuses) {
+    return DropdownButtonFormField<int>(
+      initialValue: _campus,
+      decoration: const InputDecoration(
+        labelText: 'Campus *',
+        prefixIcon: Icon(Icons.school_outlined, size: 20),
+      ),
+      items: [
+        for (final value in campuses)
+          DropdownMenuItem(value: value, child: Text('Campus $value')),
+      ],
+      onChanged: editing ? null : (value) => setState(() => _campus = value),
+      validator: (value) => value == null ? 'Campus is required' : null,
+    );
+  }
+
+  Widget _buildPhoneField() {
+    return TextFormField(
+      controller: _phone,
+      keyboardType: TextInputType.phone,
+      textInputAction: TextInputAction.next,
+      decoration: const InputDecoration(
+        labelText: 'Phone',
+        hintText: 'e.g. +91 98765 43210',
+        prefixIcon: Icon(Icons.call_outlined, size: 20),
+      ),
+      validator: _validatePhone,
+    );
+  }
+
+  Widget _buildEmailField() {
+    return TextFormField(
+      controller: _email,
+      keyboardType: TextInputType.emailAddress,
+      textInputAction: TextInputAction.next,
+      decoration: const InputDecoration(
+        labelText: 'Email',
+        hintText: 'e.g. library@school.edu',
+        prefixIcon: Icon(Icons.mail_outline_rounded, size: 20),
+      ),
+      validator: _validateEmail,
+    );
+  }
+
+  Widget _buildLocationField() {
+    return TextFormField(
+      controller: _location,
+      textInputAction: TextInputAction.next,
+      decoration: const InputDecoration(
+        labelText: 'Location',
+        hintText: 'e.g. Building A, 2nd Floor',
+        prefixIcon: Icon(Icons.location_on_outlined, size: 20),
+      ),
+    );
+  }
+
+  Widget _buildHoursField() {
+    return TextFormField(
+      controller: _hours,
+      textInputAction: TextInputAction.next,
+      decoration: const InputDecoration(
+        labelText: 'Opening hours',
+        hintText: 'e.g. Mon–Fri 8 AM – 5 PM',
+        prefixIcon: Icon(Icons.schedule_outlined, size: 20),
+      ),
+    );
+  }
+}
+
+class _FormSection extends StatelessWidget {
+  const _FormSection({
+    required this.title,
+    required this.icon,
+    required this.children,
+  });
+
+  final String title;
+  final IconData icon;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 18, color: theme.colorScheme.primary),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.1,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          ...children,
         ],
       ),
     );

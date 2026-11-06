@@ -79,6 +79,7 @@ class NotificationService {
   Future<void> init({
     required void Function(Map<String, dynamic>) onTap,
   }) async {
+    if (kIsWeb) return;
     void tap(String? payload) {
       if (payload == null || payload.isEmpty) return;
       onTap(Map<String, dynamic>.from(jsonDecode(payload) as Map));
@@ -108,6 +109,7 @@ class NotificationService {
 
   /// Asks for notification permission (Android 13+ / iOS). Returns granted.
   Future<bool> requestPermission() async {
+    if (kIsWeb) return false;
     final s = await _fcm.requestPermission();
     return s.authorizationStatus == AuthorizationStatus.authorized ||
         s.authorizationStatus == AuthorizationStatus.provisional;
@@ -116,6 +118,7 @@ class NotificationService {
   // ponytail: FCM token API is deprecated in favour of register()/onRegistered
   // (Firebase Installation ID); switch once the backend sends to FIDs.
   Future<String?> get token async {
+    if (kIsWeb) return null;
     // iOS: the FCM token isn't available until APNs has issued its token.
     if (defaultTargetPlatform == TargetPlatform.iOS &&
         await _fcm.getAPNSToken() == null) {
@@ -126,7 +129,10 @@ class NotificationService {
     return _fcm.getToken();
   }
 
-  // Deprecated token API, see note above.
-  // ignore: deprecated_member_use
-  Stream<String> get onTokenRefresh => _fcm.onTokenRefresh;
+  Stream<String> get onTokenRefresh {
+    if (kIsWeb) return const Stream<String>.empty();
+    // Deprecated token API, see note above.
+    // ignore: deprecated_member_use
+    return _fcm.onTokenRefresh;
+  }
 }

@@ -1,4 +1,6 @@
+import 'package:admin_ui/admin_ui.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/catalogue/book_details_page.dart';
 import 'package:school_library/src/ui/catalogue/book_form_page.dart';
@@ -6,10 +8,10 @@ import 'package:school_library/src/ui/catalogue/catalogue_page.dart';
 import 'package:school_library/src/ui/catalogue/copies_page.dart';
 import 'package:school_library/src/ui/circulation/circulation_page.dart';
 import 'package:school_library/src/ui/fines/fines_page.dart';
-import 'package:school_library/src/ui/home/library_home_page.dart';
 import 'package:school_library/src/ui/incidents/incidents_page.dart';
 import 'package:school_library/src/ui/insights/dashboard/library_dashboard_page.dart';
 import 'package:school_library/src/ui/insights/import/library_import_page.dart';
+import 'package:school_library/src/ui/insights/overview/library_overview_page.dart';
 import 'package:school_library/src/ui/insights/reports/library_report_page.dart';
 import 'package:school_library/src/ui/insights/reports/library_reports_page.dart';
 import 'package:school_library/src/ui/libraries/libraries_page.dart';
@@ -17,17 +19,31 @@ import 'package:school_library/src/ui/libraries/library_categories_page.dart';
 import 'package:school_library/src/ui/members/members_page.dart';
 import 'package:school_library/src/ui/policies/policies_page.dart';
 import 'package:school_library/src/ui/reservations/reservations_page.dart';
+import 'package:school_library/src/ui/routing/library_destinations.dart';
 import 'package:school_library/src/ui/transfers/transfer_form_page.dart';
 import 'package:school_library/src/ui/transfers/transfer_page.dart';
 import 'package:school_library/src/ui/transfers/transfers_page.dart';
 import 'package:school_library/src/ui/verification/verification_page.dart';
 
-/// Library screens as go_router routes; mount inside the app's shell.
+/// Library screens as go_router routes, inside a shell that adds side navigation on wide screens.
 List<RouteBase> libraryRoutes() => [
+  ShellRoute(
+    builder: (context, state, child) => ModuleShell(
+      title: 'Library',
+      homePath: LibraryRoutes.library,
+      location: state.uri.path,
+      destinations: libraryNavigation(context.watch<LibraryProvider>().access),
+      child: child,
+    ),
+    routes: _libraryPages,
+  ),
+];
+
+final _libraryPages = <RouteBase>[
   GoRoute(
     path: LibraryRoutes.library,
     name: LibraryRoutes.libraryName,
-    builder: (context, state) => const LibraryHomePage(),
+    builder: (context, state) => const LibraryLanding(),
   ),
   GoRoute(
     path: LibraryRoutes.libraryList,

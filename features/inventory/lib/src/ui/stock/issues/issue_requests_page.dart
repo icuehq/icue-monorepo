@@ -1,8 +1,10 @@
+import 'package:admin_ui/admin_ui.dart';
 import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/stock/issues/widgets/issue_request_card.dart';
+import 'package:inventory/src/ui/stock/issues/widgets/issue_request_widgets.dart';
 import 'package:provider/provider.dart';
 
 /// Issue requests (FRS 10.8): list for requester / approver / storekeeper.
@@ -90,150 +92,184 @@ class _IssueRequestsPageState extends State<IssueRequestsPage> {
               label: const Text('New request'),
             )
           : null,
-      body: Column(
-        children: [
-          // Horizontal Status Filter Chips
-          SizedBox(
-            height: 44,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              children: [
-                for (final (key, label) in statuses)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 6),
-                    child: FilterChip(
-                      label: Text(label),
-                      selected: _status == key,
-                      showCheckmark: false,
-                      visualDensity: VisualDensity.compact,
-                      onSelected: (_) => _filter(key),
+      body: CenteredBody(
+        maxWidth: 900,
+        child: Column(
+          children: [
+            // Horizontal Status Filter Chips
+            SizedBox(
+              height: 44,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 4,
+                ),
+                children: [
+                  for (final (key, label) in statuses)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: FilterChip(
+                        label: Text(label),
+                        selected: _status == key,
+                        showCheckmark: false,
+                        visualDensity: VisualDensity.compact,
+                        onSelected: (_) => _filter(key),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+              child: Row(
+                children: [
+                  Text(
+                    !_loaded || stockProvider.isLoading
+                        ? 'Loading requests…'
+                        : '${stockProvider.requests.length} '
+                              '${_status == null ? '' : '${humanizeStatus(_status!).toLowerCase()} '}'
+                              'request${stockProvider.requests.length == 1 ? '' : 's'}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-              ],
+                ],
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-            child: Row(
-              children: [
-                Text(
-                  !_loaded || stockProvider.isLoading
-                      ? 'Loading requests…'
-                      : '${stockProvider.requests.length} '
-                            '${_status == null ? '' : '${humanizeStatus(_status!).toLowerCase()} '}'
-                            'request${stockProvider.requests.length == 1 ? '' : 's'}',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: _load,
-              child: !_loaded || stockProvider.requests.isEmpty
-                  ? Center(
-                      child: !_loaded || stockProvider.isLoading
-                          ? const CircularProgressIndicator()
-                          : SingleChildScrollView(
-                              physics: const AlwaysScrollableScrollPhysics(),
-                              child: Padding(
-                                padding: const EdgeInsets.all(32),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Container(
-                                      width: 72,
-                                      height: 72,
-                                      decoration: BoxDecoration(
-                                        color: theme
-                                            .colorScheme
-                                            .surfaceContainerHighest
-                                            .withValues(alpha: 0.5),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Icon(
-                                        Icons.outbox_rounded,
-                                        size: 36,
-                                        color:
-                                            theme.colorScheme.onSurfaceVariant,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 16),
-                                    Text(
-                                      stockProvider.errorMessage != null
-                                          ? 'Could not load requests'
-                                          : _status != null
-                                          ? 'No ${humanizeStatus(_status!).toLowerCase()} requests'
-                                          : 'No issue requests',
-                                      style: theme.textTheme.titleMedium
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      stockProvider.errorMessage ??
-                                          (_status != null
-                                              ? 'There are currently no requests with this status filter.'
-                                              : 'Submit an issue request to withdraw supplies or equipment from store stock.'),
-                                      textAlign: TextAlign.center,
-                                      style: theme.textTheme.bodySmall
-                                          ?.copyWith(
-                                            color: theme
-                                                .colorScheme
-                                                .onSurfaceVariant,
-                                          ),
-                                    ),
-                                    const SizedBox(height: 18),
-                                    if (stockProvider.errorMessage != null)
-                                      OutlinedButton.icon(
-                                        onPressed: _load,
-                                        icon: const Icon(
-                                          Icons.refresh,
-                                          size: 18,
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _load,
+                child: !_loaded || stockProvider.requests.isEmpty
+                    ? Center(
+                        child: !_loaded || stockProvider.isLoading
+                            ? const CircularProgressIndicator()
+                            : SingleChildScrollView(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(32),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Container(
+                                        width: 72,
+                                        height: 72,
+                                        decoration: BoxDecoration(
+                                          color: theme
+                                              .colorScheme
+                                              .surfaceContainerHighest
+                                              .withValues(alpha: 0.5),
+                                          shape: BoxShape.circle,
                                         ),
-                                        label: const Text('Try again'),
-                                      )
-                                    else if (_status != null)
-                                      OutlinedButton.icon(
-                                        onPressed: () => _filter(null),
-                                        icon: const Icon(
-                                          Icons.filter_alt_off_outlined,
-                                          size: 18,
+                                        child: Icon(
+                                          Icons.outbox_rounded,
+                                          size: 36,
+                                          color: theme
+                                              .colorScheme
+                                              .onSurfaceVariant,
                                         ),
-                                        label: const Text('Show all requests'),
-                                      )
-                                    else if (canRequest)
-                                      FilledButton.icon(
-                                        onPressed: _newRequest,
-                                        icon: const Icon(Icons.add, size: 18),
-                                        label: const Text('New request'),
                                       ),
-                                  ],
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        stockProvider.errorMessage != null
+                                            ? 'Could not load requests'
+                                            : _status != null
+                                            ? 'No ${humanizeStatus(_status!).toLowerCase()} requests'
+                                            : 'No issue requests',
+                                        style: theme.textTheme.titleMedium
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        stockProvider.errorMessage ??
+                                            (_status != null
+                                                ? 'There are currently no requests with this status filter.'
+                                                : 'Submit an issue request to withdraw supplies or equipment from store stock.'),
+                                        textAlign: TextAlign.center,
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                              color: theme
+                                                  .colorScheme
+                                                  .onSurfaceVariant,
+                                            ),
+                                      ),
+                                      const SizedBox(height: 18),
+                                      if (stockProvider.errorMessage != null)
+                                        OutlinedButton.icon(
+                                          onPressed: _load,
+                                          icon: const Icon(
+                                            Icons.refresh,
+                                            size: 18,
+                                          ),
+                                          label: const Text('Try again'),
+                                        )
+                                      else if (_status != null)
+                                        OutlinedButton.icon(
+                                          onPressed: () => _filter(null),
+                                          icon: const Icon(
+                                            Icons.filter_alt_off_outlined,
+                                            size: 18,
+                                          ),
+                                          label: const Text(
+                                            'Show all requests',
+                                          ),
+                                        )
+                                      else if (canRequest)
+                                        FilledButton.icon(
+                                          onPressed: _newRequest,
+                                          icon: const Icon(Icons.add, size: 18),
+                                          label: const Text('New request'),
+                                        ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 80),
-                      itemCount: stockProvider.requests.length,
-                      itemBuilder: (context, index) {
-                        final issueRequest = stockProvider.requests[index];
-                        return IssueRequestCard(
-                          request: issueRequest,
-                          storeName: storeName(issueRequest.storeId),
-                          itemName: stockProvider.itemName,
-                          onTap: () => _open(issueRequest),
-                        );
-                      },
-                    ),
+                      )
+                    : AdaptiveList<InventoryIssueRequest>(
+                        items: stockProvider.requests,
+                        onTap: _open,
+                        columns: [
+                          AdaptiveColumn.text(
+                            'Request',
+                            (request) => request.number,
+                          ),
+                          AdaptiveColumn.text(
+                            'Purpose',
+                            (request) => request.purpose,
+                            flex: 3,
+                          ),
+                          AdaptiveColumn.text(
+                            'Store',
+                            (request) => storeName(request.storeId),
+                          ),
+                          AdaptiveColumn.text(
+                            'Raised',
+                            (request) =>
+                                request.createdAt?.toNumericDate() ?? '—',
+                          ),
+                          AdaptiveColumn(
+                            label: 'Status',
+                            cell: (context, request) =>
+                                IssueStatusPill(request.status),
+                          ),
+                        ],
+                        cardBuilder: (context, issueRequest) => Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+                          child: IssueRequestCard(
+                            request: issueRequest,
+                            storeName: storeName(issueRequest.storeId),
+                            itemName: stockProvider.itemName,
+                            onTap: () => _open(issueRequest),
+                          ),
+                        ),
+                      ),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

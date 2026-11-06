@@ -124,7 +124,7 @@ Common fields on every document: `campusId`, `createdAt`, `createdBy` (uid), `up
 | `config/{doc}` | `rolePermissions`, `inventorySettings` (expiry warning days, approval toggles), `librarySettings` (hold days, blocking rules) |
 | `userAccess/{uid}` | Resolved permissions (§3.2) |
 | `counters/{type_year}` | Sequential numbers: `PR/2026-27/000123`. Incremented inside the owning transaction. |
-| `uniqueKeys/{kind_value}` | Uniqueness guard (item code, vendor code, category code, library code, accession no., asset ID). Created in the same transaction as the record; existing key → `already-exists`. |
+| `uniqueKeys/{kind_value}` | Uniqueness guard (item code, vendor code, inventory category code, library code, accession no., asset ID). Created in the same transaction as the record; existing key → `already-exists`. |
 | `requests/{requestId}` | Idempotency: stored result of a completed callable, TTL 7 days. |
 | `auditLogs/{id}` | `{actor, action, ref, before, after, reason, at}`. Function-written only (FRS 16). |
 | `outbox/{eventKey}` | Pending notifications (§7). |

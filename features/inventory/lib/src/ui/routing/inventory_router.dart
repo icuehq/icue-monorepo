@@ -1,3 +1,4 @@
+import 'package:admin_ui/admin_ui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/assets/maintenance/maintenance_page.dart';
@@ -31,6 +32,7 @@ import 'package:inventory/src/ui/procurement/quotations/quotations_page.dart';
 import 'package:inventory/src/ui/procurement/vendors/vendor_form_page.dart';
 import 'package:inventory/src/ui/procurement/vendors/vendor_page.dart';
 import 'package:inventory/src/ui/procurement/vendors/vendors_page.dart';
+import 'package:inventory/src/ui/routing/inventory_destinations.dart';
 import 'package:inventory/src/ui/stock/balance/stock_page.dart';
 import 'package:inventory/src/ui/stock/issues/issue_request_form_page.dart';
 import 'package:inventory/src/ui/stock/issues/issue_request_page.dart';
@@ -42,9 +44,28 @@ import 'package:inventory/src/ui/stock/transfers/transfer_page.dart';
 import 'package:inventory/src/ui/stock/transfers/transfers_page.dart';
 import 'package:inventory/src/ui/stock/unavailable/unavailable_page.dart';
 import 'package:inventory/src/ui/stock/unavailable/unavailable_resolve_page.dart';
+import 'package:provider/provider.dart';
 
-/// Inventory screens as go_router routes; mount inside the app's shell.
+/// Inventory screens as go_router routes, inside a shell that adds side navigation on wide screens.
 List<RouteBase> inventoryRoutes() => [
+  ShellRoute(
+    builder: (context, state, child) => ModuleShell(
+      title: 'Inventory',
+      homePath: InventoryRoutes.inventory,
+      location: state.uri.path,
+      destinations: [
+        for (final entry in inventoryEntries(
+          context.watch<InventoryProvider>().access,
+        ))
+          entry.destination,
+      ],
+      child: child,
+    ),
+    routes: _inventoryPages,
+  ),
+];
+
+final _inventoryPages = <RouteBase>[
   GoRoute(
     path: InventoryRoutes.inventory,
     name: InventoryRoutes.inventoryName,

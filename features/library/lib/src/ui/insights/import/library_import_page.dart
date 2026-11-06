@@ -8,9 +8,8 @@ class LibraryImportPage extends StatelessWidget {
   const LibraryImportPage({super.key});
 
   static const _hints = {
-    'catalogue': 'Authors and keywords separated by ";". categoryCode of an existing category. Existing titles are rejected.',
-    'copies': 'One opening-stock acquisition per row: isbn13 of an existing title, libraryCode, quantity (default 1). Accession numbers are generated.',
-    'members': 'memberType student or teacher; libraryCodes separated by ";"; dates yyyy-mm-dd. Existing members are rejected.',
+    'catalogue': 'Authors and keywords separated by ";". category is the name of an existing category. Existing titles are rejected.',
+    'copies': 'One opening-stock acquisition per row: isbn13 of an existing title, library (its name), quantity (default 1). Accession numbers are generated.',
   };
 
   @override

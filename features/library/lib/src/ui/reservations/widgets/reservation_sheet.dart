@@ -2,6 +2,7 @@ import 'package:admin_ui/admin_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
+import 'package:school_library/src/ui/shared/person_picker.dart';
 
 /// Sheet to reserve a book that is currently unavailable (FRS 11.12).
 class ReservationSheet extends StatefulWidget {
@@ -17,9 +18,8 @@ class ReservationSheet extends StatefulWidget {
 }
 
 class _ReservationSheetState extends State<ReservationSheet> {
-  final _erpId = TextEditingController();
   final _bookSearch = TextEditingController();
-  String _memberType = 'student';
+  LibraryPerson? _person;
   LibraryBook? _selectedBook;
   String? _libraryId;
   bool _busy = false;
@@ -32,15 +32,14 @@ class _ReservationSheetState extends State<ReservationSheet> {
 
   @override
   void dispose() {
-    _erpId.dispose();
     _bookSearch.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
-    final personErpId = int.tryParse(_erpId.text.trim());
-    if (personErpId == null) {
-      return showMessage(context, 'Enter the member ERP ID');
+    final person = _person;
+    if (person == null) {
+      return showMessage(context, 'Choose the student or teacher');
     }
     final book = _selectedBook;
     if (book == null) return showMessage(context, 'Select a book to reserve');
@@ -51,7 +50,7 @@ class _ReservationSheetState extends State<ReservationSheet> {
     final libraryProvider = context.read<LibraryProvider>();
     final navigator = Navigator.of(context);
     final ok = await libraryProvider.createReservation({
-      'memberId': '${_memberType}_$personErpId',
+      'person': person.toPayload(),
       'catalogueId': book.id,
       'libraryId': libraryId,
     });
@@ -87,27 +86,7 @@ class _ReservationSheetState extends State<ReservationSheet> {
       children: [
         Text('Reserve a book', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 12),
-        Row(
-          children: [
-            SegmentedButton<String>(
-              segments: const [
-                ButtonSegment(value: 'student', label: Text('Student')),
-                ButtonSegment(value: 'teacher', label: Text('Teacher')),
-              ],
-              selected: {_memberType},
-              onSelectionChanged: (values) =>
-                  setState(() => _memberType = values.first),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: TextField(
-                controller: _erpId,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'ERP ID'),
-              ),
-            ),
-          ],
-        ),
+        PersonPicker(onChanged: (person) => _person = person),
         const SizedBox(height: 12),
         if (widget.book != null)
           ListTile(

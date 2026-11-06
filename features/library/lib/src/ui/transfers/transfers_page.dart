@@ -1,3 +1,5 @@
+import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -25,8 +27,6 @@ class _LibraryTransfersPageState extends State<LibraryTransfersPage> {
   ];
 
   String? _status;
-
-  /// False until the first fetch ends, so an earlier visit's rows never flash.
   var _loaded = false;
 
   @override
@@ -37,7 +37,6 @@ class _LibraryTransfersPageState extends State<LibraryTransfersPage> {
 
   Future<void> _load() async {
     final libraryProvider = context.read<LibraryProvider>();
-    // Access (campuses) and library names must be known before transfers are read.
     if (libraryProvider.libraries.isEmpty) await libraryProvider.loadMasters();
     await libraryProvider.loadTransfers();
     if (mounted) setState(() => _loaded = true);
@@ -46,6 +45,26 @@ class _LibraryTransfersPageState extends State<LibraryTransfersPage> {
   Future<void> _open(String route) async {
     await context.push(route);
     if (mounted) await _load();
+  }
+
+  Widget _statusPill(String status) {
+    final color = transferStatusColor(status);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Text(
+        transferStatusLabel(status),
+        style: TextStyle(
+          color: color,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
   }
 
   @override
@@ -68,29 +87,39 @@ class _LibraryTransfersPageState extends State<LibraryTransfersPage> {
         padding: const EdgeInsets.all(32),
         child: Column(
           children: [
-            Icon(
-              Icons.swap_horiz_rounded,
-              size: 48,
-              color: theme.colorScheme.onSurfaceVariant,
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.swap_horiz_rounded,
+                size: 36,
+                color: theme.colorScheme.primary,
+              ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             Text(
               failure != null
                   ? 'Could not load transfers'
                   : _status == null
                   ? 'No transfers yet'
                   : 'No ${transferStatusLabel(_status!).toLowerCase()} transfers',
-              style: theme.textTheme.titleMedium,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text(
-              failure ?? 'Move copies between libraries. Each transfer is requested, approved, dispatched and then received.',
+              failure ?? 'Move copies between libraries. Each transfer is requested, approved, dispatched, and then received.',
               textAlign: TextAlign.center,
-              style: theme.textTheme.bodySmall?.copyWith(
+              style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             if (failure != null)
               OutlinedButton.icon(
                 onPressed: _load,
@@ -108,7 +137,16 @@ class _LibraryTransfersPageState extends State<LibraryTransfersPage> {
     );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Library Transfers')),
+      appBar: AppBar(
+        title: const Text('Library Transfers'),
+        actions: [
+          IconButton(
+            tooltip: 'Refresh transfers',
+            icon: const Icon(Icons.refresh_rounded),
+            onPressed: _load,
+          ),
+        ],
+      ),
       floatingActionButton: access.can('library.catalogue')
           ? FloatingActionButton.extended(
               onPressed: () => _open(LibraryRoutes.libraryTransferForm),
@@ -116,54 +154,134 @@ class _LibraryTransfersPageState extends State<LibraryTransfersPage> {
               label: const Text('New transfer'),
             )
           : null,
-      body: Column(
-        children: [
-          SizedBox(
-            height: 44,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              children: [
-                for (final (key, label) in _statuses)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 6),
-                    child: FilterChip(
-                      label: Text(label),
-                      selected: _status == key,
-                      showCheckmark: false,
-                      visualDensity: VisualDensity.compact,
-                      onSelected: (_) => setState(() => _status = key),
+      body: CenteredBody(
+        child: Column(
+          children: [
+            SizedBox(
+              height: 48,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 6,
+                ),
+                children: [
+                  for (final (key, label) in _statuses)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: FilterChip(
+                        label: Text(label),
+                        selected: _status == key,
+                        showCheckmark: false,
+                        visualDensity: VisualDensity.compact,
+                        onSelected: (_) => setState(() => _status = key),
+                      ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
-          ),
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: _load,
-              child: !_loaded || (loading && transfers.isEmpty)
-                  ? const Center(child: CircularProgressIndicator())
-                  : transfers.isEmpty
-                  ? empty()
-                  : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 80),
-                      itemCount: transfers.length,
-                      itemBuilder: (context, index) {
-                        final transfer = transfers[index];
-                        return TransferCard(
-                          transfer: transfer,
-                          fromName: name(transfer.fromLibraryId),
-                          toName: name(transfer.toLibraryId),
-                          nextAction: transferNextAction(transfer, access),
-                          onTap: () => _open(
-                            '${LibraryRoutes.libraryTransferDetail}?id=${transfer.id}',
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _load,
+                child: !_loaded || (loading && transfers.isEmpty)
+                    ? const Center(child: CircularProgressIndicator())
+                    : transfers.isEmpty
+                    ? empty()
+                    : AdaptiveList<LibraryTransfer>(
+                        items: transfers,
+                        onTap: (transfer) => _open(
+                          '${LibraryRoutes.libraryTransferDetail}?id=${transfer.id}',
+                        ),
+                        columns: [
+                          AdaptiveColumn(
+                            label: 'Transfer #',
+                            flex: 2,
+                            cell: (context, transfer) => Text(
+                              transfer.number,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ),
-                        );
-                      },
-                    ),
+                          AdaptiveColumn.text(
+                            'From',
+                            (transfer) => name(transfer.fromLibraryId),
+                            flex: 2,
+                          ),
+                          AdaptiveColumn.text(
+                            'To',
+                            (transfer) => name(transfer.toLibraryId),
+                            flex: 2,
+                          ),
+                          AdaptiveColumn(
+                            label: 'Copies',
+                            cell: (context, transfer) {
+                              final total = transfer.lineItems.length;
+                              final received = total - transfer.pending.length;
+                              return Text(
+                                received == total
+                                    ? '$total copies'
+                                    : '$received/$total received',
+                              );
+                            },
+                          ),
+                          AdaptiveColumn.text(
+                            'Date',
+                            (transfer) => transfer.requestedDate.toDisplayDay(),
+                          ),
+                          AdaptiveColumn(
+                            label: 'Status',
+                            cell: (context, transfer) =>
+                                _statusPill(transfer.status),
+                          ),
+                          AdaptiveColumn(
+                            label: 'Action',
+                            flex: 2,
+                            cell: (context, transfer) {
+                              final action = transferNextAction(
+                                transfer,
+                                access,
+                              );
+                              if (action == null) return const Text('—');
+                              return Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.primaryContainer
+                                      .withValues(alpha: 0.5),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  action,
+                                  style: TextStyle(
+                                    color: theme.colorScheme.primary,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                        cardBuilder: (context, transfer) => Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: TransferCard(
+                            transfer: transfer,
+                            fromName: name(transfer.fromLibraryId),
+                            toName: name(transfer.toLibraryId),
+                            nextAction: transferNextAction(transfer, access),
+                            onTap: () => _open(
+                              '${LibraryRoutes.libraryTransferDetail}?id=${transfer.id}',
+                            ),
+                          ),
+                        ),
+                      ),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

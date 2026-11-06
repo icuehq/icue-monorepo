@@ -1,8 +1,8 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/catalogue/widgets/acquisition_sheet.dart';
+import 'package:school_library/src/ui/catalogue/widgets/copy_card.dart';
 import 'package:school_library/src/ui/catalogue/widgets/copy_labels.dart';
 import 'package:school_library/src/ui/catalogue/widgets/copy_sheet.dart';
 
@@ -38,19 +38,19 @@ class _BookCopiesSectionState extends State<BookCopiesSection> {
   }
 
   Future<void> _add() async {
-    final ids = await AcquisitionSheet.show(context, widget.book);
-    if (ids == null || !mounted) return;
+    final identifiers = await AcquisitionSheet.show(context, widget.book);
+    if (identifiers == null || !mounted) return;
     await _load();
     if (!mounted) return;
     final added = [
       for (final copy in _copies ?? <LibraryCopy>[])
-        if (ids.contains(copy.accessionNumber)) copy,
+        if (identifiers.contains(copy.accessionNumber)) copy,
     ];
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: Text('Added ${ids.first} – ${ids.last}'),
+          content: Text('Added ${identifiers.first} – ${identifiers.last}'),
           action: SnackBarAction(
             label: 'Print labels',
             onPressed: () => shareCopyLabels(widget.book.title, added),
@@ -62,57 +62,125 @@ class _BookCopiesSectionState extends State<BookCopiesSection> {
   @override
   Widget build(BuildContext context) {
     final libraryProvider = context.watch<LibraryProvider>();
+    final theme = Theme.of(context);
     final copies = _copies;
     final available = copies
         ?.where((copy) => copy.status == 'available')
         .length;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Divider(),
-        ListTile(
-          title: Text(
-            copies == null
-                ? 'Copies'
-                : 'Copies (${copies.length}, $available available)',
-          ),
-          trailing:
-              libraryProvider.access.can('library.catalogue') &&
-                  widget.book.active
-              ? FilledButton.tonalIcon(
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add copies'),
-                  onPressed: _add,
-                )
-              : null,
+    final canAdd =
+        libraryProvider.access.can('library.catalogue') && widget.book.active;
+
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.only(top: 16, bottom: 24),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
         ),
-        if (_error != null)
-          ListTile(title: Text(_error!))
-        else if (copies == null)
-          const Padding(
-            padding: EdgeInsets.all(16),
-            child: Center(child: CircularProgressIndicator()),
-          )
-        else if (copies.isEmpty)
-          const ListTile(dense: true, title: Text('No copies yet'))
-        else
-          for (final copy in copies)
-            ListTile(
-              dense: true,
-              title: Text(copy.accessionNumber),
-              subtitle: Text(
-                [
-                  libraryProvider.library(copy.libraryId)?.name,
-                  copy.shelf,
-                ].whereType<String>().join(' · '),
-              ),
-              trailing: Text(humanizeStatus(copy.status)),
-              onTap: () async {
-                await CopySheet.show(context, copy, widget.book.title);
-                await _load();
-              },
+      ),
+      color: theme.colorScheme.surface,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.collections_bookmark_outlined,
+                  size: 20,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Physical Copies',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                if (copies != null) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primaryContainer.withValues(
+                        alpha: 0.5,
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '${copies.length} copies · $available available',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+                const Spacer(),
+                if (canAdd)
+                  FilledButton.tonalIcon(
+                    icon: const Icon(Icons.add_rounded, size: 18),
+                    label: const Text('Add copies'),
+                    onPressed: _add,
+                  ),
+              ],
             ),
-      ],
+            const SizedBox(height: 12),
+            if (_error != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                  _error!,
+                  style: TextStyle(color: theme.colorScheme.error),
+                ),
+              )
+            else if (copies == null)
+              const Padding(
+                padding: EdgeInsets.all(24),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (copies.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Center(
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.inbox_outlined,
+                        size: 36,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'No physical copies registered yet',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              for (final copy in copies)
+                CopyCard(
+                  copy: copy,
+                  libraryName:
+                      libraryProvider.library(copy.libraryId)?.name ??
+                      copy.libraryId,
+                  onTap: () async {
+                    await CopySheet.show(context, copy, widget.book.title);
+                    await _load();
+                  },
+                ),
+          ],
+        ),
+      ),
     );
   }
 }

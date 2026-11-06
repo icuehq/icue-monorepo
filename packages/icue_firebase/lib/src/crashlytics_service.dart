@@ -12,9 +12,13 @@ class CrashlyticsService {
 
   FirebaseCrashlytics get _c => FirebaseCrashlytics.instance;
 
+  /// Crashlytics has no web implementation; every call is a no-op there.
+  static const _supported = !kIsWeb;
+
   /// Hooks global error handlers. Call once, after Firebase is initialized.
   /// Collection is on in release builds only.
   Future<void> init() async {
+    if (!_supported) return;
     await _c.setCrashlyticsCollectionEnabled(!kDebugMode);
     FlutterError.onError = _c.recordFlutterFatalError;
     PlatformDispatcher.instance.onError = (error, stack) {
@@ -42,6 +46,7 @@ class CrashlyticsService {
     String? branchId,
     String? schoolName,
   }) {
+    if (!_supported) return;
     _c.setUserIdentifier(id ?? '');
     _c.setCustomKey('organizationId', organizationId ?? '');
     _c.setCustomKey('zoneId', zoneId ?? '');
@@ -57,7 +62,12 @@ class CrashlyticsService {
     StackTrace? stack, {
     String? reason,
     List<Object> information = const [],
-  }) => _c.recordError(error, stack, reason: reason, information: information);
+  }) {
+    if (!_supported) return;
+    _c.recordError(error, stack, reason: reason, information: information);
+  }
 
-  void log(String message) => _c.log(message);
+  void log(String message) {
+    if (_supported) _c.log(message);
+  }
 }

@@ -779,17 +779,16 @@ Open **Library** from the dashboard. The Library hub displays 15 option grid til
 
 #### Library Facilities Master
 
-- [ ] 2.1.1 **Libraries** → tap FAB **+ Library** to add Library 1:
-  - Library Code: `L1`
-  - Library Name: `Central High School Library`
+- [ ] 2.1.1 **Settings → Libraries** → tap **+ Library** to add Library 1 (there is no code or staff field; with a single campus the Campus field is not shown):
+  - Name: `Central High School Library`
   - Campus: `Campus 31`
   - Location: `Academic Block A, 1st Floor`
   - Hours: `08:00 - 17:00`
-  - Staff IDs: `884`
+  - Phone: `+91 98765 43210`
+  - Email: `library@school.edu`
   - Tap **Save**. **Expect** Library 1 created with Active status chip.
 - [ ] 2.1.2 Add Library 2:
-  - Library Code: `L2`
-  - Library Name: `Junior School Library`
+  - Name: `Junior School Library`
   - Campus: `Campus 32`
   - Location: `Primary Wing Ground Floor`
   - Hours: `08:30 - 15:30`
@@ -799,31 +798,31 @@ Open **Library** from the dashboard. The Library hub displays 15 option grid til
 
 - [ ] 2.1.3 **Categories** → tap empty-state seed button (or view seeded categories).
   - **Expect** 14 standard classification categories created:
-    - Code `FIC`: `Fiction`
-    - Code `NFC`: `Non-fiction`
-    - Code `SCI`: `Science`
-    - Code `MAT`: `Mathematics`
-    - Code `HIS`: `History`
-    - Code `GEO`: `Geography`
-    - Code `LIT`: `Literature`
-    - Code `LNG`: `Languages`
-    - Code `REF`: `Reference`
-    - Code `ENC`: `Encyclopedias`
-    - Code `BIO`: `Biographies`
-    - Code `CHL`: `Children's books`
-    - Code `TXT`: `Textbooks`
-    - Code `GKN`: `General knowledge`
+    - `Fiction`
+    - `Non-fiction`
+    - `Science`
+    - `Mathematics`
+    - `History`
+    - `Geography`
+    - `Literature`
+    - `Languages`
+    - `Reference`
+    - `Encyclopedias`
+    - `Biographies`
+    - `Children's books`
+    - `Textbooks`
+    - `General knowledge`
 - [ ] 2.1.4 Negative: Category Deactivation Protection:
-  - On category `HIS` (`History`), toggle Active switch off.
-  - Try to create a catalogue title under category `HIS`.
-  - **Expect** inactive category is excluded from selection or creation is rejected. Reactivate category `HIS`.
+  - On category `History`, toggle Active switch off.
+  - Try to create a catalogue title under category `History`.
+  - **Expect** inactive category is excluded from selection or creation is rejected. Reactivate category `History`.
 
 #### Title Catalogue Management
 
 - [ ] 2.1.5 **Catalogue** → tap FAB **+ Book** to add Title 1:
   - Title: `Wings of Fire: An Autobiography`
   - Authors: `A.P.J. Abdul Kalam, Arun Tiwari` (comma-separated)
-  - Category: `History` (`HIS`)
+  - Category: `History`
   - Publisher: `Universities Press`
   - Edition: `1st Edition`
   - Publication Year: `1999`
@@ -832,7 +831,7 @@ Open **Library** from the dashboard. The Library hub displays 15 option grid til
 - [ ] 2.1.6 Add Title 2:
   - Title: `Pride and Prejudice`
   - Authors: `Jane Austen`
-  - Category: `Fiction` (`FIC`)
+  - Category: `Fiction`
   - Publisher: `Penguin Classics`
   - Publication Year: `2003`
   - ISBN-13: `9780141439518`
@@ -840,7 +839,7 @@ Open **Library** from the dashboard. The Library hub displays 15 option grid til
 - [ ] 2.1.7 Add Title 3 (Without ISBN):
   - Title: `School Annual Magazine 2025-26`
   - Authors: `Editorial Board`
-  - Category: `Non-fiction` (`NFC`)
+  - Category: `Non-fiction`
   - ISBN-13: Leave blank
   - Tap **Save**. **Expect** Title saved successfully without ISBN.
 - [ ] 2.1.8 Negative: Duplicate ISBN-13:
@@ -862,7 +861,7 @@ Open **Library** from the dashboard. The Library hub displays 15 option grid til
 - [ ] 2.2.1 **Acquire Copies for Title 1 ("Wings of Fire")**:
   - Open "Wings of Fire" details → scroll to Physical Copies section → tap **Acquire copies**:
     - Acquisition Type: `Purchase`
-    - Target Library: `Central High School Library` (`L1`)
+    - Target Library: `Central High School Library` 
     - Quantity: `3`
     - Unit Price: `320.00`
     - Vendor / donor: `Apex Educational Supplies Ltd.`
@@ -876,7 +875,7 @@ Open **Library** from the dashboard. The Library hub displays 15 option grid til
     - SnackBar offers "Print labels" action.
 - [ ] 2.2.2 **Acquire Copy for Title 2 ("Pride and Prejudice")**:
   - Open "Pride and Prejudice" details → tap **Acquire copies**:
-    - Library: `Central High School Library` (`L1`)
+    - Library: `Central High School Library` 
     - Quantity: `1`
     - Unit Price: `280.00`
     - Shelf: `Shelf F-03`
@@ -896,11 +895,11 @@ Open **Library** from the dashboard. The Library hub displays 15 option grid til
   - Enter unique RFID: `RFID-BK-0002`. Tap Save. **Expect** saved.
 - [ ] 2.2.5 **Print Spine & Barcode Labels**:
   - On copy `ACC-000001` sheet, tap **Print label** (or share labels action).
-  - **Expect** printable label preview renders accession barcode, call number, title, and library code.
+  - **Expect** printable label preview renders accession barcode, call number, title, and library name.
 - [ ] 2.2.6 **Inter-Library Copy Move**:
   - Open Copy `ACC-000003` ("Wings of Fire").
-  - Tap **Move library** → select `Junior School Library` (`L2`). New shelf: `Junior Shelf J-04`.
-  - Tap confirm. **Expect** copy's library updates to `L2`; appears in `L2` copy inventory.
+  - Tap **Move library** → select `Junior School Library` . New shelf: `Junior Shelf J-04`.
+  - Tap confirm. **Expect** copy's library updates to `Junior School Library`; it appears in that library's copy inventory.
 - [ ] 2.2.7 **Copy Maintenance State Transitions**:
   - Open Copy `ACC-000002` → tap **Change status** → select `under_maintenance`.
   - **Expect** status transitions to `Under maintenance` (amber); copy is excluded from available loans.
@@ -908,15 +907,15 @@ Open **Library** from the dashboard. The Library hub displays 15 option grid til
 
 ---
 
-### 2.3 Members & Borrowing Policies (Lib-3)
+### 2.3 Borrowing Policies and Borrowers (Lib-3)
 
 #### Borrowing Rules & Policies
 
-- [ ] 2.3.1 **Create Primary Student Policy**:
-  - Open **Borrowing policies** → tap FAB **+ Policy**:
-    - Library: `Central High School Library` (`L1`)
-    - Member category: `primary`
-    - Policy name: `Primary Student Policy`
+- [ ] 2.3.1 **Create Student Policy**:
+  - Open **Settings → Borrowing policies** → tap **+ Policy**:
+    - Library: `Central High School Library` 
+    - Applies to: `Students`
+    - Policy name: `Student Policy`
     - Max books allowed: `2`
     - Loan period in days: `7`
     - Max renewals: `1`
@@ -924,11 +923,11 @@ Open **Library** from the dashboard. The Library hub displays 15 option grid til
     - Rate per day (₹): `2.00`
     - Grace days: `0`
     - Can reserve titles: switch ON (`true`)
-    - Tap **Save**. **Expect** Policy created for `L1` · `primary`.
+    - Tap **Save**. **Expect** Policy created for `Central High School Library` · Students.
 - [ ] 2.3.2 **Create Teacher Policy**:
   - Add Policy 2:
-    - Library: `Central High School Library` (`L1`)
-    - Member category: `teacher`
+    - Library: `Central High School Library` 
+    - Applies to: `Teachers`
     - Policy name: `Teacher Borrowing Policy`
     - Max books allowed: `5`
     - Loan period in days: `30`
@@ -936,30 +935,25 @@ Open **Library** from the dashboard. The Library hub displays 15 option grid til
     - Fine type: `none`
     - Grace days: `3`
     - Can reserve titles: switch ON (`true`)
-    - Tap **Save**. **Expect** Policy created for `L1` · `teacher`.
+    - Tap **Save**. **Expect** Policy created for `Central High School Library` · Teachers.
 - [ ] 2.3.3 Negative: Validation:
   - Create policy with Fine type `per_day` and empty or negative fine rate.
   - **Expect** blocked with validation error.
 
-#### Member Enrollment
+#### Borrowers
 
-- [ ] 2.3.4 **Enrol Students**:
-  - Open **Members** → tap FAB **+ Member**:
-    - Member Type: `Student`
-    - ERP ID: `501`
-    - Member Category: `primary`
-    - Library assignment: Tap `Central High School Library` chip
-    - Start Date: Today (`YYYY-MM-DD`)
-    - Tap **Save**.
-  - Enrol Student 2 (ERP ID `502`, category `primary`, library `L1`).
-  - Enrol Student 3 (ERP ID `503`, category `primary`, library `L1`).
-  - **Expect** All 3 students enrolled with status `Active`, category `primary`, showing 0 active loans.
-- [ ] 2.3.5 **Enrol Staff / Teacher**:
-  - Enrol Teacher: Member Type: `Teacher`, ERP ID `884`, Category: `teacher`, Library: `L1`.
-  - **Expect** Enrolled with matching teacher policy.
-- [ ] 2.3.6 **Member Status & Search**:
-  - Search member by ERP ID `501`. **Expect** Student 501 profile returned.
-  - Edit Member 503 → toggle Active off. **Expect** status shows `Inactive`; attempts to issue books are rejected. Reactivate Member 503.
+There is no enrolment: students are found in the ERP (Node) at the desk, and a person appears under **Members** the first time they borrow or reserve.
+
+- [ ] 2.3.4 **First borrow creates the record**:
+  - Open **Members** → **Students**. **Expect** it is empty before any loan.
+  - After step 2.4.1 (issue to a student found by name), reopen **Members**.
+  - **Expect** one row with the student's name, ERP ID, class and `1` on loan; status `Can borrow`.
+- [ ] 2.3.5 **Teachers (not connected yet)**:
+  - In **Circulation**, switch the person type to `Teacher`.
+  - **Expect** the message "Teacher lookup is not connected yet" and no way to choose a teacher. This is a placeholder until Node's teacher search is wired in.
+- [ ] 2.3.6 **Block and unblock**:
+  - On a member row tap **Block**, enter a reason, confirm. **Expect** status `Blocked`; issuing to that person is rejected.
+  - Tap **Unblock**. **Expect** status `Can borrow`. A fine also blocks automatically and clears when the fine is paid or waived.
 
 ---
 
@@ -970,8 +964,7 @@ Open **Circulation** from Library tiles.
 #### Book Issuance
 
 - [ ] 2.4.1 **Issue Book to Student 501**:
-  - Member type toggle: `Student`
-  - ERP ID: Enter `501`
+  - Person: `Student`; type the first letters of the student's name (ERP ID `501`) and choose them from the list.
   - In the field **"Scan book to ISSUE to this member"**, enter or scan accession number `ACC-000001` ("Wings of Fire").
   - Press enter / confirm.
   - **Expect**:
@@ -980,13 +973,13 @@ Open **Circulation** from Library tiles.
     - Copy `ACC-000001` status transitions from `Available` to `Issued` (blue pill).
     - Outbox records notification event `library-issued__...`.
 - [ ] 2.4.2 **Issue Second Book to Student 501**:
-  - With ERP ID `501` selected, enter `ACC-000004` ("Pride and Prejudice") in the issue scan field.
+  - With student `501` chosen, enter `ACC-000004` ("Pride and Prejudice") in the issue scan field.
   - **Expect** Issue succeeds; Student 501 active loan count becomes `2` (reaching the policy limit).
 - [ ] 2.4.3 Negative: Borrowing Quota Limit Exceeded:
   - Attempt to issue Copy `ACC-000002` to Student 501.
   - **Expect** rejected with error ("Member has reached maximum borrowing limit of 2 books").
 - [ ] 2.4.4 Negative: Issuing an Already Issued Copy:
-  - With ERP ID set to `502`, enter `ACC-000001` into the issue scan field.
+  - With student `502` chosen, enter `ACC-000001` into the issue scan field.
   - **Expect** rejected with error ("Copy is currently issued and unavailable").
 
 #### Loan Renewal
@@ -1015,20 +1008,19 @@ Open **Circulation** from Library tiles.
 
 ### 2.5 Reservations & Hold Queue (Lib-5)
 
-Setup: Copy `ACC-000001` is currently on loan to Student 501. No other copies of "Wings of Fire" are available at Library `L1` (Copy 2 is under maintenance/quarantined, Copy 3 was moved to `L2`).
+Setup: Copy `ACC-000001` is currently on loan to Student 501. No other copies of "Wings of Fire" are available at `Central High School Library` (Copy 2 is under maintenance/quarantined, Copy 3 was moved to `Junior School Library`).
 
 - [ ] 2.5.1 **Queue Reservation 1 (Student 502)**:
   - Open Catalogue → open "Wings of Fire" details → tap AppBar bookmark icon (tooltip: "Reserve book"):
-    - Member type: `Student`
-    - ERP ID: `502`
-    - Library: `Central High School Library` (`L1`)
+    - Person: `Student` `502`, found by name
+    - Library: `Central High School Library` 
     - Tap **Reserve book**.
   - **Expect** Reservation created with status `Waiting`; Queue Position is `1`.
 - [ ] 2.5.2 **Queue Reservation 2 (Student 503)**:
   - Open **Reservations** from Library tiles → tap FAB **New reservation**:
-    - Member type: `Student`, ERP ID: `503`
+    - Person: `Student` `503`, found by name
     - Select Book: `Wings of Fire`
-    - Library: `Central High School Library` (`L1`)
+    - Library: `Central High School Library` 
     - Tap **Reserve book**.
   - **Expect** Reservation created with status `Waiting`; Queue Position is `2`.
 - [ ] 2.5.3 Negative: Reserving a Title with Available Shelf Copies:
@@ -1045,10 +1037,10 @@ Setup: Copy `ACC-000001` is currently on loan to Student 501. No other copies of
     - Hold Expiry Date is automatically set to Today + 3 days.
     - Outbox records notification `library-rsv-ready__...` notifying Student 502.
 - [ ] 2.5.6 Negative: Issuing a Held Copy to Another Member:
-  - In Circulation, set ERP ID to `503` (queue position 2). Enter held copy `ACC-000001` in issue field.
+  - In Circulation, choose student `503` (queue position 2). Enter held copy `ACC-000001` in issue field.
   - **Expect** rejected with error ("Copy is currently held on reservation for Member 502").
 - [ ] 2.5.7 **Issue Held Copy to Target Member**:
-  - In Circulation, set ERP ID to `502`. Enter `ACC-000001` in issue field.
+  - In Circulation, choose student `502`. Enter `ACC-000001` in issue field.
   - **Expect** Issue allowed; reservation status updates to `Fulfilled`; Student 502 has active loan.
 - [ ] 2.5.8 **Reservation Cancellation**:
   - Open **Reservations** → tap Student 503's waiting reservation → tap **Cancel reservation**.
@@ -1124,7 +1116,7 @@ Setup: Copy `ACC-000001` is currently on loan to Student 501. No other copies of
 - [ ] 2.7.1 **Request Inter-Library Transfer**:
   - Open **Transfers** from Library tiles → tap FAB **New transfer**:
     - In the scan field, scan or enter accession no. `ACC-000001` (From library auto-populates as `Central High School Library`; with one eligible library it is pre-selected).
-    - To library: Select `Junior School Library` (`L2`). The From library is not offered.
+    - To library: Select `Junior School Library` . The From library is not offered.
     - Scan a copy from another library or an issued copy. **Expect** a message naming why it was refused.
     - Remarks: `Required for Class 8 literature workshop`.
     - Tap **Request transfer**.
@@ -1138,10 +1130,10 @@ Setup: Copy `ACC-000001` is currently on loan to Student 501. No other copies of
   - In Circulation, attempt to issue `ACC-000001` while in transit.
   - **Expect** rejected with error ("Copy is currently in transit between libraries").
 - [ ] 2.7.4 **Receive Transfer at Destination Library**:
-  - Open the transfer as a receiving librarian (`L2` campus; card shows `Confirm receipt on arrival`).
+  - Open the transfer as a receiving librarian (`Junior School Library` campus; card shows `Confirm receipt on arrival`).
   - Copies are ticked by default; set `ACC-000001` condition (Good / Fair / Poor), optionally enter a shelf and remarks.
   - Tap **Confirm receipt (1)**.
-  - **Expect** Transfer marked `Received`; copy `ACC-000001` now belongs to `L2` with the chosen condition and is available for circulation at `L2`. Unticking a copy leaves it in transit (`Partly received`) and it can be received later.
+  - **Expect** Transfer marked `Received`; copy `ACC-000001` now belongs to `Junior School Library` with the chosen condition and is available for circulation at `Junior School Library`. Unticking a copy leaves it in transit (`Partly received`) and it can be received later.
 - [ ] 2.7.4a **Filters and visibility**:
   - Use the status chips on the Transfers list. **Expect** the list narrows and an empty filter offers **Show all transfers**.
   - As a librarian limited to one campus, **Expect** both outgoing and incoming transfers are listed.
@@ -1150,13 +1142,13 @@ Setup: Copy `ACC-000001` is currently on loan to Student 501. No other copies of
 
 - [ ] 2.7.5 **Initiate Library Stock Verification**:
   - Open **Stock verification** from Library tiles → tap FAB **New verification**:
-    - Library: Select `Central High School Library` (`L1`).
+    - Library: Select `Central High School Library` .
     - Shelf: Leave blank (whole library) or enter shelf code.
     - Tap **Start counting**.
   - **Expect** Session created (`STK/...`); status `Counting`. Active loans are flagged as on loan and excluded from shelf discrepancies.
 - [ ] 2.7.6 **Barcode Scanning & Reconciliation**:
   - In `VerificationSheet`, scan expected accession numbers into the scan field.
-  - Scan an unexpected copy (e.g. belonging to `L2`).
+  - Scan an unexpected copy (e.g. belonging to `Junior School Library`).
   - Leave one shelf copy unscanned (simulating a missing book).
   - Tap **Submit count**. Status moves to `Submitted`.
   - Review corrections (as user with `library.settings`):
@@ -1182,8 +1174,8 @@ Setup: Copy `ACC-000001` is currently on loan to Student 501. No other copies of
     6. **Reserved books**: waiting and held reservations.
     7. **Lost books**: copies marked lost.
     8. **Damaged books**: copies in damaged state.
-    9. **Active student members**: enrolled active students.
-    10. **Active teacher members**: enrolled active teachers.
+    9. **Student borrowers**: students who have borrowed or reserved.
+    10. **Teacher borrowers**: teachers who have borrowed or reserved.
     11. **Pending returns**: loans due today.
     12. **Outstanding fines**: total uncollected fines balance (₹).
 
@@ -1218,24 +1210,24 @@ Setup: Copy `ACC-000001` is currently on loan to Student 501. No other copies of
   - Paste CSV with header:
 
     ```csv
-    title,authors,categoryCode,isbn13,publisher,year
-    Discovery of India,Jawaharlal Nehru,HIS,9780143031031,Penguin,2004
-    Modern Physics,H.C. Verma,INVALID_CAT,9788177091878,Bharti,2018
-    Wings of Fire: An Autobiography,A.P.J. Abdul Kalam,HIS,9788173711466,Universities Press,1999
+    title,authors,category,isbn13,publisher,year
+    Discovery of India,Jawaharlal Nehru,History,9780143031031,Penguin,2004
+    Modern Physics,H.C. Verma,Unknown category,9788177091878,Bharti,2018
+    Wings of Fire: An Autobiography,A.P.J. Abdul Kalam,History,9788173711466,Universities Press,1999
     ```
 
   - Tap **Run import**.
   - **Expect** summary shows 1 of 3 imported:
     - Row 1: `Success`
-    - Row 2: `Error: Category code 'INVALID_CAT' does not exist`
+    - Row 2: `Error: Category "Unknown category" not found`
     - Row 3: `Error: Title with this ISBN-13 already exists`
 - [ ] 2.8.5 **Import Copies CSV**:
   - Select **Copies** import.
   - Paste CSV:
 
     ```csv
-    isbn13,libraryCode,quantity,price,shelf,condition,date
-    9780143031031,L1,2,400.00,Shelf H-01,good,2026-01-15
+    isbn13,library,quantity,price,shelf,condition,date
+    9780143031031,Central High School Library,2,400.00,Shelf H-01,good,2026-01-15
     ```
 
   - Tap **Run import**.
@@ -1248,7 +1240,6 @@ Setup: Copy `ACC-000001` is currently on loan to Student 501. No other copies of
   - **Expect**:
     - Loans due in 2 days receive `library-due-soon__...` outbox event.
     - Overdue loans past due date receive `library-overdue__...__<date>` outbox event.
-    - Memberships expiring within 7 days receive `library-member-expiring__...`.
     - Reservation holds expiring within 24 hours receive `library-rsv-expiring__...`.
     - Re-executing on the same day produces no duplicate outbox events.
 
@@ -1267,7 +1258,7 @@ Edit permissions in `schools/<schoolId>/userAccess/<uid>`:
   - **Expect**: Catalogue, Copies, Categories, Libraries, Transfers, Stock verification, Import tiles; Circulation, Members, Borrowing policies, Fines, Incidents and Reports are hidden.
 - [ ] 2.9.3 **Role: `librarian` (Campus Scoping)**:
   - In `userAccess/<uid>`, set `campusIds: [32]` (Campus 32 only) and `hasAllCampuses: false`.
-  - **Expect**: Library views and circulation default to `Junior School Library` (`L2`); queries exclude Campus 31 (`L1`) loans and copies.
+  - **Expect**: Library views and circulation default to `Junior School Library` ; queries exclude Campus 31  loans and copies.
 
 ---
 

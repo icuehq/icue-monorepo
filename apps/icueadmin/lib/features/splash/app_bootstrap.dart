@@ -81,7 +81,9 @@ class _AppBootstrapState extends State<AppBootstrap> {
           theme: AppTheme.forEnvironment(widget.environment),
           home: SplashPage(
             error: snapshot.error,
-            onRetry: () => setState(() => _init = _initialize()),
+            onRetry: () => setState(() {
+              _init = _initialize();
+            }),
           ),
         );
       },

@@ -69,167 +69,170 @@ class _TransferFormPageState extends State<TransferFormPage> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('New Stock Transfer')),
-      body: Form(
-        key: _form,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            // Route Card
-            Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: theme.colorScheme.outlineVariant),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.swap_horiz_rounded,
-                          size: 20,
-                          color: theme.colorScheme.primary,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Transfer Route',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    StoreDropdown(
-                      label: 'Source Store (From)',
-                      value: _from,
-                      onChanged: (value) => setState(() {
-                        _from = value;
-                        if (_to == value) _to = null;
-                      }),
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      // Re-created when the source changes, so a cleared choice is not shown.
-                      key: ValueKey('to-$_from-$_to'),
-                      initialValue: _to,
-                      isExpanded: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Destination Store (To)',
-                        prefixIcon: Icon(Icons.warehouse_outlined),
-                      ),
-                      items: [
-                        for (final store in destination)
-                          DropdownMenuItem(
-                            value: store.id,
-                            child: Text(
-                              store.name,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                      ],
-                      onChanged: (value) => setState(() => _to = value),
-                      validator: (value) => value == null ? 'Required' : null,
-                    ),
-                  ],
+      body: CenteredBody(
+        maxWidth: 900,
+        child: Form(
+          key: _form,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              // Route Card
+              Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(color: theme.colorScheme.outlineVariant),
                 ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Items Card
-            Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: theme.colorScheme.outlineVariant),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.inventory_2_outlined,
-                          size: 20,
-                          color: theme.colorScheme.primary,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Items to Transfer',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.swap_horiz_rounded,
+                            size: 20,
+                            color: theme.colorScheme.primary,
                           ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Transfer Route',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      StoreDropdown(
+                        label: 'Source Store (From)',
+                        value: _from,
+                        onChanged: (value) => setState(() {
+                          _from = value;
+                          if (_to == value) _to = null;
+                        }),
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        // Re-created when the source changes, so a cleared choice is not shown.
+                        key: ValueKey('to-$_from-$_to'),
+                        initialValue: _to,
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Destination Store (To)',
+                          prefixIcon: Icon(Icons.warehouse_outlined),
                         ),
-                        const Spacer(),
-                        if (_lines.isNotEmpty)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.primaryContainer,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              '${_lines.length} items',
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: theme.colorScheme.onPrimaryContainer,
-                                fontWeight: FontWeight.w600,
+                        items: [
+                          for (final store in destination)
+                            DropdownMenuItem(
+                              value: store.id,
+                              child: Text(
+                                store.name,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    LineEditor(
-                      lineItems: _lines,
-                      onChanged: () => setState(() {}),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Remarks
-            TextFormField(
-              controller: _remarks,
-              decoration: const InputDecoration(
-                labelText: 'Remarks / Notes (optional)',
-                hintText: 'e.g. Relocating surplus stock for academic event',
-                prefixIcon: Icon(Icons.notes_rounded),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            FilledButton.icon(
-              onPressed: _busy ? null : _save,
-              icon: _busy
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
+                        ],
+                        onChanged: (value) => setState(() => _to = value),
+                        validator: (value) => value == null ? 'Required' : null,
                       ),
-                    )
-                  : const Icon(Icons.arrow_forward_rounded),
-              label: Text(_busy ? 'Submitting…' : 'Request Transfer'),
-              style: FilledButton.styleFrom(
-                minimumSize: const Size.fromHeight(48),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 16),
+
+              // Items Card
+              Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(color: theme.colorScheme.outlineVariant),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.inventory_2_outlined,
+                            size: 20,
+                            color: theme.colorScheme.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Items to Transfer',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const Spacer(),
+                          if (_lines.isNotEmpty)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primaryContainer,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '${_lines.length} items',
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: theme.colorScheme.onPrimaryContainer,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      LineEditor(
+                        lineItems: _lines,
+                        onChanged: () => setState(() {}),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Remarks
+              TextFormField(
+                controller: _remarks,
+                decoration: const InputDecoration(
+                  labelText: 'Remarks / Notes (optional)',
+                  hintText: 'e.g. Relocating surplus stock for academic event',
+                  prefixIcon: Icon(Icons.notes_rounded),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              FilledButton.icon(
+                onPressed: _busy ? null : _save,
+                icon: _busy
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.arrow_forward_rounded),
+                label: Text(_busy ? 'Submitting…' : 'Request Transfer'),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(48),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

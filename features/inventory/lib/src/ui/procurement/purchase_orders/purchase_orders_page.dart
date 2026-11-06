@@ -1,3 +1,5 @@
+import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:inventory/inventory.dart';
@@ -47,6 +49,14 @@ class _PurchaseOrdersPageState extends State<PurchaseOrdersPage> {
     super.dispose();
   }
 
+  Future<void> _openOrder(InventoryPurchaseOrder order) async {
+    await context.push(
+      InventoryRoutes.inventoryPurchaseOrderDetail,
+      extra: order,
+    );
+    if (mounted) await _load();
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -81,152 +91,171 @@ class _PurchaseOrdersPageState extends State<PurchaseOrdersPage> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // Search Bar
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search by PO number or vendor name…',
-                prefixIcon: const Icon(Icons.search_rounded),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear_rounded),
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() {});
-                        },
-                      )
-                    : null,
-                isDense: true,
-                filled: true,
-                fillColor: theme.colorScheme.surfaceContainerHighest.withValues(
-                  alpha: 0.35,
+      body: CenteredBody(
+        child: Column(
+          children: [
+            // Search Bar
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'Search by PO number or vendor name…',
+                  prefixIcon: const Icon(Icons.search_rounded),
+                  suffixIcon: _searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear_rounded),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() {});
+                          },
+                        )
+                      : null,
+                  isDense: true,
+                  filled: true,
+                  fillColor: theme.colorScheme.surfaceContainerHighest
+                      .withValues(alpha: 0.35),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none,
+                  ),
                 ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none,
-                ),
+                onChanged: (_) => setState(() {}),
               ),
-              onChanged: (_) => setState(() {}),
             ),
-          ),
 
-          // Horizontal Status Filter Chips
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                _buildFilterChip('all', 'All (${allOrders.length})'),
-                const SizedBox(width: 8),
-                _buildFilterChip(
-                  'issued',
-                  'Issued (${allOrders.where((o) => o.status == "issued").length})',
-                ),
-                const SizedBox(width: 8),
-                _buildFilterChip(
-                  'acknowledged',
-                  'Acknowledged (${allOrders.where((o) => o.status == "acknowledged").length})',
-                ),
-                const SizedBox(width: 8),
-                _buildFilterChip(
-                  'partially_received',
-                  'In Delivery (${allOrders.where((o) => o.status == "partially_received").length})',
-                ),
-                const SizedBox(width: 8),
-                _buildFilterChip(
-                  'fully_received',
-                  'Received (${allOrders.where((o) => o.status == "fully_received").length})',
-                ),
-                const SizedBox(width: 8),
-                _buildFilterChip(
-                  'draft',
-                  'Draft (${allOrders.where((o) => o.status == "draft").length})',
-                ),
-                const SizedBox(width: 8),
-                _buildFilterChip(
-                  'closed',
-                  'Closed (${allOrders.where((o) => o.status == "closed").length})',
-                ),
-                const SizedBox(width: 8),
-                _buildFilterChip(
-                  'cancelled',
-                  'Cancelled (${allOrders.where((o) => o.status == "cancelled").length})',
-                ),
-              ],
+            // Horizontal Status Filter Chips
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  _buildFilterChip('all', 'All (${allOrders.length})'),
+                  const SizedBox(width: 8),
+                  _buildFilterChip(
+                    'issued',
+                    'Issued (${allOrders.where((o) => o.status == "issued").length})',
+                  ),
+                  const SizedBox(width: 8),
+                  _buildFilterChip(
+                    'acknowledged',
+                    'Acknowledged (${allOrders.where((o) => o.status == "acknowledged").length})',
+                  ),
+                  const SizedBox(width: 8),
+                  _buildFilterChip(
+                    'partially_received',
+                    'In Delivery (${allOrders.where((o) => o.status == "partially_received").length})',
+                  ),
+                  const SizedBox(width: 8),
+                  _buildFilterChip(
+                    'fully_received',
+                    'Received (${allOrders.where((o) => o.status == "fully_received").length})',
+                  ),
+                  const SizedBox(width: 8),
+                  _buildFilterChip(
+                    'draft',
+                    'Draft (${allOrders.where((o) => o.status == "draft").length})',
+                  ),
+                  const SizedBox(width: 8),
+                  _buildFilterChip(
+                    'closed',
+                    'Closed (${allOrders.where((o) => o.status == "closed").length})',
+                  ),
+                  const SizedBox(width: 8),
+                  _buildFilterChip(
+                    'cancelled',
+                    'Cancelled (${allOrders.where((o) => o.status == "cancelled").length})',
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          const Divider(height: 1),
+            const SizedBox(height: 8),
+            const Divider(height: 1),
 
-          // Orders List
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: _load,
-              child: procurementProvider.isLoading && allOrders.isEmpty
-                  ? const Center(child: CircularProgressIndicator())
-                  : filteredOrders.isEmpty
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(32),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.receipt_long_outlined,
-                              size: 56,
-                              color: theme.colorScheme.outline,
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              query.isNotEmpty
-                                  ? 'No orders matching "$query"'
-                                  : _selectedStatus == 'all'
-                                  ? 'No purchase orders found'
-                                  : 'No $_selectedStatus purchase orders',
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Purchase orders are created from approved purchase requests and quotations.',
-                              style: theme.textTheme.bodySmall?.copyWith(
+            // Orders List
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _load,
+                child: procurementProvider.isLoading && allOrders.isEmpty
+                    ? const Center(child: CircularProgressIndicator())
+                    : filteredOrders.isEmpty
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(32),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.receipt_long_outlined,
+                                size: 56,
                                 color: theme.colorScheme.outline,
                               ),
-                              textAlign: TextAlign.center,
+                              const SizedBox(height: 12),
+                              Text(
+                                query.isNotEmpty
+                                    ? 'No orders matching "$query"'
+                                    : _selectedStatus == 'all'
+                                    ? 'No purchase orders found'
+                                    : 'No $_selectedStatus purchase orders',
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Purchase orders are created from approved purchase requests and quotations.',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.outline,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    : AdaptiveList<InventoryPurchaseOrder>(
+                        items: filteredOrders,
+                        onTap: _openOrder,
+                        columns: [
+                          AdaptiveColumn.text(
+                            'Order',
+                            (order) =>
+                                order.number.isEmpty ? 'Draft' : order.number,
+                          ),
+                          AdaptiveColumn.text(
+                            'Vendor',
+                            (order) =>
+                                procurementProvider.vendorName(order.vendorId),
+                            flex: 2,
+                          ),
+                          AdaptiveColumn.text(
+                            'Status',
+                            (order) => humanizeStatus(order.status),
+                          ),
+                          AdaptiveColumn.text(
+                            'Due',
+                            (order) => order.expectedDate.toDisplayDay(),
+                          ),
+                          AdaptiveColumn.text(
+                            'Total',
+                            (order) => order.total.toRupees(),
+                          ),
+                        ],
+                        cardBuilder: (context, purchaseOrder) => Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
+                          child: PurchaseOrderCard(
+                            order: purchaseOrder,
+                            vendorName: procurementProvider.vendorName(
+                              purchaseOrder.vendorId,
                             ),
-                          ],
+                            onTap: () => _openOrder(purchaseOrder),
+                          ),
                         ),
                       ),
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: filteredOrders.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        final purchaseOrder = filteredOrders[index];
-                        return PurchaseOrderCard(
-                          order: purchaseOrder,
-                          vendorName: procurementProvider.vendorName(
-                            purchaseOrder.vendorId,
-                          ),
-                          onTap: () async {
-                            await context.push(
-                              InventoryRoutes.inventoryPurchaseOrderDetail,
-                              extra: purchaseOrder,
-                            );
-                            if (mounted) await _load();
-                          },
-                        );
-                      },
-                    ),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

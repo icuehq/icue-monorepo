@@ -1,3 +1,4 @@
+import 'package:admin_ui/src/adaptive.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:icue_firebase/icue_firebase.dart' show ErrorReporting;
@@ -26,25 +27,83 @@ Future<bool> submitAndClose<P extends ErrorReporting>(
   return saved;
 }
 
-/// Opens [form] on its own full screen; it closes with `Navigator.pop`.
+/// [theme] with outlined and elevated buttons no longer forced to infinite width.
+///
+/// The app theme gives them `Size(double.infinity, 48)`, which breaks layout as soon as
+/// one sits in a `Row` or `Wrap`; a dialog form may hold such rows.
+ThemeData _finiteButtonWidths(ThemeData theme) {
+  const minimumSize = WidgetStatePropertyAll(Size(64, 48));
+  return theme.copyWith(
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: (theme.outlinedButtonTheme.style ?? const ButtonStyle()).copyWith(
+        minimumSize: minimumSize,
+      ),
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: (theme.elevatedButtonTheme.style ?? const ButtonStyle()).copyWith(
+        minimumSize: minimumSize,
+      ),
+    ),
+  );
+}
+
+/// Opens [form] as a dialog on wide screens, on its own full screen otherwise; it closes with `Navigator.pop`.
 Future<void> showFormPage(BuildContext context, Widget Function() form) =>
     pushFormPage<void>(context, form);
 
 /// Like [showFormPage], completing with the value the form pops with.
-Future<T?> pushFormPage<T>(BuildContext context, Widget Function() form) =>
-    Navigator.of(context, rootNavigator: true).push<T>(
-      MaterialPageRoute(
-        builder: (_) => Scaffold(
-          appBar: AppBar(),
-          body: SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: form(),
+Future<T?> pushFormPage<T>(BuildContext context, Widget Function() form) {
+  if (context.isWide) {
+    return showDialog<T>(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        child: SizedBox(
+          width: Breakpoints.formMaxWidth,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.sizeOf(dialogContext).height * 0.9,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: IconButton(
+                    tooltip: 'Close',
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => Navigator.of(dialogContext).pop(),
+                  ),
+                ),
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                    child: Theme(
+                      data: _finiteButtonWidths(Theme.of(dialogContext)),
+                      child: form(),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
       ),
     );
+  }
+  return Navigator.of(context, rootNavigator: true).push<T>(
+    MaterialPageRoute(
+      builder: (_) => Scaffold(
+        appBar: AppBar(),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: form(),
+          ),
+        ),
+      ),
+    ),
+  );
+}
 
 String? requiredText(String? value) =>
     (value == null || value.trim().isEmpty) ? 'Required' : null;

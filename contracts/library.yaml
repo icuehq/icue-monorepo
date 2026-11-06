@@ -28,6 +28,7 @@ documents:
       memberId: string
       memberType: MemberType
       personErpId: int
+      memberName: string?
       copyId: string
       accessionNumber: string
       catalogueId: string
@@ -127,6 +128,7 @@ models:
         memberId: string
         memberType: { type: string, default: student }
         personErpId: int
+        memberName: string?
         libraryId: string
         campusId: int
         type: { type: string, default: overdue }
@@ -160,6 +162,7 @@ models:
         memberId: string?
         memberType: string?
         personErpId: int?
+        memberName: string?
         loanId: string?
         severity: string?
         description: string?
@@ -180,6 +183,7 @@ models:
         memberId: string
         memberType: { type: string, default: student }
         personErpId: int
+        memberName: string?
         copyId: string
         accessionNumber: string
         catalogueId: string
@@ -196,19 +200,17 @@ models:
     SchoolLibrary:
       id: id
       fields:
-        code: string
         name: string
         campusId: int
         description: string?
         location: string?
-        staffIds: list<int>
-        contact: string?
+        phone: string?
+        email: string?
         hours: string?
         active: { type: bool, key: status, notEquals: inactive }
     LibraryCategory:
       id: id
       fields:
-        code: string
         name: string
         description: string?
         parentId: string?
@@ -234,12 +236,12 @@ models:
         active: { type: bool, key: status, notEquals: inactive }
   library_members:
     LibraryPolicy:
-      doc: "Borrowing rules of one member category in one library (FRS 11.8)."
+      doc: "Borrowing rules of one person type (student or teacher) in one library (FRS 11.8)."
       id: id
       fields:
         name: string
         libraryId: string
-        memberCategory: string
+        memberType: { type: string, default: student }
         maxBooks: int
         loanDays: int
         maxRenewals: int
@@ -252,19 +254,15 @@ models:
         restrictedCategoryIds: list<string>
         active: { type: bool, key: status, notEquals: inactive }
     LibraryMember:
-      doc: "A student or teacher who may borrow (FRS 11.7); the ERP person is only referenced by ID."
+      doc: "A student or teacher who has borrowed or reserved (FRS 11.7). Created on first use from the ERP details; the ERP stays the source of truth."
       id: id
       fields:
         memberType: { type: string, default: student }
         personErpId: int
+        name: string
         classId: int?
-        memberCategory: string
-        libraryIds: list<string>
-        start: day
-        end: day?
         activeLoans: int
         blocked: bool
-        active: { type: bool, key: status, notEquals: inactive }
   library_reservations:
     LibraryReservation:
       doc: "A book reservation placed by a member (FRS 11.12)."
@@ -274,6 +272,7 @@ models:
         memberId: string
         memberType: { type: string, default: student }
         personErpId: int
+        memberName: string?
         catalogueId: string
         title: string
         libraryId: string

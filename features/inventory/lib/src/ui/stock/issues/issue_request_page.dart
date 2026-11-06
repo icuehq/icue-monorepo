@@ -462,7 +462,7 @@ class _IssueRequestPageState extends State<IssueRequestPage> {
             ),
         ],
       ),
-      body: body,
+      body: CenteredBody(maxWidth: 900, child: body),
       bottomNavigationBar: request == null ? null : _actionBar(request, access),
     );
   }

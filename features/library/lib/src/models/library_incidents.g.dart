@@ -19,6 +19,7 @@ class LibraryIncident {
     this.memberId,
     this.memberType,
     this.personErpId,
+    this.memberName,
     this.loanId,
     this.severity,
     this.description,
@@ -46,6 +47,7 @@ class LibraryIncident {
         memberId: data['memberId'] as String?,
         memberType: data['memberType'] as String?,
         personErpId: (data['personErpId'] as num?)?.toInt(),
+        memberName: data['memberName'] as String?,
         loanId: data['loanId'] as String?,
         severity: data['severity'] as String?,
         description: data['description'] as String?,
@@ -75,6 +77,7 @@ class LibraryIncident {
   final String? memberId;
   final String? memberType;
   final int? personErpId;
+  final String? memberName;
   final String? loanId;
   final String? severity;
   final String? description;

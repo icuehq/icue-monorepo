@@ -2,7 +2,6 @@ import 'package:admin_ui/admin_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:inventory/inventory.dart';
-import 'package:inventory/src/ui/shared/widgets/form_section_card.dart';
 import 'package:provider/provider.dart';
 
 class ItemFormPage extends StatefulWidget {
@@ -92,202 +91,208 @@ class _ItemFormPageState extends State<ItemFormPage> {
     ];
     return Scaffold(
       appBar: AppBar(title: Text(editing ? 'Edit item' : 'Add item')),
-      body: Form(
-        key: _form,
-        child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-          children: [
-            FormSectionCard(
-              title: 'Basic information',
-              icon: Icons.inventory_2_outlined,
-              children: [
-                TextFormField(
-                  controller: _code,
-                  enabled: !editing,
-                  textCapitalization: TextCapitalization.characters,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(
-                      RegExp(r'[A-Za-z0-9._\-]'),
-                    ),
-                  ],
-                  textInputAction: TextInputAction.next,
-                  decoration: InputDecoration(
-                    labelText: 'Item code / SKU *',
-                    prefixIcon: const Icon(Icons.qr_code_2_outlined, size: 20),
-                    helperText: !editing
-                        ? 'Unique identifier, e.g. PAP-A4-01'
-                        : null,
-                  ),
-                  validator: requiredText,
-                ),
-                TextFormField(
-                  controller: _name,
-                  textCapitalization: TextCapitalization.words,
-                  textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: 'Item name *',
-                    prefixIcon: Icon(Icons.label_outline, size: 20),
-                  ),
-                  validator: requiredText,
-                ),
-                DropdownButtonFormField<String>(
-                  initialValue: _categoryId,
-                  decoration: const InputDecoration(
-                    labelText: 'Category *',
-                    prefixIcon: Icon(Icons.category_outlined, size: 20),
-                  ),
-                  items: [
-                    for (final category in tops)
-                      DropdownMenuItem(
-                        value: category.id,
-                        child: Text(category.name),
+      body: CenteredBody(
+        maxWidth: Breakpoints.formMaxWidth,
+        child: Form(
+          key: _form,
+          child: ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            children: [
+              FormSectionCard(
+                title: 'Basic information',
+                icon: Icons.inventory_2_outlined,
+                children: [
+                  TextFormField(
+                    controller: _code,
+                    enabled: !editing,
+                    textCapitalization: TextCapitalization.characters,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(
+                        RegExp(r'[A-Za-z0-9._\-]'),
                       ),
-                  ],
-                  validator: (value) => value == null ? 'Required' : null,
-                  onChanged: (value) => setState(() {
-                    _categoryId = value;
-                    _subcategoryId = null;
-                    final suggested = inventoryProvider
-                        .category(value)
-                        ?.suggestedTracking;
-                    if (!editing && suggested != null) _tracking = suggested;
-                  }),
-                ),
-                if (subs.isNotEmpty)
-                  DropdownButtonFormField<String?>(
-                    key: ValueKey(_categoryId),
-                    initialValue: _subcategoryId,
-                    decoration: const InputDecoration(
-                      labelText: 'Subcategory',
-                      prefixIcon: Icon(
-                        Icons.subdirectory_arrow_right_outlined,
+                    ],
+                    textInputAction: TextInputAction.next,
+                    decoration: InputDecoration(
+                      labelText: 'Item code / SKU *',
+                      prefixIcon: const Icon(
+                        Icons.qr_code_2_outlined,
                         size: 20,
                       ),
+                      helperText: !editing
+                          ? 'Unique identifier, e.g. PAP-A4-01'
+                          : null,
+                    ),
+                    validator: requiredText,
+                  ),
+                  TextFormField(
+                    controller: _name,
+                    textCapitalization: TextCapitalization.words,
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(
+                      labelText: 'Item name *',
+                      prefixIcon: Icon(Icons.label_outline, size: 20),
+                    ),
+                    validator: requiredText,
+                  ),
+                  DropdownButtonFormField<String>(
+                    initialValue: _categoryId,
+                    decoration: const InputDecoration(
+                      labelText: 'Category *',
+                      prefixIcon: Icon(Icons.category_outlined, size: 20),
                     ),
                     items: [
-                      const DropdownMenuItem(child: Text('None')),
-                      for (final category in subs)
+                      for (final category in tops)
                         DropdownMenuItem(
                           value: category.id,
                           child: Text(category.name),
                         ),
                     ],
-                    onChanged: (value) => _subcategoryId = value,
+                    validator: (value) => value == null ? 'Required' : null,
+                    onChanged: (value) => setState(() {
+                      _categoryId = value;
+                      _subcategoryId = null;
+                      final suggested = inventoryProvider
+                          .category(value)
+                          ?.suggestedTracking;
+                      if (!editing && suggested != null) _tracking = suggested;
+                    }),
                   ),
-                TextFormField(
-                  controller: _description,
-                  minLines: 2,
-                  maxLines: 4,
-                  textCapitalization: TextCapitalization.sentences,
-                  keyboardType: TextInputType.multiline,
-                  decoration: const InputDecoration(
-                    labelText: 'Description',
-                    alignLabelWithHint: true,
-                    prefixIcon: Icon(Icons.notes_outlined, size: 20),
-                  ),
-                ),
-              ],
-            ),
-            FormSectionCard(
-              title: 'Stock & tracking',
-              icon: Icons.tune_outlined,
-              children: [
-                DropdownButtonFormField<String>(
-                  initialValue: _stockUnit,
-                  decoration: const InputDecoration(
-                    labelText: 'Stock unit *',
-                    prefixIcon: Icon(Icons.straighten_outlined, size: 20),
-                  ),
-                  items: [
-                    for (final unit in inventoryProvider.units)
-                      DropdownMenuItem(
-                        value: unit.code,
-                        child: Text(unit.name),
-                      ),
-                  ],
-                  validator: (value) => value == null ? 'Required' : null,
-                  onChanged: (value) => setState(() => _stockUnit = value),
-                ),
-                DropdownButtonFormField<Tracking>(
-                  key: ValueKey(_tracking),
-                  initialValue: _tracking,
-                  decoration: const InputDecoration(
-                    labelText: 'Tracking method *',
-                    prefixIcon: Icon(Icons.track_changes_outlined, size: 20),
-                  ),
-                  items: [
-                    for (final tracking in Tracking.values)
-                      DropdownMenuItem(
-                        value: tracking,
-                        child: Text(tracking.label),
-                      ),
-                  ],
-                  onChanged: (tracking) => _tracking = tracking ?? _tracking,
-                ),
-              ],
-            ),
-            FormSectionCard(
-              title: 'Reorder & pricing',
-              icon: Icons.payments_outlined,
-              children: [
-                TextFormField(
-                  controller: _reorder,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  inputFormatters: [decimalInputFormatter],
-                  textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: 'Reorder level',
-                    prefixIcon: Icon(Icons.refresh_outlined, size: 20),
-                    helperText: 'Alert threshold when available stock is low',
-                  ),
-                  validator: optionalNumber,
-                ),
-                TextFormField(
-                  controller: _price,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  inputFormatters: [decimalInputFormatter],
-                  textInputAction: TextInputAction.done,
-                  decoration: const InputDecoration(
-                    labelText: 'Default purchase price',
-                    prefixIcon: Icon(Icons.payments_outlined, size: 20),
-                    helperText: 'Estimated unit cost for purchase requests',
-                  ),
-                  validator: optionalNumber,
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: FilledButton.icon(
-                onPressed: _busy ? null : _save,
-                icon: _busy
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
+                  if (subs.isNotEmpty)
+                    DropdownButtonFormField<String?>(
+                      key: ValueKey(_categoryId),
+                      initialValue: _subcategoryId,
+                      decoration: const InputDecoration(
+                        labelText: 'Subcategory',
+                        prefixIcon: Icon(
+                          Icons.subdirectory_arrow_right_outlined,
+                          size: 20,
                         ),
-                      )
-                    : const Icon(Icons.check_circle_outline, size: 20),
-                label: Text(
-                  _busy ? 'Saving…' : (editing ? 'Update item' : 'Save item'),
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+                      ),
+                      items: [
+                        const DropdownMenuItem(child: Text('None')),
+                        for (final category in subs)
+                          DropdownMenuItem(
+                            value: category.id,
+                            child: Text(category.name),
+                          ),
+                      ],
+                      onChanged: (value) => _subcategoryId = value,
+                    ),
+                  TextFormField(
+                    controller: _description,
+                    minLines: 2,
+                    maxLines: 4,
+                    textCapitalization: TextCapitalization.sentences,
+                    keyboardType: TextInputType.multiline,
+                    decoration: const InputDecoration(
+                      labelText: 'Description',
+                      alignLabelWithHint: true,
+                      prefixIcon: Icon(Icons.notes_outlined, size: 20),
+                    ),
+                  ),
+                ],
+              ),
+              FormSectionCard(
+                title: 'Stock & tracking',
+                icon: Icons.tune_outlined,
+                children: [
+                  DropdownButtonFormField<String>(
+                    initialValue: _stockUnit,
+                    decoration: const InputDecoration(
+                      labelText: 'Stock unit *',
+                      prefixIcon: Icon(Icons.straighten_outlined, size: 20),
+                    ),
+                    items: [
+                      for (final unit in inventoryProvider.units)
+                        DropdownMenuItem(
+                          value: unit.code,
+                          child: Text(unit.name),
+                        ),
+                    ],
+                    validator: (value) => value == null ? 'Required' : null,
+                    onChanged: (value) => setState(() => _stockUnit = value),
+                  ),
+                  DropdownButtonFormField<Tracking>(
+                    key: ValueKey(_tracking),
+                    initialValue: _tracking,
+                    decoration: const InputDecoration(
+                      labelText: 'Tracking method *',
+                      prefixIcon: Icon(Icons.track_changes_outlined, size: 20),
+                    ),
+                    items: [
+                      for (final tracking in Tracking.values)
+                        DropdownMenuItem(
+                          value: tracking,
+                          child: Text(tracking.label),
+                        ),
+                    ],
+                    onChanged: (tracking) => _tracking = tracking ?? _tracking,
+                  ),
+                ],
+              ),
+              FormSectionCard(
+                title: 'Reorder & pricing',
+                icon: Icons.payments_outlined,
+                children: [
+                  TextFormField(
+                    controller: _reorder,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    inputFormatters: [decimalInputFormatter],
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(
+                      labelText: 'Reorder level',
+                      prefixIcon: Icon(Icons.refresh_outlined, size: 20),
+                      helperText: 'Alert threshold when available stock is low',
+                    ),
+                    validator: optionalNumber,
+                  ),
+                  TextFormField(
+                    controller: _price,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    inputFormatters: [decimalInputFormatter],
+                    textInputAction: TextInputAction.done,
+                    decoration: const InputDecoration(
+                      labelText: 'Default purchase price',
+                      prefixIcon: Icon(Icons.payments_outlined, size: 20),
+                      helperText: 'Estimated unit cost for purchase requests',
+                    ),
+                    validator: optionalNumber,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: FilledButton.icon(
+                  onPressed: _busy ? null : _save,
+                  icon: _busy
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.check_circle_outline, size: 20),
+                  label: Text(
+                    _busy ? 'Saving…' : (editing ? 'Update item' : 'Save item'),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 24),
-          ],
+              const SizedBox(height: 24),
+            ],
+          ),
         ),
       ),
     );

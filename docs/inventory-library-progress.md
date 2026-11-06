@@ -309,7 +309,7 @@ Collections: `libraries`, `libraryCategories`, `libraryCatalogue` (title-level; 
 Functions (`firebase/functions/src/library/`):
 
 - [x] `library-library-upsert`, `library-library-setStatus` (`library.settings`); `library-category-upsert`, `library-category-setStatus`, `library-catalogue-upsert`, `library-catalogue-setStatus`, `library-seedDefaults` (`library.catalogue`)
-- [x] Unique library/category codes via `uniqueKeys`; campus fixed after creation; one level of subcategories; inactive category rejected for new use
+- [x] Libraries and library categories have no code (see the 2026-11-06 decisions); campus fixed after creation; one level of subcategories; inactive category rejected for new use
 - [x] Catalogue duplicate detection: `identityKey` = ISBN-13 (ISBN-10 converted) or normalized title + first author + edition + publisher + year, claimed in `uniqueKeys` and moved on edit; ISBN check digits validated; books without ISBN supported
 - [x] Catalogue search: `syncCatalogueSearch` mirrors into the `search` database, `library-catalogue-search` (whole-word title/subtitle/author/publisher/keywords, category filter; a query that is a valid ISBN is an exact lookup on `(default)`)
 - [x] Shared master helpers moved to `shared/masters.ts` (used by inventory and library); `Ctx.delete` added
@@ -351,12 +351,12 @@ Flutter:
 
 ### Lib-3
 
-Collections: `libraryMembers` (doc ID `<student|teacher>_<personErpId>`), `libraryBorrowingPolicies` (doc ID `<libraryId>_<memberCategory>`).
+Collections: `libraryMembers` (doc ID `<student|teacher>_<personErpId>`), `libraryBorrowingPolicies` (doc ID `<libraryId>_<student|teacher>`). Members are created on first use, not enrolled (see the 2026-11-06 decision).
 
 Functions (`firebase/functions/src/library/members.ts`):
 
-- [x] `library-policy-upsert`, `library-policy-setStatus` (`library.settings`; one policy per library and member category; library campus scoped; fine needs an amount; restricted categories must exist; inactive library only for existing policies)
-- [x] `library-member-upsert`, `library-member-setStatus` (`library.circulation.operate`; deterministic ID so no duplicate members; every library active and on an allowed campus; `campusIds` derived; `activeLoans` and `blocked` kept on edit)
+- [x] `library-policy-upsert`, `library-policy-setStatus` (`library.settings`; one policy per library and person type; library campus scoped; fine needs an amount; restricted categories must exist; inactive library only for existing policies)
+- [x] `library-member-setBlocked` (`library.circulation.operate`); the member record itself is written by issue and reserve (`writeBorrower`)
 - [x] Tests: `test/members.test.ts` (emulator)
 
 Rules and indexes:
@@ -368,7 +368,7 @@ Rules and indexes:
 Flutter:
 
 - [x] `features/library`: `lib_members.dart` models (`LibPolicy`, `LibMember`), `LibraryService` / `LibraryProvider` extended (policies, paged members, exact lookup, writes), model test
-- [x] `icueadmin` screens under `features/library/` (Members page with student/teacher switch, ERP ID lookup and enrol/edit sheet; Borrowing policies page with edit sheet); routes `/layout.library/{members,policies}`; Members and Borrowing policies tiles
+- [x] `icueadmin` screens under `features/library/` (Members page: list of people who have borrowed, with block and unblock; Borrowing policies page with edit sheet); routes `/layout.library/{members,policies}`; Members and Borrowing policies tiles
 - [x] `melos run lint` passes (library, icueadmin); functions and rules tests pass
 
 ### Lib-4
@@ -559,11 +559,7 @@ Format: `date · phase · what changed from the architecture doc · why`.
 - 2026-11-01 · Lib-2 · `library-copy-setStatus` is not in the architecture's callable list; damage, loss and withdrawal can be set by hand here, while incidents and fines arrive with Lib-6 · FRS 11.5 needs these statuses now.
 - 2026-11-01 · Lib-2 · Copy issue and transfer history are not shown on the copy sheet · loans arrive with Lib-4, transfers with Lib-7; changes are in `auditLogs`.
 - 2026-11-01 · Lib-2 · Copies are readable school-wide with `library.catalogue` (like the catalogue) so teachers can see where a book is; writes are campus scoped. Camera scanning of labels uses the Inventory `ScanField` and is untested on a device (no native build run).
-- 2026-11-01 · Lib-3 · Member category is a free key (`primary`, `teacher`) matched to a policy by `<libraryId>_<category>`, not a separate master · FRS lists categories only as policy keys; a member without a matching active policy is flagged in the list and refused at issue in Lib-4. Policy library and category cannot change after creation (make a new policy and deactivate the old one).
-- 2026-11-01 · Lib-3 · Members are enrolled by typing the ERP ID (class ID optional), shown as "Student #id" · only IDs are stored; no student/staff pickers until the Node endpoints are confirmed. There is no bulk enrolment from a class list (Lib-8 import).
-- 2026-11-01 · Lib-3 · Borrowing history, outstanding books and outstanding fines (FRS 11.7) are not shown yet · loans arrive with Lib-4 and fines with Lib-6; the list shows `activeLoans` only. `blocked` is stored false and set by fines in Lib-6. The membership end date is stored but not enforced until issue (Lib-4); the expiring-membership notification arrives with `dailyLibrary`.
 - 2026-11-01 · Lib-3 · Members and policies are readable school-wide with `library.members.view` (librarian, principal, admin); writes are campus scoped through the library · teachers do not see the member list.
-- 2026-11-01 · Lib-3 · Member search is an exact ERP ID lookup (a miss opens the enrol sheet); the list is paged by ERP ID per type · IDs are the only identity stored, so there is no name search.
 - 2026-11-01 · Lib-4 · Return stores `overdueDays` but raises no fine · fines, lost/damaged incidents and the damage penalty arrive with Lib-6, which reads the loan's frozen `policySnapshot`. A damaged return sets the copy `damaged` and creates no incident yet.
 - 2026-11-01 · Lib-4 · Renewal does not check reservations, and a returned copy goes straight to `available` · reservations and the hold queue arrive with Lib-5. A copy `reserved` for the member cannot be issued until then.
 - 2026-11-01 · Lib-4 · `library.loan.markLost` is not built (Lib-6). Renewal extends from the later of the due date and today by the loan's snapshot `loanDays`; inactive or blocked members cannot renew. Issue/return numbers are `ISS/…` and `RET/…`; no printable issue slip yet.
@@ -583,6 +579,9 @@ Format: `date · phase · what changed from the architecture doc · why`.
 - 2026-11-02 · cleanup · Removed the callables that client Firestore writes replaced: inventory category/unit/item/variant/store/vendor upserts and setStatus, library library/category upserts and setStatus, and purchase request, quotation and invoice callables. The importer keeps the category, store, item and vendor upsert handlers internally; deployed functions no longer include them. Tests seed those documents directly (`firebase/functions/test/fixtures.ts`). No legacy-client support.
 - 2026-11-03 · audit fixes · Workflow changes: only accepted PO units fill an order (rejected ones leave it open); closing a short PO releases the remainder to its request; a short final inventory transfer receipt writes a resolved `lost` unavailable entry; inventory transfers now go requested → approved (`inventory.adjustment.approve`) → dispatched; transfers (both modules) and issue requests can be cancelled/closed; library transfers can close short (copies marked lost + incident); members can be blocked by hand (`blockedBy`); `inventory.asset.register` takes `quantity` (1–50, no serial number); library loans/returns number as `LIS`/`LRT` (no longer share `ISS`/`RET` with inventory); renewing an overdue loan fines the overdue days.
 - 2026-11-06 · library permissions · `library.catalogue.manage` and `library.catalogue.view` merged into one `library.catalogue` (view, add, edit; Node action id 332 dropped, 331 kept) · Library has a single Librarian role, so a read-only catalogue permission had no holder. The other Library permissions are unchanged.
+- 2026-11-06 · library categories · Library categories have no code: the document ID is automatic, a name must be unique under the same parent (checked in the app, ignoring case), `seedDefaults` skips categories whose name exists, and the catalogue import takes `category` (the name) instead of `categoryCode` · codes added nothing the name does not give; categories are chosen from a list and never typed. Inventory categories keep their codes.
+- 2026-11-06 · libraries · A library has no code and no librarian staff IDs, and its single contact field became `phone` and `email` (validated in the form): the document ID is automatic, the name must be unique among libraries (checked in the app, ignoring case), the campus field is hidden when the user has one campus, and the copies and members imports take `library` / `libraries` (names) instead of `libraryCode` / `libraryCodes` · there is one Librarian role, so listing staff per library served nothing; codes added nothing a name does not give.
+- 2026-11-06 · members · The Library keeps no list of students or teachers and nobody is enrolled: the desk finds a person in Node (`searchStudent` through the `routes` package) and `library-loan-issue` / `library-reservation-create` take that `person` (type, ERP ID, name, class). The `libraryMembers` record (`<type>_<erpId>`: name, class, campuses seen, `activeLoans`, `blocked`) is created on first use and its name and class refreshed on each later use; it exists to carry the loan count and the fine or manual block. Borrowing policies are per library and person type (student or teacher), so member categories, membership dates, allowed libraries, member active status, the membership-ending notice and the members CSV import are gone. Loans, reservations, fines and incidents also store `memberName`. Teachers cannot be found yet: `LibraryPeopleService.searchTeachers` is a placeholder (TODO) until Node's teacher endpoint is known, so the desk cannot lend to teachers. The dashboard tiles count borrowers (people who borrowed or reserved), not enrolled members. · the ERP is the source of truth for people, so keeping a second enrolled list only duplicated it.
 
 ## Open items
 

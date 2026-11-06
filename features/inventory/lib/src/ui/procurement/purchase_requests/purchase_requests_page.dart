@@ -1,3 +1,5 @@
+import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:inventory/inventory.dart';
@@ -62,6 +64,10 @@ class _PurchaseRequestsPageState extends State<PurchaseRequestsPage> {
     super.dispose();
   }
 
+  void _openRequest(InventoryPurchaseRequest request) => _open(
+    '${InventoryRoutes.inventoryPurchaseRequestDetail}?id=${request.id}',
+  );
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -97,131 +103,158 @@ class _PurchaseRequestsPageState extends State<PurchaseRequestsPage> {
               label: const Text('New Request'),
             )
           : null,
-      body: Column(
-        children: [
-          // Search Bar
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search by PR number or purpose…',
-                prefixIcon: const Icon(Icons.search_rounded),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear_rounded),
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() {});
-                        },
-                      )
-                    : null,
-                isDense: true,
-                filled: true,
-                fillColor: theme.colorScheme.surfaceContainerHighest.withValues(
-                  alpha: 0.35,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-              onChanged: (_) => setState(() {}),
-            ),
-          ),
-
-          // Horizontal Status Filter Chips
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                _buildFilterChip('all', 'All (${allRequests.length})'),
-                for (final (key, label, statuses) in _groups)
-                  Padding(
-                    padding: const EdgeInsets.only(left: 8),
-                    child: _buildFilterChip(
-                      key,
-                      '$label (${allRequests.where((r) => statuses.contains(r.status)).length})',
-                    ),
+      body: CenteredBody(
+        child: Column(
+          children: [
+            // Search Bar
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'Search by PR number or purpose…',
+                  prefixIcon: const Icon(Icons.search_rounded),
+                  suffixIcon: _searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear_rounded),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() {});
+                          },
+                        )
+                      : null,
+                  isDense: true,
+                  filled: true,
+                  fillColor: theme.colorScheme.surfaceContainerHighest
+                      .withValues(alpha: 0.35),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none,
                   ),
-              ],
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          const Divider(height: 1),
 
-          // Requests List
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: _load,
-              child:
-                  !_loaded ||
-                      (procurementProvider.isLoading && allRequests.isEmpty)
-                  ? const Center(child: CircularProgressIndicator())
-                  : filteredRequests.isEmpty
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(32),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.assignment_outlined,
-                              size: 56,
-                              color: theme.colorScheme.outline,
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              failure != null
-                                  ? 'Could not load requests'
-                                  : query.isNotEmpty
-                                  ? 'No requests matching "$query"'
-                                  : _selectedStatus == 'all'
-                                  ? 'No purchase requests found'
-                                  : 'No requests in this status',
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              failure ??
-                                  (canRequest
-                                      ? 'Raise a requisition to procure materials or assets for your campus.'
-                                      : 'Purchase requests will appear here once submitted.'),
-                              style: theme.textTheme.bodySmall?.copyWith(
+            // Horizontal Status Filter Chips
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  _buildFilterChip('all', 'All (${allRequests.length})'),
+                  for (final (key, label, statuses) in _groups)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8),
+                      child: _buildFilterChip(
+                        key,
+                        '$label (${allRequests.where((r) => statuses.contains(r.status)).length})',
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Divider(height: 1),
+
+            // Requests List
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _load,
+                child:
+                    !_loaded ||
+                        (procurementProvider.isLoading && allRequests.isEmpty)
+                    ? const Center(child: CircularProgressIndicator())
+                    : filteredRequests.isEmpty
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(32),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.assignment_outlined,
+                                size: 56,
                                 color: theme.colorScheme.outline,
                               ),
-                              textAlign: TextAlign.center,
+                              const SizedBox(height: 12),
+                              Text(
+                                failure != null
+                                    ? 'Could not load requests'
+                                    : query.isNotEmpty
+                                    ? 'No requests matching "$query"'
+                                    : _selectedStatus == 'all'
+                                    ? 'No purchase requests found'
+                                    : 'No requests in this status',
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                failure ??
+                                    (canRequest
+                                        ? 'Raise a requisition to procure materials or assets for your campus.'
+                                        : 'Purchase requests will appear here once submitted.'),
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.outline,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    : AdaptiveList<InventoryPurchaseRequest>(
+                        items: filteredRequests,
+                        onTap: _openRequest,
+                        columns: [
+                          AdaptiveColumn.text(
+                            'Request',
+                            (request) => request.number.isEmpty
+                                ? 'Draft'
+                                : request.number,
+                          ),
+                          AdaptiveColumn.text(
+                            'Purpose',
+                            (request) => request.purpose,
+                            flex: 3,
+                          ),
+                          AdaptiveColumn.text(
+                            'Priority',
+                            (request) => humanizeStatus(request.priority),
+                          ),
+                          AdaptiveColumn.text(
+                            'Needed by',
+                            (request) => request.requiredDate.toDisplayDay(),
+                          ),
+                          AdaptiveColumn.text(
+                            'Estimate',
+                            (request) => request.total.toRupees(),
+                          ),
+                          AdaptiveColumn.text(
+                            'Status',
+                            (request) => humanizeStatus(request.status),
+                          ),
+                        ],
+                        cardBuilder: (context, purchaseRequest) => Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
+                          child: PurchaseRequestCard(
+                            request: purchaseRequest,
+                            getItemName: procurementProvider.itemName,
+                            nextAction: purchaseNextAction(
+                              purchaseRequest,
+                              access,
+                              procurementProvider.uid,
                             ),
-                          ],
+                            onTap: () => _openRequest(purchaseRequest),
+                          ),
                         ),
                       ),
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: filteredRequests.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        final purchaseRequest = filteredRequests[index];
-                        return PurchaseRequestCard(
-                          request: purchaseRequest,
-                          getItemName: procurementProvider.itemName,
-                          nextAction: purchaseNextAction(
-                            purchaseRequest,
-                            access,
-                            procurementProvider.uid,
-                          ),
-                          onTap: () => _open(
-                            '${InventoryRoutes.inventoryPurchaseRequestDetail}?id=${purchaseRequest.id}',
-                          ),
-                        );
-                      },
-                    ),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

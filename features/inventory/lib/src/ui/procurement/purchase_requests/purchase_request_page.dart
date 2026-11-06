@@ -1,3 +1,4 @@
+import 'package:admin_ui/admin_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:inventory/inventory.dart';
@@ -311,19 +312,22 @@ class _PurchaseRequestPageState extends State<PurchaseRequestPage> {
             ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _load,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            PurchaseSummary(request: request),
-            PurchaseItems(
-              request: request,
-              itemName: procurementProvider.itemName,
-            ),
-            if (request.history.isNotEmpty)
-              PurchaseHistory(history: request.history),
-          ],
+      body: CenteredBody(
+        maxWidth: 900,
+        child: RefreshIndicator(
+          onRefresh: _load,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              PurchaseSummary(request: request),
+              PurchaseItems(
+                request: request,
+                itemName: procurementProvider.itemName,
+              ),
+              if (request.history.isNotEmpty)
+                PurchaseHistory(history: request.history),
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: _actionBar(request, own, inventoryProvider),

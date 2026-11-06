@@ -10,6 +10,7 @@ class LibraryLoan {
     required this.memberId,
     required this.memberType,
     required this.personErpId,
+    this.memberName,
     required this.copyId,
     required this.accessionNumber,
     required this.catalogueId,
@@ -31,6 +32,7 @@ class LibraryLoan {
         memberId: data['memberId'] as String? ?? '',
         memberType: data['memberType'] as String? ?? 'student',
         personErpId: (data['personErpId'] as num? ?? 0).toInt(),
+        memberName: data['memberName'] as String?,
         copyId: data['copyId'] as String? ?? '',
         accessionNumber: data['accessionNumber'] as String? ?? '',
         catalogueId: data['catalogueId'] as String? ?? '',
@@ -52,6 +54,7 @@ class LibraryLoan {
   final String memberId;
   final String memberType;
   final int personErpId;
+  final String? memberName;
   final String copyId;
   final String accessionNumber;
   final String catalogueId;

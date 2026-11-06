@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 /// Shown while [AppBootstrap] runs startup tasks; swaps to a retry button if
@@ -26,6 +27,10 @@ class SplashPage extends StatelessWidget {
                 style: theme.textTheme.bodyMedium,
                 textAlign: TextAlign.center,
               ),
+              if (kDebugMode) ...[
+                const SizedBox(height: 8),
+                SelectableText('$error', textAlign: TextAlign.center),
+              ],
               const SizedBox(height: 12),
               FilledButton(onPressed: onRetry, child: const Text('Retry')),
             ],

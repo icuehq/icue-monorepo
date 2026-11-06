@@ -8,16 +8,19 @@ import 'package:school_library/src/models/library_insights.dart';
 import 'package:school_library/src/models/library_loans.dart';
 import 'package:school_library/src/models/library_masters.dart';
 import 'package:school_library/src/models/library_members.dart';
+import 'package:school_library/src/models/library_person.dart';
 import 'package:school_library/src/models/library_reservations.dart';
 import 'package:school_library/src/models/library_transfers.dart';
 import 'package:school_library/src/models/library_verifications.dart';
+import 'package:school_library/src/services/library_people_service.dart';
 import 'package:school_library/src/services/library_service.dart';
 
 @lazySingleton
 class LibraryProvider extends ChangeNotifier implements ErrorReporting {
-  LibraryProvider(this._service);
+  LibraryProvider(this._service, this._people);
 
   final LibraryService _service;
+  final LibraryPeopleService _people;
 
   /// Latest load per list; an older response never overwrites a newer filter's list.
   final Map<String, int> _generation = {};
@@ -73,10 +76,19 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   String incidentStatus = 'open';
   DocumentSnapshot<Map<String, dynamic>>? _incidentCursor;
 
-  /// The policy a member of [category] gets in [libraryId], if one is set up.
-  LibraryPolicy? policyFor(String libraryId, String category) {
+  /// Whether teachers can be found yet (Node's teacher search is not connected).
+  bool get teachersAvailable => _people.teachersAvailable;
+
+  /// People of [type] (`student` or `teacher`) matching [text] in the ERP.
+  Future<List<LibraryPerson>> searchPeople(String type, String text) =>
+      type == 'student'
+      ? _people.searchStudents(text)
+      : _people.searchTeachers(text);
+
+  /// The policy a person of [type] gets in [libraryId], if one is set up.
+  LibraryPolicy? policyFor(String libraryId, String type) {
     for (final policy in policies) {
-      if (policy.libraryId == libraryId && policy.memberCategory == category) {
+      if (policy.libraryId == libraryId && policy.memberType == type) {
         return policy;
       }
     }
@@ -474,17 +486,6 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   Future<bool> setPolicyActive(String id, {required bool active}) => _write(
     () => _service.setPolicyActive(id, active: active),
     reload: loadMasters,
-  );
-
-  Future<bool> saveMember(Map<String, Object?> data, {String? requestId}) =>
-      _write(
-        () => _service.saveMember(data, requestId: requestId),
-        reload: loadMembers,
-      );
-
-  Future<bool> setMemberActive(String id, {required bool active}) => _write(
-    () => _service.setMemberActive(id, active: active),
-    reload: loadMembers,
   );
 
   Future<bool> issueLoan(Map<String, Object?> data, {String? requestId}) =>

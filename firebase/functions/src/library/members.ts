@@ -1,6 +1,10 @@
-import type { Timestamp } from 'firebase-admin/firestore';
+import {
+  FieldValue,
+  type DocumentData,
+  type DocumentReference,
+} from 'firebase-admin/firestore';
 import { z } from 'zod';
-import { dayTimestamp, dayTimestampOrNull, isoDate, timestampDayOrNull } from '../shared/dates';
+import type { CallableContext } from '../shared/callable';
 import { serverTimestamp } from '../shared/firestore';
 import {
   defineCallable,
@@ -9,46 +13,77 @@ import {
   missing,
   name,
   defineSetStatus,
-  status,
   usable,
 } from '../shared/masters';
 
-/** Member category key ("primary", "teacher"…): what a member and a policy are matched on. */
-const category = z
-  .string()
-  .trim()
-  .toLowerCase()
-  .regex(/^[a-z0-9_-]{1,30}$/, 'Use letters, digits, - or _');
 const FINES = ['none', 'per_day', 'flat'] as const;
+const MEMBER_TYPES = ['student', 'teacher'] as const;
 
-export const policyId = (libraryId: string, memberCategory: string) =>
-  `${libraryId}_${memberCategory}`;
-/** Why [member] cannot borrow or reserve in [libraryId] today, or null when they can. */
-export function ineligibleReason(
-  member: {
-    status?: string;
-    blocked?: boolean;
-    start?: Timestamp;
-    end?: Timestamp | null;
-    libraryIds?: string[];
-  },
-  libraryId: string,
-  today: string,
-): string | null {
-  if (member.status !== 'active') return 'Member is inactive';
-  if (member.blocked) return 'Member is blocked';
-  const start = timestampDayOrNull(member.start);
-  const end = timestampDayOrNull(member.end);
-  if ((start && start > today) || (end && end < today)) return 'Membership is not valid today';
-  if (!member.libraryIds?.includes(libraryId)) return 'Member has no access to this library';
-  return null;
+export const policyId = (libraryId: string, memberType: string) => `${libraryId}_${memberType}`;
+/** Why [member] cannot borrow or reserve, or null when they can. A person never seen before can. */
+export function ineligibleReason(member: { blocked?: boolean } | undefined): string | null {
+  return member?.blocked ? 'Member is blocked' : null;
 }
 
 export const memberId = (type: string, personErpId: number) => `${type}_${personErpId}`;
 
+/**
+ * The borrower as the desk found them in the ERP (Node). Only what the Library shows is kept; the ERP
+ * stays the source of truth, so the record is created on first use and its name and class refreshed after.
+ */
+export const personInput = z.object({
+  memberType: z.enum(MEMBER_TYPES),
+  personErpId: z.number().int().min(1),
+  name: z.string().trim().min(1).max(200),
+  classId: z.number().int().nullish(),
+});
+export type Person = z.infer<typeof personInput>;
+
+/**
+ * Creates the borrower record on first use, else refreshes it and adds [campusId] to the campuses it was
+ * seen on; [loanDelta] adjusts the number of books on loan. Returns the record as it will be.
+ */
+export function writeBorrower(
+  context: CallableContext,
+  ref: DocumentReference,
+  existing: DocumentData | undefined,
+  person: Person,
+  campusId: number,
+  loanDelta: number,
+): DocumentData {
+  const shown = {
+    name: person.name,
+    classId: person.memberType === 'student' ? (person.classId ?? null) : null,
+  };
+  if (existing) {
+    context.update(ref, {
+      ...shown,
+      campusIds: FieldValue.arrayUnion(campusId),
+      activeLoans: FieldValue.increment(loanDelta),
+      updatedAt: serverTimestamp(),
+    });
+    return { ...existing, ...shown };
+  }
+  const created = {
+    memberType: person.memberType,
+    personErpId: person.personErpId,
+    ...shown,
+    campusIds: [campusId],
+    activeLoans: loanDelta,
+    blocked: false,
+  };
+  context.set(ref, {
+    ...created,
+    createdAt: serverTimestamp(),
+    createdBy: context.uid,
+    updatedAt: serverTimestamp(),
+  });
+  return created;
+}
+
 export const members = {
   /**
-   * One policy per library and member category (FRS 11.8); the ID is `<libraryId>_<category>`,
+   * One policy per library and person type (FRS 11.8); the ID is `<libraryId>_<student|teacher>`,
    * so saving again edits it. Circulation (Lib-4) copies the values onto each loan at issue,
    * so edits never move existing due dates.
    */
@@ -58,7 +93,7 @@ export const members = {
     input: z
       .object({
         libraryId: id,
-        memberCategory: category,
+        memberType: z.enum(MEMBER_TYPES),
         name,
         maxBooks: z.number().int().min(1).max(100),
         loanDays: z.number().int().min(1).max(365),
@@ -74,7 +109,7 @@ export const members = {
       .refine((i) => i.fineType === 'none' || i.fineAmount > 0, 'A fine needs an amount'),
     handler: async (context, i) => {
       const ref = context.doc(
-        `libraryBorrowingPolicies/${policyId(i.libraryId, i.memberCategory)}`,
+        `libraryBorrowingPolicies/${policyId(i.libraryId, i.memberType)}`,
       );
       const before = (await context.transaction.get(ref)).data();
       const library = usable(
@@ -92,7 +127,7 @@ export const members = {
         name: i.name,
         libraryId: i.libraryId,
         campusId: library.campusId,
-        memberCategory: i.memberCategory,
+        memberType: i.memberType,
         maxBooks: i.maxBooks,
         loanDays: i.loanDays,
         maxRenewals: i.maxRenewals,
@@ -126,92 +161,6 @@ export const members = {
     'libraryBorrowingPolicies',
     'libraryPolicy',
   ),
-
-  /**
-   * Enrols a student or teacher (FRS 11.7). The ERP person stays the source of truth: only the
-   * ID is stored, and the document ID `<type>_<personErpId>` makes a duplicate impossible.
-   */
-  memberUpsert: defineCallable({
-    name: 'library.member.upsert',
-    permission: 'library.circulation.operate',
-    input: z
-      .object({
-        memberType: z.enum(['student', 'teacher']),
-        personErpId: z.number().int().min(1),
-        classId: z.number().int().nullish(),
-        memberCategory: category,
-        libraryIds: z.array(id).min(1).max(20),
-        start: isoDate,
-        end: isoDate.nullish(),
-      })
-      .refine((i) => !i.end || i.end >= i.start, 'End date is before the start date'),
-    handler: async (context, i) => {
-      const ref = context.doc(`libraryMembers/${memberId(i.memberType, i.personErpId)}`);
-      const before = (await context.transaction.get(ref)).data();
-      if (before)
-        for (const campusId of before.campusIds as number[]) context.requireCampus(campusId);
-      const libraryIds = [...new Set(i.libraryIds)];
-      const campusIds = new Set<number>();
-      for (const libraryId of libraryIds) {
-        const library = usable(
-          await context.transaction.get(context.doc(`libraries/${libraryId}`)),
-          'Library',
-          before?.libraryIds?.includes(libraryId),
-        );
-        context.requireCampus(library.campusId);
-        campusIds.add(library.campusId);
-      }
-      const after = {
-        memberType: i.memberType,
-        personErpId: i.personErpId,
-        classId: i.memberType === 'student' ? (i.classId ?? null) : null,
-        memberCategory: i.memberCategory,
-        libraryIds,
-        campusIds: [...campusIds],
-        start: dayTimestamp(i.start),
-        end: dayTimestampOrNull(i.end),
-      };
-      if (before) {
-        context.update(ref, { ...after, updatedAt: serverTimestamp() });
-        context.audit({ action: 'libraryMember.update', documentPath: ref.path, before, after });
-      } else {
-        context.set(ref, {
-          ...after,
-          status: 'active',
-          activeLoans: 0,
-          blocked: false,
-          createdAt: serverTimestamp(),
-          createdBy: context.uid,
-          updatedAt: serverTimestamp(),
-        });
-        context.audit({ action: 'libraryMember.create', documentPath: ref.path, after });
-      }
-      return { id: ref.id };
-    },
-  }),
-
-  /** Inactive members cannot borrow (checked at issue in Lib-4); their loans stay visible. */
-  memberSetStatus: defineCallable({
-    name: 'library.member.setStatus',
-    permission: 'library.circulation.operate',
-    input: z.object({ id, status }),
-    handler: async (context, i) => {
-      const ref = context.doc(`libraryMembers/${i.id}`);
-      const snapshot = await context.transaction.get(ref);
-      if (!snapshot.exists) throw missing('libraryMember');
-      const member = snapshot.data()!;
-      for (const campusId of member.campusIds as number[]) context.requireCampus(campusId);
-      if (member.status === i.status) return { id: ref.id };
-      context.update(ref, { status: i.status, updatedAt: serverTimestamp() });
-      context.audit({
-        action: 'libraryMember.status',
-        documentPath: ref.path,
-        before: { status: member.status },
-        after: { status: i.status },
-      });
-      return { id: ref.id };
-    },
-  }),
 
   /** Hand-set block (or lift). Fines block members on their own; this one is never lifted by paying them. */
   memberSetBlocked: defineCallable({

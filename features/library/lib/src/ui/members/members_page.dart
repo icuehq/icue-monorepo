@@ -2,9 +2,11 @@ import 'package:admin_ui/admin_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
-import 'package:school_library/src/ui/members/widgets/member_sheet.dart';
+import 'package:school_library/src/ui/members/widgets/member_card.dart';
+import 'package:school_library/src/ui/members/widgets/member_empty_states.dart';
 
-/// Student and teacher members (FRS 11.7). Search is an exact ERP ID lookup.
+/// People who have borrowed or reserved (FRS 11.7). Nobody is enrolled here: the ERP is searched at
+/// the desk, and a person appears on this list the first time they borrow or reserve.
 class MembersPage extends StatefulWidget {
   const MembersPage({super.key});
 
@@ -13,8 +15,8 @@ class MembersPage extends StatefulWidget {
 }
 
 class _MembersPageState extends State<MembersPage> {
-  final _search = TextEditingController();
-  LibraryMember? _found;
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -26,185 +28,49 @@ class _MembersPageState extends State<MembersPage> {
 
   @override
   void dispose() {
-    _search.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
-  Future<void> _lookup(String value) async {
+  void _clearSearch() {
+    setState(() {
+      _searchController.clear();
+      _searchQuery = '';
+    });
+  }
+
+  Future<void> _toggleBlock(LibraryMember member) async {
     final libraryProvider = context.read<LibraryProvider>();
-    final id = int.tryParse(value.trim());
-    if (value.trim().isEmpty) return setState(() => _found = null);
-    if (id == null) return showMessage(context, 'Enter an ERP ID');
-    final member = await libraryProvider.member(libraryProvider.memberType, id);
-    if (!mounted) return;
-    setState(() => _found = member);
-    if (member == null) {
-      showMessage(context, 'Not a member yet');
-      await MemberSheet.show(
-        context,
-        type: libraryProvider.memberType,
-        personErpId: id,
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final libraryProvider = context.watch<LibraryProvider>();
-    final canEdit = libraryProvider.access.can('library.circulation.operate');
-    final rows = _found == null ? libraryProvider.members : [_found!];
-    return Scaffold(
-      appBar: AppBar(title: const Text('Members')),
-      floatingActionButton: canEdit
-          ? FloatingActionButton.extended(
-              onPressed: () =>
-                  MemberSheet.show(context, type: libraryProvider.memberType),
-              icon: const Icon(Icons.person_add_alt_1_rounded),
-              label: const Text('Member'),
-            )
-          : null,
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              children: [
-                SegmentedButton<String>(
-                  segments: const [
-                    ButtonSegment(value: 'student', label: Text('Students')),
-                    ButtonSegment(value: 'teacher', label: Text('Teachers')),
-                  ],
-                  selected: {libraryProvider.memberType},
-                  onSelectionChanged: (values) {
-                    _search.clear();
-                    setState(() => _found = null);
-                    libraryProvider.loadMembers(type: values.first);
-                  },
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _search,
-                  keyboardType: TextInputType.number,
-                  textInputAction: TextInputAction.search,
-                  decoration: const InputDecoration(
-                    hintText: 'Find by ERP ID',
-                    prefixIcon: Icon(Icons.search_rounded),
-                  ),
-                  onSubmitted: _lookup,
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: rows.isEmpty
-                ? Center(
-                    child: Text(
-                      libraryProvider.membersLoading
-                          ? 'Loading…'
-                          : libraryProvider.errorMessage ?? 'No members yet',
-                    ),
-                  )
-                : ListView(
-                    children: [
-                      for (final member in rows)
-                        _MemberTile(member, canEdit: canEdit),
-                      if (_found == null && libraryProvider.hasMoreMembers)
-                        TextButton(
-                          onPressed: libraryProvider.membersLoading
-                              ? null
-                              : () => libraryProvider.loadMembers(more: true),
-                          child: const Text('Load more'),
-                        ),
-                    ],
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MemberTile extends StatelessWidget {
-  const _MemberTile(this.member, {required this.canEdit});
-
-  final LibraryMember member;
-  final bool canEdit;
-
-  @override
-  Widget build(BuildContext context) {
-    final libraryProvider = context.read<LibraryProvider>();
-    final noPolicy = [
-      for (final libraryId in member.libraryIds)
-        if (libraryProvider
-                .policyFor(libraryId, member.memberCategory)
-                ?.active !=
-            true)
-          libraryProvider.library(libraryId)?.name ?? libraryId,
-    ];
-    return ListTile(
-      leading: member.active ? null : const InactiveBadge(),
-      title: Text(member.label),
-      subtitle: Text(
-        '${member.memberCategory}'
-        '${member.classId == null ? '' : ' · class ${member.classId}'}'
-        ' · ${member.start}${member.end == null ? '' : ' → ${member.end}'}'
-        '\nLibraries: ${member.libraryIds.map((libraryId) => libraryProvider.library(libraryId)?.name ?? libraryId).join(', ')}'
-        ' · ${member.activeLoans} on loan'
-        '${noPolicy.isEmpty ? '' : '\nNo active policy in ${noPolicy.join(', ')}'}',
-      ),
-      isThreeLine: true,
-      onTap: canEdit ? () => MemberSheet.show(context, member: member) : null,
-      trailing: canEdit
-          ? Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  tooltip: member.blocked ? 'Unblock' : 'Block',
-                  icon: Icon(
-                    member.blocked
-                        ? Icons.lock_open_rounded
-                        : Icons.block_rounded,
-                  ),
-                  onPressed: () => _toggleBlock(context, libraryProvider),
-                ),
-                _activeToggle(context, libraryProvider),
-              ],
-            )
-          : null,
-    );
-  }
-
-  Future<void> _toggleBlock(
-    BuildContext context,
-    LibraryProvider libraryProvider,
-  ) async {
     String? reason;
     if (!member.blocked) {
-      final controller = TextEditingController();
+      final reasonController = TextEditingController();
       reason = await showDialog<String>(
         context: context,
-        builder: (context) => AlertDialog(
+        builder: (dialogContext) => AlertDialog(
           title: Text('Block ${member.label}'),
           content: TextField(
-            controller: controller,
+            controller: reasonController,
             maxLength: 500,
             autofocus: true,
-            decoration: const InputDecoration(labelText: 'Reason'),
+            decoration: const InputDecoration(labelText: 'Reason for blocking'),
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Back'),
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
             ),
             FilledButton(
-              style: FilledButton.styleFrom(minimumSize: Size.zero),
-              onPressed: () => Navigator.pop(context, controller.text.trim()),
-              child: const Text('Block'),
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.error,
+              ),
+              onPressed: () =>
+                  Navigator.pop(dialogContext, reasonController.text.trim()),
+              child: const Text('Block borrower'),
             ),
           ],
         ),
       );
-      controller.dispose();
+      reasonController.dispose();
       if (reason == null || reason.isEmpty) return;
     }
     final saved = await libraryProvider.setMemberBlocked(
@@ -212,25 +78,259 @@ class _MemberTile extends StatelessWidget {
       blocked: !member.blocked,
       reason: reason,
     );
-    if (!saved && context.mounted) {
+    if (!saved && mounted) {
       showMessage(context, libraryProvider.errorMessage ?? 'Failed');
     }
   }
 
-  Widget _activeToggle(BuildContext context, LibraryProvider libraryProvider) =>
-      IconButton(
-        tooltip: member.active ? 'Deactivate' : 'Activate',
-        icon: Icon(
-          member.active ? Icons.toggle_on_rounded : Icons.toggle_off_rounded,
+  Widget _statusPill(BuildContext context, LibraryMember member) {
+    final theme = Theme.of(context);
+    if (member.blocked) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.errorContainer.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: theme.colorScheme.error.withValues(alpha: 0.4),
+          ),
         ),
-        onPressed: () async {
-          if (!await libraryProvider.setMemberActive(
-                member.id,
-                active: !member.active,
-              ) &&
-              context.mounted) {
-            showMessage(context, libraryProvider.errorMessage ?? 'Failed');
-          }
-        },
+        child: Text(
+          'Blocked',
+          style: TextStyle(
+            color: theme.colorScheme.error,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       );
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: Colors.green.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+      ),
+      child: Text(
+        'Can borrow',
+        style: TextStyle(
+          color: Colors.green.shade700,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final libraryProvider = context.watch<LibraryProvider>();
+    final canEdit = libraryProvider.access.can('library.circulation.operate');
+    final theme = Theme.of(context);
+    final allMembers = libraryProvider.members;
+
+    final filteredMembers = allMembers.where((member) {
+      if (_searchQuery.isNotEmpty) {
+        final query = _searchQuery.toLowerCase();
+        final matchName = member.label.toLowerCase().contains(query);
+        final matchErpId = '${member.personErpId}'.contains(query);
+        final matchClass =
+            member.classId != null && '${member.classId}'.contains(query);
+        return matchName || matchErpId || matchClass;
+      }
+      return true;
+    }).toList();
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Members'),
+        actions: [
+          IconButton(
+            tooltip: 'Refresh members',
+            icon: const Icon(Icons.refresh_rounded),
+            onPressed: () => libraryProvider.loadMembers(),
+          ),
+        ],
+      ),
+      body: CenteredBody(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  SegmentedButton<String>(
+                    segments: const [
+                      ButtonSegment(value: 'student', label: Text('Students')),
+                      ButtonSegment(value: 'teacher', label: Text('Teachers')),
+                    ],
+                    selected: {libraryProvider.memberType},
+                    onSelectionChanged: (values) =>
+                        libraryProvider.loadMembers(type: values.first),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        hintText: 'Search member name, ID, class…',
+                        prefixIcon: const Icon(Icons.search, size: 18),
+                        isDense: true,
+                        filled: true,
+                        fillColor: theme.colorScheme.surfaceContainerHighest
+                            .withValues(alpha: 0.35),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
+                        suffixIcon: _searchQuery.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear, size: 16),
+                                onPressed: _clearSearch,
+                              )
+                            : null,
+                      ),
+                      onChanged: (value) =>
+                          setState(() => _searchQuery = value.trim()),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: libraryProvider.membersLoading && allMembers.isEmpty
+                  ? const Center(child: CircularProgressIndicator())
+                  : filteredMembers.isEmpty
+                  ? (allMembers.isEmpty
+                        ? MemberInitialEmptyState(
+                            memberType: libraryProvider.memberType,
+                          )
+                        : MemberNoResultsState(
+                            searchQuery: _searchQuery,
+                            onClear: _clearSearch,
+                          ))
+                  : RefreshIndicator(
+                      onRefresh: () => libraryProvider.loadMembers(),
+                      child: AdaptiveList<LibraryMember>(
+                        items: filteredMembers,
+                        columns: [
+                          AdaptiveColumn(
+                            label: 'Name',
+                            flex: 3,
+                            cell: (context, member) => Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  member.isStudent
+                                      ? Icons.school_outlined
+                                      : Icons.person_outline_rounded,
+                                  size: 16,
+                                  color: Colors.grey,
+                                ),
+                                const SizedBox(width: 8),
+                                Flexible(
+                                  child: Text(
+                                    member.label,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          AdaptiveColumn.text(
+                            'ERP ID',
+                            (member) => '${member.personErpId}',
+                          ),
+                          AdaptiveColumn.text(
+                            'Class',
+                            (member) => member.classId == null
+                                ? '—'
+                                : '${member.classId}',
+                          ),
+                          AdaptiveColumn(
+                            label: 'On loan',
+                            cell: (context, member) => Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: member.activeLoans > 0
+                                    ? theme.colorScheme.primaryContainer
+                                          .withValues(alpha: 0.5)
+                                    : theme.colorScheme.surfaceContainerHighest
+                                          .withValues(alpha: 0.5),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                '${member.activeLoans} books',
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: member.activeLoans > 0
+                                      ? theme.colorScheme.primary
+                                      : theme.colorScheme.onSurfaceVariant,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                          AdaptiveColumn(
+                            label: 'Status',
+                            cell: (context, member) =>
+                                _statusPill(context, member),
+                          ),
+                          AdaptiveColumn(
+                            label: '',
+                            cell: (context, member) => canEdit
+                                ? IconButton(
+                                    tooltip: member.blocked
+                                        ? 'Unblock'
+                                        : 'Block',
+                                    icon: Icon(
+                                      member.blocked
+                                          ? Icons.lock_open_rounded
+                                          : Icons.block_rounded,
+                                      size: 18,
+                                      color: member.blocked
+                                          ? Colors.green.shade700
+                                          : theme.colorScheme.error,
+                                    ),
+                                    onPressed: () => _toggleBlock(member),
+                                  )
+                                : const SizedBox.shrink(),
+                          ),
+                        ],
+                        cardBuilder: (context, member) => MemberCard(
+                          member: member,
+                          canEdit: canEdit,
+                          onToggleBlock: () => _toggleBlock(member),
+                        ),
+                        footer: libraryProvider.hasMoreMembers
+                            ? Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                  ),
+                                  child: TextButton(
+                                    onPressed: libraryProvider.membersLoading
+                                        ? null
+                                        : () => libraryProvider.loadMembers(
+                                            more: true,
+                                          ),
+                                    child: const Text('Load more'),
+                                  ),
+                                ),
+                              )
+                            : null,
+                      ),
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

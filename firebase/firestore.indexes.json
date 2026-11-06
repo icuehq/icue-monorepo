@@ -1281,12 +1281,12 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "status",
+          "fieldPath": "memberType",
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "end",
-          "order": "ASCENDING"
+          "fieldPath": "campusIds",
+          "arrayConfig": "CONTAINS"
         }
       ]
     }

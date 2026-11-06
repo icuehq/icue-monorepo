@@ -126,267 +126,273 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
               : 'Edit ${widget.existing!.number}',
         ),
       ),
-      body: Form(
-        key: _form,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            // Campus & Priority Card
-            Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: theme.colorScheme.outlineVariant),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.apartment_rounded,
-                          size: 20,
-                          color: theme.colorScheme.primary,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Campus & Urgency',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
+      body: CenteredBody(
+        maxWidth: 900,
+        child: Form(
+          key: _form,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              // Campus & Priority Card
+              Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(color: theme.colorScheme.outlineVariant),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.apartment_rounded,
+                            size: 20,
+                            color: theme.colorScheme.primary,
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        if (!singleCampus) ...[
-                          Expanded(
-                            child: DropdownButtonFormField<int>(
-                              initialValue: _campus,
-                              isExpanded: true,
-                              decoration: const InputDecoration(
-                                labelText: 'Campus *',
-                                prefixIcon: Icon(Icons.school_outlined),
-                              ),
-                              items: [
-                                for (final value in campuses)
-                                  DropdownMenuItem(
-                                    value: value,
-                                    child: Text('Campus $value'),
-                                  ),
-                              ],
-                              onChanged: widget.existing == null
-                                  ? (value) => _campus = value
-                                  : null,
-                              validator: (value) =>
-                                  value == null ? 'Required' : null,
+                          const SizedBox(width: 8),
+                          Text(
+                            'Campus & Urgency',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
-                          const SizedBox(width: 12),
                         ],
-                        Expanded(
-                          child: DropdownButtonFormField<String>(
-                            initialValue: _priority,
-                            decoration: const InputDecoration(
-                              labelText: 'Priority',
-                              prefixIcon: Icon(Icons.flag_outlined),
-                            ),
-                            items: const [
-                              DropdownMenuItem(
-                                value: 'low',
-                                child: Text('Low'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'normal',
-                                child: Text('Normal'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'high',
-                                child: Text('High'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'urgent',
-                                child: Text('Urgent'),
-                              ),
-                            ],
-                            onChanged: (value) =>
-                                setState(() => _priority = value ?? 'normal'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Purpose & Schedule Card
-            Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: theme.colorScheme.outlineVariant),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.description_outlined,
-                          size: 20,
-                          color: theme.colorScheme.primary,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Requisition Details',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _purpose,
-                      decoration: const InputDecoration(
-                        labelText: 'Purpose / Justification *',
-                        hintText:
-                            'e.g. Science lab equipment for term practicals',
-                        prefixIcon: Icon(Icons.edit_note_rounded),
                       ),
-                      validator: requiredText,
-                    ),
-                    const SizedBox(height: 12),
-                    AppDateField(
-                      controller: _date,
-                      label: 'Required by date *',
-                      prefixIcon: const Icon(Icons.event_outlined),
-                      firstDate: DateTime.now(),
-                      lastDate: DateTime.now().add(const Duration(days: 730)),
-                      initialDate: DateTime.now().add(const Duration(days: 7)),
-                      validator: requiredText,
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _remarks,
-                      decoration: const InputDecoration(
-                        labelText: 'Remarks / Special instructions (optional)',
-                        prefixIcon: Icon(Icons.notes_rounded),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Items Card
-            Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: theme.colorScheme.outlineVariant),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.checklist_rounded,
-                          size: 20,
-                          color: theme.colorScheme.primary,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Requested Items',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const Spacer(),
-                        if (_lines.isNotEmpty)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.primaryContainer,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              '${_lines.length} items',
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: theme.colorScheme.onPrimaryContainer,
-                                fontWeight: FontWeight.w600,
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          if (!singleCampus) ...[
+                            Expanded(
+                              child: DropdownButtonFormField<int>(
+                                initialValue: _campus,
+                                isExpanded: true,
+                                decoration: const InputDecoration(
+                                  labelText: 'Campus *',
+                                  prefixIcon: Icon(Icons.school_outlined),
+                                ),
+                                items: [
+                                  for (final value in campuses)
+                                    DropdownMenuItem(
+                                      value: value,
+                                      child: Text('Campus $value'),
+                                    ),
+                                ],
+                                onChanged: widget.existing == null
+                                    ? (value) => _campus = value
+                                    : null,
+                                validator: (value) =>
+                                    value == null ? 'Required' : null,
                               ),
                             ),
+                            const SizedBox(width: 12),
+                          ],
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              initialValue: _priority,
+                              decoration: const InputDecoration(
+                                labelText: 'Priority',
+                                prefixIcon: Icon(Icons.flag_outlined),
+                              ),
+                              items: const [
+                                DropdownMenuItem(
+                                  value: 'low',
+                                  child: Text('Low'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'normal',
+                                  child: Text('Normal'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'high',
+                                  child: Text('High'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'urgent',
+                                  child: Text('Urgent'),
+                                ),
+                              ],
+                              onChanged: (value) =>
+                                  setState(() => _priority = value ?? 'normal'),
+                            ),
                           ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    for (final (n, l) in _lines.indexed) ...[
-                      RequestLineCard(
-                        line: l,
-                        onRemove: () =>
-                            setState(() => _lines.removeAt(n).dispose()),
+                        ],
                       ),
-                      const SizedBox(height: 8),
                     ],
-                    OutlinedButton.icon(
-                      icon: const Icon(Icons.add_rounded),
-                      label: const Text('Add Item to Request'),
-                      onPressed: _addItem,
-                    ),
-                  ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 24),
+              const SizedBox(height: 16),
 
-            // Actions
-            FilledButton.icon(
-              onPressed: _busy ? null : () => _save(submit: true),
-              icon: _busy
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
+              // Purpose & Schedule Card
+              Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(color: theme.colorScheme.outlineVariant),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.description_outlined,
+                            size: 20,
+                            color: theme.colorScheme.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Requisition Details',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
-                    )
-                  : const Icon(Icons.send_rounded),
-              label: Text(_busy ? 'Saving…' : 'Submit for Approval'),
-              style: FilledButton.styleFrom(
-                minimumSize: const Size.fromHeight(48),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _purpose,
+                        decoration: const InputDecoration(
+                          labelText: 'Purpose / Justification *',
+                          hintText:
+                              'e.g. Science lab equipment for term practicals',
+                          prefixIcon: Icon(Icons.edit_note_rounded),
+                        ),
+                        validator: requiredText,
+                      ),
+                      const SizedBox(height: 12),
+                      AppDateField(
+                        controller: _date,
+                        label: 'Required by date *',
+                        prefixIcon: const Icon(Icons.event_outlined),
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime.now().add(const Duration(days: 730)),
+                        initialDate: DateTime.now().add(
+                          const Duration(days: 7),
+                        ),
+                        validator: requiredText,
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _remarks,
+                        decoration: const InputDecoration(
+                          labelText:
+                              'Remarks / Special instructions (optional)',
+                          prefixIcon: Icon(Icons.notes_rounded),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 10),
-            OutlinedButton(
-              onPressed: _busy ? null : () => _save(submit: false),
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size.fromHeight(44),
+              const SizedBox(height: 16),
+
+              // Items Card
+              Card(
+                elevation: 0,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(color: theme.colorScheme.outlineVariant),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.checklist_rounded,
+                            size: 20,
+                            color: theme.colorScheme.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Requested Items',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const Spacer(),
+                          if (_lines.isNotEmpty)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primaryContainer,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '${_lines.length} items',
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: theme.colorScheme.onPrimaryContainer,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      for (final (n, l) in _lines.indexed) ...[
+                        RequestLineCard(
+                          line: l,
+                          onRemove: () =>
+                              setState(() => _lines.removeAt(n).dispose()),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.add_rounded),
+                        label: const Text('Add Item to Request'),
+                        onPressed: _addItem,
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              child: const Text('Save as Draft'),
-            ),
-          ],
+              const SizedBox(height: 24),
+
+              // Actions
+              FilledButton.icon(
+                onPressed: _busy ? null : () => _save(submit: true),
+                icon: _busy
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.send_rounded),
+                label: Text(_busy ? 'Saving…' : 'Submit for Approval'),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(48),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              OutlinedButton(
+                onPressed: _busy ? null : () => _save(submit: false),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(44),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: const Text('Save as Draft'),
+              ),
+            ],
+          ),
         ),
       ),
     );

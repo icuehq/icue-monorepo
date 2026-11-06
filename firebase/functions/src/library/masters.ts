@@ -125,21 +125,15 @@ export const masters = {
     input: z.object({}),
     handler: async (context) => {
       const now = serverTimestamp();
-      const keys = DEFAULT_CATEGORIES.map((category) =>
-        uniqueKeyRef(context, 'libraryCategory', category.code),
+      const existing = new Set(
+        (await context.transaction.get(context.coll('libraryCategories'))).docs.map(
+          (category) => String(category.data().name).trim().toLowerCase(),
+        ),
       );
-      const snapshots = await context.transaction.getAll(...keys);
       let categories = 0;
-      DEFAULT_CATEGORIES.forEach((category, index) => {
-        if (snapshots[index].exists) return;
-        const ref = context.newDoc('libraryCategories');
-        context.set(keys[index], {
-          keyType: 'libraryCategory',
-          value: category.code.toLowerCase(),
-          documentPath: ref.path,
-        });
-        context.set(ref, {
-          code: category.code,
+      for (const category of DEFAULT_CATEGORIES) {
+        if (existing.has(category.name.toLowerCase())) continue;
+        context.set(context.newDoc('libraryCategories'), {
           name: category.name,
           description: null,
           parentId: null,
@@ -149,7 +143,7 @@ export const masters = {
           updatedAt: now,
         });
         categories++;
-      });
+      }
       context.audit({
         action: 'library.seedDefaults',
         documentPath: `schools/${context.schoolId}`,

@@ -35,36 +35,29 @@ const audit = {
 };
 
 export async function seedLibrary(fields: {
-  code: string;
   name: string;
   campusId: number;
-  staffIds?: number[];
 }): Promise<{ id: string }> {
-  const id = fields.code.toLowerCase();
-  await db()
-    .doc(`${SCHOOL}/libraries/${id}`)
-    .set({
-      description: null,
-      location: null,
-      staffIds: [],
-      contact: null,
-      hours: null,
-      ...fields,
-      ...audit,
-    });
-  return { id };
+  const ref = db().collection(`${SCHOOL}/libraries`).doc();
+  await ref.set({
+    description: null,
+    location: null,
+    phone: null,
+    email: null,
+    hours: null,
+    ...fields,
+    ...audit,
+  });
+  return { id: ref.id };
 }
 
 export async function seedLibraryCategory(fields: {
-  code: string;
   name: string;
   parentId?: string;
 }): Promise<{ id: string }> {
-  const id = fields.code.toLowerCase();
-  await db()
-    .doc(`${SCHOOL}/libraryCategories/${id}`)
-    .set({ description: null, parentId: null, ...fields, ...audit });
-  return { id };
+  const ref = db().collection(`${SCHOOL}/libraryCategories`).doc();
+  await ref.set({ description: null, parentId: null, ...fields, ...audit });
+  return { id: ref.id };
 }
 
 export async function seedVariant(fields: {
@@ -932,3 +925,9 @@ export const resolveUnavailable = defineCallable({
     return { id: i.id };
   },
 });
+
+/** The person a desk sends to issue or reserve: `student_501` → `{ memberType, personErpId, name }`. */
+export const person = (memberId: string) => {
+  const [memberType, erpId] = memberId.split('_');
+  return { memberType, personErpId: Number(erpId), name: `${memberType} ${erpId}` };
+};

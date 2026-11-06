@@ -2,6 +2,7 @@ import 'package:admin_ui/admin_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:inventory/inventory.dart';
+import 'package:inventory/src/ui/routing/inventory_destinations.dart';
 import 'package:provider/provider.dart';
 
 class InventoryHomePage extends StatefulWidget {
@@ -24,109 +25,7 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
   Widget build(BuildContext context) {
     final inventoryProvider = context.watch<InventoryProvider>();
     final access = inventoryProvider.access;
-    final tiles = <(String, String, String, bool)>[
-      (
-        'assets/dashboard/inventory-dashboard.png',
-        'Dashboard',
-        InventoryRoutes.inventoryDashboard,
-        access.can('inventory.stock.view') ||
-            access.can('inventory.reports.view'),
-      ),
-      (
-        'assets/dashboard/inventory-stock-verification.png',
-        'Stock verification',
-        InventoryRoutes.inventoryVerifications,
-        access.can('inventory.stock.view'),
-      ),
-      (
-        'assets/dashboard/inventory-import.png',
-        'Import',
-        InventoryRoutes.inventoryImport,
-        access.can('inventory.settings') ||
-            access.can('inventory.items.manage') ||
-            access.can('inventory.vendors.manage'),
-      ),
-      (
-        'assets/dashboard/reports.png',
-        'Reports',
-        InventoryRoutes.inventoryReports,
-        access.can('inventory.reports.view'),
-      ),
-      (
-        'assets/dashboard/inventory-items.png',
-        'Items',
-        InventoryRoutes.inventoryItems,
-        access.can('inventory.items.view'),
-      ),
-      (
-        'assets/dashboard/inventory-categories.png',
-        'Categories',
-        InventoryRoutes.inventoryCategories,
-        access.can('inventory.items.view'),
-      ),
-      (
-        'assets/dashboard/inventory-units.png',
-        'Units',
-        InventoryRoutes.inventoryUnits,
-        access.can('inventory.items.view'),
-      ),
-      (
-        'assets/dashboard/inventory-stock.png',
-        'Stock',
-        InventoryRoutes.inventoryStock,
-        access.can('inventory.stock.view'),
-      ),
-      (
-        'assets/dashboard/inventory-issue-requests.png',
-        'Issue requests',
-        InventoryRoutes.inventoryRequests,
-        access.can('inventory.issue.request') ||
-            access.can('inventory.issue.approve') ||
-            access.can('inventory.stock.view'),
-      ),
-      (
-        'assets/dashboard/inventory-purchase-requests.png',
-        'Purchase requests',
-        InventoryRoutes.inventoryPurchaseRequests,
-        access.can('inventory.purchaseRequest.request') ||
-            access.can('inventory.purchaseRequest.approve') ||
-            access.can('inventory.procure.operate'),
-      ),
-      (
-        'assets/dashboard/inventory-purchase-orders.png',
-        'Purchase orders',
-        InventoryRoutes.inventoryPurchaseOrders,
-        access.can('inventory.procure.operate') ||
-            access.can('inventory.stock.operate'),
-      ),
-      (
-        'assets/dashboard/inventory-invoices.png',
-        'Vendor invoices',
-        InventoryRoutes.inventoryInvoices,
-        access.can('inventory.procure.operate'),
-      ),
-      (
-        'assets/dashboard/inventory-assets.png',
-        'Assets',
-        InventoryRoutes.inventoryAssets,
-        access.can('inventory.assets.view') ||
-            access.can('inventory.assets.manage'),
-      ),
-      (
-        'assets/dashboard/inventory-vendors.png',
-        'Vendors',
-        InventoryRoutes.inventoryVendors,
-        access.can('inventory.vendors.manage') ||
-            access.can('inventory.procure.operate'),
-      ),
-      (
-        'assets/dashboard/inventory-stores.png',
-        'Stores',
-        InventoryRoutes.inventoryStores,
-        access.can('inventory.stock.view') || access.can('inventory.settings'),
-      ),
-    ];
-    final visibleTiles = tiles.where((tile) => tile.$4).toList();
+    final visibleTiles = inventoryEntries(access);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Inventory')),
@@ -176,10 +75,10 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
                   itemBuilder: (context, index) {
                     final item = visibleTiles[index];
                     return OptionGridCard(
-                      title: item.$2,
-                      iconAsset: item.$1,
+                      title: item.label,
+                      iconAsset: item.iconAsset,
                       iconSize: iconSize,
-                      onTap: () => context.push(item.$3),
+                      onTap: () => context.push(item.path),
                     );
                   },
                 );

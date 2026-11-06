@@ -144,83 +144,88 @@ class _LibraryTransferFormPageState extends State<LibraryTransferFormPage> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('New transfer')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          DropdownButtonFormField<String>(
-            initialValue: _from,
-            key: ValueKey('from-$_from'),
-            isExpanded: true,
-            decoration: const InputDecoration(
-              labelText: 'From library',
-              prefixIcon: Icon(Icons.outbox_rounded),
-            ),
-            items: [
-              for (final schoolLibrary in sources)
-                DropdownMenuItem(
-                  value: schoolLibrary.id,
-                  child: Text(schoolLibrary.name),
-                ),
-            ],
-            onChanged: _setSource,
-          ),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            initialValue: _to,
-            key: ValueKey('to-$_from-$_to'),
-            isExpanded: true,
-            decoration: const InputDecoration(
-              labelText: 'To library',
-              prefixIcon: Icon(Icons.move_to_inbox_rounded),
-            ),
-            items: [
-              for (final schoolLibrary in destinations)
-                DropdownMenuItem(
-                  value: schoolLibrary.id,
-                  child: Text(schoolLibrary.name),
-                ),
-            ],
-            onChanged: (value) => setState(() => _to = value),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            'Copies (${_copies.length})',
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 8),
-          ScanField(
-            hint: 'Scan or enter accession no. / barcode',
-            clearOnScan: true,
-            onScan: _add,
-          ),
-          const SizedBox(height: 8),
-          if (_copies.isEmpty)
-            Text(
-              'Only available copies of the source library can be transferred.',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+      body: CenteredBody(
+        maxWidth: Breakpoints.formMaxWidth,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            DropdownButtonFormField<String>(
+              initialValue: _from,
+              key: ValueKey('from-$_from'),
+              isExpanded: true,
+              decoration: const InputDecoration(
+                labelText: 'From library',
+                prefixIcon: Icon(Icons.outbox_rounded),
               ),
-            )
-          else
-            Wrap(
-              spacing: 6,
-              children: [
-                for (final copy in _copies)
-                  InputChip(
-                    label: Text(copy.accessionNumber),
-                    onDeleted: () => setState(() => _copies.remove(copy)),
+              items: [
+                for (final schoolLibrary in sources)
+                  DropdownMenuItem(
+                    value: schoolLibrary.id,
+                    child: Text(schoolLibrary.name),
                   ),
               ],
+              onChanged: _setSource,
             ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _remarks,
-            maxLength: 500,
-            decoration: const InputDecoration(labelText: 'Remarks (optional)'),
-          ),
-        ],
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              initialValue: _to,
+              key: ValueKey('to-$_from-$_to'),
+              isExpanded: true,
+              decoration: const InputDecoration(
+                labelText: 'To library',
+                prefixIcon: Icon(Icons.move_to_inbox_rounded),
+              ),
+              items: [
+                for (final schoolLibrary in destinations)
+                  DropdownMenuItem(
+                    value: schoolLibrary.id,
+                    child: Text(schoolLibrary.name),
+                  ),
+              ],
+              onChanged: (value) => setState(() => _to = value),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Copies (${_copies.length})',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ScanField(
+              hint: 'Scan or enter accession no. / barcode',
+              clearOnScan: true,
+              onScan: _add,
+            ),
+            const SizedBox(height: 8),
+            if (_copies.isEmpty)
+              Text(
+                'Only available copies of the source library can be transferred.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              )
+            else
+              Wrap(
+                spacing: 6,
+                children: [
+                  for (final copy in _copies)
+                    InputChip(
+                      label: Text(copy.accessionNumber),
+                      onDeleted: () => setState(() => _copies.remove(copy)),
+                    ),
+                ],
+              ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _remarks,
+              maxLength: 500,
+              decoration: const InputDecoration(
+                labelText: 'Remarks (optional)',
+              ),
+            ),
+          ],
+        ),
       ),
       bottomNavigationBar: Material(
         elevation: 8,

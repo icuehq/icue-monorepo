@@ -1,3 +1,4 @@
+import 'package:admin_ui/src/adaptive.dart';
 import 'package:admin_ui/src/form_helpers.dart';
 import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
@@ -118,56 +119,59 @@ class _CsvImportScreenState extends State<CsvImportScreen> {
     final header = _kind.columns.join(',');
     return Scaffold(
       appBar: AppBar(title: const Text('Import')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          DropdownButton<ImportKind>(
-            isExpanded: true,
-            value: _kind,
-            items: [
-              for (final importKind in _allowed)
-                DropdownMenuItem(
-                  value: importKind,
-                  child: Text(importKind.type),
+      body: CenteredBody(
+        maxWidth: Breakpoints.formMaxWidth,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            DropdownButton<ImportKind>(
+              isExpanded: true,
+              value: _kind,
+              items: [
+                for (final importKind in _allowed)
+                  DropdownMenuItem(
+                    value: importKind,
+                    child: Text(importKind.type),
+                  ),
+              ],
+              onChanged: _isImporting
+                  ? null
+                  : (importKind) => setState(() => _kind = importKind!),
+            ),
+            Text(
+              'Columns: $header\n${_kind.hint} Up to $_rowsPerRequest rows per request.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            TextButton.icon(
+              icon: const Icon(Icons.copy),
+              label: const Text('Copy header row'),
+              onPressed: () => Clipboard.setData(ClipboardData(text: header)),
+            ),
+            TextField(
+              controller: _csv,
+              minLines: 8,
+              maxLines: 14,
+              decoration: const InputDecoration(
+                hintText: 'Paste CSV, header row first',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            FilledButton(
+              onPressed: _isImporting ? null : _import,
+              child: Text(_isImporting ? 'Importing…' : 'Import'),
+            ),
+            if (_summary != null) ...[
+              const SizedBox(height: 12),
+              Text(_summary!, style: Theme.of(context).textTheme.titleMedium),
+              for (final error in _errors)
+                Text(
+                  error,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
             ],
-            onChanged: _isImporting
-                ? null
-                : (importKind) => setState(() => _kind = importKind!),
-          ),
-          Text(
-            'Columns: $header\n${_kind.hint} Up to $_rowsPerRequest rows per request.',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          TextButton.icon(
-            icon: const Icon(Icons.copy),
-            label: const Text('Copy header row'),
-            onPressed: () => Clipboard.setData(ClipboardData(text: header)),
-          ),
-          TextField(
-            controller: _csv,
-            minLines: 8,
-            maxLines: 14,
-            decoration: const InputDecoration(
-              hintText: 'Paste CSV, header row first',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 12),
-          FilledButton(
-            onPressed: _isImporting ? null : _import,
-            child: Text(_isImporting ? 'Importing…' : 'Import'),
-          ),
-          if (_summary != null) ...[
-            const SizedBox(height: 12),
-            Text(_summary!, style: Theme.of(context).textTheme.titleMedium),
-            for (final error in _errors)
-              Text(
-                error,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
           ],
-        ],
+        ),
       ),
     );
   }

@@ -6,6 +6,7 @@ extension LibraryLoanMembers on LibraryLoan {
   bool get isActive => status == 'active';
   bool get canRenew => isActive && renewals < maxRenewals;
   String get memberLabel =>
+      memberName ??
       '${memberType == 'student' ? 'Student' : 'Teacher'} #$personErpId';
 
   /// Days past due as of [today] (`yyyy-MM-dd`); 0 when not overdue.

@@ -88,8 +88,7 @@ class _VerificationSheetState extends State<VerificationSheet> {
           '${verification.scanned.length} scanned of ${verification.expected.length} expected'
           '${verification.onLoanCopyIds.isEmpty ? '' : ' · ${verification.onLoanCopyIds.length} on loan (not counted)'}',
         ),
-        if (verification.isCounting &&
-            access.can('library.catalogue')) ...[
+        if (verification.isCounting && access.can('library.catalogue')) ...[
           const SizedBox(height: 12),
           ScanField(
             hint: 'Scan barcode or enter accession no.',

@@ -40,6 +40,19 @@
       ]
     },
     {
+      "name": "icueadmin [Dev + Emulators · Web]",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "apps/icueadmin",
+      "program": "lib/main.dart",
+      "deviceId": "chrome",
+      "args": [
+        "--web-port=5555",
+        "--dart-define=ENV=dev",
+        "--dart-define=FIREBASE_EMULATOR=127.0.0.1"
+      ]
+    },
+    {
       "name": "icueadmin [Prod]",
       "request": "launch",
       "type": "dart",

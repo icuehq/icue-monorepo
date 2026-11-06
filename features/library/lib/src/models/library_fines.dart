@@ -13,5 +13,6 @@ extension LibraryFineMembers on LibraryFine {
   bool get isOutstanding =>
       outstanding > 0 && status != 'waived' && status != 'paid';
   String get memberLabel =>
+      memberName ??
       '${memberType == 'student' ? 'Student' : 'Teacher'} #$personErpId';
 }

@@ -1,7 +1,6 @@
 import 'package:admin_ui/admin_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:inventory/inventory.dart';
-import 'package:inventory/src/ui/shared/widgets/form_section_card.dart';
 import 'package:provider/provider.dart';
 
 class CategoryFormPage extends StatefulWidget {
@@ -91,142 +90,152 @@ class _CategoryFormPageState extends State<CategoryFormPage> {
 
     return Scaffold(
       appBar: AppBar(title: Text(title)),
-      body: Form(
-        key: _form,
-        child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-          children: [
-            FormSectionCard(
-              title: 'Category Details',
-              icon: Icons.category_outlined,
-              children: [
-                TextFormField(
-                  controller: _name,
-                  textInputAction: TextInputAction.next,
-                  textCapitalization: TextCapitalization.words,
-                  decoration: const InputDecoration(
-                    labelText: 'Name *',
-                    hintText: 'e.g. Science Lab Equipment',
-                    prefixIcon: Icon(Icons.label_outline, size: 20),
+      body: CenteredBody(
+        maxWidth: Breakpoints.formMaxWidth,
+        child: Form(
+          key: _form,
+          child: ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            children: [
+              FormSectionCard(
+                title: 'Category Details',
+                icon: Icons.category_outlined,
+                children: [
+                  TextFormField(
+                    controller: _name,
+                    textInputAction: TextInputAction.next,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: const InputDecoration(
+                      labelText: 'Name *',
+                      hintText: 'e.g. Science Lab Equipment',
+                      prefixIcon: Icon(Icons.label_outline, size: 20),
+                    ),
+                    validator: requiredText,
+                    onChanged: (value) {
+                      if (!editing && !_codeManuallyEdited) {
+                        _code.text = generateCategoryCode(value);
+                      }
+                    },
                   ),
-                  validator: requiredText,
-                  onChanged: (value) {
-                    if (!editing && !_codeManuallyEdited) {
-                      _code.text = generateCategoryCode(value);
-                    }
-                  },
-                ),
-                TextFormField(
-                  controller: _code,
-                  enabled: !editing,
-                  textCapitalization: TextCapitalization.characters,
-                  textInputAction: TextInputAction.next,
-                  decoration: InputDecoration(
-                    labelText: 'Code *',
-                    prefixIcon: const Icon(Icons.qr_code_2_outlined, size: 20),
-                    helperText: editing ? null : 'Unique code (e.g. BKD, CLN)',
-                  ),
-                  validator: (value) {
-                    final required = requiredText(value);
-                    if (required != null) return required;
-                    if (!editing) {
-                      final code = value!.trim().toLowerCase();
-                      final exists = inventoryProvider.categories.any(
-                        (existing) =>
-                            existing.code.trim().toLowerCase() == code ||
-                            existing.id == code,
-                      );
-                      if (exists) return 'Code "$value" already exists';
-                    }
-                    return null;
-                  },
-                  onChanged: (value) {
-                    _codeManuallyEdited = value.trim().isNotEmpty;
-                  },
-                ),
-                DropdownButtonFormField<String?>(
-                  initialValue: _parentId,
-                  decoration: const InputDecoration(
-                    labelText: 'Parent category',
-                    prefixIcon: Icon(Icons.account_tree_outlined, size: 20),
-                  ),
-                  items: [
-                    const DropdownMenuItem(child: Text('None (top level)')),
-                    for (final category in tops)
-                      DropdownMenuItem(
-                        value: category.id,
-                        child: Text(category.name),
+                  TextFormField(
+                    controller: _code,
+                    enabled: !editing,
+                    textCapitalization: TextCapitalization.characters,
+                    textInputAction: TextInputAction.next,
+                    decoration: InputDecoration(
+                      labelText: 'Code *',
+                      prefixIcon: const Icon(
+                        Icons.qr_code_2_outlined,
+                        size: 20,
                       ),
-                    if (_parentId != null &&
-                        parentCategory != null &&
-                        !tops.any((category) => category.id == _parentId))
-                      DropdownMenuItem(
-                        value: parentCategory.id,
-                        child: Text(parentCategory.name),
-                      ),
-                  ],
-                  onChanged: (value) => setState(() => _parentId = value),
-                ),
-                DropdownButtonFormField<Tracking>(
-                  initialValue: _tracking,
-                  decoration: const InputDecoration(
-                    labelText: 'Suggested tracking *',
-                    prefixIcon: Icon(Icons.track_changes_outlined, size: 20),
+                      helperText: editing
+                          ? null
+                          : 'Unique code (e.g. BKD, CLN)',
+                    ),
+                    validator: (value) {
+                      final required = requiredText(value);
+                      if (required != null) return required;
+                      if (!editing) {
+                        final code = value!.trim().toLowerCase();
+                        final exists = inventoryProvider.categories.any(
+                          (existing) =>
+                              existing.code.trim().toLowerCase() == code ||
+                              existing.id == code,
+                        );
+                        if (exists) return 'Code "$value" already exists';
+                      }
+                      return null;
+                    },
+                    onChanged: (value) {
+                      _codeManuallyEdited = value.trim().isNotEmpty;
+                    },
                   ),
-                  items: [
-                    for (final tracking in Tracking.values)
-                      DropdownMenuItem(
-                        value: tracking,
-                        child: Text(tracking.label),
-                      ),
-                  ],
-                  onChanged: (tracking) {
-                    if (tracking != null) setState(() => _tracking = tracking);
-                  },
-                ),
-                TextFormField(
-                  controller: _description,
-                  maxLines: 3,
-                  minLines: 1,
-                  textInputAction: TextInputAction.done,
-                  decoration: const InputDecoration(
-                    labelText: 'Description',
-                    hintText: 'Optional notes or description',
-                    prefixIcon: Icon(Icons.description_outlined, size: 20),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: FilledButton.icon(
-                onPressed: _busy ? null : _save,
-                icon: _busy
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
+                  DropdownButtonFormField<String?>(
+                    initialValue: _parentId,
+                    decoration: const InputDecoration(
+                      labelText: 'Parent category',
+                      prefixIcon: Icon(Icons.account_tree_outlined, size: 20),
+                    ),
+                    items: [
+                      const DropdownMenuItem(child: Text('None (top level)')),
+                      for (final category in tops)
+                        DropdownMenuItem(
+                          value: category.id,
+                          child: Text(category.name),
                         ),
-                      )
-                    : const Icon(Icons.check_circle_outline, size: 20),
-                label: Text(
-                  _busy
-                      ? 'Saving…'
-                      : (editing ? 'Save Changes' : 'Create Category'),
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+                      if (_parentId != null &&
+                          parentCategory != null &&
+                          !tops.any((category) => category.id == _parentId))
+                        DropdownMenuItem(
+                          value: parentCategory.id,
+                          child: Text(parentCategory.name),
+                        ),
+                    ],
+                    onChanged: (value) => setState(() => _parentId = value),
+                  ),
+                  DropdownButtonFormField<Tracking>(
+                    initialValue: _tracking,
+                    decoration: const InputDecoration(
+                      labelText: 'Suggested tracking *',
+                      prefixIcon: Icon(Icons.track_changes_outlined, size: 20),
+                    ),
+                    items: [
+                      for (final tracking in Tracking.values)
+                        DropdownMenuItem(
+                          value: tracking,
+                          child: Text(tracking.label),
+                        ),
+                    ],
+                    onChanged: (tracking) {
+                      if (tracking != null) {
+                        setState(() => _tracking = tracking);
+                      }
+                    },
+                  ),
+                  TextFormField(
+                    controller: _description,
+                    maxLines: 3,
+                    minLines: 1,
+                    textInputAction: TextInputAction.done,
+                    decoration: const InputDecoration(
+                      labelText: 'Description',
+                      hintText: 'Optional notes or description',
+                      prefixIcon: Icon(Icons.description_outlined, size: 20),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: FilledButton.icon(
+                  onPressed: _busy ? null : _save,
+                  icon: _busy
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.check_circle_outline, size: 20),
+                  label: Text(
+                    _busy
+                        ? 'Saving…'
+                        : (editing ? 'Save Changes' : 'Create Category'),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 24),
-          ],
+              const SizedBox(height: 24),
+            ],
+          ),
         ),
       ),
     );

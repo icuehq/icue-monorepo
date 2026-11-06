@@ -408,12 +408,12 @@ const libraryDashboardStats = <(String, String, List<String>)>[
   ('damaged', 'Damaged books', ['library.catalogue']),
   (
     'students',
-    'Active student members',
+    'Student borrowers',
     ['library.members.view', 'library.reports.view'],
   ),
   (
     'teachers',
-    'Active teacher members',
+    'Teacher borrowers',
     ['library.members.view', 'library.reports.view'],
   ),
   (
@@ -437,7 +437,7 @@ const libraryImportColumns = <String, List<String>>{
   'catalogue': [
     'title',
     'authors',
-    'categoryCode',
+    'category',
     'isbn13',
     'isbn10',
     'publisher',
@@ -450,21 +450,12 @@ const libraryImportColumns = <String, List<String>>{
   ],
   'copies': [
     'isbn13',
-    'libraryCode',
+    'library',
     'quantity',
     'price',
     'shelf',
     'condition',
     'date',
-  ],
-  'members': [
-    'memberType',
-    'personErpId',
-    'memberCategory',
-    'libraryCodes',
-    'start',
-    'end',
-    'classId',
   ],
 };
 
@@ -472,5 +463,4 @@ const libraryImportColumns = <String, List<String>>{
 const libraryImportPerms = <String, String>{
   'catalogue': 'library.catalogue',
   'copies': 'library.catalogue',
-  'members': 'library.circulation.operate',
 };

@@ -191,280 +191,293 @@ class _QuotationsPageState extends State<QuotationsPage> {
         icon: const Icon(Icons.add_rounded),
         label: const Text('New Quotation'),
       ),
-      body: quotations.isEmpty
-          ? Center(
-              child: procurementProvider.isLoading
-                  ? const CircularProgressIndicator()
-                  : Padding(
-                      padding: const EdgeInsets.all(32),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.request_quote_outlined,
-                            size: 56,
-                            color: theme.colorScheme.outline,
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'No quotations received yet',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Record quotes from multiple vendors to compare prices and delivery schedules before issuing a purchase order.',
-                            style: theme.textTheme.bodySmall?.copyWith(
+      body: CenteredBody(
+        child: quotations.isEmpty
+            ? Center(
+                child: procurementProvider.isLoading
+                    ? const CircularProgressIndicator()
+                    : Padding(
+                        padding: const EdgeInsets.all(32),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.request_quote_outlined,
+                              size: 56,
                               color: theme.colorScheme.outline,
                             ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    ),
-            )
-          : ListView(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-              children: [
-                // Comparison Header Card
-                QuotationComparison(
-                  quotations: quotations,
-                  itemIds: items,
-                  vendorName: procurementProvider.vendorName,
-                  itemName: procurementProvider.itemName,
-                ),
-                const SizedBox(height: 16),
-
-                Text(
-                  'Quotation Details',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 8),
-
-                // Quotation Cards
-                for (final quotation in quotations) ...[
-                  Card(
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(
-                        color: quotation.selected
-                            ? Colors.green
-                            : theme.colorScheme.outlineVariant,
-                        width: quotation.selected ? 1.5 : 1,
-                      ),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      procurementProvider.vendorName(
-                                        quotation.vendorId,
-                                      ),
-                                      style: theme.textTheme.titleMedium
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                    ),
-                                    Text(
-                                      '${quotation.number}${quotation.vendorRef == null ? '' : ' · Ref: ${quotation.vendorRef}'}',
-                                      style: theme.textTheme.bodySmall
-                                          ?.copyWith(
-                                            color: theme
-                                                .colorScheme
-                                                .onSurfaceVariant,
-                                          ),
-                                    ),
-                                  ],
-                                ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'No quotations received yet',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
                               ),
-                              if (quotation.selected)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.green.withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Record quotes from multiple vendors to compare prices and delivery schedules before issuing a purchase order.',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.outline,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+              )
+            : ListView(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+                children: [
+                  // Comparison Header Card
+                  QuotationComparison(
+                    quotations: quotations,
+                    itemIds: items,
+                    vendorName: procurementProvider.vendorName,
+                    itemName: procurementProvider.itemName,
+                  ),
+                  const SizedBox(height: 16),
+
+                  Text(
+                    'Quotation Details',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Quotation Cards
+                  for (final quotation in quotations) ...[
+                    Card(
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(
+                          color: quotation.selected
+                              ? Colors.green
+                              : theme.colorScheme.outlineVariant,
+                          width: quotation.selected ? 1.5 : 1,
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      const Icon(
-                                        Icons.check_circle_rounded,
-                                        size: 14,
-                                        color: Colors.green,
-                                      ),
-                                      const SizedBox(width: 4),
                                       Text(
-                                        'SELECTED',
-                                        style: theme.textTheme.labelSmall
+                                        procurementProvider.vendorName(
+                                          quotation.vendorId,
+                                        ),
+                                        style: theme.textTheme.titleMedium
                                             ?.copyWith(
-                                              color: Colors.green[800],
                                               fontWeight: FontWeight.bold,
+                                            ),
+                                      ),
+                                      Text(
+                                        '${quotation.number}${quotation.vendorRef == null ? '' : ' · Ref: ${quotation.vendorRef}'}',
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                              color: theme
+                                                  .colorScheme
+                                                  .onSurfaceVariant,
                                             ),
                                       ),
                                     ],
                                   ),
-                                )
-                              else if (quotation.total == lowestTotal)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: theme.colorScheme.primaryContainer,
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    'Lowest Quote',
-                                    style: theme.textTheme.labelSmall?.copyWith(
-                                      color:
-                                          theme.colorScheme.onPrimaryContainer,
-                                      fontWeight: FontWeight.bold,
+                                ),
+                                if (quotation.selected)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
                                     ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          Row(
-                            children: [
-                              Text(
-                                'Total: ${quotation.total.toRupees()}',
-                                style: theme.textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: theme.colorScheme.primary,
-                                ),
-                              ),
-                              const Spacer(),
-                              Text(
-                                'Valid until: ${quotation.validUntil}',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                            ],
-                          ),
-                          if (quotation.selectionReason != null) ...[
-                            const SizedBox(height: 8),
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Colors.green.withValues(alpha: 0.08),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(
-                                    Icons.info_outline_rounded,
-                                    size: 16,
-                                    color: Colors.green,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Expanded(
+                                    decoration: BoxDecoration(
+                                      color: Colors.green.withValues(
+                                        alpha: 0.15,
+                                      ),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(
+                                          Icons.check_circle_rounded,
+                                          size: 14,
+                                          color: Colors.green,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'SELECTED',
+                                          style: theme.textTheme.labelSmall
+                                              ?.copyWith(
+                                                color: Colors.green[800],
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                else if (quotation.total == lowestTotal)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: theme.colorScheme.primaryContainer,
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
                                     child: Text(
-                                      'Reason: ${quotation.selectionReason}',
-                                      style: theme.textTheme.bodySmall
-                                          ?.copyWith(color: Colors.green[900]),
+                                      'Lowest Quote',
+                                      style: theme.textTheme.labelSmall
+                                          ?.copyWith(
+                                            color: theme
+                                                .colorScheme
+                                                .onPrimaryContainer,
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                     ),
                                   ),
-                                ],
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Row(
+                              children: [
+                                Text(
+                                  'Total: ${quotation.total.toRupees()}',
+                                  style: theme.textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                ),
+                                const Spacer(),
+                                Text(
+                                  'Valid until: ${quotation.validUntil}',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (quotation.selectionReason != null) ...[
+                              const SizedBox(height: 8),
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.green.withValues(alpha: 0.08),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.info_outline_rounded,
+                                      size: 16,
+                                      color: Colors.green,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        'Reason: ${quotation.selectionReason}',
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                              color: Colors.green[900],
+                                            ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
+                            ],
+                            QuotationDetails(
+                              quotation: quotation,
+                              itemName: procurementProvider.itemName,
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                if (quotation.isDraft) ...[
+                                  OutlinedButton.icon(
+                                    style: _inlineButton,
+                                    icon: const Icon(
+                                      Icons.edit_outlined,
+                                      size: 16,
+                                    ),
+                                    label: const Text('Edit Draft'),
+                                    onPressed: () => _open(
+                                      InventoryRoutes.inventoryQuotationForm,
+                                      (purchaseRequest, quotation),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  FilledButton.icon(
+                                    style: _inlineButton,
+                                    icon: const Icon(
+                                      Icons.check_circle_outline,
+                                      size: 16,
+                                    ),
+                                    label: const Text('Record Quotation'),
+                                    onPressed: () => _finalize(quotation),
+                                  ),
+                                ] else if (!quotation.selected)
+                                  FilledButton.icon(
+                                    style: _inlineButton,
+                                    icon: const Icon(
+                                      Icons.check_circle_outline,
+                                      size: 16,
+                                    ),
+                                    label: const Text('Select this Quote'),
+                                    onPressed: () => _select(quotation),
+                                  )
+                                else if (_orderOf(
+                                      procurementProvider,
+                                      quotation,
+                                    )
+                                    case final order?)
+                                  OutlinedButton.icon(
+                                    style: _inlineButton,
+                                    icon: const Icon(
+                                      Icons.receipt_long_outlined,
+                                      size: 16,
+                                    ),
+                                    label: Text('View ${order.number}'),
+                                    onPressed: () => _open(
+                                      InventoryRoutes
+                                          .inventoryPurchaseOrderDetail,
+                                      order,
+                                    ),
+                                  )
+                                else
+                                  FilledButton.icon(
+                                    style: _inlineButton,
+                                    icon: const Icon(
+                                      Icons.shopping_cart_checkout_rounded,
+                                      size: 16,
+                                    ),
+                                    label: const Text('Create PO from Quote'),
+                                    onPressed: () => _open(
+                                      InventoryRoutes
+                                          .inventoryPurchaseOrderForm,
+                                      (purchaseRequest, quotation, null),
+                                    ),
+                                  ),
+                              ],
                             ),
                           ],
-                          QuotationDetails(
-                            quotation: quotation,
-                            itemName: procurementProvider.itemName,
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              if (quotation.isDraft) ...[
-                                OutlinedButton.icon(
-                                  style: _inlineButton,
-                                  icon: const Icon(
-                                    Icons.edit_outlined,
-                                    size: 16,
-                                  ),
-                                  label: const Text('Edit Draft'),
-                                  onPressed: () => _open(
-                                    InventoryRoutes.inventoryQuotationForm,
-                                    (purchaseRequest, quotation),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                FilledButton.icon(
-                                  style: _inlineButton,
-                                  icon: const Icon(
-                                    Icons.check_circle_outline,
-                                    size: 16,
-                                  ),
-                                  label: const Text('Record Quotation'),
-                                  onPressed: () => _finalize(quotation),
-                                ),
-                              ] else if (!quotation.selected)
-                                FilledButton.icon(
-                                  style: _inlineButton,
-                                  icon: const Icon(
-                                    Icons.check_circle_outline,
-                                    size: 16,
-                                  ),
-                                  label: const Text('Select this Quote'),
-                                  onPressed: () => _select(quotation),
-                                )
-                              else if (_orderOf(procurementProvider, quotation)
-                                  case final order?)
-                                OutlinedButton.icon(
-                                  style: _inlineButton,
-                                  icon: const Icon(
-                                    Icons.receipt_long_outlined,
-                                    size: 16,
-                                  ),
-                                  label: Text('View ${order.number}'),
-                                  onPressed: () => _open(
-                                    InventoryRoutes
-                                        .inventoryPurchaseOrderDetail,
-                                    order,
-                                  ),
-                                )
-                              else
-                                FilledButton.icon(
-                                  style: _inlineButton,
-                                  icon: const Icon(
-                                    Icons.shopping_cart_checkout_rounded,
-                                    size: 16,
-                                  ),
-                                  label: const Text('Create PO from Quote'),
-                                  onPressed: () => _open(
-                                    InventoryRoutes.inventoryPurchaseOrderForm,
-                                    (purchaseRequest, quotation, null),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
+                    const SizedBox(height: 8),
+                  ],
                 ],
-              ],
-            ),
+              ),
+      ),
     );
   }
 }

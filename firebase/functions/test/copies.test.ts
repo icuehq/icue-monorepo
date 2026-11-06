@@ -42,7 +42,7 @@ describe('library copies and acquisitions', () => {
     await db()
       .doc(`schools/${SCHOOL_ID}/userAccess/2`)
       .set({ permissions: ['library.members.view'], campusIds: [31], hasAllCampuses: false });
-    const category = (await seedLibraryCategory({ code: 'GEN', name: 'General' })).id;
+    const category = (await seedLibraryCategory({ name: 'General' })).id;
     title = (
       await run(masters.catalogueUpsert, {
         title: 'Wings of Fire',
@@ -50,8 +50,8 @@ describe('library copies and acquisitions', () => {
         categoryId: category,
       })
     ).id;
-    mainLibrary = (await seedLibrary({ code: 'L1', name: 'Main', campusId: 31 })).id;
-    secondLibrary = (await seedLibrary({ code: 'L2', name: 'Junior', campusId: 32 })).id;
+    mainLibrary = (await seedLibrary({ name: 'Main', campusId: 31 })).id;
+    secondLibrary = (await seedLibrary({ name: 'Junior', campusId: 32 })).id;
   });
 
   it('acquisition creates one copy per unit with sequential school-wide accession numbers', async () => {

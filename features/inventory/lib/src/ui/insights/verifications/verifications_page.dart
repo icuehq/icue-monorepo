@@ -31,6 +31,14 @@ class _VerificationsPageState extends State<VerificationsPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
+  Future<void> _open(InventoryVerification verification) async {
+    await context.push(
+      InventoryRoutes.inventoryVerification,
+      extra: verification,
+    );
+    if (mounted) await _load();
+  }
+
   @override
   Widget build(BuildContext context) {
     final insightsProvider = context.watch<InsightsProvider>();
@@ -52,39 +60,62 @@ class _VerificationsPageState extends State<VerificationsPage> {
               },
             )
           : null,
-      body: insightsProvider.verifications.isEmpty
-          ? Center(
-              child: insightsProvider.isLoading
-                  ? const CircularProgressIndicator()
-                  : Text(
-                      insightsProvider.errorMessage ??
-                          'No verification sessions',
-                    ),
-            )
-          : ListView(
-              children: [
-                for (final verification in insightsProvider.verifications)
-                  ListTile(
-                    title: Text(
-                      '${verification.number} · ${verification.storeName}',
-                    ),
-                    subtitle: Text(
-                      '${verification.date.toDisplayDay()} · ${verification.lineCount} lines'
-                      '${verification.differenceCount == null ? '' : ' · ${verification.differenceCount} differences'}',
-                    ),
-                    trailing: Chip(
-                      label: Text(humanizeStatus(verification.status)),
-                    ),
-                    onTap: () async {
-                      await context.push(
-                        InventoryRoutes.inventoryVerification,
-                        extra: verification,
-                      );
-                      if (mounted) await _load();
-                    },
+      body: CenteredBody(
+        maxWidth: 900,
+        child: insightsProvider.verifications.isEmpty
+            ? Center(
+                child: insightsProvider.isLoading
+                    ? const CircularProgressIndicator()
+                    : Text(
+                        insightsProvider.errorMessage ??
+                            'No verification sessions',
+                      ),
+              )
+            : AdaptiveList<InventoryVerification>(
+                items: insightsProvider.verifications,
+                onTap: _open,
+                columns: [
+                  AdaptiveColumn.text(
+                    'Session',
+                    (verification) => verification.number,
                   ),
-              ],
-            ),
+                  AdaptiveColumn.text(
+                    'Store',
+                    (verification) => verification.storeName,
+                    flex: 2,
+                  ),
+                  AdaptiveColumn.text(
+                    'Date',
+                    (verification) => verification.date.toDisplayDay(),
+                  ),
+                  AdaptiveColumn.text(
+                    'Lines',
+                    (verification) => '${verification.lineCount}',
+                  ),
+                  AdaptiveColumn.text(
+                    'Differences',
+                    (verification) => '${verification.differenceCount ?? '—'}',
+                  ),
+                  AdaptiveColumn.text(
+                    'Status',
+                    (verification) => humanizeStatus(verification.status),
+                  ),
+                ],
+                cardBuilder: (context, verification) => ListTile(
+                  title: Text(
+                    '${verification.number} · ${verification.storeName}',
+                  ),
+                  subtitle: Text(
+                    '${verification.date.toDisplayDay()} · ${verification.lineCount} lines'
+                    '${verification.differenceCount == null ? '' : ' · ${verification.differenceCount} differences'}',
+                  ),
+                  trailing: Chip(
+                    label: Text(humanizeStatus(verification.status)),
+                  ),
+                  onTap: () => _open(verification),
+                ),
+              ),
+      ),
     );
   }
 }

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Checks the Inventory and Library code against docs/naming-map.md: banned abbreviations, module prefixes,
 // uid prefixes and one/two-letter names. Run from the repo root: `melos run naming:check`.
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
 const root = new URL('..', import.meta.url).pathname;
@@ -14,6 +14,7 @@ const generated = /\.(g|module)\.dart$|injection\.config\.dart$/;
 
 function* files(path) {
   const full = join(root, path);
+  if (!existsSync(full)) return;
   const info = statSync(full);
   if (info.isFile()) return yield full;
   for (const entry of readdirSync(full)) {

@@ -7,7 +7,7 @@ import { masters } from '../src/library/masters';
 import { members } from '../src/library/members';
 import { runCallable, type CallableDef } from '../src/shared/callable';
 import { dayTimestamp } from '../src/shared/dates';
-import { seedLibrary, seedLibraryCategory } from './fixtures';
+import { seedLibrary, seedLibraryCategory, person } from './fixtures';
 import { clearFirestore, db } from './setup';
 
 const SCHOOL_ID = '12';
@@ -26,7 +26,7 @@ const set = (path: string, data: Record<string, unknown>) =>
 describe('library fines and incidents', () => {
   let mainLibrary: string, category: string, title: string;
   const issue = (copyId = 'ACC-000001', memberId = 'student_501') =>
-    run(loans.loanIssue, { memberId, copyId });
+    run(loans.loanIssue, { person: person(memberId), copyId });
   const day = (offset: number) =>
     new Date(Date.now() + 330 * 60_000 + offset * 86_400_000).toISOString().slice(0, 10);
 
@@ -51,7 +51,7 @@ describe('library fines and incidents', () => {
         campusIds: [31],
         hasAllCampuses: false,
       });
-    category = (await seedLibraryCategory({ code: 'GEN', name: 'General' })).id;
+    category = (await seedLibraryCategory({ name: 'General' })).id;
     title = (
       await run(masters.catalogueUpsert, {
         title: 'Wings of Fire',
@@ -59,7 +59,7 @@ describe('library fines and incidents', () => {
         categoryId: category,
       })
     ).id;
-    mainLibrary = (await seedLibrary({ code: 'L1', name: 'Main', campusId: 31 })).id;
+    mainLibrary = (await seedLibrary({ name: 'Main', campusId: 31 })).id;
     await run(copies.acquisitionCreate, {
       type: 'purchase',
       catalogueId: title,
@@ -69,7 +69,7 @@ describe('library fines and incidents', () => {
     });
     await run(members.policyUpsert, {
       libraryId: mainLibrary,
-      memberCategory: 'primary',
+      memberType: 'student',
       name: 'Primary',
       maxBooks: 2,
       loanDays: 7,
@@ -79,13 +79,6 @@ describe('library fines and incidents', () => {
       graceDays: 2,
       maxFine: 50,
       canReserve: true,
-    });
-    await run(members.memberUpsert, {
-      memberType: 'student',
-      personErpId: 501,
-      memberCategory: 'primary',
-      libraryIds: [mainLibrary],
-      start: '2020-01-01',
     });
   });
 
