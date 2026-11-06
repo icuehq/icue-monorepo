@@ -65,10 +65,7 @@ class _LoanSheetState extends State<LoanSheet> {
           'Renewed ${loan.renewals} of ${loan.maxRenewals}',
         ),
         const SizedBox(height: 12),
-        TextField(
-          controller: _remarks,
-          decoration: const InputDecoration(labelText: 'Return remarks'),
-        ),
+        AppTextField(controller: _remarks, label: 'Return remarks'),
         const SizedBox(height: 12),
         Wrap(
           spacing: 8,
@@ -129,18 +126,16 @@ class _LoanSheetState extends State<LoanSheet> {
               'Mark ${widget.loan.accessionNumber} as lost for ${widget.loan.memberLabel}?',
             ),
             const SizedBox(height: 12),
-            TextField(
+            AppTextField(
               controller: reasonController,
-              decoration: const InputDecoration(labelText: 'Reason for loss'),
+              label: 'Reason for loss',
             ),
             const SizedBox(height: 8),
-            TextField(
+            AppTextField(
               controller: chargeController,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Replacement charge (₹)',
-                hintText: 'Leave empty for book price',
-              ),
+              label: 'Replacement charge (₹)',
+              hintText: 'Leave empty for book price',
             ),
           ],
         ),

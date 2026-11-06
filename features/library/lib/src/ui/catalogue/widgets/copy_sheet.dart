@@ -77,10 +77,7 @@ class _CopySheetState extends State<CopySheet> {
                   onTap: () => Navigator.pop(context, schoolLibrary.id),
                 ),
               if (libraries.isEmpty) const Text('No other library available'),
-              TextField(
-                controller: shelf,
-                decoration: const InputDecoration(labelText: 'New shelf'),
-              ),
+              AppTextField(controller: shelf, label: 'New shelf'),
             ],
           ),
         ),
@@ -110,11 +107,9 @@ class _CopySheetState extends State<CopySheet> {
                     title: Text(humanizeStatus(copyManualStatus)),
                     onTap: () => Navigator.pop(context, copyManualStatus),
                   ),
-              TextField(
+              AppTextField(
                 controller: reason,
-                decoration: const InputDecoration(
-                  labelText: 'Reason (needed for damaged, lost, withdrawn)',
-                ),
+                label: 'Reason (needed for damaged, lost, withdrawn)',
               ),
             ],
           ),
@@ -169,13 +164,9 @@ class _CopySheetState extends State<CopySheet> {
         ),
         if (canEdit) ...[
           const Divider(),
-          TextField(
-            controller: _shelf,
-            decoration: const InputDecoration(labelText: 'Shelf / location'),
-          ),
-          DropdownButtonFormField<String>(
-            initialValue: _condition,
-            decoration: const InputDecoration(labelText: 'Condition'),
+          AppTextField(controller: _shelf, label: 'Shelf / location'),
+          AppDropdown<String>(
+            value: _condition,
             items: [
               for (final copyCondition in copyConditions)
                 DropdownMenuItem(
@@ -184,15 +175,10 @@ class _CopySheetState extends State<CopySheet> {
                 ),
             ],
             onChanged: (value) => _condition = value!,
+            label: 'Condition',
           ),
-          TextField(
-            controller: _rfid,
-            decoration: const InputDecoration(labelText: 'RFID tag'),
-          ),
-          TextField(
-            controller: _remarks,
-            decoration: const InputDecoration(labelText: 'Remarks'),
-          ),
+          AppTextField(controller: _rfid, label: 'RFID tag'),
+          AppTextField(controller: _remarks, label: 'Remarks'),
           const SizedBox(height: 12),
           FilledButton(
             onPressed: _busy

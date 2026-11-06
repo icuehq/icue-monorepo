@@ -1,4 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
@@ -118,9 +119,8 @@ class _IncidentReportSheetState extends State<IncidentReportSheet> {
         ),
         if (_kind == 'damaged') ...[
           const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            initialValue: _severity,
-            decoration: const InputDecoration(labelText: 'Damage severity'),
+          AppDropdown<String>(
+            value: _severity,
             items: const [
               DropdownMenuItem(value: 'minor', child: Text('Minor')),
               DropdownMenuItem(value: 'moderate', child: Text('Moderate')),
@@ -129,6 +129,7 @@ class _IncidentReportSheetState extends State<IncidentReportSheet> {
             onChanged: (value) {
               if (value != null) setState(() => _severity = value);
             },
+            label: 'Damage severity',
           ),
         ],
         const SizedBox(height: 12),
@@ -156,19 +157,14 @@ class _IncidentReportSheetState extends State<IncidentReportSheet> {
           ],
         ),
         const SizedBox(height: 8),
-        TextField(
+        AppTextField(
           controller: _charge,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(
-            labelText: 'Penalty / replacement charge (₹)',
-            hintText: '0 if no fine',
-          ),
+          label: 'Penalty / replacement charge (₹)',
+          hintText: '0 if no fine',
         ),
         const SizedBox(height: 8),
-        TextField(
-          controller: _description,
-          decoration: const InputDecoration(labelText: 'Description / remarks'),
-        ),
+        AppTextField(controller: _description, label: 'Description / remarks'),
         const SizedBox(height: 16),
         FilledButton(
           onPressed: _busy ? null : _submit,

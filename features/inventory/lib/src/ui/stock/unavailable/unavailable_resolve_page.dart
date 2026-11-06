@@ -258,18 +258,16 @@ class _UnavailableResolvePageState extends State<UnavailableResolvePage> {
               ),
             ),
             const SizedBox(height: 12),
-            TextField(
+            AppTextField(
               controller: _remarks,
               enabled: !_busy,
               maxLength: 500,
               maxLines: 3,
-              decoration: InputDecoration(
-                labelText: _selected == 'other'
-                    ? 'Resolution note (required)'
-                    : 'Resolution note (optional)',
-                hintText: 'e.g. Broken packaging replaced by supplier',
-                prefixIcon: const Icon(Icons.edit_note_rounded),
-              ),
+              label: _selected == 'other'
+                  ? 'Resolution note (required)'
+                  : 'Resolution note (optional)',
+              hintText: 'e.g. Broken packaging replaced by supplier',
+              icon: Icons.edit_note_rounded,
             ),
           ],
         ),

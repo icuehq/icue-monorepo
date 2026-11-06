@@ -1,4 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
@@ -221,15 +222,13 @@ class _LibraryFormSheetState extends State<LibraryFormSheet> {
             title: 'Library Details',
             icon: Icons.badge_outlined,
             children: [
-              TextFormField(
+              AppTextField(
                 controller: _name,
                 textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(
-                  labelText: 'Library name *',
-                  hintText: 'e.g. Central Campus Library',
-                  prefixIcon: Icon(Icons.business_outlined, size: 20),
-                ),
                 validator: _validateName,
+                label: 'Library name *',
+                hintText: 'e.g. Central Campus Library',
+                icon: Icons.business_outlined,
               ),
               if (askCampus) ...[
                 const SizedBox(height: 14),
@@ -283,15 +282,13 @@ class _LibraryFormSheetState extends State<LibraryFormSheet> {
                 _buildEmailField(),
               ],
               const SizedBox(height: 14),
-              TextFormField(
+              AppTextField(
                 controller: _description,
                 minLines: 2,
                 maxLines: 3,
-                decoration: const InputDecoration(
-                  labelText: 'Description / Notes',
-                  hintText: 'Additional details about collections, rules…',
-                  prefixIcon: Icon(Icons.notes_rounded, size: 20),
-                ),
+                label: 'Description / Notes',
+                hintText: 'Additional details about collections, rules…',
+                icon: Icons.notes_rounded,
               ),
             ],
           ),
@@ -350,70 +347,60 @@ class _LibraryFormSheetState extends State<LibraryFormSheet> {
   }
 
   Widget _buildCampusField(bool editing, List<int> campuses) {
-    return DropdownButtonFormField<int>(
-      initialValue: _campus,
-      decoration: const InputDecoration(
-        labelText: 'Campus *',
-        prefixIcon: Icon(Icons.school_outlined, size: 20),
-      ),
+    return AppDropdown<int>(
+      value: _campus,
       items: [
         for (final value in campuses)
           DropdownMenuItem(value: value, child: Text('Campus $value')),
       ],
       onChanged: editing ? null : (value) => setState(() => _campus = value),
       validator: (value) => value == null ? 'Campus is required' : null,
+      label: 'Campus *',
+      icon: Icons.school_outlined,
     );
   }
 
   Widget _buildPhoneField() {
-    return TextFormField(
+    return AppTextField(
       controller: _phone,
       keyboardType: TextInputType.phone,
       textInputAction: TextInputAction.next,
-      decoration: const InputDecoration(
-        labelText: 'Phone',
-        hintText: 'e.g. +91 98765 43210',
-        prefixIcon: Icon(Icons.call_outlined, size: 20),
-      ),
       validator: _validatePhone,
+      label: 'Phone',
+      hintText: 'e.g. +91 98765 43210',
+      icon: Icons.call_outlined,
     );
   }
 
   Widget _buildEmailField() {
-    return TextFormField(
+    return AppTextField(
       controller: _email,
       keyboardType: TextInputType.emailAddress,
       textInputAction: TextInputAction.next,
-      decoration: const InputDecoration(
-        labelText: 'Email',
-        hintText: 'e.g. library@school.edu',
-        prefixIcon: Icon(Icons.mail_outline_rounded, size: 20),
-      ),
       validator: _validateEmail,
+      label: 'Email',
+      hintText: 'e.g. library@school.edu',
+      icon: Icons.mail_outline_rounded,
     );
   }
 
   Widget _buildLocationField() {
-    return TextFormField(
+    return AppTextField(
       controller: _location,
       textInputAction: TextInputAction.next,
-      decoration: const InputDecoration(
-        labelText: 'Location',
-        hintText: 'e.g. Building A, 2nd Floor',
-        prefixIcon: Icon(Icons.location_on_outlined, size: 20),
-      ),
+      label: 'Location',
+      hintText: 'e.g. Building A, 2nd Floor',
+      icon: Icons.location_on_outlined,
     );
   }
 
   Widget _buildHoursField() {
-    return TextFormField(
+    return AppTextField(
       controller: _hours,
       textInputAction: TextInputAction.next,
-      decoration: const InputDecoration(
-        labelText: 'Opening hours',
-        hintText: 'e.g. Mon–Fri 8 AM – 5 PM',
-        prefixIcon: Icon(Icons.schedule_outlined, size: 20),
-      ),
+      label: 'Opening hours',
+      hintText: 'e.g. Mon–Fri 8 AM – 5 PM',
+      icon: Icons.schedule_outlined,
     );
   }
 }

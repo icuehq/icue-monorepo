@@ -1,5 +1,6 @@
 import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class VerifyOtpForm extends StatefulWidget {
   const VerifyOtpForm({
@@ -72,7 +73,6 @@ class _VerifyOtpFormState extends State<VerifyOtpForm> {
   @override
   Widget build(BuildContext context) {
     final effectiveError = _localError ?? _lastServerErrorMessage;
-    final hasError = effectiveError != null;
 
     return Column(
       children: [
@@ -95,16 +95,11 @@ class _VerifyOtpFormState extends State<VerifyOtpForm> {
         AppTextField(
           controller: widget.otpController,
           keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           autofocus: true,
           hintText: 'Enter OTP',
           errorText: effectiveError,
-          prefixIcon: Icon(
-            Icons.lock_clock_outlined,
-            color: hasError
-                ? Theme.of(context).colorScheme.error
-                : widget.primaryColor,
-            size: 22,
-          ),
+          icon: Icons.lock_clock_outlined,
           onChanged: _onChanged,
           onFieldSubmitted: (_) => _handleVerify(),
         ),

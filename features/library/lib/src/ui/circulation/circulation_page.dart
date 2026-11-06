@@ -4,13 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/circulation/widgets/circulation_empty_states.dart';
+import 'package:school_library/src/ui/circulation/widgets/circulation_tabs.dart';
+import 'package:school_library/src/ui/circulation/widgets/issue_flow.dart';
 import 'package:school_library/src/ui/circulation/widgets/loan_card.dart';
 import 'package:school_library/src/ui/circulation/widgets/loan_sheet.dart';
-import 'package:school_library/src/ui/shared/person_picker.dart';
 
 enum CirculationFilter { all, overdue, dueToday }
 
-/// Issue, return and renew (FRS 11.9–11.11): scan a copy to issue it to the typed member, or to take it back.
+/// Active loans (tap one to return or renew) and an Issue button that opens the step-by-step issue flow (FRS 11.9–11.11).
 class CirculationPage extends StatefulWidget {
   const CirculationPage({super.key});
 
@@ -20,7 +21,6 @@ class CirculationPage extends StatefulWidget {
 
 class _CirculationPageState extends State<CirculationPage> {
   final _searchController = TextEditingController();
-  LibraryPerson? _person;
   var _filter = CirculationFilter.all;
   String _searchQuery = '';
 
@@ -43,41 +43,6 @@ class _CirculationPageState extends State<CirculationPage> {
       _searchController.clear();
       _searchQuery = '';
     });
-  }
-
-  Future<void> _issue(String code) async {
-    final libraryProvider = context.read<LibraryProvider>();
-    final person = _person;
-    if (person == null) {
-      return showMessage(context, 'Choose the student or teacher first');
-    }
-    final copy = await libraryProvider.findCopy(code);
-    if (!mounted) return;
-    if (copy == null) return showMessage(context, 'No copy found for "$code"');
-    final success = await libraryProvider.issueLoan({
-      'person': person.toPayload(),
-      'copyId': copy.id,
-    });
-    if (!mounted) return;
-    showMessage(
-      context,
-      success
-          ? '${copy.accessionNumber} issued to ${person.name}'
-          : libraryProvider.errorMessage ?? 'Failed',
-    );
-  }
-
-  Future<void> _find(String code) async {
-    final libraryProvider = context.read<LibraryProvider>();
-    final copy = await libraryProvider.findCopy(code);
-    if (!mounted) return;
-    if (copy == null) return showMessage(context, 'No copy found for "$code"');
-    final loan = await libraryProvider.activeLoanOf(copy.id);
-    if (!mounted) return;
-    if (loan == null) {
-      return showMessage(context, '${copy.accessionNumber} is not on loan');
-    }
-    await _open(loan);
   }
 
   Future<void> _open(LibraryLoan loan) async {
@@ -113,84 +78,6 @@ class _CirculationPageState extends State<CirculationPage> {
     );
   }
 
-  Widget _deskCard(BuildContext context) {
-    final theme = Theme.of(context);
-    final isWide = context.isWide;
-    final memberPicker = PersonPicker(onChanged: (person) => _person = person);
-    final issueScanner = ScanField(
-      hint: 'Scan copy barcode to ISSUE',
-      onScan: _issue,
-      clearOnScan: true,
-    );
-    final returnScanner = ScanField(
-      hint: 'Scan copy barcode to RETURN / RENEW',
-      onScan: _find,
-      clearOnScan: true,
-    );
-
-    return Card(
-      elevation: 0,
-      margin: const EdgeInsets.all(12),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: BorderSide(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
-        ),
-      ),
-      color: theme.colorScheme.surface,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.point_of_sale_rounded,
-                  size: 20,
-                  color: theme.colorScheme.primary,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Circulation Desk',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  'Issue, return, or renew instantly',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            if (isWide)
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(flex: 3, child: memberPicker),
-                  const SizedBox(width: 12),
-                  Expanded(flex: 2, child: issueScanner),
-                  const SizedBox(width: 12),
-                  Expanded(flex: 2, child: returnScanner),
-                ],
-              )
-            else ...[
-              memberPicker,
-              const SizedBox(height: 10),
-              issueScanner,
-              const SizedBox(height: 10),
-              returnScanner,
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _filterBar(
     BuildContext context, {
     required int totalCount,
@@ -199,31 +86,35 @@ class _CirculationPageState extends State<CirculationPage> {
   }) {
     final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
         children: [
           Expanded(
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              child: SegmentedButton<CirculationFilter>(
-                segments: [
-                  ButtonSegment(
-                    value: CirculationFilter.all,
+              child: Row(
+                children: [
+                  ChoiceChip(
                     label: Text('All ($totalCount)'),
+                    selected: _filter == CirculationFilter.all,
+                    onSelected: (_) =>
+                        setState(() => _filter = CirculationFilter.all),
                   ),
-                  ButtonSegment(
-                    value: CirculationFilter.overdue,
+                  const SizedBox(width: 8),
+                  ChoiceChip(
                     label: Text('Overdue ($overdueCount)'),
+                    selected: _filter == CirculationFilter.overdue,
+                    onSelected: (_) =>
+                        setState(() => _filter = CirculationFilter.overdue),
                   ),
-                  ButtonSegment(
-                    value: CirculationFilter.dueToday,
+                  const SizedBox(width: 8),
+                  ChoiceChip(
                     label: Text('Due Today ($dueTodayCount)'),
+                    selected: _filter == CirculationFilter.dueToday,
+                    onSelected: (_) =>
+                        setState(() => _filter = CirculationFilter.dueToday),
                   ),
                 ],
-                selected: {_filter},
-                onSelectionChanged: (selected) {
-                  setState(() => _filter = selected.first);
-                },
               ),
             ),
           ),
@@ -295,17 +186,23 @@ class _CirculationPageState extends State<CirculationPage> {
       appBar: AppBar(
         title: const Text('Circulation'),
         actions: [
+          FilledButton.icon(
+            onPressed: () => IssueFlow.show(context),
+            icon: const Icon(Icons.add_rounded),
+            label: const Text('Issue'),
+            style: FilledButton.styleFrom(minimumSize: const Size(0, 40)),
+          ),
           IconButton(
             tooltip: 'Refresh loans',
             icon: const Icon(Icons.refresh_rounded),
             onPressed: () => libraryProvider.loadLoans(),
           ),
         ],
+        bottom: const CirculationTabBar(activeTab: CirculationTab.loans),
       ),
       body: CenteredBody(
         child: Column(
           children: [
-            _deskCard(context),
             _filterBar(
               context,
               totalCount: allLoans.length,

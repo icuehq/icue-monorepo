@@ -7,6 +7,7 @@ import 'package:school_library/src/ui/catalogue/book_form_page.dart';
 import 'package:school_library/src/ui/catalogue/catalogue_page.dart';
 import 'package:school_library/src/ui/catalogue/copies_page.dart';
 import 'package:school_library/src/ui/circulation/circulation_page.dart';
+import 'package:school_library/src/ui/circulation/widgets/scan_listener.dart';
 import 'package:school_library/src/ui/fines/fines_page.dart';
 import 'package:school_library/src/ui/incidents/incidents_page.dart';
 import 'package:school_library/src/ui/insights/dashboard/library_dashboard_page.dart';
@@ -28,13 +29,19 @@ import 'package:school_library/src/ui/verification/verification_page.dart';
 /// Library screens as go_router routes, inside a shell that adds side navigation on wide screens.
 List<RouteBase> libraryRoutes() => [
   ShellRoute(
-    builder: (context, state, child) => ModuleShell(
-      title: 'Library',
-      homePath: LibraryRoutes.library,
-      location: state.uri.path,
-      destinations: libraryNavigation(context.watch<LibraryProvider>().access),
-      child: child,
-    ),
+    builder: (context, state, child) {
+      final access = context.watch<LibraryProvider>().access;
+      final shell = ModuleShell(
+        title: 'Library',
+        homePath: LibraryRoutes.library,
+        location: state.uri.path,
+        destinations: libraryNavigation(access),
+        child: child,
+      );
+      return access.can('library.circulation.operate')
+          ? LibraryScanListener(child: shell)
+          : shell;
+    },
     routes: _libraryPages,
   ),
 ];

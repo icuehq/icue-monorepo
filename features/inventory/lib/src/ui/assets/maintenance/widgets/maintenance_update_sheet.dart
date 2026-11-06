@@ -76,14 +76,12 @@ class _MaintenanceUpdateSheetState extends State<MaintenanceUpdateSheet> {
                 value: store,
                 onChanged: (value) => set(() => store = value),
               ),
-              TextField(
+              AppTextField(
                 controller: quantity,
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
-                decoration: InputDecoration(
-                  labelText: 'Quantity (${pick.item.stockUnit})',
-                ),
+                label: 'Quantity (${pick.item.stockUnit})',
               ),
             ],
           ),
@@ -163,35 +161,29 @@ class _MaintenanceUpdateSheetState extends State<MaintenanceUpdateSheet> {
             style: Theme.of(context).textTheme.titleLarge,
           ),
           if (!_cancel) ...[
-            TextFormField(
+            AppTextField(
               controller: _technician,
-              decoration: InputDecoration(
-                labelText: widget.status == 'assigned'
-                    ? 'Technician / service provider *'
-                    : 'Technician / service provider',
-              ),
               validator: widget.status == 'assigned' ? requiredText : null,
+              label: widget.status == 'assigned'
+                  ? 'Technician / service provider *'
+                  : 'Technician / service provider',
             ),
-            TextFormField(
+            AppTextField(
               controller: _details,
               maxLines: 2,
-              decoration: const InputDecoration(labelText: 'Repair details'),
+              label: 'Repair details',
             ),
-            TextFormField(
+            AppTextField(
               controller: _cost,
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
-              ),
-              decoration: InputDecoration(
-                labelText: _done
-                    ? 'Repair cost * (0 if none)'
-                    : 'Repair cost so far',
               ),
               validator: _done
                   ? (value) => double.tryParse((value ?? '').trim()) == null
                         ? 'Enter the cost'
                         : null
                   : optionalNumber,
+              label: _done ? 'Repair cost * (0 if none)' : 'Repair cost so far',
             ),
             if (_done) ...[
               labelled(

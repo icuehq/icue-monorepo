@@ -1,4 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:inventory/inventory.dart';
@@ -153,51 +154,35 @@ class _AssetFormPageState extends State<AssetFormPage> {
                 trailing: const Icon(Icons.search),
                 onTap: _pick,
               ),
-              TextFormField(
-                controller: _name,
-                decoration: const InputDecoration(labelText: 'Asset name'),
-              ),
+              AppTextField(controller: _name, label: 'Asset name'),
               StoreDropdown(
                 value: _store,
                 onChanged: (value) => setState(() => _store = value),
               ),
-              TextFormField(
+              AppTextField(
                 controller: _quantity,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Quantity',
-                  helperText: 'Identical units registered together (up to 50)',
-                ),
                 validator: (value) {
                   final number = int.tryParse(value?.trim() ?? '');
                   return number == null || number < 1 || number > 50
                       ? 'Enter 1 to 50'
                       : null;
                 },
+                label: 'Quantity',
+                helperText: 'Identical units registered together (up to 50)',
               ),
-              TextFormField(
-                controller: _serial,
-                decoration: const InputDecoration(labelText: 'Serial number'),
-              ),
-              TextFormField(
-                controller: _make,
-                decoration: const InputDecoration(labelText: 'Manufacturer'),
-              ),
-              TextFormField(
-                controller: _model,
-                decoration: const InputDecoration(labelText: 'Model'),
-              ),
+              AppTextField(controller: _serial, label: 'Serial number'),
+              AppTextField(controller: _make, label: 'Manufacturer'),
+              AppTextField(controller: _model, label: 'Model'),
               labelled(
                 'Condition',
                 AssetCondition.values,
                 _condition,
                 (value) => setState(() => _condition = value!),
               ),
-              TextFormField(
+              AppTextField(
                 controller: _location,
-                decoration: const InputDecoration(
-                  labelText: 'Location (room, shelf)',
-                ),
+                label: 'Location (room, shelf)',
               ),
               optionalDate(
                 context,
@@ -206,13 +191,13 @@ class _AssetFormPageState extends State<AssetFormPage> {
                 first: past,
                 last: now,
               ),
-              TextFormField(
+              AppTextField(
                 controller: _price,
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
-                decoration: const InputDecoration(labelText: 'Purchase price'),
                 validator: optionalNumber,
+                label: 'Purchase price',
               ),
               optionalDate(
                 context,
@@ -228,13 +213,9 @@ class _AssetFormPageState extends State<AssetFormPage> {
                 first: past,
                 last: now.add(const Duration(days: 3650)),
               ),
-              DropdownButtonFormField<String?>(
+              AppDropdown<String?>(
                 key: ValueKey(_item?.id),
-                initialValue: _poId,
-                decoration: const InputDecoration(
-                  labelText: 'Purchase order (optional)',
-                  helperText: 'Takes vendor and price from the order; limited to its accepted units',
-                ),
+                value: _poId,
                 items: [
                   const DropdownMenuItem(child: Text('None')),
                   for (final purchaseOrder in orders)
@@ -244,6 +225,8 @@ class _AssetFormPageState extends State<AssetFormPage> {
                     ),
                 ],
                 onChanged: (value) => setState(() => _poId = value),
+                label: 'Purchase order (optional)',
+                helperText: 'Takes vendor and price from the order; limited to its accepted units',
               ),
               const SizedBox(height: 16),
               FilledButton(

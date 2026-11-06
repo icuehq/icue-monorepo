@@ -170,12 +170,10 @@ class PurchaseOrderReceiveLineCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 10),
-            TextFormField(
+            AppTextField(
               controller: draft.condition,
-              decoration: const InputDecoration(
-                labelText: 'Condition / package state (optional)',
-                prefixIcon: Icon(Icons.shield_outlined),
-              ),
+              label: 'Condition / package state (optional)',
+              icon: Icons.shield_outlined,
             ),
             if (isBatchTracked) ...[
               const SizedBox(height: 12),
@@ -215,16 +213,14 @@ class PurchaseOrderReceiveLineCard extends StatelessWidget {
                     Row(
                       children: [
                         Expanded(
-                          child: TextFormField(
+                          child: AppTextField(
                             controller: draft.batchNumber,
-                            decoration: const InputDecoration(
-                              labelText: 'Batch no. *',
-                            ),
                             validator: (value) =>
                                 draft.acceptedValue > 0 &&
                                     (value ?? '').trim().isEmpty
                                 ? 'Batch required'
                                 : null,
+                            label: 'Batch no. *',
                           ),
                         ),
                         const SizedBox(width: 10),

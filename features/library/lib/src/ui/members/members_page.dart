@@ -1,4 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
@@ -48,11 +49,11 @@ class _MembersPageState extends State<MembersPage> {
         context: context,
         builder: (dialogContext) => AlertDialog(
           title: Text('Block ${member.label}'),
-          content: TextField(
+          content: AppTextField(
             controller: reasonController,
             maxLength: 500,
             autofocus: true,
-            decoration: const InputDecoration(labelText: 'Reason for blocking'),
+            label: 'Reason for blocking',
           ),
           actions: [
             TextButton(

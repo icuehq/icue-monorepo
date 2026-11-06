@@ -135,14 +135,12 @@ class _InvoiceFormSheetState extends State<InvoiceFormSheet> {
             ),
             const SizedBox(height: 16),
 
-            TextFormField(
+            AppTextField(
               controller: _invoiceNumber,
-              decoration: const InputDecoration(
-                labelText: 'Vendor Invoice Number *',
-                hintText: 'e.g. INV-2024-9912',
-                prefixIcon: Icon(Icons.tag_rounded),
-              ),
               validator: requiredText,
+              label: 'Vendor Invoice Number *',
+              hintText: 'e.g. INV-2024-9912',
+              icon: Icons.tag_rounded,
             ),
             const SizedBox(height: 12),
 
@@ -172,47 +170,38 @@ class _InvoiceFormSheetState extends State<InvoiceFormSheet> {
             Row(
               children: [
                 Expanded(
-                  child: TextFormField(
+                  child: AppTextField(
                     controller: _subtotal,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
-                    ),
-                    decoration: const InputDecoration(
-                      labelText: 'Subtotal (₹)',
-                      isDense: true,
                     ),
                     validator: (value) =>
                         (double.tryParse((value ?? '').trim()) ?? -1) < 0
                         ? 'Invalid'
                         : null,
+                    label: 'Subtotal (₹)',
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: TextFormField(
+                  child: AppTextField(
                     controller: _tax,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
-                    decoration: const InputDecoration(
-                      labelText: 'Tax (₹)',
-                      isDense: true,
-                    ),
                     validator: optionalNumber,
+                    label: 'Tax (₹)',
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: TextFormField(
+                  child: AppTextField(
                     controller: _discount,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
-                    decoration: const InputDecoration(
-                      labelText: 'Discount (₹)',
-                      isDense: true,
-                    ),
                     validator: optionalNumber,
+                    label: 'Discount (₹)',
                   ),
                 ),
               ],

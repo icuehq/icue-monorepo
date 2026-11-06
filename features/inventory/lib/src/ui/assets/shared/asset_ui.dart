@@ -40,20 +40,20 @@ Widget optionalDate(
   clearable: true,
 );
 
-DropdownButtonFormField<String> labelled(
+AppDropdown<String> labelled(
   String label,
   List<String> values,
   String? value,
   ValueChanged<String?> onChanged, {
   String Function(String)? text,
-}) => DropdownButtonFormField<String>(
-  initialValue: value,
-  decoration: InputDecoration(labelText: label),
+}) => AppDropdown<String>(
+  value: value,
   items: [
     for (final value in values)
       DropdownMenuItem(value: value, child: Text((text ?? _title)(value))),
   ],
   onChanged: onChanged,
+  label: label,
 );
 
 String _title(String value) => value

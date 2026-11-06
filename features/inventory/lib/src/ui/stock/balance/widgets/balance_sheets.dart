@@ -165,14 +165,11 @@ class _AdjustState extends State<_Adjust> with _Submit {
         Text(
           'Currently ${widget.balance.available.toQuantityText()} available',
         ),
-        TextFormField(
+        AppTextField(
           controller: quantity,
           keyboardType: const TextInputType.numberWithOptions(
             decimal: true,
             signed: true,
-          ),
-          decoration: const InputDecoration(
-            labelText: 'Change (+ adds, − removes)',
           ),
           validator: (value) {
             final number = double.tryParse((value ?? '').trim());
@@ -180,11 +177,10 @@ class _AdjustState extends State<_Adjust> with _Submit {
                 ? 'Enter a non-zero number'
                 : null;
           },
+          label: 'Change (+ adds, − removes)',
         ),
-        DropdownButtonFormField<String>(
-          initialValue: _reason,
-          isExpanded: true,
-          decoration: const InputDecoration(labelText: 'Reason'),
+        AppDropdown<String>(
+          value: _reason,
           items: [
             for (final mapEntry in _reasons.entries)
               DropdownMenuItem(
@@ -193,11 +189,12 @@ class _AdjustState extends State<_Adjust> with _Submit {
               ),
           ],
           onChanged: (value) => setState(() => _reason = value!),
+          label: 'Reason',
         ),
-        TextFormField(
+        AppTextField(
           controller: note,
-          decoration: const InputDecoration(labelText: 'Note'),
           validator: (value) => _reason == 'other' ? requiredText(value) : null,
+          label: 'Note',
         ),
         const SizedBox(height: 12),
         FilledButton(
@@ -230,10 +227,8 @@ class _ReportState extends State<_Report> with _Submit {
       mainAxisSize: MainAxisSize.min,
       spacing: 16,
       children: [
-        DropdownButtonFormField<String>(
-          initialValue: _reason,
-          isExpanded: true,
-          decoration: const InputDecoration(labelText: 'What happened'),
+        AppDropdown<String>(
+          value: _reason,
           items: const [
             DropdownMenuItem(
               value: 'damaged',
@@ -252,23 +247,21 @@ class _ReportState extends State<_Report> with _Submit {
             ),
           ],
           onChanged: (value) => setState(() => _reason = value!),
+          label: 'What happened',
         ),
-        TextFormField(
+        AppTextField(
           controller: quantity,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: InputDecoration(
-            labelText:
-                'Quantity (max ${widget.balance.available.toQuantityText()})',
-          ),
           validator: (value) {
             final number = double.tryParse((value ?? '').trim());
             return number == null || number <= 0 ? 'Enter a quantity' : null;
           },
+          label: 'Quantity (max ${widget.balance.available.toQuantityText()})',
         ),
-        TextFormField(
+        AppTextField(
           controller: note,
-          decoration: const InputDecoration(labelText: 'Details'),
           validator: requiredText,
+          label: 'Details',
         ),
         const SizedBox(height: 12),
         FilledButton(

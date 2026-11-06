@@ -1,4 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
@@ -59,9 +60,8 @@ class _VerificationCreateSheetState extends State<VerificationCreateSheet> {
           style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: 12),
-        DropdownButtonFormField<String>(
-          initialValue: _library,
-          decoration: const InputDecoration(labelText: 'Library'),
+        AppDropdown<String>(
+          value: _library,
           items: [
             for (final schoolLibrary in libraries)
               DropdownMenuItem(
@@ -70,13 +70,12 @@ class _VerificationCreateSheetState extends State<VerificationCreateSheet> {
               ),
           ],
           onChanged: (value) => setState(() => _library = value),
+          label: 'Library',
         ),
         const SizedBox(height: 8),
-        TextField(
+        AppTextField(
           controller: _shelf,
-          decoration: const InputDecoration(
-            labelText: 'Shelf (optional, exact match)',
-          ),
+          label: 'Shelf (optional, exact match)',
         ),
         const SizedBox(height: 16),
         FilledButton(

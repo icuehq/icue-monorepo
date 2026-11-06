@@ -81,32 +81,30 @@ class OrderLineCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: TextFormField(
+                child: AppTextField(
                   controller: line.quantity,
                   keyboardType: _num,
                   inputFormatters: decimalOnly(3),
-                  decoration: const InputDecoration(labelText: 'Quantity'),
                   onChanged: (_) => onChanged(),
                   validator: (value) {
                     final quantity = double.tryParse((value ?? '').trim());
                     return quantity == null || quantity <= 0 ? 'Invalid' : null;
                   },
+                  label: 'Quantity',
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: TextFormField(
+                child: AppTextField(
                   controller: line.price,
                   readOnly: line.priceLocked,
                   keyboardType: _num,
                   inputFormatters: decimalOnly(),
-                  decoration: InputDecoration(
-                    labelText: line.priceLocked
-                        ? 'Unit price (quoted)'
-                        : 'Unit price',
-                  ),
                   onChanged: (_) => onChanged(),
                   validator: optionalNumber,
+                  label: line.priceLocked
+                      ? 'Unit price (quoted)'
+                      : 'Unit price',
                 ),
               ),
             ],
@@ -145,13 +143,13 @@ class OrderTotals extends StatelessWidget {
     );
     final total = sub - v(discount) + v(tax) + v(delivery);
     Widget field(TextEditingController controller, String label) => Expanded(
-      child: TextFormField(
+      child: AppTextField(
         controller: controller,
         keyboardType: OrderLineCard._num,
         inputFormatters: decimalOnly(),
-        decoration: InputDecoration(labelText: label),
         onChanged: (_) => onChanged(),
         validator: optionalNumber,
+        label: label,
       ),
     );
     return Column(

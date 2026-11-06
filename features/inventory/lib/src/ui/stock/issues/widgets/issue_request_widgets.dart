@@ -264,16 +264,13 @@ class IssueItems extends StatelessWidget {
             if (editing != null)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
-                child: TextFormField(
+                child: AppTextField(
                   controller: editing[index],
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
                   inputFormatters: [decimalInputFormatter],
-                  decoration: const InputDecoration(
-                    labelText: 'Approve quantity',
-                    isDense: true,
-                  ),
+                  label: 'Approve quantity',
                 ),
               )
             else if (line.approved != null) ...[

@@ -64,7 +64,7 @@ class VehicleComplianceForm extends StatelessWidget {
                   child: AppTextField(
                     controller: dateOfRegController,
                     hintText: 'Date of Registration',
-                    prefixIcon: const Icon(Icons.event_note_outlined, size: 20),
+                    icon: Icons.event_note_outlined,
                   ),
                 ),
               ),
@@ -86,7 +86,7 @@ class VehicleComplianceForm extends StatelessWidget {
             child: AppTextField(
               controller: serviceDateController,
               hintText: 'Service Due Date',
-              prefixIcon: const Icon(Icons.event_note_outlined, size: 20),
+              icon: Icons.event_note_outlined,
             ),
           ),
         ),
@@ -158,10 +158,7 @@ class VehicleComplianceForm extends StatelessWidget {
                   child: AppTextField(
                     controller: fireExtInstallDateController,
                     hintText: 'Install Date',
-                    prefixIcon: const Icon(
-                      Icons.calendar_today_outlined,
-                      size: 18,
-                    ),
+                    icon: Icons.calendar_today_outlined,
                   ),
                 ),
               ),
@@ -174,7 +171,7 @@ class VehicleComplianceForm extends StatelessWidget {
                   child: AppTextField(
                     controller: fireExtExpiryDateController,
                     hintText: 'Expiry Date',
-                    prefixIcon: const Icon(Icons.event_busy_outlined, size: 18),
+                    icon: Icons.event_busy_outlined,
                   ),
                 ),
               ),
@@ -194,7 +191,7 @@ class VehicleComplianceForm extends StatelessWidget {
             child: AppTextField(
               controller: firstAidExpiryDateController,
               hintText: 'First Aid Kit Expiry Date',
-              prefixIcon: const Icon(Icons.medical_services_outlined, size: 18),
+              icon: Icons.medical_services_outlined,
             ),
           ),
         ),

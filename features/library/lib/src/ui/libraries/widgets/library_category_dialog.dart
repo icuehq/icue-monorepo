@@ -1,4 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
@@ -219,34 +220,30 @@ class _LibraryCategoryDialogState extends State<LibraryCategoryDialog> {
                 ),
                 const SizedBox(height: 16),
 
-                TextFormField(
+                AppTextField(
                   controller: _name,
                   textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: 'Category name *',
-                    hintText: 'e.g. Science Fiction, Pure Sciences',
-                    prefixIcon: Icon(Icons.badge_outlined, size: 20),
-                  ),
                   validator: _validateName,
                   onChanged: (_) {
                     if (_errorMessage != null) {
                       setState(() => _errorMessage = null);
                     }
                   },
+                  label: 'Category name *',
+                  hintText: 'e.g. Science Fiction, Pure Sciences',
+                  icon: Icons.badge_outlined,
                 ),
                 const SizedBox(height: 14),
                 _buildParentField(tops),
                 const SizedBox(height: 14),
 
-                TextFormField(
+                AppTextField(
                   controller: _description,
                   minLines: 2,
                   maxLines: 3,
-                  decoration: const InputDecoration(
-                    labelText: 'Description',
-                    hintText: 'Optional notes on titles in this category…',
-                    prefixIcon: Icon(Icons.notes_rounded, size: 20),
-                  ),
+                  label: 'Description',
+                  hintText: 'Optional notes on titles in this category…',
+                  icon: Icons.notes_rounded,
                 ),
               ],
             ),
@@ -322,18 +319,16 @@ class _LibraryCategoryDialogState extends State<LibraryCategoryDialog> {
   }
 
   Widget _buildParentField(List<LibraryCategory> tops) {
-    return DropdownButtonFormField<String?>(
-      initialValue: _parentId,
-      decoration: const InputDecoration(
-        labelText: 'Parent category',
-        prefixIcon: Icon(Icons.account_tree_outlined, size: 20),
-      ),
+    return AppDropdown<String?>(
+      value: _parentId,
       items: [
         const DropdownMenuItem(child: Text('None (top level)')),
         for (final category in tops)
           DropdownMenuItem(value: category.id, child: Text(category.name)),
       ],
       onChanged: (value) => setState(() => _parentId = value),
+      label: 'Parent category',
+      icon: Icons.account_tree_outlined,
     );
   }
 }

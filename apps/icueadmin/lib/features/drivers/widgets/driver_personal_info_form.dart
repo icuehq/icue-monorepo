@@ -81,7 +81,7 @@ class DriverPersonalInfoForm extends StatelessWidget {
                   child: AppTextField(
                     controller: dobController,
                     hintText: 'Date of Birth',
-                    prefixIcon: const Icon(Icons.cake_outlined, size: 20),
+                    icon: Icons.cake_outlined,
                   ),
                 ),
               ),
@@ -94,7 +94,7 @@ class DriverPersonalInfoForm extends StatelessWidget {
                   child: AppTextField(
                     controller: dojController,
                     hintText: 'Date of Joining',
-                    prefixIcon: const Icon(Icons.event_outlined, size: 20),
+                    icon: Icons.event_outlined,
                   ),
                 ),
               ),
@@ -107,7 +107,8 @@ class DriverPersonalInfoForm extends StatelessWidget {
           hintText: 'Mobile Number *',
           keyboardType: TextInputType.phone,
           maxLength: 10,
-          prefixIcon: const Icon(Icons.phone_outlined, size: 20),
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          icon: Icons.phone_outlined,
           validator: (v) {
             if (v == null || v.trim().isEmpty) {
               return 'Mobile number is required';
@@ -124,7 +125,8 @@ class DriverPersonalInfoForm extends StatelessWidget {
           hintText: 'Alternate Mobile Number',
           keyboardType: TextInputType.phone,
           maxLength: 10,
-          prefixIcon: const Icon(Icons.phone_android_outlined, size: 20),
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          icon: Icons.phone_android_outlined,
         ),
         const SizedBox(height: 12),
         AppTextField(
@@ -132,7 +134,7 @@ class DriverPersonalInfoForm extends StatelessWidget {
           hintText: 'Email',
           keyboardType: TextInputType.emailAddress,
           textInputAction: TextInputAction.next,
-          prefixIcon: const Icon(Icons.email_outlined, size: 20),
+          icon: Icons.email_outlined,
         ),
         const SizedBox(height: 12),
         AppTextField(
@@ -140,7 +142,7 @@ class DriverPersonalInfoForm extends StatelessWidget {
           hintText: 'Aadhar Number (12 digits)',
           keyboardType: TextInputType.number,
           maxLength: 12,
-          prefixIcon: const Icon(Icons.badge_outlined, size: 20),
+          icon: Icons.badge_outlined,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
         ),
       ],

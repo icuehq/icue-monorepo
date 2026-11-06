@@ -16,7 +16,6 @@ import 'package:icueadmin/analytics/app_events.dart';
 import 'package:icueadmin/di/injection.dart';
 import 'package:icueadmin/features/splash/app_bootstrap.dart';
 import 'package:icueadmin/routing/app_router.dart';
-import 'package:icueadmin/routing/app_routes.dart';
 import 'package:icueadmin/theme/app_theme.dart';
 import 'package:inventory/inventory.dart';
 import 'package:logbook/logbook.dart';
@@ -115,13 +114,13 @@ class _IcueAdminAppState extends State<IcueAdminApp> {
     }
     unawaited(
       NotificationService.instance.init(
-        // Backend sends the target path as data['route'] (legacy: data['action']).
+        // Backend sends the target path as data['route'].
         onTap: (data) {
           final route = data['route'];
           if (route is String && route.startsWith('/')) {
             _router.go(route);
           } else {
-            _router.go(data['action'] == 'Track' ? AppRoutes.trackBus : '/');
+            _router.go('/');
           }
         },
       ),

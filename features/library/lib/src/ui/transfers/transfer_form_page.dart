@@ -1,4 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:provider/provider.dart';
@@ -149,14 +150,9 @@ class _LibraryTransferFormPageState extends State<LibraryTransferFormPage> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            DropdownButtonFormField<String>(
-              initialValue: _from,
+            AppDropdown<String>(
+              value: _from,
               key: ValueKey('from-$_from'),
-              isExpanded: true,
-              decoration: const InputDecoration(
-                labelText: 'From library',
-                prefixIcon: Icon(Icons.outbox_rounded),
-              ),
               items: [
                 for (final schoolLibrary in sources)
                   DropdownMenuItem(
@@ -165,16 +161,13 @@ class _LibraryTransferFormPageState extends State<LibraryTransferFormPage> {
                   ),
               ],
               onChanged: _setSource,
+              label: 'From library',
+              icon: Icons.outbox_rounded,
             ),
             const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              initialValue: _to,
+            AppDropdown<String>(
+              value: _to,
               key: ValueKey('to-$_from-$_to'),
-              isExpanded: true,
-              decoration: const InputDecoration(
-                labelText: 'To library',
-                prefixIcon: Icon(Icons.move_to_inbox_rounded),
-              ),
               items: [
                 for (final schoolLibrary in destinations)
                   DropdownMenuItem(
@@ -183,6 +176,8 @@ class _LibraryTransferFormPageState extends State<LibraryTransferFormPage> {
                   ),
               ],
               onChanged: (value) => setState(() => _to = value),
+              label: 'To library',
+              icon: Icons.move_to_inbox_rounded,
             ),
             const SizedBox(height: 20),
             Text(
@@ -217,12 +212,10 @@ class _LibraryTransferFormPageState extends State<LibraryTransferFormPage> {
                 ],
               ),
             const SizedBox(height: 16),
-            TextField(
+            AppTextField(
               controller: _remarks,
               maxLength: 500,
-              decoration: const InputDecoration(
-                labelText: 'Remarks (optional)',
-              ),
+              label: 'Remarks (optional)',
             ),
           ],
         ),

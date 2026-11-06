@@ -1,4 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -251,52 +252,37 @@ class _BookFormPageState extends State<BookFormPage> {
                   title: 'Basic information',
                   icon: Icons.auto_stories_outlined,
                   children: [
-                    TextFormField(
+                    AppTextField(
                       controller: _title,
                       maxLength: 200,
                       textCapitalization: TextCapitalization.sentences,
                       textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        labelText: 'Title *',
-                        hintText: 'e.g. To Kill a Mockingbird',
-                        prefixIcon: Icon(Icons.title_rounded, size: 20),
-                        counterText: '',
-                      ),
                       validator: requiredText,
+                      label: 'Title *',
+                      hintText: 'e.g. To Kill a Mockingbird',
+                      icon: Icons.title_rounded,
                     ),
-                    TextFormField(
+                    AppTextField(
                       controller: _subtitle,
                       maxLength: 200,
                       textCapitalization: TextCapitalization.sentences,
                       textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        labelText: 'Subtitle',
-                        hintText: 'e.g. A Novel',
-                        prefixIcon: Icon(Icons.subtitles_outlined, size: 20),
-                        counterText: '',
-                      ),
+                      label: 'Subtitle',
+                      hintText: 'e.g. A Novel',
+                      icon: Icons.subtitles_outlined,
                     ),
-                    TextFormField(
+                    AppTextField(
                       controller: _authors,
                       textCapitalization: TextCapitalization.words,
                       textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        labelText: 'Authors *',
-                        hintText: 'e.g. Harper Lee, J.K. Rowling',
-                        prefixIcon: Icon(
-                          Icons.people_outline_rounded,
-                          size: 20,
-                        ),
-                        helperText: 'Comma-separated list of authors',
-                      ),
                       validator: _validateAuthors,
+                      label: 'Authors *',
+                      hintText: 'e.g. Harper Lee, J.K. Rowling',
+                      icon: Icons.people_outline_rounded,
+                      helperText: 'Comma-separated list of authors',
                     ),
-                    DropdownButtonFormField<String>(
-                      initialValue: _categoryId,
-                      decoration: const InputDecoration(
-                        labelText: 'Category *',
-                        prefixIcon: Icon(Icons.category_outlined, size: 20),
-                      ),
+                    AppDropdown<String>(
+                      value: _categoryId,
                       items: [
                         for (final category in categories)
                           DropdownMenuItem(
@@ -313,6 +299,8 @@ class _BookFormPageState extends State<BookFormPage> {
                         if (!_dirty) setState(() => _dirty = true);
                       },
                       validator: (value) => value == null ? 'Required' : null,
+                      label: 'Category *',
+                      icon: Icons.category_outlined,
                     ),
                   ],
                 ),
@@ -324,7 +312,7 @@ class _BookFormPageState extends State<BookFormPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
-                          child: TextFormField(
+                          child: AppTextField(
                             controller: _isbn13,
                             keyboardType: TextInputType.text,
                             textInputAction: TextInputAction.next,
@@ -334,20 +322,15 @@ class _BookFormPageState extends State<BookFormPage> {
                               ),
                               LengthLimitingTextInputFormatter(20),
                             ],
-                            decoration: const InputDecoration(
-                              labelText: 'ISBN-13',
-                              hintText: '978-3-16-148410-0',
-                              prefixIcon: Icon(
-                                Icons.qr_code_2_outlined,
-                                size: 20,
-                              ),
-                              helperText: '13-digit standard identifier',
-                            ),
+                            label: 'ISBN-13',
+                            hintText: '978-3-16-148410-0',
+                            icon: Icons.qr_code_2_outlined,
+                            helperText: '13-digit standard identifier',
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: TextFormField(
+                          child: AppTextField(
                             controller: _isbn10,
                             keyboardType: TextInputType.text,
                             textInputAction: TextInputAction.next,
@@ -357,27 +340,23 @@ class _BookFormPageState extends State<BookFormPage> {
                               ),
                               LengthLimitingTextInputFormatter(20),
                             ],
-                            decoration: const InputDecoration(
-                              labelText: 'ISBN-10',
-                              hintText: '0-306-40615-2',
-                              prefixIcon: Icon(Icons.pin_outlined, size: 20),
-                              helperText: '10-digit legacy identifier',
-                            ),
+                            label: 'ISBN-10',
+                            hintText: '0-306-40615-2',
+                            icon: Icons.pin_outlined,
+                            helperText: '10-digit legacy identifier',
                           ),
                         ),
                       ],
                     ),
-                    TextFormField(
+                    AppTextField(
                       controller: _classNo,
                       textCapitalization: TextCapitalization.characters,
                       textInputAction: TextInputAction.next,
                       inputFormatters: [LengthLimitingTextInputFormatter(50)],
-                      decoration: const InputDecoration(
-                        labelText: 'Classification / Call number',
-                        hintText: 'e.g. DDC 823.91 or QA76.73',
-                        prefixIcon: Icon(Icons.tag_rounded, size: 20),
-                        helperText: 'Shelf location or classification code',
-                      ),
+                      label: 'Classification / Call number',
+                      hintText: 'e.g. DDC 823.91 or QA76.73',
+                      icon: Icons.tag_rounded,
+                      helperText: 'Shelf location or classification code',
                     ),
                   ],
                 ),
@@ -385,37 +364,28 @@ class _BookFormPageState extends State<BookFormPage> {
                   title: 'Publication details',
                   icon: Icons.menu_book_outlined,
                   children: [
-                    TextFormField(
+                    AppTextField(
                       controller: _publisher,
                       maxLength: 120,
                       textCapitalization: TextCapitalization.words,
                       textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        labelText: 'Publisher',
-                        hintText: 'e.g. Penguin Random House',
-                        prefixIcon: Icon(Icons.business_outlined, size: 20),
-                        counterText: '',
-                      ),
+                      label: 'Publisher',
+                      hintText: 'e.g. Penguin Random House',
+                      icon: Icons.business_outlined,
                     ),
-                    TextFormField(
+                    AppTextField(
                       controller: _edition,
                       maxLength: 50,
                       textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        labelText: 'Edition',
-                        hintText: 'e.g. 2nd Edition or Revised',
-                        prefixIcon: Icon(
-                          Icons.bookmark_border_rounded,
-                          size: 20,
-                        ),
-                        counterText: '',
-                      ),
+                      label: 'Edition',
+                      hintText: 'e.g. 2nd Edition or Revised',
+                      icon: Icons.bookmark_border_rounded,
                     ),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
-                          child: TextFormField(
+                          child: AppTextField(
                             controller: _year,
                             keyboardType: TextInputType.number,
                             textInputAction: TextInputAction.next,
@@ -423,20 +393,15 @@ class _BookFormPageState extends State<BookFormPage> {
                               FilteringTextInputFormatter.digitsOnly,
                               LengthLimitingTextInputFormatter(4),
                             ],
-                            decoration: const InputDecoration(
-                              labelText: 'Publication year',
-                              hintText: 'YYYY',
-                              prefixIcon: Icon(
-                                Icons.calendar_today_outlined,
-                                size: 20,
-                              ),
-                            ),
                             validator: _validateYear,
+                            label: 'Publication year',
+                            hintText: 'YYYY',
+                            icon: Icons.calendar_today_outlined,
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: TextFormField(
+                          child: AppTextField(
                             controller: _pages,
                             keyboardType: TextInputType.number,
                             textInputAction: TextInputAction.next,
@@ -444,30 +409,22 @@ class _BookFormPageState extends State<BookFormPage> {
                               FilteringTextInputFormatter.digitsOnly,
                               LengthLimitingTextInputFormatter(6),
                             ],
-                            decoration: const InputDecoration(
-                              labelText: 'Pages',
-                              hintText: 'e.g. 320',
-                              prefixIcon: Icon(
-                                Icons.format_list_numbered_rounded,
-                                size: 20,
-                              ),
-                            ),
                             validator: _validatePages,
+                            label: 'Pages',
+                            hintText: 'e.g. 320',
+                            icon: Icons.format_list_numbered_rounded,
                           ),
                         ),
                       ],
                     ),
-                    TextFormField(
+                    AppTextField(
                       controller: _language,
                       maxLength: 50,
                       textCapitalization: TextCapitalization.words,
                       textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        labelText: 'Language',
-                        hintText: 'e.g. English, Hindi',
-                        prefixIcon: Icon(Icons.translate_rounded, size: 20),
-                        counterText: '',
-                      ),
+                      label: 'Language',
+                      hintText: 'e.g. English, Hindi',
+                      icon: Icons.translate_rounded,
                     ),
                   ],
                 ),
@@ -475,31 +432,26 @@ class _BookFormPageState extends State<BookFormPage> {
                   title: 'Description & tags',
                   icon: Icons.notes_rounded,
                   children: [
-                    TextFormField(
+                    AppTextField(
                       controller: _keywords,
                       textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        labelText: 'Keywords / Search tags',
-                        hintText: 'e.g. Classic, Fiction, Historical',
-                        prefixIcon: Icon(Icons.sell_outlined, size: 20),
-                        helperText:
-                            'Comma-separated keywords for catalogue search',
-                      ),
                       validator: _validateKeywords,
+                      label: 'Keywords / Search tags',
+                      hintText: 'e.g. Classic, Fiction, Historical',
+                      icon: Icons.sell_outlined,
+                      helperText:
+                          'Comma-separated keywords for catalogue search',
                     ),
-                    TextFormField(
+                    AppTextField(
                       controller: _description,
                       minLines: 3,
                       maxLines: 5,
                       maxLength: 2000,
                       textCapitalization: TextCapitalization.sentences,
                       textInputAction: TextInputAction.done,
-                      decoration: const InputDecoration(
-                        labelText: 'Description',
-                        hintText: 'Brief summary or notes about the book',
-                        alignLabelWithHint: true,
-                        prefixIcon: Icon(Icons.notes_rounded, size: 20),
-                      ),
+                      label: 'Description',
+                      hintText: 'Brief summary or notes about the book',
+                      icon: Icons.notes_rounded,
                     ),
                   ],
                 ),

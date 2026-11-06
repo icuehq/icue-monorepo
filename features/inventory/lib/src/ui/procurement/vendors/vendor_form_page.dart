@@ -1,4 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
@@ -189,91 +190,77 @@ class _VendorFormPageState extends State<VendorFormPage> {
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                TextFormField(
+                AppTextField(
                   controller: _name,
                   maxLength: 120,
                   textCapitalization: TextCapitalization.words,
-                  decoration: const InputDecoration(
-                    labelText: 'Vendor name *',
-                    hintText: 'e.g. Apex Office Supplies Pvt Ltd',
-                    prefixIcon: Icon(Icons.business_rounded),
-                  ),
                   validator: requiredText,
+                  label: 'Vendor name *',
+                  hintText: 'e.g. Apex Office Supplies Pvt Ltd',
+                  icon: Icons.business_rounded,
                 ),
                 section('Contact'),
-                TextFormField(
+                AppTextField(
                   controller: _contact,
                   maxLength: 120,
                   textCapitalization: TextCapitalization.words,
-                  decoration: const InputDecoration(
-                    labelText: 'Contact person',
-                    prefixIcon: Icon(Icons.person_outline_rounded),
-                  ),
                   validator: (value) => _maxLength(value, 120),
+                  label: 'Contact person',
+                  icon: Icons.person_outline_rounded,
                 ),
                 const SizedBox(height: 4),
-                TextFormField(
+                AppTextField(
                   controller: _phone,
                   keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(
-                    labelText: 'Phone',
-                    hintText: 'e.g. +91 98765 43210',
-                    prefixIcon: Icon(Icons.phone_outlined),
-                  ),
                   validator: (value) => _optional(
                     value,
                     30,
                     pattern: _phonePattern,
                     message: 'Enter a valid phone number',
                   ),
+                  label: 'Phone',
+                  hintText: 'e.g. +91 98765 43210',
+                  icon: Icons.phone_outlined,
                 ),
                 const SizedBox(height: 12),
-                TextFormField(
+                AppTextField(
                   controller: _email,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    labelText: 'Email',
-                    hintText: 'sales@apexsupplies.com',
-                    prefixIcon: Icon(Icons.email_outlined),
-                  ),
                   validator: (value) => _optional(
                     value,
                     200,
                     pattern: _emailPattern,
                     message: 'Enter a valid email address',
                   ),
+                  label: 'Email',
+                  hintText: 'sales@apexsupplies.com',
+                  icon: Icons.email_outlined,
                 ),
                 const SizedBox(height: 12),
-                TextFormField(
+                AppTextField(
                   controller: _website,
                   keyboardType: TextInputType.url,
-                  decoration: const InputDecoration(
-                    labelText: 'Website',
-                    hintText: 'www.apexsupplies.com',
-                    prefixIcon: Icon(Icons.language_rounded),
-                  ),
                   validator: _validateWebsite,
+                  label: 'Website',
+                  hintText: 'www.apexsupplies.com',
+                  icon: Icons.language_rounded,
                 ),
                 const SizedBox(height: 12),
-                TextFormField(
+                AppTextField(
                   controller: _address,
                   maxLines: 2,
                   maxLength: 500,
-                  decoration: const InputDecoration(
-                    labelText: 'Address',
-                    prefixIcon: Icon(Icons.location_on_outlined),
-                  ),
+                  label: 'Address',
+                  icon: Icons.location_on_outlined,
                 ),
                 section('Tax'),
-                TextFormField(
+                AppTextField(
                   controller: _tax,
                   maxLength: 40,
                   textCapitalization: TextCapitalization.characters,
-                  decoration: const InputDecoration(
-                    labelText: 'GST / Tax ID',
-                    hintText: 'e.g. 29AAAAA0000A1Z5',
-                    prefixIcon: Icon(Icons.receipt_long_outlined),
-                  ),
+                  label: 'GST / Tax ID',
+                  hintText: 'e.g. 29AAAAA0000A1Z5',
+                  icon: Icons.receipt_long_outlined,
                 ),
                 section('Supplied categories'),
                 if (categories.isEmpty)
@@ -302,14 +289,12 @@ class _VendorFormPageState extends State<VendorFormPage> {
                     ],
                   ),
                 section('Notes'),
-                TextFormField(
+                AppTextField(
                   controller: _remarks,
                   maxLines: 3,
                   maxLength: 500,
-                  decoration: const InputDecoration(
-                    labelText: 'Remarks (optional)',
-                    prefixIcon: Icon(Icons.notes_rounded),
-                  ),
+                  label: 'Remarks (optional)',
+                  icon: Icons.notes_rounded,
                 ),
               ],
             ),

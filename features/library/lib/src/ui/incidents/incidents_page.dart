@@ -3,6 +3,7 @@ import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
+import 'package:school_library/src/ui/circulation/widgets/circulation_tabs.dart';
 import 'package:school_library/src/ui/incidents/widgets/incident_card.dart';
 import 'package:school_library/src/ui/incidents/widgets/incident_empty_states.dart';
 import 'package:school_library/src/ui/incidents/widgets/incident_report_sheet.dart';
@@ -115,7 +116,7 @@ class _IncidentsPageState extends State<IncidentsPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Lost & Damaged Books'),
+        title: const Text('Circulation'),
         actions: [
           IconButton(
             tooltip: 'Refresh incidents',
@@ -123,6 +124,7 @@ class _IncidentsPageState extends State<IncidentsPage> {
             onPressed: () => libraryProvider.loadIncidents(status: _status),
           ),
         ],
+        bottom: const CirculationTabBar(activeTab: CirculationTab.incidents),
       ),
       floatingActionButton: canOperate
           ? FloatingActionButton.extended(

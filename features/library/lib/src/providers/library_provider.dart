@@ -76,14 +76,9 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   String incidentStatus = 'open';
   DocumentSnapshot<Map<String, dynamic>>? _incidentCursor;
 
-  /// Whether teachers can be found yet (Node's teacher search is not connected).
-  bool get teachersAvailable => _people.teachersAvailable;
-
-  /// People of [type] (`student` or `teacher`) matching [text] in the ERP.
-  Future<List<LibraryPerson>> searchPeople(String type, String text) =>
-      type == 'student'
-      ? _people.searchStudents(text)
-      : _people.searchTeachers(text);
+  /// The student (`student`) or staff member (`teacher`) with [admissionNumber] in the ERP, or null.
+  Future<LibraryPerson?> findPerson(String type, String admissionNumber) =>
+      _people.findByAdmissionNumber(type, admissionNumber);
 
   /// The policy a person of [type] gets in [libraryId], if one is set up.
   LibraryPolicy? policyFor(String libraryId, String type) {

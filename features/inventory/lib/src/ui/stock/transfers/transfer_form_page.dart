@@ -1,4 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:inventory/inventory.dart';
@@ -201,13 +202,11 @@ class _TransferFormPageState extends State<TransferFormPage> {
               const SizedBox(height: 16),
 
               // Remarks
-              TextFormField(
+              AppTextField(
                 controller: _remarks,
-                decoration: const InputDecoration(
-                  labelText: 'Remarks / Notes (optional)',
-                  hintText: 'e.g. Relocating surplus stock for academic event',
-                  prefixIcon: Icon(Icons.notes_rounded),
-                ),
+                label: 'Remarks / Notes (optional)',
+                hintText: 'e.g. Relocating surplus stock for academic event',
+                icon: Icons.notes_rounded,
               ),
               const SizedBox(height: 24),
 

@@ -36,9 +36,8 @@ class _IncidentSheetState extends State<IncidentSheet> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                DropdownButtonFormField<String>(
-                  initialValue: resolution,
-                  decoration: const InputDecoration(labelText: 'Resolution'),
+                AppDropdown<String>(
+                  value: resolution,
                   items: const [
                     DropdownMenuItem(
                       value: 'repaired',
@@ -64,38 +63,33 @@ class _IncidentSheetState extends State<IncidentSheet> {
                   onChanged: (value) {
                     if (value != null) setDialogState(() => resolution = value);
                   },
+                  label: 'Resolution',
                 ),
                 const SizedBox(height: 8),
                 if (resolution == 'repaired')
-                  TextField(
+                  AppTextField(
                     controller: repairCostController,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
-                    decoration: const InputDecoration(
-                      labelText: 'Repair cost (₹)',
-                      hintText: 'Optional',
-                    ),
+                    label: 'Repair cost (₹)',
+                    hintText: 'Optional',
                   ),
                 if (widget.incident.memberId != null) ...[
                   const SizedBox(height: 8),
-                  TextField(
+                  AppTextField(
                     controller: chargeController,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
-                    decoration: const InputDecoration(
-                      labelText: 'Fine / penalty charge (₹)',
-                      hintText: 'Optional additional penalty',
-                    ),
+                    label: 'Fine / penalty charge (₹)',
+                    hintText: 'Optional additional penalty',
                   ),
                 ],
                 const SizedBox(height: 8),
-                TextField(
+                AppTextField(
                   controller: remarksController,
-                  decoration: const InputDecoration(
-                    labelText: 'Resolution remarks',
-                  ),
+                  label: 'Resolution remarks',
                 ),
               ],
             ),

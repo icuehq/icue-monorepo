@@ -243,12 +243,10 @@ class _PurchaseOrderReceivePageState extends State<PurchaseOrderReceivePage> {
                         onChanged: (value) => setState(() => _store = value),
                       ),
                       const SizedBox(height: 12),
-                      TextFormField(
+                      AppTextField(
                         controller: _deliveryRef,
-                        decoration: const InputDecoration(
-                          labelText: 'Delivery note / Challan no. (optional)',
-                          prefixIcon: Icon(Icons.receipt_long_outlined),
-                        ),
+                        label: 'Delivery note / Challan no. (optional)',
+                        icon: Icons.receipt_long_outlined,
                       ),
                     ],
                   ),
@@ -322,13 +320,11 @@ class _PurchaseOrderReceivePageState extends State<PurchaseOrderReceivePage> {
                 ),
 
               const SizedBox(height: 8),
-              TextFormField(
+              AppTextField(
                 controller: _remarks,
                 maxLines: 2,
-                decoration: const InputDecoration(
-                  labelText: 'Overall inspection remarks (optional)',
-                  prefixIcon: Icon(Icons.notes_rounded),
-                ),
+                label: 'Overall inspection remarks (optional)',
+                icon: Icons.notes_rounded,
               ),
               const SizedBox(height: 24),
 

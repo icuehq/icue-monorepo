@@ -1,76 +1,80 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
-/// Finds a student or teacher in the ERP (Node) by typing part of the name, then reports the choice.
+/// Finds a student or staff member in the ERP (Node) by admission number, then reports the choice.
 class PersonPicker extends StatefulWidget {
-  const PersonPicker({required this.onChanged, super.key});
+  const PersonPicker({
+    required this.onChanged,
+    this.autofocus = false,
+    super.key,
+  });
 
   final ValueChanged<LibraryPerson?> onChanged;
+  final bool autofocus;
 
   @override
   State<PersonPicker> createState() => _PersonPickerState();
 }
 
 class _PersonPickerState extends State<PersonPicker> {
-  final _search = TextEditingController();
-  Timer? _debounce;
+  final _admissionNumber = TextEditingController();
+  final _focusNode = FocusNode();
   String _type = 'student';
   LibraryPerson? _chosen;
-  List<LibraryPerson> _results = const [];
   bool _loading = false;
   String? _error;
 
   @override
   void dispose() {
-    _debounce?.cancel();
-    _search.dispose();
+    _focusNode.dispose();
+    _admissionNumber.dispose();
     super.dispose();
   }
 
   void _choose(LibraryPerson? person) {
     setState(() {
       _chosen = person;
-      _results = const [];
-      if (person == null) _search.clear();
+      _error = null;
+      if (person == null) _admissionNumber.clear();
     });
     widget.onChanged(person);
-  }
-
-  void _changed(String text) {
-    _debounce?.cancel();
-    if (text.trim().length < 2) {
-      setState(() => _results = const []);
-      return;
-    }
-    _debounce = Timer(const Duration(milliseconds: 400), () => _find(text));
+    if (person == null) _focusNode.requestFocus();
   }
 
   Future<void> _find(String text) async {
+    final number = text.trim();
+    if (number.isEmpty) return;
     final libraryProvider = context.read<LibraryProvider>();
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
-      final found = await libraryProvider.searchPeople(_type, text.trim());
-      if (!mounted || text != _search.text) return;
-      setState(() => _results = found.take(8).toList());
+      final person = await libraryProvider.findPerson(_type, number);
+      if (!mounted) return;
+      if (person == null) {
+        setState(
+          () => _error = 'No $_label found with admission number "$number"',
+        );
+        _focusNode.requestFocus();
+      } else {
+        _choose(person);
+      }
     } catch (error) {
-      if (mounted) setState(() => _error = 'Could not search: $error');
+      if (!mounted) return;
+      setState(() => _error = 'Could not look up: $error');
+      _focusNode.requestFocus();
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
+  String get _label => _type == 'student' ? 'student' : 'staff member';
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final teachersMissing =
-        _type == 'teacher' &&
-        !context.read<LibraryProvider>().teachersAvailable;
     final chosen = _chosen;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -79,12 +83,11 @@ class _PersonPickerState extends State<PersonPicker> {
         SegmentedButton<String>(
           segments: const [
             ButtonSegment(value: 'student', label: Text('Student')),
-            ButtonSegment(value: 'teacher', label: Text('Teacher')),
+            ButtonSegment(value: 'teacher', label: Text('Staff')),
           ],
           selected: {_type},
           onSelectionChanged: (values) {
             setState(() => _type = values.first);
-            _search.clear();
             _choose(null);
           },
         ),
@@ -109,19 +112,17 @@ class _PersonPickerState extends State<PersonPicker> {
               ),
             ),
           )
-        else if (teachersMissing)
-          // TODO(teachers): remove once the Node teacher search is connected.
-          Text(
-            'Teacher lookup is not connected yet.',
-            style: theme.textTheme.bodySmall,
-          )
         else ...[
           TextField(
-            controller: _search,
-            onChanged: _changed,
+            controller: _admissionNumber,
+            focusNode: _focusNode,
+            autofocus: widget.autofocus,
+            enabled: !_loading,
+            textInputAction: TextInputAction.search,
+            onSubmitted: _find,
             decoration: InputDecoration(
-              hintText: 'Search by name',
-              prefixIcon: const Icon(Icons.search),
+              hintText: 'Enter admission number',
+              prefixIcon: const Icon(Icons.badge_outlined),
               suffixIcon: _loading
                   ? const Padding(
                       padding: EdgeInsets.all(12),
@@ -131,7 +132,11 @@ class _PersonPickerState extends State<PersonPicker> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       ),
                     )
-                  : null,
+                  : IconButton(
+                      tooltip: 'Find',
+                      icon: const Icon(Icons.search),
+                      onPressed: () => _find(_admissionNumber.text),
+                    ),
             ),
           ),
           if (_error != null)
@@ -141,13 +146,6 @@ class _PersonPickerState extends State<PersonPicker> {
                 _error!,
                 style: TextStyle(color: theme.colorScheme.error),
               ),
-            ),
-          for (final person in _results)
-            ListTile(
-              dense: true,
-              title: Text(person.name),
-              subtitle: person.detail.isEmpty ? null : Text(person.detail),
-              onTap: () => _choose(person),
             ),
         ],
       ],

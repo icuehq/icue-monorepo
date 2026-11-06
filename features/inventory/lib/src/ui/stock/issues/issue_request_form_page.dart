@@ -1,4 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:inventory/src/ui/stock/shared/line_editor.dart';
@@ -99,22 +100,18 @@ class _IssueRequestFormPageState extends State<IssueRequestFormPage> {
                         onChanged: (value) => setState(() => _store = value),
                       ),
                       const SizedBox(height: 12),
-                      TextFormField(
+                      AppTextField(
                         controller: _purpose,
-                        decoration: const InputDecoration(
-                          labelText: 'Purpose',
-                          hintText:
-                              'e.g. Science lab experiments, Staff training',
-                        ),
                         validator: requiredText,
+                        label: 'Purpose',
+                        hintText:
+                            'e.g. Science lab experiments, Staff training',
                       ),
                       const SizedBox(height: 12),
-                      TextFormField(
+                      AppTextField(
                         controller: _destination,
-                        decoration: const InputDecoration(
-                          labelText: 'Destination / Department (optional)',
-                          hintText: 'e.g. Senior Chemistry Lab, Block B',
-                        ),
+                        label: 'Destination / Department (optional)',
+                        hintText: 'e.g. Senior Chemistry Lab, Block B',
                       ),
                     ],
                   ),

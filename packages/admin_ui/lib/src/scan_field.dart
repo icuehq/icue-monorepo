@@ -25,9 +25,11 @@ class ScanField extends StatefulWidget {
 
 class _ScanFieldState extends State<ScanField> {
   final _controller = TextEditingController();
+  final _focusNode = FocusNode();
 
   @override
   void dispose() {
+    _focusNode.dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -39,6 +41,8 @@ class _ScanFieldState extends State<ScanField> {
     if (widget.clearOnScan) {
       _controller.clear();
       widget.onChanged?.call('');
+      // A scanner types fast and presses Enter, which drops focus; keep it for the next scan.
+      _focusNode.requestFocus();
     }
   }
 
@@ -67,6 +71,7 @@ class _ScanFieldState extends State<ScanField> {
   @override
   Widget build(BuildContext context) => TextField(
     controller: _controller,
+    focusNode: _focusNode,
     autofocus: widget.autofocus,
     textInputAction: TextInputAction.search,
     decoration: InputDecoration(

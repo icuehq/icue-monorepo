@@ -74,7 +74,6 @@ class _RequestOtpFormState extends State<RequestOtpForm> {
   @override
   Widget build(BuildContext context) {
     final effectiveError = _localError ?? _lastServerErrorMessage;
-    final hasError = effectiveError != null;
 
     return Column(
       children: [
@@ -98,13 +97,7 @@ class _RequestOtpFormState extends State<RequestOtpForm> {
             LengthLimitingTextInputFormatter(10),
           ],
           hintText: 'Enter Mobile Number',
-          prefixIcon: Icon(
-            Icons.phone,
-            color: hasError
-                ? Theme.of(context).colorScheme.error
-                : widget.primaryColor,
-            size: 22,
-          ),
+          icon: Icons.phone,
           onChanged: _onChanged,
           onFieldSubmitted: (_) => _handleSubmit(),
         ),

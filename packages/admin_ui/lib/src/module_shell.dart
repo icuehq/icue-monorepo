@@ -71,8 +71,6 @@ class ModuleShell extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!context.isWide) return child;
     final theme = Theme.of(context);
-    final tabs =
-        destinations.where(_selected).firstOrNull?.tabs ?? const <ModuleTab>[];
     String? group;
     final entries = <Widget>[];
 
@@ -282,73 +280,8 @@ class ModuleShell extends StatelessWidget {
           width: 1,
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.45),
         ),
-        Expanded(
-          child: tabs.length > 1
-              ? Column(
-                  children: [
-                    _TabStrip(tabs: tabs, selected: _matches),
-                    Expanded(child: child),
-                  ],
-                )
-              : child,
-        ),
+        Expanded(child: child),
       ],
-    );
-  }
-}
-
-class _TabStrip extends StatelessWidget {
-  const _TabStrip({required this.tabs, required this.selected});
-
-  final List<ModuleTab> tabs;
-  final bool Function(String path) selected;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Material(
-      color: theme.colorScheme.surface,
-      child: Container(
-        height: 48,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(
-              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.45),
-            ),
-          ),
-        ),
-        child: Row(
-          children: [
-            for (final tab in tabs)
-              InkWell(
-                onTap: () => context.go(tab.path),
-                child: Container(
-                  alignment: Alignment.center,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    border: Border(
-                      bottom: BorderSide(
-                        width: 3,
-                        color: selected(tab.path)
-                            ? theme.colorScheme.primary
-                            : Colors.transparent,
-                      ),
-                    ),
-                  ),
-                  child: Text(
-                    tab.label,
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      color: selected(tab.path)
-                          ? theme.colorScheme.primary
-                          : theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
     );
   }
 }

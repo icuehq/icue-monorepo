@@ -238,12 +238,8 @@ class _PurchaseOrderFormPageState extends State<PurchaseOrderFormPage> {
                         ],
                       ),
                       const SizedBox(height: 16),
-                      DropdownButtonFormField<String>(
-                        initialValue: _vendor,
-                        decoration: const InputDecoration(
-                          labelText: 'Supplier / Vendor *',
-                          prefixIcon: Icon(Icons.storefront_outlined),
-                        ),
+                      AppDropdown<String>(
+                        value: _vendor,
                         items: [
                           for (final vendor in vendors)
                             DropdownMenuItem(
@@ -255,15 +251,13 @@ class _PurchaseOrderFormPageState extends State<PurchaseOrderFormPage> {
                             ? (value) => setState(() => _vendor = value)
                             : null,
                         validator: (value) => value == null ? 'Required' : null,
+                        label: 'Supplier / Vendor *',
+                        icon: Icons.storefront_outlined,
                       ),
                       if (!singleCampus) ...[
                         const SizedBox(height: 12),
-                        DropdownButtonFormField<int>(
-                          initialValue: _campus,
-                          decoration: const InputDecoration(
-                            labelText: 'Delivery Campus *',
-                            prefixIcon: Icon(Icons.school_outlined),
-                          ),
+                        AppDropdown<int>(
+                          value: _campus,
                           items: [
                             for (final value in campuses)
                               DropdownMenuItem(
@@ -273,6 +267,8 @@ class _PurchaseOrderFormPageState extends State<PurchaseOrderFormPage> {
                           ],
                           onChanged: (value) =>
                               setState(() => _campus = value ?? _campus),
+                          label: 'Delivery Campus *',
+                          icon: Icons.school_outlined,
                         ),
                       ],
                     ],
@@ -317,24 +313,20 @@ class _PurchaseOrderFormPageState extends State<PurchaseOrderFormPage> {
                         first: DateTime.now(),
                       ),
                       const SizedBox(height: 12),
-                      TextFormField(
+                      AppTextField(
                         controller: _terms,
                         maxLines: 2,
                         maxLength: 500,
-                        decoration: const InputDecoration(
-                          labelText: 'Terms and conditions',
-                          hintText: 'e.g. 100% on delivery, 30 days warranty',
-                          prefixIcon: Icon(Icons.gavel_outlined),
-                        ),
+                        label: 'Terms and conditions',
+                        hintText: 'e.g. 100% on delivery, 30 days warranty',
+                        icon: Icons.gavel_outlined,
                       ),
                       const SizedBox(height: 12),
-                      TextFormField(
+                      AppTextField(
                         controller: _remarks,
                         maxLength: 500,
-                        decoration: const InputDecoration(
-                          labelText: 'Remarks / Dispatch Notes',
-                          prefixIcon: Icon(Icons.notes_rounded),
-                        ),
+                        label: 'Remarks / Dispatch Notes',
+                        icon: Icons.notes_rounded,
                       ),
                     ],
                   ),

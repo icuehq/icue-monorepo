@@ -120,13 +120,8 @@ class _ReceivePageState extends State<ReceivePage> {
                         onChanged: (value) => setState(() => _store = value),
                       ),
                       const SizedBox(height: 12),
-                      DropdownButtonFormField<String>(
-                        initialValue: _source,
-                        isExpanded: true,
-                        decoration: const InputDecoration(
-                          labelText: 'Source of stock',
-                          prefixIcon: Icon(Icons.source_outlined),
-                        ),
+                      AppDropdown<String>(
+                        value: _source,
                         items: [
                           for (final mapEntry in _sources.entries)
                             DropdownMenuItem(
@@ -138,15 +133,15 @@ class _ReceivePageState extends State<ReceivePage> {
                             ),
                         ],
                         onChanged: (value) => setState(() => _source = value!),
+                        label: 'Source of stock',
+                        icon: Icons.source_outlined,
                       ),
                       const SizedBox(height: 12),
-                      TextFormField(
+                      AppTextField(
                         controller: _reference,
-                        decoration: const InputDecoration(
-                          labelText: 'Reference number / Challan (optional)',
-                          hintText: 'e.g. DC-2024-001, OP-STOCK-2024',
-                          prefixIcon: Icon(Icons.tag_rounded),
-                        ),
+                        label: 'Reference number / Challan (optional)',
+                        hintText: 'e.g. DC-2024-001, OP-STOCK-2024',
+                        icon: Icons.tag_rounded,
                       ),
                     ],
                   ),
@@ -217,13 +212,11 @@ class _ReceivePageState extends State<ReceivePage> {
               ),
               const SizedBox(height: 16),
 
-              TextFormField(
+              AppTextField(
                 controller: _remarks,
-                decoration: const InputDecoration(
-                  labelText: 'Remarks / Notes (optional)',
-                  hintText: 'e.g. Verified by physical count',
-                  prefixIcon: Icon(Icons.notes_rounded),
-                ),
+                label: 'Remarks / Notes (optional)',
+                hintText: 'e.g. Verified by physical count',
+                icon: Icons.notes_rounded,
               ),
               const SizedBox(height: 24),
 

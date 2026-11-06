@@ -129,11 +129,9 @@ class _VerificationPageState extends State<VerificationPage> {
               ? 'Apply adjustments?'
               : 'Send back for recount',
         ),
-        content: TextField(
+        content: AppTextField(
           controller: controller,
-          decoration: InputDecoration(
-            labelText: decision == 'approve' ? 'Comment (optional)' : 'Reason',
-          ),
+          label: decision == 'approve' ? 'Comment (optional)' : 'Reason',
         ),
         actions: [
           TextButton(
@@ -308,11 +306,11 @@ class _VerificationPageState extends State<VerificationPage> {
           SizedBox(
             width: 90,
             child: editable
-                ? TextField(
+                ? AppTextField(
                     controller: _counts[verificationLine.balanceId],
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Counted'),
                     onChanged: (_) => setState(() {}),
+                    label: 'Counted',
                   )
                 : Text(
                     '${verificationLine.counted ?? '–'}',

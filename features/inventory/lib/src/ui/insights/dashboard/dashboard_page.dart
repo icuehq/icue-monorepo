@@ -1,4 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:inventory/inventory.dart';
@@ -79,9 +80,8 @@ class _InventoryDashboardPageState extends State<InventoryDashboardPage> {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              DropdownButtonFormField<String?>(
-                initialValue: _storeId,
-                decoration: const InputDecoration(labelText: 'Store'),
+              AppDropdown<String?>(
+                value: _storeId,
                 items: [
                   const DropdownMenuItem(child: Text('All stores')),
                   for (final store in inventoryProvider.stores.where(
@@ -93,6 +93,7 @@ class _InventoryDashboardPageState extends State<InventoryDashboardPage> {
                   _storeId = value;
                   _load();
                 },
+                label: 'Store',
               ),
               const SizedBox(height: 16),
               if (insightsProvider.isLoading && tiles.isEmpty)

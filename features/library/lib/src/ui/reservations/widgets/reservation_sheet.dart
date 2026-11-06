@@ -1,4 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
@@ -118,9 +119,8 @@ class _ReservationSheetState extends State<ReservationSheet> {
                 ),
           ),
         const SizedBox(height: 12),
-        DropdownButtonFormField<String>(
-          initialValue: _libraryId,
-          decoration: const InputDecoration(labelText: 'Preferred library'),
+        AppDropdown<String>(
+          value: _libraryId,
           items: [
             for (final schoolLibrary in libraries)
               DropdownMenuItem(
@@ -129,6 +129,7 @@ class _ReservationSheetState extends State<ReservationSheet> {
               ),
           ],
           onChanged: (value) => setState(() => _libraryId = value),
+          label: 'Preferred library',
         ),
         const SizedBox(height: 16),
         FilledButton(

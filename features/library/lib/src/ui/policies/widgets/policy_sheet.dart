@@ -1,4 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:provider/provider.dart';
@@ -113,9 +114,8 @@ class _PolicySheetState extends State<PolicySheet> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          DropdownButtonFormField<String>(
-            initialValue: _libraryId,
-            decoration: const InputDecoration(labelText: 'Library *'),
+          AppDropdown<String>(
+            value: _libraryId,
             items: [
               for (final schoolLibrary in libraries)
                 DropdownMenuItem(
@@ -125,21 +125,22 @@ class _PolicySheetState extends State<PolicySheet> {
             ],
             onChanged: editing ? null : (value) => _libraryId = value,
             validator: (value) => value == null ? 'Required' : null,
+            label: 'Library *',
           ),
-          DropdownButtonFormField<String>(
-            initialValue: _type,
-            decoration: const InputDecoration(labelText: 'Applies to *'),
+          AppDropdown<String>(
+            value: _type,
             items: const [
               DropdownMenuItem(value: 'student', child: Text('Students')),
               DropdownMenuItem(value: 'teacher', child: Text('Teachers')),
             ],
             onChanged: editing ? null : (value) => _type = value,
             validator: (value) => value == null ? 'Required' : null,
+            label: 'Applies to *',
           ),
-          TextFormField(
+          AppTextField(
             controller: _name,
-            decoration: const InputDecoration(labelText: 'Policy name *'),
             validator: requiredText,
+            label: 'Policy name *',
           ),
           Row(
             children: [
@@ -149,18 +150,17 @@ class _PolicySheetState extends State<PolicySheet> {
                 (_renewals, 'Renewals *', 0),
               ])
                 Expanded(
-                  child: TextFormField(
+                  child: AppTextField(
                     controller: field.$1,
                     keyboardType: TextInputType.number,
-                    decoration: InputDecoration(labelText: field.$2),
                     validator: (value) => _whole(value, min: field.$3),
+                    label: field.$2,
                   ),
                 ),
             ],
           ),
-          DropdownButtonFormField<String>(
-            initialValue: _fineType,
-            decoration: const InputDecoration(labelText: 'Fine'),
+          AppDropdown<String>(
+            value: _fineType,
             items: [
               for (final mapEntry in fineTypes.entries)
                 DropdownMenuItem(
@@ -169,36 +169,37 @@ class _PolicySheetState extends State<PolicySheet> {
                 ),
             ],
             onChanged: (value) => setState(() => _fineType = value!),
+            label: 'Fine',
           ),
           if (_fineType != 'none')
             Row(
               children: [
                 Expanded(
-                  child: TextFormField(
+                  child: AppTextField(
                     controller: _fine,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Amount *'),
                     validator: (value) =>
                         (double.tryParse(value?.trim() ?? '') ?? 0) > 0
                         ? null
                         : 'Enter an amount',
+                    label: 'Amount *',
                   ),
                 ),
                 Expanded(
-                  child: TextFormField(
+                  child: AppTextField(
                     controller: _maxFine,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Max fine'),
                     validator: optionalNumber,
+                    label: 'Max fine',
                   ),
                 ),
               ],
             ),
-          TextFormField(
+          AppTextField(
             controller: _grace,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: 'Grace days'),
             validator: _whole,
+            label: 'Grace days',
           ),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,

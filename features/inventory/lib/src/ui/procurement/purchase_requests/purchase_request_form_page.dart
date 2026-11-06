@@ -166,13 +166,8 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
                         children: [
                           if (!singleCampus) ...[
                             Expanded(
-                              child: DropdownButtonFormField<int>(
-                                initialValue: _campus,
-                                isExpanded: true,
-                                decoration: const InputDecoration(
-                                  labelText: 'Campus *',
-                                  prefixIcon: Icon(Icons.school_outlined),
-                                ),
+                              child: AppDropdown<int>(
+                                value: _campus,
                                 items: [
                                   for (final value in campuses)
                                     DropdownMenuItem(
@@ -185,17 +180,15 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
                                     : null,
                                 validator: (value) =>
                                     value == null ? 'Required' : null,
+                                label: 'Campus *',
+                                icon: Icons.school_outlined,
                               ),
                             ),
                             const SizedBox(width: 12),
                           ],
                           Expanded(
-                            child: DropdownButtonFormField<String>(
-                              initialValue: _priority,
-                              decoration: const InputDecoration(
-                                labelText: 'Priority',
-                                prefixIcon: Icon(Icons.flag_outlined),
-                              ),
+                            child: AppDropdown<String>(
+                              value: _priority,
                               items: const [
                                 DropdownMenuItem(
                                   value: 'low',
@@ -216,6 +209,8 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
                               ],
                               onChanged: (value) =>
                                   setState(() => _priority = value ?? 'normal'),
+                              label: 'Priority',
+                              icon: Icons.flag_outlined,
                             ),
                           ),
                         ],
@@ -255,15 +250,13 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
                         ],
                       ),
                       const SizedBox(height: 16),
-                      TextFormField(
+                      AppTextField(
                         controller: _purpose,
-                        decoration: const InputDecoration(
-                          labelText: 'Purpose / Justification *',
-                          hintText:
-                              'e.g. Science lab equipment for term practicals',
-                          prefixIcon: Icon(Icons.edit_note_rounded),
-                        ),
                         validator: requiredText,
+                        label: 'Purpose / Justification *',
+                        hintText:
+                            'e.g. Science lab equipment for term practicals',
+                        icon: Icons.edit_note_rounded,
                       ),
                       const SizedBox(height: 12),
                       AppDateField(
@@ -278,13 +271,10 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
                         validator: requiredText,
                       ),
                       const SizedBox(height: 12),
-                      TextFormField(
+                      AppTextField(
                         controller: _remarks,
-                        decoration: const InputDecoration(
-                          labelText:
-                              'Remarks / Special instructions (optional)',
-                          prefixIcon: Icon(Icons.notes_rounded),
-                        ),
+                        label: 'Remarks / Special instructions (optional)',
+                        icon: Icons.notes_rounded,
                       ),
                     ],
                   ),

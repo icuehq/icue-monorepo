@@ -27,7 +27,10 @@ class _LoginPageState extends State<LoginPage> {
             codeLength: 5,
             onCodeReceive: (code) {
               FocusManager.instance.primaryFocus?.unfocus();
-              context.read<AuthProvider>().verifyOtpAndLogin(otp: code);
+              context.read<AuthProvider>().login(
+                username: _usernameController.text,
+                password: code,
+              );
             },
             otpInteractor: OTPInteractor(),
           )..startListenUserConsent(
@@ -116,7 +119,7 @@ class _LoginPageState extends State<LoginPage> {
                           isLoading: vm.isLoading,
                           errorMessage: vm.errorMessage,
                           onSubmit: () =>
-                              vm.requestOtp(_usernameController.text),
+                              vm.sendLoginOtp(_usernameController.text),
                         ),
                         AuthStep.verifyOtp => VerifyOtpForm(
                           username: vm.username,
@@ -124,8 +127,10 @@ class _LoginPageState extends State<LoginPage> {
                           primaryColor: primaryColor,
                           isLoading: vm.isLoading,
                           errorMessage: vm.errorMessage,
-                          onVerify: () =>
-                              vm.verifyOtpAndLogin(otp: _otpController.text),
+                          onVerify: () => vm.login(
+                            username: _usernameController.text,
+                            password: _otpController.text,
+                          ),
                           onBack: () {
                             _otpController.clear();
                             vm.backToRequestOtp();

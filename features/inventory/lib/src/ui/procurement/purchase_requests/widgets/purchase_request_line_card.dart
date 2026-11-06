@@ -1,4 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 
 class RequestLineDraft {
@@ -69,14 +70,10 @@ class RequestLineCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: TextFormField(
+                child: AppTextField(
                   controller: line.quantity,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
-                  ),
-                  decoration: const InputDecoration(
-                    labelText: 'Quantity *',
-                    isDense: true,
                   ),
                   validator: (value) {
                     final quantity = double.tryParse((value ?? '').trim());
@@ -84,20 +81,18 @@ class RequestLineCard extends StatelessWidget {
                         ? 'Enter quantity'
                         : null;
                   },
+                  label: 'Quantity *',
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: TextFormField(
+                child: AppTextField(
                   controller: line.price,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
-                  decoration: const InputDecoration(
-                    labelText: 'Est. Unit Price (₹)',
-                    isDense: true,
-                  ),
                   validator: optionalNumber,
+                  label: 'Est. Unit Price (₹)',
                 ),
               ),
             ],

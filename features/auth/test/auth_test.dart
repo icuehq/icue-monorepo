@@ -163,7 +163,7 @@ void main() {
         final tokenProvider = SessionTokenProvider(fakeStorage);
         final provider = AuthProvider(fakeService, fakeStorage, tokenProvider);
 
-        final result = await provider.verifyOtpAndLogin(otp: '1234');
+        final result = await provider.login(username: 'user', password: '1234');
 
         expect(result, isFalse);
         expect(
@@ -180,7 +180,7 @@ void main() {
       final tokenProvider = SessionTokenProvider(fakeStorage);
       final provider = AuthProvider(fakeService, fakeStorage, tokenProvider);
 
-      final result = await provider.verifyOtpAndLogin(otp: '1234');
+      final result = await provider.login(username: 'user', password: '1234');
 
       expect(result, isFalse);
       expect(
@@ -256,7 +256,7 @@ void main() {
     );
   });
 
-  group('UserLocalStorage real Hive backward compatibility', () {
+  group('UserLocalStorage real Hive', () {
     late Directory tempDir;
     late StorageService storageService;
     late UserLocalStorage userLocalStorage;
@@ -288,23 +288,6 @@ void main() {
       expect(retrieved, isNotNull);
       expect(retrieved!.name, equals('Alice'));
       expect(userLocalStorage.getToken(), equals('token-alice'));
-    });
-
-    test('backwards compatibility: reads existing legacy user stored via box.add()', () async {
-      final box = await Hive.openBox<UserInfo>(StorageConstants.userInfoBox);
-      final legacyUser = UserInfo(
-        id: 99,
-        name: 'Legacy User',
-        userName: 'legacy',
-        token: 'legacy-token',
-      );
-      // Simulate existing app storing via box.add
-      await box.add(legacyUser);
-
-      final retrieved = userLocalStorage.getUser();
-      expect(retrieved, isNotNull);
-      expect(retrieved!.token, equals('legacy-token'));
-      expect(userLocalStorage.getToken(), equals('legacy-token'));
     });
 
     test('clearUser clears stored user', () async {

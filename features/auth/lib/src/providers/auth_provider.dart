@@ -141,9 +141,6 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// Alias for backward compatibility with requestOtp.
-  Future<bool> requestOtp(String username) => sendLoginOtp(username);
-
   void resetOtpSent() {
     otpSent = false;
     notifyListeners();
@@ -194,12 +191,6 @@ class AuthProvider extends ChangeNotifier {
       return false;
     }
   }
-
-  /// Alias for backward compatibility with existing form callers.
-  Future<bool> verifyOtpAndLogin({
-    required String otp,
-    String source = 'adminapp',
-  }) => login(username: _username, password: otp);
 
   /// Fetches actions permitted for the current user role against `/v1.0/getActionsByRole`.
   Future<void> getRoleActions({bool isSplash = false}) async {

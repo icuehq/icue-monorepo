@@ -1,4 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
@@ -83,16 +84,14 @@ class _AskTextDialogState extends State<_AskTextDialog> {
   @override
   Widget build(BuildContext context) => AlertDialog(
     title: Text(widget.title),
-    content: TextField(
+    content: AppTextField(
       controller: _controller,
       autofocus: true,
       keyboardType: widget.number
           ? const TextInputType.numberWithOptions(decimal: true)
           : null,
-      decoration: InputDecoration(
-        labelText: widget.label,
-        hintText: widget.hint,
-      ),
+      label: widget.label,
+      hintText: widget.hint,
     ),
     actions: [
       TextButton(

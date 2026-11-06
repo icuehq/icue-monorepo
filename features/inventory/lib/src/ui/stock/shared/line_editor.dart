@@ -322,21 +322,10 @@ class _LineCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: TextFormField(
+                  child: AppTextField(
                     controller: lineDraft.cost,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
-                    ),
-                    decoration: InputDecoration(
-                      labelText: 'Unit cost (₹)',
-                      hintText:
-                          item.defaultPrice != null && item.defaultPrice! > 0
-                          ? item.defaultPrice!.toAmountText()
-                          : '0.00',
-                      prefixIcon: const Icon(Icons.currency_rupee_rounded),
-                      helperText: item.stockUnit.isNotEmpty
-                          ? 'Per ${item.stockUnit}'
-                          : 'Per unit',
                     ),
                     validator: (currentValue) {
                       final value = (currentValue ?? '').trim();
@@ -345,6 +334,15 @@ class _LineCard extends StatelessWidget {
                       if (number == null || number < 0) return 'Invalid';
                       return null;
                     },
+                    label: 'Unit cost (₹)',
+                    hintText:
+                        item.defaultPrice != null && item.defaultPrice! > 0
+                        ? item.defaultPrice!.toAmountText()
+                        : '0.00',
+                    icon: Icons.currency_rupee_rounded,
+                    helperText: item.stockUnit.isNotEmpty
+                        ? 'Per ${item.stockUnit}'
+                        : 'Per unit',
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -453,15 +451,13 @@ class _LineCard extends StatelessWidget {
                     Row(
                       children: [
                         Expanded(
-                          child: TextFormField(
+                          child: AppTextField(
                             controller: lineDraft.batchNumber,
-                            decoration: const InputDecoration(
-                              labelText: 'Batch number',
-                              prefixIcon: Icon(Icons.tag_rounded),
-                            ),
                             validator: (value) => (value ?? '').trim().isEmpty
                                 ? 'Required'
                                 : null,
+                            label: 'Batch number',
+                            icon: Icons.tag_rounded,
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -488,15 +484,10 @@ class _LineCard extends StatelessWidget {
               ),
             ],
           ] else ...[
-            TextFormField(
+            AppTextField(
               controller: lineDraft.quantity,
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
-              ),
-              decoration: InputDecoration(
-                labelText: quantityLabel,
-                prefixIcon: const Icon(Icons.numbers_rounded),
-                suffixText: item.stockUnit.isNotEmpty ? item.stockUnit : null,
               ),
               validator: (currentValue) {
                 final value = (currentValue ?? '').trim();
@@ -504,6 +495,9 @@ class _LineCard extends StatelessWidget {
                 final number = double.tryParse(value);
                 return number == null || number <= 0 ? 'Invalid' : null;
               },
+              label: quantityLabel,
+              icon: Icons.numbers_rounded,
+              suffixText: item.stockUnit.isNotEmpty ? item.stockUnit : null,
             ),
           ],
         ],

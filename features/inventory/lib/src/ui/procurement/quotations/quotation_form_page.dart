@@ -178,12 +178,8 @@ class _QuotationFormPageState extends State<QuotationFormPage> {
                         ],
                       ),
                       const SizedBox(height: 16),
-                      DropdownButtonFormField<String>(
-                        initialValue: _vendor,
-                        decoration: const InputDecoration(
-                          labelText: 'Select Vendor *',
-                          prefixIcon: Icon(Icons.storefront_outlined),
-                        ),
+                      AppDropdown<String>(
+                        value: _vendor,
                         items: [
                           for (final vendor in vendors)
                             DropdownMenuItem(
@@ -193,15 +189,15 @@ class _QuotationFormPageState extends State<QuotationFormPage> {
                         ],
                         onChanged: (value) => setState(() => _vendor = value),
                         validator: (value) => value == null ? 'Required' : null,
+                        label: 'Select Vendor *',
+                        icon: Icons.storefront_outlined,
                       ),
                       const SizedBox(height: 12),
-                      TextFormField(
+                      AppTextField(
                         controller: _ref,
-                        decoration: const InputDecoration(
-                          labelText: "Vendor's quotation no. / reference",
-                          hintText: 'e.g. QT-2024-8849',
-                          prefixIcon: Icon(Icons.tag_rounded),
-                        ),
+                        label: "Vendor's quotation no. / reference",
+                        hintText: 'e.g. QT-2024-8849',
+                        icon: Icons.tag_rounded,
                       ),
                     ],
                   ),
@@ -250,29 +246,25 @@ class _QuotationFormPageState extends State<QuotationFormPage> {
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: TextFormField(
+                            child: AppTextField(
                               controller: _days,
                               keyboardType: TextInputType.number,
                               inputFormatters: [
                                 FilteringTextInputFormatter.digitsOnly,
                                 LengthLimitingTextInputFormatter(3),
                               ],
-                              decoration: const InputDecoration(
-                                labelText: 'Lead time (days)',
-                                hintText: 'e.g. 7',
-                                prefixIcon: Icon(Icons.timer_outlined),
-                              ),
+                              label: 'Lead time (days)',
+                              hintText: 'e.g. 7',
+                              icon: Icons.timer_outlined,
                             ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 12),
-                      TextFormField(
+                      AppTextField(
                         controller: _remarks,
-                        decoration: const InputDecoration(
-                          labelText: 'Remarks / Notes',
-                          prefixIcon: Icon(Icons.notes_rounded),
-                        ),
+                        label: 'Remarks / Notes',
+                        icon: Icons.notes_rounded,
                       ),
                     ],
                   ),

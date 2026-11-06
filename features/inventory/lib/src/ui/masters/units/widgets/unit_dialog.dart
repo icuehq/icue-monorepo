@@ -1,4 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
@@ -207,18 +208,10 @@ class _UnitDialogState extends State<UnitDialog> {
                   ],
                 ),
                 const SizedBox(height: 18),
-                TextFormField(
+                AppTextField(
                   controller: _nameController,
                   autofocus: true,
                   textCapitalization: TextCapitalization.words,
-                  decoration: InputDecoration(
-                    labelText: 'Unit name *',
-                    hintText: 'e.g. Kilogram, Box, Piece',
-                    prefixIcon: const Icon(Icons.label_outline, size: 20),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
                   validator: requiredText,
                   onChanged: (_) {
                     if (_errorMessage != null) {
@@ -226,6 +219,9 @@ class _UnitDialogState extends State<UnitDialog> {
                     }
                   },
                   onFieldSubmitted: (_) => _handleSave(),
+                  label: 'Unit name *',
+                  hintText: 'e.g. Kilogram, Box, Piece',
+                  icon: Icons.label_outline,
                 ),
                 if (_errorMessage != null) ...[
                   const SizedBox(height: 12),

@@ -232,24 +232,20 @@ class TransferLinesCard extends StatelessWidget {
                 if (entering != null && line.dispatched - line.received > 0)
                   Padding(
                     padding: const EdgeInsets.only(top: 8),
-                    child: TextField(
+                    child: AppTextField(
                       controller: entering[index],
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
                       inputFormatters: [decimalInputFormatter],
-                      decoration: InputDecoration(
-                        labelText: 'Receive now',
-                        helperText:
-                            'Up to ${(line.dispatched - line.received).toQuantityText()}',
-                        isDense: true,
-                        suffixIcon: IconButton(
-                          icon: const Icon(Icons.done_all, size: 18),
-                          tooltip: 'Everything remaining',
-                          onPressed: () => entering[index].text =
-                              (line.dispatched - line.received)
-                                  .toQuantityText(),
-                        ),
+                      label: 'Receive now',
+                      helperText:
+                          'Up to ${(line.dispatched - line.received).toQuantityText()}',
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.done_all, size: 18),
+                        tooltip: 'Everything remaining',
+                        onPressed: () => entering[index].text =
+                            (line.dispatched - line.received).toQuantityText(),
                       ),
                     ),
                   ),

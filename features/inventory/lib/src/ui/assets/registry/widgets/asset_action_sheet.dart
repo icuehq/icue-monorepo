@@ -1,4 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:inventory/inventory.dart';
@@ -115,13 +116,13 @@ class _AssetActionSheetState extends State<AssetActionSheet> {
               _type,
               (value) => setState(() => _type = value!),
             ),
-            TextFormField(
+            AppTextField(
               controller: _erpId,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'ERP ID *'),
               validator: (value) => int.tryParse((value ?? '').trim()) == null
                   ? 'Enter a number'
                   : null,
+              label: 'ERP ID *',
             ),
             optionalDate(
               context,
@@ -149,10 +150,7 @@ class _AssetActionSheetState extends State<AssetActionSheet> {
               (value) => setState(() => _condition = value!),
             ),
           if (_a != AssetAction.condition && _a != AssetAction.retire)
-            TextFormField(
-              controller: _location,
-              decoration: const InputDecoration(labelText: 'Location'),
-            ),
+            AppTextField(controller: _location, label: 'Location'),
           if (_a == AssetAction.condition)
             labelled(
               'Mark as',
@@ -170,12 +168,10 @@ class _AssetActionSheetState extends State<AssetActionSheet> {
           if (_a == AssetAction.giveBack ||
               _a == AssetAction.condition ||
               _a == AssetAction.retire)
-            TextFormField(
+            AppTextField(
               controller: _text,
-              decoration: InputDecoration(
-                labelText: _a == AssetAction.retire ? 'Reason *' : 'Remarks',
-              ),
               validator: _a == AssetAction.retire ? requiredText : null,
+              label: _a == AssetAction.retire ? 'Reason *' : 'Remarks',
             ),
           const SizedBox(height: 16),
           FilledButton(

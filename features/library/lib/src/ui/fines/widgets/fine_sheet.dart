@@ -34,19 +34,17 @@ class _FineSheetState extends State<FineSheet> {
           children: [
             Text('Max waivable: ${widget.fine.outstanding.toRupees()}'),
             const SizedBox(height: 12),
-            TextField(
+            AppTextField(
               controller: amountController,
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
-              decoration: const InputDecoration(
-                labelText: 'Amount to waive (₹)',
-              ),
+              label: 'Amount to waive (₹)',
             ),
             const SizedBox(height: 8),
-            TextField(
+            AppTextField(
               controller: reasonController,
-              decoration: const InputDecoration(labelText: 'Reason for waiver'),
+              label: 'Reason for waiver',
             ),
           ],
         ),
@@ -112,20 +110,18 @@ class _FineSheetState extends State<FineSheet> {
           children: [
             Text('Outstanding: ${widget.fine.outstanding.toRupees()}'),
             const SizedBox(height: 12),
-            TextField(
+            AppTextField(
               controller: amountController,
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
-              decoration: const InputDecoration(labelText: 'Paid amount (₹)'),
+              label: 'Paid amount (₹)',
             ),
             const SizedBox(height: 8),
-            TextField(
+            AppTextField(
               controller: refController,
-              decoration: const InputDecoration(
-                labelText: 'Payment receipt / reference',
-                hintText: 'e.g. REC-1234',
-              ),
+              label: 'Payment receipt / reference',
+              hintText: 'e.g. REC-1234',
             ),
           ],
         ),

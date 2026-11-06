@@ -57,10 +57,7 @@ class DriverLicenseInfoForm extends StatelessWidget {
                 controller: licenseNumberController,
                 hintText: 'License Number',
                 maxLength: 20,
-                prefixIcon: const Icon(
-                  Icons.card_membership_outlined,
-                  size: 20,
-                ),
+                icon: Icons.card_membership_outlined,
               ),
             ),
             const SizedBox(width: 12),
@@ -85,10 +82,7 @@ class DriverLicenseInfoForm extends StatelessWidget {
                   child: AppTextField(
                     controller: licenseIssueDateController,
                     hintText: 'Issue Date',
-                    prefixIcon: const Icon(
-                      Icons.calendar_today_outlined,
-                      size: 20,
-                    ),
+                    icon: Icons.calendar_today_outlined,
                   ),
                 ),
               ),
@@ -101,7 +95,7 @@ class DriverLicenseInfoForm extends StatelessWidget {
                   child: AppTextField(
                     controller: licenseExpiryDateController,
                     hintText: 'Expiry Date',
-                    prefixIcon: const Icon(Icons.event_busy_outlined, size: 20),
+                    icon: Icons.event_busy_outlined,
                   ),
                 ),
               ),

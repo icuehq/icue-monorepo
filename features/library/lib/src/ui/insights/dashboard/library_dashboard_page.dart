@@ -1,4 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -78,9 +79,8 @@ class _LibDashboardPageState extends State<LibraryDashboardPage> {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              DropdownButtonFormField<String?>(
-                initialValue: _libraryId,
-                decoration: const InputDecoration(labelText: 'Library'),
+              AppDropdown<String?>(
+                value: _libraryId,
                 items: [
                   const DropdownMenuItem(child: Text('All libraries')),
                   for (final schoolLibrary in libraryProvider.libraries.where(
@@ -95,6 +95,7 @@ class _LibDashboardPageState extends State<LibraryDashboardPage> {
                   _libraryId = value;
                   _load();
                 },
+                label: 'Library',
               ),
               const SizedBox(height: 16),
               if (libraryProvider.insightsLoading && tiles.isEmpty)

@@ -1,4 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:inventory/inventory.dart';
@@ -67,11 +68,11 @@ class _MaintenanceFormSheetState extends State<MaintenanceFormSheet> {
             style: Theme.of(context).textTheme.titleLarge,
           ),
           Text(widget.asset?.assetId ?? widget.job!.assetCode),
-          TextFormField(
+          AppTextField(
             controller: _issue,
             maxLines: 3,
-            decoration: const InputDecoration(labelText: 'Issue *'),
             validator: requiredText,
+            label: 'Issue *',
           ),
           labelled(
             'Priority',
@@ -79,11 +80,9 @@ class _MaintenanceFormSheetState extends State<MaintenanceFormSheet> {
             _priority,
             (value) => setState(() => _priority = value!),
           ),
-          TextFormField(
+          AppTextField(
             controller: _technician,
-            decoration: const InputDecoration(
-              labelText: 'Technician / service provider',
-            ),
+            label: 'Technician / service provider',
           ),
           optionalDate(
             context,

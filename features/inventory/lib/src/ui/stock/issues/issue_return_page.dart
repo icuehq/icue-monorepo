@@ -130,35 +130,29 @@ class _IssueReturnPageState extends State<IssueReturnPage> {
                       Row(
                         children: [
                           Expanded(
-                            child: TextField(
+                            child: AppTextField(
                               controller: _usable[index],
                               keyboardType: decimalKeyboard,
                               inputFormatters: numberInput,
-                              decoration: InputDecoration(
-                                labelText: 'Usable',
-                                isDense: true,
-                                suffixIcon: IconButton(
-                                  icon: const Icon(Icons.done_all, size: 18),
-                                  tooltip: 'All usable',
-                                  onPressed: () {
-                                    _usable[index].text = line.outstanding
-                                        .toQuantityText();
-                                    _damaged[index].clear();
-                                  },
-                                ),
+                              label: 'Usable',
+                              suffixIcon: IconButton(
+                                icon: const Icon(Icons.done_all, size: 18),
+                                tooltip: 'All usable',
+                                onPressed: () {
+                                  _usable[index].text = line.outstanding
+                                      .toQuantityText();
+                                  _damaged[index].clear();
+                                },
                               ),
                             ),
                           ),
                           const SizedBox(width: 10),
                           Expanded(
-                            child: TextField(
+                            child: AppTextField(
                               controller: _damaged[index],
                               keyboardType: decimalKeyboard,
                               inputFormatters: numberInput,
-                              decoration: const InputDecoration(
-                                labelText: 'Damaged',
-                                isDense: true,
-                              ),
+                              label: 'Damaged',
                             ),
                           ),
                         ],

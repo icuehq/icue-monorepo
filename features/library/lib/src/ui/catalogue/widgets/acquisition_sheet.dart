@@ -1,4 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:provider/provider.dart';
@@ -88,9 +89,8 @@ class _AcquisitionSheetState extends State<AcquisitionSheet> {
             'Add copies of ${widget.book.title}',
             style: Theme.of(context).textTheme.titleMedium,
           ),
-          DropdownButtonFormField<String>(
-            initialValue: _type,
-            decoration: const InputDecoration(labelText: 'Source *'),
+          AppDropdown<String>(
+            value: _type,
             items: [
               for (final mapEntry in _types.entries)
                 DropdownMenuItem(
@@ -99,10 +99,10 @@ class _AcquisitionSheetState extends State<AcquisitionSheet> {
                 ),
             ],
             onChanged: (value) => setState(() => _type = value!),
+            label: 'Source *',
           ),
-          DropdownButtonFormField<String>(
-            initialValue: _libraryId,
-            decoration: const InputDecoration(labelText: 'Library *'),
+          AppDropdown<String>(
+            value: _libraryId,
             items: [
               for (final schoolLibrary in libraries)
                 DropdownMenuItem(
@@ -112,26 +112,22 @@ class _AcquisitionSheetState extends State<AcquisitionSheet> {
             ],
             onChanged: (value) => _libraryId = value,
             validator: (value) => value == null ? 'Required' : null,
+            label: 'Library *',
           ),
-          TextFormField(
+          AppTextField(
             controller: _quantity,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: 'Number of copies *'),
             validator: (value) {
               final number = int.tryParse(value?.trim() ?? '');
               return number == null || number < 1 || number > 100
                   ? '1 to 100'
                   : null;
             },
+            label: 'Number of copies *',
           ),
-          TextFormField(
+          AppTextField(
             controller: _price,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: InputDecoration(
-              labelText: _type == 'purchase'
-                  ? 'Price per copy *'
-                  : 'Price per copy',
-            ),
             validator: (value) {
               final number = double.tryParse(value?.trim() ?? '');
               if (_type == 'purchase') {
@@ -142,24 +138,16 @@ class _AcquisitionSheetState extends State<AcquisitionSheet> {
                   ? 'Invalid'
                   : null;
             },
+            label: _type == 'purchase' ? 'Price per copy *' : 'Price per copy',
           ),
-          TextFormField(
+          AppTextField(
             controller: _vendor,
-            decoration: InputDecoration(
-              labelText: _type == 'donation' ? 'Donor' : 'Vendor',
-            ),
+            label: _type == 'donation' ? 'Donor' : 'Vendor',
           ),
-          TextFormField(
-            controller: _ref,
-            decoration: const InputDecoration(labelText: 'Invoice / reference'),
-          ),
-          TextFormField(
-            controller: _shelf,
-            decoration: const InputDecoration(labelText: 'Shelf / location'),
-          ),
-          DropdownButtonFormField<String>(
-            initialValue: _condition,
-            decoration: const InputDecoration(labelText: 'Condition'),
+          AppTextField(controller: _ref, label: 'Invoice / reference'),
+          AppTextField(controller: _shelf, label: 'Shelf / location'),
+          AppDropdown<String>(
+            value: _condition,
             items: [
               for (final copyCondition in copyConditions)
                 DropdownMenuItem(
@@ -168,6 +156,7 @@ class _AcquisitionSheetState extends State<AcquisitionSheet> {
                 ),
             ],
             onChanged: (value) => _condition = value!,
+            label: 'Condition',
           ),
           const SizedBox(height: 16),
           FilledButton(

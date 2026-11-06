@@ -158,11 +158,11 @@ class _StockTransferPageState extends State<StockTransferPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Cancel ${transfer.number}'),
-        content: TextField(
+        content: AppTextField(
           controller: reason,
           autofocus: true,
           maxLength: 500,
-          decoration: const InputDecoration(labelText: 'Reason'),
+          label: 'Reason',
         ),
         actions: [
           TextButton(
@@ -335,12 +335,10 @@ class _StockTransferPageState extends State<StockTransferPage> {
                   value: _closeTransfer,
                   onChanged: (value) => setState(() => _closeTransfer = value),
                 ),
-                TextField(
+                AppTextField(
                   controller: _remarks,
                   maxLength: 500,
-                  decoration: const InputDecoration(
-                    labelText: 'Receipt remarks (optional)',
-                  ),
+                  label: 'Receipt remarks (optional)',
                 ),
               ],
             ],

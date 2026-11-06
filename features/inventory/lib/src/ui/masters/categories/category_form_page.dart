@@ -1,4 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
@@ -102,37 +103,25 @@ class _CategoryFormPageState extends State<CategoryFormPage> {
                 title: 'Category Details',
                 icon: Icons.category_outlined,
                 children: [
-                  TextFormField(
+                  AppTextField(
                     controller: _name,
                     textInputAction: TextInputAction.next,
                     textCapitalization: TextCapitalization.words,
-                    decoration: const InputDecoration(
-                      labelText: 'Name *',
-                      hintText: 'e.g. Science Lab Equipment',
-                      prefixIcon: Icon(Icons.label_outline, size: 20),
-                    ),
                     validator: requiredText,
                     onChanged: (value) {
                       if (!editing && !_codeManuallyEdited) {
                         _code.text = generateCategoryCode(value);
                       }
                     },
+                    label: 'Name *',
+                    hintText: 'e.g. Science Lab Equipment',
+                    icon: Icons.label_outline,
                   ),
-                  TextFormField(
+                  AppTextField(
                     controller: _code,
                     enabled: !editing,
                     textCapitalization: TextCapitalization.characters,
                     textInputAction: TextInputAction.next,
-                    decoration: InputDecoration(
-                      labelText: 'Code *',
-                      prefixIcon: const Icon(
-                        Icons.qr_code_2_outlined,
-                        size: 20,
-                      ),
-                      helperText: editing
-                          ? null
-                          : 'Unique code (e.g. BKD, CLN)',
-                    ),
                     validator: (value) {
                       final required = requiredText(value);
                       if (required != null) return required;
@@ -150,13 +139,12 @@ class _CategoryFormPageState extends State<CategoryFormPage> {
                     onChanged: (value) {
                       _codeManuallyEdited = value.trim().isNotEmpty;
                     },
+                    label: 'Code *',
+                    icon: Icons.qr_code_2_outlined,
+                    helperText: editing ? null : 'Unique code (e.g. BKD, CLN)',
                   ),
-                  DropdownButtonFormField<String?>(
-                    initialValue: _parentId,
-                    decoration: const InputDecoration(
-                      labelText: 'Parent category',
-                      prefixIcon: Icon(Icons.account_tree_outlined, size: 20),
-                    ),
+                  AppDropdown<String?>(
+                    value: _parentId,
                     items: [
                       const DropdownMenuItem(child: Text('None (top level)')),
                       for (final category in tops)
@@ -173,13 +161,11 @@ class _CategoryFormPageState extends State<CategoryFormPage> {
                         ),
                     ],
                     onChanged: (value) => setState(() => _parentId = value),
+                    label: 'Parent category',
+                    icon: Icons.account_tree_outlined,
                   ),
-                  DropdownButtonFormField<Tracking>(
-                    initialValue: _tracking,
-                    decoration: const InputDecoration(
-                      labelText: 'Suggested tracking *',
-                      prefixIcon: Icon(Icons.track_changes_outlined, size: 20),
-                    ),
+                  AppDropdown<Tracking>(
+                    value: _tracking,
                     items: [
                       for (final tracking in Tracking.values)
                         DropdownMenuItem(
@@ -192,17 +178,17 @@ class _CategoryFormPageState extends State<CategoryFormPage> {
                         setState(() => _tracking = tracking);
                       }
                     },
+                    label: 'Suggested tracking *',
+                    icon: Icons.track_changes_outlined,
                   ),
-                  TextFormField(
+                  AppTextField(
                     controller: _description,
                     maxLines: 3,
                     minLines: 1,
                     textInputAction: TextInputAction.done,
-                    decoration: const InputDecoration(
-                      labelText: 'Description',
-                      hintText: 'Optional notes or description',
-                      prefixIcon: Icon(Icons.description_outlined, size: 20),
-                    ),
+                    label: 'Description',
+                    hintText: 'Optional notes or description',
+                    icon: Icons.description_outlined,
                   ),
                 ],
               ),

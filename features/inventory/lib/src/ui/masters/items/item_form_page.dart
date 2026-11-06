@@ -1,4 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:inventory/inventory.dart';
@@ -103,7 +104,7 @@ class _ItemFormPageState extends State<ItemFormPage> {
                 title: 'Basic information',
                 icon: Icons.inventory_2_outlined,
                 children: [
-                  TextFormField(
+                  AppTextField(
                     controller: _code,
                     enabled: !editing,
                     textCapitalization: TextCapitalization.characters,
@@ -113,34 +114,23 @@ class _ItemFormPageState extends State<ItemFormPage> {
                       ),
                     ],
                     textInputAction: TextInputAction.next,
-                    decoration: InputDecoration(
-                      labelText: 'Item code / SKU *',
-                      prefixIcon: const Icon(
-                        Icons.qr_code_2_outlined,
-                        size: 20,
-                      ),
-                      helperText: !editing
-                          ? 'Unique identifier, e.g. PAP-A4-01'
-                          : null,
-                    ),
                     validator: requiredText,
+                    label: 'Item code / SKU *',
+                    icon: Icons.qr_code_2_outlined,
+                    helperText: !editing
+                        ? 'Unique identifier, e.g. PAP-A4-01'
+                        : null,
                   ),
-                  TextFormField(
+                  AppTextField(
                     controller: _name,
                     textCapitalization: TextCapitalization.words,
                     textInputAction: TextInputAction.next,
-                    decoration: const InputDecoration(
-                      labelText: 'Item name *',
-                      prefixIcon: Icon(Icons.label_outline, size: 20),
-                    ),
                     validator: requiredText,
+                    label: 'Item name *',
+                    icon: Icons.label_outline,
                   ),
-                  DropdownButtonFormField<String>(
-                    initialValue: _categoryId,
-                    decoration: const InputDecoration(
-                      labelText: 'Category *',
-                      prefixIcon: Icon(Icons.category_outlined, size: 20),
-                    ),
+                  AppDropdown<String>(
+                    value: _categoryId,
                     items: [
                       for (final category in tops)
                         DropdownMenuItem(
@@ -157,18 +147,13 @@ class _ItemFormPageState extends State<ItemFormPage> {
                           ?.suggestedTracking;
                       if (!editing && suggested != null) _tracking = suggested;
                     }),
+                    label: 'Category *',
+                    icon: Icons.category_outlined,
                   ),
                   if (subs.isNotEmpty)
-                    DropdownButtonFormField<String?>(
+                    AppDropdown<String?>(
                       key: ValueKey(_categoryId),
-                      initialValue: _subcategoryId,
-                      decoration: const InputDecoration(
-                        labelText: 'Subcategory',
-                        prefixIcon: Icon(
-                          Icons.subdirectory_arrow_right_outlined,
-                          size: 20,
-                        ),
-                      ),
+                      value: _subcategoryId,
                       items: [
                         const DropdownMenuItem(child: Text('None')),
                         for (final category in subs)
@@ -178,18 +163,17 @@ class _ItemFormPageState extends State<ItemFormPage> {
                           ),
                       ],
                       onChanged: (value) => _subcategoryId = value,
+                      label: 'Subcategory',
+                      icon: Icons.subdirectory_arrow_right_outlined,
                     ),
-                  TextFormField(
+                  AppTextField(
                     controller: _description,
                     minLines: 2,
                     maxLines: 4,
                     textCapitalization: TextCapitalization.sentences,
                     keyboardType: TextInputType.multiline,
-                    decoration: const InputDecoration(
-                      labelText: 'Description',
-                      alignLabelWithHint: true,
-                      prefixIcon: Icon(Icons.notes_outlined, size: 20),
-                    ),
+                    label: 'Description',
+                    icon: Icons.notes_outlined,
                   ),
                 ],
               ),
@@ -197,12 +181,8 @@ class _ItemFormPageState extends State<ItemFormPage> {
                 title: 'Stock & tracking',
                 icon: Icons.tune_outlined,
                 children: [
-                  DropdownButtonFormField<String>(
-                    initialValue: _stockUnit,
-                    decoration: const InputDecoration(
-                      labelText: 'Stock unit *',
-                      prefixIcon: Icon(Icons.straighten_outlined, size: 20),
-                    ),
+                  AppDropdown<String>(
+                    value: _stockUnit,
                     items: [
                       for (final unit in inventoryProvider.units)
                         DropdownMenuItem(
@@ -212,14 +192,12 @@ class _ItemFormPageState extends State<ItemFormPage> {
                     ],
                     validator: (value) => value == null ? 'Required' : null,
                     onChanged: (value) => setState(() => _stockUnit = value),
+                    label: 'Stock unit *',
+                    icon: Icons.straighten_outlined,
                   ),
-                  DropdownButtonFormField<Tracking>(
+                  AppDropdown<Tracking>(
                     key: ValueKey(_tracking),
-                    initialValue: _tracking,
-                    decoration: const InputDecoration(
-                      labelText: 'Tracking method *',
-                      prefixIcon: Icon(Icons.track_changes_outlined, size: 20),
-                    ),
+                    value: _tracking,
                     items: [
                       for (final tracking in Tracking.values)
                         DropdownMenuItem(
@@ -228,6 +206,8 @@ class _ItemFormPageState extends State<ItemFormPage> {
                         ),
                     ],
                     onChanged: (tracking) => _tracking = tracking ?? _tracking,
+                    label: 'Tracking method *',
+                    icon: Icons.track_changes_outlined,
                   ),
                 ],
               ),
@@ -235,33 +215,29 @@ class _ItemFormPageState extends State<ItemFormPage> {
                 title: 'Reorder & pricing',
                 icon: Icons.payments_outlined,
                 children: [
-                  TextFormField(
+                  AppTextField(
                     controller: _reorder,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
                     inputFormatters: [decimalInputFormatter],
                     textInputAction: TextInputAction.next,
-                    decoration: const InputDecoration(
-                      labelText: 'Reorder level',
-                      prefixIcon: Icon(Icons.refresh_outlined, size: 20),
-                      helperText: 'Alert threshold when available stock is low',
-                    ),
                     validator: optionalNumber,
+                    label: 'Reorder level',
+                    icon: Icons.refresh_outlined,
+                    helperText: 'Alert threshold when available stock is low',
                   ),
-                  TextFormField(
+                  AppTextField(
                     controller: _price,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
                     inputFormatters: [decimalInputFormatter],
                     textInputAction: TextInputAction.done,
-                    decoration: const InputDecoration(
-                      labelText: 'Default purchase price',
-                      prefixIcon: Icon(Icons.payments_outlined, size: 20),
-                      helperText: 'Estimated unit cost for purchase requests',
-                    ),
                     validator: optionalNumber,
+                    label: 'Default purchase price',
+                    icon: Icons.payments_outlined,
+                    helperText: 'Estimated unit cost for purchase requests',
                   ),
                 ],
               ),

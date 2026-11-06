@@ -58,7 +58,6 @@ class UserLocalStorage {
       StorageConstants.userInfoBox,
     );
     await box.clear();
-    await box.add(user);
     await box.put(StorageConstants.currentUserKey, user);
   }
 
@@ -77,14 +76,7 @@ class UserLocalStorage {
     }
     final box = _storageService.getBox<UserInfo>(StorageConstants.userInfoBox);
 
-    final userByKey = box.get(StorageConstants.currentUserKey);
-    if (userByKey != null) return userByKey;
-
-    if (box.isNotEmpty) {
-      return box.values.last;
-    }
-
-    return null;
+    return box.get(StorageConstants.currentUserKey);
   }
 
   String? getToken() {

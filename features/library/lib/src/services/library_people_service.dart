@@ -9,29 +9,31 @@ class LibraryPeopleService {
 
   final RouteService _routes;
 
-  Future<List<LibraryPerson>> searchStudents(String text) async {
-    final students = await _routes.searchStudent(search: text);
-    return [
-      for (final student in students)
-        LibraryPerson(
-          memberType: 'student',
-          personErpId: student.id,
-          name: student.name,
-          classId: student.classId == 0 ? null : student.classId,
-          detail: [
-            if (student.standard.isNotEmpty)
-              'Class ${student.standard}${student.section.isEmpty ? '' : ' ${student.section}'}',
-            if (student.admissionNumber.isNotEmpty)
-              'Adm. ${student.admissionNumber}',
-          ].join(' · '),
-        ),
-    ];
+  /// The student or staff member with exactly [admissionNumber] in the ERP (Node), or null.
+  Future<LibraryPerson?> findByAdmissionNumber(
+    String memberType,
+    String admissionNumber,
+  ) async {
+    final number = admissionNumber.trim().toLowerCase();
+    // TODO(staff): call the Node staff lookup by admission number once its endpoint is known.
+    if (memberType == 'teacher') {
+      throw UnimplementedError('Staff lookup is not connected to Node yet');
+    }
+    final students = await _routes.searchStudent(search: number);
+    for (final student in students) {
+      if (student.admissionNumber.toLowerCase() != number) continue;
+      return LibraryPerson(
+        memberType: 'student',
+        personErpId: student.id,
+        name: student.name,
+        classId: student.classId == 0 ? null : student.classId,
+        detail: [
+          if (student.standard.isNotEmpty)
+            'Class ${student.standard}${student.section.isEmpty ? '' : ' ${student.section}'}',
+          'Adm. ${student.admissionNumber}',
+        ].join(' · '),
+      );
+    }
+    return null;
   }
-
-  /// TODO(teachers): call the Node teacher/staff search once its endpoint is known.
-  /// Until then teachers cannot be found, so the desk cannot lend to them.
-  Future<List<LibraryPerson>> searchTeachers(String text) async => const [];
-
-  /// Whether [searchTeachers] is connected to Node yet.
-  bool get teachersAvailable => false;
 }

@@ -3,6 +3,7 @@ import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
+import 'package:school_library/src/ui/circulation/widgets/circulation_tabs.dart';
 import 'package:school_library/src/ui/reservations/widgets/reservation_card.dart';
 import 'package:school_library/src/ui/reservations/widgets/reservation_empty_states.dart';
 import 'package:school_library/src/ui/reservations/widgets/reservation_sheet.dart';
@@ -162,7 +163,7 @@ class _ReservationsPageState extends State<ReservationsPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Reservations'),
+        title: const Text('Circulation'),
         actions: [
           IconButton(
             tooltip: 'Refresh reservations',
@@ -170,6 +171,7 @@ class _ReservationsPageState extends State<ReservationsPage> {
             onPressed: () => libraryProvider.loadReservations(status: _status),
           ),
         ],
+        bottom: const CirculationTabBar(activeTab: CirculationTab.reservations),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openCreateReservation,

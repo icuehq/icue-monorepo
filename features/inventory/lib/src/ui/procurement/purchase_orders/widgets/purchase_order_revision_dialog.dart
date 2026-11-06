@@ -66,12 +66,10 @@ class _RevisionDialogState extends State<_RevisionDialog> {
           mainAxisSize: MainAxisSize.min,
           spacing: 16,
           children: [
-            TextField(
+            AppTextField(
               controller: _reason,
-              decoration: const InputDecoration(
-                labelText: 'Revision reason *',
-                hintText: 'e.g. Price fluctuation / renegotiated terms',
-              ),
+              label: 'Revision reason *',
+              hintText: 'e.g. Price fluctuation / renegotiated terms',
             ),
             const SizedBox(height: 8),
             dateField(context, _expected, 'Expected delivery date'),
@@ -79,16 +77,13 @@ class _RevisionDialogState extends State<_RevisionDialog> {
             for (final (index, orderLine) in widget.order.lineItems.indexed)
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
-                child: TextField(
+                child: AppTextField(
                   controller: _prices[index],
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
-                  decoration: InputDecoration(
-                    labelText:
-                        '${procurementProvider.itemName(orderLine.itemId)} unit price (₹)',
-                    isDense: true,
-                  ),
+                  label:
+                      '${procurementProvider.itemName(orderLine.itemId)} unit price (₹)',
                 ),
               ),
           ],

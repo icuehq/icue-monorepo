@@ -1,4 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:provider/provider.dart';
@@ -89,11 +90,11 @@ class _LibraryTransferPageState extends State<LibraryTransferPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text(title),
-        content: TextField(
+        content: AppTextField(
           controller: controller,
           maxLength: 500,
           autofocus: true,
-          decoration: const InputDecoration(labelText: 'Reason'),
+          label: 'Reason',
         ),
         actions: [
           TextButton(
@@ -397,21 +398,17 @@ class _LibraryTransferPageState extends State<LibraryTransferPage> {
                           ),
                       if (receiving) ...[
                         const Divider(height: 24),
-                        TextField(
+                        AppTextField(
                           controller: _shelf,
                           maxLength: 120,
-                          decoration: const InputDecoration(
-                            labelText: 'Shelf (optional)',
-                            helperText: 'Where the received copies are placed',
-                          ),
+                          label: 'Shelf (optional)',
+                          helperText: 'Where the received copies are placed',
                         ),
                         const SizedBox(height: 8),
-                        TextField(
+                        AppTextField(
                           controller: _remarks,
                           maxLength: 500,
-                          decoration: const InputDecoration(
-                            labelText: 'Receipt remarks (optional)',
-                          ),
+                          label: 'Receipt remarks (optional)',
                         ),
                       ],
                     ],

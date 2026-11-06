@@ -75,19 +75,16 @@ class IssueStockCard extends StatelessWidget {
             if (remainingToIssue(line) > 0)
               Padding(
                 padding: const EdgeInsets.only(bottom: 10),
-                child: TextFormField(
+                child: AppTextField(
                   controller: quantityControllers[index],
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
                   inputFormatters: [decimalInputFormatter],
-                  decoration: InputDecoration(
-                    labelText: itemName(line.itemId),
-                    helperText:
-                        'Remaining ${remainingToIssue(line).toQuantityText()} of '
-                        '${(line.approved ?? 0).toQuantityText()} approved',
-                    isDense: true,
-                  ),
+                  label: itemName(line.itemId),
+                  helperText:
+                      'Remaining ${remainingToIssue(line).toQuantityText()} of '
+                      '${(line.approved ?? 0).toQuantityText()} approved',
                 ),
               ),
         ],
