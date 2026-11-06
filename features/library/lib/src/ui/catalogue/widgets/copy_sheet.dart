@@ -133,7 +133,7 @@ class _CopySheetState extends State<CopySheet> {
   Widget build(BuildContext context) {
     final libraryProvider = context.read<LibraryProvider>();
     final copy = widget.copy;
-    final canEdit = libraryProvider.access.can('library.catalogue.manage');
+    final canEdit = libraryProvider.access.can('library.catalogue');
     final facts = <(String, String?)>[
       ('Status', humanizeStatus(copy.status)),
       ('Library', libraryProvider.library(copy.libraryId)?.name),

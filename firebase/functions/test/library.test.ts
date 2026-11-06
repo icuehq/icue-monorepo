@@ -39,13 +39,13 @@ describe('library masters', () => {
     await db()
       .doc(`schools/${SCHOOL_ID}/userAccess/1`)
       .set({
-        permissions: ['library.settings', 'library.catalogue.manage', 'library.catalogue.view'],
+        permissions: ['library.settings', 'library.catalogue'],
         campusIds: [31],
         hasAllCampuses: false,
       });
     await db()
       .doc(`schools/${SCHOOL_ID}/userAccess/2`)
-      .set({ permissions: ['library.catalogue.view'], campusIds: [31], hasAllCampuses: false });
+      .set({ permissions: ['library.members.view'], campusIds: [31], hasAllCampuses: false });
     await run(masters.seedDefaults, {});
     category = (await seedLibraryCategory({ code: 'GEN', name: 'General' })).id;
   });

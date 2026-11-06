@@ -30,7 +30,7 @@ For emulator testing:
 
 - **Full Admin / Testing Access**: Sign in through the app. In the Emulator UI (<http://localhost:4000/firestore>), locate `schools/<schoolId>/userAccess/<your uid>`. Ensure `permissions` contains the required keys (or all permissions below), `campusIds: [31, 32]`, and `hasAllCampuses: true`:
   - Inventory: `inventory.settings`, `inventory.items.manage`, `inventory.items.view`, `inventory.stock.view`, `inventory.stock.operate`, `inventory.issue.request`, `inventory.issue.approve`, `inventory.adjustment.approve`, `inventory.purchaseRequest.request`, `inventory.purchaseRequest.approve`, `inventory.procure.operate`, `inventory.vendors.manage`, `inventory.assets.manage`, `inventory.assets.view`, `inventory.reports.view`.
-  - Library: `library.settings`, `library.catalogue.manage`, `library.catalogue.view`, `library.circulation.operate`, `library.fines.waive`, `library.reports.view`, `library.members.view`.
+  - Library: `library.settings`, `library.catalogue`, `library.circulation.operate`, `library.fines.waive`, `library.reports.view`, `library.members.view`.
 - **Role Verification (Part 1.7 / 2.9)**: To simulate specific roles (e.g. `storekeeper`, `procurement`, `teacher`, `librarian`), edit the `permissions` array directly in the Emulator UI document or sign in as a user with that role.
 
 ### 0.3 Run the app
@@ -1132,7 +1132,7 @@ Setup: Copy `ACC-000001` is currently on loan to Student 501. No other copies of
 - [ ] 2.7.2 **Approve and Dispatch Transfer**:
   - Tap the transfer card to open the transfer screen (a card with `Needs your approval` is waiting on you):
     - Tap **Approve transfer** and confirm (requires `library.settings`). Status becomes `Approved`.
-    - Tap **Dispatch copies** and confirm (requires `library.catalogue.manage` on the source campus).
+    - Tap **Dispatch copies** and confirm (requires `library.catalogue` on the source campus).
   - **Expect** the progress strip reaches `In transit`; copy `ACC-000001` marked `In Transit`.
 - [ ] 2.7.3 Negative: Issuing an In-Transit Copy:
   - In Circulation, attempt to issue `ACC-000001` while in transit.
@@ -1258,13 +1258,13 @@ Setup: Copy `ACC-000001` is currently on loan to Student 501. No other copies of
 
 Edit permissions in `schools/<schoolId>/userAccess/<uid>`:
 
-- [ ] 2.9.1 **Role: `teacher`**:
-  - Set permissions: `library.catalogue.view`.
+- [ ] 2.9.1 **Role: `teacher`** (no Library permissions):
+  - Set permissions: none of `library.*`.
   - Restart / reload app.
-  - **Expect**: Only Catalogue tile is accessible. Circulation, Members, Borrowing policies, Fines, Incidents, Transfers, Verification, and Reports are hidden.
-- [ ] 2.9.2 **Role: `principal`**:
-  - Set permissions: `library.catalogue.view`, `library.reports.view`, `library.members.view`.
-  - **Expect**: Access to Dashboard, Catalogue, Members, and Reports. Circulation desk operational buttons are hidden/disabled.
+  - **Expect**: No Library tile and no Library data readable.
+- [ ] 2.9.2 **Catalogue only**:
+  - Set permissions: `library.catalogue`.
+  - **Expect**: Catalogue, Copies, Categories, Libraries, Transfers, Stock verification, Import tiles; Circulation, Members, Borrowing policies, Fines, Incidents and Reports are hidden.
 - [ ] 2.9.3 **Role: `librarian` (Campus Scoping)**:
   - In `userAccess/<uid>`, set `campusIds: [32]` (Campus 32 only) and `hasAllCampuses: false`.
   - **Expect**: Library views and circulation default to `Junior School Library` (`L2`); queries exclude Campus 31 (`L1`) loans and copies.

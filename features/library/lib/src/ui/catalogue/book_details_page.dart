@@ -48,7 +48,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
         ),
       );
     }
-    final canEdit = libraryProvider.access.can('library.catalogue.manage');
+    final canEdit = libraryProvider.access.can('library.catalogue');
     final rows = <(String, String?)>[
       ('Subtitle', book.subtitle),
       ('Authors', book.authorLine),

@@ -308,7 +308,7 @@ Collections: `libraries`, `libraryCategories`, `libraryCatalogue` (title-level; 
 
 Functions (`firebase/functions/src/library/`):
 
-- [x] `library-library-upsert`, `library-library-setStatus` (`library.settings`); `library-category-upsert`, `library-category-setStatus`, `library-catalogue-upsert`, `library-catalogue-setStatus`, `library-seedDefaults` (`library.catalogue.manage`)
+- [x] `library-library-upsert`, `library-library-setStatus` (`library.settings`); `library-category-upsert`, `library-category-setStatus`, `library-catalogue-upsert`, `library-catalogue-setStatus`, `library-seedDefaults` (`library.catalogue`)
 - [x] Unique library/category codes via `uniqueKeys`; campus fixed after creation; one level of subcategories; inactive category rejected for new use
 - [x] Catalogue duplicate detection: `identityKey` = ISBN-13 (ISBN-10 converted) or normalized title + first author + edition + publisher + year, claimed in `uniqueKeys` and moved on edit; ISBN check digits validated; books without ISBN supported
 - [x] Catalogue search: `syncCatalogueSearch` mirrors into the `search` database, `library-catalogue-search` (whole-word title/subtitle/author/publisher/keywords, category filter; a query that is a valid ISBN is an exact lookup on `(default)`)
@@ -317,7 +317,7 @@ Functions (`firebase/functions/src/library/`):
 
 Rules and indexes:
 
-- [x] `firestore.rules`: reads for libraries/categories/catalogue with `library.catalogue.view`
+- [x] `firestore.rules`: reads for libraries/categories/catalogue with `library.catalogue`
 - [x] `firestore.indexes.json`: `libraryCatalogue` (`categoryId`, `title`); `create-search-index.sh` also creates the `libraryCatalogue` text index
 - [x] Rules tests
 
@@ -331,7 +331,7 @@ Flutter:
 
 Collections: `libraryCopies` (doc ID = accession number), `libraryAcquisitions`.
 
-Functions (`firebase/functions/src/library/copies.ts`, all `library.catalogue.manage`, campus scoped through the library / copy):
+Functions (`firebase/functions/src/library/copies.ts`, all `library.catalogue`, campus scoped through the library / copy):
 
 - [x] `library-acquisition-create` (purchase, donation or opening stock; 1–100 copies per call; purchase needs a price, donation may be 0; active title and library only; numbering `ACQ/<financialYear>/<seq>`; creates one copy per unit with school-wide sequential accession numbers `ACC-000001` from `counters/ACC`, used as doc ID and barcode)
 - [x] `library-copy-update` (shelf, condition, remarks, RFID tag unique per school via `uniqueKeys` `libraryRfid`), `library-copy-move` (available copies only, to another active library on an allowed campus), `library-copy-setStatus` (available / under maintenance / damaged / lost / withdrawn; reason for damaged, lost, withdrawn; lost and withdrawn are final; issued, reserved, in-transit untouchable)
@@ -339,7 +339,7 @@ Functions (`firebase/functions/src/library/copies.ts`, all `library.catalogue.ma
 
 Rules and indexes:
 
-- [x] `firestore.rules`: `libraryCopies` readable with `library.catalogue.view`; `libraryAcquisitions` with `library.catalogue.manage`
+- [x] `firestore.rules`: `libraryCopies` readable with `library.catalogue`; `libraryAcquisitions` with `library.catalogue`
 - [x] Indexes: none needed (copies by `catalogueId`, barcode and RFID tag are single-field queries; acquisitions by `createdAt`)
 - [x] Rules tests
 
@@ -456,7 +456,7 @@ Functions (`firebase/functions/src/library/transfers.ts`, `verification.ts`):
 
 Rules and indexes:
 
-- [x] `firestore.rules`: both collections readable by `library.catalogue.manage` on the campus (transfers: source or destination campus); `firestore.indexes.json`: status + createdAt for each; rules test
+- [x] `firestore.rules`: both collections readable by `library.catalogue` on the campus (transfers: source or destination campus); `firestore.indexes.json`: status + createdAt for each; rules test
 
 Flutter:
 
@@ -512,7 +512,7 @@ Format: `date · phase · what changed from the architecture doc · why`.
 - 2026-11-01 · Lib-1 · Added `library-category-setStatus` (not in the architecture's callable list) · categories carry a status (FRS 11.3) and inactive ones are rejected for new titles, so they need a way to be deactivated.
 - 2026-11-01 · Lib-1 · Book cover upload deferred (`coverPath` stored as null) and "view physical copies" on the book page waits for Lib-2 · same reason as Inv-1 item images; no copies exist yet. Catalogue import/export waits for Lib-8.
 - 2026-11-01 · Lib-1 · A duplicate title is a hard `already-exists` error, not a warning · the identity key (ISBN-13, or title/author/edition/publisher/year) is claimed in `uniqueKeys`; editing the identity moves the key. Two genuinely different books with identical details must differ in edition or year.
-- 2026-11-01 · Lib-1 · Libraries and catalogue are readable by anyone with `library.catalogue.view` (no campus filter) · the catalogue is school-wide and teachers need to see where books are; writes stay campus-scoped through the callable wrapper.
+- 2026-11-01 · Lib-1 · Libraries and catalogue are readable by anyone with `library.catalogue` (no campus filter) · the catalogue is school-wide and teachers need to see where books are; writes stay campus-scoped through the callable wrapper.
 - 2026-11-01 · Lib-1 · Librarian staff are entered as ERP staff IDs, campuses shown as "Campus <id>" · same as Inv-1 stores; Node staff and branch-name endpoints are not confirmed.
 - 2026-11-01 · Inv-2 · Receiving sources exclude purchase orders; PO-linked receiving with quantity validation arrives in Inv-5 · POs do not exist yet. Attachments on receipts are stored as an empty list until uploads exist.
 - 2026-11-01 · Inv-2 · Asset-tracked items are rejected by every stock callable · individual assets, serials and assignment belong to Inv-6.
@@ -558,7 +558,7 @@ Format: `date · phase · what changed from the architecture doc · why`.
 - 2026-11-01 · Lib-2 · Acquisition types are purchase, donation and opening stock; transfer arrives with Lib-7 · transfers create no acquisition record. Acquisition attachments are not stored (no uploads) and a new acquisition starts from a book's page, not from the Copies page.
 - 2026-11-01 · Lib-2 · `library-copy-setStatus` is not in the architecture's callable list; damage, loss and withdrawal can be set by hand here, while incidents and fines arrive with Lib-6 · FRS 11.5 needs these statuses now.
 - 2026-11-01 · Lib-2 · Copy issue and transfer history are not shown on the copy sheet · loans arrive with Lib-4, transfers with Lib-7; changes are in `auditLogs`.
-- 2026-11-01 · Lib-2 · Copies are readable school-wide with `library.catalogue.view` (like the catalogue) so teachers can see where a book is; writes are campus scoped. Camera scanning of labels uses the Inventory `ScanField` and is untested on a device (no native build run).
+- 2026-11-01 · Lib-2 · Copies are readable school-wide with `library.catalogue` (like the catalogue) so teachers can see where a book is; writes are campus scoped. Camera scanning of labels uses the Inventory `ScanField` and is untested on a device (no native build run).
 - 2026-11-01 · Lib-3 · Member category is a free key (`primary`, `teacher`) matched to a policy by `<libraryId>_<category>`, not a separate master · FRS lists categories only as policy keys; a member without a matching active policy is flagged in the list and refused at issue in Lib-4. Policy library and category cannot change after creation (make a new policy and deactivate the old one).
 - 2026-11-01 · Lib-3 · Members are enrolled by typing the ERP ID (class ID optional), shown as "Student #id" · only IDs are stored; no student/staff pickers until the Node endpoints are confirmed. There is no bulk enrolment from a class list (Lib-8 import).
 - 2026-11-01 · Lib-3 · Borrowing history, outstanding books and outstanding fines (FRS 11.7) are not shown yet · loans arrive with Lib-4 and fines with Lib-6; the list shows `activeLoans` only. `blocked` is stored false and set by fines in Lib-6. The membership end date is stored but not enforced until issue (Lib-4); the expiring-membership notification arrives with `dailyLibrary`.
@@ -572,7 +572,7 @@ Format: `date · phase · what changed from the architecture doc · why`.
 - 2026-11-01 · Lib-6 · Unblocking member is evaluated when fines are settled (waived in full or paid in full) · if no other outstanding fines exist for the member, the member is unblocked immediately in the same transaction.
 - 2026-11-01 · Lib-6 · Incident resolution 'repaired' triggers reservation queue release · if reservations are waiting for that title, the repaired copy fulfills the next waiting reservation rather than going idle on the shelf.
 - 2026-11-01 · Lib-6 · `library-incident-report` refuses a copy that is on loan or held, or that already has an open incident; `repaired` is only for damaged copies; `dismissed` (no fault, or the lost book turned up) sends a damaged or lost copy back through the reservation queue/shelf; the charge cannot be lowered on resolve (waive the fine instead) · closes orphaned-loan and duplicate-incident holes found in review. Damage on a held copy cannot be reported until the hold is released.
-- 2026-11-01 · Lib-7 · Transfer approval needs `library.settings`, request/dispatch/receive need `library.catalogue.manage`; there is no reject or cancel, and a copy not received stays `in_transit` (no lost-in-transit closure) · keeps the workflow to the four FRS steps; use `library-copy-setStatus` after investigation once that path is needed. Copies are only locked at dispatch, so an approved transfer fails at dispatch if a copy left the shelf.
+- 2026-11-01 · Lib-7 · Transfer approval needs `library.settings`, request/dispatch/receive need `library.catalogue`; there is no reject or cancel, and a copy not received stays `in_transit` (no lost-in-transit closure) · keeps the workflow to the four FRS steps; use `library-copy-setStatus` after investigation once that path is needed. Copies are only locked at dispatch, so an approved transfer fails at dispatch if a copy left the shelf.
 - 2026-11-01 · Lib-7 · Verification keeps copy IDs as arrays on the session doc (expected, onLoanCopyIds, scanned, missing, unexpected), capped at 2000 copies per session, and scans go through `library-verification-scan` (not client-written lines) · no offline counting; scope by shelf for bigger libraries. Issued copies are listed apart and not expected; a scanned copy that is not expected, or is shown as issued, is `unexpected`.
 - 2026-11-01 · Lib-7 · Approving a verification can mark missing copies `lost` or `move` available unexpected copies into the library; missing copies left alone are stored as `investigate`. No rejection step; destination/source staff notifications arrive with Lib-8.
 - 2026-11-01 · Lib-8 · Dashboard filters are library and member type (the member tiles) only; no category or date-range filter · every tile is a current-state count, so a date range has nothing to filter, and copies carry no category ID. Dashboard counts and indexes are unverified against a real project (emulators do not enforce indexes).
@@ -582,6 +582,7 @@ Format: `date · phase · what changed from the architecture doc · why`.
 - 2026-11-01 · Lib-8 · Parent view is rules only: parents read their ward's loans, reservations, fines, incidents and membership, and browse the catalogue; the parent app screens arrive when it joins the monorepo · there is no parent UI here to build. Parents cannot see copies or availability.
 - 2026-11-02 · cleanup · Removed the callables that client Firestore writes replaced: inventory category/unit/item/variant/store/vendor upserts and setStatus, library library/category upserts and setStatus, and purchase request, quotation and invoice callables. The importer keeps the category, store, item and vendor upsert handlers internally; deployed functions no longer include them. Tests seed those documents directly (`firebase/functions/test/fixtures.ts`). No legacy-client support.
 - 2026-11-03 · audit fixes · Workflow changes: only accepted PO units fill an order (rejected ones leave it open); closing a short PO releases the remainder to its request; a short final inventory transfer receipt writes a resolved `lost` unavailable entry; inventory transfers now go requested → approved (`inventory.adjustment.approve`) → dispatched; transfers (both modules) and issue requests can be cancelled/closed; library transfers can close short (copies marked lost + incident); members can be blocked by hand (`blockedBy`); `inventory.asset.register` takes `quantity` (1–50, no serial number); library loans/returns number as `LIS`/`LRT` (no longer share `ISS`/`RET` with inventory); renewing an overdue loan fines the overdue days.
+- 2026-11-06 · library permissions · `library.catalogue.manage` and `library.catalogue.view` merged into one `library.catalogue` (view, add, edit; Node action id 332 dropped, 331 kept) · Library has a single Librarian role, so a read-only catalogue permission had no holder. The other Library permissions are unchanged.
 
 ## Open items
 

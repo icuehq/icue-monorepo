@@ -31,7 +31,7 @@ describe('library transfers and stock verification', () => {
       .set({
         permissions: [
           'library.settings',
-          'library.catalogue.manage',
+          'library.catalogue',
           'library.circulation.operate',
         ],
         campusIds: [31, 32],
@@ -40,16 +40,16 @@ describe('library transfers and stock verification', () => {
     await db()
       .doc(`schools/${SCHOOL_ID}/userAccess/approver`)
       .set({
-        permissions: ['library.settings', 'library.catalogue.manage'],
+        permissions: ['library.settings', 'library.catalogue'],
         campusIds: [31, 32],
         hasAllCampuses: false,
       });
     await db()
       .doc(`schools/${SCHOOL_ID}/userAccess/dest`)
-      .set({ permissions: ['library.catalogue.manage'], campusIds: [32], hasAllCampuses: false });
+      .set({ permissions: ['library.catalogue'], campusIds: [32], hasAllCampuses: false });
     await db()
       .doc(`schools/${SCHOOL_ID}/userAccess/src`)
-      .set({ permissions: ['library.catalogue.manage'], campusIds: [31], hasAllCampuses: false });
+      .set({ permissions: ['library.catalogue'], campusIds: [31], hasAllCampuses: false });
     const category = (await seedLibraryCategory({ code: 'GEN', name: 'General' })).id;
     title = (
       await run(masters.catalogueUpsert, {

@@ -11,7 +11,7 @@ class LibraryCategoriesPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final libraryProvider = context.watch<LibraryProvider>();
-    final canEdit = libraryProvider.access.can('library.catalogue.manage');
+    final canEdit = libraryProvider.access.can('library.catalogue');
     final rows = <(LibraryCategory, bool)>[
       for (final category in libraryProvider.topCategories) ...[
         (category, false),
@@ -37,7 +37,7 @@ class LibraryCategoriesPage extends StatelessWidget {
                   : SeedDefaultsButton<LibraryProvider>(
                       label: 'Add default categories',
                       canSeed: (provider) =>
-                          provider.access.can('library.catalogue.manage'),
+                          provider.access.can('library.catalogue'),
                       seed: (provider) => provider.seedDefaults(),
                     ),
             )

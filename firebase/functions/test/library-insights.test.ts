@@ -39,7 +39,7 @@ describe('library notifications and import', () => {
       .set({
         permissions: [
           'library.settings',
-          'library.catalogue.manage',
+          'library.catalogue',
           'library.circulation.operate',
         ],
         campusIds: [31],
@@ -47,7 +47,7 @@ describe('library notifications and import', () => {
       });
     await db()
       .doc(`schools/${SCHOOL_ID}/userAccess/none`)
-      .set({ permissions: ['library.catalogue.view'], campusIds: [31], hasAllCampuses: false });
+      .set({ permissions: ['library.catalogue'], campusIds: [31], hasAllCampuses: false });
     const category = (await seedLibraryCategory({ code: 'GEN', name: 'General' })).id;
     title = (
       await run(masters.catalogueUpsert, {

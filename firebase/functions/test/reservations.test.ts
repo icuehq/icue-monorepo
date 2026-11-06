@@ -46,7 +46,7 @@ describe('library reservations', () => {
       .set({
         permissions: [
           'library.settings',
-          'library.catalogue.manage',
+          'library.catalogue',
           'library.circulation.operate',
         ],
         campusIds: [31],

@@ -49,7 +49,7 @@ describe('library members and policies', () => {
       .set({
         permissions: [
           'library.settings',
-          'library.catalogue.manage',
+          'library.catalogue',
           'library.circulation.operate',
         ],
         campusIds: [31, 32],

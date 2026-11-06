@@ -7,9 +7,9 @@ import {
 
 describe('permissionsFromActions', () => {
   it('maps action Ids, drops unknown and parent Ids, sorts and dedupes', () => {
-    expect(permissionsFromActions([332, '312', 312, 300, 999])).toEqual([
+    expect(permissionsFromActions([331, '312', 312, 300, 999])).toEqual([
       'inventory.items.view',
-      'library.catalogue.view',
+      'library.catalogue',
     ]);
   });
 

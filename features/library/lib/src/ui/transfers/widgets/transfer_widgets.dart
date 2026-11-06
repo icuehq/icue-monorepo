@@ -21,7 +21,7 @@ bool canApproveTransfer(LibraryTransfer transfer, ModuleAccess access) =>
 
 bool canDispatchTransfer(LibraryTransfer transfer, ModuleAccess access) =>
     transfer.status == 'approved' &&
-    access.can('library.catalogue.manage') &&
+    access.can('library.catalogue') &&
     onCampus(access, transfer.campusId);
 
 bool isReceivable(LibraryTransfer transfer) =>
@@ -29,7 +29,7 @@ bool isReceivable(LibraryTransfer transfer) =>
 
 bool canReceiveTransfer(LibraryTransfer transfer, ModuleAccess access) =>
     isReceivable(transfer) &&
-    access.can('library.catalogue.manage') &&
+    access.can('library.catalogue') &&
     onCampus(access, transfer.toCampusId);
 
 /// What this user should do next on [transfer], or null when nothing is waiting on them.

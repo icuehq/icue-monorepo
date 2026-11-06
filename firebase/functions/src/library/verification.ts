@@ -30,7 +30,7 @@ export const verification = {
   /** Snapshots the copies expected on the shelf; issued copies are listed apart (`onLoanCopyIds`) and need no scan. */
   verificationCreate: defineCallable({
     name: 'library.verification.create',
-    permission: 'library.catalogue.manage',
+    permission: 'library.catalogue',
     input: z.object({
       libraryId: id,
       shelf: z.string().trim().min(1).max(120).nullish(),
@@ -90,7 +90,7 @@ export const verification = {
   /** Records scanned accession numbers. A scanned copy outside the expected list (or shown as issued) is `unexpected`. */
   verificationScan: defineCallable({
     name: 'library.verification.scan',
-    permission: 'library.catalogue.manage',
+    permission: 'library.catalogue',
     input: z.object({ id, accessionNumbers: z.array(id).min(1).max(100) }),
     handler: async (context, i) => {
       const { ref, verification: session } = await loadSession(context, i.id);
@@ -128,7 +128,7 @@ export const verification = {
   /** Closes counting. Nothing missing or unexpected means nothing to approve. */
   verificationSubmit: defineCallable({
     name: 'library.verification.submit',
-    permission: 'library.catalogue.manage',
+    permission: 'library.catalogue',
     input: z.object({ id }),
     handler: async (context, i) => {
       const { ref, verification: session } = await loadSession(context, i.id);

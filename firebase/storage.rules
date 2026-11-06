@@ -6,7 +6,7 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     function canView(schoolId, module) {
-      let permission = module == 'inv' ? 'inventory.items.view' : (module == 'lib' ? 'library.catalogue.view' : '');
+      let permission = module == 'inv' ? 'inventory.items.view' : (module == 'lib' ? 'library.catalogue' : '');
       return request.auth != null
         && string(request.auth.token.schoolId) == schoolId
         && permission in firestore.get(/databases/(default)/documents/schools/$(schoolId)/userAccess/$(request.auth.uid)).data.permissions;

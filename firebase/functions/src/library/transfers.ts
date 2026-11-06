@@ -28,7 +28,7 @@ async function loadTransfer(
 export const transfers = {
   transferRequest: defineCallable({
     name: 'library.transfer.request',
-    permission: 'library.catalogue.manage',
+    permission: 'library.catalogue',
     input: z.object({
       fromLibraryId: id,
       toLibraryId: id,
@@ -125,7 +125,7 @@ export const transfers = {
   /** Withdraws or rejects a transfer before dispatch; the copies never left the shelf. */
   transferCancel: defineCallable({
     name: 'library.transfer.cancel',
-    permission: 'library.catalogue.manage',
+    permission: 'library.catalogue',
     input: z.object({ id, reason: z.string().trim().min(1).max(500) }),
     handler: async (context, i) => {
       const { ref, transfer } = await loadTransfer(context, i.id, 'campusId');
@@ -150,7 +150,7 @@ export const transfers = {
   /** Every copy must still be on the shelf; they leave circulation as `in_transit`. */
   transferDispatch: defineCallable({
     name: 'library.transfer.dispatch',
-    permission: 'library.catalogue.manage',
+    permission: 'library.catalogue',
     input: z.object({ id }),
     handler: async (context, i) => {
       const { ref, transfer } = await loadTransfer(context, i.id, 'campusId');
@@ -180,7 +180,7 @@ export const transfers = {
         updatedAt: serverTimestamp(),
       });
       await enqueue(context, `library-transfer-dispatch__${ref.id}`, {
-        to: { permission: 'library.catalogue.manage', campusId: transfer.toCampusId },
+        to: { permission: 'library.catalogue', campusId: transfer.toCampusId },
         category: 'library.transfer',
         title: 'Books on the way',
         body: `${transfer.number}: ${snapshots.length} copies dispatched to your library.`,
@@ -202,7 +202,7 @@ export const transfers = {
    */
   transferReceive: defineCallable({
     name: 'library.transfer.receive',
-    permission: 'library.catalogue.manage',
+    permission: 'library.catalogue',
     input: z.object({
       id,
       copies: z
@@ -282,7 +282,7 @@ export const transfers = {
         context,
         `library-transfer-receive__${ref.id}__${status}__${lineItems.filter((lineItem) => lineItem.received).length}`,
         {
-          to: { permission: 'library.catalogue.manage', campusId: transfer.campusId },
+          to: { permission: 'library.catalogue', campusId: transfer.campusId },
           category: 'library.transfer',
           title: 'Transfer received',
           body: `${transfer.number}: ${status === 'received' ? 'all copies' : `${ids.length} copies`} received at the destination.`,
@@ -302,7 +302,7 @@ export const transfers = {
   /** Closes a transfer whose remaining copies never arrived: each is marked lost and gets an incident. */
   transferCloseShort: defineCallable({
     name: 'library.transfer.closeShort',
-    permission: 'library.catalogue.manage',
+    permission: 'library.catalogue',
     input: z.object({ id, reason: z.string().trim().min(1).max(500) }),
     handler: async (context, i) => {
       const { ref, transfer } = await loadTransfer(context, i.id, 'toCampusId');

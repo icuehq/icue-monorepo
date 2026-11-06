@@ -109,7 +109,7 @@ class _LibraryTransfersPageState extends State<LibraryTransfersPage> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Library Transfers')),
-      floatingActionButton: access.can('library.catalogue.manage')
+      floatingActionButton: access.can('library.catalogue')
           ? FloatingActionButton.extended(
               onPressed: () => _open(LibraryRoutes.libraryTransferForm),
               icon: const Icon(Icons.swap_horiz),

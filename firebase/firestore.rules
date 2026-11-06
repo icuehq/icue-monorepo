@@ -56,7 +56,7 @@ service cloud.firestore {
       allow write: if inSchool(schoolId) && can(schoolId, 'library.settings');
     }
     match /schools/{schoolId}/libraryCategories/{id} {
-      allow write: if inSchool(schoolId) && can(schoolId, 'library.catalogue.manage');
+      allow write: if inSchool(schoolId) && can(schoolId, 'library.catalogue');
     }
 
     // Purchase requests, quotations and invoices: client writes for the roles that handle them.
@@ -307,7 +307,7 @@ service cloud.firestore {
     // Library masters (Lib-1): catalogue is school-wide, readable by anyone who may browse it.
     match /schools/{schoolId}/{coll}/{id} {
       allow read: if inSchool(schoolId) && coll in ['libraries', 'libraryCategories', 'libraryCatalogue', 'libraryCopies']
-        && can(schoolId, 'library.catalogue.view');
+        && can(schoolId, 'library.catalogue');
     }
     // Parents (Lib-8): browse the catalogue read-only; copies stay with staff.
     match /schools/{schoolId}/{coll}/{id} {
@@ -316,7 +316,7 @@ service cloud.firestore {
     }
     // Acquisition records (Lib-2): librarians, and report readers on the campus.
     match /schools/{schoolId}/libraryAcquisitions/{id} {
-      allow read: if inSchool(schoolId) && (can(schoolId, 'library.catalogue.manage')
+      allow read: if inSchool(schoolId) && (can(schoolId, 'library.catalogue')
         || (can(schoolId, 'library.reports.view') && onCampus(schoolId, resource.data.campusId)));
     }
     // Members and borrowing policies (Lib-3); report readers see them for the dashboard.
@@ -353,13 +353,13 @@ service cloud.firestore {
 
     // Transfers (Lib-7): librarians at the source or the destination campus.
     match /schools/{schoolId}/libraryTransfers/{id} {
-      allow read: if inSchool(schoolId) && (can(schoolId, 'library.catalogue.manage') || can(schoolId, 'library.reports.view'))
+      allow read: if inSchool(schoolId) && (can(schoolId, 'library.catalogue') || can(schoolId, 'library.reports.view'))
         && (onCampus(schoolId, resource.data.campusId) || onCampus(schoolId, resource.data.toCampusId));
     }
 
     // Stock verification sessions (Lib-7): librarians on the campus.
     match /schools/{schoolId}/libraryVerifications/{id} {
-      allow read: if inSchool(schoolId) && (can(schoolId, 'library.catalogue.manage') || can(schoolId, 'library.reports.view'))
+      allow read: if inSchool(schoolId) && (can(schoolId, 'library.catalogue') || can(schoolId, 'library.reports.view'))
         && onCampus(schoolId, resource.data.campusId);
     }
 

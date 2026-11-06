@@ -269,7 +269,7 @@ class _LibraryTransferPageState extends State<LibraryTransferPage> {
         actions: [
           if ((transfer.status == 'requested' ||
                   transfer.status == 'approved') &&
-              access.can('library.catalogue.manage') &&
+              access.can('library.catalogue') &&
               onCampus(access, transfer.campusId))
             TextButton(
               onPressed: _busy ? null : () => _cancel(transfer),

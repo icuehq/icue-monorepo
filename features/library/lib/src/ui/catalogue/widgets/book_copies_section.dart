@@ -77,7 +77,7 @@ class _BookCopiesSectionState extends State<BookCopiesSection> {
                 : 'Copies (${copies.length}, $available available)',
           ),
           trailing:
-              libraryProvider.access.can('library.catalogue.manage') &&
+              libraryProvider.access.can('library.catalogue') &&
                   widget.book.active
               ? FilledButton.tonalIcon(
                   icon: const Icon(Icons.add),

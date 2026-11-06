@@ -32,7 +32,7 @@ export const copies = {
    */
   acquisitionCreate: defineCallable({
     name: 'library.acquisition.create',
-    permission: 'library.catalogue.manage',
+    permission: 'library.catalogue',
     input: z.object({
       type: z.enum(['purchase', 'donation', 'opening']),
       catalogueId: id,
@@ -123,7 +123,7 @@ export const copies = {
   /** Shelf, condition, remarks and RFID tag. Status and library have their own callables. */
   copyUpdate: defineCallable({
     name: 'library.copy.update',
-    permission: 'library.catalogue.manage',
+    permission: 'library.catalogue',
     input: z.object({
       id,
       shelf: text.nullish(),
@@ -162,7 +162,7 @@ export const copies = {
   /** Moves an available copy to another library (a copy belongs to one library at a time). */
   copyMove: defineCallable({
     name: 'library.copy.move',
-    permission: 'library.catalogue.manage',
+    permission: 'library.catalogue',
     input: z.object({ id, libraryId: id, shelf: text.nullish() }),
     handler: async (context, i) => {
       const { ref, copy } = await loadCopy(context, i.id);
@@ -189,7 +189,7 @@ export const copies = {
   /** Maintenance, damage, loss and withdrawal. Lost and withdrawn copies never become available again here (a lost copy that turns up is released by dismissing its incident). */
   copySetStatus: defineCallable({
     name: 'library.copy.setStatus',
-    permission: 'library.catalogue.manage',
+    permission: 'library.catalogue',
     input: z.object({ id, status: z.enum(MANUAL), reason: z.string().trim().max(500).nullish() }),
     handler: async (context, i) => {
       const { ref, copy } = await loadCopy(context, i.id);

@@ -51,7 +51,7 @@ class _CataloguePageState extends State<CataloguePage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Catalogue')),
       floatingActionButton:
-          libraryProvider.access.can('library.catalogue.manage')
+          libraryProvider.access.can('library.catalogue')
           ? FloatingActionButton.extended(
               onPressed: () => context.push(LibraryRoutes.libraryBookForm),
               icon: const Icon(Icons.add_rounded),

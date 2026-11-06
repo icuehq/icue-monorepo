@@ -37,7 +37,7 @@ describe('library fines and incidents', () => {
       .set({
         permissions: [
           'library.settings',
-          'library.catalogue.manage',
+          'library.catalogue',
           'library.circulation.operate',
           'library.fines.waive',
         ],

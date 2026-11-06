@@ -390,10 +390,10 @@ final libraryReports = <LibraryReportDef>[
 
 /// Dashboard tiles (FRS 11.1): key, label, permissions that can read the underlying records.
 const libraryDashboardStats = <(String, String, List<String>)>[
-  ('titles', 'Book titles', ['library.catalogue.view']),
-  ('copies', 'Physical copies', ['library.catalogue.view']),
-  ('available', 'Available copies', ['library.catalogue.view']),
-  ('issued', 'Issued copies', ['library.catalogue.view']),
+  ('titles', 'Book titles', ['library.catalogue']),
+  ('copies', 'Physical copies', ['library.catalogue']),
+  ('available', 'Available copies', ['library.catalogue']),
+  ('issued', 'Issued copies', ['library.catalogue']),
   (
     'overdue',
     'Overdue books',
@@ -404,8 +404,8 @@ const libraryDashboardStats = <(String, String, List<String>)>[
     'Reserved books',
     ['library.circulation.operate', 'library.reports.view'],
   ),
-  ('lost', 'Lost books', ['library.catalogue.view']),
-  ('damaged', 'Damaged books', ['library.catalogue.view']),
+  ('lost', 'Lost books', ['library.catalogue']),
+  ('damaged', 'Damaged books', ['library.catalogue']),
   (
     'students',
     'Active student members',
@@ -470,7 +470,7 @@ const libraryImportColumns = <String, List<String>>{
 
 /// Permission the single-record callable of each import type needs.
 const libraryImportPerms = <String, String>{
-  'catalogue': 'library.catalogue.manage',
-  'copies': 'library.catalogue.manage',
+  'catalogue': 'library.catalogue',
+  'copies': 'library.catalogue',
   'members': 'library.circulation.operate',
 };

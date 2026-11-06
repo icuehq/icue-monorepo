@@ -28,7 +28,7 @@ class _LibVerificationPageState extends State<LibraryVerificationPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Stock Verification')),
       floatingActionButton:
-          libraryProvider.access.can('library.catalogue.manage')
+          libraryProvider.access.can('library.catalogue')
           ? FloatingActionButton.extended(
               onPressed: () => VerificationCreateSheet.show(context),
               icon: const Icon(Icons.fact_check_outlined),

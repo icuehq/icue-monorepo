@@ -54,8 +54,7 @@ once chosen.
 | DisplayName | RouteState | Permission |
 | --- | --- | --- |
 | Library Settings | `layout.library.settings` | `library.settings` |
-| Manage Catalogue | `layout.library.catalogue.manage` | `library.catalogue.manage` |
-| View Catalogue | `layout.library.catalogue.view` | `library.catalogue.view` |
+| Catalogue (view, add, edit) | `layout.library.catalogue` | `library.catalogue` |
 | Circulation (issue/return) | `layout.library.circulation.operate` | `library.circulation.operate` |
 | Waive Fines | `layout.library.fines.waive` | `library.fines.waive` |
 | Library Reports | `layout.library.reports.view` | `library.reports.view` |
@@ -66,12 +65,12 @@ once chosen.
 | Role | Inventory | Library |
 | --- | --- | --- |
 | Admin | all | all |
-| Principal | View Items, View Stock, Approve Issue, Approve Stock Adjustment, Approve Purchase, View Assets, Inventory Reports | View Catalogue, Library Reports, View Members |
-| Inventory Manager | all except the two Approve (Issue, Purchase) | View Catalogue |
-| Storekeeper | View Items, View Stock, Operate Stock, Request Issue, Request Purchase, Manage Assets, View Assets | View Catalogue |
-| Procurement | View Items, View Stock, Request Purchase, Procurement, Manage Vendors, View Assets | View Catalogue |
+| Principal | View Items, View Stock, Approve Issue, Approve Stock Adjustment, Approve Purchase, View Assets, Inventory Reports | none |
+| Inventory Manager | all except the two Approve (Issue, Purchase) | none |
+| Storekeeper | View Items, View Stock, Operate Stock, Request Issue, Request Purchase, Manage Assets, View Assets | none |
+| Procurement | View Items, View Stock, Request Purchase, Procurement, Manage Vendors, View Assets | none |
 | Librarian | none | all |
-| Teacher | Request Issue, Request Purchase, View Assets | View Catalogue |
+| Teacher | Request Issue, Request Purchase, View Assets | none |
 
 Granting any child without its parent shows nothing; the parent must be granted
 for the tile to appear.

@@ -23,7 +23,7 @@ class _LibraryHomePageState extends State<LibraryHomePage> {
   @override
   Widget build(BuildContext context) {
     final libraryProvider = context.watch<LibraryProvider>();
-    final view = libraryProvider.access.can('library.catalogue.view');
+    final view = libraryProvider.access.can('library.catalogue');
     final tiles = <(String, String, String, bool)>[
       (
         'assets/dashboard/library-dashboard.png',
@@ -41,7 +41,7 @@ class _LibraryHomePageState extends State<LibraryHomePage> {
         'assets/dashboard/library-copies.png',
         'Copies',
         LibraryRoutes.libraryCopies,
-        libraryProvider.access.can('library.catalogue.manage'),
+        libraryProvider.access.can('library.catalogue'),
       ),
       (
         'assets/dashboard/library-categories.png',
@@ -96,13 +96,13 @@ class _LibraryHomePageState extends State<LibraryHomePage> {
         'assets/dashboard/library-transfers.png',
         'Transfers',
         LibraryRoutes.libraryTransfers,
-        libraryProvider.access.can('library.catalogue.manage'),
+        libraryProvider.access.can('library.catalogue'),
       ),
       (
         'assets/dashboard/library-stock-verification.png',
         'Stock verification',
         LibraryRoutes.libraryVerification,
-        libraryProvider.access.can('library.catalogue.manage'),
+        libraryProvider.access.can('library.catalogue'),
       ),
       (
         'assets/dashboard/reports.png',
@@ -114,7 +114,7 @@ class _LibraryHomePageState extends State<LibraryHomePage> {
         'assets/dashboard/library-import.png',
         'Import',
         LibraryRoutes.libraryImport,
-        libraryProvider.access.can('library.catalogue.manage') ||
+        libraryProvider.access.can('library.catalogue') ||
             libraryProvider.access.can('library.circulation.operate'),
       ),
     ];

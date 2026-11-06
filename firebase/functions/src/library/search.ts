@@ -112,7 +112,7 @@ export const catalogueSearch: QueryDef<
   Awaited<ReturnType<typeof searchCatalogue>>
 > = {
   name: 'library.catalogue.search',
-  permission: 'library.catalogue.view',
+  permission: 'library.catalogue',
   input: searchInput,
   handler: searchCatalogue,
 };

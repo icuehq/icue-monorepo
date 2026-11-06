@@ -82,7 +82,7 @@ Fixed permission keys (code), configurable role mapping (data):
 | `inventory.assets.manage` / `inventory.assets.view` | Admin, Inv. Mgr, Storekeeper / + Teacher, Principal |
 | `inventory.reports.view` | Admin, Principal, Inv. Mgr |
 | `library.settings` | Admin, Librarian |
-| `library.catalogue.manage` / `library.catalogue.view` | Admin, Librarian / everyone |
+| `library.catalogue` (view, add, edit) | Admin, Librarian |
 | `library.circulation.operate` | Admin, Librarian |
 | `library.fines.waive` | Admin, Librarian (configurable) |
 | `library.reports.view` | Admin, Principal, Librarian |
