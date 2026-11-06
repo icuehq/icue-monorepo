@@ -2,6 +2,7 @@ import 'package:api_client/api_client.dart';
 import 'package:drivers/src/models/add_driver_request.dart';
 import 'package:drivers/src/models/driver.dart';
 import 'package:drivers/src/models/driver_document.dart';
+import 'package:drivers/src/models/place.dart';
 import 'package:drivers/src/services/driver_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
@@ -13,14 +14,38 @@ class DriverProvider extends ChangeNotifier {
   final DriverService _driverService;
 
   List<Driver> _drivers = <Driver>[];
+  List<Place> _countries = <Place>[];
+  List<Place> _places = <Place>[];
   final Map<String, DriverDocs?> _driverDocs = <String, DriverDocs?>{};
   bool _isLoading = false;
   String? _errorMessage;
 
   List<Driver> get drivers => List.unmodifiable(_drivers);
   Map<String, DriverDocs?> get driverDocs => Map.unmodifiable(_driverDocs);
+  List<Place> get countries => List.unmodifiable(_countries);
+  List<Place> get places => List.unmodifiable(_places);
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+
+  /// Loads the country list for the address form.
+  Future<void> fetchCountries() async {
+    try {
+      _countries = await _driverService.getCountries();
+    } catch (_) {
+      // The form keeps working with an empty list.
+    }
+    notifyListeners();
+  }
+
+  /// Loads the states of the country with id [countryId].
+  Future<void> fetchPlaces(String countryId) async {
+    try {
+      _places = await _driverService.getChildPlaces(countryId);
+    } catch (_) {
+      _places = <Place>[];
+    }
+    notifyListeners();
+  }
 
   /// Fetches all drivers from the server.
   Future<void> fetchDrivers() async {

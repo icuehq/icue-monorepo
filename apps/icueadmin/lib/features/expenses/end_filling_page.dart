@@ -1,11 +1,13 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:expenses/expenses.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icueadmin/analytics/app_events.dart';
+import 'package:icueadmin/routing/app_routes.dart';
 import 'package:provider/provider.dart';
 
 class EndFillingPage extends StatefulWidget {
-  const EndFillingPage({super.key, this.initialFuelType = 'Diesel'});
+  const EndFillingPage({super.key, required this.initialFuelType});
 
   final String initialFuelType;
 
@@ -61,7 +63,7 @@ class _EndFillingPageState extends State<EndFillingPage> {
           content: Text('Self-filling session completed and closed!'),
         ),
       );
-      context.pop();
+      context.go(AppRoutes.dashboard);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -261,10 +263,12 @@ class _EndFillingPageState extends State<EndFillingPage> {
                     )
                   else
                     TextButton.icon(
-                      onPressed: () {
+                      onPressed: () async {
+                        final picked = await pickFile(context);
+                        if (picked == null || !mounted) return;
                         setState(() {
-                          _gaugeFileName = 'gauge_meter_end.jpg';
-                          _gaugeFileBytes = [5, 6, 7, 8];
+                          _gaugeFileName = picked.name;
+                          _gaugeFileBytes = picked.bytes;
                         });
                       },
                       icon: const Icon(Icons.camera_alt, size: 16),

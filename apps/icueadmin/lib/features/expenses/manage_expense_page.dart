@@ -44,9 +44,6 @@ class _ManageExpensePageState extends State<ManageExpensePage> {
               case FuelModeAction.selfFilling:
                 context.push(AppRoutes.selfFilling);
                 break;
-              case FuelModeAction.endFilling:
-                context.push(AppRoutes.endFilling);
-                break;
             }
           },
         ),

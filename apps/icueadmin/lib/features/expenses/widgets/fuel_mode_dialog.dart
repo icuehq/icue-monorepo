@@ -1,7 +1,7 @@
 import 'package:expenses/expenses.dart';
 import 'package:flutter/material.dart';
 
-enum FuelModeAction { fuelStation, selfFilling, endFilling }
+enum FuelModeAction { fuelStation, selfFilling }
 
 class FuelModeDialog extends StatelessWidget {
   const FuelModeDialog({
@@ -41,16 +41,6 @@ class FuelModeDialog extends StatelessWidget {
             onTap: () {
               Navigator.of(context).pop();
               onSelect(FuelModeAction.selfFilling);
-            },
-          ),
-          const SizedBox(height: 10),
-          _ModeTile(
-            iconAsset: 'assets/dashboard/fuel-end-filling.png',
-            title: 'End Campus Self-Filling',
-            subtitle: 'Record final gauge reading and finish session',
-            onTap: () {
-              Navigator.of(context).pop();
-              onSelect(FuelModeAction.endFilling);
             },
           ),
         ],

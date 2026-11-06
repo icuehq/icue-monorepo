@@ -1,3 +1,4 @@
+import 'package:api_client/api_client.dart';
 import 'package:core_ui/core_ui.dart';
 import 'package:drivers/drivers.dart';
 import 'package:flutter/material.dart';
@@ -56,6 +57,75 @@ class _DriverDocsPageState extends State<DriverDocsPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Future<void> _uploadDoc(String docType) async {
+    // License and ID carry two photos; the profile document is a single file.
+    var fileKey = 'File';
+    if (docType != 'Profile') {
+      final side = await showModalBottomSheet<String>(
+        context: context,
+        builder: (ctx) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                title: const Text('Front side'),
+                onTap: () => Navigator.pop(ctx, 'FrontPhoto'),
+              ),
+              ListTile(
+                title: const Text('Back side'),
+                onTap: () => Navigator.pop(ctx, 'BackPhoto'),
+              ),
+            ],
+          ),
+        ),
+      );
+      if (side == null) return;
+      fileKey = side;
+    }
+    if (!mounted) return;
+    final picked = await pickFile(context, allowDocuments: true);
+    if (picked == null || !mounted) return;
+    if (picked.isPdf && picked.bytes.length > 300000) {
+      _showResult(success: false, message: 'File size should be under 300 KB');
+      return;
+    }
+    final provider = context.read<DriverProvider>();
+    final extension = picked.name.split('.').last.toLowerCase();
+    final success = await provider.uploadDriverDoc(
+      driverId: widget.driver.id,
+      docType: docType,
+      formData: FormData.fromMap({
+        'Source': 'adminapp',
+        'Type': docType,
+        'RecordId': widget.driver.id,
+        'Target': 'Driver',
+        fileKey: MultipartFile.fromBytes(
+          picked.bytes,
+          filename: picked.name,
+          contentType: picked.isPdf
+              ? DioMediaType('application', 'pdf')
+              : DioMediaType('image', extension),
+        ),
+      }),
+    );
+    _showResult(
+      success: success,
+      message: success
+          ? 'Document uploaded successfully'
+          : (provider.errorMessage ?? 'Failed to upload'),
+    );
+  }
+
+  void _showResult({required bool success, required String message}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: success ? Colors.green : Colors.red,
       ),
     );
   }
@@ -148,14 +218,7 @@ class _DriverDocsPageState extends State<DriverDocsPage> {
                 onDeleteDocument: doc?.frontPhotoImageUrl != null
                     ? () => _confirmDeleteDoc(docType)
                     : null,
-                onUploadDocument: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('File picker opened for $docType'),
-                      duration: const Duration(seconds: 1),
-                    ),
-                  );
-                },
+                onUploadDocument: () => _uploadDoc(docType),
               );
             }),
           ],

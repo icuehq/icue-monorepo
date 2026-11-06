@@ -2,6 +2,7 @@ import 'package:api_client/api_client.dart';
 import 'package:drivers/src/models/add_driver_request.dart';
 import 'package:drivers/src/models/driver.dart';
 import 'package:drivers/src/models/driver_document.dart';
+import 'package:drivers/src/models/place.dart';
 import 'package:injectable/injectable.dart';
 
 @lazySingleton
@@ -18,6 +19,21 @@ class DriverService {
       Driver.fromJson,
       compare: (a, b) => a.firstName.compareTo(b.firstName),
     );
+  }
+
+  /// Fetches the selectable countries.
+  Future<List<Place>> getCountries() async {
+    final response = await _apiClient.get<dynamic>('/v1.0/getCountries');
+    return parseList(response.data, Place.fromJson);
+  }
+
+  /// Fetches the states (child places) of [parentId].
+  Future<List<Place>> getChildPlaces(String parentId) async {
+    final response = await _apiClient.post<dynamic>(
+      '/v1.0/getChildPlaces',
+      data: {'ParentId': parentId},
+    );
+    return parseList(response.data, Place.fromJson);
   }
 
   /// Creates a new driver record.

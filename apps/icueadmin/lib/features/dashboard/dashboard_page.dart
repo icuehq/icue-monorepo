@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:api_client/api_client.dart';
 import 'package:auth/auth.dart';
 import 'package:flutter/material.dart';
@@ -44,6 +46,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
   Future<void> _initializePage() async {
     if (!mounted) return;
+    unawaited(context.read<AuthProvider>().getAdminAppSettings());
     await context.read<AuthProvider>().getRoleActions();
   }
 

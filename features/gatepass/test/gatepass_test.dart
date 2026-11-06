@@ -178,7 +178,7 @@ void main() {
       await provider.fetchGatePassRequests(DateTime(2026, 10, 30));
 
       expect(mockApi.lastPath, '/v1.0/getRequestedGatePass');
-      expect((mockApi.lastData as Map)['Date'], '2026-10-30');
+      expect((mockApi.lastData as Map)['Date'], '10/30/2026');
       expect(provider.requests.length, 1);
       expect(provider.requests.first.name, 'Bob Jones');
     });

@@ -15,6 +15,7 @@ class VehicleBasicInfoForm extends StatelessWidget {
     required this.engineController,
     required this.selectedFuelType,
     required this.onFuelTypeChanged,
+    required this.dashCamController,
     required this.isAc,
     required this.onAcChanged,
   });
@@ -29,10 +30,11 @@ class VehicleBasicInfoForm extends StatelessWidget {
   final TextEditingController engineController;
   final String selectedFuelType;
   final ValueChanged<String?> onFuelTypeChanged;
+  final TextEditingController dashCamController;
   final bool isAc;
   final ValueChanged<bool> onAcChanged;
 
-  static const _fuelTypes = ['Diesel', 'Petrol', 'CNG', 'Electric'];
+  static const _fuelTypes = ['PETROL', 'DIESEL', 'LPG'];
 
   @override
   Widget build(BuildContext context) {
@@ -106,6 +108,8 @@ class VehicleBasicInfoForm extends StatelessWidget {
             ),
           ],
         ),
+        const SizedBox(height: 12),
+        AppTextField(controller: dashCamController, hintText: 'Dash Cam Id'),
         const SizedBox(height: 12),
         Row(
           children: [

@@ -1,5 +1,7 @@
+import 'package:api_client/api_client.dart';
 import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icueadmin/features/vehicles/widgets/vehicle_doc_upload_dialog.dart';
 import 'package:provider/provider.dart';
 import 'package:vehicles/vehicles.dart';
 
@@ -63,6 +65,47 @@ class _VehicleDocsPageState extends State<VehicleDocsPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Future<void> _uploadDoc(String docType) async {
+    final vehicleId = widget.vehicle.id;
+    if (vehicleId == null) return;
+    final upload = await VehicleDocUploadDialog.show(context, docType);
+    if (upload == null || !mounted) return;
+    final provider = context.read<VehicleProvider>();
+    final file = upload.file;
+    final success = await provider.uploadVehicleDoc(
+      vehicleId: vehicleId,
+      type: docType,
+      formData: FormData.fromMap({
+        'Source': 'adminapp',
+        'Type': docType,
+        'RecordId': vehicleId,
+        'Target': 'Vehicle',
+        'File': MultipartFile.fromBytes(
+          file.bytes,
+          filename: file.name,
+          contentType: file.isPdf
+              ? DioMediaType('application', 'pdf')
+              : DioMediaType('image', file.name.split('.').last.toLowerCase()),
+        ),
+        '${docType}Number': upload.number,
+        docType == 'Insurance' ? 'InsuredDate' : '${docType}StartDate':
+            upload.startDate,
+        '${docType}ExpiryDate': upload.expiryDate,
+      }),
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          success
+              ? 'Document uploaded successfully'
+              : (provider.errorMessage ?? 'Failed to upload'),
+        ),
+        backgroundColor: success ? Colors.green : Colors.red,
       ),
     );
   }
@@ -193,14 +236,7 @@ class _VehicleDocsPageState extends State<VehicleDocsPage> {
                 onDeleteDocument: doc?.docUrl != null && doc!.docUrl.isNotEmpty
                     ? () => _confirmDeleteDoc(docType)
                     : null,
-                onUploadDocument: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('File upload opened for $docType'),
-                      duration: const Duration(seconds: 1),
-                    ),
-                  );
-                },
+                onUploadDocument: () => _uploadDoc(docType),
               );
             }),
           ],

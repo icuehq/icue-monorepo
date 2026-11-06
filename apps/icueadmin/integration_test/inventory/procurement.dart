@@ -45,7 +45,12 @@ Future<void> procurementSteps(WidgetTester tester) async {
       await waitFor(tester, find.textContaining('Apex Educational'));
     }
     if (!await appears(tester, find.textContaining('Global Tech'))) {
-      await addVendor(name: 'Global Tech & Lab Instruments', contact: 'Priya Nair', phone: '9845012345', email: 'orders@globaltechlab.in');
+      await addVendor(
+        name: 'Global Tech & Lab Instruments',
+        contact: 'Priya Nair',
+        phone: '9845012345',
+        email: 'orders@globaltechlab.in',
+      );
       await waitFor(tester, find.textContaining('Global Tech'));
     }
     await tapLabel(tester, 'New vendor');
@@ -65,7 +70,10 @@ Future<void> procurementSteps(WidgetTester tester) async {
     await tapLabel(tester, 'New Request');
     await tapText(tester, 'Priority');
     await tapText(tester, 'High', index: 1);
-    await fillStarting('Purpose', 'Annual Examination & Office Supplies Requisition');
+    await fillStarting(
+      'Purpose',
+      'Annual Examination & Office Supplies Requisition',
+    );
     await pickDate(tester, 'Required by date *', 7);
     await tapText(tester, 'Add Item to Request');
     await tapContaining(tester, 'Ballpoint Pen');
@@ -95,7 +103,9 @@ Future<void> procurementSteps(WidgetTester tester) async {
 
   await step(tester, '1.3.6 submit for approval', () async {
     await openPurchaseRequest();
-    if (await appears(tester, find.text('Submit'))) await tapText(tester, 'Submit');
+    if (await appears(tester, find.text('Submit'))) {
+      await tapText(tester, 'Submit');
+    }
     await waitFor(tester, find.textContaining('Pending'));
   });
 
@@ -105,7 +115,10 @@ Future<void> procurementSteps(WidgetTester tester) async {
     await tapText(tester, 'Return');
     await tapText(tester, 'Return', index: 1);
     await waitFor(tester, find.text('A comment is required'));
-    await fillStarting('Comment', 'Please reduce laptop quantity from 5 to 2 due to quarterly budget ceiling.');
+    await fillStarting(
+      'Comment',
+      'Please reduce laptop quantity from 5 to 2 due to quarterly budget ceiling.',
+    );
     await tapText(tester, 'Return', index: 1);
     await waitFor(tester, find.textContaining('Returned'));
   });
@@ -126,7 +139,14 @@ Future<void> procurementSteps(WidgetTester tester) async {
     await waitFor(tester, find.text('Direct PO'));
   });
 
-  Future<void> addQuotation(String vendor, String ref, int validDays, String lead, String pen, String laptop) async {
+  Future<void> addQuotation(
+    String vendor,
+    String ref,
+    int validDays,
+    String lead,
+    String pen,
+    String laptop,
+  ) async {
     await tapLabel(tester, 'New Quotation');
     await tapText(tester, 'Select Vendor *');
     await tapContaining(tester, vendor, index: 1);
@@ -143,11 +163,25 @@ Future<void> procurementSteps(WidgetTester tester) async {
     await tapText(tester, 'Quotations');
     await waitFor(tester, find.textContaining('Quotations'));
     if (!await appears(tester, find.textContaining('QT-APEX-2026-09'))) {
-      await addQuotation('Apex Educational', 'QT-APEX-2026-09', 30, '5', '14.50', '54000');
+      await addQuotation(
+        'Apex Educational',
+        'QT-APEX-2026-09',
+        30,
+        '5',
+        '14.50',
+        '54000',
+      );
       await waitFor(tester, find.textContaining('QT-APEX-2026-09'));
     }
     if (!await appears(tester, find.textContaining('QT-GLB-881'))) {
-      await addQuotation('Global Tech', 'QT-GLB-881', 15, '12', '15.50', '53500');
+      await addQuotation(
+        'Global Tech',
+        'QT-GLB-881',
+        15,
+        '12',
+        '15.50',
+        '53500',
+      );
       await waitFor(tester, find.textContaining('QT-GLB-881'));
     }
     await waitFor(tester, find.text('Price Comparison Table'));
@@ -158,10 +192,17 @@ Future<void> procurementSteps(WidgetTester tester) async {
     await openPurchaseRequest();
     await tapText(tester, 'Quotations');
     if (await appears(tester, find.text('SELECTED'))) return;
-    await tapNear(tester, find.textContaining('QT-APEX-2026-09'), find.text('Select this Quote'));
+    await tapNear(
+      tester,
+      find.textContaining('QT-APEX-2026-09'),
+      find.text('Select this Quote'),
+    );
     await tapText(tester, 'Select Quotation');
     await waitFor(tester, find.text('A reason is required'));
-    await fillStarting('Selection reason', 'Shorter lead time of 5 days and local support warranty.');
+    await fillStarting(
+      'Selection reason',
+      'Shorter lead time of 5 days and local support warranty.',
+    );
     await tapText(tester, 'Select Quotation');
     await waitFor(tester, find.text('SELECTED'));
     await waitFor(tester, find.text('Create PO from Quote'));
@@ -176,7 +217,10 @@ Future<void> procurementSteps(WidgetTester tester) async {
     await tapText(tester, 'Create PO from Quote');
     await fillStarting('Tax', '19701');
     await pickDate(tester, 'Expected Delivery Date *', 7);
-    await fillStarting('Terms and conditions', 'Door delivery to Central Main Store');
+    await fillStarting(
+      'Terms and conditions',
+      'Door delivery to Central Main Store',
+    );
     await tapText(tester, 'Save Draft PO');
     await waitFor(tester, find.textContaining('PO/'));
   });
@@ -206,7 +250,10 @@ Future<void> procurementSteps(WidgetTester tester) async {
       await tapContaining(tester, 'PO/');
       await tapText(tester, 'Revise PO');
       await enter(tester, fieldStarting('Ballpoint Pen'), '14');
-      await fillStarting('Revision reason', 'Negotiated educational volume discount on pens');
+      await fillStarting(
+        'Revision reason',
+        'Negotiated educational volume discount on pens',
+      );
       await tapText(tester, 'Save Revision');
     }
     await openPurchaseOrder();
@@ -228,31 +275,44 @@ Future<void> procurementSteps(WidgetTester tester) async {
     await fillStarting('Delivery note', 'DC-APEX-7741');
     await enter(tester, fieldStarting('Accepted'), '80');
     await enter(tester, fieldStarting('Rejected'), '5');
-    await enter(tester, fieldStarting('Condition'), '5 broken tips during transit');
-    await fillStarting('Overall inspection remarks', 'First consignment received; 5 pens rejected at inspection.');
+    await enter(
+      tester,
+      fieldStarting('Condition'),
+      '5 broken tips during transit',
+    );
+    await fillStarting(
+      'Overall inspection remarks',
+      'First consignment received; 5 pens rejected at inspection.',
+    );
     await tapContaining(tester, 'Confirm receiving');
     await open(tester, InventoryRoutes.inventoryPurchaseOrders);
     await waitFor(tester, find.textContaining('Partially Received'));
   });
 
-  await step(tester, '1.3.19-1.3.20 over-due refused, accept all due', () async {
-    await open(tester, InventoryRoutes.inventoryPurchaseOrders);
-    await waitFor(tester, find.textContaining('PO/'));
-    if (!await appears(tester, find.textContaining('Partially Received'))) return;
-    await tapContaining(tester, 'PO/');
-    await tapContaining(tester, 'Receive Goods');
-    await tapText(tester, 'Store');
-    await tapText(tester, 'Central Main Store', index: 1);
-    await enter(tester, fieldStarting('Accepted'), '25');
-    await tapContaining(tester, 'Confirm receiving');
-    await waitFor(tester, find.text('Only 20 due'));
-    await tapText(tester, 'Clear quantities');
-    await tapText(tester, 'Accept all due');
-    await fillStarting('Delivery note', 'DC-APEX-7742');
-    await tapContaining(tester, 'Confirm receiving');
-    await open(tester, InventoryRoutes.inventoryPurchaseOrders);
-    await waitFor(tester, find.textContaining('Fully Received'));
-  });
+  await step(
+    tester,
+    '1.3.19-1.3.20 over-due refused, accept all due',
+    () async {
+      await open(tester, InventoryRoutes.inventoryPurchaseOrders);
+      await waitFor(tester, find.textContaining('PO/'));
+      if (!await appears(tester, find.textContaining('Partially Received'))) {
+        return;
+      }
+      await tapContaining(tester, 'PO/');
+      await tapContaining(tester, 'Receive Goods');
+      await tapText(tester, 'Store');
+      await tapText(tester, 'Central Main Store', index: 1);
+      await enter(tester, fieldStarting('Accepted'), '25');
+      await tapContaining(tester, 'Confirm receiving');
+      await waitFor(tester, find.text('Only 20 due'));
+      await tapText(tester, 'Clear quantities');
+      await tapText(tester, 'Accept all due');
+      await fillStarting('Delivery note', 'DC-APEX-7742');
+      await tapContaining(tester, 'Confirm receiving');
+      await open(tester, InventoryRoutes.inventoryPurchaseOrders);
+      await waitFor(tester, find.textContaining('Fully Received'));
+    },
+  );
 
   Future<void> recordInvoice(String number) async {
     await openPurchaseOrder();
@@ -264,18 +324,22 @@ Future<void> procurementSteps(WidgetTester tester) async {
     await tapText(tester, 'Record Invoice', index: 1);
   }
 
-  await step(tester, '1.3.21-1.3.22 record invoice, duplicate refused', () async {
-    await open(tester, InventoryRoutes.inventoryInvoices);
-    await waitFor(tester, find.textContaining(RegExp(r'All \(\d+\)')));
-    if (!await appears(tester, find.textContaining('INV-APEX-2026-104'))) {
-      await recordInvoice('INV-APEX-2026-104');
+  await step(
+    tester,
+    '1.3.21-1.3.22 record invoice, duplicate refused',
+    () async {
       await open(tester, InventoryRoutes.inventoryInvoices);
-      await waitFor(tester, find.textContaining('INV-APEX-2026-104'));
-    }
-    await recordInvoice('INV-APEX-2026-104');
-    await waitFor(tester, find.textContaining('already exists'));
-    await back(tester);
-  });
+      await waitFor(tester, find.textContaining(RegExp(r'All \(\d+\)')));
+      if (!await appears(tester, find.textContaining('INV-APEX-2026-104'))) {
+        await recordInvoice('INV-APEX-2026-104');
+        await open(tester, InventoryRoutes.inventoryInvoices);
+        await waitFor(tester, find.textContaining('INV-APEX-2026-104'));
+      }
+      await recordInvoice('INV-APEX-2026-104');
+      await waitFor(tester, find.textContaining('already exists'));
+      await back(tester);
+    },
+  );
 
   await step(tester, '1.3.23 payment status transitions', () async {
     await open(tester, InventoryRoutes.inventoryInvoices);
@@ -292,7 +356,9 @@ Future<void> procurementSteps(WidgetTester tester) async {
       await fillStarting('Total paid amount', '200000');
       await tapText(tester, 'Confirm');
       await waitFor(tester, find.textContaining('exceeds the invoice total'));
-      if (await appears(tester, find.text('Update Payment Status'))) await tapText(tester, 'Update Payment Status');
+      if (await appears(tester, find.text('Update Payment Status'))) {
+        await tapText(tester, 'Update Payment Status');
+      }
       await fillStarting('Total paid amount', '129101');
       await tapText(tester, 'Confirm');
     }
@@ -304,7 +370,10 @@ Future<void> procurementSteps(WidgetTester tester) async {
     await open(tester, InventoryRoutes.inventoryInvoices);
     await tapContaining(tester, 'INV-APEX-2026-104');
     await waitFor(tester, find.text('Update Payment Status'));
-    expect(find.text('Cancel Invoice'), findsNothing); // a Paid invoice offers no cancel
+    expect(
+      find.text('Cancel Invoice'),
+      findsNothing,
+    ); // a Paid invoice offers no cancel
     await open(tester, InventoryRoutes.inventoryInvoices);
     if (!await appears(tester, find.textContaining('INV-APEX-2026-105'))) {
       await recordInvoice('INV-APEX-2026-105');

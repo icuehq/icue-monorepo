@@ -64,6 +64,13 @@ abstract final class AppRoutes {
   static const String selfFilling = '/layout.fuelfilling/self-filling';
   static const String selfFillingName = 'selfFilling';
 
+  static const String selfFillingVehicles =
+      '/layout.fuelfilling/self-filling/vehicles';
+  static const String selfFillingVehiclesName = 'selfFillingVehicles';
+
+  static const String looseFuel = '/layout.fuelfilling/loose-fuel';
+  static const String looseFuelName = 'looseFuel';
+
   static const String endFilling = '/layout.fuelfilling/end-filling';
   static const String endFillingName = 'endFilling';
 

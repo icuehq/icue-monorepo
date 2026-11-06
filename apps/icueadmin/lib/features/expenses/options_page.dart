@@ -49,19 +49,14 @@ class _OptionsPageState extends State<OptionsPage> {
                     vehicleNumber: widget.vehicle.number,
                     fuelType: widget.vehicle.fuelType?.toString(),
                     mode: 'FuelStation',
+                    fuelPrice: widget.vehicle.price,
                   ),
                 );
                 break;
               case FuelModeAction.selfFilling:
                 context.push(
                   AppRoutes.selfFilling,
-                  extra: widget.vehicle.fuelType?.toString() ?? 'Diesel',
-                );
-                break;
-              case FuelModeAction.endFilling:
-                context.push(
-                  AppRoutes.endFilling,
-                  extra: widget.vehicle.fuelType?.toString() ?? 'Diesel',
+                  extra: widget.vehicle.fuelType?.toString(),
                 );
                 break;
             }

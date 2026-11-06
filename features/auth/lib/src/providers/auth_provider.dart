@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:api_client/api_client.dart';
+import 'package:auth/src/models/app_settings.dart';
 import 'package:auth/src/models/assigned_entities.dart';
 import 'package:auth/src/models/branches.dart';
 import 'package:auth/src/models/person_types.dart';
@@ -221,6 +222,19 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  /// Branch-level admin settings; null until loaded (or when the call fails).
+  AppSettings? appSettings;
+
+  /// Fetches the admin app settings for the current branch.
+  Future<void> getAdminAppSettings() async {
+    try {
+      appSettings = await _authService.getAdminAppSettings();
+      notifyListeners();
+    } catch (_) {
+      // Keep the previous settings; callers fall back to permissive defaults.
+    }
+  }
+
   /// Fetches branches for zonal admin against `/v1.0/getBranchesByZoneId`.
   Future<void> getBranchesByZoneId() async {
     loading = true;
@@ -247,6 +261,7 @@ class AuthProvider extends ChangeNotifier {
   /// Clears the currently selected zonal branch to allow picking another branch.
   Future<void> clearSelectedBranch() async {
     selectedBranch = null;
+    appSettings = null;
     await _userLocalStorage.clearSelectedBranch();
     notifyListeners();
   }
@@ -309,6 +324,7 @@ class AuthProvider extends ChangeNotifier {
       _receivedPin = null;
       otpSent = false;
       selectedBranch = null;
+      appSettings = null;
       roleActions = <RoleActions>[];
       branches = <Branch>[];
       personTypes = <PersonType>[];
@@ -326,6 +342,7 @@ class AuthProvider extends ChangeNotifier {
     _receivedPin = null;
     otpSent = false;
     selectedBranch = null;
+    appSettings = null;
     roleActions = <RoleActions>[];
     branches = <Branch>[];
     personTypes = <PersonType>[];

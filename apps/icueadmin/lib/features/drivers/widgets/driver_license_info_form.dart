@@ -1,4 +1,5 @@
 import 'package:core_ui/core_ui.dart';
+import 'package:drivers/drivers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -15,6 +16,9 @@ class DriverLicenseInfoForm extends StatelessWidget {
     required this.stateController,
     required this.countryController,
     required this.pincodeController,
+    required this.countries,
+    required this.places,
+    required this.onCountryChanged,
     required this.onSelectIssueDate,
     required this.onSelectExpiryDate,
   });
@@ -29,6 +33,9 @@ class DriverLicenseInfoForm extends StatelessWidget {
   final TextEditingController stateController;
   final TextEditingController countryController;
   final TextEditingController pincodeController;
+  final List<Place> countries;
+  final List<Place> places;
+  final ValueChanged<Place> onCountryChanged;
   final VoidCallback onSelectIssueDate;
   final VoidCallback onSelectExpiryDate;
 
@@ -127,9 +134,11 @@ class DriverLicenseInfoForm extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: AppTextField(
+              child: _PlaceDropdown(
+                label: 'State',
                 controller: stateController,
-                hintText: 'State',
+                places: places,
+                onChanged: (_) {},
               ),
             ),
           ],
@@ -138,9 +147,11 @@ class DriverLicenseInfoForm extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: AppTextField(
+              child: _PlaceDropdown(
+                label: 'Country',
                 controller: countryController,
-                hintText: 'Country',
+                places: countries,
+                onChanged: onCountryChanged,
               ),
             ),
             const SizedBox(width: 12),
@@ -156,6 +167,48 @@ class DriverLicenseInfoForm extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+/// Picks a place by name into [controller]; empty until the list loads.
+class _PlaceDropdown extends StatelessWidget {
+  const _PlaceDropdown({
+    required this.label,
+    required this.controller,
+    required this.places,
+    required this.onChanged,
+  });
+
+  final String label;
+  final TextEditingController controller;
+  final List<Place> places;
+  final ValueChanged<Place> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final current = places.any((p) => p.name == controller.text)
+        ? controller.text
+        : null;
+    return DropdownButtonFormField<String>(
+      key: ValueKey('$label-$current-${places.length}'),
+      initialValue: current,
+      isExpanded: true,
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+      ),
+      items: [
+        for (final place in places)
+          DropdownMenuItem(value: place.name, child: Text(place.name)),
+      ],
+      onChanged: places.isEmpty
+          ? null
+          : (name) {
+              if (name == null) return;
+              controller.text = name;
+              onChanged(places.firstWhere((p) => p.name == name));
+            },
     );
   }
 }

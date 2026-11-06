@@ -1,13 +1,16 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:expenses/expenses.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icueadmin/analytics/app_events.dart';
+import 'package:icueadmin/routing/app_routes.dart';
 import 'package:provider/provider.dart';
 
 class SelfFillingPage extends StatefulWidget {
-  const SelfFillingPage({super.key, this.initialFuelType = 'Diesel'});
+  const SelfFillingPage({super.key, this.initialFuelType});
 
-  final String initialFuelType;
+  /// The vehicle's fuel type, preselected when it is a known one.
+  final String? initialFuelType;
 
   @override
   State<SelfFillingPage> createState() => _SelfFillingPageState();
@@ -15,7 +18,9 @@ class SelfFillingPage extends StatefulWidget {
 
 class _SelfFillingPageState extends State<SelfFillingPage> {
   final _formKey = GlobalKey<FormState>();
-  late String _fuelType;
+  static const _fuelTypes = ['PETROL', 'DIESEL', 'LPG'];
+
+  String? _fuelType;
   final TextEditingController _startReadingController = TextEditingController();
 
   String? _gaugeFileName;
@@ -24,11 +29,12 @@ class _SelfFillingPageState extends State<SelfFillingPage> {
   @override
   void initState() {
     super.initState();
-    _fuelType = widget.initialFuelType;
-    final existing = context.read<ExpenseProvider>().startGaugeReading;
-    if (existing != null) {
-      _startReadingController.text = existing;
-    }
+    final initial = widget.initialFuelType?.toUpperCase();
+    _fuelType = _fuelTypes.contains(initial) ? initial : null;
+    // A new session starts clean.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<ExpenseProvider>().reset();
+    });
   }
 
   @override
@@ -43,9 +49,11 @@ class _SelfFillingPageState extends State<SelfFillingPage> {
     _formKey.currentState!.save();
 
     final req = SelfFillingStatusRequest(
-      fuelType: _fuelType,
+      fuelType: _fuelType!,
       gaugeMode: 'start',
-      startReading: _startReadingController.text.trim(),
+      startReading: _startReadingController.text.trim().isEmpty
+          ? null
+          : _startReadingController.text.trim(),
       gaugeFileName: _gaugeFileName,
       gaugeFileBytes: _gaugeFileBytes,
     );
@@ -63,7 +71,7 @@ class _SelfFillingPageState extends State<SelfFillingPage> {
           content: Text('Self-filling session started successfully!'),
         ),
       );
-      context.pop();
+      context.pushReplacement(AppRoutes.selfFillingVehicles, extra: _fuelType);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -119,12 +127,12 @@ class _SelfFillingPageState extends State<SelfFillingPage> {
                 labelText: 'Fuel Type *',
                 border: OutlineInputBorder(),
               ),
-              items: const [
-                DropdownMenuItem(value: 'Diesel', child: Text('Diesel')),
-                DropdownMenuItem(value: 'Petrol', child: Text('Petrol')),
-                DropdownMenuItem(value: 'CNG', child: Text('CNG')),
+              items: [
+                for (final type in _fuelTypes)
+                  DropdownMenuItem(value: type, child: Text(type)),
               ],
-              onChanged: (val) => setState(() => _fuelType = val ?? 'Diesel'),
+              validator: (val) => val == null ? 'Required' : null,
+              onChanged: (val) => setState(() => _fuelType = val),
             ),
             const SizedBox(height: 16),
             TextFormField(
@@ -133,12 +141,10 @@ class _SelfFillingPageState extends State<SelfFillingPage> {
                 decimal: true,
               ),
               decoration: const InputDecoration(
-                labelText: 'Initial Gauge Reading (Litres) *',
+                labelText: 'Start Reading (optional)',
                 border: OutlineInputBorder(),
                 suffixText: 'L',
               ),
-              validator: (val) =>
-                  val == null || val.trim().isEmpty ? 'Required' : null,
             ),
             const SizedBox(height: 16),
             Container(
@@ -180,10 +186,12 @@ class _SelfFillingPageState extends State<SelfFillingPage> {
                     )
                   else
                     TextButton.icon(
-                      onPressed: () {
+                      onPressed: () async {
+                        final picked = await pickFile(context);
+                        if (picked == null || !mounted) return;
                         setState(() {
-                          _gaugeFileName = 'gauge_meter_start.jpg';
-                          _gaugeFileBytes = [1, 2, 3, 4];
+                          _gaugeFileName = picked.name;
+                          _gaugeFileBytes = picked.bytes;
                         });
                       },
                       icon: const Icon(Icons.camera_alt, size: 16),

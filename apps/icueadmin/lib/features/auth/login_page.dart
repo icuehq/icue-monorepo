@@ -1,7 +1,9 @@
 import 'package:auth/auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:icueadmin/features/auth/widgets/request_otp_form.dart';
 import 'package:icueadmin/features/auth/widgets/verify_otp_form.dart';
+import 'package:otp_autofill/otp_autofill.dart';
 import 'package:provider/provider.dart';
 
 class LoginPage extends StatefulWidget {
@@ -13,10 +15,34 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _usernameController = TextEditingController();
-  final _otpController = TextEditingController();
+  late final TextEditingController _otpController;
+
+  @override
+  void initState() {
+    super.initState();
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      // Reads the SMS OTP through Android's user-consent prompt and signs in.
+      _otpController =
+          OTPTextEditController(
+            codeLength: 5,
+            onCodeReceive: (code) {
+              FocusManager.instance.primaryFocus?.unfocus();
+              context.read<AuthProvider>().verifyOtpAndLogin(otp: code);
+            },
+            otpInteractor: OTPInteractor(),
+          )..startListenUserConsent(
+            (code) => RegExp(r'(\d{5})').stringMatch(code ?? '') ?? '',
+            strategies: [],
+          );
+    } else {
+      _otpController = TextEditingController();
+    }
+  }
 
   @override
   void dispose() {
+    final otp = _otpController;
+    if (otp is OTPTextEditController) otp.stopListen();
     _usernameController.dispose();
     _otpController.dispose();
     super.dispose();

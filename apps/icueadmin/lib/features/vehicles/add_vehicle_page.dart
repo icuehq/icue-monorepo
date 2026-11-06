@@ -38,8 +38,12 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
   late final TextEditingController _fireExtExpiryDateController;
   late final TextEditingController _firstAidDetailsController;
   late final TextEditingController _firstAidExpiryDateController;
+  late final TextEditingController _dashCamController;
+  late final TextEditingController _serviceDateController;
+  DateTime? _serviceDate;
 
-  String _fuelType = 'Diesel';
+  static const _fuelTypes = ['PETROL', 'DIESEL', 'LPG'];
+  String _fuelType = 'DIESEL';
   bool _isAc = false;
   Driver? _selectedDriver;
 
@@ -90,8 +94,12 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
       text: firstAid?.medicineExpiryDate ?? '',
     );
 
-    _fuelType = v?.fuelType ?? 'Diesel';
-    _isAc = v?.airCondition?.toLowerCase() == 'yes';
+    final fuel = (v?.fuelType ?? '').toUpperCase();
+    _fuelType = _fuelTypes.contains(fuel) ? fuel : 'DIESEL';
+    _dashCamController = TextEditingController(text: v?.dashcamId ?? '');
+    _serviceDateController = TextEditingController(text: v?.serviceDate ?? '');
+    _serviceDate = v?.serviceDate.toDateOrNull();
+    _isAc = v?.airCondition?.toUpperCase() == 'AC';
 
     _dateOfReg = v?.dateOfReg.toDateOrNull();
     _fireExtInstallDate = v?.fireExtInstallDate.toDateOrNull();
@@ -125,6 +133,8 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
     _fireExtExpiryDateController.dispose();
     _firstAidDetailsController.dispose();
     _firstAidExpiryDateController.dispose();
+    _dashCamController.dispose();
+    _serviceDateController.dispose();
     super.dispose();
   }
 
@@ -146,6 +156,15 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
     }
   }
 
+  /// Dates go to the API as `MM/dd/yyyy`, as the legacy backend expects.
+  String? _usDate(TextEditingController controller) =>
+      controller.text.toDateOrNull()?.toUsDate();
+
+  String? _text(TextEditingController controller) {
+    final value = controller.text.trim();
+    return value.isEmpty ? null : value;
+  }
+
   Future<void> _onSubmit() async {
     FocusManager.instance.primaryFocus?.unfocus();
     if (!_formKey.currentState!.validate()) return;
@@ -156,7 +175,7 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
         ? [
             FirstAidKit(
               medicineDetails: _firstAidDetailsController.text.trim(),
-              medicineExpiryDate: _firstAidExpiryDateController.text.trim(),
+              medicineExpiryDate: _usDate(_firstAidExpiryDateController),
             ),
           ]
         : <FirstAidKit>[];
@@ -172,8 +191,10 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
       colour: _colourController.text.trim(),
       chasisNumber: _chassisController.text.trim(),
       engineNumber: _engineController.text.trim(),
-      airCondition: _isAc ? 'Yes' : 'No',
-      dateOfReg: _dateOfRegController.text.trim(),
+      airCondition: _isAc ? 'AC' : 'NON AC',
+      dashCamId: _text(_dashCamController),
+      serviceDate: _usDate(_serviceDateController),
+      dateOfReg: _usDate(_dateOfRegController) ?? '',
       rtaOfcName: _rtaOfcController.text.trim(),
       companyClaimedMileage:
           num.tryParse(_claimedMileageController.text.trim()) ?? 0,
@@ -183,8 +204,8 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
       driverName: _selectedDriver?.fullName ?? widget.vehicle?.driverName,
       driverNumber: _selectedDriver?.mobile ?? widget.vehicle?.driverNumber,
       fireExtName: _fireExtNameController.text.trim(),
-      fireExtInstallDate: _fireExtInstallDateController.text.trim(),
-      fireExtExpiryDate: _fireExtExpiryDateController.text.trim(),
+      fireExtInstallDate: _usDate(_fireExtInstallDateController),
+      fireExtExpiryDate: _usDate(_fireExtExpiryDateController) ?? '',
       firstAidKit: firstAidKits,
     );
 
@@ -245,6 +266,7 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
                   onFuelTypeChanged: (val) {
                     if (val != null) setState(() => _fuelType = val);
                   },
+                  dashCamController: _dashCamController,
                   isAc: _isAc,
                   onAcChanged: (val) => setState(() => _isAc = val),
                 ),
@@ -261,6 +283,18 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
                   fireExtExpiryDateController: _fireExtExpiryDateController,
                   firstAidDetailsController: _firstAidDetailsController,
                   firstAidExpiryDateController: _firstAidExpiryDateController,
+                  serviceDateController: _serviceDateController,
+                  onSelectServiceDate: () => _selectDate(
+                    context: context,
+                    initialDate: _serviceDate,
+                    allowFuture: true,
+                    onSelected: (date) {
+                      setState(() {
+                        _serviceDate = date;
+                        _serviceDateController.text = date.toNumericDate();
+                      });
+                    },
+                  ),
                   onSelectRegDate: () => _selectDate(
                     context: context,
                     initialDate: _dateOfReg,

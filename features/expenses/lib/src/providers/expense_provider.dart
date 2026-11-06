@@ -154,6 +154,19 @@ class ExpenseProvider extends ChangeNotifier {
     }
   }
 
+  /// Updates the fuel price used for [fuelType].
+  Future<bool> updateFuelPrice(String fuelType, String price) async {
+    _errorMessage = null;
+    try {
+      final ok = await _expenseService.updateFuelPrice(fuelType, price);
+      if (!ok) _errorMessage = 'Failed to update fuel price';
+      return ok;
+    } catch (e) {
+      _errorMessage = e.toString();
+      return false;
+    }
+  }
+
   void clearError() {
     _errorMessage = null;
     notifyListeners();

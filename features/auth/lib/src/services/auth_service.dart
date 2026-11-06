@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:api_client/api_client.dart';
+import 'package:auth/src/models/app_settings.dart';
 import 'package:auth/src/models/assigned_entities.dart';
 import 'package:auth/src/models/branches.dart';
 import 'package:auth/src/models/otp_response.dart';
@@ -182,6 +183,13 @@ class AuthService {
 
     await userLocalStorage.saveRoleActions(actions);
     return actions;
+  }
+
+  /// Fetches the branch's admin app settings via `/v1.0/getAdminAppSettings`.
+  Future<AppSettings?> getAdminAppSettings() async {
+    final response = await apiClient.post<dynamic>('/v1.0/getAdminAppSettings');
+    final data = response.data;
+    return data is Map<String, dynamic> ? AppSettings.fromJson(data) : null;
   }
 
   /// Fetches branches for zonal admin/supervisor against `/v1.0/getBranchesByZoneId`.

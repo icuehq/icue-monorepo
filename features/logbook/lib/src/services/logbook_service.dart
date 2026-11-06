@@ -83,11 +83,11 @@ class LogBookService {
       'Desc': request.description,
     };
 
-    if (request.photoBytes != null) {
-      formMap['Images'] = MultipartFile.fromBytes(
-        request.photoBytes!,
-        filename: request.photoName ?? 'complaint.jpg',
-      );
+    if (request.photos.isNotEmpty) {
+      formMap['Images'] = [
+        for (final photo in request.photos)
+          MultipartFile.fromBytes(photo.bytes, filename: photo.name),
+      ];
     }
 
     final response = await _apiClient.post<dynamic>(
@@ -154,12 +154,12 @@ class LogBookService {
 
     if (response.data is Map<String, dynamic>) {
       final map = response.data as Map<String, dynamic>;
-      final failedCount = (map['failedCnt'] as num?)?.toInt() ?? 0;
-      final failedData =
-          (map['failedData'] as List<dynamic>?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          const <String>[];
+      final failedCount = (map['FailedCnt'] as num?)?.toInt() ?? 0;
+      final failedData = <String>[
+        for (final item in map['FailedData'] as List<dynamic>? ?? const [])
+          if (item is Map<String, dynamic>)
+            '${item['VehicleNo']} (${item['CleanedDate']}): ${item['Msg']}',
+      ];
 
       return CleaningSubmissionResult(
         success: map['err'] != true,

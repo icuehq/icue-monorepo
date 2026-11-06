@@ -1,15 +1,25 @@
 import 'package:attendance/attendance.dart';
+import 'package:auth/auth.dart';
 import 'package:flutter/material.dart';
 
 class AttendanceModeSheet extends StatelessWidget {
-  const AttendanceModeSheet({super.key});
+  const AttendanceModeSheet({super.key, this.settings});
 
-  static Future<AttendanceModeOption?> show(BuildContext context) {
+  final AttendanceSettings? settings;
+
+  /// Manual-only branches skip the sheet; facial-only hide the manual card.
+  static Future<AttendanceModeOption?> show(
+    BuildContext context, {
+    AttendanceSettings? settings,
+  }) {
+    if (settings != null && !settings.allowsFacial) {
+      return Future.value(AttendanceModeOption.manual);
+    }
     return showModalBottomSheet<AttendanceModeOption>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => const AttendanceModeSheet(),
+      builder: (_) => AttendanceModeSheet(settings: settings),
     );
   }
 
@@ -79,15 +89,18 @@ class AttendanceModeSheet extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 20),
-            _buildOptionCard(
-              context: context,
-              icon: Icons.swipe_rounded,
-              iconColor: theme.colorScheme.primary,
-              title: 'Manual Swiping',
-              subtitle: 'Mark student-by-student with interactive card swipes',
-              option: AttendanceModeOption.manual,
-            ),
-            const SizedBox(height: 12),
+            if (settings?.allowsManual ?? true) ...[
+              _buildOptionCard(
+                context: context,
+                icon: Icons.swipe_rounded,
+                iconColor: theme.colorScheme.primary,
+                title: 'Manual Swiping',
+                subtitle:
+                    'Mark student-by-student with interactive card swipes',
+                option: AttendanceModeOption.manual,
+              ),
+              const SizedBox(height: 12),
+            ],
             _buildOptionCard(
               context: context,
               icon: Icons.videocam_rounded,

@@ -40,6 +40,9 @@ class MockExpenseService implements ExpenseService {
   }
 
   @override
+  Future<bool> updateFuelPrice(String fuelType, String price) async => true;
+
+  @override
   Future<String?> generateBillNo(String billDate) async => 'AUTO-BILL-99';
 
   @override

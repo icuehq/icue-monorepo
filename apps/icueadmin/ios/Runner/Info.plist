@@ -15,7 +15,9 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>NSCameraUsageDescription</key>
-	<string>The camera scans barcodes and QR codes on inventory items and assets.</string>
+	<string>The camera scans barcodes and QR codes and captures photos of bills, documents and meters.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Choose photos and documents to attach to bills, complaints and records.</string>
 	<key>CFBundleName</key>
 	<string>icueadmin</string>
 	<key>CFBundlePackageType</key>

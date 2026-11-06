@@ -237,10 +237,12 @@ class _AlcoholTestFormPageState extends State<AlcoholTestFormPage> {
                     )
                   else
                     TextButton.icon(
-                      onPressed: () {
+                      onPressed: () async {
+                        final picked = await pickFile(context);
+                        if (picked == null || !mounted) return;
                         setState(() {
-                          _photoName = 'breathalyzer_test.jpg';
-                          _photoBytes = [1, 2, 3, 4];
+                          _photoName = picked.name;
+                          _photoBytes = picked.bytes;
                         });
                       },
                       icon: const Icon(Icons.camera_alt, size: 16),

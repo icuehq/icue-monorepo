@@ -11,7 +11,13 @@ const _otp = String.fromEnvironment('TEST_OTP');
 /// Dashboard is already showing there is nothing to do.
 Future<void> loginSteps(WidgetTester tester) async {
   await step(tester, '0 login', () async {
-    if (await appears(tester, find.textContaining('Welcome back'), wait: 1500)) return;
+    if (await appears(
+      tester,
+      find.textContaining('Welcome back'),
+      wait: 1500,
+    )) {
+      return;
+    }
     if (_phone.isEmpty || _otp.isEmpty) {
       throw TestFailure(
         'The app is on the login screen: pass --dart-define=TEST_PHONE=... --dart-define=TEST_OTP=... or sign in on the device first.',

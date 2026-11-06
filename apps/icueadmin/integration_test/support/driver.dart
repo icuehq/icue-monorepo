@@ -124,11 +124,7 @@ Future<void> tapLabel(
 }
 
 /// Taps the [button] vertically closest to [target] (a per-row action menu in a list).
-Future<void> tapNear(
-  WidgetTester tester,
-  Finder target,
-  Finder button,
-) async {
+Future<void> tapNear(WidgetTester tester, Finder target, Finder button) async {
   await waitFor(tester, target);
   await tester.ensureVisible(target.first);
   await tester.pump(const Duration(milliseconds: 100));
@@ -137,7 +133,8 @@ Future<void> tapNear(
   var bestDistance = double.infinity;
   for (final element in button.evaluate()) {
     final box = element.renderObject! as RenderBox;
-    final distance = (box.localToGlobal(box.size.center(Offset.zero)).dy - targetY).abs();
+    final distance =
+        (box.localToGlobal(box.size.center(Offset.zero)).dy - targetY).abs();
     if (distance < bestDistance) {
       bestDistance = distance;
       best = element;
@@ -185,7 +182,8 @@ Future<void> step(
     _failures.add('$name: $error');
     debugPrint('FAIL  $name: $error');
     for (var i = 0; i < 3; i++) {
-      await tester.binding.handlePopRoute(); // close a dialog or page a failed step left open
+      await tester.binding
+          .handlePopRoute(); // close a dialog or page a failed step left open
       await tester.pump(const Duration(milliseconds: 200));
     }
   }
@@ -194,7 +192,9 @@ Future<void> step(
 /// Fails the test when any [step] failed.
 void finish() {
   if (_failures.isNotEmpty) {
-    throw TestFailure('${_failures.length} step(s) failed:\n${_failures.join('\n')}');
+    throw TestFailure(
+      '${_failures.length} step(s) failed:\n${_failures.join('\n')}',
+    );
   }
 }
 
@@ -217,7 +217,11 @@ Future<void> enter(WidgetTester tester, Finder finder, String value) async {
 }
 
 /// Taps the first widget whose text contains [part] (list cards show several lines in one widget).
-Future<void> tapContaining(WidgetTester tester, String part, {int index = 0}) async {
+Future<void> tapContaining(
+  WidgetTester tester,
+  String part, {
+  int index = 0,
+}) async {
   final finder = find.textContaining(part).at(index);
   await waitFor(tester, find.textContaining(part));
   await tester.ensureVisible(finder);
@@ -227,6 +231,16 @@ Future<void> tapContaining(WidgetTester tester, String part, {int index = 0}) as
 
 /// Prints every visible text, to discover labels on a screen while writing a step.
 void dumpTexts(String where) {
-  final texts = find.byType(Text).evaluate().map((e) => (e.widget as Text).data ?? (e.widget as Text).textSpan?.toPlainText() ?? '').where((t) => t.isNotEmpty).toSet();
+  final texts = find
+      .byType(Text)
+      .evaluate()
+      .map(
+        (e) =>
+            (e.widget as Text).data ??
+            (e.widget as Text).textSpan?.toPlainText() ??
+            '',
+      )
+      .where((t) => t.isNotEmpty)
+      .toSet();
   debugPrint('TEXTS@$where: ${texts.join(' | ')}');
 }

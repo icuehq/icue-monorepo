@@ -12,15 +12,19 @@ class GenericExpenseArgs {
     required this.expenseType,
     required this.vehicleNumber,
     this.fuelType,
+    this.fuelPrice,
     this.mode,
   });
 
   final ExpenseType expenseType;
   final String vehicleNumber;
   final String? fuelType;
+  final String? fuelPrice;
   final String? mode;
 }
 
+/// One form for battery, tyres, maintenance, salary and fuel-station
+/// expenses. The submitted keys are the legacy backend contract.
 class GenericExpenseFormPage extends StatefulWidget {
   const GenericExpenseFormPage({super.key, required this.args});
 
@@ -31,47 +35,45 @@ class GenericExpenseFormPage extends StatefulWidget {
 }
 
 class _GenericExpenseFormPageState extends State<GenericExpenseFormPage> {
+  static const _otherSubCategory = 'others';
+
   final _formKey = GlobalKey<FormState>();
+  final _billNo = TextEditingController();
+  final _billAmount = TextEditingController();
+  final _vendorName = TextEditingController();
+  final _odometer = TextEditingController();
+  final _description = TextEditingController();
+  final _warranty = TextEditingController();
+  final _batteryName = TextEditingController();
+  final _batteryCapacity = TextEditingController();
+  final _batteryNumber = TextEditingController();
+  final _tyreName = TextEditingController();
+  final _tyreNumber = TextEditingController();
+  final _otherSubCategoryName = TextEditingController();
+  final _fuelLitres = TextEditingController();
+  final _fuelPrice = TextEditingController();
+  final _name = TextEditingController();
 
   DateTime _billDate = DateTime.now();
+  DateTime _fixedDate = DateTime.now();
   String _status = 'UnBilled';
-  final TextEditingController _billNoController = TextEditingController();
-  final TextEditingController _billAmountController = TextEditingController();
-  final TextEditingController _vendorNameController = TextEditingController();
-  final TextEditingController _odometerController = TextEditingController();
-  final TextEditingController _descController = TextEditingController();
+  String? _tyreType;
+  String? _salaryMode;
+  Detail? _category;
+  Detail? _subCategory;
+  PickedFile? _billFile;
+  PickedFile? _odometerFile;
 
-  // Battery specific
-  final TextEditingController _batteryNameController = TextEditingController();
-  final TextEditingController _batteryCapacityController =
-      TextEditingController();
-  final TextEditingController _batteryNoController = TextEditingController();
-  final TextEditingController _warrantyController = TextEditingController();
-
-  // Tyres specific
-  final TextEditingController _tyreBrandController = TextEditingController();
-  final TextEditingController _tyreSizeController = TextEditingController();
-  final TextEditingController _tyreQtyController = TextEditingController();
-
-  // Maintenance specific
-  int? _selectedCategoryId;
-  String? _selectedSubCategory;
-
-  // Fuel specific
-  final TextEditingController _fuelQtyController = TextEditingController();
-  final TextEditingController _fuelRateController = TextEditingController();
-
-  // Salary specific
-  final TextEditingController _staffNameController = TextEditingController();
-  final TextEditingController _salaryMonthController = TextEditingController();
-
-  String? _billFileName;
-  List<int>? _billFileBytes;
+  String get _code => widget.args.expenseType.code;
+  bool get _isFuel => _code == 'fuel';
+  bool get _hasFixedDate =>
+      _code == 'battery' || _code == 'tyres' || _code == 'maintenance';
 
   @override
   void initState() {
     super.initState();
-    if (widget.args.expenseType.code == 'maintenance') {
+    _fuelPrice.text = widget.args.fuelPrice ?? '';
+    if (_code == 'maintenance') {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         context.read<ExpenseProvider>().fetchExpenseCategories();
       });
@@ -80,107 +82,136 @@ class _GenericExpenseFormPageState extends State<GenericExpenseFormPage> {
 
   @override
   void dispose() {
-    _billNoController.dispose();
-    _billAmountController.dispose();
-    _vendorNameController.dispose();
-    _odometerController.dispose();
-    _descController.dispose();
-    _batteryNameController.dispose();
-    _batteryCapacityController.dispose();
-    _batteryNoController.dispose();
-    _warrantyController.dispose();
-    _tyreBrandController.dispose();
-    _tyreSizeController.dispose();
-    _tyreQtyController.dispose();
-    _fuelQtyController.dispose();
-    _fuelRateController.dispose();
-    _staffNameController.dispose();
-    _salaryMonthController.dispose();
+    for (final controller in [
+      _billNo,
+      _billAmount,
+      _vendorName,
+      _odometer,
+      _description,
+      _warranty,
+      _batteryName,
+      _batteryCapacity,
+      _batteryNumber,
+      _tyreName,
+      _tyreNumber,
+      _otherSubCategoryName,
+      _fuelLitres,
+      _fuelPrice,
+      _name,
+    ]) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
-  Future<void> _selectBillDate() async {
+  Future<void> _pickDate(
+    DateTime current,
+    ValueChanged<DateTime> onPicked,
+  ) async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: _billDate,
+      initialDate: current,
       firstDate: DateTime(2020),
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
-    if (picked != null) {
-      setState(() => _billDate = picked);
-    }
+    if (picked != null) setState(() => onPicked(picked));
   }
 
-  void _onCategoryChanged(int? categoryId) {
-    setState(() {
-      _selectedCategoryId = categoryId;
-      _selectedSubCategory = null;
-    });
-    if (categoryId != null) {
-      context.read<ExpenseProvider>().fetchExpenseSubCategories(categoryId);
+  String? _text(TextEditingController controller) {
+    final value = controller.text.trim();
+    return value.isEmpty ? null : value;
+  }
+
+  void _toast(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red.shade700),
+    );
+  }
+
+  Map<String, dynamic> _typeFields() {
+    switch (_code) {
+      case 'battery':
+        return {
+          'BatteryName': _text(_batteryName),
+          'BatteryCapacity': _text(_batteryCapacity),
+          'BatteryNo': _text(_batteryNumber),
+          'Warranty': _text(_warranty),
+        };
+      case 'tyres':
+        return {
+          'Type': _tyreType,
+          'TyreName': _text(_tyreName),
+          'TyreNo': _text(_tyreNumber),
+          'Warranty': _text(_warranty),
+        };
+      case 'maintenance':
+        final other = _subCategory?.id.toString() == _otherSubCategory;
+        return {
+          'CategoryId': _category?.id,
+          'CategoryName': _category?.name,
+          'SubCategoryId': _subCategory?.id,
+          'SubCategoryName': other
+              ? _text(_otherSubCategoryName)
+              : _subCategory?.name,
+        };
+      case 'salary':
+        return {'Name': _text(_name)};
+      case 'fuel':
+        return {'KM': _text(_odometer), 'FuelFilled': _text(_fuelLitres)};
     }
+    return {};
   }
 
   Future<void> _submit() async {
     FocusManager.instance.primaryFocus?.unfocus();
     if (!_formKey.currentState!.validate()) return;
-    _formKey.currentState!.save();
-
-    final dateFormatted = _billDate.toNumericDate();
-
-    final extraFields = <String, dynamic>{};
-    final code = widget.args.expenseType.code;
-
-    if (code == 'battery') {
-      extraFields['BatteryName'] = _batteryNameController.text.trim();
-      extraFields['BatteryCapacity'] = _batteryCapacityController.text.trim();
-      extraFields['BatteryNo'] = _batteryNoController.text.trim();
-      extraFields['Warranty'] = _warrantyController.text.trim();
-    } else if (code == 'tyres') {
-      extraFields['TyreBrand'] = _tyreBrandController.text.trim();
-      extraFields['TyreSize'] = _tyreSizeController.text.trim();
-      extraFields['Quantity'] = _tyreQtyController.text.trim();
-    } else if (code == 'maintenance') {
-      extraFields['CategoryId'] = _selectedCategoryId;
-      extraFields['SubCategory'] = _selectedSubCategory;
-    } else if (code == 'fuel') {
-      extraFields['Litres'] = _fuelQtyController.text.trim();
-      extraFields['Rate'] = _fuelRateController.text.trim();
-      extraFields['FuelType'] = widget.args.fuelType;
-    } else if (code == 'salary') {
-      extraFields['StaffName'] = _staffNameController.text.trim();
-      extraFields['SalaryMonth'] = _salaryMonthController.text.trim();
+    if (_isFuel && _odometerFile == null) {
+      _toast('Please upload Odometer readings!');
+      return;
+    }
+    if (_status != 'UnBilled' && _billFile == null) {
+      _toast('Please upload Bill!');
+      return;
     }
 
-    final req = StoreExpenseRequest(
+    final provider = context.read<ExpenseProvider>();
+    if (_isFuel &&
+        _fuelPrice.text.trim() != widget.args.fuelPrice &&
+        !await provider.updateFuelPrice(
+          widget.args.fuelType ?? '',
+          _fuelPrice.text.trim(),
+        )) {
+      if (mounted) _toast(provider.errorMessage ?? 'Failed to update price');
+      return;
+    }
+
+    final billed = _status != 'UnBilled';
+    final request = StoreExpenseRequest(
       vehicleNumber: widget.args.vehicleNumber,
       expenseType: widget.args.expenseType,
-      billDate: dateFormatted,
-      billAmount: _billAmountController.text.trim(),
-      billNo: _billNoController.text.trim().isNotEmpty
-          ? _billNoController.text.trim()
-          : null,
-      vendorName: _vendorNameController.text.trim().isNotEmpty
-          ? _vendorNameController.text.trim()
-          : null,
+      billDate: _billDate.toUsDate(),
+      billAmount: _isFuel ? '' : _billAmount.text.trim(),
+      billNo: billed ? _text(_billNo) : null,
+      vendorName: _text(_vendorName),
       status: _status,
-      description: _descController.text.trim().isNotEmpty
-          ? _descController.text.trim()
-          : null,
-      speedometer: _odometerController.text.trim().isNotEmpty
-          ? _odometerController.text.trim()
-          : null,
-      mode: widget.args.mode,
-      fuelType: widget.args.fuelType,
-      extraFields: extraFields,
-      billFileBytes: _billFileBytes,
-      billFileName: _billFileName,
+      description: _text(_description),
+      mode: _isFuel
+          ? widget.args.mode
+          : (_code == 'salary' ? _salaryMode : null),
+      fuelType: _isFuel ? widget.args.fuelType : null,
+      speedometer: _isFuel ? null : _text(_odometer),
+      extraFields: {
+        ..._typeFields(),
+        if (_hasFixedDate) 'FixedDate': _fixedDate.toUsDate(),
+      },
+      billFileBytes: billed ? _billFile?.bytes : null,
+      billFileName: billed ? _billFile?.name : null,
+      odometerFileBytes: _odometerFile?.bytes,
+      odometerFileName: _odometerFile?.name,
     );
 
-    final success = await context.read<ExpenseProvider>().submitExpense(req);
-
+    final success = await provider.submitExpense(request);
     if (!mounted) return;
-
     if (success) {
       track(AppEvents.expenseSubmitted, {'type': '${widget.args.expenseType}'});
       context.pushReplacement(
@@ -188,29 +219,205 @@ class _GenericExpenseFormPageState extends State<GenericExpenseFormPage> {
         extra: ExpenseConfirmationData(
           expenseType: widget.args.expenseType,
           vehicleNumber: widget.args.vehicleNumber,
-          amount: _billAmountController.text.trim(),
+          amount: _isFuel ? null : _billAmount.text.trim(),
           mode: widget.args.mode,
           fuelType: widget.args.fuelType,
         ),
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            context.read<ExpenseProvider>().errorMessage ??
-                'Failed to record expense. Please try again.',
-          ),
-          backgroundColor: Colors.red.shade700,
-        ),
+      _toast(
+        provider.errorMessage ?? 'Failed to record expense. Please try again.',
       );
     }
   }
 
+  Widget _field(
+    TextEditingController controller,
+    String label, {
+    bool required = true,
+    TextInputType? keyboardType,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextFormField(
+        controller: controller,
+        keyboardType: keyboardType,
+        decoration: InputDecoration(
+          labelText: required ? '$label *' : label,
+          border: const OutlineInputBorder(),
+        ),
+        validator: required
+            ? (val) => val == null || val.trim().isEmpty ? 'Required' : null
+            : null,
+      ),
+    );
+  }
+
+  Widget _dropdown<T>({
+    required String label,
+    required T? value,
+    required List<T> items,
+    required String Function(T) itemLabel,
+    required ValueChanged<T?> onChanged,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: DropdownButtonFormField<T>(
+        initialValue: value,
+        isExpanded: true,
+        decoration: InputDecoration(
+          labelText: '$label *',
+          border: const OutlineInputBorder(),
+        ),
+        items: [
+          for (final item in items)
+            DropdownMenuItem<T>(value: item, child: Text(itemLabel(item))),
+        ],
+        onChanged: onChanged,
+        validator: (val) => val == null ? 'Required' : null,
+      ),
+    );
+  }
+
+  Widget _fixedDateField() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: InkWell(
+        onTap: () => _pickDate(_fixedDate, (d) => _fixedDate = d),
+        child: InputDecorator(
+          decoration: const InputDecoration(
+            labelText: 'Fixed Date *',
+            border: OutlineInputBorder(),
+            suffixIcon: Icon(Icons.calendar_today_rounded, size: 18),
+          ),
+          child: Text(_fixedDate.toNumericDate()),
+        ),
+      ),
+    );
+  }
+
+  Widget _odometerImage() {
+    final name = _odometerFile?.name;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: OutlinedButton.icon(
+        icon: const Icon(Icons.camera_alt, size: 16),
+        label: Text(name ?? 'Upload Odometer *'),
+        onPressed: () async {
+          final picked = await pickFile(context);
+          if (picked != null && mounted) setState(() => _odometerFile = picked);
+        },
+      ),
+    );
+  }
+
+  List<Widget> _typeSpecificFields(ExpenseProvider provider) {
+    const decimal = TextInputType.numberWithOptions(decimal: true);
+    switch (_code) {
+      case 'battery':
+        return [
+          _field(_batteryName, 'Battery Name'),
+          _field(_batteryCapacity, 'Battery Capacity'),
+          _field(_batteryNumber, 'Battery Number'),
+          _field(_odometer, 'Odometer', keyboardType: TextInputType.number),
+          _field(
+            _warranty,
+            'Warranty (In Months)',
+            keyboardType: TextInputType.number,
+          ),
+          _fixedDateField(),
+        ];
+      case 'tyres':
+        final types = widget.args.expenseType.expenseTypeDetails
+            .where((e) => e.code == 'Type')
+            .expand((e) => e.details)
+            .map((e) => e.name)
+            .toList();
+        return [
+          _dropdown<String>(
+            label: 'Type',
+            value: _tyreType,
+            items: types,
+            itemLabel: (e) => e,
+            onChanged: (val) => setState(() => _tyreType = val),
+          ),
+          _field(_tyreName, 'Tyre Name (Brand)'),
+          _field(_tyreNumber, 'Tyre Number/Size'),
+          _field(_odometer, 'Odometer', keyboardType: TextInputType.number),
+          _field(
+            _warranty,
+            'Warranty (In Months)',
+            keyboardType: TextInputType.number,
+          ),
+          _fixedDateField(),
+        ];
+      case 'maintenance':
+        final subCategories = [
+          ...provider.subCategories,
+          const Detail(id: _otherSubCategory, name: 'Others'),
+        ];
+        return [
+          _dropdown<Detail>(
+            label: 'Category',
+            value: _category,
+            items: provider.categories,
+            itemLabel: (e) => e.name,
+            onChanged: (val) {
+              setState(() {
+                _category = val;
+                _subCategory = null;
+              });
+              if (val != null) {
+                provider.fetchExpenseSubCategories(
+                  int.tryParse(val.id.toString()) ?? 0,
+                );
+              }
+            },
+          ),
+          if (_category != null)
+            _dropdown<Detail>(
+              label: 'Sub Category',
+              value: _subCategory,
+              items: subCategories,
+              itemLabel: (e) => e.name,
+              onChanged: (val) => setState(() => _subCategory = val),
+            ),
+          if (_subCategory?.id.toString() == _otherSubCategory)
+            _field(_otherSubCategoryName, 'Other Sub Category'),
+          _field(_odometer, 'Odometer', keyboardType: TextInputType.number),
+          _fixedDateField(),
+        ];
+      case 'salary':
+        return [
+          _dropdown<String>(
+            label: 'Mode',
+            value: _salaryMode,
+            items: widget.args.expenseType.modes.map((e) => e.code).toList(),
+            itemLabel: (code) => widget.args.expenseType.modes
+                .firstWhere((e) => e.code == code)
+                .name,
+            onChanged: (val) => setState(() => _salaryMode = val),
+          ),
+          _field(_name, 'Name'),
+        ];
+      case 'fuel':
+        return [
+          _field(_fuelPrice, 'Current Fuel Price', keyboardType: decimal),
+          _field(
+            _odometer,
+            'Current KMS Reading',
+            keyboardType: TextInputType.number,
+          ),
+          _field(_fuelLitres, 'Fuel Filled', keyboardType: decimal),
+          _odometerImage(),
+        ];
+    }
+    return [];
+  }
+
   @override
   Widget build(BuildContext context) {
-    final expenseProvider = context.watch<ExpenseProvider>();
-    final code = widget.args.expenseType.code;
-
+    final provider = context.watch<ExpenseProvider>();
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -223,243 +430,34 @@ class _GenericExpenseFormPageState extends State<GenericExpenseFormPage> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            ..._typeSpecificFields(provider),
+            const Divider(),
+            const SizedBox(height: 12),
             ExpenseBillSection(
               billDate: _billDate,
-              onSelectBillDate: _selectBillDate,
-              billNoController: _billNoController,
-              billAmountController: _billAmountController,
-              vendorNameController: _vendorNameController,
+              onSelectBillDate: () =>
+                  _pickDate(_billDate, (d) => _billDate = d),
+              billNoController: _billNo,
+              billAmountController: _billAmount,
+              vendorNameController: _vendorName,
+              showAmount: !_isFuel,
               status: _status,
               onStatusChanged: (val) =>
                   setState(() => _status = val ?? 'UnBilled'),
-              billFileName: _billFileName,
-              onPickBillFile: () {
-                setState(() {
-                  _billFileName = 'invoice_sample.jpg';
-                  _billFileBytes = [0, 1, 2, 3];
-                });
+              billFileName: _billFile?.name,
+              onPickBillFile: () async {
+                final picked = await pickFile(context);
+                if (picked != null && mounted) {
+                  setState(() => _billFile = picked);
+                }
               },
-              onRemoveBillFile: () {
-                setState(() {
-                  _billFileName = null;
-                  _billFileBytes = null;
-                });
-              },
+              onRemoveBillFile: () => setState(() => _billFile = null),
             ),
-            const SizedBox(height: 20),
-            const Divider(),
-            const SizedBox(height: 12),
-            Text(
-              '${widget.args.expenseType.expenseTypeDesc} Details',
-              style: Theme.of(context).textTheme.titleSmall
-                  ?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            if (code != 'salary') ...[
-              TextFormField(
-                controller: _odometerController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Odometer / Speedometer (KM) *',
-                  border: OutlineInputBorder(),
-                  suffixText: 'km',
-                ),
-                validator: (val) =>
-                    val == null || val.trim().isEmpty ? 'Required' : null,
-              ),
-              const SizedBox(height: 12),
-            ],
-            if (code == 'battery') ...[
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _batteryNameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Battery Brand *',
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (val) =>
-                          val == null || val.trim().isEmpty ? 'Required' : null,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _batteryCapacityController,
-                      decoration: const InputDecoration(
-                        labelText: 'Capacity (e.g. 100Ah) *',
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (val) =>
-                          val == null || val.trim().isEmpty ? 'Required' : null,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _batteryNoController,
-                      decoration: const InputDecoration(
-                        labelText: 'Battery Serial Number *',
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (val) =>
-                          val == null || val.trim().isEmpty ? 'Required' : null,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _warrantyController,
-                      decoration: const InputDecoration(
-                        labelText: 'Warranty (Months)',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ] else if (code == 'tyres') ...[
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _tyreBrandController,
-                      decoration: const InputDecoration(
-                        labelText: 'Tyre Brand *',
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (val) =>
-                          val == null || val.trim().isEmpty ? 'Required' : null,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _tyreSizeController,
-                      decoration: const InputDecoration(
-                        labelText: 'Tyre Size *',
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (val) =>
-                          val == null || val.trim().isEmpty ? 'Required' : null,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _tyreQtyController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Quantity Fitted *',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (val) =>
-                    val == null || val.trim().isEmpty ? 'Required' : null,
-              ),
-            ] else if (code == 'maintenance') ...[
-              DropdownButtonFormField<int>(
-                initialValue: _selectedCategoryId,
-                decoration: const InputDecoration(
-                  labelText: 'Maintenance Category *',
-                  border: OutlineInputBorder(),
-                ),
-                items: expenseProvider.categories.map((c) {
-                  return DropdownMenuItem<int>(
-                    value: c.id is int
-                        ? c.id as int
-                        : int.tryParse(c.id.toString()) ?? 0,
-                    child: Text(c.name),
-                  );
-                }).toList(),
-                onChanged: _onCategoryChanged,
-                validator: (val) =>
-                    val == null ? 'Please select category' : null,
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: _selectedSubCategory,
-                decoration: const InputDecoration(
-                  labelText: 'Sub-Category *',
-                  border: OutlineInputBorder(),
-                ),
-                items: expenseProvider.subCategories.map((sc) {
-                  return DropdownMenuItem<String>(
-                    value: sc.name,
-                    child: Text(sc.name),
-                  );
-                }).toList(),
-                onChanged: (val) => setState(() => _selectedSubCategory = val),
-                validator: (val) =>
-                    val == null ? 'Please select sub-category' : null,
-              ),
-            ] else if (code == 'fuel') ...[
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _fuelQtyController,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      decoration: const InputDecoration(
-                        labelText: 'Quantity (Litres) *',
-                        border: OutlineInputBorder(),
-                        suffixText: 'L',
-                      ),
-                      validator: (val) =>
-                          val == null || val.trim().isEmpty ? 'Required' : null,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _fuelRateController,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      decoration: const InputDecoration(
-                        labelText: 'Rate (₹ / Litre) *',
-                        border: OutlineInputBorder(),
-                        prefixText: '₹ ',
-                      ),
-                      validator: (val) =>
-                          val == null || val.trim().isEmpty ? 'Required' : null,
-                    ),
-                  ),
-                ],
-              ),
-            ] else if (code == 'salary') ...[
-              TextFormField(
-                controller: _staffNameController,
-                decoration: const InputDecoration(
-                  labelText: 'Staff / Driver Name *',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (val) =>
-                    val == null || val.trim().isEmpty ? 'Required' : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _salaryMonthController,
-                decoration: const InputDecoration(
-                  labelText: 'Salary Month (e.g. October 2026) *',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (val) =>
-                    val == null || val.trim().isEmpty ? 'Required' : null,
-              ),
-            ],
             const SizedBox(height: 12),
             TextFormField(
-              controller: _descController,
+              controller: _description,
               decoration: const InputDecoration(
-                labelText: 'Notes / Remarks',
+                labelText: 'Description',
                 border: OutlineInputBorder(),
                 alignLabelWithHint: true,
               ),
@@ -469,25 +467,16 @@ class _GenericExpenseFormPageState extends State<GenericExpenseFormPage> {
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
               ),
-              onPressed: expenseProvider.isLoading ? null : _submit,
+              onPressed: provider.isLoading ? null : _submit,
               icon: const Icon(Icons.check_circle_outline),
-              label: expenseProvider.isLoading
+              label: provider.isLoading
                   ? const SizedBox(
                       width: 18,
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text(
-                      'Submit Expense Record',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                  : const Text('Submit Expense Record'),
             ),
           ],
         ),

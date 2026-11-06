@@ -26,10 +26,12 @@ import 'package:icueadmin/features/drop_boarding/drop_vehicles_page.dart';
 import 'package:icueadmin/features/expenses/end_filling_page.dart';
 import 'package:icueadmin/features/expenses/expense_confirmation_page.dart';
 import 'package:icueadmin/features/expenses/generic_expense_form_page.dart';
+import 'package:icueadmin/features/expenses/loose_fuel_expense_page.dart';
 import 'package:icueadmin/features/expenses/manage_expense_page.dart';
 import 'package:icueadmin/features/expenses/options_page.dart';
 import 'package:icueadmin/features/expenses/repairs_expense_page.dart';
 import 'package:icueadmin/features/expenses/self_filling_page.dart';
+import 'package:icueadmin/features/expenses/self_filling_vehicles_page.dart';
 import 'package:icueadmin/features/gatepass/confirm_gatepass_page.dart';
 import 'package:icueadmin/features/gatepass/gatepass_page.dart';
 import 'package:icueadmin/features/gatepass/generate_gatepass_page.dart';
@@ -59,6 +61,7 @@ import 'package:icueadmin/features/vehicles/vehicle_details_page.dart';
 import 'package:icueadmin/features/vehicles/vehicle_docs_page.dart';
 import 'package:icueadmin/features/vehicles/vehicles_page.dart';
 import 'package:icueadmin/routing/app_routes.dart';
+import 'package:icueadmin/widgets/coming_soon_page.dart';
 import 'package:inventory/inventory.dart';
 import 'package:logbook/logbook.dart';
 import 'package:routes/routes.dart';
@@ -68,6 +71,17 @@ import 'package:vehicles/vehicles.dart';
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>(
   debugLabel: 'root',
 );
+
+/// Redirects to [fallback] when a route that needs `extra` is opened without
+/// it (process restore, deep link), instead of crashing on a failed cast.
+GoRouterRedirect _requireExtra<T>(String fallback) =>
+    (context, state) => state.extra is T ? null : fallback;
+
+GoRouterRedirect _requireMapKeys(String fallback, List<String> keys) =>
+    (context, state) {
+      final extra = state.extra;
+      return extra is Map && keys.every(extra.containsKey) ? null : fallback;
+    };
 
 /// Pure redirect logic used by [GoRouter] and unit tests.
 String? handleAuthRedirect({
@@ -105,6 +119,7 @@ GoRouter createRouter({
   return GoRouter(
     navigatorKey: navigatorKey ?? rootNavigatorKey,
     initialLocation: initialLocation,
+    errorBuilder: (context, state) => const ComingSoonPage(),
     observers: [AnalyticsService.instance.observer],
     refreshListenable: authProvider,
     redirect: (context, state) => handleAuthRedirect(
@@ -146,6 +161,7 @@ GoRouter createRouter({
       GoRoute(
         path: AppRoutes.driverInfo,
         name: AppRoutes.driverInfoName,
+        redirect: _requireExtra<Driver>(AppRoutes.drivers),
         builder: (context, state) {
           final driver = state.extra as Driver;
           return DriverInfoPage(driver: driver);
@@ -154,6 +170,7 @@ GoRouter createRouter({
       GoRoute(
         path: AppRoutes.driverDocs,
         name: AppRoutes.driverDocsName,
+        redirect: _requireExtra<Driver>(AppRoutes.drivers),
         builder: (context, state) {
           final driver = state.extra as Driver;
           return DriverDocsPage(driver: driver);
@@ -177,6 +194,7 @@ GoRouter createRouter({
       GoRoute(
         path: AppRoutes.vehicleDetails,
         name: AppRoutes.vehicleDetailsName,
+        redirect: _requireExtra<VehicleData>(AppRoutes.vehicles),
         builder: (context, state) {
           final vehicle = state.extra as VehicleData;
           return VehicleDetailsPage(vehicle: vehicle);
@@ -185,6 +203,7 @@ GoRouter createRouter({
       GoRoute(
         path: AppRoutes.vehicleDocs,
         name: AppRoutes.vehicleDocsName,
+        redirect: _requireExtra<VehicleData>(AppRoutes.vehicles),
         builder: (context, state) {
           final vehicle = state.extra as VehicleData;
           return VehicleDocsPage(vehicle: vehicle);
@@ -223,6 +242,7 @@ GoRouter createRouter({
       GoRoute(
         path: AppRoutes.vehicleOptions,
         name: AppRoutes.vehicleOptionsName,
+        redirect: _requireExtra<Vehicle>(AppRoutes.repairsExpense),
         builder: (context, state) {
           final vehicle = state.extra as Vehicle;
           return OptionsPage(vehicle: vehicle);
@@ -236,6 +256,7 @@ GoRouter createRouter({
       GoRoute(
         path: AppRoutes.addExpense,
         name: AppRoutes.addExpenseName,
+        redirect: _requireExtra<GenericExpenseArgs>(AppRoutes.repairsExpense),
         builder: (context, state) {
           final args = state.extra as GenericExpenseArgs;
           return GenericExpenseFormPage(args: args);
@@ -244,26 +265,35 @@ GoRouter createRouter({
       GoRoute(
         path: AppRoutes.selfFilling,
         name: AppRoutes.selfFillingName,
-        builder: (context, state) {
-          final fuelType = state.extra is String
-              ? state.extra as String
-              : 'Diesel';
-          return SelfFillingPage(initialFuelType: fuelType);
-        },
+        builder: (context, state) => SelfFillingPage(
+          initialFuelType: state.extra is String ? state.extra as String : null,
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.selfFillingVehicles,
+        name: AppRoutes.selfFillingVehiclesName,
+        redirect: _requireExtra<String>(AppRoutes.manageExpense),
+        builder: (context, state) =>
+            SelfFillingVehiclesPage(fuelType: state.extra as String),
+      ),
+      GoRoute(
+        path: AppRoutes.looseFuel,
+        name: AppRoutes.looseFuelName,
+        redirect: _requireExtra<LooseFuelArgs>(AppRoutes.manageExpense),
+        builder: (context, state) =>
+            LooseFuelExpensePage(args: state.extra as LooseFuelArgs),
       ),
       GoRoute(
         path: AppRoutes.endFilling,
         name: AppRoutes.endFillingName,
-        builder: (context, state) {
-          final fuelType = state.extra is String
-              ? state.extra as String
-              : 'Diesel';
-          return EndFillingPage(initialFuelType: fuelType);
-        },
+        redirect: _requireExtra<String>(AppRoutes.manageExpense),
+        builder: (context, state) =>
+            EndFillingPage(initialFuelType: state.extra as String),
       ),
       GoRoute(
         path: AppRoutes.expenseConfirmation,
         name: AppRoutes.expenseConfirmationName,
+        redirect: _requireExtra<ExpenseConfirmationData>(AppRoutes.dashboard),
         builder: (context, state) {
           final data = state.extra as ExpenseConfirmationData;
           return ExpenseConfirmationPage(data: data);
@@ -296,6 +326,7 @@ GoRouter createRouter({
       GoRoute(
         path: AppRoutes.complaintDetails,
         name: AppRoutes.complaintDetailsName,
+        redirect: _requireExtra<Complaint>(AppRoutes.complaints),
         builder: (context, state) {
           final complaint = state.extra as Complaint;
           return ComplaintDetailsPage(complaint: complaint);
@@ -364,6 +395,7 @@ GoRouter createRouter({
       GoRoute(
         path: AppRoutes.confirmGatePass,
         name: AppRoutes.confirmGatePassName,
+        redirect: _requireMapKeys(AppRoutes.gatePass, ['student']),
         builder: (context, state) {
           final map = state.extra is Map<String, dynamic>
               ? state.extra as Map<String, dynamic>
@@ -423,6 +455,7 @@ GoRouter createRouter({
       GoRoute(
         path: AppRoutes.attendanceSections,
         name: AppRoutes.attendanceSectionsName,
+        redirect: _requireExtra<AssignedEntityClass>(AppRoutes.attendance),
         builder: (context, state) {
           final standard = state.extra as AssignedEntityClass;
           return SectionsPage(standard: standard);
@@ -431,6 +464,7 @@ GoRouter createRouter({
       GoRoute(
         path: AppRoutes.createAttendance,
         name: AppRoutes.createAttendanceName,
+        redirect: _requireMapKeys(AppRoutes.attendance, ['standard']),
         builder: (context, state) {
           final map = state.extra is Map<String, dynamic>
               ? state.extra as Map<String, dynamic>
@@ -443,6 +477,7 @@ GoRouter createRouter({
       GoRoute(
         path: AppRoutes.sdkAttendance,
         name: AppRoutes.sdkAttendanceName,
+        redirect: _requireMapKeys(AppRoutes.attendance, ['standard']),
         builder: (context, state) {
           final map = state.extra is Map<String, dynamic>
               ? state.extra as Map<String, dynamic>

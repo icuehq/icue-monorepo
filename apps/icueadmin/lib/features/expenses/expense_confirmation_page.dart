@@ -12,6 +12,7 @@ class ExpenseConfirmationPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isSelfFilling = data.mode == 'SelfFilling';
 
     return Scaffold(
       appBar: AppBar(
@@ -95,26 +96,37 @@ class ExpenseConfirmationPage extends StatelessWidget {
               Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      onPressed: () {
-                        context.go(AppRoutes.dashboard);
-                      },
-                      child: const Text('Dashboard'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                       onPressed: () {
-                        context.pushReplacement(AppRoutes.repairsExpense);
+                        if (isSelfFilling) {
+                          context.pop();
+                        } else {
+                          context.pushReplacement(AppRoutes.repairsExpense);
+                        }
                       },
                       child: const Text('Add Another'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      onPressed: () {
+                        if (isSelfFilling) {
+                          context.pushReplacement(
+                            AppRoutes.endFilling,
+                            extra: data.fuelType ?? '',
+                          );
+                        } else {
+                          context.go(AppRoutes.dashboard);
+                        }
+                      },
+                      child: Text(isSelfFilling ? 'End Filling' : 'Dashboard'),
                     ),
                   ),
                 ],

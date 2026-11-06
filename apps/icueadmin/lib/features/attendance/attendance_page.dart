@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:attendance/attendance.dart';
 import 'package:auth/auth.dart';
 import 'package:flutter/material.dart';
@@ -20,6 +22,7 @@ class _AttendancePageState extends State<AttendancePage> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final auth = context.read<AuthProvider>();
+      unawaited(auth.getAdminAppSettings());
       await auth.getAssignedEntities(forAttendance: true);
       if (!mounted) return;
       await context.read<AttendanceProvider>().getOngoingAttendance();

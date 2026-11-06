@@ -76,7 +76,11 @@ Future<void> mastersSteps(WidgetTester tester) async {
       await tapLabel(tester, 'Add store');
       await fill(tester, 'Store name *', 'Science Lab Store');
       await fill(tester, 'Location', 'Science Block 2nd Floor');
-      await fill(tester, 'Description', 'Laboratory chemicals and apparatus store');
+      await fill(
+        tester,
+        'Description',
+        'Laboratory chemicals and apparatus store',
+      );
       await tapText(tester, 'Save store');
       await waitFor(tester, find.text('Science Lab Store'));
     }

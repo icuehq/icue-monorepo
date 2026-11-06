@@ -1,3 +1,4 @@
+import 'package:auth/auth.dart';
 import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -21,8 +22,7 @@ class _AddComplaintPageState extends State<AddComplaintPage> {
   String _customCategory = '';
   final TextEditingController _descController = TextEditingController();
 
-  String? _photoName;
-  List<int>? _photoBytes;
+  final List<PickedFile> _photos = [];
 
   @override
   void initState() {
@@ -37,6 +37,54 @@ class _AddComplaintPageState extends State<AddComplaintPage> {
   void dispose() {
     _descController.dispose();
     super.dispose();
+  }
+
+  Widget _photosSection() {
+    final limit =
+        context
+            .watch<AuthProvider>()
+            .appSettings
+            ?.vehicle
+            ?.complaintImageLimit ??
+        1;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Defect / Damage photos (optional, up to $limit)',
+            style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+          ),
+          for (var i = 0; i < _photos.length; i++)
+            ListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.image_rounded, color: Colors.green),
+              title: Text(_photos[i].name, overflow: TextOverflow.ellipsis),
+              trailing: IconButton(
+                icon: const Icon(Icons.close_rounded, size: 18),
+                onPressed: () => setState(() => _photos.removeAt(i)),
+              ),
+            ),
+          if (_photos.length < limit)
+            TextButton.icon(
+              onPressed: () async {
+                final picked = await pickFile(context);
+                if (picked == null || !mounted) return;
+                setState(() => _photos.add(picked));
+              },
+              icon: const Icon(Icons.attach_file, size: 16),
+              label: const Text('Attach'),
+            ),
+        ],
+      ),
+    );
   }
 
   Future<void> _submit() async {
@@ -58,8 +106,10 @@ class _AddComplaintPageState extends State<AddComplaintPage> {
       newCategoryName: _selectedCategoryId == 0 && _customCategory.isNotEmpty
           ? _customCategory.trim()
           : null,
-      photoBytes: _photoBytes,
-      photoName: _photoName,
+      photos: [
+        for (final photo in _photos)
+          ComplaintPhoto(name: photo.name, bytes: photo.bytes),
+      ],
     );
 
     final success = await context.read<LogBookProvider>().createComplaint(req);
@@ -147,8 +197,13 @@ class _AddComplaintPageState extends State<AddComplaintPage> {
                   border: OutlineInputBorder(),
                 ),
                 onSaved: (val) => _customCategory = val ?? '',
-                validator: (val) =>
-                    val == null || val.trim().isEmpty ? 'Required' : null,
+                validator: (val) {
+                  if (val == null || val.trim().isEmpty) return 'Required';
+                  final exists = context.read<LogBookProvider>().categories.any(
+                    (c) => c.name.toLowerCase() == val.trim().toLowerCase(),
+                  );
+                  return exists ? 'Category already exists' : null;
+                },
               ),
             ],
             const SizedBox(height: 16),
@@ -166,57 +221,7 @@ class _AddComplaintPageState extends State<AddComplaintPage> {
                   val == null || val.trim().isEmpty ? 'Required' : null,
             ),
             const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    _photoName != null
-                        ? Icons.image_rounded
-                        : Icons.add_a_photo_outlined,
-                    color: _photoName != null ? Colors.green : Colors.grey,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      _photoName ?? 'Defect / Damage photo (optional)',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: _photoName != null
-                            ? Colors.black
-                            : Colors.grey.shade600,
-                      ),
-                    ),
-                  ),
-                  if (_photoName != null)
-                    IconButton(
-                      icon: const Icon(Icons.close_rounded, size: 18),
-                      onPressed: () {
-                        setState(() {
-                          _photoName = null;
-                          _photoBytes = null;
-                        });
-                      },
-                    )
-                  else
-                    TextButton.icon(
-                      onPressed: () {
-                        setState(() {
-                          _photoName = 'defect_photo.jpg';
-                          _photoBytes = [1, 2, 3];
-                        });
-                      },
-                      icon: const Icon(Icons.attach_file, size: 16),
-                      label: const Text('Attach'),
-                    ),
-                ],
-              ),
-            ),
+            _photosSection(),
             const SizedBox(height: 24),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(

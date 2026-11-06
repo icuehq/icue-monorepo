@@ -25,7 +25,7 @@ class _SectionsPageState extends State<SectionsPage> {
 
     try {
       final attendanceProvider = context.read<AttendanceProvider>();
-      final date = DateTime.now().toApiDate();
+      final date = DateTime.now().toUsDate();
 
       final exists = await attendanceProvider.checkAttendanceExists(
         classId: widget.standard.classId,
@@ -57,7 +57,10 @@ class _SectionsPageState extends State<SectionsPage> {
   Future<void> _handleStartAttendance() async {
     if (_selectedSection == null) return;
 
-    final mode = await AttendanceModeSheet.show(context);
+    final mode = await AttendanceModeSheet.show(
+      context,
+      settings: context.read<AuthProvider>().appSettings?.attendance,
+    );
     if (mode == null || !mounted) return;
 
     if (mode == AttendanceModeOption.manual) {

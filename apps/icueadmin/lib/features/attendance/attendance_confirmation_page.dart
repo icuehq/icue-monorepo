@@ -1,4 +1,5 @@
 import 'package:attendance/attendance.dart';
+import 'package:auth/auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icueadmin/analytics/app_events.dart';
@@ -59,6 +60,24 @@ class _AttendanceConfirmationPageState extends State<AttendanceConfirmationPage>
   }
 
   Future<void> _handleSubmit() async {
+    final ongoing = context.read<AttendanceProvider>().ongoingAttendance;
+    final mode = ongoing?.attendanceMode?.toUpperCase();
+    final photoMode = mode == 'FACIAL_PHOTO' || mode == 'FACIAL';
+    final hasPhotos =
+        ongoing?.images?.any((image) => image.trim().isNotEmpty) ?? false;
+    final settings = context.read<AuthProvider>().appSettings?.attendance;
+    if ((settings?.uploadImages ?? false) && photoMode && !hasPhotos) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Please upload or capture at least one attendance photo.',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(

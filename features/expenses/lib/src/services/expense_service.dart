@@ -58,14 +58,15 @@ class ExpenseService {
     final data = response.data;
     if (data is Map<String, dynamic>) {
       final parsed = FuelStorageResponse.fromJson(data);
-      return parsed.data;
+      // The server only wants storage filled when it says so.
+      return parsed.toFill ?? false ? parsed.data : <Storage>[];
     }
     return <Storage>[];
   }
 
   /// Updates start or end status for self-filling fuel pump.
   Future<bool> updateSelfFillingStatus(SelfFillingStatusRequest request) async {
-    final date = request.transDate ?? DateTime.now().toIso8601String();
+    final date = request.transDate ?? DateTime.now().toUsDate();
 
     String? imgUpload;
     if (request.gaugeFileBytes != null && request.billFileBytes != null) {
@@ -86,13 +87,14 @@ class ExpenseService {
     };
 
     if (request.gaugeFileBytes != null) {
-      formMap['GaugeFile'] = MultipartFile.fromBytes(
+      formMap['File'] = MultipartFile.fromBytes(
         request.gaugeFileBytes!,
         filename: request.gaugeFileName ?? 'gauge.jpg',
       );
     }
-    if (request.billFileBytes != null) {
-      formMap['BillFile'] = MultipartFile.fromBytes(
+    if (request.billFileBytes != null && request.gaugeFileBytes == null) {
+      // The backend reads a single `File` part; gauge wins when both exist.
+      formMap['File'] = MultipartFile.fromBytes(
         request.billFileBytes!,
         filename: request.billFileName ?? 'bill.jpg',
       );
@@ -115,7 +117,8 @@ class ExpenseService {
     List<int>? odometerBytes,
     String? odometerName,
   }) async {
-    final map = Map<String, dynamic>.from(data);
+    final map = Map<String, dynamic>.from(data)
+      ..removeWhere((_, value) => value == null || value == '');
     if (odometerBytes != null) {
       map['File'] = MultipartFile.fromBytes(
         odometerBytes,
@@ -137,6 +140,18 @@ class ExpenseService {
     return null;
   }
 
+  /// Updates the per-litre price of [fuelType].
+  Future<bool> updateFuelPrice(String fuelType, String price) async {
+    final response = await _apiClient.post<dynamic>(
+      '/v1.0/updateFuelPrice',
+      data: {'FuelType': fuelType, 'Price': price},
+    );
+    if (response.data is Map<String, dynamic>) {
+      return (response.data as Map<String, dynamic>)['err'] != true;
+    }
+    return false;
+  }
+
   /// Generates a unique Bill Number if user left it blank.
   Future<String?> generateBillNo(String billDate) async {
     final now = DateTime.now();
@@ -156,11 +171,14 @@ class ExpenseService {
   /// Stores the full expense record.
   Future<bool> storeExpense(StoreExpenseRequest request) async {
     final baseData = <String, dynamic>{
-      'VehicleNumber': request.vehicleNumber,
+      if (request.vehicleNumber.isNotEmpty)
+        'VehicleNumber': request.vehicleNumber,
       'ExpenseType': request.expenseType.expenseType.toString(),
       'BillDate': request.billDate,
-      'BillAmount': request.billAmount,
-      'Amount': request.billAmount,
+      if (request.billAmount.isNotEmpty) ...{
+        'BillAmount': request.billAmount,
+        'Amount': request.billAmount,
+      },
       'Status': request.status,
       'BillNo': ?request.billNo,
       'VendorName': ?request.vendorName,

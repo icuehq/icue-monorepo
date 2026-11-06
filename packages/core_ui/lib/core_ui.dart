@@ -6,6 +6,7 @@ export 'src/connectivity/connectivity_service.dart';
 export 'src/typography/app_fonts.dart';
 export 'src/utils/csv_utils.dart';
 export 'src/utils/date_time_formatting.dart';
+export 'src/utils/file_picking.dart';
 export 'src/utils/number_formatting.dart';
 export 'src/utils/text_utils.dart';
 export 'src/widgets/app_date_field.dart';

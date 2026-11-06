@@ -1,6 +1,7 @@
 library;
 
 export 'src/di/auth_micro_module.module.dart';
+export 'src/models/app_settings.dart';
 export 'src/models/assigned_entities.dart';
 export 'src/models/branches.dart';
 export 'src/models/otp_response.dart';

@@ -14,6 +14,7 @@ class ExpenseBillSection extends StatelessWidget {
     required this.billFileName,
     required this.onPickBillFile,
     required this.onRemoveBillFile,
+    this.showAmount = true,
   });
 
   final DateTime billDate;
@@ -26,6 +27,9 @@ class ExpenseBillSection extends StatelessWidget {
   final String? billFileName;
   final VoidCallback onPickBillFile;
   final VoidCallback onRemoveBillFile;
+
+  /// Fuel bills have no amount: the server computes it.
+  final bool showAmount;
 
   @override
   Widget build(BuildContext context) {
@@ -87,22 +91,24 @@ class ExpenseBillSection extends StatelessWidget {
         const SizedBox(height: 12),
         Row(
           children: [
-            Expanded(
-              child: TextFormField(
-                controller: billAmountController,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
+            if (showAmount) ...[
+              Expanded(
+                child: TextFormField(
+                  controller: billAmountController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'Bill Amount (₹) *',
+                    border: OutlineInputBorder(),
+                    prefixText: '₹ ',
+                  ),
+                  validator: (val) =>
+                      val == null || val.trim().isEmpty ? 'Required' : null,
                 ),
-                decoration: const InputDecoration(
-                  labelText: 'Bill Amount (₹) *',
-                  border: OutlineInputBorder(),
-                  prefixText: '₹ ',
-                ),
-                validator: (val) =>
-                    val == null || val.trim().isEmpty ? 'Required' : null,
               ),
-            ),
-            const SizedBox(width: 12),
+              const SizedBox(width: 12),
+            ],
             Expanded(
               child: TextFormField(
                 controller: vendorNameController,

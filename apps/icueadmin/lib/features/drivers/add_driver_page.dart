@@ -91,6 +91,17 @@ class _AddDriverPageState extends State<AddDriverPage> {
     _doj = d?.dateOfJoining.toDateOrNull();
     _licenceIssueDate = d?.licenceIssuedDate.toDateOrNull();
     _licenceExpiryDate = d?.licenceExpiryDate.toDateOrNull();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadPlaces());
+  }
+
+  Future<void> _loadPlaces() async {
+    final provider = context.read<DriverProvider>();
+    await provider.fetchCountries();
+    final current = provider.countries
+        .where((c) => c.name == _countryController.text)
+        .firstOrNull;
+    if (current != null) await provider.fetchPlaces(current.id);
   }
 
   @override
@@ -117,6 +128,10 @@ class _AddDriverPageState extends State<AddDriverPage> {
     _pincodeController.dispose();
     super.dispose();
   }
+
+  /// Dates go to the API as `MM/dd/yyyy`, as the legacy backend expects.
+  String? _usDate(TextEditingController controller) =>
+      controller.text.toDateOrNull()?.toUsDate();
 
   Future<void> _selectDate({
     required BuildContext context,
@@ -151,12 +166,12 @@ class _AddDriverPageState extends State<AddDriverPage> {
       alternateNumber: int.tryParse(_altMobileController.text.trim()),
       email: _emailController.text.trim(),
       idType: _aadharController.text.trim(),
-      dateOfBirth: _dobController.text.trim(),
-      dateOfJoining: _dojController.text.trim(),
+      dateOfBirth: _usDate(_dobController),
+      dateOfJoining: _usDate(_dojController),
       licenceNumber: _licenseNumberController.text.trim(),
       drivingExperience: _experienceController.text.trim(),
-      licenceIssuedDate: _licenseIssueDateController.text.trim(),
-      licenceExpiryDate: _licenseExpiryDateController.text.trim(),
+      licenceIssuedDate: _usDate(_licenseIssueDateController),
+      licenceExpiryDate: _usDate(_licenseExpiryDateController),
       address: Address(
         line1: _addressLine1Controller.text.trim(),
         line2: _addressLine2Controller.text.trim(),
@@ -256,6 +271,12 @@ class _AddDriverPageState extends State<AddDriverPage> {
                   addressLine2Controller: _addressLine2Controller,
                   cityController: _cityController,
                   stateController: _stateController,
+                  countries: context.watch<DriverProvider>().countries,
+                  places: context.watch<DriverProvider>().places,
+                  onCountryChanged: (country) {
+                    _stateController.clear();
+                    context.read<DriverProvider>().fetchPlaces(country.id);
+                  },
                   countryController: _countryController,
                   pincodeController: _pincodeController,
                   onSelectIssueDate: () => _selectDate(

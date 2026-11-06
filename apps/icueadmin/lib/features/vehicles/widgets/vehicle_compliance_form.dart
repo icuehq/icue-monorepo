@@ -15,6 +15,8 @@ class VehicleComplianceForm extends StatelessWidget {
     required this.fireExtExpiryDateController,
     required this.firstAidDetailsController,
     required this.firstAidExpiryDateController,
+    required this.serviceDateController,
+    required this.onSelectServiceDate,
     required this.onSelectRegDate,
     required this.onSelectFireExtInstallDate,
     required this.onSelectFireExtExpiryDate,
@@ -33,6 +35,8 @@ class VehicleComplianceForm extends StatelessWidget {
   final TextEditingController fireExtExpiryDateController;
   final TextEditingController firstAidDetailsController;
   final TextEditingController firstAidExpiryDateController;
+  final TextEditingController serviceDateController;
+  final VoidCallback onSelectServiceDate;
   final VoidCallback onSelectRegDate;
   final VoidCallback onSelectFireExtInstallDate;
   final VoidCallback onSelectFireExtExpiryDate;
@@ -74,6 +78,17 @@ class VehicleComplianceForm extends StatelessWidget {
               ),
             ),
           ],
+        ),
+        const SizedBox(height: 12),
+        InkWell(
+          onTap: onSelectServiceDate,
+          child: IgnorePointer(
+            child: AppTextField(
+              controller: serviceDateController,
+              hintText: 'Service Due Date',
+              prefixIcon: const Icon(Icons.event_note_outlined, size: 20),
+            ),
+          ),
         ),
         const SizedBox(height: 12),
         Row(
