@@ -46,15 +46,12 @@ Future<PickedFile?> pickFile(
   if (choice == null) return null;
 
   if (choice == 'gallery' && allowDocuments) {
-    final result = await FilePicker.pickFiles(
+    final file = await FilePicker.pickFile(
       type: FileType.custom,
       allowedExtensions: documentExtensions,
-      withData: true,
     );
-    final file = result?.files.single;
-    final bytes = file?.bytes;
-    if (file == null || bytes == null) return null;
-    return PickedFile(name: file.name, bytes: bytes);
+    if (file == null) return null;
+    return PickedFile(name: file.name, bytes: await file.readAsBytes());
   }
 
   final image = await ImagePicker().pickImage(
