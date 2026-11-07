@@ -78,6 +78,14 @@ describe('library copies and acquisitions', () => {
     expect(await get('libraryCopies/ACC-000004')).toMatchObject({ campusId: 32, price: 0 });
   });
 
+  it('acquisition stores scanned barcodes and rejects wrong counts or repeats', async () => {
+    await buy({ quantity: 2, barcodes: ['9780001', '9780002'] });
+    expect(await get('libraryCopies/ACC-000002')).toMatchObject({ barcode: '9780002' });
+    await expect(buy({ quantity: 2, barcodes: ['1'] })).rejects.toThrow();
+    await expect(buy({ quantity: 2, barcodes: ['a', 'A'] })).rejects.toThrow();
+    await expect(buy({ quantity: 1, barcodes: ['9780001'] })).rejects.toThrow();
+  });
+
   it('acquisition rules: permission, campus scope, active title and library', async () => {
     await expect(buy({})).resolves.toBeTruthy();
     await expect(

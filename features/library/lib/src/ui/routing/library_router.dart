@@ -19,7 +19,6 @@ import 'package:school_library/src/ui/members/members_page.dart';
 import 'package:school_library/src/ui/policies/policies_page.dart';
 import 'package:school_library/src/ui/reservations/reservations_page.dart';
 import 'package:school_library/src/ui/routing/library_destinations.dart';
-import 'package:school_library/src/ui/verification/verification_page.dart';
 
 /// Library screens as go_router routes, inside a shell that adds side navigation on wide screens.
 List<RouteBase> libraryRoutes() => [
@@ -98,11 +97,6 @@ final _libraryPages = <RouteBase>[
     path: LibraryRoutes.libraryIncidents,
     name: LibraryRoutes.libraryIncidentsName,
     builder: (context, state) => const IncidentsPage(),
-  ),
-  GoRoute(
-    path: LibraryRoutes.libraryVerification,
-    name: LibraryRoutes.libraryVerificationName,
-    builder: (context, state) => const LibraryVerificationPage(),
   ),
   GoRoute(
     path: LibraryRoutes.libraryReports,

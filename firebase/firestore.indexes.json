@@ -839,20 +839,6 @@
       ]
     },
     {
-      "collectionGroup": "libraryVerifications",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
       "collectionGroup": "libraryLoans",
       "queryScope": "COLLECTION",
       "fields": [
@@ -1198,38 +1184,6 @@
         },
         {
           "fieldPath": "date",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "libraryVerifications",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "libraryVerifications",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "libraryId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
           "order": "DESCENDING"
         }
       ]

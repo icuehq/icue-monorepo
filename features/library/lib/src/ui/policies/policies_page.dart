@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/policies/widgets/policy_card.dart';
 import 'package:school_library/src/ui/policies/widgets/policy_empty_states.dart';
+import 'package:school_library/src/ui/policies/widgets/policy_rule_pills.dart';
 import 'package:school_library/src/ui/policies/widgets/policy_sheet.dart';
 import 'package:school_library/src/ui/routing/library_destinations.dart';
 import 'package:school_library/src/ui/routing/library_tab_bar.dart';
@@ -56,7 +57,7 @@ class PoliciesPage extends StatelessWidget {
           ),
         ],
         bottom: const LibraryTabBar(
-          tabs: libraryMemberTabs,
+          tabs: librarySettingsTabs,
           activePath: LibraryRoutes.libraryPolicies,
         ),
       ),
@@ -113,10 +114,11 @@ class PoliciesPage extends StatelessWidget {
                       'Applies to',
                       (policy) => policy.appliesTo,
                     ),
-                    AdaptiveColumn.text(
-                      'Rules Summary',
-                      (policy) => policy.summary,
+                    AdaptiveColumn(
+                      label: 'Rules',
                       flex: 3,
+                      cell: (context, policy) =>
+                          PolicyRulePills(policy: policy),
                     ),
                     AdaptiveColumn(
                       label: 'Status',

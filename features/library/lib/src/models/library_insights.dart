@@ -124,7 +124,6 @@ final libraryReports = <LibraryReportDef>[
       _textColumn('Publisher', 'publisher'),
       _textColumn('Edition', 'edition'),
       _textColumn('Year', 'year'),
-      _textColumn('ISBN', 'isbn'),
       LibraryReportCol(
         'Category',
         (data, names) => names.category(data['categoryId']),
@@ -296,34 +295,6 @@ final libraryReports = <LibraryReportDef>[
       _textColumn('Vendor / donor', 'vendorOrDonor'),
     ],
     dateField: 'date',
-  ),
-  LibraryReportDef(
-    'verifications',
-    'Verification report',
-    'libraryVerifications',
-    [
-      _dayColumn('Date', 'createdAt'),
-      _textColumn('Session', 'number'),
-      _textColumn('Library', 'libraryName'),
-      _textColumn('Shelf', 'shelf'),
-      LibraryReportCol(
-        'Expected',
-        (m, _) => '${(m['expected'] as List?)?.length ?? 0}',
-      ),
-      LibraryReportCol(
-        'Missing',
-        (m, _) => '${(m['missing'] as List?)?.length ?? 0}',
-        sum: true,
-      ),
-      LibraryReportCol(
-        'Unexpected',
-        (m, _) => '${(m['unexpected'] as List?)?.length ?? 0}',
-        sum: true,
-      ),
-      _textColumn('Status', 'status'),
-    ],
-    dateField: 'createdAt',
-    statuses: ['counting', 'submitted', 'approved'],
   ),
   LibraryReportDef(
     'popular',

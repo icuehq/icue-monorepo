@@ -13,7 +13,6 @@ import { masters as libraryMasters } from './library/masters';
 import { members as libraryMembers } from './library/members';
 import { reservations as libraryReservations } from './library/reservations';
 import { catalogueSearch } from './library/search';
-import { verification as libraryVerification } from './library/verification';
 import { sync } from './session';
 import { type AnyCallableDef, callable, queryCallable, routes } from './shared/callable';
 
@@ -39,7 +38,6 @@ const mutations: AnyCallableDef[] = [
   libraryReservations,
   libraryFines,
   libraryIncidents,
-  libraryVerification,
 ]
   .flatMap((group) => Object.values(group) as AnyCallableDef[])
   // Counts are written by the client straight to the lines (rules-checked); the callable is the tests' stand-in.

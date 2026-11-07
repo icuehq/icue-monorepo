@@ -11,7 +11,6 @@ class MockBook {
     required this.pages,
     required this.keywords,
     required this.description,
-    required this.isbn,
     this.subtitle,
   });
 
@@ -28,9 +27,6 @@ class MockBook {
   final int pages;
   final List<String> keywords;
   final String description;
-
-  /// Valid check digits, so the server accepts them; not the real ISBNs of these books.
-  final String isbn;
 }
 
 const mockBooks = <MockBook>[
@@ -46,7 +42,6 @@ const mockBooks = <MockBook>[
     pages: 180,
     keywords: ['autobiography', 'scientist', 'india'],
     description: 'The life story of the missile scientist and former President of India.',
-    isbn: '9782014060010',
   ),
   MockBook(
     title: 'The Discovery of India',
@@ -59,7 +54,6 @@ const mockBooks = <MockBook>[
     pages: 640,
     keywords: ['history', 'india', 'freedom struggle'],
     description: 'A survey of Indian history, culture and philosophy.',
-    isbn: '9781430310310',
   ),
   MockBook(
     title: 'A Brief History of Time',
@@ -72,7 +66,6 @@ const mockBooks = <MockBook>[
     pages: 212,
     keywords: ['cosmology', 'physics', 'universe'],
     description: 'An accessible introduction to cosmology, black holes and the nature of time.',
-    isbn: '9785533801683',
   ),
   MockBook(
     title: 'Concepts of Physics',
@@ -86,7 +79,6 @@ const mockBooks = <MockBook>[
     pages: 464,
     keywords: ['physics', 'mechanics', 'textbook'],
     description: 'Mechanics, waves and heat for senior secondary students.',
-    isbn: '9788177091878',
   ),
   MockBook(
     title: 'Mathematics for Class 10',
@@ -100,7 +92,6 @@ const mockBooks = <MockBook>[
     keywords: ['mathematics', 'class 10', 'exercises'],
     description:
         'Chapter-wise theory and exercises aligned to the CBSE syllabus.',
-    isbn: '9789352740017',
   ),
   MockBook(
     title: 'The Jungle Book',
@@ -113,7 +104,6 @@ const mockBooks = <MockBook>[
     pages: 240,
     keywords: ['jungle', 'mowgli', 'classic'],
     description: 'Tales of Mowgli and the animals of the Indian jungle.',
-    isbn: '9789333600019',
   ),
   MockBook(
     title: 'Malgudi Days',
@@ -127,7 +117,6 @@ const mockBooks = <MockBook>[
     keywords: ['short stories', 'india', 'malgudi'],
     description:
         'Short stories set in the fictional South Indian town of Malgudi.',
-    isbn: '9788185000015',
   ),
   MockBook(
     title: 'Godaan',
@@ -140,7 +129,6 @@ const mockBooks = <MockBook>[
     pages: 376,
     keywords: ['novel', 'rural india', 'hindi'],
     description: 'A classic Hindi novel about a poor farmer and his family.',
-    isbn: '9788121610018',
   ),
   MockBook(
     title: 'Oxford Advanced Learner\'s Dictionary',
@@ -153,7 +141,6 @@ const mockBooks = <MockBook>[
     pages: 1796,
     keywords: ['dictionary', 'english', 'reference'],
     description: 'A dictionary of current English for learners.',
-    isbn: '9780194799003',
   ),
   MockBook(
     title: 'Britannica Student Encyclopaedia',
@@ -166,7 +153,6 @@ const mockBooks = <MockBook>[
     pages: 1200,
     keywords: ['encyclopedia', 'students', 'reference'],
     description: 'A multi-subject reference for school learners.',
-    isbn: '9788161100012',
   ),
   MockBook(
     title: 'Atlas of the World',
@@ -179,7 +165,6 @@ const mockBooks = <MockBook>[
     pages: 304,
     keywords: ['atlas', 'maps', 'world'],
     description: 'Political and physical maps of every region of the world.',
-    isbn: '9781426210013',
   ),
   MockBook(
     title: 'Wren & Martin High School Grammar',
@@ -192,7 +177,6 @@ const mockBooks = <MockBook>[
     pages: 536,
     keywords: ['grammar', 'english', 'composition'],
     description: 'English grammar and composition for school students.',
-    isbn: '9789385730016',
   ),
   MockBook(
     title: 'Science Textbook for Class 8',
@@ -205,7 +189,6 @@ const mockBooks = <MockBook>[
     pages: 208,
     keywords: ['ncert', 'class 8', 'science'],
     description: 'The prescribed science textbook for Class 8.',
-    isbn: '9788174500014',
   ),
   MockBook(
     title: 'Manorama Year Book',
@@ -218,7 +201,6 @@ const mockBooks = <MockBook>[
     pages: 800,
     keywords: ['general knowledge', 'facts', 'annual'],
     description: 'A yearly compendium of facts, figures and current affairs.',
-    isbn: '9788938100016',
   ),
   MockBook(
     title: 'Sapiens',
@@ -232,6 +214,5 @@ const mockBooks = <MockBook>[
     pages: 443,
     keywords: ['anthropology', 'history', 'humankind'],
     description: 'How Homo sapiens came to dominate the planet.',
-    isbn: '9780099590088',
   ),
 ];

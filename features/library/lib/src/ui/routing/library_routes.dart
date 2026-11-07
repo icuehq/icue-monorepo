@@ -40,8 +40,6 @@ class LibraryRoutes {
 
   static const String libraryIncidents = '/layout.library/incidents';
   static const String libraryIncidentsName = 'libraryIncidents';
-  static const String libraryVerification = '/layout.library/verification';
-  static const String libraryVerificationName = 'libraryVerification';
   static const String libraryReports = '/layout.library/reports';
   static const String libraryReportsName = 'libraryReports';
   static const String libraryReport = '/layout.library/reports/view';

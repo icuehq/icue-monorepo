@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:injectable/injectable.dart';
+import 'package:routes/routes.dart';
 import 'package:school_library/src/models/library_copies.dart';
 import 'package:school_library/src/models/library_fines.dart';
 import 'package:school_library/src/models/library_incidents.dart';
@@ -10,7 +11,6 @@ import 'package:school_library/src/models/library_masters.dart';
 import 'package:school_library/src/models/library_members.dart';
 import 'package:school_library/src/models/library_person.dart';
 import 'package:school_library/src/models/library_reservations.dart';
-import 'package:school_library/src/models/library_verifications.dart';
 import 'package:school_library/src/services/library_people_service.dart';
 import 'package:school_library/src/services/library_service.dart';
 
@@ -78,6 +78,17 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   /// The student (`student`) or staff member (`teacher`) with [admissionNumber] in the ERP, or null.
   Future<LibraryPerson?> findPerson(String type, String admissionNumber) =>
       _people.findByAdmissionNumber(type, admissionNumber);
+
+  Future<List<Standards>> classes() => _people.classes();
+
+  Future<List<StudentData>> studentsOf(int classId, String section) =>
+      _people.studentsOf(classId, section);
+
+  Future<List<StudentData>> searchStudents(String text) =>
+      _people.searchStudents(text);
+
+  LibraryPerson studentPerson(StudentData student) =>
+      _people.personFrom('student', student);
 
   /// The policy a person of [type] gets in [libraryId], if one is set up.
   LibraryPolicy? policyFor(String libraryId, String type) {
@@ -327,40 +338,6 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     }
   }
 
-  // Paged stock verifications.
-  final List<LibraryVerification> verifications = [];
-  bool verificationsLoading = false;
-  bool hasMoreVerifications = false;
-  DocumentSnapshot<Map<String, dynamic>>? _verificationCursor;
-
-  Future<void> loadVerifications({bool more = false}) async {
-    if (more && (verificationsLoading || !hasMoreVerifications)) return;
-    final generation = _generation['verifications'] =
-        (_generation['verifications'] ?? 0) + 1;
-    if (!more) _verificationCursor = null;
-    verificationsLoading = true;
-    errorMessage = null;
-    notifyListeners();
-    try {
-      final page = await _service.verifications(after: _verificationCursor);
-      if (generation != _generation['verifications']) return;
-      if (!more) verifications.clear();
-      verifications.addAll(page.items);
-      _verificationCursor = page.cursor;
-      hasMoreVerifications = page.hasMore;
-    } catch (error) {
-      errorMessage = callableErrorMessage(error);
-    } finally {
-      if (generation == _generation['verifications']) {
-        verificationsLoading = false;
-        notifyListeners();
-      }
-    }
-  }
-
-  Future<LibraryVerification?> verification(String id) =>
-      _service.verification(id);
-
   Future<LibraryLoan?> activeLoanOf(String copyId) =>
       _service.activeLoanOf(copyId);
 
@@ -520,25 +497,6 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   }) => _write(
     () => _service.setMemberBlocked(id, blocked: blocked, reason: reason),
     reload: loadMembers,
-  );
-
-  Future<bool> createVerification(
-    Map<String, Object?> data, {
-    String? requestId,
-  }) => _write(
-    () => _service.createVerification(data, requestId: requestId),
-    reload: loadVerifications,
-  );
-
-  Future<bool> scanVerification(String id, List<String> accessionNumbers) =>
-      _write(() => _service.scanVerification(id, accessionNumbers));
-
-  Future<bool> submitVerification(String id) =>
-      _write(() => _service.submitVerification(id), reload: loadVerifications);
-
-  Future<bool> approveVerification(Map<String, Object?> data) => _write(
-    () => _service.approveVerification(data),
-    reload: loadVerifications,
   );
 
   Future<bool> markLoanLost(Map<String, Object?> data, {String? requestId}) =>

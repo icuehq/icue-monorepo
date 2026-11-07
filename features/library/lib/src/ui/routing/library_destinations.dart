@@ -30,25 +30,16 @@ class LibraryGroup {
 const libraryCatalogueTabs = [
   LibraryEntry(label: 'Books', path: LibraryRoutes.libraryCatalogue),
   LibraryEntry(label: 'Copies', path: LibraryRoutes.libraryCopies),
-  LibraryEntry(
-    label: 'Stock verification',
-    path: LibraryRoutes.libraryVerification,
-  ),
-];
-
-/// The Members group's screens, shown as tabs under each one's app bar.
-const libraryMemberTabs = [
-  LibraryEntry(label: 'Members', path: LibraryRoutes.libraryMembers),
-  LibraryEntry(
-    label: 'Borrowing policies',
-    path: LibraryRoutes.libraryPolicies,
-  ),
 ];
 
 /// The Settings group's screens, shown as tabs under each one's app bar.
 const librarySettingsTabs = [
   LibraryEntry(label: 'Libraries', path: LibraryRoutes.libraryList),
   LibraryEntry(label: 'Categories', path: LibraryRoutes.libraryCategories),
+  LibraryEntry(
+    label: 'Borrowing policies',
+    path: LibraryRoutes.libraryPolicies,
+  ),
 ];
 
 final _groups =
@@ -95,7 +86,15 @@ final _groups =
       (
         'Members',
         'assets/dashboard/library-members.png',
-        [for (final tab in libraryMemberTabs) (tab, _members)],
+        [
+          (
+            const LibraryEntry(
+              label: 'Members',
+              path: LibraryRoutes.libraryMembers,
+            ),
+            _members,
+          ),
+        ],
       ),
       (
         'Reports',

@@ -45,26 +45,4 @@ abstract final class BookValidators {
         ? 'Enter a page count from 1 to 100000'
         : null;
   }
-
-  /// An ISBN-10 or ISBN-13 with a correct check digit (hyphens allowed); empty is fine.
-  static String? isbn(String? value) {
-    final text = (value ?? '').replaceAll(RegExp(r'[\s-]'), '').toUpperCase();
-    if (text.isEmpty) return null;
-    if (RegExp(r'^\d{13}$').hasMatch(text)) {
-      var sum = 0;
-      for (var index = 0; index < 13; index++) {
-        sum += int.parse(text[index]) * (index.isOdd ? 3 : 1);
-      }
-      return sum % 10 == 0 ? null : 'Invalid ISBN-13 check digit';
-    }
-    if (RegExp(r'^\d{9}[\dX]$').hasMatch(text)) {
-      var sum = 0;
-      for (var index = 0; index < 10; index++) {
-        sum +=
-            (text[index] == 'X' ? 10 : int.parse(text[index])) * (10 - index);
-      }
-      return sum % 11 == 0 ? null : 'Invalid ISBN-10 check digit';
-    }
-    return 'Enter a 10 or 13 digit ISBN';
-  }
 }

@@ -25,6 +25,7 @@ class _BookFormPageState extends State<BookFormPage> {
   final _requestId = newRequestId();
   final _copiesRequestId = newRequestId();
   final _copies = TextEditingController(text: '1');
+  final _barcodes = <TextEditingController>[];
   String? _libraryId;
   late final LibraryBook? _existingBook = widget.book;
   late final _title = TextEditingController(text: _existingBook?.title);
@@ -32,7 +33,6 @@ class _BookFormPageState extends State<BookFormPage> {
   late final _authors = TextEditingController(
     text: _existingBook?.authors.join(', '),
   );
-  late final _isbn = TextEditingController(text: _existingBook?.isbn);
   late final _publisher = TextEditingController(text: _existingBook?.publisher);
   late final _edition = TextEditingController(text: _existingBook?.edition);
   late final _year = TextEditingController(
@@ -59,7 +59,6 @@ class _BookFormPageState extends State<BookFormPage> {
       _title,
       _subtitle,
       _authors,
-      _isbn,
       _publisher,
       _edition,
       _year,
@@ -70,6 +69,9 @@ class _BookFormPageState extends State<BookFormPage> {
       _keywords,
       _description,
     ]) {
+      controller.dispose();
+    }
+    for (final controller in _barcodes) {
       controller.dispose();
     }
     super.dispose();
@@ -113,7 +115,6 @@ class _BookFormPageState extends State<BookFormPage> {
       _title.text = sample.title;
       _subtitle.text = sample.subtitle ?? '';
       _authors.text = sample.authors.join(', ');
-      _isbn.text = sample.isbn;
       _publisher.text = sample.publisher;
       _edition.text = sample.edition;
       _year.text = '${sample.year}';
@@ -134,6 +135,7 @@ class _BookFormPageState extends State<BookFormPage> {
     return {
       'libraryId': _libraryId,
       'quantity': quantity,
+      'barcodes': [for (final controller in _barcodes) controller.text.trim()],
       'shelf': blankToNull(_shelf),
     };
   }
@@ -149,7 +151,6 @@ class _BookFormPageState extends State<BookFormPage> {
           'title': _title.text.trim(),
           'subtitle': blankToNull(_subtitle),
           'authors': splitList(_authors.text),
-          'isbn': blankToNull(_isbn),
           'publisher': blankToNull(_publisher),
           'edition': blankToNull(_edition),
           'year': int.tryParse(_year.text.trim()),
@@ -215,10 +216,11 @@ class _BookFormPageState extends State<BookFormPage> {
       ),
     ];
     final rightSections = <Widget>[
-      BookIdentificationSection(isbn: _isbn, shelf: _shelf),
+      BookIdentificationSection(shelf: _shelf),
       if (!editing)
         NewCopiesSection(
           copies: _copies,
+          barcodes: _barcodes,
           libraries: libraries,
           libraryId: _libraryId,
           onLibraryChanged: (value) => setState(() => _libraryId = value),

@@ -114,7 +114,7 @@ class _ReservationSheetState extends State<ReservationSheet> {
                   controller: controller,
                   focusNode: focus,
                   decoration: const InputDecoration(
-                    labelText: 'Search book by title, author or ISBN',
+                    labelText: 'Search book by title or author',
                   ),
                 ),
           ),

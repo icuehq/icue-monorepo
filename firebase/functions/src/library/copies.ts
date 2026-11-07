@@ -44,8 +44,14 @@ export const copies = {
       remarks: optionalText,
       shelf: text.nullish(),
       condition: z.enum(CONDITIONS).default('good'),
+      /** Scanned barcode per copy, in order; omitted copies use their accession number. */
+      barcodes: z.array(z.string().trim().min(1).max(64)).max(100).optional(),
     }),
     handler: async (context, i) => {
+      if (i.barcodes && i.barcodes.length !== i.quantity)
+        throw failed('Enter one barcode per copy');
+      if (i.barcodes && new Set(i.barcodes.map((code) => code.toLowerCase())).size !== i.quantity)
+        throw failed('Barcodes must be different for every copy');
       const library = usable(
         await context.transaction.get(context.doc(`libraries/${i.libraryId}`)),
         'Library',
@@ -69,14 +75,17 @@ export const copies = {
       const ids = Array.from({ length: i.quantity }, (_, offset) =>
         accessionNumber(first + offset),
       );
-      ids.forEach((copyId) => {
+      for (const [index, copyId] of ids.entries()) {
+        const barcode = i.barcodes?.[index] ?? copyId;
+        if (i.barcodes)
+          await claimUniqueKey(context, 'libraryBarcode', barcode, `libraryCopies/${copyId}`);
         context.set(context.doc(`libraryCopies/${copyId}`), {
           accessionNumber: copyId,
           catalogueId: i.catalogueId,
           libraryId: i.libraryId,
           campusId: library.campusId,
           shelf: i.shelf ?? null,
-          barcode: copyId,
+          barcode,
           rfidTag: null,
           acquisitionId: acq.id,
           acquiredDate: date,
@@ -91,7 +100,7 @@ export const copies = {
           createdBy: context.uid,
           updatedAt: serverTimestamp(),
         });
-      });
+      }
       const after = {
         number,
         catalogueId: i.catalogueId,

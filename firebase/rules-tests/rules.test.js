@@ -425,18 +425,6 @@ describe('library masters', () => {
     await assertFails(setDoc(doc(db('7'), 'schools/12/libraryIncidents/a'), { status: 'resolved' }));
   });
 
-  it('verifications: librarians on the campus read; nobody writes', async () => {
-    await env.withSecurityRulesDisabled(async (context) => {
-      const firestore = context.firestore();
-      await setDoc(doc(firestore, 'schools/12/libraryVerifications/a'), { campusId: 31 });
-    });
-    for (const documentPath of ['libraryVerifications/a']) {
-      await assertSucceeds(getDoc(doc(db('5'), `schools/12/${documentPath}`)));
-      await assertFails(getDoc(doc(db('7'), `schools/12/${documentPath}`)));
-      await assertFails(setDoc(doc(db('5'), `schools/12/${documentPath}`), { status: 'received' }));
-    }
-  });
-
   it('members and policies: lib.members.view only, never writable', async () => {
     for (const documentPath of ['libraryMembers/a', 'libraryBorrowingPolicies/a']) {
       await assertSucceeds(getDoc(doc(db('6'), `schools/12/${documentPath}`)));
@@ -464,7 +452,6 @@ describe('library reports and parent view (Lib-8)', () => {
         libraryFines: { campusId: 31, personErpId: 501 },
         libraryIncidents: { campusId: 31, personErpId: 501 },
         libraryAcquisitions: { campusId: 31 },
-        libraryVerifications: { campusId: 31 },
       })) {
         await setDoc(doc(firestore, `schools/12/${collectionName}/r31`), d);
         await setDoc(doc(firestore, `schools/12/${collectionName}/r32`), { ...d, campusId: 32, toCampusId: 33 });
@@ -473,7 +460,7 @@ describe('library reports and parent view (Lib-8)', () => {
   );
 
   it('report readers see every report collection on their campus only', async () => {
-    for (const collectionName of ['libraryLoans', 'libraryReservations', 'libraryFines', 'libraryIncidents', 'libraryAcquisitions', 'libraryVerifications']) {
+    for (const collectionName of ['libraryLoans', 'libraryReservations', 'libraryFines', 'libraryIncidents', 'libraryAcquisitions']) {
       await assertSucceeds(getDoc(doc(db('r'), `schools/12/${collectionName}/r31`)));
       await assertFails(getDoc(doc(db('r'), `schools/12/${collectionName}/r32`)));
       await assertFails(setDoc(doc(db('r'), `schools/12/${collectionName}/r31`), { x: 1 }));

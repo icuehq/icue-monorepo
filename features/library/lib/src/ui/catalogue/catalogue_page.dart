@@ -219,17 +219,6 @@ class _CataloguePageState extends State<CataloguePage> {
                                               .onSurfaceVariant,
                                         ),
                                         overflow: TextOverflow.ellipsis,
-                                      )
-                                    else if (book.isbn != null &&
-                                        book.isbn!.isNotEmpty)
-                                      Text(
-                                        'ISBN: ${book.isbn}',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: theme
-                                              .colorScheme
-                                              .onSurfaceVariant,
-                                        ),
                                       ),
                                   ],
                                 ),

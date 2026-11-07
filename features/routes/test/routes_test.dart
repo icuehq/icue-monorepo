@@ -38,6 +38,11 @@ class MockRouteService implements RouteService {
   }
 
   @override
+  Future<StudentData?> searchStudentByAdmissionNumber(
+    String admissionNumber,
+  ) async => null;
+
+  @override
   Future<List<StudentData>> searchStudent({
     required String search,
     int? classId,

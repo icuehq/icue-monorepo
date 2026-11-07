@@ -58,11 +58,6 @@ const _reportInfo = <String, (String group, IconData icon, String blurb)>{
     Icons.library_add_outlined,
     'Copies added to the library',
   ),
-  'verifications': (
-    'Catalogue & stock',
-    Icons.fact_check_outlined,
-    'Stock verification sessions',
-  ),
 };
 
 /// Report catalogue (FRS 11.18): searchable, grouped cards in a responsive grid.

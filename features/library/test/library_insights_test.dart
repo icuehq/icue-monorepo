@@ -11,7 +11,7 @@ void main() {
       .join('|');
 
   test('every FRS 11.18 report is defined once', () {
-    expect(libraryReports.map((reportDef) => reportDef.key).toSet().length, 15);
+    expect(libraryReports.map((reportDef) => reportDef.key).toSet().length, 13);
   });
 
   test('overdue report counts days past the due date, never negative', () {

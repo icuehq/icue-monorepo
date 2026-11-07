@@ -9,7 +9,6 @@ import 'package:school_library/src/models/library_loans.dart';
 import 'package:school_library/src/models/library_masters.dart';
 import 'package:school_library/src/models/library_members.dart';
 import 'package:school_library/src/models/library_reservations.dart';
-import 'package:school_library/src/models/library_verifications.dart';
 
 /// Library masters: reads from Firestore, writes through callables.
 @lazySingleton
@@ -62,7 +61,7 @@ class LibraryService {
     );
   }
 
-  /// Whole-word search by title, author, publisher or keyword, or an exact ISBN (Functions).
+  /// Whole-word search by title, author, publisher or keyword (Functions).
   Future<({List<LibraryBook> items, bool hasMore})> searchBooks(
     String query, {
     String? categoryId,
@@ -254,25 +253,6 @@ class LibraryService {
     );
   }
 
-  /// A page of stock verification sessions, newest first.
-  Future<PagedResult<LibraryVerification>> verifications({
-    DocumentSnapshot<Map<String, dynamic>>? after,
-  }) async => fetchPage(
-    (await schoolCollection('libraryVerifications'))
-        .orderBy('createdAt', descending: true),
-    (document) => LibraryVerification.fromMap(document.id, document.data()!),
-    after: after,
-  );
-
-  Future<LibraryVerification?> verification(String id) async {
-    final document = await (await schoolCollection('libraryVerifications'))
-        .doc(id)
-        .get();
-    return document.exists
-        ? LibraryVerification.fromMap(document.id, document.data()!)
-        : null;
-  }
-
   // --- writes: masters are plain client CRUD (`firestore.rules`); the rest are callables, same requestId on user retry --------------------
 
   Future<void> seedDefaults() => _call('library-seedDefaults', {});
@@ -379,25 +359,6 @@ class LibraryService {
     'blocked': blocked,
     'reason': ?reason,
   });
-
-  Future<void> createVerification(
-    Map<String, Object?> data, {
-    String? requestId,
-  }) => _call('library-verification-create', data, requestId);
-
-  Future<void> scanVerification(String id, List<String> accessionNumbers) =>
-      _call('library-verification-scan', {
-        'id': id,
-        'accessionNumbers': accessionNumbers,
-      });
-
-  Future<void> submitVerification(String id, {String? requestId}) =>
-      _call('library-verification-submit', {'id': id}, requestId);
-
-  Future<void> approveVerification(
-    Map<String, Object?> data, {
-    String? requestId,
-  }) => _call('library-verification-approve', data, requestId);
 
   Future<void> markLoanLost(Map<String, Object?> data, {String? requestId}) =>
       _call('library-loan-markLost', data, requestId);

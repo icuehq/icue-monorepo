@@ -1,6 +1,6 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:school_library/school_library.dart';
+import 'package:school_library/src/ui/policies/widgets/policy_rule_pills.dart';
 
 class PolicyCard extends StatelessWidget {
   const PolicyCard({
@@ -32,7 +32,9 @@ class PolicyCard extends StatelessWidget {
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
         ),
       ),
-      color: theme.colorScheme.surface,
+      color: policy.active
+          ? theme.colorScheme.surface
+          : theme.colorScheme.surfaceContainerLow,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: canEdit ? onTap : null,
@@ -129,74 +131,10 @@ class PolicyCard extends StatelessWidget {
               const SizedBox(height: 12),
               const Divider(height: 1),
               const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 6,
-                children: [
-                  _metaPill(
-                    context,
-                    Icons.menu_book_rounded,
-                    'Max ${policy.maxBooks} ${policy.maxBooks == 1 ? 'book' : 'books'}',
-                  ),
-                  _metaPill(
-                    context,
-                    Icons.schedule_rounded,
-                    '${policy.loanDays} days duration',
-                  ),
-                  _metaPill(
-                    context,
-                    Icons.autorenew_rounded,
-                    '${policy.maxRenewals} renewals',
-                  ),
-                  if (policy.fineAmount > 0)
-                    _metaPill(
-                      context,
-                      Icons.payments_outlined,
-                      'Fine: ${policy.fineAmount.toRupees()}/day',
-                      highlight: true,
-                    ),
-                ],
-              ),
+              PolicyRulePills(policy: policy),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _metaPill(
-    BuildContext context,
-    IconData icon,
-    String text, {
-    bool highlight = false,
-  }) {
-    final theme = Theme.of(context);
-    final color = highlight
-        ? theme.colorScheme.error
-        : theme.colorScheme.onSurfaceVariant;
-    final backgroundColor = highlight
-        ? theme.colorScheme.errorContainer.withValues(alpha: 0.3)
-        : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 13, color: color),
-          const SizedBox(width: 4),
-          Text(
-            text,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
       ),
     );
   }

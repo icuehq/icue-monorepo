@@ -110,45 +110,24 @@ class BookBasicSection extends StatelessWidget {
 }
 
 class BookIdentificationSection extends StatelessWidget {
-  const BookIdentificationSection({
-    required this.isbn,
-    required this.shelf,
-    super.key,
-  });
+  const BookIdentificationSection({required this.shelf, super.key});
 
-  final TextEditingController isbn;
   final TextEditingController shelf;
 
   @override
   Widget build(BuildContext context) => FormSectionCard(
-    title: 'Identification & location',
-    icon: Icons.qr_code_2_outlined,
+    title: 'Location',
+    icon: Icons.location_on_outlined,
     children: [
-      _FieldRow([
-        AppTextField(
-          controller: isbn,
-          keyboardType: TextInputType.text,
-          textInputAction: TextInputAction.next,
-          inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'[0-9Xx\-]')),
-            LengthLimitingTextInputFormatter(20),
-          ],
-          validator: BookValidators.isbn,
-          label: 'ISBN',
-          hintText: '978-3-16-148410-0',
-          icon: Icons.qr_code_2_outlined,
-          helperText: 'ISBN-10 or ISBN-13; the same ISBN cannot be added twice',
-        ),
-        AppTextField(
-          controller: shelf,
-          textInputAction: TextInputAction.next,
-          inputFormatters: [LengthLimitingTextInputFormatter(50)],
-          label: 'Shelf / Book location',
-          hintText: 'e.g. Shelf A-3, Rack 2',
-          icon: Icons.location_on_outlined,
-          helperText: 'Where this book is kept; new copies start here',
-        ),
-      ]),
+      AppTextField(
+        controller: shelf,
+        textInputAction: TextInputAction.next,
+        inputFormatters: [LengthLimitingTextInputFormatter(50)],
+        label: 'Shelf / Book location',
+        hintText: 'e.g. Shelf A-3, Rack 2',
+        icon: Icons.location_on_outlined,
+        helperText: 'Where this book is kept; new copies start here',
+      ),
     ],
   );
 }

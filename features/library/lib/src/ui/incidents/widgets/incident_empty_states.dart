@@ -18,7 +18,7 @@ class IncidentInitialEmptyState extends StatelessWidget {
       icon: Icons.report_problem_outlined,
       title: isOpen ? 'No open incidents' : 'No $status incidents',
       message: isOpen
-          ? 'Lost and damaged books reported by students, teachers or during verification appear here.'
+          ? 'Lost and damaged books reported by students or teachers appear here.'
           : 'There are currently no incidents matching this filter.',
       actionLabel: 'Report incident',
       actionIcon: Icons.report_problem_outlined,

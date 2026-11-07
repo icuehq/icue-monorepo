@@ -5,8 +5,6 @@ import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/members/widgets/member_card.dart';
 import 'package:school_library/src/ui/members/widgets/member_empty_states.dart';
-import 'package:school_library/src/ui/routing/library_destinations.dart';
-import 'package:school_library/src/ui/routing/library_tab_bar.dart';
 
 /// People who have borrowed or reserved (FRS 11.7). Nobody is enrolled here: the ERP is searched at
 /// the desk, and a person appears on this list the first time they borrow or reserve.
@@ -155,10 +153,6 @@ class _MembersPageState extends State<MembersPage> {
             onPressed: () => libraryProvider.loadMembers(),
           ),
         ],
-        bottom: const LibraryTabBar(
-          tabs: libraryMemberTabs,
-          activePath: LibraryRoutes.libraryMembers,
-        ),
       ),
       body: CenteredBody(
         child: Column(

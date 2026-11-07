@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
+import 'package:school_library/src/ui/shared/class_student_chooser.dart';
+import 'package:school_library/src/ui/shared/student_search_chooser.dart';
 
 /// Finds a student or staff member in the ERP (Node) by admission number, then reports the choice.
 class PersonPicker extends StatefulWidget {
@@ -21,6 +23,7 @@ class _PersonPickerState extends State<PersonPicker> {
   final _admissionNumber = TextEditingController();
   final _focusNode = FocusNode();
   String _type = 'student';
+  String _mode = 'number';
   LibraryPerson? _chosen;
   bool _loading = false;
   String? _error;
@@ -112,7 +115,23 @@ class _PersonPickerState extends State<PersonPicker> {
               ),
             ),
           )
-        else ...[
+        else if (_type == 'student')
+          SegmentedButton<String>(
+            segments: const [
+              ButtonSegment(value: 'number', label: Text('Admission no.')),
+              ButtonSegment(value: 'class', label: Text('Class')),
+              ButtonSegment(value: 'search', label: Text('Search')),
+            ],
+            selected: {_mode},
+            onSelectionChanged: (values) =>
+                setState(() => _mode = values.first),
+          ),
+        if (chosen == null && _type == 'student') const SizedBox(height: 8),
+        if (chosen == null && _type == 'student' && _mode == 'class')
+          ClassStudentChooser(onChosen: _choose)
+        else if (chosen == null && _type == 'student' && _mode == 'search')
+          StudentSearchChooser(onChosen: _choose)
+        else if (chosen == null) ...[
           TextField(
             controller: _admissionNumber,
             focusNode: _focusNode,

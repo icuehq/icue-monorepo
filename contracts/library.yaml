@@ -8,7 +8,6 @@ collections:
   - libraryLoans
   - libraryMembers
   - libraryReservations
-  - libraryVerifications
 
 enums:
   LoanStatus:
@@ -219,7 +218,6 @@ models:
         title: string
         subtitle: string?
         authors: list<string>
-        isbn: string?
         publisher: string?
         edition: string?
         year: int?
@@ -279,19 +277,3 @@ models:
         fulfilledLoanId: string?
         fulfilledCopyId: string?
         createdAt: timestamp?
-  library_verifications:
-    LibraryVerification:
-      doc: "A library stock verification session (FRS 11.16). Copy IDs are accession numbers."
-      id: id
-      fields:
-        number: { type: string, default: "$id" }
-        libraryName: string
-        status: { type: string, default: counting }
-        expected: list<string>
-        onLoanCopyIds: list<string>
-        scanned: list<string>
-        missing: list<string>
-        unexpected: list<string>
-        investigate: list<string>
-        shelf: string?
-        verifiedDate: day?

@@ -64,7 +64,7 @@ class CatalogueFilterHeader extends StatelessWidget {
       textInputAction: TextInputAction.search,
       onSubmitted: onSearchSubmitted,
       decoration: InputDecoration(
-        hintText: 'Search title, author, publisher or ISBN...',
+        hintText: 'Search title, author, or publisher...',
         hintStyle: theme.textTheme.bodyMedium?.copyWith(
           color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
         ),

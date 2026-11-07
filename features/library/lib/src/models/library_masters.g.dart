@@ -71,7 +71,6 @@ class LibraryBook {
     required this.title,
     this.subtitle,
     required this.authors,
-    this.isbn,
     this.publisher,
     this.edition,
     this.year,
@@ -90,7 +89,6 @@ class LibraryBook {
         title: data['title'] as String? ?? '',
         subtitle: data['subtitle'] as String?,
         authors: readList<String>(data['authors']),
-        isbn: data['isbn'] as String?,
         publisher: data['publisher'] as String?,
         edition: data['edition'] as String?,
         year: (data['year'] as num?)?.toInt(),
@@ -107,7 +105,6 @@ class LibraryBook {
   final String title;
   final String? subtitle;
   final List<String> authors;
-  final String? isbn;
   final String? publisher;
   final String? edition;
   final int? year;

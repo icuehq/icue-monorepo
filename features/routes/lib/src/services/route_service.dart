@@ -79,6 +79,20 @@ class RouteService {
     return <StudentData>[];
   }
 
+  /// The student with exactly [admissionNumber], or null when Node reports `err: true`
+  /// ("Student not found"). A 500 surfaces as a [ServerException] from `api_client`.
+  Future<StudentData?> searchStudentByAdmissionNumber(
+    String admissionNumber,
+  ) async {
+    final response = await _apiClient.post<dynamic>(
+      '/v2.0/searchStuData',
+      data: {'AdmissionNumber': admissionNumber},
+    );
+    final data = response.data;
+    if (data is! Map<String, dynamic> || data['err'] == true) return null;
+    return StudentData.fromJson(data);
+  }
+
   /// Changes a single pickup or drop route for a student.
   Future<bool> changeStudentRoute(ChangeRouteRequest request) async {
     final response = await _apiClient.post<dynamic>(

@@ -14,26 +14,46 @@ class LibraryPeopleService {
     String memberType,
     String admissionNumber,
   ) async {
-    final number = admissionNumber.trim().toLowerCase();
-    // TODO(staff): call the Node staff lookup by admission number once its endpoint is known.
-    if (memberType == 'teacher') {
-      throw UnimplementedError('Staff lookup is not connected to Node yet');
-    }
-    final students = await _routes.searchStudent(search: number);
-    for (final student in students) {
-      if (student.admissionNumber.toLowerCase() != number) continue;
-      return LibraryPerson(
-        memberType: 'student',
-        personErpId: student.id,
-        name: student.name,
-        classId: student.classId == 0 ? null : student.classId,
-        detail: [
-          if (student.standard.isNotEmpty)
-            'Class ${student.standard}${student.section.isEmpty ? '' : ' ${student.section}'}',
-          'Adm. ${student.admissionNumber}',
-        ].join(' · '),
-      );
-    }
-    return null;
+    final number = admissionNumber.trim();
+    final student = await _routes.searchStudentByAdmissionNumber(number);
+    if (student == null) return null;
+    return personFrom(memberType, student);
   }
+
+  /// Classes with their sections, for picking a student from a class list.
+  Future<List<Standards>> classes() => _routes.getStandards();
+
+  /// Students whose name or admission number matches [text], for the desk's free search.
+  Future<List<StudentData>> searchStudents(String text) =>
+      _routes.searchStudent(search: text.trim());
+
+  /// Every student of [classId] in [section], following Node's pages.
+  Future<List<StudentData>> studentsOf(int classId, String section) async {
+    final students = <StudentData>[];
+    for (var page = 1; ; page++) {
+      final result = await _routes.getStudents(
+        classId: classId,
+        sections: [section],
+        pageNo: page,
+      );
+      students.addAll(result.data);
+      final total = result.metadata.isEmpty ? 0 : result.metadata.first.total;
+      if (result.data.isEmpty || students.length >= total) return students;
+    }
+  }
+
+  LibraryPerson personFrom(
+    String memberType,
+    StudentData student,
+  ) => LibraryPerson(
+    memberType: memberType,
+    personErpId: student.id,
+    name: student.name,
+    classId: student.classId == 0 ? null : student.classId,
+    detail: [
+      if (memberType == 'student' && student.standard.isNotEmpty)
+        'Class ${student.standard}${student.section.isEmpty ? '' : ' ${student.section}'}',
+      if (student.admissionNumber.isNotEmpty) 'Adm. ${student.admissionNumber}',
+    ].join(' · '),
+  );
 }

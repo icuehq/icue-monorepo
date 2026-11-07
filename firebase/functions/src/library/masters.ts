@@ -1,9 +1,8 @@
 import { z } from 'zod';
 import { serverTimestamp } from '../shared/firestore';
 import { claimUniqueKey, uniqueKeyRef } from '../shared/keys';
-import { defineCallable, defineSetStatus, failed, id, missing, usable } from '../shared/masters';
+import { defineCallable, defineSetStatus, id, missing, usable } from '../shared/masters';
 import { DEFAULT_CATEGORIES } from './defaults';
-import { cleanIsbn, isIsbn10, isIsbn13, toIsbn13 } from './isbn';
 
 const text = (max: number) => z.string().trim().min(1).max(max);
 const norm = (value: string | null | undefined) =>
@@ -13,18 +12,15 @@ const norm = (value: string | null | undefined) =>
     .filter(Boolean)
     .join(' ');
 
-/** Identity of a title: the ISBN when there is one, else the bibliographic details. */
+/** Identity of a title: its bibliographic details. */
 export function identityKey(title: {
-  isbn: string | null;
   title: string;
   authors: string[];
   edition?: string | null;
   publisher?: string | null;
   year?: number | null;
 }) {
-  return title.isbn
-    ? `isbn:${title.isbn}`
-    : `bib:${[title.title, title.authors[0], title.edition, title.publisher].map(norm).join('|')}|${title.year ?? ''}`;
+  return `bib:${[title.title, title.authors[0], title.edition, title.publisher].map(norm).join('|')}|${title.year ?? ''}`;
 }
 
 export const masters = {
@@ -36,7 +32,6 @@ export const masters = {
       title: text(200),
       subtitle: text(200).nullish(),
       authors: z.array(text(100)).min(1).max(10),
-      isbn: z.string().trim().max(20).nullish(),
       publisher: text(120).nullish(),
       edition: text(50).nullish(),
       year: z.number().int().min(1000).max(2200).nullish(),
@@ -48,11 +43,7 @@ export const masters = {
       keywords: z.array(text(50)).max(20).default([]),
     }),
     handler: async (context, i) => {
-      // One identification number: an ISBN-10 or ISBN-13, stored as the ISBN-13.
-      const cleaned = i.isbn ? cleanIsbn(i.isbn) : null;
-      if (cleaned && !isIsbn10(cleaned) && !isIsbn13(cleaned)) throw failed('Invalid ISBN');
-      const isbn = cleaned && (isIsbn10(cleaned) ? toIsbn13(cleaned) : cleaned);
-      const key = identityKey({ ...i, isbn });
+      const key = identityKey(i);
 
       const now = serverTimestamp();
       const before = i.id
@@ -76,7 +67,6 @@ export const masters = {
         title: i.title,
         subtitle: i.subtitle ?? null,
         authors: i.authors,
-        isbn,
         publisher: i.publisher ?? null,
         edition: i.edition ?? null,
         year: i.year ?? null,
@@ -121,8 +111,8 @@ export const masters = {
     handler: async (context) => {
       const now = serverTimestamp();
       const existing = new Set(
-        (await context.transaction.get(context.coll('libraryCategories'))).docs.map(
-          (category) => String(category.data().name).trim().toLowerCase(),
+        (await context.transaction.get(context.coll('libraryCategories'))).docs.map((category) =>
+          String(category.data().name).trim().toLowerCase(),
         ),
       );
       let categories = 0;

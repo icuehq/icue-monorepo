@@ -167,12 +167,6 @@ class BookCard extends StatelessWidget {
                       icon: Icons.calendar_today_outlined,
                       label: '${book.year}',
                     ),
-                  if (book.isbn != null && book.isbn!.isNotEmpty)
-                    _buildMetaChip(
-                      theme,
-                      icon: Icons.qr_code_2_rounded,
-                      label: 'ISBN: ${book.isbn}',
-                    ),
                   if (book.publisher != null && book.publisher!.isNotEmpty)
                     _buildMetaChip(
                       theme,

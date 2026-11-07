@@ -351,12 +351,6 @@ service cloud.firestore {
         && (((can(schoolId, 'library.circulation.operate') || can(schoolId, 'library.reports.view')) && onCampus(schoolId, resource.data.campusId)) || own());
     }
 
-    // Stock verification sessions (Lib-7): librarians on the campus.
-    match /schools/{schoolId}/libraryVerifications/{id} {
-      allow read: if inSchool(schoolId) && (can(schoolId, 'library.catalogue') || can(schoolId, 'library.reports.view'))
-        && onCampus(schoolId, resource.data.campusId);
-    }
-
     match /devices/{uid} {
       allow read: if signedIn() && request.auth.uid == uid;
       allow write: if signedIn() && request.auth.uid == uid

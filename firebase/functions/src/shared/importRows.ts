@@ -14,7 +14,7 @@ import { codeDocId } from './masters';
 export const MAX_ROWS = 200;
 
 export type ImportRow = Record<string, string>;
-/** Finds the document ID behind a unique code (inventory category code, ISBN…; libraries and library categories are found by name); throws when it does not exist. */
+/** Finds the document ID behind a unique code (inventory category code…; libraries and library categories are found by name); throws when it does not exist. */
 export type CodeLookup = (keyType: string, value: string, label: string) => Promise<string>;
 export interface ImportType {
   callable: AnyCallableDef;

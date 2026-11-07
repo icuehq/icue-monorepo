@@ -186,8 +186,6 @@ class BookHeroCard extends StatelessWidget {
             ),
             if (categoryName != null)
               _Tag(categoryName!, icon: Icons.category_outlined),
-            if (book.isbn != null && book.isbn!.isNotEmpty)
-              _Tag('ISBN ${book.isbn}', icon: Icons.qr_code_2_rounded),
             if (book.shelf != null && book.shelf!.isNotEmpty)
               _Tag(book.shelf!, icon: Icons.location_on_outlined),
           ],
@@ -252,7 +250,6 @@ class BookInfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = <(IconData, String, String?)>[
-      (Icons.tag_rounded, 'ISBN', book.isbn),
       (Icons.business_outlined, 'Publisher', book.publisher),
       (Icons.event_outlined, 'Publication year', book.year?.toString()),
       (Icons.auto_stories_outlined, 'Edition', book.edition),
