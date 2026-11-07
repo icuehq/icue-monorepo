@@ -352,6 +352,7 @@ class _CataloguePageState extends State<CataloguePage> {
                         ),
                         AdaptiveColumn(
                           label: '',
+                          width: 144,
                           alignment: Alignment.centerRight,
                           cell: (context, book) => Row(
                             mainAxisSize: MainAxisSize.min,

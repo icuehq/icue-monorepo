@@ -1,6 +1,8 @@
 import 'dart:developer';
 
 import 'package:api_client/src/auth/token_provider.dart';
+import 'package:api_client/src/client/cors_warning.dart'
+    if (dart.library.js_interop) 'package:api_client/src/client/cors_warning_web.dart';
 import 'package:api_client/src/config/api_environment.dart';
 import 'package:api_client/src/errors/api_exception.dart';
 import 'package:api_client/src/interceptors/auth_interceptor.dart';
@@ -41,6 +43,7 @@ class ApiClient {
              ),
            ) {
     _tokenProvider = tokenProvider;
+    disableCorsWarning(this.dio);
 
     void expireSession() {
       invalidateSessionCache();

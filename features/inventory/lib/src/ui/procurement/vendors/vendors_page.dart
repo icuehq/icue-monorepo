@@ -289,6 +289,7 @@ class _VendorsPageState extends State<VendorsPage> {
                           ),
                           AdaptiveColumn(
                             label: '',
+                            width: 96,
                             cell: (context, vendor) => canEdit
                                 ? Row(
                                     mainAxisSize: MainAxisSize.min,

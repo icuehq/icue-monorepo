@@ -241,6 +241,7 @@ class _LibrariesPageState extends State<LibrariesPage> {
                                       if (canEdit)
                                         AdaptiveColumn(
                                           label: '',
+                                          width: 96,
                                           alignment: Alignment.centerRight,
                                           cell: (context, lib) => Row(
                                             mainAxisSize: MainAxisSize.min,

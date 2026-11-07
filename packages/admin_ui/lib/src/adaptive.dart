@@ -49,6 +49,7 @@ class AdaptiveColumn<T> {
     required this.label,
     required this.cell,
     this.flex = 1,
+    this.width,
     this.alignment = Alignment.centerLeft,
   });
 
@@ -67,8 +68,19 @@ class AdaptiveColumn<T> {
 
   final String label;
   final int flex;
+
+  /// Fixed width for cells that cannot shrink, such as action buttons (allow
+  /// 48 per [IconButton], its touch-device size). Takes precedence over [flex].
+  final double? width;
   final AlignmentGeometry alignment;
   final Widget Function(BuildContext context, T item) cell;
+
+  Widget _sized(Widget child) {
+    final aligned = Align(alignment: alignment, child: child);
+    return width == null
+        ? Expanded(flex: flex, child: aligned)
+        : SizedBox(width: width, child: aligned);
+  }
 }
 
 /// A table with a header row when there is room, the phone [cardBuilder] list otherwise.
@@ -207,19 +219,15 @@ class AdaptiveList<T> extends StatelessWidget {
                 child: Row(
                   children: [
                     for (final column in columns)
-                      Expanded(
-                        flex: column.flex,
-                        child: Align(
-                          alignment: column.alignment,
-                          child: Text(
-                            column.label.toUpperCase(),
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant
-                                  .withValues(alpha: 0.85),
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.8,
-                              fontSize: 11,
-                            ),
+                      column._sized(
+                        Text(
+                          column.label.toUpperCase(),
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant
+                                .withValues(alpha: 0.85),
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.8,
+                            fontSize: 11,
                           ),
                         ),
                       ),
@@ -259,13 +267,7 @@ class AdaptiveList<T> extends StatelessWidget {
                                 child: Row(
                                   children: [
                                     for (final column in columns)
-                                      Expanded(
-                                        flex: column.flex,
-                                        child: Align(
-                                          alignment: column.alignment,
-                                          child: column.cell(context, item),
-                                        ),
-                                      ),
+                                      column._sized(column.cell(context, item)),
                                   ],
                                 ),
                               ),

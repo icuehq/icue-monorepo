@@ -299,6 +299,7 @@ class _StoresPageState extends State<StoresPage> {
                                       ),
                                       AdaptiveColumn(
                                         label: '',
+                                        width: 96,
                                         cell: (context, store) => canEdit
                                             ? Row(
                                                 mainAxisSize: MainAxisSize.min,
