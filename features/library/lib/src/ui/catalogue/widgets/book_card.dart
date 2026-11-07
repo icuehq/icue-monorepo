@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:school_library/school_library.dart';
-import 'package:school_library/src/ui/reservations/widgets/reservation_sheet.dart';
+import 'package:school_library/src/ui/reservations/widgets/reservation_dialog.dart';
 
 class BookCard extends StatelessWidget {
   const BookCard({
@@ -192,7 +192,7 @@ class BookCard extends StatelessWidget {
                   if (canCirculate)
                     TextButton.icon(
                       onPressed: () =>
-                          ReservationSheet.show(context, book: book),
+                          ReservationDialog.show(context, book: book),
                       icon: const Icon(Icons.bookmark_add_outlined, size: 16),
                       label: const Text(
                         'Reserve',

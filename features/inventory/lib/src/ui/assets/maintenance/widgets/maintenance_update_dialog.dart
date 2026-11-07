@@ -9,8 +9,8 @@ import 'package:inventory/src/ui/stock/shared/stock_ui.dart';
 import 'package:provider/provider.dart';
 
 /// Moves a maintenance request to [status]; completing records the repair cost, and parts drawn from a store.
-class MaintenanceUpdateSheet extends StatefulWidget {
-  const MaintenanceUpdateSheet({
+class MaintenanceUpdateDialog extends StatefulWidget {
+  const MaintenanceUpdateDialog({
     required this.job,
     required this.status,
     super.key,
@@ -20,10 +20,11 @@ class MaintenanceUpdateSheet extends StatefulWidget {
   final String status;
 
   @override
-  State<MaintenanceUpdateSheet> createState() => _MaintenanceUpdateSheetState();
+  State<MaintenanceUpdateDialog> createState() =>
+      _MaintenanceUpdateDialogState();
 }
 
-class _MaintenanceUpdateSheetState extends State<MaintenanceUpdateSheet> {
+class _MaintenanceUpdateDialogState extends State<MaintenanceUpdateDialog> {
   final _form = GlobalKey<FormState>();
   final _requestId = newRequestId();
   late final _technician = TextEditingController(text: widget.job.technician);

@@ -6,8 +6,8 @@ import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/catalogue/widgets/copy_labels.dart';
 
 /// One copy: details, label, and (for librarians) shelf / condition / RFID edit, move and status.
-class CopySheet extends StatefulWidget {
-  const CopySheet({super.key, required this.copy, required this.title});
+class CopyDialog extends StatefulWidget {
+  const CopyDialog({super.key, required this.copy, required this.title});
 
   final LibraryCopy copy;
   final String title;
@@ -16,13 +16,13 @@ class CopySheet extends StatefulWidget {
     BuildContext context,
     LibraryCopy copy,
     String title,
-  ) => showFormPage(context, () => CopySheet(copy: copy, title: title));
+  ) => showFormPage(context, () => CopyDialog(copy: copy, title: title));
 
   @override
-  State<CopySheet> createState() => _CopySheetState();
+  State<CopyDialog> createState() => _CopyDialogState();
 }
 
-class _CopySheetState extends State<CopySheet> {
+class _CopyDialogState extends State<CopyDialog> {
   late final _shelf = TextEditingController(text: widget.copy.shelf);
   late final _remarks = TextEditingController(text: widget.copy.remarks);
   late final _rfid = TextEditingController(text: widget.copy.rfidTag);

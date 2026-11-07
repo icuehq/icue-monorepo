@@ -6,18 +6,18 @@ import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/assets/shared/asset_ui.dart';
 
 /// Reports a fault on [asset], or edits a live request [job] (FRS 10.20).
-class MaintenanceFormSheet extends StatefulWidget {
-  const MaintenanceFormSheet({this.asset, this.job, super.key})
+class MaintenanceDialog extends StatefulWidget {
+  const MaintenanceDialog({this.asset, this.job, super.key})
     : assert(asset != null || job != null);
 
   final InventoryAsset? asset;
   final InventoryMaintenance? job;
 
   @override
-  State<MaintenanceFormSheet> createState() => _MaintenanceFormSheetState();
+  State<MaintenanceDialog> createState() => _MaintenanceDialogState();
 }
 
-class _MaintenanceFormSheetState extends State<MaintenanceFormSheet> {
+class _MaintenanceDialogState extends State<MaintenanceDialog> {
   final _form = GlobalKey<FormState>();
   final _requestId = newRequestId();
   late final _issue = TextEditingController(text: widget.job?.issue);

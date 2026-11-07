@@ -5,8 +5,8 @@ import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
 /// One active loan: renew it or take the book back (FRS 11.10–11.11).
-class LoanSheet extends StatefulWidget {
-  const LoanSheet({super.key, required this.loan, required this.title});
+class LoanDialog extends StatefulWidget {
+  const LoanDialog({super.key, required this.loan, required this.title});
 
   final LibraryLoan loan;
   final String title;
@@ -15,13 +15,13 @@ class LoanSheet extends StatefulWidget {
     BuildContext context,
     LibraryLoan loan,
     String title,
-  ) => showFormPage(context, () => LoanSheet(loan: loan, title: title));
+  ) => showFormPage(context, () => LoanDialog(loan: loan, title: title));
 
   @override
-  State<LoanSheet> createState() => _LoanSheetState();
+  State<LoanDialog> createState() => _LoanDialogState();
 }
 
-class _LoanSheetState extends State<LoanSheet> {
+class _LoanDialogState extends State<LoanDialog> {
   final _remarks = TextEditingController();
   bool _busy = false;
 

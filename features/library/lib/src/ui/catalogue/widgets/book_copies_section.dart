@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/catalogue/widgets/copy_card.dart';
-import 'package:school_library/src/ui/catalogue/widgets/copy_sheet.dart';
+import 'package:school_library/src/ui/catalogue/widgets/copy_dialog.dart';
 
 /// Physical copies of a title (FRS 11.1 "view physical copies"), .
 class BookCopiesSection extends StatefulWidget {
@@ -141,7 +141,7 @@ class _BookCopiesSectionState extends State<BookCopiesSection> {
                       libraryProvider.library(copy.libraryId)?.name ??
                       copy.libraryId,
                   onTap: () async {
-                    await CopySheet.show(context, copy, widget.book.title);
+                    await CopyDialog.show(context, copy, widget.book.title);
                     await _load();
                   },
                 ),

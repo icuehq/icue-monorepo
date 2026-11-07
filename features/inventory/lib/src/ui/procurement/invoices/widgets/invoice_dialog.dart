@@ -8,21 +8,21 @@ import 'package:inventory/src/ui/procurement/shared/procurement_ui.dart';
 import 'package:provider/provider.dart';
 
 /// Records a vendor invoice against a purchase order (FRS 10.18); payment is Finance's, not made here.
-class InvoiceFormSheet extends StatefulWidget {
-  const InvoiceFormSheet({required this.order, super.key});
+class InvoiceDialog extends StatefulWidget {
+  const InvoiceDialog({required this.order, super.key});
 
   final InventoryPurchaseOrder order;
 
   static Future<void> show(
     BuildContext context,
     InventoryPurchaseOrder order,
-  ) => showFormPage(context, () => InvoiceFormSheet(order: order));
+  ) => showFormPage(context, () => InvoiceDialog(order: order));
 
   @override
-  State<InvoiceFormSheet> createState() => _InvoiceFormSheetState();
+  State<InvoiceDialog> createState() => _InvoiceDialogState();
 }
 
-class _InvoiceFormSheetState extends State<InvoiceFormSheet> {
+class _InvoiceDialogState extends State<InvoiceDialog> {
   final _form = GlobalKey<FormState>();
   final _requestId = newRequestId();
   final _invoiceNumber = TextEditingController();

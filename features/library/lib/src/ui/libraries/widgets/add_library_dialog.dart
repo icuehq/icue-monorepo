@@ -4,19 +4,19 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
-class LibraryFormSheet extends StatefulWidget {
-  const LibraryFormSheet({super.key, this.library});
+class AddLibraryDialog extends StatefulWidget {
+  const AddLibraryDialog({super.key, this.library});
 
   final SchoolLibrary? library;
 
   static Future<void> show(BuildContext context, {SchoolLibrary? library}) =>
-      showFormPage(context, () => LibraryFormSheet(library: library));
+      showFormPage(context, () => AddLibraryDialog(library: library));
 
   @override
-  State<LibraryFormSheet> createState() => _LibraryFormSheetState();
+  State<AddLibraryDialog> createState() => _AddLibraryDialogState();
 }
 
-class _LibraryFormSheetState extends State<LibraryFormSheet> {
+class _AddLibraryDialogState extends State<AddLibraryDialog> {
   final _form = GlobalKey<FormState>();
   late final _name = TextEditingController(text: widget.library?.name);
   late final _location = TextEditingController(text: widget.library?.location);
@@ -182,7 +182,7 @@ class _LibraryFormSheetState extends State<LibraryFormSheet> {
           ],
 
           // Section 1: Basic Details
-          _FormSection(
+          _DialogSection(
             title: 'Library Details',
             icon: Icons.badge_outlined,
             children: [
@@ -203,7 +203,7 @@ class _LibraryFormSheetState extends State<LibraryFormSheet> {
           const SizedBox(height: 16),
 
           // Section 2: Location & Schedule
-          _FormSection(
+          _DialogSection(
             title: 'Location & Operating Schedule',
             icon: Icons.place_outlined,
             children: [
@@ -301,8 +301,8 @@ class _LibraryFormSheetState extends State<LibraryFormSheet> {
   }
 }
 
-class _FormSection extends StatelessWidget {
-  const _FormSection({
+class _DialogSection extends StatelessWidget {
+  const _DialogSection({
     required this.title,
     required this.icon,
     required this.children,

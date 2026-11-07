@@ -3,8 +3,8 @@ import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart' show MaintenanceStatus;
 import 'package:inventory/inventory.dart';
-import 'package:inventory/src/ui/assets/maintenance/widgets/maintenance_form_sheet.dart';
-import 'package:inventory/src/ui/assets/maintenance/widgets/maintenance_update_sheet.dart';
+import 'package:inventory/src/ui/assets/maintenance/widgets/maintenance_dialog.dart';
+import 'package:inventory/src/ui/assets/maintenance/widgets/maintenance_update_dialog.dart';
 import 'package:inventory/src/ui/assets/shared/asset_ui.dart';
 import 'package:provider/provider.dart';
 
@@ -197,7 +197,7 @@ class MaintenanceSheet extends StatelessWidget {
             children: [
               OutlinedButton(
                 onPressed: () =>
-                    _go(context, () => MaintenanceFormSheet(job: maintenance)),
+                    _go(context, () => MaintenanceDialog(job: maintenance)),
                 child: const Text('Edit'),
               ),
               for (final value in const [
@@ -211,7 +211,7 @@ class MaintenanceSheet extends StatelessWidget {
                   OutlinedButton(
                     onPressed: () => _go(
                       context,
-                      () => MaintenanceUpdateSheet(
+                      () => MaintenanceUpdateDialog(
                         job: maintenance,
                         status: value,
                       ),

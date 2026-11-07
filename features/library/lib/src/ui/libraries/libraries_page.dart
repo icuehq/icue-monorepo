@@ -2,10 +2,10 @@ import 'package:admin_ui/admin_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
+import 'package:school_library/src/ui/libraries/widgets/add_library_dialog.dart';
 import 'package:school_library/src/ui/libraries/widgets/library_card.dart';
 import 'package:school_library/src/ui/libraries/widgets/library_empty_states.dart';
 import 'package:school_library/src/ui/libraries/widgets/library_filter_header.dart';
-import 'package:school_library/src/ui/libraries/widgets/library_form_sheet.dart';
 import 'package:school_library/src/ui/routing/library_destinations.dart';
 import 'package:school_library/src/ui/routing/library_tab_bar.dart';
 
@@ -114,7 +114,7 @@ class _LibrariesPageState extends State<LibrariesPage> {
       ),
       floatingActionButton: canEdit && allLibraries.isNotEmpty
           ? FloatingActionButton.extended(
-              onPressed: () => LibraryFormSheet.show(context),
+              onPressed: () => AddLibraryDialog.show(context),
               icon: const Icon(Icons.add_rounded),
               label: const Text('Library'),
             )
@@ -127,7 +127,7 @@ class _LibrariesPageState extends State<LibrariesPage> {
                 child: allLibraries.isEmpty
                     ? LibraryInitialEmptyState(
                         canEdit: canEdit,
-                        onAdd: () => LibraryFormSheet.show(context),
+                        onAdd: () => AddLibraryDialog.show(context),
                       )
                     : Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -146,7 +146,7 @@ class _LibrariesPageState extends State<LibrariesPage> {
                                 setState(() => _selectedCampus = campus),
                             onStatusChanged: (filter) =>
                                 setState(() => _statusFilter = filter),
-                            onAddLibrary: () => LibraryFormSheet.show(context),
+                            onAddLibrary: () => AddLibraryDialog.show(context),
                             onClearSearch: () {
                               _searchController.clear();
                               setState(() => _searchQuery = '');
@@ -252,7 +252,7 @@ class _LibrariesPageState extends State<LibrariesPage> {
                                                 ),
                                                 tooltip: 'Edit',
                                                 onPressed: () =>
-                                                    LibraryFormSheet.show(
+                                                    AddLibraryDialog.show(
                                                       context,
                                                       library: lib,
                                                     ),
@@ -278,7 +278,7 @@ class _LibrariesPageState extends State<LibrariesPage> {
                                     cardBuilder: (context, lib) => LibraryCard(
                                       library: lib,
                                       canEdit: canEdit,
-                                      onEdit: () => LibraryFormSheet.show(
+                                      onEdit: () => AddLibraryDialog.show(
                                         context,
                                         library: lib,
                                       ),
@@ -286,7 +286,7 @@ class _LibrariesPageState extends State<LibrariesPage> {
                                           _toggleActive(context, lib),
                                     ),
                                     onTap: canEdit
-                                        ? (lib) => LibraryFormSheet.show(
+                                        ? (lib) => AddLibraryDialog.show(
                                             context,
                                             library: lib,
                                           )

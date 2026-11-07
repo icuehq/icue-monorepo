@@ -6,19 +6,19 @@ import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/shared/person_picker.dart';
 
 /// Sheet to reserve a book that is currently unavailable (FRS 11.12).
-class ReservationSheet extends StatefulWidget {
-  const ReservationSheet({super.key, this.book});
+class ReservationDialog extends StatefulWidget {
+  const ReservationDialog({super.key, this.book});
 
   final LibraryBook? book;
 
   static Future<void> show(BuildContext context, {LibraryBook? book}) =>
-      showFormPage(context, () => ReservationSheet(book: book));
+      showFormPage(context, () => ReservationDialog(book: book));
 
   @override
-  State<ReservationSheet> createState() => _ReservationSheetState();
+  State<ReservationDialog> createState() => _ReservationDialogState();
 }
 
-class _ReservationSheetState extends State<ReservationSheet> {
+class _ReservationDialogState extends State<ReservationDialog> {
   final _bookSearch = TextEditingController();
   LibraryPerson? _person;
   LibraryBook? _selectedBook;

@@ -19,8 +19,8 @@ enum AssetAction {
 }
 
 /// One form for the custody and lifecycle actions of an asset (FRS 10.19).
-class AssetActionSheet extends StatefulWidget {
-  const AssetActionSheet({
+class AssetActionDialog extends StatefulWidget {
+  const AssetActionDialog({
     required this.asset,
     required this.action,
     super.key,
@@ -30,10 +30,10 @@ class AssetActionSheet extends StatefulWidget {
   final AssetAction action;
 
   @override
-  State<AssetActionSheet> createState() => _AssetActionSheetState();
+  State<AssetActionDialog> createState() => _AssetActionDialogState();
 }
 
-class _AssetActionSheetState extends State<AssetActionSheet> {
+class _AssetActionDialogState extends State<AssetActionDialog> {
   final _form = GlobalKey<FormState>();
   final _requestId = newRequestId();
   final _erpId = TextEditingController();

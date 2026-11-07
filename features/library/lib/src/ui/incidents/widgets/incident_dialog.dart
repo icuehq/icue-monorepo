@@ -5,19 +5,19 @@ import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
 /// Detailed view of a lost or damaged book incident with resolve action.
-class IncidentSheet extends StatefulWidget {
-  const IncidentSheet({super.key, required this.incident});
+class IncidentDialog extends StatefulWidget {
+  const IncidentDialog({super.key, required this.incident});
 
   final LibraryIncident incident;
 
   static Future<void> show(BuildContext context, LibraryIncident incident) =>
-      showFormPage(context, () => IncidentSheet(incident: incident));
+      showFormPage(context, () => IncidentDialog(incident: incident));
 
   @override
-  State<IncidentSheet> createState() => _IncidentSheetState();
+  State<IncidentDialog> createState() => _IncidentDialogState();
 }
 
-class _IncidentSheetState extends State<IncidentSheet> {
+class _IncidentDialogState extends State<IncidentDialog> {
   bool _busy = false;
 
   Future<void> _resolve() async {

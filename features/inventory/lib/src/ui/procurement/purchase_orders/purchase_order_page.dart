@@ -3,7 +3,7 @@ import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:inventory/inventory.dart';
-import 'package:inventory/src/ui/procurement/invoices/widgets/invoice_form_sheet.dart';
+import 'package:inventory/src/ui/procurement/invoices/widgets/invoice_dialog.dart';
 import 'package:inventory/src/ui/procurement/purchase_orders/purchase_order_pdf.dart';
 import 'package:inventory/src/ui/procurement/purchase_orders/widgets/purchase_order_invoices_section.dart';
 import 'package:inventory/src/ui/procurement/purchase_orders/widgets/purchase_order_receipts_section.dart';
@@ -429,7 +429,7 @@ class PurchaseOrderPage extends StatelessWidget {
                       icon: const Icon(Icons.receipt_long_outlined),
                       label: const Text('Record Invoice'),
                       onPressed: () async {
-                        await InvoiceFormSheet.show(context, purchaseOrder);
+                        await InvoiceDialog.show(context, purchaseOrder);
                         if (!context.mounted) return;
                         await procurementProvider.loadInvoices(
                           inventoryProvider.access,

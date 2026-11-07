@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/policies/widgets/policy_card.dart';
+import 'package:school_library/src/ui/policies/widgets/policy_dialog.dart';
 import 'package:school_library/src/ui/policies/widgets/policy_empty_states.dart';
 import 'package:school_library/src/ui/policies/widgets/policy_rule_pills.dart';
-import 'package:school_library/src/ui/policies/widgets/policy_sheet.dart';
 import 'package:school_library/src/ui/routing/library_destinations.dart';
 import 'package:school_library/src/ui/routing/library_tab_bar.dart';
 
@@ -63,7 +63,7 @@ class PoliciesPage extends StatelessWidget {
       ),
       floatingActionButton: canEdit
           ? FloatingActionButton.extended(
-              onPressed: () => PolicySheet.show(context),
+              onPressed: () => PolicyDialog.show(context),
               icon: const Icon(Icons.add_rounded),
               label: const Text('Policy'),
             )
@@ -73,14 +73,14 @@ class PoliciesPage extends StatelessWidget {
             ? const Center(child: CircularProgressIndicator())
             : allPolicies.isEmpty
             ? PolicyInitialEmptyState(
-                onCreate: canEdit ? () => PolicySheet.show(context) : null,
+                onCreate: canEdit ? () => PolicyDialog.show(context) : null,
               )
             : RefreshIndicator(
                 onRefresh: () => libraryProvider.loadMasters(),
                 child: AdaptiveList<LibraryPolicy>(
                   items: allPolicies,
                   onTap: canEdit
-                      ? (policy) => PolicySheet.show(context, policy: policy)
+                      ? (policy) => PolicyDialog.show(context, policy: policy)
                       : null,
                   columns: [
                     AdaptiveColumn(
@@ -157,7 +157,7 @@ class PoliciesPage extends StatelessWidget {
                         libraryProvider.library(policy.libraryId)?.name ??
                         policy.libraryId,
                     canEdit: canEdit,
-                    onTap: () => PolicySheet.show(context, policy: policy),
+                    onTap: () => PolicyDialog.show(context, policy: policy),
                     onToggleActive: () async {
                       if (!await libraryProvider.setPolicyActive(
                             policy.id,

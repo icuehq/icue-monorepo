@@ -7,7 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/catalogue/widgets/book_copies_section.dart';
 import 'package:school_library/src/ui/catalogue/widgets/book_details_cards.dart';
-import 'package:school_library/src/ui/reservations/widgets/reservation_sheet.dart';
+import 'package:school_library/src/ui/reservations/widgets/reservation_dialog.dart';
 
 class BookDetailsPage extends StatefulWidget {
   const BookDetailsPage({super.key, required this.bookId});
@@ -70,7 +70,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
             IconButton(
               icon: const Icon(Icons.bookmark_add_outlined),
               tooltip: 'Reserve book',
-              onPressed: () => ReservationSheet.show(context, book: book),
+              onPressed: () => ReservationDialog.show(context, book: book),
             ),
           if (canEdit)
             IconButton(

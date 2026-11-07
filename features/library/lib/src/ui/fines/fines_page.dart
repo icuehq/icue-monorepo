@@ -5,8 +5,8 @@ import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/circulation/widgets/circulation_tabs.dart';
 import 'package:school_library/src/ui/fines/widgets/fine_card.dart';
+import 'package:school_library/src/ui/fines/widgets/fine_dialog.dart';
 import 'package:school_library/src/ui/fines/widgets/fine_empty_states.dart';
-import 'package:school_library/src/ui/fines/widgets/fine_sheet.dart';
 
 /// Manage overdue fines, damage penalties, and lost book charges (FRS 11.13).
 class FinesPage extends StatefulWidget {
@@ -48,7 +48,7 @@ class _FinesPageState extends State<FinesPage> {
   }
 
   Future<void> _open(LibraryFine fine) async {
-    await FineSheet.show(context, fine);
+    await FineDialog.show(context, fine);
     if (mounted) {
       await context.read<LibraryProvider>().loadFines(status: _status);
     }

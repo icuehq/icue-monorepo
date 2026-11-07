@@ -5,19 +5,19 @@ import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
 /// Detailed view of a fine with actions to waive or record payment.
-class FineSheet extends StatefulWidget {
-  const FineSheet({super.key, required this.fine});
+class FineDialog extends StatefulWidget {
+  const FineDialog({super.key, required this.fine});
 
   final LibraryFine fine;
 
   static Future<void> show(BuildContext context, LibraryFine fine) =>
-      showFormPage(context, () => FineSheet(fine: fine));
+      showFormPage(context, () => FineDialog(fine: fine));
 
   @override
-  State<FineSheet> createState() => _FineSheetState();
+  State<FineDialog> createState() => _FineDialogState();
 }
 
-class _FineSheetState extends State<FineSheet> {
+class _FineDialogState extends State<FineDialog> {
   bool _busy = false;
 
   Future<void> _waive() async {

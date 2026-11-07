@@ -6,19 +6,19 @@ import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
 /// Create or edit the policy of one library and member category (FRS 11.8).
-class PolicySheet extends StatefulWidget {
-  const PolicySheet({super.key, this.policy});
+class PolicyDialog extends StatefulWidget {
+  const PolicyDialog({super.key, this.policy});
 
   final LibraryPolicy? policy;
 
   static Future<void> show(BuildContext context, {LibraryPolicy? policy}) =>
-      showFormPage(context, () => PolicySheet(policy: policy));
+      showFormPage(context, () => PolicyDialog(policy: policy));
 
   @override
-  State<PolicySheet> createState() => _PolicySheetState();
+  State<PolicyDialog> createState() => _PolicyDialogState();
 }
 
-class _PolicySheetState extends State<PolicySheet> {
+class _PolicyDialogState extends State<PolicyDialog> {
   final _form = GlobalKey<FormState>();
   final _requestId = newRequestId();
   late String? _type = widget.policy?.memberType;

@@ -5,17 +5,17 @@ import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
 /// Form to report a lost or damaged book copy (FRS 11.14).
-class IncidentReportSheet extends StatefulWidget {
-  const IncidentReportSheet({super.key});
+class IncidentReportDialog extends StatefulWidget {
+  const IncidentReportDialog({super.key});
 
   static Future<void> show(BuildContext context) =>
-      showFormPage(context, () => const IncidentReportSheet());
+      showFormPage(context, () => const IncidentReportDialog());
 
   @override
-  State<IncidentReportSheet> createState() => _IncidentReportSheetState();
+  State<IncidentReportDialog> createState() => _IncidentReportDialogState();
 }
 
-class _IncidentReportSheetState extends State<IncidentReportSheet> {
+class _IncidentReportDialogState extends State<IncidentReportDialog> {
   final _code = TextEditingController();
   final _erpId = TextEditingController();
   final _charge = TextEditingController();

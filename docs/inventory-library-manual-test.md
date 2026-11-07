@@ -885,7 +885,7 @@ Open **Library** from the dashboard. The Library hub displays 15 option grid til
 #### Copy Attributes, RFID & Spine Labels
 
 - [ ] 2.2.3 **Shelf Location & RFID Assignment**:
-  - In Copies list (or from Book Details copies section), tap copy `ACC-000001` to open `CopySheet`:
+  - In Copies list (or from Book Details copies section), tap copy `ACC-000001` to open `CopyDialog`:
     - RFID tag: `RFID-BK-0001`
     - Remarks: `Curriculum reference copy`
     - Tap **Save**. **Expect** copy updated.
@@ -985,7 +985,7 @@ Open **Circulation** from Library tiles.
 #### Loan Renewal
 
 - [ ] 2.4.5 **Renew Active Loan**:
-  - Tap the loan card for `ACC-000001` (or enter `ACC-000001` in "Scan book to RETURN or RENEW") to open `LoanSheet`.
+  - Tap the loan card for `ACC-000001` (or enter `ACC-000001` in "Scan book to RETURN or RENEW") to open `LoanDialog`.
   - Tap **Renew** button.
   - **Expect** Due date advances by 7 days; loan sheet shows `Renewed 1 of 1`.
 - [ ] 2.4.6 Negative: Renewal Limit Reached:
@@ -995,7 +995,7 @@ Open **Circulation** from Library tiles.
 #### Book Returns
 
 - [ ] 2.4.7 **Return Book in Good Condition**:
-  - Open `LoanSheet` for `ACC-000004` ("Pride and Prejudice").
+  - Open `LoanDialog` for `ACC-000004` ("Pride and Prejudice").
   - Enter optional return remarks: `Returned on time in clean condition`.
   - Tap **Return** button.
   - **Expect**:
@@ -1070,7 +1070,7 @@ Setup: Copy `ACC-000001` is currently on loan to Student 501. No other copies of
 #### Fine Waivers & Payments
 
 - [ ] 2.6.3 **Partial Fine Waiver**:
-  - Open **Fines & Penalties** from Library tiles → tap Student 502's ₹6.00 fine to open `FineSheet`.
+  - Open **Fines & Penalties** from Library tiles → tap Student 502's ₹6.00 fine to open `FineDialog`.
   - Tap **Waive fine**:
     - Amount to waive (₹): `3.00`
     - Reason for waiver: `Medical illness leave with certificate`
@@ -1092,7 +1092,7 @@ Setup: Copy `ACC-000001` is currently on loan to Student 501. No other copies of
     - Incident ticket created (`INC/<financialYear>/<seq>`); status is `Reported`, type `damaged`.
     - Copy status transitions to `Damaged` (red pill); removed from circulation.
 - [ ] 2.6.6 **Resolve Damaged Incident**:
-  - Open **Lost & Damaged** from Library tiles → tap incident for `ACC-000004` to open `IncidentSheet`.
+  - Open **Lost & Damaged** from Library tiles → tap incident for `ACC-000004` to open `IncidentDialog`.
   - Tap **Resolve incident**:
     - Resolution: `Repaired (return to shelf)`
     - Repair cost (₹): `150.00`

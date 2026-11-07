@@ -5,9 +5,9 @@ import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/circulation/widgets/circulation_tabs.dart';
 import 'package:school_library/src/ui/incidents/widgets/incident_card.dart';
+import 'package:school_library/src/ui/incidents/widgets/incident_dialog.dart';
 import 'package:school_library/src/ui/incidents/widgets/incident_empty_states.dart';
-import 'package:school_library/src/ui/incidents/widgets/incident_report_sheet.dart';
-import 'package:school_library/src/ui/incidents/widgets/incident_sheet.dart';
+import 'package:school_library/src/ui/incidents/widgets/incident_report_dialog.dart';
 
 /// Manage lost and damaged book incidents (FRS 11.14).
 class IncidentsPage extends StatefulWidget {
@@ -49,14 +49,14 @@ class _IncidentsPageState extends State<IncidentsPage> {
   }
 
   Future<void> _open(LibraryIncident incident) async {
-    await IncidentSheet.show(context, incident);
+    await IncidentDialog.show(context, incident);
     if (mounted) {
       await context.read<LibraryProvider>().loadIncidents(status: _status);
     }
   }
 
   Future<void> _openReportIncident() async {
-    await IncidentReportSheet.show(context);
+    await IncidentReportDialog.show(context);
     if (mounted) {
       await context.read<LibraryProvider>().loadIncidents(status: _status);
     }

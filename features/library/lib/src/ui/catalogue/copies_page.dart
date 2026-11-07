@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/catalogue/widgets/acquisition_card.dart';
-import 'package:school_library/src/ui/catalogue/widgets/copy_sheet.dart';
+import 'package:school_library/src/ui/catalogue/widgets/copy_dialog.dart';
 import 'package:school_library/src/ui/routing/library_destinations.dart';
 import 'package:school_library/src/ui/routing/library_tab_bar.dart';
 
@@ -41,7 +41,7 @@ class _CopiesPageState extends State<CopiesPage> {
     }
     final book = await libraryProvider.book(copy.catalogueId);
     if (!mounted) return;
-    await CopySheet.show(context, copy, book?.title ?? '');
+    await CopyDialog.show(context, copy, book?.title ?? '');
   }
 
   Widget _scannerCard(BuildContext context) {

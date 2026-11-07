@@ -2,8 +2,8 @@ import 'package:admin_ui/admin_ui.dart';
 import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:inventory/inventory.dart';
-import 'package:inventory/src/ui/assets/maintenance/widgets/maintenance_form_sheet.dart';
-import 'package:inventory/src/ui/assets/registry/widgets/asset_action_sheet.dart';
+import 'package:inventory/src/ui/assets/maintenance/widgets/maintenance_dialog.dart';
+import 'package:inventory/src/ui/assets/registry/widgets/asset_action_dialog.dart';
 import 'package:inventory/src/ui/assets/registry/widgets/asset_label.dart';
 import 'package:inventory/src/ui/assets/registry/widgets/rfid_sheet.dart';
 import 'package:inventory/src/ui/assets/shared/asset_ui.dart';
@@ -68,23 +68,23 @@ class _AssetSheetState extends State<AssetSheet> {
         if (asset.status == 'available')
           (
             'Assign',
-            () => AssetActionSheet(asset: asset, action: AssetAction.assign),
+            () => AssetActionDialog(asset: asset, action: AssetAction.assign),
           ),
         if (asset.status == 'assigned') ...[
           (
             'Transfer',
-            () => AssetActionSheet(asset: asset, action: AssetAction.transfer),
+            () => AssetActionDialog(asset: asset, action: AssetAction.transfer),
           ),
           (
             'Return',
-            () => AssetActionSheet(asset: asset, action: AssetAction.giveBack),
+            () => AssetActionDialog(asset: asset, action: AssetAction.giveBack),
           ),
         ],
       ],
       if (manage && !asset.isRetired)
         (
           'Condition',
-          () => AssetActionSheet(asset: asset, action: AssetAction.condition),
+          () => AssetActionDialog(asset: asset, action: AssetAction.condition),
         ),
       if (manage &&
           !asset.isRetired &&
@@ -92,12 +92,12 @@ class _AssetSheetState extends State<AssetSheet> {
           asset.status != 'assigned')
         (
           'Retire',
-          () => AssetActionSheet(asset: asset, action: AssetAction.retire),
+          () => AssetActionDialog(asset: asset, action: AssetAction.retire),
         ),
       if (manage && asset.status == 'retired')
         (
           'Dispose',
-          () => AssetActionSheet(asset: asset, action: AssetAction.retire),
+          () => AssetActionDialog(asset: asset, action: AssetAction.retire),
         ),
       if (manage && !asset.isRetired)
         ('RFID tag', () => RfidSheet(asset: asset)),
@@ -105,7 +105,7 @@ class _AssetSheetState extends State<AssetSheet> {
           !asset.isRetired &&
           asset.status != 'lost' &&
           !asset.inMaintenance)
-        ('Report fault', () => MaintenanceFormSheet(asset: asset)),
+        ('Report fault', () => MaintenanceDialog(asset: asset)),
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

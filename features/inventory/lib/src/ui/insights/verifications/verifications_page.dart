@@ -54,7 +54,7 @@ class _VerificationsPageState extends State<VerificationsPage> {
               onPressed: () async {
                 await showFormPage(
                   context,
-                  () => const _NewVerificationSheet(),
+                  () => const _NewVerificationDialog(),
                 );
                 if (mounted) await _load();
               },
@@ -120,14 +120,14 @@ class _VerificationsPageState extends State<VerificationsPage> {
   }
 }
 
-class _NewVerificationSheet extends StatefulWidget {
-  const _NewVerificationSheet();
+class _NewVerificationDialog extends StatefulWidget {
+  const _NewVerificationDialog();
 
   @override
-  State<_NewVerificationSheet> createState() => _NewVerificationSheetState();
+  State<_NewVerificationDialog> createState() => _NewVerificationDialogState();
 }
 
-class _NewVerificationSheetState extends State<_NewVerificationSheet> {
+class _NewVerificationDialogState extends State<_NewVerificationDialog> {
   String? _storeId;
   final _categories = <String>{};
   var _busy = false;

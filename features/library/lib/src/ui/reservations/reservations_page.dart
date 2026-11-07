@@ -5,8 +5,8 @@ import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/circulation/widgets/circulation_tabs.dart';
 import 'package:school_library/src/ui/reservations/widgets/reservation_card.dart';
+import 'package:school_library/src/ui/reservations/widgets/reservation_dialog.dart';
 import 'package:school_library/src/ui/reservations/widgets/reservation_empty_states.dart';
-import 'package:school_library/src/ui/reservations/widgets/reservation_sheet.dart';
 
 /// Manage book reservations and queue (FRS 11.12).
 class ReservationsPage extends StatefulWidget {
@@ -99,7 +99,7 @@ class _ReservationsPageState extends State<ReservationsPage> {
   }
 
   Future<void> _openCreateReservation() async {
-    await ReservationSheet.show(context);
+    await ReservationDialog.show(context);
     if (mounted) {
       await context.read<LibraryProvider>().loadReservations(status: _status);
     }

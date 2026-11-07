@@ -7,7 +7,7 @@ import 'package:school_library/src/ui/circulation/widgets/circulation_empty_stat
 import 'package:school_library/src/ui/circulation/widgets/circulation_tabs.dart';
 import 'package:school_library/src/ui/circulation/widgets/issue_flow.dart';
 import 'package:school_library/src/ui/circulation/widgets/loan_card.dart';
-import 'package:school_library/src/ui/circulation/widgets/loan_sheet.dart';
+import 'package:school_library/src/ui/circulation/widgets/loan_dialog.dart';
 
 enum CirculationFilter { all, overdue, dueToday }
 
@@ -48,7 +48,7 @@ class _CirculationPageState extends State<CirculationPage> {
   Future<void> _open(LibraryLoan loan) async {
     final book = await context.read<LibraryProvider>().book(loan.catalogueId);
     if (!mounted) return;
-    await LoanSheet.show(context, loan, book?.title ?? loan.accessionNumber);
+    await LoanDialog.show(context, loan, book?.title ?? loan.accessionNumber);
   }
 
   Widget _statusPill(BuildContext context, LibraryLoan loan, String today) {
