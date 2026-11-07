@@ -7,9 +7,9 @@ import {
 
 describe('permissionsFromActions', () => {
   it('maps action Ids, drops unknown and parent Ids, sorts and dedupes', () => {
-    expect(permissionsFromActions([331, '312', 312, 300, 999])).toEqual([
+    expect(permissionsFromActions([313, '312', 312, 300, 330, 999])).toEqual([
       'inventory.items.view',
-      'library.catalogue',
+      'inventory.stock.view',
     ]);
   });
 
@@ -18,7 +18,9 @@ describe('permissionsFromActions', () => {
     expect(permissionsFromActions([])).toEqual([]);
   });
 
-  it('covers every permission exactly once', () => {
-    expect(Object.values(ACTION_PERMISSIONS).sort()).toEqual([...PERMISSIONS].sort());
+  it('covers every inventory permission exactly once', () => {
+    expect(Object.values(ACTION_PERMISSIONS).sort()).toEqual(
+      PERMISSIONS.filter((permission) => permission.startsWith('inventory.')).sort(),
+    );
   });
 });

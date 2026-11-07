@@ -128,6 +128,15 @@ describe('inventory masters', () => {
     await assertFails(setDoc(doc(db('m1'), 'schools/12/inventoryUnits/box'), { name: 'x' }));
   });
 
+  it('library categories: only two levels', async () => {
+    await env.withSecurityRulesDisabled((context) =>
+      setDoc(doc(context.firestore(), 'schools/12/userAccess/m3'), { permissions: ['library.catalogue'], campusIds: [31] }),
+    );
+    await assertSucceeds(setDoc(doc(db('m3'), 'schools/12/libraryCategories/top'), { name: 'Science', parentId: null }));
+    await assertSucceeds(setDoc(doc(db('m3'), 'schools/12/libraryCategories/sub'), { name: 'Physics', parentId: 'top' }));
+    await assertFails(setDoc(doc(db('m3'), 'schools/12/libraryCategories/deep'), { name: 'Optics', parentId: 'sub' }));
+  });
+
   it('stores: school-wide reads for stock viewers and settings users', async () => {
     await assertSucceeds(getDoc(doc(db('3'), 'schools/12/inventoryStores/s31')));
     await assertSucceeds(getDoc(doc(db('3'), 'schools/12/inventoryStores/s32')));

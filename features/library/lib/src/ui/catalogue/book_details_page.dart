@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:admin_ui/admin_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -27,6 +29,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
   }
 
   Future<void> _load() async {
+    unawaited(context.read<LibraryProvider>().loadStandards());
     final book = await context.read<LibraryProvider>().book(widget.bookId);
     if (!mounted) return;
     setState(() {
@@ -89,6 +92,10 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
           BookHeroCard(
             book: book,
             categoryName: categoryName,
+            classNames: [
+              for (final classId in book.classIds)
+                libraryProvider.className(classId),
+            ],
             canEdit: canEdit,
             onActiveChanged: (value) async {
               if (await libraryProvider.setBookActive(book.id, active: value)) {

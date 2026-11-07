@@ -12,17 +12,75 @@ import {
   id,
   missing,
   name,
-  defineSetStatus,
+  status,
   usable,
 } from '../shared/masters';
 
 const FINES = ['none', 'per_day', 'flat'] as const;
 const MEMBER_TYPES = ['student', 'teacher'] as const;
 
-export const policyId = (libraryId: string, memberType: string) => `${libraryId}_${memberType}`;
 /** Why [member] cannot borrow or reserve, or null when they can. A person never seen before can. */
 export function ineligibleReason(member: { blocked?: boolean } | undefined): string | null {
   return member?.blocked ? 'Member is blocked' : null;
+}
+
+/**
+ * The active policy of a person type in a library that covers a book of [categoryId]: one naming the
+ * category, else one naming its parent, else the catch-all (no categories). Saving refuses overlaps, so
+ * each level has at most one. Null means the member cannot borrow or reserve this book.
+ */
+export async function applicablePolicy(
+  context: CallableContext,
+  libraryId: string,
+  memberType: string,
+  categoryId: string,
+): Promise<{ id: string; data: DocumentData } | null> {
+  const policies = (
+    await context.transaction.get(
+      context
+        .coll('libraryBorrowingPolicies')
+        .where('libraryId', '==', libraryId)
+        .where('memberType', '==', memberType)
+        .where('status', '==', 'active'),
+    )
+  ).docs;
+  const covering = (categoryIds: (string | undefined)[]) =>
+    policies.find((policy) =>
+      categoryIds.some((category) => category && policy.data().categoryIds.includes(category)),
+    );
+  const parentId = (await context.transaction.get(context.doc(`libraryCategories/${categoryId}`)))
+    .data()?.parentId;
+  const found =
+    covering([categoryId]) ??
+    covering([parentId]) ??
+    policies.find((policy) => !policy.data().categoryIds.length);
+  return found ? { id: found.id, data: found.data() } : null;
+}
+
+/** Refuses [categoryIds] (empty: the catch-all) when another active policy of the library and person type already covers them. */
+async function assertNoOverlap(
+  context: CallableContext,
+  libraryId: string,
+  memberType: string,
+  categoryIds: string[],
+  selfId: string,
+): Promise<void> {
+  const others = (
+    await context.transaction.get(
+      context
+        .coll('libraryBorrowingPolicies')
+        .where('libraryId', '==', libraryId)
+        .where('memberType', '==', memberType)
+        .where('status', '==', 'active'),
+    )
+  ).docs.filter((other) => other.id !== selfId);
+  for (const other of others) {
+    const taken: string[] = other.data().categoryIds;
+    if (!categoryIds.length && !taken.length)
+      throw failed(`"${other.data().name}" already covers all other categories`);
+    if (categoryIds.some((categoryId) => taken.includes(categoryId)))
+      throw failed(`A selected category already belongs to "${other.data().name}"`);
+  }
 }
 
 export const memberId = (type: string, personErpId: number) => `${type}_${personErpId}`;
@@ -83,15 +141,17 @@ export function writeBorrower(
 
 export const members = {
   /**
-   * One policy per library and person type (FRS 11.8); the ID is `<libraryId>_<student|teacher>`,
-   * so saving again edits it. Circulation (Lib-4) copies the values onto each loan at issue,
-   * so edits never move existing due dates.
+   * A borrowing policy (FRS 11.8): the rules of one person type in one library for the listed book
+   * categories, or for every category not named by another policy when none are listed. Within a
+   * library and person type a category (or the catch-all) belongs to one policy. Circulation copies the
+   * values onto each loan at issue, so edits never move existing due dates. [id] edits; omitted creates.
    */
   policyUpsert: defineCallable({
     name: 'library.policy.upsert',
     permission: 'library.settings',
     input: z
       .object({
+        id: id.optional(),
         libraryId: id,
         memberType: z.enum(MEMBER_TYPES),
         name,
@@ -102,27 +162,29 @@ export const members = {
         fineAmount: z.number().min(0).max(100_000).default(0),
         graceDays: z.number().int().min(0).max(60).default(0),
         maxFine: z.number().min(0).max(10_000_000).nullish(),
-        canReserve: z.boolean(),
-        overdueRenewal: z.boolean().default(false),
-        restrictedCategoryIds: z.array(id).max(50).default([]),
+        categoryIds: z.array(id).max(50).default([]),
       })
       .refine((i) => i.fineType === 'none' || i.fineAmount > 0, 'A fine needs an amount'),
     handler: async (context, i) => {
-      const ref = context.doc(
-        `libraryBorrowingPolicies/${policyId(i.libraryId, i.memberType)}`,
-      );
-      const before = (await context.transaction.get(ref)).data();
+      const ref = i.id
+        ? context.doc(`libraryBorrowingPolicies/${i.id}`)
+        : context.newDoc('libraryBorrowingPolicies');
+      const before = i.id ? (await context.transaction.get(ref)).data() : undefined;
+      if (i.id && !before) throw missing('libraryBorrowingPolicy');
+      if (before && (before.libraryId !== i.libraryId || before.memberType !== i.memberType))
+        throw failed('The library and member type of a policy cannot change');
       const library = usable(
         await context.transaction.get(context.doc(`libraries/${i.libraryId}`)),
         'Library',
         !!before,
       );
       context.requireCampus(library.campusId);
-      const restricted = [...new Set(i.restrictedCategoryIds)];
-      for (const categoryId of restricted) {
+      const categoryIds = [...new Set(i.categoryIds)];
+      for (const categoryId of categoryIds) {
         if (!(await context.transaction.get(context.doc(`libraryCategories/${categoryId}`))).exists)
-          throw failed('Restricted category not found');
+          throw failed('Category not found');
       }
+      await assertNoOverlap(context, i.libraryId, i.memberType, categoryIds, ref.id);
       const after = {
         name: i.name,
         libraryId: i.libraryId,
@@ -135,9 +197,7 @@ export const members = {
         fineAmount: i.fineType === 'none' ? 0 : i.fineAmount,
         graceDays: i.graceDays,
         maxFine: i.fineType === 'none' ? null : (i.maxFine ?? null),
-        canReserve: i.canReserve,
-        overdueRenewal: i.overdueRenewal,
-        restrictedCategoryIds: restricted,
+        categoryIds,
       };
       if (before) {
         context.update(ref, { ...after, updatedAt: serverTimestamp() });
@@ -155,12 +215,28 @@ export const members = {
       return { id: ref.id };
     },
   }),
-  policySetStatus: defineSetStatus(
-    'library.policy.setStatus',
-    'library.settings',
-    'libraryBorrowingPolicies',
-    'libraryPolicy',
-  ),
+  policySetStatus: defineCallable({
+    name: 'library.policy.setStatus',
+    permission: 'library.settings',
+    input: z.object({ id, status }),
+    handler: async (context, i) => {
+      const ref = context.doc(`libraryBorrowingPolicies/${i.id}`);
+      const policy = (await context.transaction.get(ref)).data();
+      if (!policy) throw missing('libraryBorrowingPolicy');
+      context.requireCampus(policy.campusId);
+      if (policy.status === i.status) return { id: i.id };
+      if (i.status === 'active')
+        await assertNoOverlap(context, policy.libraryId, policy.memberType, policy.categoryIds, i.id);
+      context.update(ref, { status: i.status, updatedAt: serverTimestamp() });
+      context.audit({
+        action: 'libraryPolicy.status',
+        documentPath: ref.path,
+        before: { status: policy.status },
+        after: { status: i.status },
+      });
+      return { id: i.id };
+    },
+  }),
 
   /** Hand-set block (or lift). Fines block members on their own; this one is never lifted by paying them. */
   memberSetBlocked: defineCallable({

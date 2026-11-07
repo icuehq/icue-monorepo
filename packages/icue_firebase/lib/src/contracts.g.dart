@@ -194,6 +194,7 @@ abstract final class LoanRenewalFields {
 
 /// Policy values frozen on the loan at issue so later policy edits never move its due date.
 abstract final class LoanPolicySnapshotFields {
+  static const policyId = 'policyId';
   static const name = 'name';
   static const maxBooks = 'maxBooks';
   static const loanDays = 'loanDays';
@@ -202,5 +203,4 @@ abstract final class LoanPolicySnapshotFields {
   static const fineAmount = 'fineAmount';
   static const graceDays = 'graceDays';
   static const maxFine = 'maxFine';
-  static const overdueRenewal = 'overdueRenewal';
 }

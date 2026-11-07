@@ -1,8 +1,8 @@
 import 'package:auth/src/models/role_actions.dart';
 
-// TEMP: mimics Node's `/v1.0/getActionsByRole` for Inventory and Library until
-// Node returns them (docs/inventory-library-node-actions.md). Delete this file
-// and the `withTestRoleActions` call in AuthService.getRoleActions then.
+// TEMP: mimics Node's `/v1.0/getActionsByRole` for Inventory until Node returns
+// it (docs/inventory-library-node-actions.md). Delete this file and the
+// `withTestRoleActions` call in AuthService.getRoleActions then.
 
 const _inventorySubActions = <(int, String, String)>[
   (310, 'Inventory Settings', 'settings'),
@@ -20,16 +20,6 @@ const _inventorySubActions = <(int, String, String)>[
   (322, 'Manage Assets', 'assets.manage'),
   (323, 'View Assets', 'assets.view'),
   (324, 'Inventory Reports', 'reports.view'),
-];
-
-const _librarySubActions = <(int, String, String)>[
-  (330, 'Library Settings', 'settings'),
-  (331, 'Manage Catalogue', 'catalogue.manage'),
-  (332, 'View Catalogue', 'catalogue.view'),
-  (333, 'Circulation', 'circulation.operate'),
-  (334, 'Waive Fines', 'fines.waive'),
-  (335, 'Library Reports', 'reports.view'),
-  (336, 'View Members', 'members.view'),
 ];
 
 RoleActions _module(
@@ -58,11 +48,9 @@ RoleActions _module(
   ],
 );
 
-/// [actions] plus Inventory and Library (with all sub-actions) when missing.
+/// [actions] plus Inventory (with all sub-actions) when missing.
 List<RoleActions> withTestRoleActions(List<RoleActions> actions) => [
   ...actions,
   if (!actions.any((a) => a.routeState == 'layout.inventory'))
     _module(300, 'Inventory', 'inventory', 100, _inventorySubActions),
-  if (!actions.any((a) => a.routeState == 'layout.library'))
-    _module(301, 'Library', 'library', 101, _librarySubActions),
 ];

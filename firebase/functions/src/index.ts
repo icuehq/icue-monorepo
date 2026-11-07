@@ -47,8 +47,7 @@ const mutations: AnyCallableDef[] = [
 export const { session, inventory, library } = routes([
   ['session.sync', sync],
   ...mutations.map((def) => [def.name, callable(def)] as [string, unknown]),
-  ...[itemSearch, catalogueSearch].map(
-    (def) => [def.name, queryCallable(def)] as [string, unknown],
-  ),
+  [itemSearch.name, queryCallable(itemSearch)],
+  [catalogueSearch.name, queryCallable(catalogueSearch)],
   ['inventory.import.run', importRun],
 ]);

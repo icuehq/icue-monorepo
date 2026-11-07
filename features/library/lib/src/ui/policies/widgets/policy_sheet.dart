@@ -45,11 +45,7 @@ class _PolicySheetState extends State<PolicySheet> {
   );
   late String? _libraryId = widget.policy?.libraryId;
   late String _fineType = widget.policy?.fineType ?? 'none';
-  late bool _canReserve = widget.policy?.canReserve ?? true;
-  late bool _overdueRenewal = widget.policy?.overdueRenewal ?? false;
-  late final Set<String> _restricted = {
-    ...?widget.policy?.restrictedCategoryIds,
-  };
+  late final Set<String> _categories = {...?widget.policy?.categoryIds};
   bool _busy = false;
 
   @override
@@ -82,6 +78,7 @@ class _PolicySheetState extends State<PolicySheet> {
     await submitAndClose<LibraryProvider>(
       context,
       () => context.read<LibraryProvider>().savePolicy({
+        'id': ?widget.policy?.id,
         'libraryId': _libraryId,
         'memberType': _type,
         'name': _name.text.trim(),
@@ -92,9 +89,7 @@ class _PolicySheetState extends State<PolicySheet> {
         'fineAmount': fines ? double.parse(_fine.text.trim()) : 0,
         'graceDays': int.parse(_grace.text.trim()),
         'maxFine': fines ? double.tryParse(_maxFine.text.trim()) : null,
-        'canReserve': _canReserve,
-        'overdueRenewal': _overdueRenewal,
-        'restrictedCategoryIds': _restricted.toList(),
+        'categoryIds': _categories.toList(),
       }, requestId: _requestId),
     );
     if (mounted) setState(() => _busy = false);
@@ -175,18 +170,6 @@ class _PolicySheetState extends State<PolicySheet> {
                   ],
                 ],
               ),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('May reserve books'),
-                value: _canReserve,
-                onChanged: (value) => setState(() => _canReserve = value),
-              ),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('May renew when overdue'),
-                value: _overdueRenewal,
-                onChanged: (value) => setState(() => _overdueRenewal = value),
-              ),
             ],
           ),
           FormSectionCard(
@@ -241,11 +224,11 @@ class _PolicySheetState extends State<PolicySheet> {
           ),
           if (libraryProvider.categories.isNotEmpty)
             FormSectionCard(
-              title: 'Restricted categories',
-              icon: Icons.block_rounded,
+              title: 'Book categories',
+              icon: Icons.category_outlined,
               children: [
                 Text(
-                  'Members on this policy cannot borrow books from the selected categories.',
+                  'These rules apply to books of the selected categories. Leave all unselected to apply them to every category no other policy covers.',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -257,11 +240,11 @@ class _PolicySheetState extends State<PolicySheet> {
                     for (final category in libraryProvider.categories)
                       FilterChip(
                         label: Text(category.name),
-                        selected: _restricted.contains(category.id),
+                        selected: _categories.contains(category.id),
                         onSelected: (value) => setState(
                           () => value
-                              ? _restricted.add(category.id)
-                              : _restricted.remove(category.id),
+                              ? _categories.add(category.id)
+                              : _categories.remove(category.id),
                         ),
                       ),
                   ],

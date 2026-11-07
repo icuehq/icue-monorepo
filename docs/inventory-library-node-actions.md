@@ -27,7 +27,7 @@ once chosen.
 | Name | DisplayName | RouteState | Permission |
 | --- | --- | --- | --- |
 | Inventory - Admin App | Inventory | `layout.inventory` | none (shows the tile) |
-| Library - Admin App | Library | `layout.library` | none (shows the tile) |
+| Library - Admin App | Library | `layout.Library` | none (shows the tile) |
 
 ### Inventory sub-actions (children of Inventory)
 
@@ -53,12 +53,12 @@ once chosen.
 
 | DisplayName | RouteState | Permission |
 | --- | --- | --- |
-| Library Settings | `layout.library.settings` | `library.settings` |
-| Catalogue (view, add, edit) | `layout.library.catalogue` | `library.catalogue` |
-| Circulation (issue/return) | `layout.library.circulation.operate` | `library.circulation.operate` |
-| Waive Fines | `layout.library.fines.waive` | `library.fines.waive` |
-| Library Reports | `layout.library.reports.view` | `library.reports.view` |
-| View Members | `layout.library.members.view` | `library.members.view` |
+| Library Settings | `layout.Library.settings` | `library.settings` |
+| Catalogue (view, add, edit) | `layout.Library.catalogue` | `library.catalogue` |
+| Circulation (issue/return) | `layout.Library.circulation.operate` | `library.circulation.operate` |
+| Waive Fines | `layout.Library.fines.waive` | `library.fines.waive` |
+| Library Reports | `layout.Library.reports.view` | `library.reports.view` |
+| View Members | `layout.Library.members.view` | `library.members.view` |
 
 ## Suggested default grants (FRS §12)
 

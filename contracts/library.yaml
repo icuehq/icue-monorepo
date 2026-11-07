@@ -58,6 +58,7 @@ documents:
   LoanPolicySnapshot:
     doc: Policy values frozen on the loan at issue so later policy edits never move its due date.
     fields:
+      policyId: string
       name: string
       maxBooks: int
       loanDays: int
@@ -66,7 +67,6 @@ documents:
       fineAmount: double
       graceDays: int
       maxFine: double?
-      overdueRenewal: bool
 
 # Dart view models, generated to <modelsDir>/<file>.g.dart. Field: type, or {type, key, default, notEquals, present, doc, from};
 # key is the Firestore key (dotted for nested), from is a raw Dart expression over data/id.
@@ -198,10 +198,7 @@ models:
       fields:
         name: string
         campusId: int
-        description: string?
         location: string?
-        phone: string?
-        email: string?
         hours: string?
         active: { type: bool, key: status, notEquals: inactive }
     LibraryCategory:
@@ -212,7 +209,7 @@ models:
         parentId: string?
         active: { type: bool, key: status, notEquals: inactive }
     LibraryBook:
-      doc: "A catalogue title (FRS 11.4). Search rows carry only the list fields, so the detail-only ones (description, pages, class number, keywords) are empty there."
+      doc: "A catalogue title (FRS 11.4). classIds are ERP class ids the book is meant for (no sections); empty means a general book for any class. Search rows carry only the list fields, so the detail-only ones (description, pages, class number, keywords) are empty there."
       id: id
       fields:
         title: string
@@ -223,6 +220,7 @@ models:
         year: int?
         language: string?
         categoryId: string
+        classIds: list<int>
         description: string?
         pages: int?
         shelf: string?
@@ -230,7 +228,7 @@ models:
         active: { type: bool, key: status, notEquals: inactive }
   library_members:
     LibraryPolicy:
-      doc: "Borrowing rules of one person type (student or teacher) in one library (FRS 11.8)."
+      doc: "Borrowing rules of one person type (student or teacher) in one library, for the listed book categories or, when none are listed, every other category (FRS 11.8)."
       id: id
       fields:
         name: string
@@ -243,9 +241,7 @@ models:
         fineAmount: double
         graceDays: int
         maxFine: double?
-        canReserve: bool
-        overdueRenewal: bool
-        restrictedCategoryIds: list<string>
+        categoryIds: list<string>
         active: { type: bool, key: status, notEquals: inactive }
     LibraryMember:
       doc: "A student or teacher who has borrowed or reserved (FRS 11.7). Created on first use from the ERP details; the ERP stays the source of truth."

@@ -25,7 +25,7 @@ const day = (offset: number) =>
   new Date(Date.now() + 330 * 60_000 + offset * 86_400_000).toISOString().slice(0, 10);
 
 describe('library reservations', () => {
-  let mainLibrary: string, title: string;
+  let mainLibrary: string, title: string, policy: string;
   const reserve = (memberId: string) =>
     run(reservations.reservationCreate, { person: person(memberId), catalogueId: title, libraryId: mainLibrary });
   const issue = (memberId: string, copyId = 'ACC-000001') =>
@@ -65,7 +65,7 @@ describe('library reservations', () => {
       libraryId: mainLibrary,
       quantity: 1,
     });
-    await run(members.policyUpsert, {
+    policy = (await run(members.policyUpsert, {
       libraryId: mainLibrary,
       memberType: 'student',
       name: 'Primary',
@@ -73,8 +73,7 @@ describe('library reservations', () => {
       loanDays: 7,
       maxRenewals: 2,
       fineType: 'none',
-      canReserve: true,
-    });
+    })).id;
     await issue('student_501');
   });
 
@@ -127,9 +126,9 @@ describe('library reservations', () => {
         '2',
       ),
     ).rejects.toMatchObject({ code: 'permission-denied' });
-    await set(`libraryBorrowingPolicies/${mainLibrary}_student`, { canReserve: false });
+    await set(`libraryBorrowingPolicies/${policy}`, { status: 'inactive' });
     await expect(reserve('student_503')).rejects.toMatchObject({ code: 'failed-precondition' });
-    await set(`libraryBorrowingPolicies/${mainLibrary}_student`, { canReserve: true });
+    await set(`libraryBorrowingPolicies/${policy}`, { status: 'active' });
     await set('libraryMembers/student_503', { blocked: true });
     await expect(reserve('student_503')).rejects.toMatchObject({ code: 'failed-precondition' });
     await set('libraryMembers/student_503', { blocked: false });

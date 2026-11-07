@@ -16,13 +16,13 @@ describe('session', () => {
     const result = await syncSession(db(), '1', {
       schoolId: 12,
       roleIds: [4, 9],
-      actionIds: [300, 312, 330],
+      actionIds: [300, 312, 313],
       campusIds: [31, 32],
       personType: 'teacher',
       personErpId: 884,
     });
     expect(result).toEqual({
-      permissions: ['inventory.items.view', 'library.settings'],
+      permissions: ['inventory.items.view', 'inventory.stock.view'],
       campusIds: [31, 32],
       hasAllCampuses: false,
     });

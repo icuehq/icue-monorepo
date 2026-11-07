@@ -70,16 +70,26 @@ export async function searchMirror(
   schoolId: string,
   collection: string,
   query: z.infer<typeof searchInput>,
-  options: { terms: string[]; textFields: string[]; sortField: string },
+  options: {
+    terms: string[];
+    textFields: string[];
+    sortField: string;
+    /** Keeps rows in any of these categories; defaults to the query's single `categoryId`. */
+    categoryIds?: string[];
+    /** Keeps rows whose `classIds` array holds this class (library catalogue). */
+    classId?: number;
+  },
   db: Firestore = searchDb(),
 ): Promise<SearchRow[]> {
   const path = `schools/${schoolId}/${collection}`;
+  const categoryIds = options.categoryIds ?? (query.categoryId ? [query.categoryId] : undefined);
   if (process.env.FIRESTORE_EMULATOR_HOST) {
     const all = (await db.collection(path).get()).docs
       .filter(
         (doc) =>
           matchesAll(options.terms, doc.data(), options.textFields) &&
-          (!query.categoryId || doc.data().categoryId === query.categoryId),
+          (!categoryIds || categoryIds.includes(doc.data().categoryId)) &&
+          (options.classId === undefined || (doc.data().classIds ?? []).includes(options.classId)),
       )
       .sort((left, right) =>
         String(left.data()[options.sortField]).localeCompare(
@@ -95,7 +105,9 @@ export async function searchMirror(
     .pipeline()
     .collection(path)
     .search({ query: documentMatches(options.terms.join(' ')) });
-  if (query.categoryId) pipeline = pipeline.where(field('categoryId').equal(query.categoryId));
+  if (categoryIds) pipeline = pipeline.where(field('categoryId').equalAny(categoryIds));
+  if (options.classId !== undefined)
+    pipeline = pipeline.where(field('classIds').arrayContains(options.classId));
   const result = await pipeline
     .sort(field(options.sortField).ascending())
     .offset(query.offset)

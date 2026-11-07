@@ -37,6 +37,7 @@ export const masters = {
       year: z.number().int().min(1000).max(2200).nullish(),
       language: text(50).nullish(),
       categoryId: id,
+      classIds: z.array(z.number().int().positive()).max(15).default([]),
       description: z.string().trim().max(2000).nullish(),
       pages: z.number().int().min(1).max(100000).nullish(),
       shelf: text(50).nullish(),
@@ -72,6 +73,7 @@ export const masters = {
         year: i.year ?? null,
         language: i.language ?? null,
         categoryId: i.categoryId,
+        classIds: [...new Set(i.classIds)].sort((first, second) => first - second),
         description: i.description ?? null,
         pages: i.pages ?? null,
         shelf: i.shelf ?? null,
@@ -103,31 +105,41 @@ export const masters = {
     'libraryCatalogue',
   ),
 
-  /** Adds the FRS default book categories that do not exist yet. Safe to repeat. */
+  /** Adds the default categories and subcategories that do not exist yet (matched by name within the parent). Safe to repeat. */
   seedDefaults: defineCallable({
     name: 'library.seedDefaults',
     permission: 'library.catalogue',
     input: z.object({}),
     handler: async (context) => {
       const now = serverTimestamp();
-      const existing = new Set(
-        (await context.transaction.get(context.coll('libraryCategories'))).docs.map((category) =>
-          String(category.data().name).trim().toLowerCase(),
-        ),
+      const key = (parentId: string | null, name: string) =>
+        `${parentId ?? ''}|${name.trim().toLowerCase()}`;
+      const existing = new Map(
+        (await context.transaction.get(context.coll('libraryCategories'))).docs.map((category) => [
+          key(category.data().parentId ?? null, String(category.data().name)),
+          category.id,
+        ]),
       );
       let categories = 0;
-      for (const category of DEFAULT_CATEGORIES) {
-        if (existing.has(category.name.toLowerCase())) continue;
-        context.set(context.newDoc('libraryCategories'), {
-          name: category.name,
+      const ensure = (parentId: string | null, name: string) => {
+        const found = existing.get(key(parentId, name));
+        if (found) return found;
+        const ref = context.newDoc('libraryCategories');
+        context.set(ref, {
+          name,
           description: null,
-          parentId: null,
+          parentId,
           status: 'active',
           createdAt: now,
           createdBy: context.uid,
           updatedAt: now,
         });
         categories++;
+        return ref.id;
+      };
+      for (const category of DEFAULT_CATEGORIES) {
+        const parentId = ensure(null, category.name);
+        for (const child of category.children) ensure(parentId, child);
       }
       context.audit({
         action: 'library.seedDefaults',

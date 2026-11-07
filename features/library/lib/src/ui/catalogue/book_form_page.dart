@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:admin_ui/admin_ui.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
+import 'package:school_library/src/ui/catalogue/widgets/book_class_section.dart';
 import 'package:school_library/src/ui/catalogue/widgets/book_form_sections.dart';
 import 'package:school_library/src/ui/catalogue/widgets/mock_books.dart';
 import 'package:school_library/src/ui/catalogue/widgets/new_copies_section.dart';
@@ -50,8 +53,15 @@ class _BookFormPageState extends State<BookFormPage> {
     text: _existingBook?.description,
   );
   late String? _categoryId = _existingBook?.categoryId;
+  late final Set<int> _classIds = {...?_existingBook?.classIds};
   bool _busy = false;
   bool _dirty = false;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(context.read<LibraryProvider>().loadStandards());
+  }
 
   @override
   void dispose() {
@@ -156,6 +166,7 @@ class _BookFormPageState extends State<BookFormPage> {
           'year': int.tryParse(_year.text.trim()),
           'language': blankToNull(_language),
           'categoryId': _categoryId,
+          'classIds': _classIds.toList(),
           'description': blankToNull(_description),
           'pages': int.tryParse(_pages.text.trim()),
           'shelf': blankToNull(_shelf),
@@ -175,7 +186,7 @@ class _BookFormPageState extends State<BookFormPage> {
 
   @override
   Widget build(BuildContext context) {
-    final libraryProvider = context.read<LibraryProvider>();
+    final libraryProvider = context.watch<LibraryProvider>();
     final editing = _existingBook != null;
     final libraries = [
       for (final schoolLibrary in libraryProvider.libraries)
@@ -204,6 +215,14 @@ class _BookFormPageState extends State<BookFormPage> {
             : '${libraryProvider.category(category.parentId)?.name ?? ''} › ${category.name}',
         onCategoryChanged: (value) => setState(() {
           _categoryId = value;
+          _dirty = true;
+        }),
+      ),
+      BookClassSection(
+        standards: libraryProvider.standards,
+        selectedIds: _classIds,
+        onToggled: (classId, {required selected}) => setState(() {
+          selected ? _classIds.add(classId) : _classIds.remove(classId);
           _dirty = true;
         }),
       ),

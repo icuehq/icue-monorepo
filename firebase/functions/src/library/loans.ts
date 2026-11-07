@@ -14,7 +14,7 @@ import { defineCallable, failed, id, missing, optionalText } from '../shared/mas
 import { enqueue } from '../shared/outbox';
 import { fineBlock, raiseFine } from './fines';
 import { openIncident } from './incidents';
-import { ineligibleReason, memberId, personInput, policyId, writeBorrower } from './members';
+import { applicablePolicy, ineligibleReason, memberId, personInput, writeBorrower } from './members';
 import { memberTo } from './notify';
 import { release, waitingQuery } from './reservations';
 
@@ -28,7 +28,6 @@ const SNAPSHOT = [
   'fineAmount',
   'graceDays',
   'maxFine',
-  'overdueRenewal',
 ] as const satisfies (keyof LoanPolicySnapshot)[];
 
 /** Overdue fine from the loan's policy snapshot (FRS 11.13): per day or flat after the grace days, capped at `maxFine`. */
@@ -126,27 +125,32 @@ export const loans = {
       } else if (copy.status !== 'available' || copy.activeLoanId)
         throw failed(`Copy is ${copy.status}`);
 
-      const policy = (
-        await context.transaction.get(
-          context.doc(
-            `libraryBorrowingPolicies/${policyId(copy.libraryId, i.person.memberType)}`,
-          ),
-        )
-      ).data();
-      if (!policy || policy.status !== 'active')
-        throw failed('No active borrowing policy for this member');
-      if ((member?.activeLoans ?? 0) >= policy.maxBooks)
-        throw failed(`Borrowing limit of ${policy.maxBooks} reached`);
       const title = (
         await context.transaction.get(context.doc(`libraryCatalogue/${copy.catalogueId}`))
       ).data();
-      if (title && policy.restrictedCategoryIds.includes(title.categoryId))
-        throw failed('This category is restricted for the member');
+      if (!title) throw missing('libraryCatalogue');
+      const found = await applicablePolicy(
+        context,
+        copy.libraryId,
+        i.person.memberType,
+        title.categoryId,
+      );
+      if (!found) throw failed('No active borrowing policy for this member and book category');
+      const policy = found.data;
+      // The limit counts only the loans held under this same policy.
+      const underPolicy = await context.transaction.get(
+        context
+          .coll(Collections.libraryLoans)
+          .where('memberId', '==', memberKey)
+          .where('status', '==', LoanStatus.active)
+          .where('policySnapshot.policyId', '==', found.id),
+      );
+      if (underPolicy.size >= policy.maxBooks) throw failed(`Borrowing limit of ${policy.maxBooks} reached`);
 
       const loan = context.newDoc(Collections.libraryLoans);
       const number = await nextNumber(context, 'LIS');
       const snapshot = Object.fromEntries(
-        SNAPSHOT.map((field) => [field, policy[field] ?? null]),
+        [['policyId', found.id], ...SNAPSHOT.map((field) => [field, policy[field] ?? null])],
       ) as unknown as LoanPolicySnapshot;
       const after = {
         number,
@@ -394,30 +398,10 @@ export const loans = {
       if (loan.renewals.length >= policy.maxRenewals)
         throw failed(`Renewal limit of ${policy.maxRenewals} reached`);
       const currentDue = timestampDay(loan.dueDate);
-      if (currentDue < today && !policy.overdueRenewal)
-        throw failed('Overdue loans cannot be renewed');
+      if (currentDue < today) throw failed('Overdue loans cannot be renewed');
       if (!(await waitingQuery(context, loan.catalogueId, loan.libraryId, 1)).empty)
         throw failed('Another member is waiting for this title');
-      // The days already overdue are fined now: renewing moves the due date, so the return would never see them.
-      const overdueDays = Math.max(0, daysBetween(currentDue, today));
-      const fineAmount = overdueFineAmount(policy, overdueDays);
-      if (fineAmount > 0) {
-        await raiseOverdueFine(
-          context,
-          `${ref.id}__overdue__r${loan.renewals.length + 1}`,
-          ref.id,
-          loan,
-          loan.memberId,
-          member,
-          fineAmount,
-          overdueDays,
-        );
-        context.update(context.doc(`libraryMembers/${loan.memberId}`), {
-          ...fineBlock(member),
-          updatedAt: serverTimestamp(),
-        });
-      }
-      const dueDay = addDays(currentDue > today ? currentDue : today, policy.loanDays);
+      const dueDay = addDays(currentDue, policy.loanDays);
       const dueDate = dayTimestamp(dueDay);
       const renewals = [
         ...loan.renewals,

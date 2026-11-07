@@ -158,10 +158,7 @@ class LibraryCard extends StatelessWidget {
                       ),
                   ],
                 ),
-                if (library.location != null ||
-                    library.hours != null ||
-                    library.phone != null ||
-                    library.email != null) ...[
+                if (library.location != null || library.hours != null) ...[
                   const SizedBox(height: 10),
                   Divider(
                     height: 1,
@@ -210,10 +207,6 @@ class LibraryCard extends StatelessWidget {
                             ),
                           ],
                         ),
-                      if (library.phone != null)
-                        _InfoChip(Icons.call_outlined, library.phone!),
-                      if (library.email != null)
-                        _InfoChip(Icons.mail_outline_rounded, library.email!),
                     ],
                   ),
                 ],
@@ -222,31 +215,6 @@ class LibraryCard extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _InfoChip extends StatelessWidget {
-  const _InfoChip(this.icon, this.text);
-
-  final IconData icon;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 14, color: theme.colorScheme.onSurfaceVariant),
-        const SizedBox(width: 4),
-        Text(
-          text,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-      ],
     );
   }
 }

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import { DEFAULT_CATEGORIES } from '../src/library/defaults';
 import { masters } from '../src/library/masters';
 import { applyCatalogueChange, catalogueSearch } from '../src/library/search';
 import { runCallable, runQuery, type CallableDef } from '../src/shared/callable';
@@ -46,9 +47,24 @@ describe('library masters', () => {
       ...extra,
     });
 
-  it('seeds the 14 default categories once', async () => {
-    expect(await count('libraryCategories')).toBe(15);
+  it('seeds the default category tree once, children under their parent', async () => {
+    const seeded = DEFAULT_CATEGORIES.reduce((total, entry) => total + 1 + entry.children.length, 0);
+    expect(await count('libraryCategories')).toBe(seeded + 1); // plus the fixture's 'General'
     expect(await run(masters.seedDefaults, {})).toEqual({ categories: 0 });
+    const parents = (await db().collection(`schools/${SCHOOL_ID}/libraryCategories`).get()).docs;
+    const science = parents.find((doc) => doc.data().name === 'Science' && !doc.data().parentId)!;
+    const physics = parents.find((doc) => doc.data().name === 'Physics')!;
+    expect(physics.data().parentId).toBe(science.id);
+  });
+
+  it('catalogue: stores classIds sorted and de-duplicated; empty means general', async () => {
+    const { id } = await book({ classIds: [8, 6, 8] });
+    expect((await get(`libraryCatalogue/${id}`))?.classIds).toEqual([6, 8]);
+    const general = await book({ title: 'General', classIds: undefined });
+    expect((await get(`libraryCatalogue/${general.id}`))?.classIds).toEqual([]);
+    await expect(book({ title: 'Bad', classIds: [0] })).rejects.toMatchObject({
+      code: 'invalid-argument',
+    });
   });
 
   it('requires permission', async () => {
@@ -94,7 +110,7 @@ describe('library masters', () => {
 
   describe('search', () => {
     it('finds by title/author/publisher word; filters by category', async () => {
-      const firstBook = await book({ publisher: 'Universities Press' });
+      const firstBook = await book({ publisher: 'Universities Press', classIds: [8] });
       const secondBook = await book({
         title: 'Ignited Minds',
         authors: ['Abdul Kalam'],
@@ -113,7 +129,10 @@ describe('library masters', () => {
         firstBook.id,
       ]);
       expect(
-        (await search({ q: 'kalam', categoryId: category })).items.map((item) => item.id),
+        (await search({ q: 'kalam', categoryIds: [category] })).items.map((item) => item.id),
+      ).toEqual([firstBook.id]);
+      expect(
+        (await search({ q: 'kalam', classId: 8 })).items.map((item) => item.id),
       ).toEqual([firstBook.id]);
       await expect(search({ q: '- *' })).rejects.toMatchObject({ code: 'invalid-argument' });
     });

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:routes/routes.dart';
 import 'package:school_library/school_library.dart';
+import 'package:school_library/src/ui/catalogue/widgets/class_filter_dropdown.dart';
 
 enum CatalogueStatusFilter {
   all('All'),
@@ -15,6 +17,8 @@ class CatalogueFilterHeader extends StatelessWidget {
     super.key,
     required this.searchController,
     required this.selectedCategoryId,
+    required this.selectedClassId,
+    required this.standards,
     required this.statusFilter,
     required this.categories,
     required this.isWide,
@@ -23,6 +27,7 @@ class CatalogueFilterHeader extends StatelessWidget {
     required this.onSearchSubmitted,
     required this.onClearSearch,
     required this.onCategoryChanged,
+    required this.onClassChanged,
     required this.onStatusChanged,
     required this.onAddBook,
     this.onRefresh,
@@ -30,6 +35,8 @@ class CatalogueFilterHeader extends StatelessWidget {
 
   final TextEditingController searchController;
   final String? selectedCategoryId;
+  final int? selectedClassId;
+  final List<Standards> standards;
   final CatalogueStatusFilter statusFilter;
   final List<LibraryCategory> categories;
   final bool isWide;
@@ -38,6 +45,7 @@ class CatalogueFilterHeader extends StatelessWidget {
   final ValueChanged<String> onSearchSubmitted;
   final VoidCallback onClearSearch;
   final ValueChanged<String?> onCategoryChanged;
+  final ValueChanged<int?> onClassChanged;
   final ValueChanged<CatalogueStatusFilter> onStatusChanged;
   final VoidCallback onAddBook;
   final VoidCallback? onRefresh;
@@ -168,6 +176,12 @@ class CatalogueFilterHeader extends StatelessWidget {
       ),
     );
 
+    final classDropdown = ClassFilterDropdown(
+      standards: standards,
+      selectedClassId: selectedClassId,
+      onChanged: onClassChanged,
+    );
+
     final statusFilters = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -207,6 +221,8 @@ class CatalogueFilterHeader extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(flex: 2, child: categoryDropdown),
                 const SizedBox(width: 12),
+                Expanded(flex: 2, child: classDropdown),
+                const SizedBox(width: 12),
                 statusFilters,
                 const SizedBox(width: 12),
                 if (onRefresh != null)
@@ -245,6 +261,7 @@ class CatalogueFilterHeader extends StatelessWidget {
                   ),
                 ),
                 if (effectiveCategoryId != null ||
+                    selectedClassId != null ||
                     hasSearchText ||
                     statusFilter != CatalogueStatusFilter.all) ...[
                   const SizedBox(width: 12),
@@ -252,6 +269,7 @@ class CatalogueFilterHeader extends StatelessWidget {
                     onTap: () {
                       onClearSearch();
                       onCategoryChanged(null);
+                      onClassChanged(null);
                       onStatusChanged(CatalogueStatusFilter.all);
                     },
                     borderRadius: BorderRadius.circular(6),
@@ -285,7 +303,13 @@ class CatalogueFilterHeader extends StatelessWidget {
         children: [
           searchField,
           const SizedBox(height: 8),
-          categoryDropdown,
+          Row(
+            children: [
+              Expanded(child: categoryDropdown),
+              const SizedBox(width: 8),
+              Expanded(child: classDropdown),
+            ],
+          ),
           const SizedBox(height: 8),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,

@@ -324,7 +324,7 @@ Rules and indexes:
 Flutter:
 
 - [x] `features/library` (`school_library`): models, `LibraryService`, `LibraryProvider`, DI, model tests
-- [x] `icueadmin` screens under `features/library/` (home, libraries, categories, catalogue, book form, book details); routes `/layout.library/...`; dashboard card opens it when Node's action `routeState` contains `library`
+- [x] `icueadmin` screens under `features/library/` (home, libraries, categories, catalogue, book form, book details); routes `/layout.Library/...`; dashboard card opens it when Node's action `routeState` contains `library`
 - [x] `melos run lint` passes; functions and rules tests pass
 
 ### Lib-2
@@ -346,7 +346,7 @@ Rules and indexes:
 Flutter:
 
 - [x] `features/library`: `lib_copies.dart` models (`LibCopy`, `LibAcquisition`), `LibraryService` / `LibraryProvider` extended (copies of a title, find by accession / barcode / RFID, acquisitions, writes), model test
-- [x] `icueadmin` screens under `features/library/` (copies section on the book page with add-copies sheet and label printing, copy sheet with edit / move / status, Copies & acquisitions page with scan-to-find, route `/layout.library/copies`, Copies tile for librarians); labels are QR codes of the accession number via `pdf` + `printing`
+- [x] `icueadmin` screens under `features/library/` (copies section on the book page with add-copies sheet and label printing, copy sheet with edit / move / status, Copies & acquisitions page with scan-to-find, route `/layout.Library/copies`, Copies tile for librarians); labels are QR codes of the accession number via `pdf` + `printing`
 - [x] `melos run lint` passes (library, icueadmin); functions and rules tests pass
 
 ### Lib-3
@@ -355,7 +355,7 @@ Collections: `libraryMembers` (doc ID `<student|teacher>_<personErpId>`), `libra
 
 Functions (`firebase/functions/src/library/members.ts`):
 
-- [x] `library-policy-upsert`, `library-policy-setStatus` (`library.settings`; one policy per library and person type; library campus scoped; fine needs an amount; restricted categories must exist; inactive library only for existing policies)
+- [x] `library-policy-upsert`, `library-policy-setStatus` (`library.settings`; several per library and person type, each for chosen categories or the catch-all (no overlap among active ones); library campus scoped; fine needs an amount; categories must exist; inactive library only for existing policies)
 - [x] `library-member-setBlocked` (`library.circulation.operate`); the member record itself is written by issue and reserve (`writeBorrower`)
 - [x] Tests: `test/members.test.ts` (emulator)
 
@@ -368,7 +368,7 @@ Rules and indexes:
 Flutter:
 
 - [x] `features/library`: `lib_members.dart` models (`LibPolicy`, `LibMember`), `LibraryService` / `LibraryProvider` extended (policies, paged members, exact lookup, writes), model test
-- [x] `icueadmin` screens under `features/library/` (Members page: list of people who have borrowed, with block and unblock; Borrowing policies page with edit sheet); routes `/layout.library/{members,policies}`; Members and Borrowing policies tiles
+- [x] `icueadmin` screens under `features/library/` (Members page: list of people who have borrowed, with block and unblock; Borrowing policies page with edit sheet); routes `/layout.Library/{members,policies}`; Members and Borrowing policies tiles
 - [x] `melos run lint` passes (library, icueadmin); functions and rules tests pass
 
 ### Lib-4
@@ -377,9 +377,9 @@ Collection: `libraryLoans` (`personErpId` is the flat owner field for rules). Co
 
 Functions (`firebase/functions/src/library/loans.ts`, all `library.circulation.operate`, campus scoped through the copy / loan):
 
-- [x] `library-loan-issue` (member active, not blocked, within dates, library access; active policy; limit; restricted category; copy `available`; policy frozen as `policySnapshot`)
+- [x] `library-loan-issue` (member active, not blocked, within dates, library access; policy for the book's category (category, parent, catch-all); limit counted per policy; copy `available`; policy frozen as `policySnapshot`)
 - [x] `library-loan-return` (only an active loan; `good` → `available`, `damaged` → `damaged`; overdue days stored; `activeLoans` decremented)
-- [x] `library-loan-renew` (snapshot `maxRenewals`, `overdueRenewal`, `loanDays`)
+- [x] `library-loan-renew` (snapshot `maxRenewals`, `loanDays`; overdue loans refused)
 - [x] Tests: `test/loans.test.ts` (emulator)
 
 Rules and indexes:
@@ -391,7 +391,7 @@ Rules and indexes:
 Flutter:
 
 - [x] `features/library`: `lib_loans.dart` (`LibLoan`), service / provider (paged active loans, `activeLoanOf`, issue / return / renew), model test
-- [x] `icueadmin`: Circulation page (member + scan to issue, scan to return or renew, active loans list) and loan sheet; route `/layout.library/circulation`; Circulation tile
+- [x] `icueadmin`: Circulation page (member + scan to issue, scan to return or renew, active loans list) and loan sheet; route `/layout.Library/circulation`; Circulation tile
 - [x] Lint passes (library, icueadmin); functions and rules tests pass
 
 ### Lib-5
@@ -415,7 +415,7 @@ Rules and indexes:
 Flutter:
 
 - [x] `features/library`: `lib_reservations.dart` (`LibReservation`), service / provider (paged reservations, create / cancel reservation), model test
-- [x] `icueadmin`: Reservations page (status filter: waiting/ready/fulfilled/cancelled/expired, queue position, cancel reservation with confirmation) and reservation sheet; Book details reserve button; route `/layout.library/reservations`; Reservations tile
+- [x] `icueadmin`: Reservations page (status filter: waiting/ready/fulfilled/cancelled/expired, queue position, cancel reservation with confirmation) and reservation sheet; Book details reserve button; route `/layout.Library/reservations`; Reservations tile
 - [x] Lint passes (library, icueadmin); functions build and rules tests pass
 
 ### Lib-6
@@ -441,7 +441,7 @@ Rules and indexes:
 Flutter:
 
 - [x] `features/library`: `lib_fines.dart` (`LibFine`), `lib_incidents.dart` (`LibIncident`), service and provider methods (fines, incidents, waiveFine, setFinePayment, reportIncident, resolveIncident, markLoanLost), unit tests
-- [x] `icueadmin`: Fines page (status filter: outstanding/partially_paid/paid/waived/all) and fine sheet (waive and record payment actions); Incidents page (status filter: open/resolved/all), incident sheet (resolve action) and incident report sheet; loan sheet `Mark lost` action; routes `/layout.library/fines` and `/layout.library/incidents`; home page tiles for Fines & Penalties and Lost & Damaged
+- [x] `icueadmin`: Fines page (status filter: outstanding/partially_paid/paid/waived/all) and fine sheet (waive and record payment actions); Incidents page (status filter: open/resolved/all), incident sheet (resolve action) and incident report sheet; loan sheet `Mark lost` action; routes `/layout.Library/fines` and `/layout.Library/incidents`; home page tiles for Fines & Penalties and Lost & Damaged
 - [x] Lint passes (library, icueadmin); functions build and tests pass
 
 ### Lib-7
@@ -461,7 +461,7 @@ Rules and indexes:
 Flutter:
 
 - [x] `features/library`: `lib_transfers.dart`, `lib_verifications.dart`, service/provider methods, unit tests
-- [x] `icueadmin`: Transfers page (request sheet, transfer sheet with approve/dispatch/receive) and Stock verification page (create sheet, session sheet with scan, submit, approve); routes `/layout.library/transfers` and `/layout.library/verification`; home tiles
+- [x] `icueadmin`: Transfers page (request sheet, transfer sheet with approve/dispatch/receive) and Stock verification page (create sheet, session sheet with scan, submit, approve); routes `/layout.Library/transfers` and `/layout.Library/verification`; home tiles
 - [x] Lint passes (library, icueadmin); functions build, 118 emulator tests and 33 rules tests pass
 
 ### Lib-8
@@ -482,7 +482,7 @@ Rules and indexes:
 Flutter:
 
 - [x] `features/library`: `lib_insights.dart` (15 `LibReportDef`s, dashboard stats, import columns, `libraryDay`), `LibraryService.dashboard/report/titlesByIds`, provider methods, `ModuleAccess.all`, model test
-- [x] `icueadmin` (`features/library/insights/`): dashboard with library filter, report catalogue and report view (library, date range, status, search, totals, CSV copy, PDF), import page; routes `/layout.library/{dashboard,reports,reports/view,import}`; Dashboard, Reports and Import tiles
+- [x] `icueadmin` (`features/library/insights/`): dashboard with library filter, report catalogue and report view (library, date range, status, search, totals, CSV copy, PDF), import page; routes `/layout.Library/{dashboard,reports,reports/view,import}`; Dashboard, Reports and Import tiles
 - [x] `melos run lint`, `melos run test`, format check pass; 121 functions tests and 35 rules tests pass (run on a separate emulator port)
 
 ## Decisions and deviations
@@ -582,6 +582,8 @@ Format: `date · phase · what changed from the architecture doc · why`.
 - 2026-11-06 · library categories · Library categories have no code: the document ID is automatic, a name must be unique under the same parent (checked in the app, ignoring case), `seedDefaults` skips categories whose name exists, and the catalogue import takes `category` (the name) instead of `categoryCode` · codes added nothing the name does not give; categories are chosen from a list and never typed. Inventory categories keep their codes.
 - 2026-11-06 · libraries · A library has no code and no librarian staff IDs, and its single contact field became `phone` and `email` (validated in the form): the document ID is automatic, the name must be unique among libraries (checked in the app, ignoring case), the campus field is hidden when the user has one campus, and the copies and members imports take `library` / `libraries` (names) instead of `libraryCode` / `libraryCodes` · there is one Librarian role, so listing staff per library served nothing; codes added nothing a name does not give.
 - 2026-11-06 · members · The Library keeps no list of students or teachers and nobody is enrolled: the desk finds a person in Node (`searchStudent` through the `routes` package) and `library-loan-issue` / `library-reservation-create` take that `person` (type, ERP ID, name, class). The `libraryMembers` record (`<type>_<erpId>`: name, class, campuses seen, `activeLoans`, `blocked`) is created on first use and its name and class refreshed on each later use; it exists to carry the loan count and the fine or manual block. Borrowing policies are per library and person type (student or teacher), so member categories, membership dates, allowed libraries, member active status, the membership-ending notice and the members CSV import are gone. Loans, reservations, fines and incidents also store `memberName`. Teachers cannot be found yet: `LibraryPeopleService.searchTeachers` is a placeholder (TODO) until Node's teacher endpoint is known, so the desk cannot lend to teachers. The dashboard tiles count borrowers (people who borrowed or reserved), not enrolled members. · the ERP is the source of truth for people, so keeping a second enrolled list only duplicated it.
+- 2026-11-07 · library categories and classes · A book has optional `classIds` (ERP class IDs, no sections; empty = any class) and the catalogue filters by one class; categories stay two levels (rules reject a third) and `seedDefaults` now seeds a subject tree with subcategories (no Textbooks, Non-fiction or Children's books). Filtering or restricting a parent category covers its subcategories (browse `whereIn`, search `categoryIds`, `applicablePolicy` in loans/reservations). Class names come from the ERP at display time; a class gone from the ERP shows as `Class <id>`. · books are curriculum- or general-use, and a class is a property of a book, not a place in the category tree. Needs the new `libraryCatalogue` composite indexes deployed.
+- 2026-11-07 · borrowing policies · A policy now names the book categories it applies to (none = every category no other active policy covers), so a library can have several per person type; the ID is automatic, library and person type cannot change after creation, and an active category (or catch-all) belongs to one policy only. A loan uses the policy of the book's category, else its parent's, else the catch-all, and the borrowing limit counts only loans under that same policy (`policySnapshot.policyId`). `canReserve`, `overdueRenewal` and `restrictedCategoryIds` are gone: anyone with a policy for the book's category can reserve, and overdue loans are never renewed (so renewal no longer raises a fine). · rules per category (e.g. shorter loans for reference books) cannot be expressed by a deny-list, and the two switches were not needed.
 
 ## Open items
 

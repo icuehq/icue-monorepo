@@ -92,9 +92,7 @@ class _LibrariesPageState extends State<LibrariesPage> {
         final matchName = lib.name.toLowerCase().contains(query);
         final matchLocation =
             lib.location?.toLowerCase().contains(query) ?? false;
-        final matchDescription =
-            lib.description?.toLowerCase().contains(query) ?? false;
-        return matchName || matchLocation || matchDescription;
+        return matchName || matchLocation;
       }
       return true;
     }).toList();
@@ -235,13 +233,6 @@ class _LibrariesPageState extends State<LibrariesPage> {
                                       AdaptiveColumn.text(
                                         'Hours',
                                         (lib) => lib.hours ?? '—',
-                                        flex: 2,
-                                      ),
-                                      AdaptiveColumn.text(
-                                        'Contact',
-                                        (lib) => lib.contactLine.isEmpty
-                                            ? '—'
-                                            : lib.contactLine,
                                         flex: 2,
                                       ),
                                       if (canEdit)

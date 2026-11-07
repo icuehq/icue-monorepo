@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:admin_ui/admin_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -32,6 +34,7 @@ class _CataloguePageState extends State<CataloguePage> {
       if (libraryProvider.categories.isEmpty) {
         await libraryProvider.loadMasters();
       }
+      unawaited(libraryProvider.loadStandards());
       await libraryProvider.loadBooks(
         search: '',
         categoryId: widget.categoryId,
@@ -59,7 +62,11 @@ class _CataloguePageState extends State<CataloguePage> {
     _searchController.clear();
     final libraryProvider = context.read<LibraryProvider>();
     setState(() => _statusFilter = CatalogueStatusFilter.all);
-    libraryProvider.loadBooks(search: '', clearCategory: true);
+    libraryProvider.loadBooks(
+      search: '',
+      clearCategory: true,
+      clearClass: true,
+    );
   }
 
   @override
@@ -110,6 +117,8 @@ class _CataloguePageState extends State<CataloguePage> {
           CatalogueFilterHeader(
             searchController: _searchController,
             selectedCategoryId: libraryProvider.bookCategoryId,
+            selectedClassId: libraryProvider.bookClassId,
+            standards: libraryProvider.standards,
             statusFilter: _statusFilter,
             categories: libraryProvider.categories,
             isWide: isWide,
@@ -124,6 +133,10 @@ class _CataloguePageState extends State<CataloguePage> {
             onCategoryChanged: (value) => libraryProvider.loadBooks(
               categoryId: value,
               clearCategory: value == null,
+            ),
+            onClassChanged: (value) => libraryProvider.loadBooks(
+              classId: value,
+              clearClass: value == null,
             ),
             onStatusChanged: (filter) => setState(() => _statusFilter = filter),
             onAddBook: () => context.push(LibraryRoutes.libraryBookForm),
@@ -147,7 +160,8 @@ class _CataloguePageState extends State<CataloguePage> {
                 : filteredBooks.isEmpty
                 ? (allBooks.isEmpty &&
                           libraryProvider.bookSearch.isEmpty &&
-                          libraryProvider.bookCategoryId == null
+                          libraryProvider.bookCategoryId == null &&
+                          libraryProvider.bookClassId == null
                       ? CatalogueInitialEmptyState(
                           canEdit: canEdit,
                           onAdd: () =>
@@ -231,6 +245,18 @@ class _CataloguePageState extends State<CataloguePage> {
                           flex: 2,
                           cell: (context, book) => Text(
                             book.authorLine.isNotEmpty ? book.authorLine : '—',
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 2,
+                          ),
+                        ),
+                        AdaptiveColumn(
+                          label: 'Classes',
+                          cell: (context, book) => Text(
+                            book.classIds.isEmpty
+                                ? 'All'
+                                : book.classIds
+                                      .map(libraryProvider.className)
+                                      .join(', '),
                             overflow: TextOverflow.ellipsis,
                             maxLines: 2,
                           ),
@@ -382,6 +408,10 @@ class _CataloguePageState extends State<CataloguePage> {
                         categoryName:
                             libraryProvider.category(book.categoryId)?.name ??
                             '—',
+                        classNames: [
+                          for (final classId in book.classIds)
+                            libraryProvider.className(classId),
+                        ],
                         canEdit: canEdit,
                         canCirculate: canCirculate,
                         onTap: () => _open(book),

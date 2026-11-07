@@ -68,7 +68,6 @@ describe('library notifications', () => {
       maxRenewals: 1,
       fineType: 'per_day',
       fineAmount: 2,
-      canReserve: true,
     });
   });
 

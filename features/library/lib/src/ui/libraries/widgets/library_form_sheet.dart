@@ -19,12 +19,7 @@ class LibraryFormSheet extends StatefulWidget {
 class _LibraryFormSheetState extends State<LibraryFormSheet> {
   final _form = GlobalKey<FormState>();
   late final _name = TextEditingController(text: widget.library?.name);
-  late final _description = TextEditingController(
-    text: widget.library?.description,
-  );
   late final _location = TextEditingController(text: widget.library?.location);
-  late final _phone = TextEditingController(text: widget.library?.phone);
-  late final _email = TextEditingController(text: widget.library?.email);
   late final _hours = TextEditingController(text: widget.library?.hours);
   late int? _campus = widget.library?.campusId;
   bool _busy = false;
@@ -42,35 +37,10 @@ class _LibraryFormSheetState extends State<LibraryFormSheet> {
 
   @override
   void dispose() {
-    for (final controller in [
-      _name,
-      _description,
-      _location,
-      _phone,
-      _email,
-      _hours,
-    ]) {
+    for (final controller in [_name, _location, _hours]) {
       controller.dispose();
     }
     super.dispose();
-  }
-
-  /// Optional; 7 to 15 digits, with an optional leading + and spaces, dashes or brackets between them.
-  String? _validatePhone(String? value) {
-    final phone = value?.trim() ?? '';
-    if (phone.isEmpty) return null;
-    final digits = phone.replaceAll(RegExp(r'[\s\-()]'), '');
-    return RegExp(r'^\+?\d{7,15}$').hasMatch(digits)
-        ? null
-        : 'Enter a valid phone number';
-  }
-
-  String? _validateEmail(String? value) {
-    final email = value?.trim() ?? '';
-    if (email.isEmpty) return null;
-    return RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email)
-        ? null
-        : 'Enter a valid email address';
   }
 
   /// Required, and unique among libraries (compared ignoring case).
@@ -101,10 +71,7 @@ class _LibraryFormSheetState extends State<LibraryFormSheet> {
         if (schoolLibrary != null) 'id': schoolLibrary.id,
         'name': _name.text.trim(),
         'campusId': _campus,
-        'description': blankToNull(_description),
         'location': blankToNull(_location),
-        'phone': blankToNull(_phone),
-        'email': blankToNull(_email),
         'hours': blankToNull(_hours),
       }),
     );
@@ -123,7 +90,6 @@ class _LibraryFormSheetState extends State<LibraryFormSheet> {
     final editing = widget.library != null;
     final campuses = {...access.campusIds, ?_campus}.toList();
 
-    final isMultiCol = context.isWide;
     // With one campus there is nothing to choose.
     final askCampus = campuses.length > 1;
 
@@ -167,9 +133,7 @@ class _LibraryFormSheetState extends State<LibraryFormSheet> {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      editing
-                          ? 'Update the name, location, schedule and contact details.'
-                          : 'Set up a new library branch and operating schedule.',
+                      editing ? 'Update the name, location and schedule.' : 'Set up a new library branch and operating schedule.',
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                         fontSize: 13,
@@ -243,53 +207,9 @@ class _LibraryFormSheetState extends State<LibraryFormSheet> {
             title: 'Location & Operating Schedule',
             icon: Icons.place_outlined,
             children: [
-              if (isMultiCol)
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(child: _buildLocationField()),
-                    const SizedBox(width: 14),
-                    Expanded(child: _buildHoursField()),
-                  ],
-                )
-              else ...[
-                _buildLocationField(),
-                const SizedBox(height: 14),
-                _buildHoursField(),
-              ],
+              _buildLocationField(),
               const SizedBox(height: 14),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // Section 3: Contact & notes
-          _FormSection(
-            title: 'Contact & Notes',
-            icon: Icons.contact_phone_outlined,
-            children: [
-              if (isMultiCol)
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(child: _buildPhoneField()),
-                    const SizedBox(width: 14),
-                    Expanded(child: _buildEmailField()),
-                  ],
-                )
-              else ...[
-                _buildPhoneField(),
-                const SizedBox(height: 14),
-                _buildEmailField(),
-              ],
-              const SizedBox(height: 14),
-              AppTextField(
-                controller: _description,
-                minLines: 2,
-                maxLines: 3,
-                label: 'Description / Notes',
-                hintText: 'Additional details about collections, rules…',
-                icon: Icons.notes_rounded,
-              ),
+              _buildHoursField(),
             ],
           ),
           const SizedBox(height: 24),
@@ -357,30 +277,6 @@ class _LibraryFormSheetState extends State<LibraryFormSheet> {
       validator: (value) => value == null ? 'Campus is required' : null,
       label: 'Campus *',
       icon: Icons.school_outlined,
-    );
-  }
-
-  Widget _buildPhoneField() {
-    return AppTextField(
-      controller: _phone,
-      keyboardType: TextInputType.phone,
-      textInputAction: TextInputAction.next,
-      validator: _validatePhone,
-      label: 'Phone',
-      hintText: 'e.g. +91 98765 43210',
-      icon: Icons.call_outlined,
-    );
-  }
-
-  Widget _buildEmailField() {
-    return AppTextField(
-      controller: _email,
-      keyboardType: TextInputType.emailAddress,
-      textInputAction: TextInputAction.next,
-      validator: _validateEmail,
-      label: 'Email',
-      hintText: 'e.g. library@school.edu',
-      icon: Icons.mail_outline_rounded,
     );
   }
 

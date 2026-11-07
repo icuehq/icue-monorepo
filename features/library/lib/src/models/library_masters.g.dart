@@ -7,10 +7,7 @@ class SchoolLibrary {
     required this.id,
     required this.name,
     required this.campusId,
-    this.description,
     this.location,
-    this.phone,
-    this.email,
     this.hours,
     required this.active,
   });
@@ -20,10 +17,7 @@ class SchoolLibrary {
         id: id,
         name: data['name'] as String? ?? '',
         campusId: (data['campusId'] as num? ?? 0).toInt(),
-        description: data['description'] as String?,
         location: data['location'] as String?,
-        phone: data['phone'] as String?,
-        email: data['email'] as String?,
         hours: data['hours'] as String?,
         active: data['status'] != 'inactive',
       );
@@ -31,10 +25,7 @@ class SchoolLibrary {
   final String id;
   final String name;
   final int campusId;
-  final String? description;
   final String? location;
-  final String? phone;
-  final String? email;
   final String? hours;
   final bool active;
 }
@@ -64,7 +55,7 @@ class LibraryCategory {
   final bool active;
 }
 
-/// A catalogue title (FRS 11.4). Search rows carry only the list fields, so the detail-only ones (description, pages, class number, keywords) are empty there.
+/// A catalogue title (FRS 11.4). classIds are ERP class ids the book is meant for (no sections); empty means a general book for any class. Search rows carry only the list fields, so the detail-only ones (description, pages, class number, keywords) are empty there.
 class LibraryBook {
   const LibraryBook({
     required this.id,
@@ -76,6 +67,7 @@ class LibraryBook {
     this.year,
     this.language,
     required this.categoryId,
+    required this.classIds,
     this.description,
     this.pages,
     this.shelf,
@@ -94,6 +86,9 @@ class LibraryBook {
         year: (data['year'] as num?)?.toInt(),
         language: data['language'] as String?,
         categoryId: data['categoryId'] as String? ?? '',
+        classIds: [
+          for (final number in readList<num>(data['classIds'])) number.toInt(),
+        ],
         description: data['description'] as String?,
         pages: (data['pages'] as num?)?.toInt(),
         shelf: data['shelf'] as String?,
@@ -110,6 +105,7 @@ class LibraryBook {
   final int? year;
   final String? language;
   final String categoryId;
+  final List<int> classIds;
   final String? description;
   final int? pages;
   final String? shelf;

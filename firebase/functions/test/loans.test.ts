@@ -22,7 +22,7 @@ const set = (path: string, data: Record<string, unknown>) =>
   db().doc(`schools/${SCHOOL_ID}/${path}`).update(data);
 
 describe('library circulation', () => {
-  let mainLibrary: string, category: string, title: string;
+  let mainLibrary: string, category: string, title: string, policy: string;
   const issue = (copyId = 'ACC-000001', memberId = 'student_501') =>
     run(loans.loanIssue, { person: person(memberId), copyId });
   const day = (offset: number) =>
@@ -62,7 +62,7 @@ describe('library circulation', () => {
       libraryId: mainLibrary,
       quantity: 3,
     });
-    await run(members.policyUpsert, {
+    policy = (await run(members.policyUpsert, {
       libraryId: mainLibrary,
       memberType: 'student',
       name: 'Primary',
@@ -70,8 +70,7 @@ describe('library circulation', () => {
       loanDays: 7,
       maxRenewals: 1,
       fineType: 'none',
-      canReserve: true,
-    });
+    })).id;
   });
 
   it('issue sets due date from the policy, marks the copy issued and counts the loan', async () => {
@@ -82,7 +81,7 @@ describe('library circulation', () => {
       personErpId: 501,
       copyId: 'ACC-000001',
       campusId: 31,
-      policySnapshot: { loanDays: 7, maxRenewals: 1 },
+      policySnapshot: { policyId: policy, loanDays: 7, maxRenewals: 1 },
     });
     expect(await get('libraryCopies/ACC-000001')).toMatchObject({
       status: 'issued',
@@ -127,7 +126,7 @@ describe('library circulation', () => {
     ).rejects.toMatchObject({ code: 'failed-precondition' }); // no teacher policy in this library
   });
 
-  it('issue rules: copy taken, limit, blocked member, no policy for the type, restricted category, campus', async () => {
+  it('issue rules: copy taken, limit, blocked member, no policy for the type or category, campus', async () => {
     await issue();
     await expect(issue()).rejects.toMatchObject({ code: 'failed-precondition' });
     await issue('ACC-000002');
@@ -135,20 +134,27 @@ describe('library circulation', () => {
     await set('libraryMembers/student_501', { activeLoans: 0, blocked: true });
     await expect(issue('ACC-000003')).rejects.toMatchObject({ code: 'failed-precondition' });
     await set('libraryMembers/student_501', { blocked: false });
-    await set(`libraryBorrowingPolicies/${mainLibrary}_student`, {
-      restrictedCategoryIds: [category],
-    });
+    // A policy for other categories does not cover this book.
+    const other = await seedLibraryCategory({ name: 'Other' });
+    await set(`libraryBorrowingPolicies/${policy}`, { categoryIds: [other.id] });
     await expect(issue('ACC-000003')).rejects.toMatchObject({ code: 'failed-precondition' });
-    await set(`libraryBorrowingPolicies/${mainLibrary}_student`, { restrictedCategoryIds: [] });
+    // A policy for the parent category covers its subcategories.
+    const parent = await seedLibraryCategory({ name: 'Parent' });
+    await set(`libraryCategories/${category}`, { parentId: parent.id });
+    await set(`libraryBorrowingPolicies/${policy}`, { categoryIds: [parent.id] });
+    await set(`libraryBorrowingPolicies/${policy}`, { status: 'inactive' });
+    await expect(issue('ACC-000003')).rejects.toMatchObject({ code: 'failed-precondition' });
+    await set(`libraryBorrowingPolicies/${policy}`, { status: 'active' });
     await expect(
       run(loans.loanIssue, { person: person('student_501'), copyId: 'ACC-000003' }, '2'),
     ).rejects.toMatchObject({ code: 'permission-denied' });
+    await set(`libraryBorrowingPolicies/${policy}`, { categoryIds: [], maxBooks: 3 });
     await expect(issue('ACC-000003')).resolves.toBeTruthy();
   });
 
   it('policy edits do not move existing due dates; renewal uses the frozen snapshot and limit', async () => {
     const result = await issue();
-    await set(`libraryBorrowingPolicies/${mainLibrary}_student`, { loanDays: 30, maxRenewals: 5 });
+    await set(`libraryBorrowingPolicies/${policy}`, { loanDays: 30, maxRenewals: 5 });
     const first = await run(loans.loanRenew, { id: result.id });
     expect(first.dueDate).toBe(day(14));
     expect((await get(`libraryLoans/${result.id}`))!.renewals).toHaveLength(1);
@@ -157,28 +163,34 @@ describe('library circulation', () => {
     });
   });
 
-  it('overdue renewal follows the policy snapshot', async () => {
+  it('an overdue loan cannot be renewed', async () => {
     const result = await issue();
     await set(`libraryLoans/${result.id}`, { dueDate: dayTimestamp(day(-3)) });
     await expect(run(loans.loanRenew, { id: result.id })).rejects.toMatchObject({
       code: 'failed-precondition',
     });
-    await set(`libraryLoans/${result.id}`, { 'policySnapshot.overdueRenewal': true });
-    expect((await run(loans.loanRenew, { id: result.id })).dueDate).toBe(day(7));
   });
 
-  it('overdue renewal fines the days already overdue and blocks the member', async () => {
-    const result = await issue();
-    await set(`libraryLoans/${result.id}`, {
-      dueDate: dayTimestamp(day(-3)),
-      'policySnapshot.overdueRenewal': true,
-      'policySnapshot.fineType': 'per_day',
-      'policySnapshot.fineAmount': 2,
+  it('the borrowing limit counts only loans under the same policy', async () => {
+    const other = await seedLibraryCategory({ name: 'Other' });
+    await set(`libraryBorrowingPolicies/${policy}`, { maxBooks: 1, categoryIds: [category] });
+    await run(members.policyUpsert, {
+      libraryId: mainLibrary,
+      memberType: 'student',
+      name: 'Rest',
+      maxBooks: 1,
+      loanDays: 14,
+      maxRenewals: 0,
+      fineType: 'none',
     });
-    await run(loans.loanRenew, { id: result.id });
-    const fine = await get(`libraryFines/${result.id}__overdue__r1`);
-    expect(fine).toMatchObject({ type: 'overdue', amount: 6, status: 'outstanding' });
-    expect((await get('libraryMembers/student_501'))!.blocked).toBe(true);
+    const otherTitle = (
+      await run(masters.catalogueUpsert, { title: 'Other', authors: ['A'], categoryId: other.id })
+    ).id;
+    await run(copies.acquisitionCreate, { catalogueId: otherTitle, libraryId: mainLibrary, quantity: 1 });
+    await issue();
+    await expect(issue('ACC-000002')).rejects.toMatchObject({ code: 'failed-precondition' });
+    const second = await issue('ACC-000004');
+    expect(second.dueDate).toBe(day(14));
   });
 
   it('return: good makes the copy available, records overdue days, frees the limit; second return fails', async () => {

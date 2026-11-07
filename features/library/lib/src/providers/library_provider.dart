@@ -38,6 +38,7 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   bool hasMoreBooks = false;
   String bookSearch = '';
   String? bookCategoryId;
+  int? bookClassId;
   DocumentSnapshot<Map<String, dynamic>>? _cursor;
   int _searchOffset = 0;
 
@@ -90,22 +91,40 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   LibraryPerson studentPerson(StudentData student) =>
       _people.personFrom('student', student);
 
-  /// The policy a person of [type] gets in [libraryId], if one is set up.
-  LibraryPolicy? policyFor(String libraryId, String type) {
-    for (final policy in policies) {
-      if (policy.libraryId == libraryId && policy.memberType == type) {
-        return policy;
-      }
-    }
-    return null;
-  }
-
   LibraryCategory? category(String? id) {
     for (final category in categories) {
       if (category.id == id) return category;
     }
     return null;
   }
+
+  /// [id] and its subcategories, so filtering by a parent also finds books filed under a child.
+  List<String>? categoryScope(String? id) => id == null
+      ? null
+      : [
+          id,
+          for (final category in categories)
+            if (category.parentId == id) category.id,
+        ];
+
+  /// ERP classes (with sections, which books ignore), loaded once for pickers and labels.
+  List<Standards> standards = [];
+
+  Future<void> loadStandards() async {
+    if (standards.isNotEmpty) return;
+    try {
+      standards = await _people.classes();
+      notifyListeners();
+    } catch (error) {
+      errorMessage = callableErrorMessage(error);
+      notifyListeners();
+    }
+  }
+
+  /// The ERP class name; a class missing from the ERP shows as `Class <id>`.
+  String className(int id) =>
+      standards.where((standard) => standard.id == id).firstOrNull?.name ??
+      'Class $id';
 
   List<LibraryCategory> get topCategories =>
       categories.where((category) => category.parentId == null).toList();
@@ -141,12 +160,15 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     String? search,
     String? categoryId,
     bool clearCategory = false,
+    int? classId,
+    bool clearClass = false,
   }) async {
     if (more && (booksLoading || !hasMoreBooks)) return;
     final generation = _generation['books'] = (_generation['books'] ?? 0) + 1;
     if (!more) {
       bookSearch = search ?? bookSearch;
       bookCategoryId = clearCategory ? null : (categoryId ?? bookCategoryId);
+      bookClassId = clearClass ? null : (classId ?? bookClassId);
       _cursor = null;
       _searchOffset = 0;
     }
@@ -157,7 +179,8 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
       final query = bookSearch.trim();
       if (query.isEmpty) {
         final page = await _service.books(
-          categoryId: bookCategoryId,
+          categoryIds: categoryScope(bookCategoryId),
+          classId: bookClassId,
           after: _cursor,
         );
         if (generation != _generation['books']) return;
@@ -168,7 +191,8 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
       } else {
         final page = await _service.searchBooks(
           query,
-          categoryId: bookCategoryId,
+          categoryIds: categoryScope(bookCategoryId),
+          classId: bookClassId,
           offset: _searchOffset,
         );
         if (generation != _generation['books']) return;
@@ -348,12 +372,14 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
 
   Future<({List<LibraryBook> items, bool hasMore})> searchBooks(
     String query, {
-    String? categoryId,
+    List<String>? categoryIds,
+    int? classId,
     int offset = 0,
     int limit = 25,
   }) => _service.searchBooks(
     query,
-    categoryId: categoryId,
+    categoryIds: categoryIds,
+    classId: classId,
     offset: offset,
     limit: limit,
   );
@@ -519,6 +545,10 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
           .firstOrNull
           ?.name ??
       '$id';
+
+  /// Who and which books a policy covers, e.g. `Students · Fiction, Science`.
+  String policyScope(LibraryPolicy policy) =>
+      '${policy.appliesTo} · ${policy.categoryIds.isEmpty ? 'All other categories' : policy.categoryIds.map(categoryName).join(', ')}';
 
   String categoryName(Object? id) =>
       categories.where((category) => category.id == id).firstOrNull?.name ??

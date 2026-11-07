@@ -7,6 +7,7 @@ class PolicyCard extends StatelessWidget {
     super.key,
     required this.policy,
     required this.libraryName,
+    required this.scope,
     required this.canEdit,
     required this.onTap,
     required this.onToggleActive,
@@ -14,6 +15,7 @@ class PolicyCard extends StatelessWidget {
 
   final LibraryPolicy policy;
   final String libraryName;
+  final String scope;
   final bool canEdit;
   final VoidCallback onTap;
   final VoidCallback onToggleActive;
@@ -104,7 +106,7 @@ class PolicyCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '$libraryName · ${policy.appliesTo}',
+                          '$libraryName · $scope',
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),

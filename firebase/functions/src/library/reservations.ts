@@ -13,7 +13,7 @@ import { nextNumber } from '../shared/keys';
 import { defineCallable, failed, id, missing, usable } from '../shared/masters';
 import { enqueue } from '../shared/outbox';
 import { forEachSchool } from '../shared/scheduled';
-import { ineligibleReason, memberId, personInput, policyId, writeBorrower } from './members';
+import { applicablePolicy, ineligibleReason, memberId, personInput, writeBorrower } from './members';
 import { memberTo } from './notify';
 
 const DEFAULT_HOLD_DAYS = 3;
@@ -139,16 +139,8 @@ export const reservations = {
 
       const ineligible = ineligibleReason(member);
       if (ineligible) throw failed(ineligible);
-      const policy = (
-        await context.transaction.get(
-          context.doc(`libraryBorrowingPolicies/${policyId(i.libraryId, i.person.memberType)}`),
-        )
-      ).data();
-      if (!policy || policy.status !== 'active')
-        throw failed('No active borrowing policy for this member');
-      if (!policy.canReserve) throw failed('This member category cannot reserve');
-      if (policy.restrictedCategoryIds.includes(title.categoryId))
-        throw failed('This category is restricted for the member');
+      if (!(await applicablePolicy(context, i.libraryId, i.person.memberType, title.categoryId)))
+        throw failed('No active borrowing policy for this member and book category');
 
       const live = await context.transaction.get(
         context

@@ -922,8 +922,8 @@ Open **Library** from the dashboard. The Library hub displays 15 option grid til
     - Fine type: `per_day`
     - Rate per day (₹): `2.00`
     - Grace days: `0`
-    - Can reserve titles: switch ON (`true`)
-    - Tap **Save**. **Expect** Policy created for `Central High School Library` · Students.
+    - Book categories: none selected (applies to every category)
+    - Tap **Save**. **Expect** Policy created for `Central High School Library` · Students · All other categories.
 - [ ] 2.3.2 **Create Teacher Policy**:
   - Add Policy 2:
     - Library: `Central High School Library` 
@@ -934,8 +934,8 @@ Open **Library** from the dashboard. The Library hub displays 15 option grid til
     - Max renewals: `2`
     - Fine type: `none`
     - Grace days: `3`
-    - Can reserve titles: switch ON (`true`)
-    - Tap **Save**. **Expect** Policy created for `Central High School Library` · Teachers.
+    - Tap **Save**. **Expect** Policy created for `Central High School Library` · Teachers · All other categories.
+- [ ] 2.3.2a **Category policy**: add a Students policy for one category only (e.g. `Reference`, Max books `1`, Loan period `3`). **Expect** it saves next to the catch-all; issuing a `Reference` book uses 3 days, other books use 7. Saving a second Students policy for `Reference`, or a second one with no categories, is refused.
 - [ ] 2.3.3 Negative: Validation:
   - Create policy with Fine type `per_day` and empty or negative fine rate.
   - **Expect** blocked with validation error.

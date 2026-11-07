@@ -8,6 +8,7 @@ class BookCard extends StatelessWidget {
     super.key,
     required this.book,
     required this.categoryName,
+    required this.classNames,
     required this.canEdit,
     required this.canCirculate,
     required this.onTap,
@@ -15,6 +16,7 @@ class BookCard extends StatelessWidget {
 
   final LibraryBook book;
   final String categoryName;
+  final List<String> classNames;
   final bool canEdit;
   final bool canCirculate;
   final VoidCallback onTap;
@@ -160,6 +162,12 @@ class BookCard extends StatelessWidget {
                       theme,
                       icon: Icons.folder_outlined,
                       label: categoryName,
+                    ),
+                  for (final className in classNames)
+                    _buildMetaChip(
+                      theme,
+                      icon: Icons.school_outlined,
+                      label: className,
                     ),
                   if (book.year != null)
                     _buildMetaChip(

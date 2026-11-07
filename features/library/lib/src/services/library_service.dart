@@ -43,16 +43,21 @@ class LibraryService {
             left.name.toLowerCase().compareTo(right.name.toLowerCase()),
       );
 
-  /// A page of titles by title, optionally within [categoryId] (Firestore query).
+  /// A page of titles by title, optionally within [categoryIds] (a category and its subcategories)
+  /// and meant for class [classId] (Firestore query).
   Future<PagedResult<LibraryBook>> books({
-    String? categoryId,
+    List<String>? categoryIds,
+    int? classId,
     DocumentSnapshot<Map<String, dynamic>>? after,
   }) async {
     Query<Map<String, dynamic>> query = await schoolCollection(
       'libraryCatalogue',
     );
-    if (categoryId != null) {
-      query = query.where('categoryId', isEqualTo: categoryId);
+    if (categoryIds != null) {
+      query = query.where('categoryId', whereIn: categoryIds);
+    }
+    if (classId != null) {
+      query = query.where('classIds', arrayContains: classId);
     }
     return fetchPage(
       query.orderBy('title'),
@@ -64,7 +69,8 @@ class LibraryService {
   /// Whole-word search by title, author, publisher or keyword (Functions).
   Future<({List<LibraryBook> items, bool hasMore})> searchBooks(
     String query, {
-    String? categoryId,
+    List<String>? categoryIds,
+    int? classId,
     int offset = 0,
     int limit = 25,
   }) async {
@@ -72,7 +78,8 @@ class LibraryService {
       'library-catalogue-search',
       data: {
         'q': query,
-        'categoryId': ?categoryId,
+        'categoryIds': ?categoryIds,
+        'classId': ?classId,
         'offset': offset,
         'limit': limit,
       },

@@ -341,6 +341,7 @@ RFID hardware integration should be supported as an integration capability, but 
 | Item name | Yes |
 | Item code/SKU | Yes |
 | Category | Yes |
+| Classes (ERP classes, no sections; empty = any class) | No |
 | Subcategory | No |
 | Description | No |
 | Image | No |
@@ -1223,23 +1224,19 @@ All reports should support search, filters, date ranges and appropriate CSV/Exce
 
 ## 11.3 Book Categories and Classification
 
-Default categories:
+Default categories (two levels; each has subcategories, e.g. Fiction → Moral Stories, Science → Physics):
 
 - Fiction.
-- Non-fiction.
 - Science.
 - Mathematics.
-- History.
-- Geography.
-- Literature.
+- Social Studies.
 - Languages.
 - Reference.
-- Encyclopedias.
 - Biographies.
-- Children's books.
-- Textbooks.
 - General knowledge.
 - Custom categories.
+
+Class and language are book fields, not categories; there is no Textbooks category.
 
 ### Fields
 
@@ -1286,7 +1283,7 @@ Multiple authors should be supported.
 - Search by ISBN.
 - Search by author.
 - Search by publisher.
-- Filter by category.
+- Filter by category (a parent includes its subcategories) and by class.
 - Import/export.
 - View physical copies.
 
@@ -1431,8 +1428,7 @@ Multiple authors should be supported.
 - Fine amount.
 - Grace period.
 - Maximum fine.
-- Reservation eligibility.
-- Restricted categories.
+- Book categories the policy applies to (none selected: every category no other policy covers).
 - Active status.
 
 ### Example
@@ -1543,7 +1539,7 @@ These values are examples only.
 
 - Renewal limit must be enforced.
 - Active reservation conflicts must be checked.
-- Overdue renewal eligibility follows school policy.
+- An overdue loan cannot be renewed.
 - Renewal history must be retained.
 - New due date must follow the applicable policy.
 

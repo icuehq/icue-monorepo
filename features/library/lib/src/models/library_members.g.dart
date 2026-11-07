@@ -2,7 +2,7 @@
 
 import 'package:icue_firebase/icue_firebase.dart' show readDouble, readList;
 
-/// Borrowing rules of one person type (student or teacher) in one library (FRS 11.8).
+/// Borrowing rules of one person type (student or teacher) in one library, for the listed book categories or, when none are listed, every other category (FRS 11.8).
 class LibraryPolicy {
   const LibraryPolicy({
     required this.id,
@@ -16,9 +16,7 @@ class LibraryPolicy {
     required this.fineAmount,
     required this.graceDays,
     this.maxFine,
-    required this.canReserve,
-    required this.overdueRenewal,
-    required this.restrictedCategoryIds,
+    required this.categoryIds,
     required this.active,
   });
 
@@ -35,9 +33,7 @@ class LibraryPolicy {
         fineAmount: readDouble(data['fineAmount']),
         graceDays: (data['graceDays'] as num? ?? 0).toInt(),
         maxFine: (data['maxFine'] as num?)?.toDouble(),
-        canReserve: data['canReserve'] == true,
-        overdueRenewal: data['overdueRenewal'] == true,
-        restrictedCategoryIds: readList<String>(data['restrictedCategoryIds']),
+        categoryIds: readList<String>(data['categoryIds']),
         active: data['status'] != 'inactive',
       );
 
@@ -52,9 +48,7 @@ class LibraryPolicy {
   final double fineAmount;
   final int graceDays;
   final double? maxFine;
-  final bool canReserve;
-  final bool overdueRenewal;
-  final List<String> restrictedCategoryIds;
+  final List<String> categoryIds;
   final bool active;
 }
 

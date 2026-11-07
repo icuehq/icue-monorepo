@@ -40,10 +40,7 @@ export async function seedLibrary(fields: {
 }): Promise<{ id: string }> {
   const ref = db().collection(`${SCHOOL}/libraries`).doc();
   await ref.set({
-    description: null,
     location: null,
-    phone: null,
-    email: null,
     hours: null,
     ...fields,
     ...audit,

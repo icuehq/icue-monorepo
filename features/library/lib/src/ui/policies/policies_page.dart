@@ -112,7 +112,7 @@ class PoliciesPage extends StatelessWidget {
                     ),
                     AdaptiveColumn.text(
                       'Applies to',
-                      (policy) => policy.appliesTo,
+                      libraryProvider.policyScope,
                     ),
                     AdaptiveColumn(
                       label: 'Rules',
@@ -152,6 +152,7 @@ class PoliciesPage extends StatelessWidget {
                   ],
                   cardBuilder: (context, policy) => PolicyCard(
                     policy: policy,
+                    scope: libraryProvider.policyScope(policy),
                     libraryName:
                         libraryProvider.library(policy.libraryId)?.name ??
                         policy.libraryId,

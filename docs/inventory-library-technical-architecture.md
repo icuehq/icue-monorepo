@@ -167,11 +167,11 @@ Common fields on every document: `campusId`, `createdAt`, `createdBy` (uid), `up
 | --- | --- | --- |
 | `libraries` | code, name, campusId, location, staffIds, contact, hours, status | |
 | `libraryCategories` | code, name, parentId, status | Defaults seeded (FRS 11.3) |
-| `libraryCatalogue` | title, subtitle, authors[], isbn10, isbn13, publisher, edition, year, language, categoryId, classificationNumber, keywords, coverPath, status, identityKey | School-wide; shared across libraries |
+| `libraryCatalogue` | title, subtitle, authors[], isbn10, isbn13, publisher, edition, year, language, categoryId, classIds[], classificationNumber, keywords, coverPath, status, identityKey | School-wide; shared across libraries |
 | `libraryCopies` | accessionNumber, catalogueId, libraryId, campusId, shelf, barcode, rfidTag, acquisitionId, price, source, condition, status (FRS 11.5 + `in_transit`), activeLoanId, heldReservationId | One doc per physical book |
 | `libraryAcquisitions` | type, catalogueId, quantity, libraryId, vendorOrDonor, price, reference, copyIds | |
 | `libraryMembers/{memberType_erpId}` | memberType `student | teacher`, personErpId, classId (students), category (policy key), libraryIds, start, end, status, activeLoans, blocked | Deterministic ID → no duplicate members |
-| `libraryBorrowingPolicies` | libraryId, memberCategory, maxBooks, loanDays, maxRenewals, fineType, fineAmount, graceDays, maxFine, canReserve, restrictedCategoryIds, overdueRenewal, status | |
+| `libraryBorrowingPolicies` | libraryId, memberType, categoryIds, maxBooks, loanDays, maxRenewals, fineType, fineAmount, graceDays, maxFine, status | Several per library and person type; a book's category (else its parent, else the catch-all with empty `categoryIds`) picks one; a category belongs to one active policy. |
 | `libraryLoans` | memberId, copyId, catalogueId, libraryId, issuedAt, dueAt, renewals[], policySnapshot, status `active | returned | lost`, returnedAt, condition, overdueDays | `policySnapshot` frozen at issue (FRS 11.8) |
 | `libraryReservations` | memberId, catalogueId, libraryId, status (FRS 11.12), createdAt, heldCopyId, holdUntil, fulfilledLoanId | Queue position is computed (count of earlier `waiting`), not stored |
 | `libraryFines/{loanId__type}` | memberId, loanId, type, fineCalculation, amount, waived, outstanding, status, waivers[] | Deterministic ID → fines cannot duplicate |
@@ -256,7 +256,7 @@ These are enforced in Functions transactions and covered by unit tests.
 
 - Issue transaction: member active and not blocked; applicable policy exists (`libraryId + memberCategory`); `activeLoans < maxBooks`; category not restricted; copy `available` (or `reserved` with `heldReservationId` for this member); copy `activeLoanId` empty. Sets `activeLoanId`, `status=issued`, increments `activeLoans`.
 - Due date = issue date + `loanDays` (from the frozen snapshot on renewal too).
-- Renewal: `renewals < maxRenewals`; rejected if a `waiting` reservation exists for that catalogue in that library; overdue renewal per `policy.overdueRenewal`.
+- Renewal: `renewals < maxRenewals`; rejected if a `waiting` reservation exists for that catalogue in that library; overdue loans are never renewed.
 - Return: only against `activeLoanId`; condition `good` → copy goes to the reservation queue or `available`; `damaged` → `damaged` + incident (never auto-available).
 - Fine on return per `policySnapshot`: per-day `min((overdueDays − grace) × amount, maxFine)`, fixed, or none (tracking). Lost → replacement charge; damage → penalty. Fine doc ID `loanId__type` makes duplicates impossible.
 - Waiver requires `library.fines.waive`, stores reason, audited.

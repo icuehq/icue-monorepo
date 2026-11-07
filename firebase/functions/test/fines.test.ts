@@ -77,7 +77,6 @@ describe('library fines and incidents', () => {
       fineAmount: 5,
       graceDays: 2,
       maxFine: 50,
-      canReserve: true,
     });
   });
 

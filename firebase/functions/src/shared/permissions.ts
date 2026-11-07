@@ -27,7 +27,8 @@ export type Permission = (typeof PERMISSIONS)[number];
 
 /**
  * Node action Id (`/v1.0/getActionsByRole`, sent as the `actionIds` token claim) → permission.
- * Ids must match docs/inventory-library-node-actions.md. Parent actions (300, 301) grant nothing.
+ * Ids must match docs/inventory-library-node-actions.md. Parent action 300 grants nothing.
+ * Library has no sub-actions in Node; its permissions are not mapped here.
  */
 export const ACTION_PERMISSIONS: Record<number, Permission> = {
   310: 'inventory.settings',
@@ -45,12 +46,6 @@ export const ACTION_PERMISSIONS: Record<number, Permission> = {
   322: 'inventory.assets.manage',
   323: 'inventory.assets.view',
   324: 'inventory.reports.view',
-  330: 'library.settings',
-  331: 'library.catalogue',
-  333: 'library.circulation.operate',
-  334: 'library.fines.waive',
-  335: 'library.reports.view',
-  336: 'library.members.view',
 };
 
 /** Permissions of the granted [actionIds]; unknown Ids are ignored. Sorted, unique. */

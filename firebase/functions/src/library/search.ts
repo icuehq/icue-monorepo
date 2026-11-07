@@ -1,9 +1,15 @@
 import { type DocumentData, type Firestore, type Timestamp } from 'firebase-admin/firestore';
 import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { HttpsError } from 'firebase-functions/v2/https';
-import type { z } from 'zod';
+import { z } from 'zod';
 import type { QueryDef } from '../shared/callable';
 import { applyChange, searchDb, searchInput, searchMirror, words } from '../shared/searchMirror';
+
+/** A parent category's search includes its subcategories, so the caller sends the expanded ids. */
+const catalogueSearchInput = searchInput.omit({ categoryId: true }).extend({
+  categoryIds: z.array(z.string().min(1).max(100)).max(30).optional(),
+  classId: z.number().int().positive().optional(),
+});
 
 /** Catalogue search (FRS 11.4): same mirror pattern as inventory items (architecture §10). */
 const COLL = 'libraryCatalogue';
@@ -15,6 +21,7 @@ const ROW = [
   'year',
   'language',
   'categoryId',
+  'classIds',
   'status',
 ] as const;
 /** Fields the text index covers (see `firebase/scripts/create-search-index.sh`). */
@@ -51,7 +58,7 @@ export const syncCatalogueSearch = onDocumentWritten(
 
 export async function searchCatalogue(
   schoolId: string,
-  query: z.infer<typeof searchInput>,
+  query: z.infer<typeof catalogueSearchInput>,
   db: Firestore = searchDb(),
 ) {
   // Punctuation is dropped so users cannot inject search-DSL operators (quotes, -, *, OR).
@@ -61,7 +68,13 @@ export async function searchCatalogue(
     schoolId,
     COLL,
     query,
-    { terms, textFields: TEXT, sortField: 'title' },
+    {
+      terms,
+      textFields: TEXT,
+      sortField: 'title',
+      categoryIds: query.categoryIds,
+      classId: query.classId,
+    },
     db,
   );
   return {
@@ -71,11 +84,11 @@ export async function searchCatalogue(
 }
 
 export const catalogueSearch: QueryDef<
-  typeof searchInput,
+  typeof catalogueSearchInput,
   Awaited<ReturnType<typeof searchCatalogue>>
 > = {
   name: 'library.catalogue.search',
   permission: 'library.catalogue',
-  input: searchInput,
+  input: catalogueSearchInput,
   handler: searchCatalogue,
 };

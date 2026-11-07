@@ -98,6 +98,7 @@ class BookHeroCard extends StatelessWidget {
   const BookHeroCard({
     required this.book,
     required this.categoryName,
+    required this.classNames,
     required this.canEdit,
     required this.onActiveChanged,
     super.key,
@@ -105,6 +106,7 @@ class BookHeroCard extends StatelessWidget {
 
   final LibraryBook book;
   final String? categoryName;
+  final List<String> classNames;
   final bool canEdit;
   final ValueChanged<bool> onActiveChanged;
 
@@ -186,6 +188,8 @@ class BookHeroCard extends StatelessWidget {
             ),
             if (categoryName != null)
               _Tag(categoryName!, icon: Icons.category_outlined),
+            for (final className in classNames)
+              _Tag(className, icon: Icons.school_outlined),
             if (book.shelf != null && book.shelf!.isNotEmpty)
               _Tag(book.shelf!, icon: Icons.location_on_outlined),
           ],

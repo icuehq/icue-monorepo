@@ -160,6 +160,7 @@ export interface LoanRenewal {
 
 /** Policy values frozen on the loan at issue so later policy edits never move its due date. */
 export interface LoanPolicySnapshot {
+  policyId: string;
   name: string;
   maxBooks: number;
   loanDays: number;
@@ -168,5 +169,4 @@ export interface LoanPolicySnapshot {
   fineAmount: number;
   graceDays: number;
   maxFine?: number | null;
-  overdueRenewal: boolean;
 }
