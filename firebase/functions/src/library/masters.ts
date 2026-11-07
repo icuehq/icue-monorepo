@@ -13,17 +13,17 @@ const norm = (value: string | null | undefined) =>
     .filter(Boolean)
     .join(' ');
 
-/** Identity of a title: the ISBN-13 when there is one, else the bibliographic details. */
+/** Identity of a title: the ISBN when there is one, else the bibliographic details. */
 export function identityKey(title: {
-  isbn13: string | null;
+  isbn: string | null;
   title: string;
   authors: string[];
   edition?: string | null;
   publisher?: string | null;
   year?: number | null;
 }) {
-  return title.isbn13
-    ? `isbn:${title.isbn13}`
+  return title.isbn
+    ? `isbn:${title.isbn}`
     : `bib:${[title.title, title.authors[0], title.edition, title.publisher].map(norm).join('|')}|${title.year ?? ''}`;
 }
 
@@ -36,8 +36,7 @@ export const masters = {
       title: text(200),
       subtitle: text(200).nullish(),
       authors: z.array(text(100)).min(1).max(10),
-      isbn10: z.string().trim().max(20).nullish(),
-      isbn13: z.string().trim().max(20).nullish(),
+      isbn: z.string().trim().max(20).nullish(),
       publisher: text(120).nullish(),
       edition: text(50).nullish(),
       year: z.number().int().min(1000).max(2200).nullish(),
@@ -45,18 +44,15 @@ export const masters = {
       categoryId: id,
       description: z.string().trim().max(2000).nullish(),
       pages: z.number().int().min(1).max(100000).nullish(),
-      classificationNumber: text(50).nullish(),
+      shelf: text(50).nullish(),
       keywords: z.array(text(50)).max(20).default([]),
     }),
     handler: async (context, i) => {
-      const i10 = i.isbn10 ? cleanIsbn(i.isbn10) : null;
-      const i13 = i.isbn13 ? cleanIsbn(i.isbn13) : null;
-      if (i10 && !isIsbn10(i10)) throw failed('Invalid ISBN-10');
-      if (i13 && !isIsbn13(i13)) throw failed('Invalid ISBN-13');
-      if (i10 && i13 && toIsbn13(i10) !== i13)
-        throw failed('ISBN-10 and ISBN-13 are different books');
-      const isbn13 = i13 ?? (i10 ? toIsbn13(i10) : null);
-      const key = identityKey({ ...i, isbn13 });
+      // One identification number: an ISBN-10 or ISBN-13, stored as the ISBN-13.
+      const cleaned = i.isbn ? cleanIsbn(i.isbn) : null;
+      if (cleaned && !isIsbn10(cleaned) && !isIsbn13(cleaned)) throw failed('Invalid ISBN');
+      const isbn = cleaned && (isIsbn10(cleaned) ? toIsbn13(cleaned) : cleaned);
+      const key = identityKey({ ...i, isbn });
 
       const now = serverTimestamp();
       const before = i.id
@@ -80,8 +76,7 @@ export const masters = {
         title: i.title,
         subtitle: i.subtitle ?? null,
         authors: i.authors,
-        isbn10: i10,
-        isbn13: i13,
+        isbn,
         publisher: i.publisher ?? null,
         edition: i.edition ?? null,
         year: i.year ?? null,
@@ -89,7 +84,7 @@ export const masters = {
         categoryId: i.categoryId,
         description: i.description ?? null,
         pages: i.pages ?? null,
-        classificationNumber: i.classificationNumber ?? null,
+        shelf: i.shelf ?? null,
         keywords: i.keywords,
         identityKey: key,
       };

@@ -61,7 +61,6 @@ describe('library reservations', () => {
     ).id;
     mainLibrary = (await seedLibrary({ name: 'Main', campusId: 31 })).id;
     await run(copies.acquisitionCreate, {
-      type: 'donation',
       catalogueId: title,
       libraryId: mainLibrary,
       quantity: 1,
@@ -180,7 +179,6 @@ describe('library reservations', () => {
       code: 'failed-precondition',
     });
     const acq = await run(copies.acquisitionCreate, {
-      type: 'donation',
       catalogueId: title,
       libraryId: mainLibrary,
       quantity: 2,

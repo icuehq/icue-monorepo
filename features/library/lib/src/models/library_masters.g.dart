@@ -71,8 +71,7 @@ class LibraryBook {
     required this.title,
     this.subtitle,
     required this.authors,
-    this.isbn10,
-    this.isbn13,
+    this.isbn,
     this.publisher,
     this.edition,
     this.year,
@@ -80,7 +79,7 @@ class LibraryBook {
     required this.categoryId,
     this.description,
     this.pages,
-    this.classificationNumber,
+    this.shelf,
     required this.keywords,
     required this.active,
   });
@@ -91,8 +90,7 @@ class LibraryBook {
         title: data['title'] as String? ?? '',
         subtitle: data['subtitle'] as String?,
         authors: readList<String>(data['authors']),
-        isbn10: data['isbn10'] as String?,
-        isbn13: data['isbn13'] as String?,
+        isbn: data['isbn'] as String?,
         publisher: data['publisher'] as String?,
         edition: data['edition'] as String?,
         year: (data['year'] as num?)?.toInt(),
@@ -100,7 +98,7 @@ class LibraryBook {
         categoryId: data['categoryId'] as String? ?? '',
         description: data['description'] as String?,
         pages: (data['pages'] as num?)?.toInt(),
-        classificationNumber: data['classificationNumber'] as String?,
+        shelf: data['shelf'] as String?,
         keywords: readList<String>(data['keywords']),
         active: data['status'] != 'inactive',
       );
@@ -109,8 +107,7 @@ class LibraryBook {
   final String title;
   final String? subtitle;
   final List<String> authors;
-  final String? isbn10;
-  final String? isbn13;
+  final String? isbn;
   final String? publisher;
   final String? edition;
   final int? year;
@@ -118,7 +115,7 @@ class LibraryBook {
   final String categoryId;
   final String? description;
   final int? pages;
-  final String? classificationNumber;
+  final String? shelf;
   final List<String> keywords;
   final bool active;
 }

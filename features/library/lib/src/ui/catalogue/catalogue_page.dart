@@ -7,6 +7,8 @@ import 'package:school_library/src/ui/catalogue/widgets/book_card.dart';
 import 'package:school_library/src/ui/catalogue/widgets/catalogue_empty_states.dart';
 import 'package:school_library/src/ui/catalogue/widgets/catalogue_filter_header.dart';
 import 'package:school_library/src/ui/reservations/widgets/reservation_sheet.dart';
+import 'package:school_library/src/ui/routing/library_destinations.dart';
+import 'package:school_library/src/ui/routing/library_tab_bar.dart';
 
 class CataloguePage extends StatefulWidget {
   const CataloguePage({super.key, this.categoryId});
@@ -91,6 +93,10 @@ class _CataloguePageState extends State<CataloguePage> {
             ),
           ),
         ],
+        bottom: const LibraryTabBar(
+          tabs: libraryCatalogueTabs,
+          activePath: LibraryRoutes.libraryCatalogue,
+        ),
       ),
       floatingActionButton: canEdit && !isWide
           ? FloatingActionButton.extended(
@@ -214,10 +220,10 @@ class _CataloguePageState extends State<CataloguePage> {
                                         ),
                                         overflow: TextOverflow.ellipsis,
                                       )
-                                    else if (book.isbn13 != null &&
-                                        book.isbn13!.isNotEmpty)
+                                    else if (book.isbn != null &&
+                                        book.isbn!.isNotEmpty)
                                       Text(
-                                        'ISBN: ${book.isbn13}',
+                                        'ISBN: ${book.isbn}',
                                         style: TextStyle(
                                           fontSize: 11,
                                           color: theme
@@ -271,17 +277,6 @@ class _CataloguePageState extends State<CataloguePage> {
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
-                                if (book.classificationNumber != null &&
-                                    book.classificationNumber!.isNotEmpty) ...[
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    'Class: ${book.classificationNumber}',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: theme.colorScheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                ],
                               ],
                             );
                           },

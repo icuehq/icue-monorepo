@@ -124,7 +124,7 @@ class _IncidentsPageState extends State<IncidentsPage> {
             onPressed: () => libraryProvider.loadIncidents(status: _status),
           ),
         ],
-        bottom: const CirculationTabBar(activeTab: CirculationTab.incidents),
+        bottom: CirculationTabBar(activeTab: CirculationTab.incidents),
       ),
       floatingActionButton: canOperate
           ? FloatingActionButton.extended(

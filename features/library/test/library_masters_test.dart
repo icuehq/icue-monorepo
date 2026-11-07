@@ -6,7 +6,7 @@ void main() {
     final full = LibraryBook.fromMap('b1', {
       'title': 'Wings of Fire',
       'authors': ['A. P. J. Abdul Kalam', 'Arun Tiwari'],
-      'isbn13': '9788173711466',
+      'isbn': '9788173711466',
       'year': 1999,
       'categoryId': 'c1',
       'keywords': ['autobiography'],

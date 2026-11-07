@@ -22,7 +22,6 @@ describe('library copies and acquisitions', () => {
   let title: string, mainLibrary: string, secondLibrary: string;
   const buy = (extra: Record<string, unknown> = {}) =>
     run(copies.acquisitionCreate, {
-      type: 'purchase',
       catalogueId: title,
       libraryId: mainLibrary,
       quantity: 3,
@@ -63,7 +62,6 @@ describe('library copies and acquisitions', () => {
       status: 'available',
       campusId: 31,
       price: 250,
-      source: 'purchase',
       catalogueId: title,
     });
     expect(await get(`libraryAcquisitions/${purchase.id}`)).toMatchObject({
@@ -71,7 +69,6 @@ describe('library copies and acquisitions', () => {
       copyIds: purchase.copyIds,
     });
     const donation = await buy({
-      type: 'donation',
       price: 0,
       libraryId: secondLibrary,
       quantity: 2,
@@ -81,13 +78,12 @@ describe('library copies and acquisitions', () => {
     expect(await get('libraryCopies/ACC-000004')).toMatchObject({ campusId: 32, price: 0 });
   });
 
-  it('acquisition rules: purchase needs a price, permission, campus scope, active title and library', async () => {
-    await expect(buy({ price: 0 })).rejects.toMatchObject({ code: 'failed-precondition' });
+  it('acquisition rules: permission, campus scope, active title and library', async () => {
     await expect(buy({})).resolves.toBeTruthy();
     await expect(
       run(
         copies.acquisitionCreate,
-        { type: 'donation', catalogueId: title, libraryId: mainLibrary, quantity: 1 },
+        { catalogueId: title, libraryId: mainLibrary, quantity: 1 },
         '2',
       ),
     ).rejects.toMatchObject({ code: 'permission-denied' });

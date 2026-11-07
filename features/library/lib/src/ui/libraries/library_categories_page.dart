@@ -6,6 +6,8 @@ import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/libraries/widgets/library_category_card.dart';
 import 'package:school_library/src/ui/libraries/widgets/library_category_controls.dart';
 import 'package:school_library/src/ui/libraries/widgets/library_category_dialog.dart';
+import 'package:school_library/src/ui/routing/library_destinations.dart';
+import 'package:school_library/src/ui/routing/library_tab_bar.dart';
 
 class LibraryCategoriesPage extends StatefulWidget {
   const LibraryCategoriesPage({super.key});
@@ -136,6 +138,10 @@ class _LibraryCategoriesPageState extends State<LibraryCategoriesPage> {
             onPressed: () => libraryProvider.loadMasters(),
           ),
         ],
+        bottom: const LibraryTabBar(
+          tabs: librarySettingsTabs,
+          activePath: LibraryRoutes.libraryCategories,
+        ),
       ),
       floatingActionButton: canEdit && hasAnyCategories
           ? FloatingActionButton.extended(

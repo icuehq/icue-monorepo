@@ -34,7 +34,6 @@ export const copies = {
     name: 'library.acquisition.create',
     permission: 'library.catalogue',
     input: z.object({
-      type: z.enum(['purchase', 'donation', 'opening']),
       catalogueId: id,
       libraryId: id,
       quantity: z.number().int().min(1).max(100),
@@ -47,7 +46,6 @@ export const copies = {
       condition: z.enum(CONDITIONS).default('good'),
     }),
     handler: async (context, i) => {
-      if (i.type === 'purchase' && i.price <= 0) throw failed('A purchase needs a price');
       const library = usable(
         await context.transaction.get(context.doc(`libraries/${i.libraryId}`)),
         'Library',
@@ -83,7 +81,6 @@ export const copies = {
           acquisitionId: acq.id,
           acquiredDate: date,
           price: i.price,
-          source: i.type,
           vendorOrDonor: i.vendorOrDonor ?? null,
           condition: i.condition,
           status: 'available',
@@ -97,7 +94,6 @@ export const copies = {
       });
       const after = {
         number,
-        type: i.type,
         catalogueId: i.catalogueId,
         libraryId: i.libraryId,
         campusId: library.campusId,

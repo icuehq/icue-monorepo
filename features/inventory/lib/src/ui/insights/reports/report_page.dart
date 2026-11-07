@@ -69,13 +69,13 @@ class _InventoryReportPageState extends State<InventoryReportPage> {
         showDateRange: _def.hasDates,
         range: _range,
         onRangeChanged: (range) {
-          _range = range;
+          setState(() => _range = range);
           _load();
         },
         statuses: _def.statuses,
         status: _status,
         onStatusChanged: (status) {
-          _status = status;
+          setState(() => _status = status);
           _load();
         },
       ),

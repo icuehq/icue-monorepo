@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
-import 'package:school_library/src/ui/catalogue/widgets/acquisition_sheet.dart';
 import 'package:school_library/src/ui/catalogue/widgets/copy_card.dart';
-import 'package:school_library/src/ui/catalogue/widgets/copy_labels.dart';
 import 'package:school_library/src/ui/catalogue/widgets/copy_sheet.dart';
 
-/// Physical copies of a title (FRS 11.1 "view physical copies"), with add-copies for librarians.
+/// Physical copies of a title (FRS 11.1 "view physical copies"), .
 class BookCopiesSection extends StatefulWidget {
   const BookCopiesSection({super.key, required this.book});
 
@@ -37,28 +35,6 @@ class _BookCopiesSectionState extends State<BookCopiesSection> {
     }
   }
 
-  Future<void> _add() async {
-    final identifiers = await AcquisitionSheet.show(context, widget.book);
-    if (identifiers == null || !mounted) return;
-    await _load();
-    if (!mounted) return;
-    final added = [
-      for (final copy in _copies ?? <LibraryCopy>[])
-        if (identifiers.contains(copy.accessionNumber)) copy,
-    ];
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text('Added ${identifiers.first} – ${identifiers.last}'),
-          action: SnackBarAction(
-            label: 'Print labels',
-            onPressed: () => shareCopyLabels(widget.book.title, added),
-          ),
-        ),
-      );
-  }
-
   @override
   Widget build(BuildContext context) {
     final libraryProvider = context.watch<LibraryProvider>();
@@ -67,8 +43,6 @@ class _BookCopiesSectionState extends State<BookCopiesSection> {
     final available = copies
         ?.where((copy) => copy.status == 'available')
         .length;
-    final canAdd =
-        libraryProvider.access.can('library.catalogue') && widget.book.active;
 
     return Card(
       elevation: 0,
@@ -121,13 +95,6 @@ class _BookCopiesSectionState extends State<BookCopiesSection> {
                     ),
                   ),
                 ],
-                const Spacer(),
-                if (canAdd)
-                  FilledButton.tonalIcon(
-                    icon: const Icon(Icons.add_rounded, size: 18),
-                    label: const Text('Add copies'),
-                    onPressed: _add,
-                  ),
               ],
             ),
             const SizedBox(height: 12),

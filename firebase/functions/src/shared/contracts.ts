@@ -29,7 +29,6 @@ export const Collections = {
   libraryLoans: 'libraryLoans',
   libraryMembers: 'libraryMembers',
   libraryReservations: 'libraryReservations',
-  libraryTransfers: 'libraryTransfers',
   libraryVerifications: 'libraryVerifications',
 } as const;
 

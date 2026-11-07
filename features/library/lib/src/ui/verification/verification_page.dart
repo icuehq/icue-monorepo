@@ -3,6 +3,8 @@ import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
+import 'package:school_library/src/ui/routing/library_destinations.dart';
+import 'package:school_library/src/ui/routing/library_tab_bar.dart';
 import 'package:school_library/src/ui/verification/widgets/verification_card.dart';
 import 'package:school_library/src/ui/verification/widgets/verification_create_sheet.dart';
 import 'package:school_library/src/ui/verification/widgets/verification_empty_states.dart';
@@ -73,6 +75,10 @@ class _LibraryVerificationPageState extends State<LibraryVerificationPage> {
             onPressed: () => libraryProvider.loadVerifications(),
           ),
         ],
+        bottom: const LibraryTabBar(
+          tabs: libraryCatalogueTabs,
+          activePath: LibraryRoutes.libraryVerification,
+        ),
       ),
       floatingActionButton: canCreate
           ? FloatingActionButton.extended(

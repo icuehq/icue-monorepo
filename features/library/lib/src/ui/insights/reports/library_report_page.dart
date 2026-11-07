@@ -1,4 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
@@ -68,40 +69,42 @@ class _LibReportPageState extends State<LibraryReportPage> {
               library.reportRows.length >= LibraryService.reportLimit
           ? 'Showing the latest ${LibraryService.reportLimit} rows; narrow the date range.'
           : null,
-      filters: Column(
-        children: [
+      filters: ReportFilterBar(
+        leading: [
           if (_def.hasLibrary)
-            DropdownButton<String?>(
-              isExpanded: true,
-              value: _libraryId,
-              items: [
-                const DropdownMenuItem(child: Text('All libraries')),
-                for (final schoolLibrary in library.libraries)
-                  DropdownMenuItem(
-                    value: schoolLibrary.id,
-                    child: Text(schoolLibrary.name),
-                  ),
-              ],
-              onChanged: (id) {
-                _libraryId = id;
-                _load();
-              },
+            SizedBox(
+              width: 220,
+              child: AppDropdown<String>(
+                value: _libraryId,
+                items: [
+                  const DropdownMenuItem(child: Text('All libraries')),
+                  for (final schoolLibrary in library.libraries)
+                    DropdownMenuItem(
+                      value: schoolLibrary.id,
+                      child: Text(schoolLibrary.name),
+                    ),
+                ],
+                onChanged: (id) {
+                  setState(() => _libraryId = id);
+                  _load();
+                },
+                icon: Icons.local_library_outlined,
+                label: 'Library',
+              ),
             ),
-          ReportFilterBar(
-            showDateRange: _def.hasDates && !_def.overdue,
-            range: _range,
-            onRangeChanged: (range) {
-              _range = range;
-              _load();
-            },
-            statuses: _def.statuses,
-            status: _status,
-            onStatusChanged: (status) {
-              _status = status;
-              _load();
-            },
-          ),
         ],
+        showDateRange: _def.hasDates && !_def.overdue,
+        range: _range,
+        onRangeChanged: (range) {
+          setState(() => _range = range);
+          _load();
+        },
+        statuses: _def.statuses,
+        status: _status,
+        onStatusChanged: (status) {
+          setState(() => _status = status);
+          _load();
+        },
       ),
     );
   }

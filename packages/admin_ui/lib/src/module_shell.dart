@@ -2,7 +2,7 @@ import 'package:admin_ui/src/adaptive.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-/// A tab of a [ModuleDestination]: one screen of the group it belongs to.
+/// A screen of a [ModuleDestination]; the screens draw their own tab bar.
 class ModuleTab {
   const ModuleTab({required this.label, required this.path});
 
@@ -12,22 +12,26 @@ class ModuleTab {
 
 /// One side-navigation entry of a [ModuleShell]; [group] heads a run of entries.
 ///
-/// With two or more [tabs] the shell shows a tab strip above the open screen.
+/// Shows [iconAsset] (the same image as the phone home grid) when given, else [icon].
 class ModuleDestination {
   const ModuleDestination({
     required this.label,
     required this.path,
-    required this.icon,
+    this.icon,
+    this.iconAsset,
     this.group,
     this.badge,
     this.tabs = const [],
-  });
+  }) : assert(icon != null || iconAsset != null, 'needs an icon or iconAsset');
 
   final String label;
   final String path;
-  final IconData icon;
+  final IconData? icon;
+  final String? iconAsset;
   final String? group;
   final Widget? badge;
+
+  /// The screens of this entry; any of them keeps the entry selected.
   final List<ModuleTab> tabs;
 }
 
@@ -120,11 +124,19 @@ class ModuleShell extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    Icon(
-                      destination.icon,
-                      size: 20,
-                      color: isSelected ? activeColor : inactiveIconColor,
-                    ),
+                    if (destination.iconAsset != null)
+                      Image.asset(
+                        destination.iconAsset!,
+                        width: 24,
+                        height: 24,
+                        fit: BoxFit.contain,
+                      )
+                    else
+                      Icon(
+                        destination.icon,
+                        size: 20,
+                        color: isSelected ? activeColor : inactiveIconColor,
+                      ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(

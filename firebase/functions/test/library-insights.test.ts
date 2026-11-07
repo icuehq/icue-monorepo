@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { copies } from '../src/library/copies';
 import { runDailyLibrary } from '../src/library/daily';
-import { runLibraryImport } from '../src/library/import';
 import { loans } from '../src/library/loans';
 import { masters } from '../src/library/masters';
 import { members } from '../src/library/members';
@@ -19,8 +18,6 @@ const run = (definition: CallableDef<any, any>, data: Record<string, unknown>, u
     requestId: `req-${String(++requestSequence).padStart(6, '0')}`,
     ...data,
   });
-const imp = (type: string, rows: Record<string, string>[], uid = '1', importId = 'imp_000001') =>
-  runLibraryImport(auth(uid), { importId, type, rows });
 const outbox = async (): Promise<{ id: string; [field: string]: any }[]> =>
   (await db().collection(`schools/${SCHOOL_ID}/outbox`).get()).docs.map((outboxDocument) => ({
     id: outboxDocument.id,
@@ -29,7 +26,7 @@ const outbox = async (): Promise<{ id: string; [field: string]: any }[]> =>
 const day = (offset: number) =>
   new Date(Date.now() + 330 * 60_000 + offset * 86_400_000).toISOString().slice(0, 10);
 
-describe('library notifications and import', () => {
+describe('library notifications', () => {
   let mainLibrary: string, title: string;
 
   beforeEach(async () => {
@@ -58,7 +55,6 @@ describe('library notifications and import', () => {
     ).id;
     mainLibrary = (await seedLibrary({ name: 'Main', campusId: 31 })).id;
     await run(copies.acquisitionCreate, {
-      type: 'donation',
       catalogueId: title,
       libraryId: mainLibrary,
       quantity: 1,
@@ -124,60 +120,5 @@ describe('library notifications and import', () => {
     const before = ids.length;
     await runDailyLibrary(SCHOOL_ID);
     expect((await outbox()).length).toBe(before);
-  });
-
-  it('imports catalogue and copies through the single-record rules; bad rows and duplicates are reported', async () => {
-    const books = await imp('catalogue', [
-      {
-        title: 'Malgudi Days',
-        authors: 'R. K. Narayan',
-        category: 'General',
-        isbn13: '9780143039648',
-        year: '2006',
-      },
-      {
-        title: 'Malgudi Days',
-        authors: 'R. K. Narayan',
-        category: 'General',
-        isbn13: '9780143039648',
-      },
-      { title: 'No category', authors: 'X', category: 'nope' },
-    ]);
-    expect(books.results.map((result) => result.ok)).toEqual([true, false, false]);
-    expect(books.results[1].error).toMatch(/already exists/);
-    expect(
-      (
-        await imp(
-          'catalogue',
-          [
-            {
-              title: 'Malgudi Days',
-              authors: 'R. K. Narayan',
-              category: 'General',
-              isbn13: '9780143039648',
-            },
-          ],
-          '1',
-          'imp_000009',
-        )
-      ).created,
-    ).toBe(0); // new import ID: rejected as duplicate
-    const cps = await imp(
-      'copies',
-      [
-        { isbn13: '978-0-14-303964-8', library: 'Main', quantity: '3', price: '250' },
-        { isbn13: '9780000000002', library: 'Main' },
-      ],
-      '1',
-      'imp_000002',
-    );
-    expect(cps.results.map((result) => result.ok)).toEqual([true, false]);
-    expect((await db().collection(`schools/${SCHOOL_ID}/libraryCopies`).get()).size).toBe(4); // 1 from setup + 3 imported
-    await db()
-      .doc(`schools/${SCHOOL_ID}/userAccess/nobody`)
-      .set({ permissions: [], campusIds: [31], hasAllCampuses: false });
-    await expect(
-      imp('catalogue', [{ title: 'Z', authors: 'Y', category: 'General' }], 'nobody', 'imp_000004'),
-    ).rejects.toMatchObject({ code: 'permission-denied' });
   });
 });

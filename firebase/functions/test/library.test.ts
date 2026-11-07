@@ -69,26 +69,22 @@ describe('library masters', () => {
     ).rejects.toMatchObject({ code: 'permission-denied' });
   });
 
-  it('catalogue: creates, derives the ISBN-13 identity, rejects duplicates', async () => {
-    const { id } = await book({ isbn10: '0-306-40615-2' });
+  it('catalogue: creates, stores an ISBN-10 as ISBN-13, rejects duplicates', async () => {
+    const { id } = await book({ isbn: '0-306-40615-2' });
     expect(await get(`libraryCatalogue/${id}`)).toMatchObject({
       status: 'active',
-      isbn10: '0306406152',
-      isbn13: null,
+      isbn: '9780306406157',
       identityKey: 'isbn:9780306406157',
       coverPath: null,
     });
     // same book given by its ISBN-13 is the same title
-    await expect(book({ title: 'Other title', isbn13: '978-0-306-40615-7' })).rejects.toMatchObject(
+    await expect(book({ title: 'Other title', isbn: '978-0-306-40615-7' })).rejects.toMatchObject(
       { code: 'already-exists' },
     );
   });
 
-  it('catalogue: ISBN must be valid and consistent', async () => {
-    await expect(book({ isbn13: '9780306406158' })).rejects.toMatchObject({
-      code: 'failed-precondition',
-    });
-    await expect(book({ isbn10: '0306406152', isbn13: '9780306406164' })).rejects.toMatchObject({
+  it('catalogue: ISBN must be valid', async () => {
+    await expect(book({ isbn: '9780306406158' })).rejects.toMatchObject({
       code: 'failed-precondition',
     });
   });
@@ -102,10 +98,10 @@ describe('library masters', () => {
   });
 
   it('catalogue: editing moves the identity key; inactive category rejected for new use', async () => {
-    const { id } = await book({ isbn13: '9780306406157' });
-    await book({ id, isbn13: undefined, edition: '2nd' }); // dropped ISBN → falls back to bibliographic key
+    const { id } = await book({ isbn: '9780306406157' });
+    await book({ id, isbn: undefined, edition: '2nd' }); // dropped ISBN → falls back to bibliographic key
     expect(await get('uniqueKeys/libraryTitle_isbn%3A9780306406157')).toBeUndefined();
-    await expect(book({ isbn13: '9780306406157' })).resolves.toHaveProperty('id'); // old key was released
+    await expect(book({ isbn: '9780306406157' })).resolves.toHaveProperty('id'); // old key was released
     await db()
       .doc(`schools/${SCHOOL_ID}/libraryCategories/${category}`)
       .update({ status: 'inactive' });
@@ -122,7 +118,7 @@ describe('library masters', () => {
 
   describe('search', () => {
     it('finds by title/author/publisher word and by ISBN; filters by category', async () => {
-      const firstBook = await book({ isbn13: '9780306406157', publisher: 'Universities Press' });
+      const firstBook = await book({ isbn: '9780306406157', publisher: 'Universities Press' });
       const secondBook = await book({
         title: 'Ignited Minds',
         authors: ['Abdul Kalam'],

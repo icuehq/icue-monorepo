@@ -32,12 +32,16 @@ class CsvImportScreen extends StatefulWidget {
     required this.kinds,
     required this.run,
     required this.errorMessage,
+    this.appBarBottom,
     super.key,
   });
 
   final List<ImportKind> kinds;
   final ImportRunner run;
   final String? Function() errorMessage;
+
+  /// Shown under the app bar, e.g. the tabs of the module group this screen belongs to.
+  final PreferredSizeWidget? appBarBottom;
 
   @override
   State<CsvImportScreen> createState() => _CsvImportScreenState();
@@ -118,7 +122,7 @@ class _CsvImportScreenState extends State<CsvImportScreen> {
   Widget build(BuildContext context) {
     final header = _kind.columns.join(',');
     return Scaffold(
-      appBar: AppBar(title: const Text('Import')),
+      appBar: AppBar(title: const Text('Import'), bottom: widget.appBarBottom),
       body: CenteredBody(
         maxWidth: Breakpoints.formMaxWidth,
         child: ListView(

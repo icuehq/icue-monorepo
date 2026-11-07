@@ -6,6 +6,8 @@ import 'package:school_library/src/ui/libraries/widgets/library_card.dart';
 import 'package:school_library/src/ui/libraries/widgets/library_empty_states.dart';
 import 'package:school_library/src/ui/libraries/widgets/library_filter_header.dart';
 import 'package:school_library/src/ui/libraries/widgets/library_form_sheet.dart';
+import 'package:school_library/src/ui/routing/library_destinations.dart';
+import 'package:school_library/src/ui/routing/library_tab_bar.dart';
 
 class LibrariesPage extends StatefulWidget {
   const LibrariesPage({super.key});
@@ -107,6 +109,10 @@ class _LibrariesPageState extends State<LibrariesPage> {
             onPressed: () => libraryProvider.loadMasters(),
           ),
         ],
+        bottom: const LibraryTabBar(
+          tabs: librarySettingsTabs,
+          activePath: LibraryRoutes.libraryList,
+        ),
       ),
       floatingActionButton: canEdit && allLibraries.isNotEmpty
           ? FloatingActionButton.extended(

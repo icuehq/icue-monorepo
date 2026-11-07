@@ -132,7 +132,6 @@ class _CopySheetState extends State<CopySheet> {
     final facts = <(String, String?)>[
       ('Status', humanizeStatus(copy.status)),
       ('Library', libraryProvider.library(copy.libraryId)?.name),
-      ('Source', copy.source),
       ('Vendor / donor', copy.vendorOrDonor),
       ('Acquired', copy.acquiredDate?.toDisplayDay()),
       ('Price', copy.price.toRupees()),

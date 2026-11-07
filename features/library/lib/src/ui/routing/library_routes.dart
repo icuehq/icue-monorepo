@@ -40,23 +40,10 @@ class LibraryRoutes {
 
   static const String libraryIncidents = '/layout.library/incidents';
   static const String libraryIncidentsName = 'libraryIncidents';
-  static const String libraryTransfers = '/layout.library/transfers';
-  static const String libraryTransfersName = 'libraryTransfers';
-
-  static const String libraryTransferForm = '/layout.library/transfers/new';
-  static const String libraryTransferFormName = 'libraryTransferForm';
-
-  static const String libraryTransferDetail =
-      '/layout.library/transfers/detail';
-  static const String libraryTransferDetailName = 'libraryTransferDetail';
   static const String libraryVerification = '/layout.library/verification';
   static const String libraryVerificationName = 'libraryVerification';
-  static const String libraryDashboard = '/layout.library/dashboard';
-  static const String libraryDashboardName = 'libraryDashboard';
   static const String libraryReports = '/layout.library/reports';
   static const String libraryReportsName = 'libraryReports';
   static const String libraryReport = '/layout.library/reports/view';
   static const String libraryReportName = 'libraryReport';
-  static const String libraryImport = '/layout.library/import';
-  static const String libraryImportName = 'libraryImport';
 }

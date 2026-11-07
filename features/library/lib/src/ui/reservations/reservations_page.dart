@@ -171,7 +171,7 @@ class _ReservationsPageState extends State<ReservationsPage> {
             onPressed: () => libraryProvider.loadReservations(status: _status),
           ),
         ],
-        bottom: const CirculationTabBar(activeTab: CirculationTab.reservations),
+        bottom: CirculationTabBar(activeTab: CirculationTab.reservations),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openCreateReservation,

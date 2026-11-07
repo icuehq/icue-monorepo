@@ -10,8 +10,6 @@ import 'package:school_library/src/ui/circulation/circulation_page.dart';
 import 'package:school_library/src/ui/circulation/widgets/scan_listener.dart';
 import 'package:school_library/src/ui/fines/fines_page.dart';
 import 'package:school_library/src/ui/incidents/incidents_page.dart';
-import 'package:school_library/src/ui/insights/dashboard/library_dashboard_page.dart';
-import 'package:school_library/src/ui/insights/import/library_import_page.dart';
 import 'package:school_library/src/ui/insights/overview/library_overview_page.dart';
 import 'package:school_library/src/ui/insights/reports/library_report_page.dart';
 import 'package:school_library/src/ui/insights/reports/library_reports_page.dart';
@@ -21,9 +19,6 @@ import 'package:school_library/src/ui/members/members_page.dart';
 import 'package:school_library/src/ui/policies/policies_page.dart';
 import 'package:school_library/src/ui/reservations/reservations_page.dart';
 import 'package:school_library/src/ui/routing/library_destinations.dart';
-import 'package:school_library/src/ui/transfers/transfer_form_page.dart';
-import 'package:school_library/src/ui/transfers/transfer_page.dart';
-import 'package:school_library/src/ui/transfers/transfers_page.dart';
 import 'package:school_library/src/ui/verification/verification_page.dart';
 
 /// Library screens as go_router routes, inside a shell that adds side navigation on wide screens.
@@ -105,30 +100,9 @@ final _libraryPages = <RouteBase>[
     builder: (context, state) => const IncidentsPage(),
   ),
   GoRoute(
-    path: LibraryRoutes.libraryTransfers,
-    name: LibraryRoutes.libraryTransfersName,
-    builder: (context, state) => const LibraryTransfersPage(),
-  ),
-  GoRoute(
-    path: LibraryRoutes.libraryTransferForm,
-    name: LibraryRoutes.libraryTransferFormName,
-    builder: (context, state) => const LibraryTransferFormPage(),
-  ),
-  GoRoute(
-    path: LibraryRoutes.libraryTransferDetail,
-    name: LibraryRoutes.libraryTransferDetailName,
-    builder: (context, state) =>
-        LibraryTransferPage(transferId: state.uri.queryParameters['id'] ?? ''),
-  ),
-  GoRoute(
     path: LibraryRoutes.libraryVerification,
     name: LibraryRoutes.libraryVerificationName,
     builder: (context, state) => const LibraryVerificationPage(),
-  ),
-  GoRoute(
-    path: LibraryRoutes.libraryDashboard,
-    name: LibraryRoutes.libraryDashboardName,
-    builder: (context, state) => const LibraryDashboardPage(),
   ),
   GoRoute(
     path: LibraryRoutes.libraryReports,
@@ -140,11 +114,6 @@ final _libraryPages = <RouteBase>[
     name: LibraryRoutes.libraryReportName,
     builder: (context, state) =>
         LibraryReportPage(def: state.extra! as LibraryReportDef),
-  ),
-  GoRoute(
-    path: LibraryRoutes.libraryImport,
-    name: LibraryRoutes.libraryImportName,
-    builder: (context, state) => const LibraryImportPage(),
   ),
   GoRoute(
     path: LibraryRoutes.libraryPolicies,

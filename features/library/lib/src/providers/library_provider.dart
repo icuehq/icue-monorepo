@@ -10,7 +10,6 @@ import 'package:school_library/src/models/library_masters.dart';
 import 'package:school_library/src/models/library_members.dart';
 import 'package:school_library/src/models/library_person.dart';
 import 'package:school_library/src/models/library_reservations.dart';
-import 'package:school_library/src/models/library_transfers.dart';
 import 'package:school_library/src/models/library_verifications.dart';
 import 'package:school_library/src/services/library_people_service.dart';
 import 'package:school_library/src/services/library_service.dart';
@@ -328,31 +327,11 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     }
   }
 
-  // Transfers (newest first, up to 50 per direction) and paged stock verifications.
-  final List<LibraryTransfer> transfers = [];
-  bool transfersLoading = false;
+  // Paged stock verifications.
   final List<LibraryVerification> verifications = [];
   bool verificationsLoading = false;
   bool hasMoreVerifications = false;
   DocumentSnapshot<Map<String, dynamic>>? _verificationCursor;
-
-  Future<void> loadTransfers() async {
-    if (transfersLoading) return;
-    transfersLoading = true;
-    errorMessage = null;
-    notifyListeners();
-    try {
-      final loaded = await _service.transfers(access);
-      transfers
-        ..clear()
-        ..addAll(loaded);
-    } catch (error) {
-      errorMessage = callableErrorMessage(error);
-    } finally {
-      transfersLoading = false;
-      notifyListeners();
-    }
-  }
 
   Future<void> loadVerifications({bool more = false}) async {
     if (more && (verificationsLoading || !hasMoreVerifications)) return;
@@ -437,31 +416,26 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     reload: loadMasters,
   );
 
-  Future<bool> saveBook(Map<String, Object?> data, {String? requestId}) =>
-      _write(
-        () => _service.saveBook(data, requestId: requestId),
-        reload: loadBooks,
-      );
+  /// Saves a book; for a new one, [copies] (`libraryId`, `quantity`, `shelf`) also creates its copies.
+  Future<bool> saveBook(
+    Map<String, Object?> data, {
+    String? requestId,
+    Map<String, Object?>? copies,
+    String? copiesRequestId,
+  }) => _write(() async {
+    final id = await _service.saveBook(data, requestId: requestId);
+    if (copies != null) {
+      await _service.createAcquisition({
+        'catalogueId': id,
+        ...copies,
+      }, requestId: copiesRequestId);
+    }
+  }, reload: loadBooks);
 
   Future<bool> setBookActive(String id, {required bool active}) => _write(
     () => _service.setBookActive(id, active: active),
     reload: loadBooks,
   );
-
-  /// Accession numbers of the new copies, or null (with [errorMessage]) on failure.
-  Future<List<String>?> createAcquisition(
-    Map<String, Object?> data, {
-    String? requestId,
-  }) async {
-    errorMessage = null;
-    try {
-      return await _service.createAcquisition(data, requestId: requestId);
-    } catch (error) {
-      errorMessage = callableErrorMessage(error);
-      notifyListeners();
-      return null;
-    }
-  }
 
   Future<bool> updateCopy(Map<String, Object?> data) =>
       _write(() => _service.updateCopy(data));
@@ -539,28 +513,6 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     reload: loadIncidents,
   );
 
-  Future<bool> requestTransfer(
-    Map<String, Object?> data, {
-    String? requestId,
-  }) => _write(
-    () => _service.requestTransfer(data, requestId: requestId),
-    reload: loadTransfers,
-  );
-
-  Future<bool> approveTransfer(String id) =>
-      _write(() => _service.approveTransfer(id), reload: loadTransfers);
-
-  Future<bool> dispatchTransfer(String id) =>
-      _write(() => _service.dispatchTransfer(id), reload: loadTransfers);
-
-  Future<bool> cancelTransfer(String id, String reason) =>
-      _write(() => _service.cancelTransfer(id, reason), reload: loadTransfers);
-
-  Future<bool> closeTransferShort(String id, String reason) => _write(
-    () => _service.closeTransferShort(id, reason),
-    reload: loadTransfers,
-  );
-
   Future<bool> setMemberBlocked(
     String id, {
     required bool blocked,
@@ -569,9 +521,6 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     () => _service.setMemberBlocked(id, blocked: blocked, reason: reason),
     reload: loadMembers,
   );
-
-  Future<bool> receiveTransfer(Map<String, Object?> data) =>
-      _write(() => _service.receiveTransfer(data), reload: loadTransfers);
 
   Future<bool> createVerification(
     Map<String, Object?> data, {
@@ -658,26 +607,6 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     };
     if (need.isNotEmpty) _titles.addAll(await _service.titlesByIds(need));
   });
-
-  /// One CSV import request (up to 200 rows); null with [errorMessage] set when the request itself fails.
-  Future<Map<String, dynamic>?> importRows(
-    String type,
-    String importId,
-    List<Map<String, String>> rows,
-  ) async {
-    errorMessage = null;
-    try {
-      final result = await callFunction(
-        'library-import-run',
-        data: {'importId': importId, 'type': type, 'rows': rows},
-      );
-      return Map<String, dynamic>.from(result as Map);
-    } catch (error) {
-      errorMessage = callableErrorMessage(error);
-      notifyListeners();
-      return null;
-    }
-  }
 
   Future<bool> _write(
     Future<void> Function() call, {

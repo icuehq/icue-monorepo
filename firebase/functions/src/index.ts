@@ -7,14 +7,12 @@ import { itemSearch } from './inventory/search';
 import { verification } from './inventory/verification';
 import { copies as libraryCopies } from './library/copies';
 import { fines as libraryFines } from './library/fines';
-import { importRun as libraryImportRun } from './library/import';
 import { incidents as libraryIncidents } from './library/incidents';
 import { loans as libraryLoans } from './library/loans';
 import { masters as libraryMasters } from './library/masters';
 import { members as libraryMembers } from './library/members';
 import { reservations as libraryReservations } from './library/reservations';
 import { catalogueSearch } from './library/search';
-import { transfers as libraryTransfers } from './library/transfers';
 import { verification as libraryVerification } from './library/verification';
 import { sync } from './session';
 import { type AnyCallableDef, callable, queryCallable, routes } from './shared/callable';
@@ -41,7 +39,6 @@ const mutations: AnyCallableDef[] = [
   libraryReservations,
   libraryFines,
   libraryIncidents,
-  libraryTransfers,
   libraryVerification,
 ]
   .flatMap((group) => Object.values(group) as AnyCallableDef[])
@@ -56,5 +53,4 @@ export const { session, inventory, library } = routes([
     (def) => [def.name, queryCallable(def)] as [string, unknown],
   ),
   ['inventory.import.run', importRun],
-  ['library.import.run', libraryImportRun],
 ]);

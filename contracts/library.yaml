@@ -8,7 +8,6 @@ collections:
   - libraryLoans
   - libraryMembers
   - libraryReservations
-  - libraryTransfers
   - libraryVerifications
 
 enums:
@@ -90,7 +89,6 @@ models:
         condition: { type: string, default: good }
         status: { type: string, default: available }
         price: double
-        source: string?
         vendorOrDonor: string?
         acquiredDate: day?
         remarks: string?
@@ -99,7 +97,6 @@ models:
       id: id
       fields:
         number: string
-        type: { type: string, default: purchase }
         catalogueId: string
         libraryId: string
         quantity: int
@@ -222,8 +219,7 @@ models:
         title: string
         subtitle: string?
         authors: list<string>
-        isbn10: string?
-        isbn13: string?
+        isbn: string?
         publisher: string?
         edition: string?
         year: int?
@@ -231,7 +227,7 @@ models:
         categoryId: string
         description: string?
         pages: int?
-        classificationNumber: string?
+        shelf: string?
         keywords: list<string>
         active: { type: bool, key: status, notEquals: inactive }
   library_members:
@@ -283,30 +279,6 @@ models:
         fulfilledLoanId: string?
         fulfilledCopyId: string?
         createdAt: timestamp?
-  library_transfers:
-    LibraryTransferLine:
-      doc: "One copy on a transfer; [received] flips when the destination confirms it."
-      fields:
-        copyId: string
-        accessionNumber: string
-        received: bool
-        condition: string?
-    LibraryTransfer:
-      doc: "A transfer of copies between two libraries of the school (FRS 11.15)."
-      id: id
-      fields:
-        number: { type: string, default: "$id" }
-        fromLibraryId: string
-        toLibraryId: string
-        campusId: int
-        toCampusId: int
-        status: { type: string, default: requested }
-        lineItems: list<LibraryTransferLine>
-        createdAt: timestamp?
-        requestedDate: day?
-        dispatchedDate: day?
-        receivedDate: day?
-        remarks: string?
   library_verifications:
     LibraryVerification:
       doc: "A library stock verification session (FRS 11.16). Copy IDs are accession numbers."

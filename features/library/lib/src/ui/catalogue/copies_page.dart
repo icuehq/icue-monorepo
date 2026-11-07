@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/catalogue/widgets/acquisition_card.dart';
 import 'package:school_library/src/ui/catalogue/widgets/copy_sheet.dart';
+import 'package:school_library/src/ui/routing/library_destinations.dart';
+import 'package:school_library/src/ui/routing/library_tab_bar.dart';
 
 /// Find a copy by scanning its label (accession number, barcode or RFID tag) and review acquisitions.
 class CopiesPage extends StatefulWidget {
@@ -94,41 +96,6 @@ class _CopiesPageState extends State<CopiesPage> {
     );
   }
 
-  Widget _typePill(BuildContext context, String type) {
-    final theme = Theme.of(context);
-    final (color, background) = switch (type) {
-      'donation' => (
-        Colors.purple.shade700,
-        Colors.purple.withValues(alpha: 0.12),
-      ),
-      'opening_stock' => (
-        Colors.teal.shade700,
-        Colors.teal.withValues(alpha: 0.12),
-      ),
-      _ => (
-        theme.colorScheme.primary,
-        theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
-      ),
-    };
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Text(
-        humanizeStatus(type),
-        style: TextStyle(
-          color: color,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final libraryProvider = context.watch<LibraryProvider>();
@@ -144,6 +111,10 @@ class _CopiesPageState extends State<CopiesPage> {
             onPressed: _loadAcquisitions,
           ),
         ],
+        bottom: const LibraryTabBar(
+          tabs: libraryCatalogueTabs,
+          activePath: LibraryRoutes.libraryCopies,
+        ),
       ),
       body: CenteredBody(
         child: Column(
@@ -241,12 +212,6 @@ class _CopiesPageState extends State<CopiesPage> {
                           style: const TextStyle(fontWeight: FontWeight.w600),
                         ),
                       ),
-                      AdaptiveColumn(
-                        label: 'Type',
-                        flex: 2,
-                        cell: (context, acquisition) =>
-                            _typePill(context, acquisition.type),
-                      ),
                       AdaptiveColumn.text(
                         'Library',
                         (acquisition) =>
@@ -288,7 +253,7 @@ class _CopiesPageState extends State<CopiesPage> {
                         cell: (context, acquisition) => Text(
                           acquisition.price > 0
                               ? acquisition.price.toRupees()
-                              : 'Free / Donation',
+                              : '—',
                           style: TextStyle(
                             fontWeight: acquisition.price > 0
                                 ? FontWeight.w600

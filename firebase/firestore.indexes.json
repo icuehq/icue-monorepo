@@ -585,20 +585,6 @@
       ]
     },
     {
-      "collectionGroup": "libraryTransfers",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "toCampusId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
       "collectionGroup": "libraryMembers",
       "queryScope": "COLLECTION",
       "fields": [
@@ -853,20 +839,6 @@
       ]
     },
     {
-      "collectionGroup": "libraryTransfers",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
       "collectionGroup": "libraryVerifications",
       "queryScope": "COLLECTION",
       "fields": [
@@ -1254,20 +1226,6 @@
         },
         {
           "fieldPath": "libraryId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "libraryTransfers",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "campusId",
           "order": "ASCENDING"
         },
         {

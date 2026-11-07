@@ -1,143 +1,121 @@
 import 'package:admin_ui/admin_ui.dart';
-import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:school_library/src/ui/routing/library_routes.dart';
 
-/// A Library screen reachable from the home grid; [libraryNavigation] groups them for wide screens.
+/// A Library screen, opened from a [LibraryGroup] tab.
 class LibraryEntry {
-  const LibraryEntry({
-    required this.label,
-    required this.path,
-    required this.iconAsset,
-  });
+  const LibraryEntry({required this.label, required this.path});
 
   final String label;
   final String path;
-  final String iconAsset;
 }
 
-const _entries = <(LibraryEntry, bool Function(ModuleAccess access))>[
-  (
-    LibraryEntry(
-      label: 'Circulation',
-      path: LibraryRoutes.libraryCirculation,
-      iconAsset: 'assets/dashboard/library-circulation.png',
-    ),
-    _circulation,
-  ),
-  (
-    LibraryEntry(
-      label: 'Reservations',
-      path: LibraryRoutes.libraryReservations,
-      iconAsset: 'assets/dashboard/library-reservations.png',
-    ),
-    _circulation,
-  ),
-  (
-    LibraryEntry(
-      label: 'Fines & Penalties',
-      path: LibraryRoutes.libraryFines,
-      iconAsset: 'assets/dashboard/library-fines.png',
-    ),
-    _fines,
-  ),
-  (
-    LibraryEntry(
-      label: 'Lost & Damaged',
-      path: LibraryRoutes.libraryIncidents,
-      iconAsset: 'assets/dashboard/library-incidents.png',
-    ),
-    _circulation,
-  ),
-  (
-    LibraryEntry(
-      label: 'Catalogue',
-      path: LibraryRoutes.libraryCatalogue,
-      iconAsset: 'assets/dashboard/library-catalogue.png',
-    ),
-    _catalogue,
-  ),
-  (
-    LibraryEntry(
-      label: 'Copies',
-      path: LibraryRoutes.libraryCopies,
-      iconAsset: 'assets/dashboard/library-copies.png',
-    ),
-    _catalogue,
-  ),
-  (
-    LibraryEntry(
-      label: 'Members',
-      path: LibraryRoutes.libraryMembers,
-      iconAsset: 'assets/dashboard/library-members.png',
-    ),
-    _members,
-  ),
-  (
-    LibraryEntry(
-      label: 'Transfers',
-      path: LibraryRoutes.libraryTransfers,
-      iconAsset: 'assets/dashboard/library-transfers.png',
-    ),
-    _catalogue,
-  ),
-  (
-    LibraryEntry(
-      label: 'Stock verification',
-      path: LibraryRoutes.libraryVerification,
-      iconAsset: 'assets/dashboard/library-stock-verification.png',
-    ),
-    _catalogue,
-  ),
-  (
-    LibraryEntry(
-      label: 'Import',
-      path: LibraryRoutes.libraryImport,
-      iconAsset: 'assets/dashboard/library-import.png',
-    ),
-    _import,
-  ),
-  (
-    LibraryEntry(
-      label: 'Dashboard',
-      path: LibraryRoutes.libraryDashboard,
-      iconAsset: 'assets/dashboard/library-dashboard.png',
-    ),
-    _catalogue,
-  ),
-  (
-    LibraryEntry(
-      label: 'Libraries',
-      path: LibraryRoutes.libraryList,
-      iconAsset: 'assets/dashboard/library-libraries.png',
-    ),
-    _catalogue,
-  ),
-  (
-    LibraryEntry(
-      label: 'Categories',
-      path: LibraryRoutes.libraryCategories,
-      iconAsset: 'assets/dashboard/library-categories.png',
-    ),
-    _catalogue,
-  ),
-  (
-    LibraryEntry(
-      label: 'Borrowing policies',
-      path: LibraryRoutes.libraryPolicies,
-      iconAsset: 'assets/dashboard/library-policies.png',
-    ),
-    _members,
-  ),
-  (
-    LibraryEntry(
-      label: 'Reports',
-      path: LibraryRoutes.libraryReports,
-      iconAsset: 'assets/dashboard/reports.png',
-    ),
-    _reports,
+/// One backend sub-action of Library (its tile on phones, its side-nav entry on wide
+/// screens); its [tabs] are the screens that sub-action opens.
+class LibraryGroup {
+  const LibraryGroup({
+    required this.label,
+    required this.iconAsset,
+    required this.tabs,
+  });
+
+  final String label;
+  final String iconAsset;
+  final List<LibraryEntry> tabs;
+
+  String get path => tabs.first.path;
+}
+
+/// The Catalogue group's screens, shown as tabs under each one's app bar.
+const libraryCatalogueTabs = [
+  LibraryEntry(label: 'Books', path: LibraryRoutes.libraryCatalogue),
+  LibraryEntry(label: 'Copies', path: LibraryRoutes.libraryCopies),
+  LibraryEntry(
+    label: 'Stock verification',
+    path: LibraryRoutes.libraryVerification,
   ),
 ];
+
+/// The Members group's screens, shown as tabs under each one's app bar.
+const libraryMemberTabs = [
+  LibraryEntry(label: 'Members', path: LibraryRoutes.libraryMembers),
+  LibraryEntry(
+    label: 'Borrowing policies',
+    path: LibraryRoutes.libraryPolicies,
+  ),
+];
+
+/// The Settings group's screens, shown as tabs under each one's app bar.
+const librarySettingsTabs = [
+  LibraryEntry(label: 'Libraries', path: LibraryRoutes.libraryList),
+  LibraryEntry(label: 'Categories', path: LibraryRoutes.libraryCategories),
+];
+
+final _groups =
+    <(String, String, List<(LibraryEntry, bool Function(ModuleAccess))>)>[
+      (
+        'Circulation',
+        'assets/dashboard/library-circulation.png',
+        [
+          (
+            const LibraryEntry(
+              label: 'Loans',
+              path: LibraryRoutes.libraryCirculation,
+            ),
+            _circulation,
+          ),
+          (
+            const LibraryEntry(
+              label: 'Reservations',
+              path: LibraryRoutes.libraryReservations,
+            ),
+            _circulation,
+          ),
+          (
+            const LibraryEntry(
+              label: 'Fines',
+              path: LibraryRoutes.libraryFines,
+            ),
+            _fines,
+          ),
+          (
+            const LibraryEntry(
+              label: 'Lost & Damaged',
+              path: LibraryRoutes.libraryIncidents,
+            ),
+            _circulation,
+          ),
+        ],
+      ),
+      (
+        'Catalogue',
+        'assets/dashboard/library-catalogue.png',
+        [for (final tab in libraryCatalogueTabs) (tab, _catalogue)],
+      ),
+      (
+        'Members',
+        'assets/dashboard/library-members.png',
+        [for (final tab in libraryMemberTabs) (tab, _members)],
+      ),
+      (
+        'Reports',
+        'assets/dashboard/reports.png',
+        [
+          (
+            const LibraryEntry(
+              label: 'Reports',
+              path: LibraryRoutes.libraryReports,
+            ),
+            _reports,
+          ),
+        ],
+      ),
+      (
+        'Settings',
+        'assets/dashboard/library-libraries.png',
+        [for (final tab in librarySettingsTabs) (tab, _catalogue)],
+      ),
+    ];
 
 bool _catalogue(ModuleAccess access) => access.can('library.catalogue');
 bool _circulation(ModuleAccess access) =>
@@ -147,85 +125,33 @@ bool _fines(ModuleAccess access) =>
     access.can('library.fines.waive');
 bool _members(ModuleAccess access) => access.can('library.members.view');
 bool _reports(ModuleAccess access) => access.can('library.reports.view');
-bool _import(ModuleAccess access) =>
-    access.can('library.catalogue') ||
-    access.can('library.circulation.operate');
 
-/// The Library screens [access] may open, in navigation order.
-List<LibraryEntry> libraryEntries(ModuleAccess access) => [
-  for (final (entry, allowed) in _entries)
-    if (allowed(access)) entry,
+/// The Library groups [access] may open, each with only the screens it opens.
+List<LibraryGroup> libraryGroups(ModuleAccess access) => [
+  for (final (label, iconAsset, screens) in _groups)
+    if ([
+          for (final (entry, allowed) in screens)
+            if (allowed(access)) entry,
+        ]
+        case final tabs when tabs.isNotEmpty)
+      LibraryGroup(label: label, iconAsset: iconAsset, tabs: tabs),
 ];
 
-/// Side navigation on wide screens: seven entries, several with tabs.
-///
-/// An entry or tab appears only when [access] opens its screen.
-List<ModuleDestination> libraryNavigation(ModuleAccess access) {
-  final open = {for (final entry in libraryEntries(access)) entry.path};
-  const groups = <(String, IconData, List<(String, String)>)>[
-    (
-      'Circulation',
-      Icons.swap_horiz_rounded,
-      [
-        ('Loans', LibraryRoutes.libraryCirculation),
-        ('Reservations', LibraryRoutes.libraryReservations),
-        ('Fines', LibraryRoutes.libraryFines),
-        ('Lost & damaged', LibraryRoutes.libraryIncidents),
+/// Side navigation on wide screens: Overview plus the same groups as the phone home grid.
+List<ModuleDestination> libraryNavigation(ModuleAccess access) => [
+  const ModuleDestination(
+    label: 'Overview',
+    path: LibraryRoutes.library,
+    iconAsset: 'assets/dashboard/library.png',
+  ),
+  for (final group in libraryGroups(access))
+    ModuleDestination(
+      label: group.label,
+      path: group.path,
+      iconAsset: group.iconAsset,
+      tabs: [
+        for (final tab in group.tabs)
+          ModuleTab(label: tab.label, path: tab.path),
       ],
     ),
-    (
-      'Catalogue',
-      Icons.menu_book_outlined,
-      [
-        ('Books', LibraryRoutes.libraryCatalogue),
-        ('Copies & acquisitions', LibraryRoutes.libraryCopies),
-      ],
-    ),
-    (
-      'Members',
-      Icons.people_outline_rounded,
-      [('Members', LibraryRoutes.libraryMembers)],
-    ),
-    (
-      'Stock control',
-      Icons.inventory_2_outlined,
-      [
-        ('Transfers', LibraryRoutes.libraryTransfers),
-        ('Stock verification', LibraryRoutes.libraryVerification),
-      ],
-    ),
-    (
-      'Reports',
-      Icons.assessment_outlined,
-      [('Reports', LibraryRoutes.libraryReports)],
-    ),
-    (
-      'Settings',
-      Icons.settings_outlined,
-      [
-        ('Libraries', LibraryRoutes.libraryList),
-        ('Borrowing policies', LibraryRoutes.libraryPolicies),
-        ('Categories', LibraryRoutes.libraryCategories),
-        ('Import', LibraryRoutes.libraryImport),
-      ],
-    ),
-  ];
-  return [
-    const ModuleDestination(
-      label: 'Overview',
-      path: LibraryRoutes.library,
-      icon: Icons.space_dashboard_outlined,
-    ),
-    for (final (label, icon, tabs) in groups)
-      if (tabs.any((tab) => open.contains(tab.$2)))
-        ModuleDestination(
-          label: label,
-          path: tabs.firstWhere((tab) => open.contains(tab.$2)).$2,
-          icon: icon,
-          tabs: [
-            for (final (tabLabel, path) in tabs)
-              if (open.contains(path)) ModuleTab(label: tabLabel, path: path),
-          ],
-        ),
-  ];
-}
+];

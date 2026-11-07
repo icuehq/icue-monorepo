@@ -9,11 +9,9 @@ class MockBook {
     required this.year,
     required this.language,
     required this.pages,
-    required this.classificationNumber,
     required this.keywords,
     required this.description,
-    required this.isbn13,
-    required this.isbn10,
+    required this.isbn,
     this.subtitle,
   });
 
@@ -28,13 +26,11 @@ class MockBook {
   final int year;
   final String language;
   final int pages;
-  final String classificationNumber;
   final List<String> keywords;
   final String description;
 
   /// Valid check digits, so the server accepts them; not the real ISBNs of these books.
-  final String isbn13;
-  final String isbn10;
+  final String isbn;
 }
 
 const mockBooks = <MockBook>[
@@ -48,11 +44,9 @@ const mockBooks = <MockBook>[
     year: 1999,
     language: 'English',
     pages: 180,
-    classificationNumber: 'B KAL',
     keywords: ['autobiography', 'scientist', 'india'],
     description: 'The life story of the missile scientist and former President of India.',
-    isbn13: '9782014060010',
-    isbn10: '2014060010',
+    isbn: '9782014060010',
   ),
   MockBook(
     title: 'The Discovery of India',
@@ -63,11 +57,9 @@ const mockBooks = <MockBook>[
     year: 2004,
     language: 'English',
     pages: 640,
-    classificationNumber: '954 NEH',
     keywords: ['history', 'india', 'freedom struggle'],
     description: 'A survey of Indian history, culture and philosophy.',
-    isbn13: '9781430310310',
-    isbn10: '1430310316',
+    isbn: '9781430310310',
   ),
   MockBook(
     title: 'A Brief History of Time',
@@ -78,11 +70,9 @@ const mockBooks = <MockBook>[
     year: 1998,
     language: 'English',
     pages: 212,
-    classificationNumber: '523.1 HAW',
     keywords: ['cosmology', 'physics', 'universe'],
     description: 'An accessible introduction to cosmology, black holes and the nature of time.',
-    isbn13: '9785533801683',
-    isbn10: '5533801685',
+    isbn: '9785533801683',
   ),
   MockBook(
     title: 'Concepts of Physics',
@@ -94,11 +84,9 @@ const mockBooks = <MockBook>[
     year: 2018,
     language: 'English',
     pages: 464,
-    classificationNumber: '530 VER',
     keywords: ['physics', 'mechanics', 'textbook'],
     description: 'Mechanics, waves and heat for senior secondary students.',
-    isbn13: '9788177091878',
-    isbn10: '8177091875',
+    isbn: '9788177091878',
   ),
   MockBook(
     title: 'Mathematics for Class 10',
@@ -109,12 +97,10 @@ const mockBooks = <MockBook>[
     year: 2022,
     language: 'English',
     pages: 720,
-    classificationNumber: '510 SHA',
     keywords: ['mathematics', 'class 10', 'exercises'],
     description:
         'Chapter-wise theory and exercises aligned to the CBSE syllabus.',
-    isbn13: '9789352740017',
-    isbn10: '9352740017',
+    isbn: '9789352740017',
   ),
   MockBook(
     title: 'The Jungle Book',
@@ -125,11 +111,9 @@ const mockBooks = <MockBook>[
     year: 2015,
     language: 'English',
     pages: 240,
-    classificationNumber: '823 KIP',
     keywords: ['jungle', 'mowgli', 'classic'],
     description: 'Tales of Mowgli and the animals of the Indian jungle.',
-    isbn13: '9789333600019',
-    isbn10: '9333600019',
+    isbn: '9789333600019',
   ),
   MockBook(
     title: 'Malgudi Days',
@@ -140,12 +124,10 @@ const mockBooks = <MockBook>[
     year: 2006,
     language: 'English',
     pages: 256,
-    classificationNumber: '823 NAR',
     keywords: ['short stories', 'india', 'malgudi'],
     description:
         'Short stories set in the fictional South Indian town of Malgudi.',
-    isbn13: '9788185000015',
-    isbn10: '8185000018',
+    isbn: '9788185000015',
   ),
   MockBook(
     title: 'Godaan',
@@ -156,11 +138,9 @@ const mockBooks = <MockBook>[
     year: 2012,
     language: 'Hindi',
     pages: 376,
-    classificationNumber: '891.43 PRE',
     keywords: ['novel', 'rural india', 'hindi'],
     description: 'A classic Hindi novel about a poor farmer and his family.',
-    isbn13: '9788121610018',
-    isbn10: '812161001X',
+    isbn: '9788121610018',
   ),
   MockBook(
     title: 'Oxford Advanced Learner\'s Dictionary',
@@ -171,11 +151,9 @@ const mockBooks = <MockBook>[
     year: 2010,
     language: 'English',
     pages: 1796,
-    classificationNumber: '423 WEH',
     keywords: ['dictionary', 'english', 'reference'],
     description: 'A dictionary of current English for learners.',
-    isbn13: '9780194799003',
-    isbn10: '019479900X',
+    isbn: '9780194799003',
   ),
   MockBook(
     title: 'Britannica Student Encyclopaedia',
@@ -186,11 +164,9 @@ const mockBooks = <MockBook>[
     year: 2020,
     language: 'English',
     pages: 1200,
-    classificationNumber: '031 BRI',
     keywords: ['encyclopedia', 'students', 'reference'],
     description: 'A multi-subject reference for school learners.',
-    isbn13: '9788161100012',
-    isbn10: '8161100012',
+    isbn: '9788161100012',
   ),
   MockBook(
     title: 'Atlas of the World',
@@ -201,11 +177,9 @@ const mockBooks = <MockBook>[
     year: 2019,
     language: 'English',
     pages: 304,
-    classificationNumber: '912 NAT',
     keywords: ['atlas', 'maps', 'world'],
     description: 'Political and physical maps of every region of the world.',
-    isbn13: '9781426210013',
-    isbn10: '1426210019',
+    isbn: '9781426210013',
   ),
   MockBook(
     title: 'Wren & Martin High School Grammar',
@@ -216,11 +190,9 @@ const mockBooks = <MockBook>[
     year: 2017,
     language: 'English',
     pages: 536,
-    classificationNumber: '425 WRE',
     keywords: ['grammar', 'english', 'composition'],
     description: 'English grammar and composition for school students.',
-    isbn13: '9789385730016',
-    isbn10: '9385730010',
+    isbn: '9789385730016',
   ),
   MockBook(
     title: 'Science Textbook for Class 8',
@@ -231,11 +203,9 @@ const mockBooks = <MockBook>[
     year: 2021,
     language: 'English',
     pages: 208,
-    classificationNumber: '500 NCE',
     keywords: ['ncert', 'class 8', 'science'],
     description: 'The prescribed science textbook for Class 8.',
-    isbn13: '9788174500014',
-    isbn10: '8174500014',
+    isbn: '9788174500014',
   ),
   MockBook(
     title: 'Manorama Year Book',
@@ -246,11 +216,9 @@ const mockBooks = <MockBook>[
     year: 2023,
     language: 'English',
     pages: 800,
-    classificationNumber: '031 MAT',
     keywords: ['general knowledge', 'facts', 'annual'],
     description: 'A yearly compendium of facts, figures and current affairs.',
-    isbn13: '9788938100016',
-    isbn10: '8938100014',
+    isbn: '9788938100016',
   ),
   MockBook(
     title: 'Sapiens',
@@ -262,10 +230,8 @@ const mockBooks = <MockBook>[
     year: 2015,
     language: 'English',
     pages: 443,
-    classificationNumber: '909 HAR',
     keywords: ['anthropology', 'history', 'humankind'],
     description: 'How Homo sapiens came to dominate the planet.',
-    isbn13: '9780099590088',
-    isbn10: '0099590085',
+    isbn: '9780099590088',
   ),
 ];

@@ -124,7 +124,7 @@ final libraryReports = <LibraryReportDef>[
       _textColumn('Publisher', 'publisher'),
       _textColumn('Edition', 'edition'),
       _textColumn('Year', 'year'),
-      _textColumn('ISBN', 'isbn13'),
+      _textColumn('ISBN', 'isbn'),
       LibraryReportCol(
         'Category',
         (data, names) => names.category(data['categoryId']),
@@ -139,7 +139,6 @@ final libraryReports = <LibraryReportDef>[
     _lib(),
     _textColumn('Shelf', 'shelf'),
     _dayColumn('Acquired', 'acquiredDate'),
-    _textColumn('Source', 'source'),
     _money('Price', 'price'),
   ], dateField: 'acquiredDate'),
   LibraryReportDef(
@@ -286,7 +285,6 @@ final libraryReports = <LibraryReportDef>[
     [
       _dayColumn('Date', 'date'),
       _textColumn('Acquisition', 'number'),
-      _textColumn('Source', 'type'),
       _title(),
       _lib(),
       LibraryReportCol(
@@ -298,35 +296,6 @@ final libraryReports = <LibraryReportDef>[
       _textColumn('Vendor / donor', 'vendorOrDonor'),
     ],
     dateField: 'date',
-    statuses: ['purchase', 'donation', 'opening'],
-  ),
-  LibraryReportDef(
-    'transfers',
-    'Transfer report',
-    'libraryTransfers',
-    [
-      _dayColumn('Date', 'createdAt'),
-      _textColumn('Transfer', 'number'),
-      _lib('fromLibraryId'),
-      LibraryReportCol(
-        'To',
-        (data, names) => names.library(data['toLibraryId']),
-      ),
-      LibraryReportCol(
-        'Copies',
-        (m, _) => '${(m['lineItems'] as List?)?.length ?? 0}',
-      ),
-      _textColumn('Status', 'status'),
-    ],
-    dateField: 'createdAt',
-    statuses: [
-      'requested',
-      'approved',
-      'dispatched',
-      'partially_received',
-      'received',
-    ],
-    hasLibrary: false,
   ),
   LibraryReportDef(
     'verifications',
@@ -431,36 +400,3 @@ const libraryDashboardStats = <(String, String, List<String>)>[
     ],
   ),
 ];
-
-/// Columns of each import type (`library-import-run`); the first row of the pasted CSV. Lists use `;`.
-const libraryImportColumns = <String, List<String>>{
-  'catalogue': [
-    'title',
-    'authors',
-    'category',
-    'isbn13',
-    'isbn10',
-    'publisher',
-    'edition',
-    'year',
-    'language',
-    'pages',
-    'classificationNumber',
-    'keywords',
-  ],
-  'copies': [
-    'isbn13',
-    'library',
-    'quantity',
-    'price',
-    'shelf',
-    'condition',
-    'date',
-  ],
-};
-
-/// Permission the single-record callable of each import type needs.
-const libraryImportPerms = <String, String>{
-  'catalogue': 'library.catalogue',
-  'copies': 'library.catalogue',
-};

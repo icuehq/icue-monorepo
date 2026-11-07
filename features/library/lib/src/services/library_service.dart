@@ -9,7 +9,6 @@ import 'package:school_library/src/models/library_loans.dart';
 import 'package:school_library/src/models/library_masters.dart';
 import 'package:school_library/src/models/library_members.dart';
 import 'package:school_library/src/models/library_reservations.dart';
-import 'package:school_library/src/models/library_transfers.dart';
 import 'package:school_library/src/models/library_verifications.dart';
 
 /// Library masters: reads from Firestore, writes through callables.
@@ -255,15 +254,6 @@ class LibraryService {
     );
   }
 
-  /// Transfers leaving or arriving on the user's campuses, newest first.
-  Future<List<LibraryTransfer>> transfers(ModuleAccess access) async =>
-      fetchCampusBothSides(
-        await schoolCollection('libraryTransfers'),
-        access,
-        LibraryTransfer.fromMap,
-        (transfer) => transfer.createdAt,
-      );
-
   /// A page of stock verification sessions, newest first.
   Future<PagedResult<LibraryVerification>> verifications({
     DocumentSnapshot<Map<String, dynamic>>? after,
@@ -299,8 +289,18 @@ class LibraryService {
   Future<void> setCategoryActive(String id, {required bool active}) =>
       setMasterActive('libraryCategories', id, active: active);
 
-  Future<void> saveBook(Map<String, Object?> data, {String? requestId}) =>
-      _call('library-catalogue-upsert', data, requestId);
+  /// Returns the book's ID.
+  Future<String> saveBook(
+    Map<String, Object?> data, {
+    String? requestId,
+  }) async {
+    final result = await callFunction(
+      'library-catalogue-upsert',
+      data: data,
+      requestId: requestId,
+    ) as Map<Object?, Object?>;
+    return result['id']! as String;
+  }
 
   Future<void> setBookActive(String id, {required bool active}) =>
       _call('library-catalogue-setStatus', _status(id, active));
@@ -370,29 +370,6 @@ class LibraryService {
     String? requestId,
   }) => _call('library-incident-resolve', data, requestId);
 
-  Future<void> requestTransfer(
-    Map<String, Object?> data, {
-    String? requestId,
-  }) => _call('library-transfer-request', data, requestId);
-
-  Future<void> approveTransfer(String id, {String? requestId}) =>
-      _call('library-transfer-approve', {'id': id}, requestId);
-
-  Future<void> dispatchTransfer(String id, {String? requestId}) =>
-      _call('library-transfer-dispatch', {'id': id}, requestId);
-
-  Future<void> cancelTransfer(String id, String reason, {String? requestId}) =>
-      _call('library-transfer-cancel', {'id': id, 'reason': reason}, requestId);
-
-  Future<void> closeTransferShort(
-    String id,
-    String reason, {
-    String? requestId,
-  }) => _call('library-transfer-closeShort', {
-    'id': id,
-    'reason': reason,
-  }, requestId);
-
   Future<void> setMemberBlocked(
     String id, {
     required bool blocked,
@@ -402,11 +379,6 @@ class LibraryService {
     'blocked': blocked,
     'reason': ?reason,
   });
-
-  Future<void> receiveTransfer(
-    Map<String, Object?> data, {
-    String? requestId,
-  }) => _call('library-transfer-receive', data, requestId);
 
   Future<void> createVerification(
     Map<String, Object?> data, {

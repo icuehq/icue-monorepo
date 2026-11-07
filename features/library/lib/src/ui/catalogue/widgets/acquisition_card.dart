@@ -12,27 +12,13 @@ class AcquisitionCard extends StatelessWidget {
   final LibraryAcquisition acquisition;
   final String libraryName;
 
-  (Color, Color) _typeColors(ThemeData theme) {
-    return switch (acquisition.type) {
-      'donation' => (
-        Colors.purple.shade700,
-        Colors.purple.withValues(alpha: 0.12),
-      ),
-      'opening_stock' => (
-        Colors.teal.shade700,
-        Colors.teal.withValues(alpha: 0.12),
-      ),
-      _ => (
-        theme.colorScheme.primary,
-        theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
-      ),
-    };
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final (typeColor, typeBackground) = _typeColors(theme);
+    final typeColor = theme.colorScheme.primary;
+    final typeBackground = theme.colorScheme.primaryContainer.withValues(
+      alpha: 0.4,
+    );
 
     return Card(
       elevation: 0,
@@ -78,28 +64,6 @@ class AcquisitionCard extends StatelessWidget {
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.w700,
                               fontSize: 15,
-                            ),
-                          ),
-                          const Spacer(),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: typeBackground,
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(
-                                color: typeColor.withValues(alpha: 0.3),
-                              ),
-                            ),
-                            child: Text(
-                              humanizeStatus(acquisition.type),
-                              style: TextStyle(
-                                color: typeColor,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
                             ),
                           ),
                         ],

@@ -24,7 +24,7 @@ class _LibraryHomePageState extends State<LibraryHomePage> {
   @override
   Widget build(BuildContext context) {
     final libraryProvider = context.watch<LibraryProvider>();
-    final visibleTiles = libraryEntries(libraryProvider.access);
+    final visibleTiles = libraryGroups(libraryProvider.access);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Library')),

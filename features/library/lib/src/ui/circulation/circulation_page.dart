@@ -198,7 +198,7 @@ class _CirculationPageState extends State<CirculationPage> {
             onPressed: () => libraryProvider.loadLoans(),
           ),
         ],
-        bottom: const CirculationTabBar(activeTab: CirculationTab.loans),
+        bottom: CirculationTabBar(activeTab: CirculationTab.loans),
       ),
       body: CenteredBody(
         child: Column(

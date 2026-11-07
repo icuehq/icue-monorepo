@@ -17,7 +17,6 @@ class LibraryCopy {
     required this.condition,
     required this.status,
     required this.price,
-    this.source,
     this.vendorOrDonor,
     this.acquiredDate,
     this.remarks,
@@ -37,7 +36,6 @@ class LibraryCopy {
         condition: data['condition'] as String? ?? 'good',
         status: data['status'] as String? ?? 'available',
         price: readDouble(data['price']),
-        source: data['source'] as String?,
         vendorOrDonor: data['vendorOrDonor'] as String?,
         acquiredDate: readDayOrNull(data['acquiredDate']),
         remarks: data['remarks'] as String?,
@@ -55,7 +53,6 @@ class LibraryCopy {
   final String condition;
   final String status;
   final double price;
-  final String? source;
   final String? vendorOrDonor;
   final String? acquiredDate;
   final String? remarks;
@@ -66,7 +63,6 @@ class LibraryAcquisition {
   const LibraryAcquisition({
     required this.id,
     required this.number,
-    required this.type,
     required this.catalogueId,
     required this.libraryId,
     required this.quantity,
@@ -80,7 +76,6 @@ class LibraryAcquisition {
       LibraryAcquisition(
         id: id,
         number: data['number'] as String? ?? '',
-        type: data['type'] as String? ?? 'purchase',
         catalogueId: data['catalogueId'] as String? ?? '',
         libraryId: data['libraryId'] as String? ?? '',
         quantity: (data['quantity'] as num? ?? 0).toInt(),
@@ -92,7 +87,6 @@ class LibraryAcquisition {
 
   final String id;
   final String number;
-  final String type;
   final String catalogueId;
   final String libraryId;
   final int quantity;

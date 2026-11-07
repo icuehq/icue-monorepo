@@ -230,7 +230,7 @@ class _FinesPageState extends State<FinesPage> {
             onPressed: () => libraryProvider.loadFines(status: _status),
           ),
         ],
-        bottom: const CirculationTabBar(activeTab: CirculationTab.fines),
+        bottom: CirculationTabBar(activeTab: CirculationTab.fines),
       ),
       body: CenteredBody(
         child: Column(

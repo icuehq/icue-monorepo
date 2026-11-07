@@ -27,7 +27,6 @@ abstract final class Collections {
   static const libraryLoans = 'libraryLoans';
   static const libraryMembers = 'libraryMembers';
   static const libraryReservations = 'libraryReservations';
-  static const libraryTransfers = 'libraryTransfers';
   static const libraryVerifications = 'libraryVerifications';
 }
 
