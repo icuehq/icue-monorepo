@@ -124,18 +124,6 @@ class LibraryService {
     return byId.exists ? LibraryCopy.fromMap(byId.id, byId.data()!) : null;
   }
 
-  /// Latest acquisitions (newest first).
-  Future<List<LibraryAcquisition>> acquisitions({int limit = 100}) async {
-    final snapshot = await (await schoolCollection('libraryAcquisitions'))
-        .orderBy('createdAt', descending: true)
-        .limit(limit)
-        .get();
-    return [
-      for (final document in snapshot.docs)
-        LibraryAcquisition.fromMap(document.id, document.data()),
-    ];
-  }
-
   Future<List<LibraryPolicy>> policies() async =>
       (await _all('libraryBorrowingPolicies', LibraryPolicy.fromMap))
         ..sort((left, right) => left.name.compareTo(right.name));

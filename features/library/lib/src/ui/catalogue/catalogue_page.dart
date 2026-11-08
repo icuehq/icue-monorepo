@@ -9,8 +9,6 @@ import 'package:school_library/src/ui/catalogue/widgets/book_card.dart';
 import 'package:school_library/src/ui/catalogue/widgets/catalogue_empty_states.dart';
 import 'package:school_library/src/ui/catalogue/widgets/catalogue_filter_header.dart';
 import 'package:school_library/src/ui/reservations/widgets/reservation_dialog.dart';
-import 'package:school_library/src/ui/routing/library_destinations.dart';
-import 'package:school_library/src/ui/routing/library_tab_bar.dart';
 
 class CataloguePage extends StatefulWidget {
   const CataloguePage({super.key, this.categoryId});
@@ -96,10 +94,6 @@ class _CataloguePageState extends State<CataloguePage> {
             ),
           ),
         ],
-        bottom: const LibraryTabBar(
-          tabs: libraryCatalogueTabs,
-          activePath: LibraryRoutes.libraryCatalogue,
-        ),
       ),
       floatingActionButton: !isWide
           ? FloatingActionButton.extended(

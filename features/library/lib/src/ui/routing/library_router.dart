@@ -4,7 +4,6 @@ import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/catalogue/book_details_page.dart';
 import 'package:school_library/src/ui/catalogue/book_form_page.dart';
 import 'package:school_library/src/ui/catalogue/catalogue_page.dart';
-import 'package:school_library/src/ui/catalogue/copies_page.dart';
 import 'package:school_library/src/ui/circulation/circulation_page.dart';
 import 'package:school_library/src/ui/circulation/issue_books_page.dart';
 import 'package:school_library/src/ui/circulation/widgets/scan_listener.dart';
@@ -64,11 +63,6 @@ final _libraryPages = <RouteBase>[
     name: LibraryRoutes.libraryBookFormName,
     builder: (context, state) =>
         BookFormPage(book: state.extra as LibraryBook?),
-  ),
-  GoRoute(
-    path: LibraryRoutes.libraryCopies,
-    name: LibraryRoutes.libraryCopiesName,
-    builder: (context, state) => const CopiesPage(),
   ),
   GoRoute(
     path: LibraryRoutes.libraryMembers,

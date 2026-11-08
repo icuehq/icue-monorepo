@@ -346,7 +346,7 @@ Rules and indexes:
 Flutter:
 
 - [x] `features/library`: `lib_copies.dart` models (`LibCopy`, `LibAcquisition`), `LibraryService` / `LibraryProvider` extended (copies of a title, find by accession / barcode / RFID, acquisitions, writes), model test
-- [x] `icueadmin` screens under `features/library/` (copies section on the book page with add-copies sheet and label printing, copy sheet with edit / move / status, Copies & acquisitions page with scan-to-find, route `/layout.Library/copies`, Copies tile for librarians); labels are QR codes of the accession number via `pdf` + `printing`
+- [x] `icueadmin` screens under `features/library/` (copies section on the book page with add-copies sheet and label printing, copy sheet with edit / move / status; the standalone Copies & acquisitions page was removed (copies live on the book page)); labels are QR codes of the accession number via `pdf` + `printing`
 - [x] `melos run lint` passes (library, icueadmin); functions and rules tests pass
 
 ### Lib-3

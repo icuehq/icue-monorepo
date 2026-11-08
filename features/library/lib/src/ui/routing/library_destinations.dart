@@ -25,12 +25,6 @@ class LibraryGroup {
   String get path => tabs.first.path;
 }
 
-/// The Catalogue group's screens, shown as tabs under each one's app bar.
-const libraryCatalogueTabs = [
-  LibraryEntry(label: 'Books', path: LibraryRoutes.libraryCatalogue),
-  LibraryEntry(label: 'Copies', path: LibraryRoutes.libraryCopies),
-];
-
 /// The Settings group's screens, shown as tabs under each one's app bar.
 const librarySettingsTabs = [
   LibraryEntry(label: 'Libraries', path: LibraryRoutes.libraryList),
@@ -58,7 +52,11 @@ const _groups = <(String, String, List<LibraryEntry>)>[
       ),
     ],
   ),
-  ('Catalogue', 'assets/dashboard/library-catalogue.png', libraryCatalogueTabs),
+  (
+    'Catalogue',
+    'assets/dashboard/library-catalogue.png',
+    [LibraryEntry(label: 'Books', path: LibraryRoutes.libraryCatalogue)],
+  ),
   (
     'Members',
     'assets/dashboard/library-members.png',

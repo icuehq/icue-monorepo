@@ -389,8 +389,6 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
 
   Future<LibraryCopy?> findCopy(String code) => _service.findCopy(code);
 
-  Future<List<LibraryAcquisition>> acquisitions() => _service.acquisitions();
-
   SchoolLibrary? library(String? id) {
     for (final schoolLibrary in libraries) {
       if (schoolLibrary.id == id) return schoolLibrary;

@@ -52,8 +52,8 @@ const _icons = <String, IconData>{
 
 const _targets = <String, String>{
   'titles': LibraryRoutes.libraryCatalogue,
-  'copies': LibraryRoutes.libraryCopies,
-  'available': LibraryRoutes.libraryCopies,
+  'copies': LibraryRoutes.libraryCatalogue,
+  'available': LibraryRoutes.libraryCatalogue,
   'lost': LibraryRoutes.libraryIncidents,
   'damaged': LibraryRoutes.libraryIncidents,
   'issued': LibraryRoutes.libraryCirculation,
