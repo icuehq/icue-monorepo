@@ -17,12 +17,12 @@ const get = async (path: string) => (await db().doc(`schools/${SCHOOL_ID}/${path
 const count = async (collection: string) =>
   (await db().collection(`schools/${SCHOOL_ID}/${collection}`).get()).size;
 
-describe('library copies and acquisitions', () => {
+describe('library copies and books', () => {
   let title: string, mainLibrary: string, secondLibrary: string;
   let barcodeSequence = 0;
   const buy = (extra: Record<string, unknown> = {}) => {
     const quantity = (extra.quantity as number | undefined) ?? 3;
-    return run(copies.acquisitionCreate, {
+    return run(copies.createBook, {
       catalogueId: title,
       libraryId: mainLibrary,
       quantity,
@@ -57,7 +57,7 @@ describe('library copies and acquisitions', () => {
     secondLibrary = (await seedLibrary({ name: 'Junior', campusId: 32 })).id;
   });
 
-  it('acquisition creates one copy per unit with one copy per barcode, stored under the barcode', async () => {
+  it('createBook creates one copy per unit with one copy per barcode, stored under the barcode', async () => {
     const purchase = await buy();
     expect(purchase.barcodes).toEqual(['ACC-000001', 'ACC-000002', 'ACC-000003']);
     expect(await get('libraryCopies/ACC-000002')).toMatchObject({
@@ -67,7 +67,7 @@ describe('library copies and acquisitions', () => {
       price: 250,
       catalogueId: title,
     });
-    expect(await get(`libraryAcquisitions/${purchase.id}`)).toMatchObject({
+    expect(await get(`libraryBooks/${purchase.id}`)).toMatchObject({
       quantity: 3,
       barcodes: purchase.barcodes,
     });
@@ -81,7 +81,7 @@ describe('library copies and acquisitions', () => {
     expect(await get('libraryCopies/ACC-000004')).toMatchObject({ campusId: 32, price: 0 });
   });
 
-  it('acquisition stores scanned barcodes and rejects wrong counts or repeats', async () => {
+  it('createBook stores scanned barcodes and rejects wrong counts or repeats', async () => {
     await buy({ quantity: 2, barcodes: ['9780001', '9780002'] });
     expect(await get('libraryCopies/9780002')).toMatchObject({ barcode: '9780002' });
     await expect(buy({ quantity: 2, barcodes: ['1'] })).rejects.toThrow();
@@ -89,7 +89,7 @@ describe('library copies and acquisitions', () => {
     await expect(buy({ quantity: 1, barcodes: ['9780001'] })).rejects.toThrow();
   });
 
-  it('acquisition rules: campus scope, active title and library', async () => {
+  it('createBook rules: campus scope, active title and library', async () => {
     await expect(buy({})).resolves.toBeTruthy();
     await db()
       .doc(`schools/${SCHOOL_ID}/userAccess/1`)

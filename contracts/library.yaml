@@ -1,7 +1,7 @@
 # Library contracts shared by Flutter and Cloud Functions. See contracts/inventory.yaml for the format.
 
 collections:
-  - libraryAcquisitions
+  - libraryBooks
   - libraryCatalogue
   - libraryCopies
   - libraryFines
@@ -82,16 +82,6 @@ models:
         acquiredDate: day?
         remarks: string?
         heldReservationId: string?
-    LibraryAcquisition:
-      id: id
-      fields:
-        number: string
-        catalogueId: string
-        libraryId: string
-        quantity: int
-        price: double
-        date: day?
-        reference: string?
   library_fines:
     LibraryFineWaiver:
       fields:

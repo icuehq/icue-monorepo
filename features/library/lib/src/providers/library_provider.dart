@@ -340,7 +340,7 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   }) => _write(() async {
     final id = await _writes.saveBook(data);
     if (copies != null) {
-      await _service.createAcquisition({
+      await _service.createBook({
         'catalogueId': id,
         ...copies,
       }, requestId: copiesRequestId);

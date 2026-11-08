@@ -59,7 +59,7 @@ describe('library reservations', () => {
       })
     ).id;
     mainLibrary = (await seedLibrary({ name: 'Main', campusId: 31 })).id;
-    await run(copies.acquisitionCreate, {
+    await run(copies.createBook, {
       catalogueId: title,
       libraryId: mainLibrary,
       quantity: 1,
@@ -179,7 +179,7 @@ describe('library reservations', () => {
     await expect(run(loans.loanRenew, { id: loan.id })).rejects.toMatchObject({
       code: 'failed-precondition',
     });
-    const acq = await run(copies.acquisitionCreate, {
+    const acq = await run(copies.createBook, {
       catalogueId: title,
       libraryId: mainLibrary,
       quantity: 2,

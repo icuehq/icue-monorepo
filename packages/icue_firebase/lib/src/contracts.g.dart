@@ -20,7 +20,7 @@ abstract final class Collections {
   static const inventoryUnits = 'inventoryUnits';
   static const inventoryVendors = 'inventoryVendors';
   static const inventoryVerifications = 'inventoryVerifications';
-  static const libraryAcquisitions = 'libraryAcquisitions';
+  static const libraryBooks = 'libraryBooks';
   static const libraryCatalogue = 'libraryCatalogue';
   static const libraryCopies = 'libraryCopies';
   static const libraryFines = 'libraryFines';

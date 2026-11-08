@@ -49,37 +49,3 @@ class LibraryCopy {
   final String? remarks;
   final String? heldReservationId;
 }
-
-class LibraryAcquisition {
-  const LibraryAcquisition({
-    required this.id,
-    required this.number,
-    required this.catalogueId,
-    required this.libraryId,
-    required this.quantity,
-    required this.price,
-    this.date,
-    this.reference,
-  });
-
-  factory LibraryAcquisition.fromMap(String id, Map<String, dynamic> data) =>
-      LibraryAcquisition(
-        id: id,
-        number: data['number'] as String? ?? '',
-        catalogueId: data['catalogueId'] as String? ?? '',
-        libraryId: data['libraryId'] as String? ?? '',
-        quantity: (data['quantity'] as num? ?? 0).toInt(),
-        price: readDouble(data['price']),
-        date: readDayOrNull(data['date']),
-        reference: data['reference'] as String?,
-      );
-
-  final String id;
-  final String number;
-  final String catalogueId;
-  final String libraryId;
-  final int quantity;
-  final double price;
-  final String? date;
-  final String? reference;
-}

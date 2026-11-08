@@ -356,8 +356,8 @@ service cloud.firestore {
         && (access(schoolId).hasAllCampuses == true || resource.data.campusIds.hasOnly(access(schoolId).campusIds))
         && request.resource.data.lastWrite.action == 'libraryMember.block';
     }
-    // Acquisition records (Lib-2): librarians, and report readers on the campus.
-    match /schools/{schoolId}/libraryAcquisitions/{id} {
+    // Book records (Lib-2): librarians, and report readers on the campus.
+    match /schools/{schoolId}/libraryBooks/{id} {
       allow read: if staff(schoolId);
     }
     // Members and borrowing policies (Lib-3); report readers see them for the dashboard.

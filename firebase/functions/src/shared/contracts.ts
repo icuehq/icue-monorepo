@@ -22,7 +22,7 @@ export const Collections = {
   inventoryUnits: 'inventoryUnits',
   inventoryVendors: 'inventoryVendors',
   inventoryVerifications: 'inventoryVerifications',
-  libraryAcquisitions: 'libraryAcquisitions',
+  libraryBooks: 'libraryBooks',
   libraryCatalogue: 'libraryCatalogue',
   libraryCopies: 'libraryCopies',
   libraryFines: 'libraryFines',

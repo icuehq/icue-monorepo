@@ -69,7 +69,7 @@ Inventory definition of done: FRS §31.
 | Phase | Scope (FRS) | Status | Commit |
 | --- | --- | --- | --- |
 | Lib-1 | Libraries, categories, catalogue (11.2–11.4) | done, not deployed | – (committed) |
-| Lib-2 | Copies, accession numbers, acquisition, barcodes (11.5–11.6) | done, not deployed | d3f48e8 |
+| Lib-2 | Copies, accession numbers, book, barcodes (11.5–11.6) | done, not deployed | d3f48e8 |
 | Lib-3 | Memberships, borrowing policies (11.7–11.8) | done, not deployed | abb3f9d |
 | Lib-4 | Issue, return, renewal (11.9–11.11) | done, not deployed | 04fe97f |
 | Lib-5 | Reservations, waiting lists (11.12) | done, not deployed | 0ab4b80 |
@@ -329,24 +329,24 @@ Flutter:
 
 ### Lib-2
 
-Collections: `libraryCopies` (doc ID = barcode), `libraryAcquisitions`.
+Collections: `libraryCopies` (doc ID = barcode), `libraryBooks`.
 
 Functions (`firebase/functions/src/library/copies.ts`, all `library.catalogue`, campus scoped through the library / copy):
 
-- [x] `library-acquisition-create` (purchase, donation or opening stock; 1–100 copies per call; purchase needs a price, donation may be 0; active title and library only; numbering `ACQ/<financialYear>/<seq>`; creates one copy per unit; each copy's document ID is its required, scanned barcode, so a repeated barcode fails with `already-exists`)
+- [x] `library-book-create` (purchase, donation or opening stock; 1–100 copies per call; purchase needs a price, donation may be 0; active title and library only; numbering `ACQ/<financialYear>/<seq>`; creates one copy per unit; each copy's document ID is its required, scanned barcode, so a repeated barcode fails with `already-exists`)
 - [x] `library-copy-update` (shelf, condition, remarks, RFID tag unique per school via `uniqueKeys` `libraryRfid`), `library-copy-move` (available copies only, to another active library on an allowed campus), `library-copy-setStatus` (available / under maintenance / damaged / lost / withdrawn; reason for damaged, lost, withdrawn; lost and withdrawn are final; issued, reserved, in-transit untouchable)
 - [x] Tests: `test/copies.test.ts` (emulator)
 
 Rules and indexes:
 
-- [x] `firestore.rules`: `libraryCopies` readable with `library.catalogue`; `libraryAcquisitions` with `library.catalogue`
-- [x] Indexes: none needed (copies by `catalogueId`, barcode and RFID tag are single-field queries; acquisitions by `createdAt`)
+- [x] `firestore.rules`: `libraryCopies` readable with `library.catalogue`; `libraryBooks` with `library.catalogue`
+- [x] Indexes: none needed (copies by `catalogueId`, barcode and RFID tag are single-field queries; books by `createdAt`)
 - [x] Rules tests
 
 Flutter:
 
-- [x] `features/library`: `lib_copies.dart` models (`LibCopy`, `LibAcquisition`), `LibraryService` / `LibraryProvider` extended (copies of a title, find by accession / barcode / RFID, acquisitions, writes), model test
-- [x] `icueadmin` screens under `features/library/` (copies section on the book page with add-copies sheet and label printing, copy sheet with edit / move / status; the standalone Copies & acquisitions page was removed (copies live on the book page)); labels are QR codes of the accession number via `pdf` + `printing`
+- [x] `features/library`: `lib_copies.dart` models (`LibCopy`, `LibBook`), `LibraryService` / `LibraryProvider` extended (copies of a title, find by accession / barcode / RFID, books, writes), model test
+- [x] `icueadmin` screens under `features/library/` (copies section on the book page with add-copies sheet and label printing, copy sheet with edit / move / status; the standalone Copies & books page was removed (copies live on the book page)); labels are QR codes of the accession number via `pdf` + `printing`
 - [x] `melos run lint` passes (library, icueadmin); functions and rules tests pass
 
 ### Lib-3
@@ -403,7 +403,7 @@ Functions (`firebase/functions/src/library/reservations.ts`, all `library.circul
 - [x] `library-reservation-create` (only when no shelf copy; eligible member; active policy allows reserve; category not restricted; one live reservation per title/member)
 - [x] `library-reservation-cancel` (waiting or ready; held copy released to next in queue)
 - [x] `holdExpiry` scheduled job (hourly; expires holds past `holdUntil`, passes copy to next in queue or releases to available)
-- [x] Waiting list integrated into `acquisitionCreate`, `loanReturn`, `loanRenew`, `copySetStatus` (copies freeing up serve the waiting queue)
+- [x] Waiting list integrated into `createBook`, `loanReturn`, `loanRenew`, `copySetStatus` (copies freeing up serve the waiting queue)
 - [x] Tests: `test/reservations.test.ts` (emulator)
 
 Rules and indexes:
@@ -470,7 +470,7 @@ Functions (`firebase/functions/src/library/`):
 
 - [x] `notify.ts` (member recipients: a student's parents via `wardStudentIds`, a teacher via `personErpId`); outbox events added to `loanIssue`, `loanReturn` (returned, overdue fine, damaged), `loanMarkLost` (fine, lost), `incidentReport`, transfer request / dispatch / receive and verification submit; `post` moved to `shared/outbox.ts` (used by both daily jobs)
 - [x] `dailyLibrary` (07:00 IST, every school; `runDailyLibrary` is the testable core): due soon (2 days), overdue (daily), membership ending (7 days), reservation hold ending (1 day)
-- [x] `library-import-run` (`import.ts`; same design as `inventory-import-run`: each CSV row runs the single-record callable with request ID `<importId>-<row>`; types catalogue, copies (opening-stock acquisition by ISBN-13), members; 200 rows per call)
+- [x] `library-import-run` (`import.ts`; same design as `inventory-import-run`: each CSV row runs the single-record callable with request ID `<importId>-<row>`; types catalogue, copies (opening-stock books by ISBN-13), members; 200 rows per call)
 - [x] Tests: `test/library-insights.test.ts` (emulator); `reservations.test.ts` outbox assertion narrowed to `rsv-ready`
 
 Rules and indexes:
@@ -554,8 +554,8 @@ Format: `date · phase · what changed from the architecture doc · why`.
 - 2026-11-01 · Inv-8 · Offline is for verification counts only (direct `lineItems` updates, saved on the device with a "syncs when online" message); submit and every other callable still need a connection. `inventory-verification-count` stays for online use. Web persistent cache was not enabled.
 - 2026-11-01 · Inv-8 · Scanning resolves item code (counting) and asset ID / RFID tag (asset list); items have no separate barcode field, and library copies wait for Lib-2. Fixed RFID gate readers and RFID inventory-by-reader are not built (tags are read as keyboard input). Camera scanning is untested on a device (no native build run).
 - 2026-11-01 · Inv-8 · Export is unchanged from Inv-7 (report CSV / PDF); list-level CSV/XLSX export and downloadable import templates are not built (the import page copies the header row).
-- 2026-11-08 · Lib-2 · A copy's document ID is its barcode (required at acquisition, no generated accession number or `counters/ACC`) · uniqueness is structural and one identifier is enough for labels, scanning and loans.
-- 2026-11-01 · Lib-2 · Acquisition types are purchase, donation and opening stock; transfer arrives with Lib-7 · transfers create no acquisition record. Acquisition attachments are not stored (no uploads) and a new acquisition starts from a book's page, not from the Copies page.
+- 2026-11-08 · Lib-2 · A copy's document ID is its barcode (required when adding books, no generated accession number or `counters/ACC`) · uniqueness is structural and one identifier is enough for labels, scanning and loans.
+- 2026-11-01 · Lib-2 · Book types are purchase, donation and opening stock; transfer arrives with Lib-7 · transfers create no book record. Book attachments are not stored (no uploads) and a new book starts from a book's page, not from the Copies page.
 - 2026-11-01 · Lib-2 · `library-copy-setStatus` is not in the architecture's callable list; damage, loss and withdrawal can be set by hand here, while incidents and fines arrive with Lib-6 · FRS 11.5 needs these statuses now.
 - 2026-11-01 · Lib-2 · Copy issue and transfer history are not shown on the copy sheet · loans arrive with Lib-4, transfers with Lib-7; changes are in `auditLogs`.
 - 2026-11-01 · Lib-2 · Copies are readable school-wide with `library.catalogue` (like the catalogue) so teachers can see where a book is; writes are campus scoped. Camera scanning of labels uses the Inventory `ScanField` and is untested on a device (no native build run).
@@ -573,7 +573,7 @@ Format: `date · phase · what changed from the architecture doc · why`.
 - 2026-11-01 · Lib-7 · Approving a verification can mark missing copies `lost` or `move` available unexpected copies into the library; missing copies left alone are stored as `investigate`. No rejection step; destination/source staff notifications arrive with Lib-8.
 - 2026-11-01 · Lib-8 · Dashboard filters are library and member type (the member tiles) only; no category or date-range filter · every tile is a current-state count, so a date range has nothing to filter, and copies carry no category ID. Dashboard counts and indexes are unverified against a real project (emulators do not enforce indexes).
 - 2026-11-01 · Lib-8 · Reports are 500-row client queries (library, date range and status on the server; member, author, category by the search box); Popular and Inactive books are ranked client-side over up to 5000 loans of the period · same ceiling as Inventory reports. Titles and libraries are resolved to names per page; members show as "student #id".
-- 2026-11-01 · Lib-8 · Import takes pasted CSV (catalogue, copies, members), not an uploaded file or a staged preview, and rejects existing titles and members instead of updating them · existing accession numbers cannot be imported (numbers come from one counter), so copies arrive as opening-stock acquisitions by ISBN-13. List export is the report CSV / PDF; list-level XLSX export is not built.
+- 2026-11-01 · Lib-8 · Import takes pasted CSV (catalogue, copies, members), not an uploaded file or a staged preview, and rejects existing titles and members instead of updating them · existing accession numbers cannot be imported (numbers come from one counter), so copies arrive as opening-stock books by ISBN-13. List export is the report CSV / PDF; list-level XLSX export is not built.
 - 2026-11-01 · Lib-8 · Issue, return and fine notices go to the member's parents or teacher when they happen; overdue repeats daily, due-soon / membership / hold-ending once per loan, member or reservation · deterministic outbox keys. Notifications respect the per-category mute (`library.loan`, `library.fine`, `library.reservation`, `library.member`, `library.incident`, `library.transfer`, `library.verification`); no preferences screen.
 - 2026-11-01 · Lib-8 · Parent view is rules only: parents read their ward's loans, reservations, fines, incidents and membership, and browse the catalogue; the parent app screens arrive when it joins the monorepo · there is no parent UI here to build. Parents cannot see copies or availability.
 - 2026-11-02 · cleanup · Removed the callables that client Firestore writes replaced: inventory category/unit/item/variant/store/vendor upserts and setStatus, library library/category upserts and setStatus, and purchase request, quotation and invoice callables. The importer keeps the category, store, item and vendor upsert handlers internally; deployed functions no longer include them. Tests seed those documents directly (`firebase/functions/test/fixtures.ts`). No legacy-client support.

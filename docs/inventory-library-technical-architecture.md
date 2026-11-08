@@ -163,8 +163,8 @@ Common fields on every document: `campusId`, `createdAt`, `createdBy` (uid), `up
 | `libraries` | code, name, campusId, location, staffIds, contact, hours, status | |
 | `libraryCategories` | code, name, parentId, status | Defaults seeded (FRS 11.3) |
 | `libraryCatalogue` | title, subtitle, authors[], isbn10, isbn13, publisher, edition, year, language, categoryId, classIds[], classificationNumber, keywords, coverPath, status, identityKey | School-wide; shared across libraries |
-| `libraryCopies` | catalogueId, libraryId, campusId, shelf, barcode, rfidTag, acquisitionId, price, source, condition, status (FRS 11.5 + `in_transit`), activeLoanId, heldReservationId | One doc per physical book |
-| `libraryAcquisitions` | type, catalogueId, quantity, libraryId, price, reference, barcodes | |
+| `libraryCopies` | catalogueId, libraryId, campusId, shelf, barcode, rfidTag, bookId, price, source, condition, status (FRS 11.5 + `in_transit`), activeLoanId, heldReservationId | One doc per physical book |
+| `libraryBooks` | type, catalogueId, quantity, libraryId, price, reference, barcodes | |
 | `libraryMembers/{personErpId}` | memberType `student | teacher`, personErpId, classId (students), category (policy key), libraryIds, start, end, status, activeLoans, blocked | Document ID is the ERP ID (unique across students and staff) → no duplicate members |
 | `libraryBorrowingPolicies` | libraryId, memberType, categoryIds, maxBooks, loanDays, maxRenewals, fineType, fineAmount, graceDays, maxFine, status | Several per library and person type; a book's category (else its parent, else the catch-all with empty `categoryIds`) picks one; a category belongs to one active policy. |
 | `libraryLoans` | personErpId, barcode, catalogueId, libraryId, issuedDate, dueDate, renewals[], policySnapshot, status `active | returned | lost`, returnedDate, condition, overdueDays | `policySnapshot` frozen at issue (FRS 11.8) |
@@ -204,7 +204,7 @@ Names below are logical; they deploy as `<group>-<name>` (`session.sync` → `se
 | Assets | `inventory.asset.register`, `inventory.asset.assign/return/transfer/setCondition/retire`, `inventory.maintenance.save/setStatus` |
 | Verification | `inventory.verification.create/count/submit/decide` (approve creates adjustments referencing the session; reject reopens counting) |
 | Library masters | `library.catalogue.upsert/setStatus/search`, `library.policy.upsert`. Libraries and categories are client Firestore writes. |
-| Copies | `library.acquisition.create` (creates copies keyed by barcode), `library.copy.update/move` |
+| Copies | `library.book.create` (creates copies keyed by barcode), `library.copy.update/move` |
 | Members | `library.member.upsert/setStatus` |
 | Circulation | `library.loan.issue`, `library.loan.return`, `library.loan.renew`, `library.loan.markLost` |
 | Reservations | `library.reservation.create/cancel` |

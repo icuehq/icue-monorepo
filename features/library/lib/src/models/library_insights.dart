@@ -277,24 +277,18 @@ final libraryReports = <LibraryReportDef>[
     dateField: 'reportedDate',
     where: {'type': 'damaged'},
   ),
-  LibraryReportDef(
-    'acquisitions',
-    'Acquisition report',
-    'libraryAcquisitions',
-    [
-      _dayColumn('Date', 'date'),
-      _textColumn('Acquisition', 'number'),
-      _title(),
-      _lib(),
-      LibraryReportCol(
-        'Copies',
-        (m, _) => readString(readNumber(m['quantity'])),
-        sum: true,
-      ),
-      _money('Price', 'price'),
-    ],
-    dateField: 'date',
-  ),
+  LibraryReportDef('books', 'Books report', 'libraryBooks', [
+    _dayColumn('Date', 'date'),
+    _textColumn('Book number', 'number'),
+    _title(),
+    _lib(),
+    LibraryReportCol(
+      'Copies',
+      (m, _) => readString(readNumber(m['quantity'])),
+      sum: true,
+    ),
+    _money('Price', 'price'),
+  ], dateField: 'date'),
   LibraryReportDef(
     'popular',
     'Popular books',

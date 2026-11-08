@@ -379,7 +379,7 @@ describe('library (staff gate)', () => {
       await setDoc(doc(firestore, 'schools/12/userAccess/4'), { permissions: [], campusIds: [31], hasAllCampuses: false });
       await setDoc(doc(firestore, 'schools/12/userAccess/8'), { permissions: [], campusIds: [32], hasAllCampuses: false });
       await setDoc(doc(firestore, 'schools/12/userAccess/parent-1'), { permissions: [], campusIds: [], hasAllCampuses: false });
-      for (const collectionName of ['libraries', 'libraryCategories', 'libraryCatalogue', 'libraryCopies', 'libraryAcquisitions', 'libraryMembers', 'libraryBorrowingPolicies']) await setDoc(doc(firestore, `schools/12/${collectionName}/a`), { name: 'a' });
+      for (const collectionName of ['libraries', 'libraryCategories', 'libraryCatalogue', 'libraryCopies', 'libraryBooks', 'libraryMembers', 'libraryBorrowingPolicies']) await setDoc(doc(firestore, `schools/12/${collectionName}/a`), { name: 'a' });
       for (const collectionName of ['libraryLoans', 'libraryReservations', 'libraryFines', 'libraryIncidents']) await setDoc(doc(firestore, `schools/12/${collectionName}/a`), { campusId: 31, personErpId: 501 });
     }),
   );
@@ -393,8 +393,8 @@ describe('library (staff gate)', () => {
       await assertFails(setDoc(doc(db('4'), `schools/12/${documentPath}`), { name: 'x' }));
   });
 
-  it('acquisitions, members and policies: staff read, never writable', async () => {
-    for (const documentPath of ['libraryAcquisitions/a', 'libraryMembers/a', 'libraryBorrowingPolicies/a']) {
+  it('books, members and policies: staff read, never writable', async () => {
+    for (const documentPath of ['libraryBooks/a', 'libraryMembers/a', 'libraryBorrowingPolicies/a']) {
       await assertSucceeds(getDoc(doc(db('4'), `schools/12/${documentPath}`)));
       await assertFails(getDoc(doc(db('4', { ...staff, schoolId: 13 }), `schools/12/${documentPath}`)));
       await assertFails(setDoc(doc(db('4'), `schools/12/${documentPath}`), { name: 'x' }));
@@ -416,7 +416,7 @@ describe('library (staff gate)', () => {
   it('a parent browses the catalogue only, reads their ward\'s membership, and writes nothing', async () => {
     for (const documentPath of ['libraries/a', 'libraryCategories/a', 'libraryCatalogue/a'])
       await assertSucceeds(getDoc(doc(db('parent-1', parent), `schools/12/${documentPath}`)));
-    for (const documentPath of ['libraryCopies/a', 'libraryAcquisitions/a', 'libraryBorrowingPolicies/a', 'libraryMembers/a'])
+    for (const documentPath of ['libraryCopies/a', 'libraryBooks/a', 'libraryBorrowingPolicies/a', 'libraryMembers/a'])
       await assertFails(getDoc(doc(db('parent-1', parent), `schools/12/${documentPath}`)));
     await env.withSecurityRulesDisabled((context) => setDoc(doc(context.firestore(), 'schools/12/libraryMembers/501'), { personErpId: 501 }));
     await assertSucceeds(getDoc(doc(db('parent-1', parent), 'schools/12/libraryMembers/501')));

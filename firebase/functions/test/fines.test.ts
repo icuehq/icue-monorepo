@@ -47,7 +47,7 @@ describe('library fines and incidents', () => {
       })
     ).id;
     mainLibrary = (await seedLibrary({ name: 'Main', campusId: 31 })).id;
-    await run(copies.acquisitionCreate, {
+    await run(copies.createBook, {
       catalogueId: title,
       libraryId: mainLibrary,
       quantity: 3,

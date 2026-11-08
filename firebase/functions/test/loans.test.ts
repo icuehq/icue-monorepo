@@ -52,7 +52,7 @@ describe('library circulation', () => {
       })
     ).id;
     mainLibrary = (await seedLibrary({ name: 'Main', campusId: 31 })).id;
-    await run(copies.acquisitionCreate, {
+    await run(copies.createBook, {
       catalogueId: title,
       libraryId: mainLibrary,
       quantity: 3,
@@ -207,7 +207,7 @@ describe('library circulation', () => {
     const otherTitle = (
       await seedLibraryTitle({ title: 'Other', authors: ['A'], categoryId: other.id })
     ).id;
-    await run(copies.acquisitionCreate, {
+    await run(copies.createBook, {
       catalogueId: otherTitle,
       libraryId: mainLibrary,
       quantity: 1,

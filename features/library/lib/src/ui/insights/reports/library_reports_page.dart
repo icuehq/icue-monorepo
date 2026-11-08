@@ -53,7 +53,7 @@ const _reportInfo = <String, (String group, IconData icon, String blurb)>{
     Icons.check_circle_outline,
     'Copies ready to lend',
   ),
-  'acquisitions': (
+  'books': (
     'Catalogue & stock',
     Icons.library_add_outlined,
     'Copies added to the library',

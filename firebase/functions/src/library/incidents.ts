@@ -211,7 +211,7 @@ export const incidents = {
         (i.resolution === 'replaced' || i.resolution === 'charged') &&
         (i.resolution === 'replaced' || copy.status === 'lost')
       ) {
-        // A replaced or paid-for lost copy is gone for good (a replacement comes in as a new acquisition).
+        // A replaced or paid-for lost copy is gone for good (a replacement comes in as a new book entry).
         context.update(cRef, { status: 'withdrawn', updatedAt: serverTimestamp() });
       }
 

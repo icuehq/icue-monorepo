@@ -179,7 +179,7 @@ Roles should be configurable using permissions rather than requiring a separate 
 | Library Management | Multiple library locations |
 | Catalogue | Book metadata and classification |
 | Copy Management | Accession numbers and physical copies |
-| Acquisition | Purchases, donations and transfers |
+| Book | Purchases, donations and transfers |
 | Membership | Students and teachers |
 | Borrowing Policies | Member-specific borrowing rules |
 | Circulation | Issue, return and renewal |
@@ -1292,7 +1292,7 @@ Multiple authors should be supported.
 - Duplicate catalogue entries should be identified using ISBN and relevant bibliographic details.
 - Books without ISBN must still be supported.
 - Catalogue records should be reusable across multiple libraries within the same school.
-- Inactive titles cannot be used for new acquisitions without reactivation.
+- Inactive titles cannot be used for new books without reactivation.
 
 ## 11.5 Book Copy / Accession Management
 
@@ -1306,7 +1306,7 @@ Multiple authors should be supported.
 - Campus.
 - Shelf/location.
 - Barcode/QR code.
-- Purchase/acquisition date.
+- Purchase/book date.
 - Purchase price.
 - Vendor/donor.
 - Condition.
@@ -1343,11 +1343,11 @@ Multiple authors should be supported.
 - A copy cannot be issued if it is unavailable.
 - Historical accession records must not be deleted.
 
-## 11.6 Book Acquisition
+## 11.6 Books
 
 **Purpose:** Record books entering a library collection.
 
-### Acquisition sources
+### Book sources
 
 - Purchase.
 - Donation.
@@ -1356,8 +1356,8 @@ Multiple authors should be supported.
 
 ### Fields
 
-- Acquisition number.
-- Acquisition type.
+- Book number.
+- Book type.
 - Catalogue reference.
 - Quantity.
 - Destination library.
@@ -1372,8 +1372,8 @@ Multiple authors should be supported.
 
 - Each acquired copy must receive a unique accession number.
 - Donated books may have zero purchase cost.
-- Acquisition history must be retained.
-- Library acquisition should operate independently from Inventory procurement.
+- Book history must be retained.
+- Library book should operate independently from Inventory procurement.
 
 ## 11.7 Membership Management
 
@@ -1737,7 +1737,7 @@ Request → Approval → Dispatch → Receipt confirmation.
 | Fine Report | Member, status, date |
 | Lost Books | Library, date |
 | Damaged Books | Library, condition |
-| Acquisition Report | Source, date, library |
+| Books Report | Source, date, library |
 | Transfer Report | Source, destination |
 | Verification Report | Library, discrepancy |
 | Popular Books | Category, period |

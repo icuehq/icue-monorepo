@@ -28,8 +28,8 @@ export const copies = {
    * Records books entering a library (FRS 11.6) and creates one copy per unit.
    * The scanned barcode is the copy's document ID, so it cannot repeat.
    */
-  acquisitionCreate: defineCallable({
-    name: 'library.acquisition.create',
+  createBook: defineCallable({
+    name: 'library.book.create',
     input: z.object({
       catalogueId: id,
       libraryId: id,
@@ -70,7 +70,7 @@ export const copies = {
       );
 
       const date = dayTimestamp(i.date ?? todayIST());
-      const acq = context.newDoc('libraryAcquisitions');
+      const book = context.newDoc('libraryBooks');
       const number = await nextNumber(context, 'ACQ');
       const ids = i.barcodes;
       for (const barcode of ids) {
@@ -83,7 +83,7 @@ export const copies = {
           campusId: library.campusId,
           shelf: i.shelf ?? null,
           barcode,
-          acquisitionId: acq.id,
+          bookId: book.id,
           acquiredDate: date,
           price: i.price,
           condition: i.condition,
@@ -113,9 +113,9 @@ export const copies = {
       const days = waiting.length ? await holdDays(context) : 0;
       for (const [index, snapshot] of waiting.entries())
         await hold(context, snapshot, context.doc(`libraryCopies/${ids[index]}`), ids[index], days);
-      context.set(acq, { ...after, createdAt: serverTimestamp(), createdBy: context.uid });
-      context.audit({ action: 'libraryAcquisition.create', documentPath: acq.path, after });
-      return { id: acq.id, number, barcodes: ids };
+      context.set(book, { ...after, createdAt: serverTimestamp(), createdBy: context.uid });
+      context.audit({ action: 'libraryBook.create', documentPath: book.path, after });
+      return { id: book.id, number, barcodes: ids };
     },
   }),
 

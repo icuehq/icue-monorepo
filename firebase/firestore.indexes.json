@@ -1103,7 +1103,7 @@
       ]
     },
     {
-      "collectionGroup": "libraryAcquisitions",
+      "collectionGroup": "libraryBooks",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -1117,7 +1117,7 @@
       ]
     },
     {
-      "collectionGroup": "libraryAcquisitions",
+      "collectionGroup": "libraryBooks",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -1135,7 +1135,7 @@
       ]
     },
     {
-      "collectionGroup": "libraryAcquisitions",
+      "collectionGroup": "libraryBooks",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -1153,7 +1153,7 @@
       ]
     },
     {
-      "collectionGroup": "libraryAcquisitions",
+      "collectionGroup": "libraryBooks",
       "queryScope": "COLLECTION",
       "fields": [
         {

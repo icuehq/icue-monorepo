@@ -249,12 +249,12 @@ class LibraryService {
       setMasterActive('libraryCategories', id, active: active);
 
   /// Returns the new copies' barcodes.
-  Future<List<String>> createAcquisition(
+  Future<List<String>> createBook(
     Map<String, Object?> data, {
     String? requestId,
   }) async {
     final result = await callFunction(
-      'library-acquisition-create',
+      'library-book-create',
       data: data,
       requestId: requestId,
     ) as Map<Object?, Object?>;
@@ -482,7 +482,7 @@ class LibraryService {
     }
     if (status != null) {
       query = query.where(
-        def.collection == 'libraryAcquisitions' ? 'type' : 'status',
+        def.collection == 'libraryBooks' ? 'type' : 'status',
         isEqualTo: status,
       );
     }

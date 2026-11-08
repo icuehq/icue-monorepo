@@ -854,13 +854,13 @@ Open **Library** from the dashboard. The Library hub displays 15 option grid til
 
 ---
 
-### 2.2 Copies & Acquisition (Lib-2)
+### 2.2 Copies & Books (Lib-2)
 
-#### Acquisition & Copy Generation
+#### Adding Books & Copy Generation
 
 - [ ] 2.2.1 **Acquire Copies for Title 1 ("Wings of Fire")**:
   - Open "Wings of Fire" details → scroll to Physical Copies section → tap **Acquire copies**:
-    - Acquisition Type: `Purchase`
+    - Book Type: `Purchase`
     - Target Library: `Central High School Library` 
     - Quantity: `3`
     - Unit Price: `320.00`
@@ -1188,7 +1188,7 @@ Setup: Copy `ACC-000001` is currently on loan to Student 501. No other copies of
     8. **Fine report**: fine numbers, members, types, amounts, waived, paid, outstanding.
     9. **Lost books**: incident tickets, accession numbers, titles, charges.
     10. **Damaged books**: incident tickets, severity, repair status, incident status.
-    11. **Acquisition report**: dates, numbers, sources (purchase/donation), copies count, prices.
+    11. **Books report**: dates, numbers, sources (purchase/donation), copies count, prices.
     12. **Transfer report**: transfers log with from/to libraries, copies count, statuses.
     13. **Verification report**: audit sessions, shelves, expected, missing, unexpected counts.
     14. **Popular books**: titles ranked by borrowing frequency in period.
