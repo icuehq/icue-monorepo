@@ -1,5 +1,6 @@
 import 'package:admin_ui/admin_ui.dart';
 import 'package:core_ui/core_ui.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
@@ -22,6 +23,7 @@ class _AddLibraryDialogState extends State<AddLibraryDialog> {
   late final _location = TextEditingController(text: widget.library?.location);
   late final _hours = TextEditingController(text: widget.library?.hours);
   late int? _campus = widget.library?.campusId;
+  int _nextSample = 0;
   bool _busy = false;
   bool _submitted = false;
   String? _errorMessage;
@@ -41,6 +43,25 @@ class _AddLibraryDialogState extends State<AddLibraryDialog> {
       controller.dispose();
     }
     super.dispose();
+  }
+
+  /// Fills the form with the next sample whose name is not taken yet (debug builds, new libraries only).
+  void _fillSample() {
+    final taken = {
+      for (final library in context.read<LibraryProvider>().libraries)
+        library.name.trim().toLowerCase(),
+    };
+    for (var tried = 0; tried < _sampleLibraries.length; tried++) {
+      final sample = _sampleLibraries[_nextSample++ % _sampleLibraries.length];
+      if (taken.contains(sample.name.toLowerCase())) continue;
+      setState(() {
+        _name.text = sample.name;
+        _location.text = sample.location;
+        _hours.text = sample.hours;
+      });
+      return;
+    }
+    setState(() => _errorMessage = 'All sample libraries already exist');
   }
 
   /// Required, and unique among libraries (compared ignoring case).
@@ -142,6 +163,12 @@ class _AddLibraryDialogState extends State<AddLibraryDialog> {
                   ],
                 ),
               ),
+              if (kDebugMode && !editing)
+                TextButton.icon(
+                  onPressed: _busy ? null : _fillSample,
+                  icon: const Icon(Icons.auto_fix_high_rounded, size: 18),
+                  label: const Text('Fill sample'),
+                ),
             ],
           ),
           const SizedBox(height: 20),
@@ -300,6 +327,29 @@ class _AddLibraryDialogState extends State<AddLibraryDialog> {
     );
   }
 }
+
+const _sampleLibraries = [
+  (
+    name: 'Central Library',
+    location: 'Main block, Ground floor',
+    hours: 'Mon–Sat, 8:00 AM – 4:00 PM',
+  ),
+  (
+    name: 'Junior Reading Room',
+    location: 'Primary wing, 1st floor',
+    hours: 'Mon–Fri, 9:00 AM – 3:00 PM',
+  ),
+  (
+    name: 'Science Resource Centre',
+    location: 'Science block, 2nd floor',
+    hours: 'Mon–Fri, 8:30 AM – 5:00 PM',
+  ),
+  (
+    name: 'Teachers\' Reference Library',
+    location: 'Staff room annexe',
+    hours: 'Mon–Sat, 9:00 AM – 5:00 PM',
+  ),
+];
 
 class _DialogSection extends StatelessWidget {
   const _DialogSection({

@@ -2,6 +2,7 @@ import 'package:admin_ui/admin_ui.dart';
 import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
 /// Add-book fields for the copies created with a new title: how many, and in which library.
@@ -28,6 +29,16 @@ class NewCopiesSection extends StatefulWidget {
 }
 
 class _NewCopiesSectionState extends State<NewCopiesSection> {
+  /// Barcodes already found in the library, so they show as invalid right after the scan.
+  final _taken = <String>{};
+
+  Future<void> _checkTaken(String value) async {
+    final code = value.trim();
+    if (code.isEmpty || _taken.contains(code)) return;
+    final copy = await context.read<LibraryProvider>().findCopy(code);
+    if (copy != null && mounted) setState(() => _taken.add(code));
+  }
+
   @override
   void initState() {
     super.initState();
@@ -45,14 +56,18 @@ class _NewCopiesSectionState extends State<NewCopiesSection> {
     final count = (int.tryParse(widget.copies.text.trim()) ?? 0).clamp(0, 100);
     final barcodes = widget.barcodes;
     if (count == barcodes.length) return;
+    final removed = <TextEditingController>[];
     while (barcodes.length > count) {
-      barcodes.removeLast().dispose();
+      removed.add(barcodes.removeLast());
     }
     while (barcodes.length < count) {
       barcodes.add(TextEditingController());
     }
-    // Listener may fire during build/layout of a sibling; rebuild afterwards.
+    // Fields still use the removed controllers until the next frame builds.
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      for (final controller in removed) {
+        controller.dispose();
+      }
       if (mounted) setState(() {});
     });
   }
@@ -60,6 +75,7 @@ class _NewCopiesSectionState extends State<NewCopiesSection> {
   String? _unique(String? value, int index) {
     final code = value?.trim().toLowerCase() ?? '';
     if (code.isEmpty) return 'Scan or enter the barcode';
+    if (_taken.contains(value!.trim())) return 'This barcode already exists';
     final repeated = [
       for (final (other, controller) in widget.barcodes.indexed)
         if (other != index && controller.text.trim().toLowerCase() == code)
@@ -127,7 +143,7 @@ class _NewCopiesSectionState extends State<NewCopiesSection> {
           // Own focus group: otherwise "next" follows screen position and jumps
           // to the neighbouring column (e.g. Pages) on wide layouts.
           FocusTraversalGroup(
-            policy: OrderedTraversalPolicy(),
+            policy: ReadingOrderTraversalPolicy(),
             child: Column(
               children: [
                 for (final (index, controller) in widget.barcodes.indexed)
@@ -140,6 +156,8 @@ class _NewCopiesSectionState extends State<NewCopiesSection> {
                           ? TextInputAction.done
                           : TextInputAction.next,
                       validator: (value) => _unique(value, index),
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                      onFieldSubmitted: _checkTaken,
                       label: 'Copy ${index + 1} barcode *',
                       icon: Icons.qr_code_scanner_rounded,
                     ),

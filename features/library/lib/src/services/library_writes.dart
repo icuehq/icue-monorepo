@@ -32,7 +32,7 @@ class LibraryWrites {
       .where((word) => word.isNotEmpty)
       .join(' ');
 
-  /// Identity of a title: its bibliographic details (same as the old `identityKey` in Cloud Functions).
+  /// Identity of a title: its bibliographic details.
   String _identityKey(Map<String, Object?> book) {
     final authors = book['authors']! as List<Object?>;
     final parts = [
@@ -48,7 +48,19 @@ class LibraryWrites {
   String _titleKeyId(String key) =>
       'libraryTitle_${Uri.encodeComponent(key.trim().toLowerCase())}';
 
-  /// Creates a title, or edits it when `data['id']` is set. Returns the title's ID.
+  /// ID of the title that already has these bibliographic details, if any.
+  Future<String?> findTitleId(Map<String, Object?> book) async {
+    final authors = book['authors'] as List<Object?>?;
+    if (authors == null || authors.isEmpty) return null;
+    final document = await (await schoolCollection('uniqueKeys'))
+        .doc(_titleKeyId(_identityKey(book)))
+        .get();
+    return (document.data()?['documentPath'] as String?)?.split('/').last;
+  }
+
+  /// Creates a title, or edits it when `data['id']` names an existing one. A caller-chosen new `id`
+  /// creates it, so retrying after a later step failed edits it instead of hitting the duplicate check.
+  /// Returns the title's ID.
   Future<String> saveBook(Map<String, Object?> data) async {
     final fields = {...data};
     final id = fields.remove('id') as String?;
@@ -70,7 +82,6 @@ class LibraryWrites {
       final before = id == null
           ? null
           : (await transaction.get(reference)).data();
-      if (id != null && before == null) _fail('Title not found');
       final category = (await transaction.get(
         await _doc('libraryCategories', fields['categoryId']! as String),
       )).data();

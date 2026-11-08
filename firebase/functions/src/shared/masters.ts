@@ -92,27 +92,6 @@ export async function saveMaster(
   return { id: ref.id };
 }
 
-export function defineSetStatus(functionName: string, collection: string, entityType: string) {
-  return defineCallable({
-    name: functionName,
-    input: z.object({ id, status }),
-    handler: async (context, input) => {
-      const ref = context.doc(`${collection}/${input.id}`);
-      const snapshot = await context.transaction.get(ref);
-      if (!snapshot.exists) throw missing(entityType);
-      if (snapshot.data()!.status === input.status) return { id: input.id };
-      context.update(ref, { status: input.status, updatedAt: serverTimestamp() });
-      context.audit({
-        action: `${entityType}.status`,
-        documentPath: ref.path,
-        before: { status: snapshot.data()!.status },
-        after: { status: input.status },
-      });
-      return { id: input.id };
-    },
-  });
-}
-
 /** Active, unless it is the value the record already holds (existing records keep deactivated masters). */
 export function usable(
   snapshot: { exists: boolean; data(): DocumentData | undefined },

@@ -55,15 +55,50 @@ class _BookFormPageState extends State<BookFormPage> {
   late final Set<int> _classIds = {...?_existingBook?.classIds};
   bool _busy = false;
   bool _dirty = false;
+  bool _duplicate = false;
+  Timer? _duplicateTimer;
+
+  List<TextEditingController> get _identityFields => [
+    _title,
+    _authors,
+    _edition,
+    _publisher,
+    _year,
+  ];
+
+  /// Looks up the book as its identifying details are typed, so a duplicate shows before Save.
+  void _checkDuplicate() {
+    _duplicateTimer?.cancel();
+    _duplicateTimer = Timer(const Duration(milliseconds: 500), () async {
+      final provider = context.read<LibraryProvider>();
+      final existingId = await provider.findTitleId({
+        'title': _title.text.trim(),
+        'authors': splitList(_authors.text),
+        'edition': blankToNull(_edition),
+        'publisher': blankToNull(_publisher),
+        'year': int.tryParse(_year.text.trim()),
+      });
+      final duplicate =
+          existingId != null &&
+          existingId != (_existingBook?.id ?? _copiesRequestId);
+      if (mounted && duplicate != _duplicate) {
+        setState(() => _duplicate = duplicate);
+      }
+    });
+  }
 
   @override
   void initState() {
     super.initState();
+    for (final controller in _identityFields) {
+      controller.addListener(_checkDuplicate);
+    }
     unawaited(context.read<LibraryProvider>().loadStandards());
   }
 
   @override
   void dispose() {
+    _duplicateTimer?.cancel();
     for (final controller in [
       _title,
       _subtitle,
@@ -150,13 +185,14 @@ class _BookFormPageState extends State<BookFormPage> {
   }
 
   Future<void> _save() async {
-    if (!_form.currentState!.validate()) return;
+    if (!_form.currentState!.validate() || _duplicate) return;
     setState(() => _busy = true);
     final saved = await submitAndClose<LibraryProvider>(
       context,
       () => context.read<LibraryProvider>().saveBook(
         {
-          'id': ?_existingBook?.id,
+          // Stable per form, so a retry after the copies failed edits the title it already made.
+          'id': _existingBook?.id ?? _copiesRequestId,
           'title': _title.text.trim(),
           'subtitle': blankToNull(_subtitle),
           'authors': splitList(_authors.text),
@@ -290,6 +326,22 @@ class _BookFormPageState extends State<BookFormPage> {
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             children: [
+              if (_duplicate)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.errorContainer,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    'This book already exists in the catalogue (same title, '
+                    'first author, edition, publisher and year).',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onErrorContainer,
+                    ),
+                  ),
+                ),
               if (context.isWide)
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,

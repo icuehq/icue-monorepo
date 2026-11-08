@@ -443,6 +443,9 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     }
   }, reload: loadBooks);
 
+  Future<String?> findTitleId(Map<String, Object?> data) =>
+      _writes.findTitleId(data);
+
   Future<bool> setBookActive(String id, {required bool active}) => _write(
     () => _writes.setBookActive(id, active: active),
     reload: loadBooks,

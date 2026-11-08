@@ -13,7 +13,7 @@ class IssueBooksCard extends StatelessWidget {
     required this.busy,
     required this.onScan,
     required this.onRemovePending,
-    required this.onNextBorrower,
+    required this.onIssuePending,
     required this.onDone,
     super.key,
   });
@@ -25,7 +25,7 @@ class IssueBooksCard extends StatelessWidget {
   final bool busy;
   final ValueChanged<String> onScan;
   final VoidCallback onRemovePending;
-  final VoidCallback onNextBorrower;
+  final VoidCallback onIssuePending;
   final VoidCallback onDone;
 
   @override
@@ -104,14 +104,16 @@ class IssueBooksCard extends StatelessWidget {
               ],
             ),
             const Divider(height: 24),
-            ScanField(
-              autofocus: hasPerson,
-              hint: hasPerson
-                  ? 'Scan or type book barcode'
-                  : 'Select borrower first to scan',
-              onScan: onScan,
-              clearOnScan: true,
-            ),
+            // A book scanned before the page opened is already chosen.
+            if (pendingRecord == null)
+              ScanField(
+                autofocus: hasPerson,
+                hint: hasPerson
+                    ? 'Scan or type book barcode'
+                    : 'Select borrower first to scan',
+                onScan: onScan,
+                clearOnScan: true,
+              ),
             if (busy)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 8),
@@ -124,6 +126,15 @@ class IssueBooksCard extends StatelessWidget {
               const SizedBox(height: 12),
             if (pendingRecord case final pending?)
               IssueScanItemCard(record: pending, onRemove: onRemovePending),
+            if (pendingRecord != null && hasPerson)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: FilledButton.icon(
+                  onPressed: busy ? null : onIssuePending,
+                  icon: const Icon(Icons.menu_book_rounded, size: 18),
+                  label: const Text('Issue book'),
+                ),
+              ),
             for (final record in records) IssueScanItemCard(record: record),
             if (pendingRecord == null && records.isEmpty)
               Padding(
@@ -167,16 +178,6 @@ class IssueBooksCard extends StatelessWidget {
             const SizedBox(height: 16),
             Row(
               children: [
-                if (successfulCount > 0) ...[
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: busy ? null : onNextBorrower,
-                      icon: const Icon(Icons.person_add_outlined, size: 18),
-                      label: const Text('Next Borrower'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                ],
                 Expanded(
                   child: FilledButton.icon(
                     onPressed: busy ? null : onDone,

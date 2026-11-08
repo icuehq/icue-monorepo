@@ -67,12 +67,14 @@ class _IssueBooksPageState extends State<IssueBooksPage> {
         setState(() => _busy = false);
       }
     }
+  }
 
+  /// Issues the book scanned before the page opened, once the user confirms.
+  Future<void> _issuePending() async {
     final scanned = _pending;
-    _pending = null;
-    if (scanned != null) {
-      await _issue(scanned.barcode);
-    }
+    if (scanned == null || _busy) return;
+    setState(() => _pending = null);
+    await _issue(scanned.barcode);
   }
 
   Future<void> _issue(String rawCode) async {
@@ -151,16 +153,6 @@ class _IssueBooksPageState extends State<IssueBooksPage> {
     setState(() {
       _person = null;
       _member = null;
-    });
-  }
-
-  void _nextBorrower() {
-    if (_busy) return;
-    setState(() {
-      _person = null;
-      _member = null;
-      _records.clear();
-      _pending = null;
     });
   }
 
@@ -279,7 +271,7 @@ class _IssueBooksPageState extends State<IssueBooksPage> {
         barcode: pending.barcode,
         success: false,
         isPending: true,
-        message: 'Will be issued once borrower is selected',
+        message: 'Select a borrower, then tap Issue book',
         timestamp: DateTime.now(),
         title: _pendingBook?.title ?? pending.barcode,
         authors: _pendingBook?.authors.join(', '),
@@ -328,7 +320,7 @@ class _IssueBooksPageState extends State<IssueBooksPage> {
                         busy: _busy,
                         onScan: _issue,
                         onRemovePending: () => setState(() => _pending = null),
-                        onNextBorrower: _nextBorrower,
+                        onIssuePending: _issuePending,
                         onDone: () => Navigator.of(context).pop(),
                       ),
                     ),
@@ -347,7 +339,7 @@ class _IssueBooksPageState extends State<IssueBooksPage> {
                       busy: _busy,
                       onScan: _issue,
                       onRemovePending: () => setState(() => _pending = null),
-                      onNextBorrower: _nextBorrower,
+                      onIssuePending: _issuePending,
                       onDone: () => Navigator.of(context).pop(),
                     ),
                   ],
