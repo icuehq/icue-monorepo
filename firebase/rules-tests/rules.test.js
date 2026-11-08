@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { assertFails, assertSucceeds, initializeTestEnvironment } from '@firebase/rules-unit-testing';
-import { collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDoc, getDocs, query, serverTimestamp, setDoc, updateDoc, where } from 'firebase/firestore';
 import { getBytes, ref, uploadString } from 'firebase/storage';
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
 
@@ -422,6 +422,69 @@ describe('library (staff gate)', () => {
     await assertSucceeds(getDoc(doc(db('parent-1', parent), 'schools/12/libraryMembers/501')));
     await assertFails(getDoc(doc(db('parent-1', { ...parent, schoolId: 13 }), 'schools/12/libraryCatalogue/a')));
     await assertFails(setDoc(doc(db('parent-1', parent), 'schools/12/libraries/a'), { name: 'x' }));
+  });
+});
+
+describe('library client writes (no callable)', () => {
+  const stamp = (action, uid = '4') => ({ by: uid, action, at: serverTimestamp() });
+  const title = { title: 'Wings of Fire', authors: ['Kalam'], categoryId: 'cat', identityKey: 'bib:x', status: 'active', createdBy: '4' };
+  beforeEach(() =>
+    env.withSecurityRulesDisabled(async (context) => {
+      const firestore = context.firestore();
+      await setDoc(doc(firestore, 'schools/12/userAccess/4'), { permissions: [], campusIds: [31], hasAllCampuses: false });
+      await setDoc(doc(firestore, 'schools/12/libraryCategories/cat'), { name: 'General' });
+      await setDoc(doc(firestore, 'schools/12/libraries/main'), { campusId: 31, status: 'active' });
+      await setDoc(doc(firestore, 'schools/12/libraries/junior'), { campusId: 32, status: 'active' });
+      await setDoc(doc(firestore, 'schools/12/libraries/other'), { campusId: 31, status: 'inactive' });
+      await setDoc(doc(firestore, 'schools/12/libraryCatalogue/t1'), { ...title, createdBy: '9' });
+      await setDoc(doc(firestore, 'schools/12/libraryCopies/c1'), { campusId: 31, libraryId: 'main', status: 'available', condition: 'good', shelf: null, remarks: null });
+      await setDoc(doc(firestore, 'schools/12/libraryCopies/c2'), { campusId: 31, libraryId: 'main', status: 'issued', condition: 'good', shelf: null, remarks: null });
+      await setDoc(doc(firestore, 'schools/12/libraryMembers/501'), { campusIds: [31], blocked: false });
+      await setDoc(doc(firestore, 'schools/12/libraryMembers/502'), { campusIds: [31, 32], blocked: false });
+    }),
+  );
+  const parent = { schoolId: 12, personType: 'parent' };
+
+  it('titles: staff create / edit / deactivate, always stamped; and parents fail', async () => {
+    const created = { ...title, lastWrite: stamp('libraryCatalogue.create') };
+    await assertSucceeds(setDoc(doc(db('4'), 'schools/12/libraryCatalogue/t2'), created));
+    await assertFails(setDoc(doc(db('4'), 'schools/12/libraryCatalogue/t3'), { ...title })); // no stamp
+    await assertFails(setDoc(doc(db('4'), 'schools/12/libraryCatalogue/t3'), { ...created, lastWrite: stamp('libraryCatalogue.create', 'someone-else') }));
+    await assertFails(setDoc(doc(db('p', parent), 'schools/12/libraryCatalogue/t3'), created));
+    await assertSucceeds(updateDoc(doc(db('4'), 'schools/12/libraryCatalogue/t1'), { title: 'New', identityKey: 'bib:y', lastWrite: stamp('libraryCatalogue.update') }));
+    await assertSucceeds(updateDoc(doc(db('4'), 'schools/12/libraryCatalogue/t1'), { status: 'inactive', lastWrite: stamp('libraryCatalogue.status') }));
+  });
+
+  it('title keys: create-only (never overwritten), readable and deletable, library keys only', async () => {
+    const key = { keyType: 'libraryTitle', value: 'bib:x', documentPath: 'libraryCatalogue/t1' };
+    await assertSucceeds(setDoc(doc(db('4'), 'schools/12/uniqueKeys/libraryTitle_bib%3Ax'), key));
+    await assertSucceeds(getDoc(doc(db('4'), 'schools/12/uniqueKeys/libraryTitle_bib%3Ax')));
+    await assertFails(setDoc(doc(db('4'), 'schools/12/uniqueKeys/libraryTitle_bib%3Ax'), { ...key, documentPath: 'libraryCatalogue/t9' }));
+    await assertSucceeds(deleteDoc(doc(db('4'), 'schools/12/uniqueKeys/libraryTitle_bib%3Ax')));
+    await assertFails(setDoc(doc(db('4'), 'schools/12/uniqueKeys/inventoryItem_x'), { keyType: 'inventoryItem' }));
+    await assertFails(setDoc(doc(db('p', parent), 'schools/12/uniqueKeys/libraryTitle_z'), key));
+  });
+
+  it('copies: edit; move only an available copy to another active library on an allowed campus', async () => {
+    const edit = { condition: 'fair', shelf: 'A-3', remarks: null, lastWrite: stamp('libraryCopy.update') };
+    await assertSucceeds(updateDoc(doc(db('4'), 'schools/12/libraryCopies/c1'), edit));
+    await assertFails(updateDoc(doc(db('4'), 'schools/12/libraryCopies/c1'), { condition: 'fair', shelf: null, remarks: null })); // unstamped
+    await assertFails(updateDoc(doc(db('p', parent), 'schools/12/libraryCopies/c1'), edit));
+    const move = (libraryId, campusId) => ({ libraryId, campusId, shelf: 'J-1', lastWrite: stamp('libraryCopy.move') });
+    await assertFails(updateDoc(doc(db('4'), 'schools/12/libraryCopies/c1'), move('junior', 32))); // campus 32 not allowed
+    await assertFails(updateDoc(doc(db('4'), 'schools/12/libraryCopies/c1'), move('other', 31))); // inactive library
+    await assertFails(updateDoc(doc(db('4'), 'schools/12/libraryCopies/c2'), move('other', 31))); // not available
+    await env.withSecurityRulesDisabled((context) => setDoc(doc(context.firestore(), 'schools/12/libraries/second'), { campusId: 31, status: 'active' }));
+    await assertFails(updateDoc(doc(db('4'), 'schools/12/libraryCopies/c1'), move('second', 99))); // campus must come from the library
+    await assertSucceeds(updateDoc(doc(db('4'), 'schools/12/libraryCopies/c1'), move('second', 31)));
+  });
+
+  it('members: manual block and unblock, every campus of the member must be the caller\'s', async () => {
+    const block = { blocked: true, blockedBy: 'manual', blockReason: 'Misconduct', lastWrite: stamp('libraryMember.block') };
+    await assertSucceeds(updateDoc(doc(db('4'), 'schools/12/libraryMembers/501'), block));
+    await assertSucceeds(updateDoc(doc(db('4'), 'schools/12/libraryMembers/501'), { blocked: false, blockedBy: null, blockReason: null, lastWrite: stamp('libraryMember.block') }));
+    await assertFails(updateDoc(doc(db('4'), 'schools/12/libraryMembers/502'), block)); // member also on campus 32
+    await assertFails(updateDoc(doc(db('p', parent), 'schools/12/libraryMembers/501'), block));
   });
 });
 

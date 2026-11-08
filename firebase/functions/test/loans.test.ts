@@ -1,11 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { copies } from '../src/library/copies';
 import { loans } from '../src/library/loans';
-import { masters } from '../src/library/masters';
 import { members } from '../src/library/members';
 import { runCallable, type CallableDef } from '../src/shared/callable';
 import { dayTimestamp } from '../src/shared/dates';
-import { seedLibrary, seedLibraryCategory, person } from './fixtures';
+import { seedLibrary, seedLibraryCategory, seedLibraryTitle, person } from './fixtures';
 import { clearFirestore, db } from './setup';
 
 const SCHOOL_ID = '12';
@@ -46,7 +45,7 @@ describe('library circulation', () => {
       });
     category = (await seedLibraryCategory({ name: 'General' })).id;
     title = (
-      await run(masters.catalogueUpsert, {
+      await seedLibraryTitle({
         title: 'Wings of Fire',
         authors: ['Kalam'],
         categoryId: category,
@@ -206,7 +205,7 @@ describe('library circulation', () => {
       fineType: 'none',
     });
     const otherTitle = (
-      await run(masters.catalogueUpsert, { title: 'Other', authors: ['A'], categoryId: other.id })
+      await seedLibraryTitle({ title: 'Other', authors: ['A'], categoryId: other.id })
     ).id;
     await run(copies.acquisitionCreate, {
       catalogueId: otherTitle,

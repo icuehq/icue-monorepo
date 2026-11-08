@@ -3,7 +3,7 @@ import { DEFAULT_CATEGORIES } from '../src/library/defaults';
 import { masters } from '../src/library/masters';
 import { applyCatalogueChange, catalogueSearch } from '../src/library/search';
 import { runCallable, runQuery, type CallableDef } from '../src/shared/callable';
-import { seedLibraryCategory } from './fixtures';
+import { seedLibraryCategory, seedLibraryTitle } from './fixtures';
 import { clearFirestore, db } from './setup';
 
 const SCHOOL_ID = '12';
@@ -37,7 +37,7 @@ describe('library masters', () => {
   });
 
   const book = (extra: Record<string, unknown> = {}) =>
-    run(masters.catalogueUpsert, {
+    seedLibraryTitle({
       title: 'Wings of Fire',
       authors: ['A. P. J. Abdul Kalam'],
       categoryId: category,
@@ -55,51 +55,6 @@ describe('library masters', () => {
     const science = parents.find((doc) => doc.data().name === 'Science' && !doc.data().parentId)!;
     const physics = parents.find((doc) => doc.data().name === 'Physics')!;
     expect(physics.data().parentId).toBe(science.id);
-  });
-
-  it('catalogue: stores classIds sorted and de-duplicated; empty means general', async () => {
-    const { id } = await book({ classIds: [8, 6, 8] });
-    expect((await get(`libraryCatalogue/${id}`))?.classIds).toEqual([6, 8]);
-    const general = await book({ title: 'General', classIds: undefined });
-    expect((await get(`libraryCatalogue/${general.id}`))?.classIds).toEqual([]);
-    await expect(book({ title: 'Bad', classIds: [0] })).rejects.toMatchObject({
-      code: 'invalid-argument',
-    });
-  });
-
-  it('catalogue: creates and rejects duplicates', async () => {
-    const { id } = await book();
-    expect(await get(`libraryCatalogue/${id}`)).toMatchObject({
-      status: 'active',
-      coverPath: null,
-    });
-    await expect(book()).rejects.toMatchObject({ code: 'already-exists' });
-  });
-
-  it('catalogue: books dedupe on title, author, edition, publisher, year', async () => {
-    await book({ edition: '2nd', year: 2001 });
-    await expect(
-      book({ title: 'wings  of fire!', edition: '2nd', year: 2001 }),
-    ).rejects.toMatchObject({ code: 'already-exists' });
-    await expect(book({ edition: '3rd', year: 2001 })).resolves.toHaveProperty('id');
-  });
-
-  it('catalogue: editing moves the identity key; inactive category rejected for new use', async () => {
-    const { id } = await book();
-    await book({ id, edition: '2nd' });
-    await expect(book()).resolves.toHaveProperty('id'); // old key was released
-    await db()
-      .doc(`schools/${SCHOOL_ID}/libraryCategories/${category}`)
-      .update({ status: 'inactive' });
-    await expect(book({ title: 'Another' })).rejects.toMatchObject({ code: 'failed-precondition' });
-    await expect(book({ id, edition: '3rd' })).resolves.toEqual({ id }); // existing title keeps its category
-  });
-
-  it('catalogue: needs an author; setStatus toggles', async () => {
-    await expect(book({ authors: [] })).rejects.toMatchObject({ code: 'invalid-argument' });
-    const { id } = await book();
-    await run(masters.catalogueSetStatus, { id, status: 'inactive' });
-    expect((await get(`libraryCatalogue/${id}`))?.status).toBe('inactive');
   });
 
   describe('search', () => {

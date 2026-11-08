@@ -13,12 +13,14 @@ import 'package:school_library/src/providers/library_provider.dart' as _i1039;
 import 'package:school_library/src/services/library_people_service.dart'
     as _i988;
 import 'package:school_library/src/services/library_service.dart' as _i904;
+import 'package:school_library/src/services/library_writes.dart' as _i996;
 
 class SchoolLibraryPackageModule extends _i526.MicroPackageModule {
   // initializes the registration of main-scope dependencies inside of GetIt
   @override
   _i687.FutureOr<void> init(_i526.GetItHelper gh) {
     gh.lazySingleton<_i904.LibraryService>(() => _i904.LibraryService());
+    gh.lazySingleton<_i996.LibraryWrites>(() => _i996.LibraryWrites());
     gh.lazySingleton<_i988.LibraryPeopleService>(
       () => _i988.LibraryPeopleService(gh<_i678.RouteService>()),
     );
@@ -26,6 +28,7 @@ class SchoolLibraryPackageModule extends _i526.MicroPackageModule {
       () => _i1039.LibraryProvider(
         gh<_i904.LibraryService>(),
         gh<_i988.LibraryPeopleService>(),
+        gh<_i996.LibraryWrites>(),
       ),
     );
   }

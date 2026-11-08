@@ -18,7 +18,7 @@ service cloud.firestore {
     }
 
     // Default: no client writes anywhere under a school. Reads need an explicit rule below.
-    // auditLogs, requests, uniqueKeys and outbox have no client access at all.
+    // auditLogs, requests and outbox have no client access at all (uniqueKeys: only Library title keys, below).
     match /schools/{schoolId}/{coll}/{id} {
       allow write: if false;
     }
@@ -318,6 +318,43 @@ service cloud.firestore {
     match /schools/{schoolId}/{coll}/{id} {
       allow read: if inSchool(schoolId) && coll in ['libraries', 'libraryCategories', 'libraryCatalogue']
         && request.auth.token.get('personType', '') == 'parent';
+    }
+    // Client writes without a callable (Lib-9): rules check who, the action stamp and campus scope; fields and values are validated in the client (LibraryWrites). Each write stamps `lastWrite` (who, action, reason, server time);
+    // the audit triggers in functions/src/library/audit.ts turn that stamp into an audit log entry.
+    function stamped() {
+      let mark = request.resource.data.lastWrite;
+      return mark.by == request.auth.uid && mark.at == request.time && mark.action is string;
+    }
+    function libraryCampus(schoolId, libraryId) {
+      return get(/databases/$(db)/documents/schools/$(schoolId)/libraries/$(libraryId)).data;
+    }
+    // Title keys: created before a title takes its identity, deleted when it changes. An existing key cannot be overwritten.
+    match /schools/{schoolId}/uniqueKeys/{key} {
+      allow get: if staff(schoolId) && key.matches('libraryTitle_.*');
+      allow create: if staff(schoolId) && key.matches('libraryTitle_.*') && request.resource.data.keyType == 'libraryTitle';
+      allow delete: if staff(schoolId) && key.matches('libraryTitle_.*');
+    }
+    match /schools/{schoolId}/libraryCatalogue/{id} {
+      allow create: if staff(schoolId) && stamped() && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.lastWrite.action == 'libraryCatalogue.create';
+      allow update: if staff(schoolId) && stamped()
+        && request.resource.data.lastWrite.action in ['libraryCatalogue.update', 'libraryCatalogue.status'];
+    }
+    // Copies: edit, or moving an available copy to another active library.
+    match /schools/{schoolId}/libraryCopies/{barcode} {
+      allow update: if staff(schoolId) && stamped() && onCampus(schoolId, resource.data.campusId) && (
+        request.resource.data.lastWrite.action == 'libraryCopy.update'
+        || (resource.data.status == 'available' && request.resource.data.libraryId != resource.data.libraryId
+          && libraryCampus(schoolId, request.resource.data.libraryId).status == 'active'
+          && request.resource.data.campusId == libraryCampus(schoolId, request.resource.data.libraryId).campusId
+          && onCampus(schoolId, request.resource.data.campusId)
+          && request.resource.data.lastWrite.action == 'libraryCopy.move'));
+    }
+    // Manual block / unblock of a member; the member needs every campus of theirs to be one of the caller's.
+    match /schools/{schoolId}/libraryMembers/{id} {
+      allow update: if staff(schoolId) && stamped()
+        && (access(schoolId).hasAllCampuses == true || resource.data.campusIds.hasOnly(access(schoolId).campusIds))
+        && request.resource.data.lastWrite.action == 'libraryMember.block';
     }
     // Acquisition records (Lib-2): librarians, and report readers on the campus.
     match /schools/{schoolId}/libraryAcquisitions/{id} {

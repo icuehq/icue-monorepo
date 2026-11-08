@@ -3,11 +3,10 @@ import { copies } from '../src/library/copies';
 import { fines } from '../src/library/fines';
 import { incidents } from '../src/library/incidents';
 import { loans } from '../src/library/loans';
-import { masters } from '../src/library/masters';
 import { members } from '../src/library/members';
 import { runCallable, type CallableDef } from '../src/shared/callable';
 import { dayTimestamp } from '../src/shared/dates';
-import { seedLibrary, seedLibraryCategory, person } from './fixtures';
+import { seedLibrary, seedLibraryCategory, seedLibraryTitle, person } from './fixtures';
 import { clearFirestore, db } from './setup';
 
 const SCHOOL_ID = '12';
@@ -41,7 +40,7 @@ describe('library fines and incidents', () => {
       });
     category = (await seedLibraryCategory({ name: 'General' })).id;
     title = (
-      await run(masters.catalogueUpsert, {
+      await seedLibraryTitle({
         title: 'Wings of Fire',
         authors: ['Kalam'],
         categoryId: category,
@@ -129,10 +128,14 @@ describe('library fines and incidents', () => {
     const issued = await issue();
     await set(`libraryLoans/${issued.id}`, { dueDate: dayTimestamp(day(-5)) });
     await run(loans.loanReturn, { id: issued.id, condition: 'good' });
-    await run(members.memberSetBlocked, { id: '501', blocked: true, reason: 'Misconduct' });
+    await set('libraryMembers/501', {
+      blocked: true,
+      blockedBy: 'manual',
+      blockReason: 'Misconduct',
+    });
     await run(fines.fineSetPayment, { id: `${issued.id}__overdue`, paidAmount: 15 });
     expect((await get('libraryMembers/501'))!.blocked).toBe(true);
-    await run(members.memberSetBlocked, { id: '501', blocked: false });
+    await set('libraryMembers/501', { blocked: false, blockedBy: null, blockReason: null });
     expect((await get('libraryMembers/501'))!.blocked).toBe(false);
   });
 

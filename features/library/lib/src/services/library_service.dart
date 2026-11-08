@@ -10,7 +10,7 @@ import 'package:school_library/src/models/library_masters.dart';
 import 'package:school_library/src/models/library_members.dart';
 import 'package:school_library/src/models/library_reservations.dart';
 
-/// Library masters: reads from Firestore, writes through callables.
+/// Library reads from Firestore; its remaining writes go through callables (`LibraryWrites` has the client ones).
 @lazySingleton
 class LibraryService {
   Future<List<T>> _all<T>(
@@ -264,22 +264,6 @@ class LibraryService {
   Future<void> setCategoryActive(String id, {required bool active}) =>
       setMasterActive('libraryCategories', id, active: active);
 
-  /// Returns the book's ID.
-  Future<String> saveBook(
-    Map<String, Object?> data, {
-    String? requestId,
-  }) async {
-    final result = await callFunction(
-      'library-catalogue-upsert',
-      data: data,
-      requestId: requestId,
-    ) as Map<Object?, Object?>;
-    return result['id']! as String;
-  }
-
-  Future<void> setBookActive(String id, {required bool active}) =>
-      _call('library-catalogue-setStatus', _status(id, active));
-
   /// Returns the new copies' barcodes.
   Future<List<String>> createAcquisition(
     Map<String, Object?> data, {
@@ -294,14 +278,6 @@ class LibraryService {
       for (final row in result['barcodes']! as List<Object?>) row! as String,
     ];
   }
-
-  Future<void> updateCopy(Map<String, Object?> data) =>
-      _call('library-copy-update', data);
-
-  Future<void> moveCopy(String id, String libraryId, String? shelf) => _call(
-    'library-copy-move',
-    {'id': id, 'libraryId': libraryId, 'shelf': ?shelf},
-  );
 
   Future<void> setCopyStatus(String id, String status, String? reason) => _call(
     'library-copy-setStatus',
@@ -344,16 +320,6 @@ class LibraryService {
     Map<String, Object?> data, {
     String? requestId,
   }) => _call('library-incident-resolve', data, requestId);
-
-  Future<void> setMemberBlocked(
-    String id, {
-    required bool blocked,
-    String? reason,
-  }) => _call('library-member-setBlocked', {
-    'id': id,
-    'blocked': blocked,
-    'reason': ?reason,
-  });
 
   Future<void> markLoanLost(Map<String, Object?> data, {String? requestId}) =>
       _call('library-loan-markLost', data, requestId);

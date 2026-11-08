@@ -1197,8 +1197,7 @@ export const mockDataFill = onCall(async (request) => {
   if (process.env.FUNCTIONS_EMULATOR !== 'true')
     throw new HttpsError('failed-precondition', 'Mock data is only available on the emulator');
   const { auth } = request;
-  if (!auth || auth.token.schoolId == null)
-    throw new HttpsError('unauthenticated', 'Sign in required');
+  if (auth?.token.schoolId == null) throw new HttpsError('unauthenticated', 'Sign in required');
   const schoolId = String(auth.token.schoolId);
   const db = getFirestore();
   const access = (await db.doc(`schools/${schoolId}/userAccess/${auth.uid}`).get()).data();

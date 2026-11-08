@@ -57,6 +57,32 @@ export async function seedLibraryCategory(fields: {
   return { id: ref.id };
 }
 
+/** A catalogue title written straight to Firestore (titles are client-written; rules tests cover that path). */
+export async function seedLibraryTitle(fields: {
+  title: string;
+  authors: string[];
+  categoryId: string;
+  [field: string]: unknown;
+}): Promise<{ id: string }> {
+  const ref = db().collection(`${SCHOOL}/libraryCatalogue`).doc();
+  await ref.set({
+    subtitle: null,
+    publisher: null,
+    edition: null,
+    year: null,
+    language: null,
+    classIds: [],
+    description: null,
+    pages: null,
+    shelf: null,
+    keywords: [],
+    coverPath: null,
+    ...Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== undefined)),
+    ...audit,
+  });
+  return { id: ref.id };
+}
+
 export async function seedVariant(fields: {
   itemId: string;
   code: string;
@@ -225,7 +251,6 @@ export async function receivePurchaseOrderUnits(
   await ref.update({ lineItems, status: full ? 'fully_received' : 'partially_received' });
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Row = Record<string, any>;
 
 const lineItems = <T extends z.ZodType>(lineSchema: T) => z.array(lineSchema).min(1).max(50);

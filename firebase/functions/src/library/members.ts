@@ -236,36 +236,4 @@ export const members = {
       return { id: i.id };
     },
   }),
-
-  /** Hand-set block (or lift). Fines block members on their own; this one is never lifted by paying them. */
-  memberSetBlocked: defineCallable({
-    name: 'library.member.setBlocked',
-    input: z.object({
-      id,
-      blocked: z.boolean(),
-      reason: z.string().trim().max(500).nullish(),
-    }),
-    handler: async (context, i) => {
-      const ref = context.doc(`libraryMembers/${i.id}`);
-      const snapshot = await context.transaction.get(ref);
-      if (!snapshot.exists) throw missing('libraryMember');
-      const member = snapshot.data()!;
-      for (const campusId of member.campusIds as number[]) context.requireCampus(campusId);
-      if (i.blocked && !i.reason) throw failed('A reason is required to block a member');
-      context.update(ref, {
-        blocked: i.blocked,
-        blockedBy: i.blocked ? 'manual' : null,
-        blockReason: i.blocked ? i.reason : null,
-        updatedAt: serverTimestamp(),
-      });
-      context.audit({
-        action: 'libraryMember.block',
-        documentPath: ref.path,
-        before: { blocked: member.blocked ?? false },
-        after: { blocked: i.blocked },
-        reason: i.reason ?? undefined,
-      });
-      return { id: ref.id };
-    },
-  }),
 };

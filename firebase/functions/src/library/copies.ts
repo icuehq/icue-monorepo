@@ -119,63 +119,6 @@ export const copies = {
     },
   }),
 
-  /** Shelf, condition and remarks. Status and library have their own callables. */
-  copyUpdate: defineCallable({
-    name: 'library.copy.update',
-    input: z.object({
-      id,
-      shelf: text.nullish(),
-      condition: z.enum(CONDITIONS),
-      remarks: optionalText,
-    }),
-    handler: async (context, i) => {
-      const { ref, copy } = await loadCopy(context, i.id);
-      const after = {
-        shelf: i.shelf ?? null,
-        condition: i.condition,
-        remarks: i.remarks ?? null,
-      };
-      context.update(ref, { ...after, updatedAt: serverTimestamp() });
-      context.audit({
-        action: 'libraryCopy.update',
-        documentPath: ref.path,
-        before: {
-          shelf: copy.shelf,
-          condition: copy.condition,
-          remarks: copy.remarks,
-        },
-        after,
-      });
-      return { id: ref.id };
-    },
-  }),
-
-  /** Moves an available copy to another library (a copy belongs to one library at a time). */
-  copyMove: defineCallable({
-    name: 'library.copy.move',
-    input: z.object({ id, libraryId: id, shelf: text.nullish() }),
-    handler: async (context, i) => {
-      const { ref, copy } = await loadCopy(context, i.id);
-      if (copy.status !== 'available') throw failed(`Copy is ${copy.status}`);
-      if (copy.libraryId === i.libraryId) throw failed('Copy is already in this library');
-      const library = usable(
-        await context.transaction.get(context.doc(`libraries/${i.libraryId}`)),
-        'Library',
-        false,
-      );
-      context.requireCampus(library.campusId);
-      const after = { libraryId: i.libraryId, campusId: library.campusId, shelf: i.shelf ?? null };
-      context.update(ref, { ...after, updatedAt: serverTimestamp() });
-      context.audit({
-        action: 'libraryCopy.move',
-        documentPath: ref.path,
-        before: { libraryId: copy.libraryId, shelf: copy.shelf },
-        after,
-      });
-      return { id: ref.id };
-    },
-  }),
-
   /** Maintenance, damage, loss and withdrawal. Lost and withdrawn copies never become available again here (a lost copy that turns up is released by dismissing its incident). */
   copySetStatus: defineCallable({
     name: 'library.copy.setStatus',

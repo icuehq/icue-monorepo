@@ -2,11 +2,10 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { copies } from '../src/library/copies';
 import { runDailyLibrary } from '../src/library/daily';
 import { loans } from '../src/library/loans';
-import { masters } from '../src/library/masters';
 import { members } from '../src/library/members';
 import { runCallable, type CallableDef } from '../src/shared/callable';
 import { dayTimestamp } from '../src/shared/dates';
-import { seedLibrary, seedLibraryCategory, person } from './fixtures';
+import { seedLibrary, seedLibraryCategory, seedLibraryTitle, person } from './fixtures';
 import { clearFirestore, db } from './setup';
 
 const SCHOOL_ID = '12';
@@ -40,7 +39,7 @@ describe('library notifications', () => {
       });
     const category = (await seedLibraryCategory({ name: 'General' })).id;
     title = (
-      await run(masters.catalogueUpsert, {
+      await seedLibraryTitle({
         title: 'Wings of Fire',
         authors: ['Kalam'],
         categoryId: category,

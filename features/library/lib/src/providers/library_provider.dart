@@ -13,12 +13,14 @@ import 'package:school_library/src/models/library_person.dart';
 import 'package:school_library/src/models/library_reservations.dart';
 import 'package:school_library/src/services/library_people_service.dart';
 import 'package:school_library/src/services/library_service.dart';
+import 'package:school_library/src/services/library_writes.dart';
 
 @lazySingleton
 class LibraryProvider extends ChangeNotifier implements ErrorReporting {
-  LibraryProvider(this._service, this._people);
+  LibraryProvider(this._service, this._people, this._writes);
 
   final LibraryService _service;
+  final LibraryWrites _writes;
   final LibraryPeopleService _people;
 
   /// Latest load per list; an older response never overwrites a newer filter's list.
@@ -429,11 +431,10 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   /// Saves a book; for a new one, [copies] (`libraryId`, `quantity`, `shelf`) also creates its copies.
   Future<bool> saveBook(
     Map<String, Object?> data, {
-    String? requestId,
     Map<String, Object?>? copies,
     String? copiesRequestId,
   }) => _write(() async {
-    final id = await _service.saveBook(data, requestId: requestId);
+    final id = await _writes.saveBook(data);
     if (copies != null) {
       await _service.createAcquisition({
         'catalogueId': id,
@@ -443,15 +444,15 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   }, reload: loadBooks);
 
   Future<bool> setBookActive(String id, {required bool active}) => _write(
-    () => _service.setBookActive(id, active: active),
+    () => _writes.setBookActive(id, active: active),
     reload: loadBooks,
   );
 
   Future<bool> updateCopy(Map<String, Object?> data) =>
-      _write(() => _service.updateCopy(data));
+      _write(() => _writes.updateCopy(data));
 
   Future<bool> moveCopy(String id, String libraryId, String? shelf) =>
-      _write(() => _service.moveCopy(id, libraryId, shelf));
+      _write(() => _writes.moveCopy(id, libraryId, shelf));
 
   Future<bool> setCopyStatus(String id, String status, String? reason) =>
       _write(() => _service.setCopyStatus(id, status, reason));
@@ -554,7 +555,7 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     required bool blocked,
     String? reason,
   }) => _write(
-    () => _service.setMemberBlocked(id, blocked: blocked, reason: reason),
+    () => _writes.setMemberBlocked(id, blocked: blocked, reason: reason),
     reload: loadMembers,
   );
 

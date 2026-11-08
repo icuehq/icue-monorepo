@@ -25,7 +25,6 @@ class _BookFormPageState extends State<BookFormPage> {
   static int _nextSample = 0;
 
   final _form = GlobalKey<FormState>();
-  final _requestId = newRequestId();
   final _copiesRequestId = newRequestId();
   final _copies = TextEditingController(text: '1');
   final _barcodes = <TextEditingController>[];
@@ -172,7 +171,6 @@ class _BookFormPageState extends State<BookFormPage> {
           'shelf': blankToNull(_shelf),
           'keywords': splitList(_keywords.text),
         },
-        requestId: _requestId,
         copies: _newCopies(),
         copiesRequestId: _copiesRequestId,
       ),

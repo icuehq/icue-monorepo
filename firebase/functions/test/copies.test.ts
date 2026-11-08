@@ -1,8 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { copies } from '../src/library/copies';
-import { masters } from '../src/library/masters';
 import { runCallable, type CallableDef } from '../src/shared/callable';
-import { seedLibrary, seedLibraryCategory } from './fixtures';
+import { seedLibrary, seedLibraryCategory, seedLibraryTitle } from './fixtures';
 import { clearFirestore, db } from './setup';
 
 const SCHOOL_ID = '12';
@@ -48,7 +47,7 @@ describe('library copies and acquisitions', () => {
       });
     const category = (await seedLibraryCategory({ name: 'General' })).id;
     title = (
-      await run(masters.catalogueUpsert, {
+      await seedLibraryTitle({
         title: 'Wings of Fire',
         authors: ['Kalam'],
         categoryId: category,
@@ -99,38 +98,12 @@ describe('library copies and acquisitions', () => {
     await db()
       .doc(`schools/${SCHOOL_ID}/userAccess/1`)
       .update({ campusIds: [31, 32] });
-    await run(masters.catalogueSetStatus, { id: title, status: 'inactive' });
+    await db().doc(`schools/${SCHOOL_ID}/libraryCatalogue/${title}`).update({ status: 'inactive' });
     await expect(buy()).rejects.toMatchObject({ code: 'failed-precondition' });
-    await run(masters.catalogueSetStatus, { id: title, status: 'active' });
+    await db().doc(`schools/${SCHOOL_ID}/libraryCatalogue/${title}`).update({ status: 'active' });
     await db().doc(`schools/${SCHOOL_ID}/libraries/${mainLibrary}`).update({ status: 'inactive' });
     await expect(buy()).rejects.toMatchObject({ code: 'failed-precondition' });
     expect(await count('libraryCopies')).toBe(3); // only the one good purchase
-  });
-
-  it('update: shelf, condition and remarks', async () => {
-    await buy({ quantity: 1 });
-    await run(copies.copyUpdate, { id: 'ACC-000001', condition: 'fair', shelf: 'A-3' });
-    expect(await get('libraryCopies/ACC-000001')).toMatchObject({
-      condition: 'fair',
-      shelf: 'A-3',
-    });
-  });
-
-  it('move: only available copies, to another active library the user may use', async () => {
-    await buy({ quantity: 1 });
-    await expect(
-      run(copies.copyMove, { id: 'ACC-000001', libraryId: mainLibrary }),
-    ).rejects.toMatchObject({ code: 'failed-precondition' });
-    await run(copies.copyMove, { id: 'ACC-000001', libraryId: secondLibrary, shelf: 'J-1' });
-    expect(await get('libraryCopies/ACC-000001')).toMatchObject({
-      libraryId: secondLibrary,
-      campusId: 32,
-      shelf: 'J-1',
-    });
-    await run(copies.copySetStatus, { id: 'ACC-000001', status: 'under_maintenance' });
-    await expect(
-      run(copies.copyMove, { id: 'ACC-000001', libraryId: mainLibrary }),
-    ).rejects.toMatchObject({ code: 'failed-precondition' });
   });
 
   it('status: reason for damage/loss/withdrawal; lost and withdrawn are final; circulation states are untouchable', async () => {
