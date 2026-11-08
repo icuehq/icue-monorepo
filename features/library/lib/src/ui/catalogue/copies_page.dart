@@ -8,7 +8,7 @@ import 'package:school_library/src/ui/catalogue/widgets/copy_dialog.dart';
 import 'package:school_library/src/ui/routing/library_destinations.dart';
 import 'package:school_library/src/ui/routing/library_tab_bar.dart';
 
-/// Find a copy by scanning its label (barcode or RFID tag) and review acquisitions.
+/// Find a copy by scanning its label (barcode) and review acquisitions.
 class CopiesPage extends StatefulWidget {
   const CopiesPage({super.key});
 
@@ -79,14 +79,14 @@ class _CopiesPageState extends State<CopiesPage> {
             ),
             const SizedBox(height: 4),
             Text(
-              'Scan or type any barcode or RFID tag to view copy details, status, and shelf location.',
+              'Scan or type any barcode to view copy details, status, and shelf location.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 12),
             ScanField(
-              hint: 'Scan or type barcode or RFID tag…',
+              hint: 'Scan or type barcode…',
               onScan: _find,
               clearOnScan: true,
             ),

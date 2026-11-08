@@ -116,23 +116,12 @@ class LibraryService {
     ]..sort((left, right) => left.barcode.compareTo(right.barcode));
   }
 
-  /// A copy by barcode (its document ID) or RFID tag (what a scanner reads).
+  /// A copy by barcode (its document ID).
   Future<LibraryCopy?> findCopy(String code) async {
     final value = code.trim();
     final collection = await schoolCollection('libraryCopies');
     final byId = await collection.doc(value).get();
-    if (byId.exists) return LibraryCopy.fromMap(byId.id, byId.data()!);
-    final snapshot = await collection
-        .where('rfidTag', isEqualTo: value)
-        .limit(1)
-        .get();
-    if (snapshot.docs.isNotEmpty) {
-      return LibraryCopy.fromMap(
-        snapshot.docs.first.id,
-        snapshot.docs.first.data(),
-      );
-    }
-    return null;
+    return byId.exists ? LibraryCopy.fromMap(byId.id, byId.data()!) : null;
   }
 
   /// Latest acquisitions (newest first).

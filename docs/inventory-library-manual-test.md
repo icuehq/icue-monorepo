@@ -882,17 +882,12 @@ Open **Library** from the dashboard. The Library hub displays 15 option grid til
     - Tap **Save**.
   - **Expect** Copy created with accession number `ACC-000004`, status `Available`.
 
-#### Copy Attributes, RFID & Spine Labels
+#### Copy Attributes & Spine Labels
 
-- [ ] 2.2.3 **Shelf Location & RFID Assignment**:
+- [ ] 2.2.3 **Shelf Location & Remarks**:
   - In Copies list (or from Book Details copies section), tap copy `ACC-000001` to open `CopyDialog`:
-    - RFID tag: `RFID-BK-0001`
     - Remarks: `Curriculum reference copy`
-    - Tap **Save**. **Expect** copy updated.
-- [ ] 2.2.4 Negative: Duplicate RFID Tag:
-  - Open Copy sheet for `ACC-000002` → enter identical RFID `RFID-BK-0001`. Tap Save.
-  - **Expect** rejected with error ("RFID tag already assigned to another copy").
-  - Enter unique RFID: `RFID-BK-0002`. Tap Save. **Expect** saved.
+    - Tap **Save changes**. **Expect** copy updated.
 - [ ] 2.2.5 **Print Spine & Barcode Labels**:
   - On copy `ACC-000001` sheet, tap **Print label** (or share labels action).
   - **Expect** printable label preview renders accession barcode, call number, title, and library name.

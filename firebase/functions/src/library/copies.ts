@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type { CallableContext } from '../shared/callable';
 import { dayTimestamp, isoDate, todayIST } from '../shared/dates';
 import { serverTimestamp } from '../shared/firestore';
-import { claimUniqueKey, nextNumber, uniqueKeyRef } from '../shared/keys';
+import { nextNumber } from '../shared/keys';
 import { defineCallable, failed, id, missing, optionalText, usable } from '../shared/masters';
 import { holdDays, hold, nextWaiting, release } from './reservations';
 
@@ -84,7 +84,6 @@ export const copies = {
           campusId: library.campusId,
           shelf: i.shelf ?? null,
           barcode,
-          rfidTag: null,
           acquisitionId: acq.id,
           acquiredDate: date,
           price: i.price,
@@ -121,7 +120,7 @@ export const copies = {
     },
   }),
 
-  /** Shelf, condition, remarks and RFID tag. Status and library have their own callables. */
+  /** Shelf, condition and remarks. Status and library have their own callables. */
   copyUpdate: defineCallable({
     name: 'library.copy.update',
     permission: 'library.catalogue',
@@ -130,19 +129,13 @@ export const copies = {
       shelf: text.nullish(),
       condition: z.enum(CONDITIONS),
       remarks: optionalText,
-      rfidTag: z.string().trim().min(1).max(64).nullish(),
     }),
     handler: async (context, i) => {
       const { ref, copy } = await loadCopy(context, i.id);
-      const tag = i.rfidTag ?? null;
-      if (tag) await claimUniqueKey(context, 'libraryRfid', tag, ref.path);
-      if (copy.rfidTag && copy.rfidTag.toLowerCase() !== tag?.toLowerCase())
-        context.delete(uniqueKeyRef(context, 'libraryRfid', copy.rfidTag));
       const after = {
         shelf: i.shelf ?? null,
         condition: i.condition,
         remarks: i.remarks ?? null,
-        rfidTag: tag,
       };
       context.update(ref, { ...after, updatedAt: serverTimestamp() });
       context.audit({
@@ -152,7 +145,6 @@ export const copies = {
           shelf: copy.shelf,
           condition: copy.condition,
           remarks: copy.remarks,
-          rfidTag: copy.rfidTag,
         },
         after,
       });

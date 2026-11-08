@@ -12,7 +12,6 @@ class LibraryCopy {
     required this.campusId,
     this.shelf,
     required this.barcode,
-    this.rfidTag,
     required this.condition,
     required this.status,
     required this.price,
@@ -29,7 +28,6 @@ class LibraryCopy {
         campusId: (data['campusId'] as num? ?? 0).toInt(),
         shelf: data['shelf'] as String?,
         barcode: data['barcode'] as String? ?? id,
-        rfidTag: data['rfidTag'] as String?,
         condition: data['condition'] as String? ?? 'good',
         status: data['status'] as String? ?? 'available',
         price: readDouble(data['price']),
@@ -44,7 +42,6 @@ class LibraryCopy {
   final int campusId;
   final String? shelf;
   final String barcode;
-  final String? rfidTag;
   final String condition;
   final String status;
   final double price;

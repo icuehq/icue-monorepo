@@ -117,26 +117,13 @@ describe('library copies and acquisitions', () => {
     expect(await count('libraryCopies')).toBe(3); // only the one good purchase
   });
 
-  it('update: unique RFID tag, released when cleared', async () => {
-    await buy({ quantity: 2 });
-    await run(copies.copyUpdate, {
-      id: 'ACC-000001',
-      condition: 'fair',
-      shelf: 'A-3',
-      rfidTag: 'E200',
-    });
+  it('update: shelf, condition and remarks', async () => {
+    await buy({ quantity: 1 });
+    await run(copies.copyUpdate, { id: 'ACC-000001', condition: 'fair', shelf: 'A-3' });
     expect(await get('libraryCopies/ACC-000001')).toMatchObject({
       condition: 'fair',
       shelf: 'A-3',
-      rfidTag: 'E200',
     });
-    await expect(
-      run(copies.copyUpdate, { id: 'ACC-000002', condition: 'good', rfidTag: 'e200' }),
-    ).rejects.toMatchObject({ code: 'already-exists' });
-    await run(copies.copyUpdate, { id: 'ACC-000001', condition: 'fair' });
-    await expect(
-      run(copies.copyUpdate, { id: 'ACC-000002', condition: 'good', rfidTag: 'E200' }),
-    ).resolves.toBeTruthy();
   });
 
   it('move: only available copies, to another active library the user may use', async () => {

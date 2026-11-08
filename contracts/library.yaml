@@ -82,7 +82,6 @@ models:
         campusId: int
         shelf: string?
         barcode: { type: string, default: "$id" }
-        rfidTag: string?
         condition: { type: string, default: good }
         status: { type: string, default: available }
         price: double
