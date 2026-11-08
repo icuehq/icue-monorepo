@@ -85,9 +85,7 @@ class _LibraryOverviewPageState extends State<LibraryOverviewPage> {
           .where((schoolLibrary) => schoolLibrary.id == _libraryId)
           .firstOrNull,
     );
-    if (mounted && libraryProvider.access.can('library.circulation.operate')) {
-      await libraryProvider.loadLoans();
-    }
+    if (mounted) await libraryProvider.loadLoans();
   }
 
   @override
@@ -102,12 +100,7 @@ class _LibraryOverviewPageState extends State<LibraryOverviewPage> {
     final theme = Theme.of(context);
     final stats = libraryProvider.dashboard;
 
-    bool allowed(String key) => libraryDashboardStats.any(
-      (stat) =>
-          stat.$1 == key &&
-          stat.$3.any(libraryProvider.access.can) &&
-          stats[key] != null,
-    );
+    bool allowed(String key) => stats[key] != null;
 
     return Scaffold(
       appBar: AppBar(
@@ -208,7 +201,7 @@ class _LibraryOverviewPageState extends State<LibraryOverviewPage> {
           const SizedBox(height: 20),
 
           // Quick Actions Bar
-          OverviewQuickActions(libraryProvider: libraryProvider),
+          const OverviewQuickActions(),
 
           if (libraryProvider.insightsLoading && stats.isEmpty)
             const Padding(

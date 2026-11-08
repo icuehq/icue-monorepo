@@ -52,10 +52,6 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
         ),
       );
     }
-    final canEdit = libraryProvider.access.can('library.catalogue');
-    final canCirculate = libraryProvider.access.can(
-      'library.circulation.operate',
-    );
     final categoryName = libraryProvider.category(book.categoryId)?.name;
 
     final isWide = context.isWide;
@@ -66,21 +62,19 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
       appBar: AppBar(
         title: const Text('Book Details'),
         actions: [
-          if (canCirculate)
-            IconButton(
-              icon: const Icon(Icons.bookmark_add_outlined),
-              tooltip: 'Reserve book',
-              onPressed: () => ReservationDialog.show(context, book: book),
-            ),
-          if (canEdit)
-            IconButton(
-              icon: const Icon(Icons.edit_outlined),
-              tooltip: 'Edit book',
-              onPressed: () async {
-                await context.push(LibraryRoutes.libraryBookForm, extra: book);
-                await _load();
-              },
-            ),
+          IconButton(
+            icon: const Icon(Icons.bookmark_add_outlined),
+            tooltip: 'Reserve book',
+            onPressed: () => ReservationDialog.show(context, book: book),
+          ),
+          IconButton(
+            icon: const Icon(Icons.edit_outlined),
+            tooltip: 'Edit book',
+            onPressed: () async {
+              await context.push(LibraryRoutes.libraryBookForm, extra: book);
+              await _load();
+            },
+          ),
         ],
       ),
       body: ListView(
@@ -96,7 +90,6 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
               for (final classId in book.classIds)
                 libraryProvider.className(classId),
             ],
-            canEdit: canEdit,
             onActiveChanged: (value) async {
               if (await libraryProvider.setBookActive(book.id, active: value)) {
                 await _load();

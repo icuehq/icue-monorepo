@@ -7,6 +7,8 @@ service cloud.firestore {
     function signedIn() { return request.auth != null; }
     function inSchool(schoolId) { return signedIn() && string(request.auth.token.schoolId) == schoolId; }
     function access(schoolId) { return get(/databases/$(db)/documents/schools/$(schoolId)/userAccess/$(request.auth.uid)).data; }
+    // Library has no sub-permissions: the Node tile gates the UI and any non-parent staff user of the school may operate.
+    function staff(schoolId) { return inSchool(schoolId) && request.auth.token.get('personType', '') != 'parent'; }
     function can(schoolId, p) { return p in access(schoolId).permissions; }
     function topLevelCategory(data) { return !('parentId' in data) || data.parentId == null; }
     function onCampus(schoolId, c) { return access(schoolId).hasAllCampuses == true || c in access(schoolId).campusIds; }
@@ -54,11 +56,11 @@ service cloud.firestore {
       allow write: if inSchool(schoolId) && can(schoolId, 'inventory.vendors.manage');
     }
     match /schools/{schoolId}/libraries/{id} {
-      allow write: if inSchool(schoolId) && can(schoolId, 'library.settings');
+      allow write: if staff(schoolId);
     }
     match /schools/{schoolId}/libraryCategories/{id} {
       // Two levels only: a subcategory's parent must itself be a top-level category.
-      allow write: if inSchool(schoolId) && can(schoolId, 'library.catalogue')
+      allow write: if staff(schoolId)
         && (request.method == 'delete' || topLevelCategory(request.resource.data)
           || topLevelCategory(get(/databases/$(db)/documents/schools/$(schoolId)/libraryCategories/$(request.resource.data.parentId)).data));
     }
@@ -310,8 +312,7 @@ service cloud.firestore {
 
     // Library masters (Lib-1): catalogue is school-wide, readable by anyone who may browse it.
     match /schools/{schoolId}/{coll}/{id} {
-      allow read: if inSchool(schoolId) && coll in ['libraries', 'libraryCategories', 'libraryCatalogue', 'libraryCopies']
-        && can(schoolId, 'library.catalogue');
+      allow read: if staff(schoolId) && coll in ['libraries', 'libraryCategories', 'libraryCatalogue', 'libraryCopies'];
     }
     // Parents (Lib-8): browse the catalogue read-only; copies stay with staff.
     match /schools/{schoolId}/{coll}/{id} {
@@ -320,39 +321,37 @@ service cloud.firestore {
     }
     // Acquisition records (Lib-2): librarians, and report readers on the campus.
     match /schools/{schoolId}/libraryAcquisitions/{id} {
-      allow read: if inSchool(schoolId) && (can(schoolId, 'library.catalogue')
-        || (can(schoolId, 'library.reports.view') && onCampus(schoolId, resource.data.campusId)));
+      allow read: if staff(schoolId);
     }
     // Members and borrowing policies (Lib-3); report readers see them for the dashboard.
     match /schools/{schoolId}/{coll}/{id} {
-      allow read: if inSchool(schoolId) && coll in ['libraryMembers', 'libraryBorrowingPolicies']
-        && (can(schoolId, 'library.members.view') || can(schoolId, 'library.reports.view'));
+      allow read: if staff(schoolId) && coll in ['libraryMembers', 'libraryBorrowingPolicies'];
     }
     // A parent reads their ward's membership (Lib-8).
     match /schools/{schoolId}/libraryMembers/{id} {
       allow read: if inSchool(schoolId) && resource.data.personErpId in request.auth.token.get('wardStudentIds', []);
     }
 
-    // Loans (Lib-4): circulation staff on the campus, or the borrower / parent by ERP ID.
+    // Loans (Lib-4): staff on the campus, or the borrower / parent by ERP ID.
     match /schools/{schoolId}/libraryLoans/{id} {
-      allow read: if inSchool(schoolId) && (((can(schoolId, 'library.circulation.operate') || can(schoolId, 'library.reports.view')) && onCampus(schoolId, resource.data.campusId)) || own());
+      allow read: if inSchool(schoolId) && ((staff(schoolId) && onCampus(schoolId, resource.data.campusId)) || own());
     }
 
     // Reservations (Lib-5): same readers as loans.
     match /schools/{schoolId}/libraryReservations/{id} {
-      allow read: if inSchool(schoolId) && (((can(schoolId, 'library.circulation.operate') || can(schoolId, 'library.reports.view')) && onCampus(schoolId, resource.data.campusId)) || own());
+      allow read: if inSchool(schoolId) && ((staff(schoolId) && onCampus(schoolId, resource.data.campusId)) || own());
     }
 
-    // Fines (Lib-6): circulation staff or fine waivers on the campus, or the borrower / parent by ERP ID.
+    // Fines (Lib-6): staff on the campus, or the borrower / parent by ERP ID.
     match /schools/{schoolId}/libraryFines/{id} {
       allow read: if inSchool(schoolId)
-        && (((can(schoolId, 'library.circulation.operate') || can(schoolId, 'library.fines.waive') || can(schoolId, 'library.reports.view')) && onCampus(schoolId, resource.data.campusId)) || own());
+        && ((staff(schoolId) && onCampus(schoolId, resource.data.campusId)) || own());
     }
 
-    // Incidents (Lib-6): circulation staff on the campus, or the member / parent by ERP ID.
+    // Incidents (Lib-6): staff on the campus, or the member / parent by ERP ID.
     match /schools/{schoolId}/libraryIncidents/{id} {
       allow read: if inSchool(schoolId)
-        && (((can(schoolId, 'library.circulation.operate') || can(schoolId, 'library.reports.view')) && onCampus(schoolId, resource.data.campusId)) || own());
+        && ((staff(schoolId) && onCampus(schoolId, resource.data.campusId)) || own());
     }
 
     match /devices/{uid} {

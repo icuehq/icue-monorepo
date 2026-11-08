@@ -43,7 +43,6 @@ class PoliciesPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final libraryProvider = context.watch<LibraryProvider>();
-    final canEdit = libraryProvider.access.can('library.settings');
     final allPolicies = libraryProvider.policies;
 
     return Scaffold(
@@ -61,37 +60,31 @@ class PoliciesPage extends StatelessWidget {
           activePath: LibraryRoutes.libraryPolicies,
         ),
       ),
-      floatingActionButton: canEdit
-          ? FloatingActionButton.extended(
-              onPressed: () => PolicyDialog.show(context),
-              icon: const Icon(Icons.add_rounded),
-              label: const Text('Policy'),
-            )
-          : null,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => PolicyDialog.show(context),
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Policy'),
+      ),
       body: CenteredBody(
         child: libraryProvider.isLoading && allPolicies.isEmpty
             ? const Center(child: CircularProgressIndicator())
             : allPolicies.isEmpty
             ? PolicyInitialEmptyState(
-                onAddDefault: canEdit
-                    ? () async {
-                        if (!await libraryProvider.seedDefaultPolicies() &&
-                            context.mounted) {
-                          showMessage(
-                            context,
-                            libraryProvider.errorMessage ?? 'Failed',
-                          );
-                        }
-                      }
-                    : null,
+                onAddDefault: () async {
+                  if (!await libraryProvider.seedDefaultPolicies() &&
+                      context.mounted) {
+                    showMessage(
+                      context,
+                      libraryProvider.errorMessage ?? 'Failed',
+                    );
+                  }
+                },
               )
             : RefreshIndicator(
                 onRefresh: () => libraryProvider.loadMasters(),
                 child: AdaptiveList<LibraryPolicy>(
                   items: allPolicies,
-                  onTap: canEdit
-                      ? (policy) => PolicyDialog.show(context, policy: policy)
-                      : null,
+                  onTap: (policy) => PolicyDialog.show(context, policy: policy),
                   columns: [
                     AdaptiveColumn(
                       label: 'Policy',
@@ -132,32 +125,8 @@ class PoliciesPage extends StatelessWidget {
                     ),
                     AdaptiveColumn(
                       label: 'Status',
-                      cell: (context, policy) => canEdit
-                          ? _activeToggle(context, libraryProvider, policy)
-                          : Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: policy.active
-                                    ? Colors.green.withValues(alpha: 0.12)
-                                    : Theme.of(context)
-                                          .colorScheme
-                                          .surfaceContainerHighest,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                policy.active ? 'Active' : 'Inactive',
-                                style: TextStyle(
-                                  color: policy.active
-                                      ? Colors.green.shade700
-                                      : null,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
+                      cell: (context, policy) =>
+                          _activeToggle(context, libraryProvider, policy),
                     ),
                   ],
                   cardBuilder: (context, policy) => PolicyCard(
@@ -166,7 +135,6 @@ class PoliciesPage extends StatelessWidget {
                     libraryName:
                         libraryProvider.library(policy.libraryId)?.name ??
                         policy.libraryId,
-                    canEdit: canEdit,
                     onTap: () => PolicyDialog.show(context, policy: policy),
                     onToggleActive: () async {
                       if (!await libraryProvider.setPolicyActive(

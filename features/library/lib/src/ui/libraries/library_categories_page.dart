@@ -58,7 +58,6 @@ class _LibraryCategoriesPageState extends State<LibraryCategoriesPage> {
   @override
   Widget build(BuildContext context) {
     final libraryProvider = context.watch<LibraryProvider>();
-    final canEdit = libraryProvider.access.can('library.catalogue');
     final query = _searchController.text.trim().toLowerCase();
     final isSearching = query.isNotEmpty;
 
@@ -143,7 +142,7 @@ class _LibraryCategoriesPageState extends State<LibraryCategoriesPage> {
           activePath: LibraryRoutes.libraryCategories,
         ),
       ),
-      floatingActionButton: canEdit && hasAnyCategories
+      floatingActionButton: hasAnyCategories
           ? FloatingActionButton.extended(
               onPressed: () => LibraryCategoryDialog.show(context),
               icon: const Icon(Icons.add_rounded),
@@ -165,7 +164,6 @@ class _LibraryCategoriesPageState extends State<LibraryCategoriesPage> {
 
           if (!hasAnyCategories) {
             return LibraryCategoryEmptyState(
-              canEdit: canEdit,
               onAdd: () => LibraryCategoryDialog.show(context),
             );
           }
@@ -178,7 +176,6 @@ class _LibraryCategoriesPageState extends State<LibraryCategoriesPage> {
                 LibraryCategorySearchBar(
                   searchController: _searchController,
                   isWide: isWide,
-                  canEdit: canEdit,
                   statusFilter: _statusFilter,
                   onSearchChanged: (_) => setState(() {}),
                   onFilterChanged: (filter) =>
@@ -205,7 +202,6 @@ class _LibraryCategoriesPageState extends State<LibraryCategoriesPage> {
                 else if (isTwoColumn)
                   _TwoColumnCategoryLayout(
                     groups: matchingGroups,
-                    canEdit: canEdit,
                     isSearching: isSearching,
                     onViewBooks: (category) => context.push(
                       '${LibraryRoutes.libraryCatalogue}?category=${category.id}',
@@ -227,7 +223,6 @@ class _LibraryCategoriesPageState extends State<LibraryCategoriesPage> {
                           key: ValueKey(top.id),
                           category: top,
                           subcategories: subs,
-                          canEdit: canEdit,
                           initiallyExpanded: isSearching,
                           onViewBooks: (category) => context.push(
                             '${LibraryRoutes.libraryCatalogue}?category=${category.id}',
@@ -258,7 +253,6 @@ class _LibraryCategoriesPageState extends State<LibraryCategoriesPage> {
 class _TwoColumnCategoryLayout extends StatelessWidget {
   const _TwoColumnCategoryLayout({
     required this.groups,
-    required this.canEdit,
     required this.isSearching,
     required this.onViewBooks,
     required this.onEdit,
@@ -267,7 +261,6 @@ class _TwoColumnCategoryLayout extends StatelessWidget {
   });
 
   final List<(LibraryCategory, List<LibraryCategory>)> groups;
-  final bool canEdit;
   final bool isSearching;
   final ValueChanged<LibraryCategory> onViewBooks;
   final ValueChanged<LibraryCategory> onEdit;
@@ -298,7 +291,6 @@ class _TwoColumnCategoryLayout extends StatelessWidget {
                   key: ValueKey(top.id),
                   category: top,
                   subcategories: subs,
-                  canEdit: canEdit,
                   initiallyExpanded: isSearching,
                   onViewBooks: onViewBooks,
                   onEdit: onEdit,
@@ -317,7 +309,6 @@ class _TwoColumnCategoryLayout extends StatelessWidget {
                   key: ValueKey(top.id),
                   category: top,
                   subcategories: subs,
-                  canEdit: canEdit,
                   initiallyExpanded: isSearching,
                   onViewBooks: onViewBooks,
                   onEdit: onEdit,

@@ -81,12 +81,7 @@ Fixed permission keys (code), configurable role mapping (data):
 | `inventory.vendors.manage` | Admin, Inv. Mgr, Procurement |
 | `inventory.assets.manage` / `inventory.assets.view` | Admin, Inv. Mgr, Storekeeper / + Teacher, Principal |
 | `inventory.reports.view` | Admin, Principal, Inv. Mgr |
-| `library.settings` | Admin, Librarian |
-| `library.catalogue` (view, add, edit) | Admin, Librarian |
-| `library.circulation.operate` | Admin, Librarian |
-| `library.fines.waive` | Admin, Librarian (configurable) |
-| `library.reports.view` | Admin, Principal, Librarian |
-| `library.members.view` | Admin, Principal, Librarian |
+| Library | No sub-permissions: the Library tile from Node is the only gate; any non-parent staff user of the school may do everything (rules and callables check `personType != parent`, campus scope still applies) |
 
 Own records (teacher's loans, parent's wardStudentIds) need no permission; they are matched by `personErpId` / `wardStudentIds`. Parents (`personType == parent`) are **read-only**: no callable accepts a parent caller, and rules grant them reads on own-ward records only.
 
@@ -259,7 +254,7 @@ These are enforced in Functions transactions and covered by unit tests.
 - Renewal: `renewals < maxRenewals`; rejected if a `waiting` reservation exists for that catalogue in that library; overdue loans are never renewed.
 - Return: only against `activeLoanId`; condition `good` → copy goes to the reservation queue or `available`; `damaged` → `damaged` + incident (never auto-available).
 - Fine on return per `policySnapshot`: per-day `min((overdueDays − grace) × amount, maxFine)`, fixed, or none (tracking). Lost → replacement charge; damage → penalty. Fine doc ID `loanId__type` makes duplicates impossible.
-- Waiver requires `library.fines.waive`, stores reason, audited.
+- Waiver stores a reason and is audited.
 - Reservation: one active reservation per member × catalogue (deterministic check in transaction); member's policy must allow it; queue ordered by `createdAt`.
 - In-transit copies cannot be issued. Lost/withdrawn copies are never available again; replacements get new barcodes.
 
@@ -327,7 +322,7 @@ service cloud.firestore {
       allow read: if inSchool(schoolId) && can(schoolId, 'inventory.stock.view') && onCampus(schoolId, resource.data.campusId);
     }
     match /schools/{schoolId}/libraryLoans/{id} {
-      allow read: if inSchool(schoolId) && (own() || (can(schoolId, 'library.circulation.operate')
+      allow read: if inSchool(schoolId) && (own() || (staff(schoolId)
                                                && onCampus(schoolId, resource.data.campusId)));
     }
     match /schools/{schoolId}/inventoryVerifications/{vid}/lines/{id} {

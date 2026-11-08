@@ -26,7 +26,6 @@ export function identityKey(title: {
 export const masters = {
   catalogueUpsert: defineCallable({
     name: 'library.catalogue.upsert',
-    permission: 'library.catalogue',
     input: z.object({
       id: id.optional(),
       title: text(200),
@@ -100,7 +99,6 @@ export const masters = {
   }),
   catalogueSetStatus: defineSetStatus(
     'library.catalogue.setStatus',
-    'library.catalogue',
     'libraryCatalogue',
     'libraryCatalogue',
   ),
@@ -108,7 +106,6 @@ export const masters = {
   /** Adds the default categories and subcategories that do not exist yet (matched by name within the parent). Safe to repeat. */
   seedDefaults: defineCallable({
     name: 'library.seedDefaults',
-    permission: 'library.catalogue',
     input: z.object({}),
     handler: async (context) => {
       const now = serverTimestamp();

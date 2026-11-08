@@ -8,7 +8,6 @@ class LibraryCategoryCard extends StatefulWidget {
     super.key,
     required this.category,
     required this.subcategories,
-    required this.canEdit,
     required this.onViewBooks,
     required this.onEdit,
     required this.onAddSubcategory,
@@ -18,7 +17,6 @@ class LibraryCategoryCard extends StatefulWidget {
 
   final LibraryCategory category;
   final List<LibraryCategory> subcategories;
-  final bool canEdit;
   final bool initiallyExpanded;
   final ValueChanged<LibraryCategory> onViewBooks;
   final ValueChanged<LibraryCategory> onEdit;
@@ -279,16 +277,15 @@ class _LibraryCategoryCardState extends State<LibraryCategoryCard> {
                   ),
                 ),
                 const Spacer(),
-                if (widget.canEdit)
-                  TextButton.icon(
-                    onPressed: () => widget.onAddSubcategory(category),
-                    icon: const Icon(Icons.add_rounded, size: 16),
-                    label: const Text('Add subcategory'),
-                    style: TextButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                      textStyle: const TextStyle(fontSize: 12),
-                    ),
+                TextButton.icon(
+                  onPressed: () => widget.onAddSubcategory(category),
+                  icon: const Icon(Icons.add_rounded, size: 16),
+                  label: const Text('Add subcategory'),
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    textStyle: const TextStyle(fontSize: 12),
                   ),
+                ),
               ],
             ),
           ),
@@ -328,7 +325,7 @@ class _LibraryCategoryCardState extends State<LibraryCategoryCard> {
             ],
           ),
         ),
-        if (widget.canEdit) ...[
+        ...[
           const PopupMenuItem(
             value: 'edit',
             child: Row(

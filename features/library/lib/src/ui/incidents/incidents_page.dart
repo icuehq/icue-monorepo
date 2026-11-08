@@ -92,9 +92,6 @@ class _IncidentsPageState extends State<IncidentsPage> {
   @override
   Widget build(BuildContext context) {
     final libraryProvider = context.watch<LibraryProvider>();
-    final canOperate = libraryProvider.access.can(
-      'library.circulation.operate',
-    );
     final theme = Theme.of(context);
     final allIncidents = libraryProvider.incidents;
 
@@ -124,13 +121,11 @@ class _IncidentsPageState extends State<IncidentsPage> {
         ],
         bottom: CirculationTabBar(activeTab: CirculationTab.incidents),
       ),
-      floatingActionButton: canOperate
-          ? FloatingActionButton.extended(
-              onPressed: _openReportIncident,
-              icon: const Icon(Icons.report_problem_outlined),
-              label: const Text('Report incident'),
-            )
-          : null,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _openReportIncident,
+        icon: const Icon(Icons.report_problem_outlined),
+        label: const Text('Report incident'),
+      ),
       body: CenteredBody(
         child: Column(
           children: [
@@ -193,7 +188,7 @@ class _IncidentsPageState extends State<IncidentsPage> {
                   ? (allIncidents.isEmpty
                         ? IncidentInitialEmptyState(
                             status: _status,
-                            onReport: canOperate ? _openReportIncident : null,
+                            onReport: _openReportIncident,
                           )
                         : IncidentNoResultsState(
                             searchQuery: _searchQuery,

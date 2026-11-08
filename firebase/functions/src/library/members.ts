@@ -1,20 +1,8 @@
-import {
-  FieldValue,
-  type DocumentData,
-  type DocumentReference,
-} from 'firebase-admin/firestore';
+import { FieldValue, type DocumentData, type DocumentReference } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import type { CallableContext } from '../shared/callable';
 import { serverTimestamp } from '../shared/firestore';
-import {
-  defineCallable,
-  failed,
-  id,
-  missing,
-  name,
-  status,
-  usable,
-} from '../shared/masters';
+import { defineCallable, failed, id, missing, name, status, usable } from '../shared/masters';
 
 const FINES = ['none', 'per_day', 'flat'] as const;
 const MEMBER_TYPES = ['student', 'teacher'] as const;
@@ -47,8 +35,9 @@ export async function applicablePolicy(
         .where('status', '==', 'active'),
     )
   ).docs;
-  const parentId = (await context.transaction.get(context.doc(`libraryCategories/${categoryId}`)))
-    .data()?.parentId;
+  const parentId = (
+    await context.transaction.get(context.doc(`libraryCategories/${categoryId}`))
+  ).data()?.parentId;
   let found: (typeof policies)[number] | undefined;
   for (const type of [memberType, 'all']) {
     const own = policies.filter((policy) => policy.data().memberType === type);
@@ -154,7 +143,6 @@ export const members = {
    */
   policyUpsert: defineCallable({
     name: 'library.policy.upsert',
-    permission: 'library.settings',
     input: z
       .object({
         id: id.optional(),
@@ -223,7 +211,6 @@ export const members = {
   }),
   policySetStatus: defineCallable({
     name: 'library.policy.setStatus',
-    permission: 'library.settings',
     input: z.object({ id, status }),
     handler: async (context, i) => {
       const ref = context.doc(`libraryBorrowingPolicies/${i.id}`);
@@ -232,7 +219,13 @@ export const members = {
       context.requireCampus(policy.campusId);
       if (policy.status === i.status) return { id: i.id };
       if (i.status === 'active')
-        await assertNoOverlap(context, policy.libraryId, policy.memberType, policy.categoryIds, i.id);
+        await assertNoOverlap(
+          context,
+          policy.libraryId,
+          policy.memberType,
+          policy.categoryIds,
+          i.id,
+        );
       context.update(ref, { status: i.status, updatedAt: serverTimestamp() });
       context.audit({
         action: 'libraryPolicy.status',
@@ -247,7 +240,6 @@ export const members = {
   /** Hand-set block (or lift). Fines block members on their own; this one is never lifted by paying them. */
   memberSetBlocked: defineCallable({
     name: 'library.member.setBlocked',
-    permission: 'library.circulation.operate',
     input: z.object({
       id,
       blocked: z.boolean(),

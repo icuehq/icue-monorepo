@@ -4,7 +4,6 @@ import { z } from 'zod';
 import type { CallableDef, CallableContext } from './callable';
 import { serverTimestamp } from './firestore';
 import { claimUniqueKey } from './keys';
-import type { Permission } from './permissions';
 
 /** Helpers shared by the inventory and library master-data callables. */
 
@@ -93,15 +92,9 @@ export async function saveMaster(
   return { id: ref.id };
 }
 
-export function defineSetStatus(
-  functionName: string,
-  permission: Permission,
-  collection: string,
-  entityType: string,
-) {
+export function defineSetStatus(functionName: string, collection: string, entityType: string) {
   return defineCallable({
     name: functionName,
-    permission,
     input: z.object({ id, status }),
     handler: async (context, input) => {
       const ref = context.doc(`${collection}/${input.id}`);

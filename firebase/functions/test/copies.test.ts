@@ -42,13 +42,10 @@ describe('library copies and acquisitions', () => {
     await db()
       .doc(`schools/${SCHOOL_ID}/userAccess/1`)
       .set({
-        permissions: ['library.settings', 'library.catalogue'],
+        permissions: [],
         campusIds: [31, 32],
         hasAllCampuses: false,
       });
-    await db()
-      .doc(`schools/${SCHOOL_ID}/userAccess/2`)
-      .set({ permissions: ['library.members.view'], campusIds: [31], hasAllCampuses: false });
     const category = (await seedLibraryCategory({ name: 'General' })).id;
     title = (
       await run(masters.catalogueUpsert, {
@@ -93,15 +90,8 @@ describe('library copies and acquisitions', () => {
     await expect(buy({ quantity: 1, barcodes: ['9780001'] })).rejects.toThrow();
   });
 
-  it('acquisition rules: permission, campus scope, active title and library', async () => {
+  it('acquisition rules: campus scope, active title and library', async () => {
     await expect(buy({})).resolves.toBeTruthy();
-    await expect(
-      run(
-        copies.acquisitionCreate,
-        { catalogueId: title, libraryId: mainLibrary, quantity: 1, barcodes: ['X-1'] },
-        '2',
-      ),
-    ).rejects.toMatchObject({ code: 'permission-denied' });
     await db()
       .doc(`schools/${SCHOOL_ID}/userAccess/1`)
       .update({ campusIds: [32] });

@@ -1,5 +1,4 @@
 import 'package:admin_ui/admin_ui.dart';
-import 'package:icue_firebase/icue_firebase.dart';
 import 'package:school_library/src/ui/routing/library_routes.dart';
 
 /// A Library screen, opened from a [LibraryGroup] tab.
@@ -42,107 +41,51 @@ const librarySettingsTabs = [
   ),
 ];
 
-final _groups =
-    <(String, String, List<(LibraryEntry, bool Function(ModuleAccess))>)>[
-      (
-        'Circulation',
-        'assets/dashboard/library-circulation.png',
-        [
-          (
-            const LibraryEntry(
-              label: 'Loans',
-              path: LibraryRoutes.libraryCirculation,
-            ),
-            _circulation,
-          ),
-          (
-            const LibraryEntry(
-              label: 'Reservations',
-              path: LibraryRoutes.libraryReservations,
-            ),
-            _circulation,
-          ),
-          (
-            const LibraryEntry(
-              label: 'Fines',
-              path: LibraryRoutes.libraryFines,
-            ),
-            _fines,
-          ),
-          (
-            const LibraryEntry(
-              label: 'Lost & Damaged',
-              path: LibraryRoutes.libraryIncidents,
-            ),
-            _circulation,
-          ),
-        ],
+const _groups = <(String, String, List<LibraryEntry>)>[
+  (
+    'Circulation',
+    'assets/dashboard/library-circulation.png',
+    [
+      LibraryEntry(label: 'Loans', path: LibraryRoutes.libraryCirculation),
+      LibraryEntry(
+        label: 'Reservations',
+        path: LibraryRoutes.libraryReservations,
       ),
-      (
-        'Catalogue',
-        'assets/dashboard/library-catalogue.png',
-        [for (final tab in libraryCatalogueTabs) (tab, _catalogue)],
+      LibraryEntry(label: 'Fines', path: LibraryRoutes.libraryFines),
+      LibraryEntry(
+        label: 'Lost & Damaged',
+        path: LibraryRoutes.libraryIncidents,
       ),
-      (
-        'Members',
-        'assets/dashboard/library-members.png',
-        [
-          (
-            const LibraryEntry(
-              label: 'Members',
-              path: LibraryRoutes.libraryMembers,
-            ),
-            _members,
-          ),
-        ],
-      ),
-      (
-        'Reports',
-        'assets/dashboard/reports.png',
-        [
-          (
-            const LibraryEntry(
-              label: 'Reports',
-              path: LibraryRoutes.libraryReports,
-            ),
-            _reports,
-          ),
-        ],
-      ),
-      (
-        'Settings',
-        'assets/dashboard/library-libraries.png',
-        [for (final tab in librarySettingsTabs) (tab, _catalogue)],
-      ),
-    ];
+    ],
+  ),
+  ('Catalogue', 'assets/dashboard/library-catalogue.png', libraryCatalogueTabs),
+  (
+    'Members',
+    'assets/dashboard/library-members.png',
+    [LibraryEntry(label: 'Members', path: LibraryRoutes.libraryMembers)],
+  ),
+  (
+    'Reports',
+    'assets/dashboard/reports.png',
+    [LibraryEntry(label: 'Reports', path: LibraryRoutes.libraryReports)],
+  ),
+  ('Settings', 'assets/dashboard/library-libraries.png', librarySettingsTabs),
+];
 
-// Library sub-actions are fixed in code: every Library user sees every group.
-bool _always(ModuleAccess access) => true;
-bool _catalogue(ModuleAccess access) => _always(access);
-bool _circulation(ModuleAccess access) => _always(access);
-bool _fines(ModuleAccess access) => _always(access);
-bool _members(ModuleAccess access) => _always(access);
-bool _reports(ModuleAccess access) => _always(access);
-
-/// The Library groups [access] may open, each with only the screens it opens.
-List<LibraryGroup> libraryGroups(ModuleAccess access) => [
-  for (final (label, iconAsset, screens) in _groups)
-    if ([
-          for (final (entry, allowed) in screens)
-            if (allowed(access)) entry,
-        ]
-        case final tabs when tabs.isNotEmpty)
-      LibraryGroup(label: label, iconAsset: iconAsset, tabs: tabs),
+/// The Library groups: the Library tile from Node opens all of them.
+final libraryGroups = [
+  for (final (label, iconAsset, tabs) in _groups)
+    LibraryGroup(label: label, iconAsset: iconAsset, tabs: tabs),
 ];
 
 /// Side navigation on wide screens: Overview plus the same groups as the phone home grid.
-List<ModuleDestination> libraryNavigation(ModuleAccess access) => [
+final libraryNavigation = <ModuleDestination>[
   const ModuleDestination(
     label: 'Overview',
     path: LibraryRoutes.library,
     iconAsset: 'assets/dashboard/library.png',
   ),
-  for (final group in libraryGroups(access))
+  for (final group in libraryGroups)
     ModuleDestination(
       label: group.label,
       path: group.path,

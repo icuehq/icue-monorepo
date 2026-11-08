@@ -15,12 +15,6 @@ export const PERMISSIONS = [
   'inventory.assets.manage',
   'inventory.assets.view',
   'inventory.reports.view',
-  'library.settings',
-  'library.catalogue',
-  'library.circulation.operate',
-  'library.fines.waive',
-  'library.reports.view',
-  'library.members.view',
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];
@@ -51,7 +45,5 @@ export const ACTION_PERMISSIONS: Record<number, Permission> = {
 export function permissionsFromActions(actionIds: unknown): string[] {
   const ids = Array.isArray(actionIds) ? actionIds : [];
   const granted = ids.map((id) => ACTION_PERMISSIONS[Number(id)]).filter(Boolean);
-  // Library sub-actions are fixed in code, not in Node: every staff user holds all of them.
-  granted.push(...PERMISSIONS.filter((permission) => permission.startsWith('library.')));
   return [...new Set(granted)].sort();
 }

@@ -99,7 +99,6 @@ class BookHeroCard extends StatelessWidget {
     required this.book,
     required this.categoryName,
     required this.classNames,
-    required this.canEdit,
     required this.onActiveChanged,
     super.key,
   });
@@ -107,7 +106,6 @@ class BookHeroCard extends StatelessWidget {
   final LibraryBook book;
   final String? categoryName;
   final List<String> classNames;
-  final bool canEdit;
   final ValueChanged<bool> onActiveChanged;
 
   @override
@@ -227,13 +225,10 @@ class BookHeroCard extends StatelessWidget {
                 cover,
                 SizedBox(width: isWide ? 24 : 14),
                 Expanded(child: details),
-                if (isWide && canEdit) ...[
-                  const SizedBox(width: 16),
-                  activeSwitch,
-                ],
+                if (isWide) ...[const SizedBox(width: 16), activeSwitch],
               ],
             ),
-            if (!isWide && canEdit) ...[
+            if (!isWide) ...[
               const SizedBox(height: 8),
               const Divider(height: 1),
               Align(alignment: Alignment.centerRight, child: activeSwitch),

@@ -138,10 +138,6 @@ class _IncidentDialogState extends State<IncidentDialog> {
   @override
   Widget build(BuildContext context) {
     final incident = widget.incident;
-    final libraryProvider = context.watch<LibraryProvider>();
-    final canOperate = libraryProvider.access.can(
-      'library.circulation.operate',
-    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -191,7 +187,7 @@ class _IncidentDialogState extends State<IncidentDialog> {
           if (incident.resolutionRemarks != null)
             Text('Remarks: ${incident.resolutionRemarks}'),
         ],
-        if (incident.isOpen && canOperate) ...[
+        if (incident.isOpen) ...[
           const SizedBox(height: 16),
           FilledButton(
             onPressed: _busy ? null : _resolve,

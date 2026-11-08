@@ -5,12 +5,10 @@ class MemberCard extends StatelessWidget {
   const MemberCard({
     super.key,
     required this.member,
-    required this.canEdit,
     required this.onToggleBlock,
   });
 
   final LibraryMember member;
-  final bool canEdit;
   final VoidCallback onToggleBlock;
 
   @override
@@ -158,23 +156,22 @@ class MemberCard extends StatelessWidget {
                   highlight: member.activeLoans > 0,
                 ),
                 const Spacer(),
-                if (canEdit)
-                  TextButton.icon(
-                    style: TextButton.styleFrom(
-                      foregroundColor: member.blocked
-                          ? Colors.green.shade700
-                          : theme.colorScheme.error,
-                      visualDensity: VisualDensity.compact,
-                    ),
-                    icon: Icon(
-                      member.blocked
-                          ? Icons.lock_open_rounded
-                          : Icons.block_rounded,
-                      size: 16,
-                    ),
-                    label: Text(member.blocked ? 'Unblock' : 'Block'),
-                    onPressed: onToggleBlock,
+                TextButton.icon(
+                  style: TextButton.styleFrom(
+                    foregroundColor: member.blocked
+                        ? Colors.green.shade700
+                        : theme.colorScheme.error,
+                    visualDensity: VisualDensity.compact,
                   ),
+                  icon: Icon(
+                    member.blocked
+                        ? Icons.lock_open_rounded
+                        : Icons.block_rounded,
+                    size: 16,
+                  ),
+                  label: Text(member.blocked ? 'Unblock' : 'Block'),
+                  onPressed: onToggleBlock,
+                ),
               ],
             ),
           ],

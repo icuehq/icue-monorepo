@@ -1192,7 +1192,7 @@ export async function fillMockData(
   };
 }
 
-/** `library-mockData-fill`: emulator only; needs library settings, catalogue and circulation rights. */
+/** `library-mockData-fill`: emulator only; any signed-in staff user. */
 export const mockDataFill = onCall(async (request) => {
   if (process.env.FUNCTIONS_EMULATOR !== 'true')
     throw new HttpsError('failed-precondition', 'Mock data is only available on the emulator');
@@ -1202,8 +1202,7 @@ export const mockDataFill = onCall(async (request) => {
   const schoolId = String(auth.token.schoolId);
   const db = getFirestore();
   const access = (await db.doc(`schools/${schoolId}/userAccess/${auth.uid}`).get()).data();
-  const needed = ['library.settings', 'library.catalogue', 'library.circulation.operate'];
-  if (!access || !needed.every((permission) => access.permissions?.includes(permission)))
+  if (!access || auth.token.personType === 'parent')
     throw new HttpsError('permission-denied', 'Not allowed');
   return fillMockData(db, schoolId, auth.uid, (access.campusIds as number[] | undefined)?.[0] ?? 1);
 });

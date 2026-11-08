@@ -6,10 +6,10 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     function canView(schoolId, module) {
-      let permission = module == 'inv' ? 'inventory.items.view' : (module == 'lib' ? 'library.catalogue' : '');
+      let permission = module == 'inv' ? 'inventory.items.view' : '';
       return request.auth != null
         && string(request.auth.token.schoolId) == schoolId
-        && permission in firestore.get(/databases/(default)/documents/schools/$(schoolId)/userAccess/$(request.auth.uid)).data.permissions;
+        && (module == 'lib' ? request.auth.token.get('personType', '') != 'parent' : permission in firestore.get(/databases/(default)/documents/schools/$(schoolId)/userAccess/$(request.auth.uid)).data.permissions);
     }
 
     match /schools/{schoolId}/{module}/{rest=**} {

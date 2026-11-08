@@ -1,6 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/catalogue/book_details_page.dart';
 import 'package:school_library/src/ui/catalogue/book_form_page.dart';
@@ -25,12 +24,11 @@ import 'package:school_library/src/ui/routing/library_destinations.dart';
 List<RouteBase> libraryRoutes() => [
   ShellRoute(
     builder: (context, state, child) {
-      final access = context.watch<LibraryProvider>().access;
       final shell = ModuleShell(
         title: 'Library',
         homePath: LibraryRoutes.library,
         location: state.uri.path,
-        destinations: libraryNavigation(access),
+        destinations: libraryNavigation,
         child: child,
       );
       return LibraryScanListener(child: shell);

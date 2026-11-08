@@ -171,9 +171,6 @@ class _FineDialogState extends State<FineDialog> {
   @override
   Widget build(BuildContext context) {
     final fine = widget.fine;
-    final libraryProvider = context.watch<LibraryProvider>();
-    final canWaive = libraryProvider.access.can('library.fines.waive');
-    final canPay = libraryProvider.access.can('library.circulation.operate');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -237,25 +234,23 @@ class _FineDialogState extends State<FineDialog> {
               style: Theme.of(context).textTheme.bodySmall,
             ),
         ],
-        if (fine.isOutstanding && (canWaive || canPay)) ...[
+        if (fine.isOutstanding) ...[
           const SizedBox(height: 16),
           Row(
             children: [
-              if (canWaive)
-                Expanded(
-                  child: FilledButton.tonal(
-                    onPressed: _busy ? null : _waive,
-                    child: const Text('Waive'),
-                  ),
+              Expanded(
+                child: FilledButton.tonal(
+                  onPressed: _busy ? null : _waive,
+                  child: const Text('Waive'),
                 ),
-              if (canWaive && canPay) const SizedBox(width: 8),
-              if (canPay)
-                Expanded(
-                  child: FilledButton(
-                    onPressed: _busy ? null : _recordPayment,
-                    child: const Text('Record payment'),
-                  ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: FilledButton(
+                  onPressed: _busy ? null : _recordPayment,
+                  child: const Text('Record payment'),
                 ),
+              ),
             ],
           ),
         ],

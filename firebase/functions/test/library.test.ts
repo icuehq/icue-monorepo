@@ -28,13 +28,10 @@ describe('library masters', () => {
     await db()
       .doc(`schools/${SCHOOL_ID}/userAccess/1`)
       .set({
-        permissions: ['library.settings', 'library.catalogue'],
+        permissions: [],
         campusIds: [31],
         hasAllCampuses: false,
       });
-    await db()
-      .doc(`schools/${SCHOOL_ID}/userAccess/2`)
-      .set({ permissions: ['library.members.view'], campusIds: [31], hasAllCampuses: false });
     await run(masters.seedDefaults, {});
     category = (await seedLibraryCategory({ name: 'General' })).id;
   });
@@ -48,7 +45,10 @@ describe('library masters', () => {
     });
 
   it('seeds the default category tree once, children under their parent', async () => {
-    const seeded = DEFAULT_CATEGORIES.reduce((total, entry) => total + 1 + entry.children.length, 0);
+    const seeded = DEFAULT_CATEGORIES.reduce(
+      (total, entry) => total + 1 + entry.children.length,
+      0,
+    );
     expect(await count('libraryCategories')).toBe(seeded + 1); // plus the fixture's 'General'
     expect(await run(masters.seedDefaults, {})).toEqual({ categories: 0 });
     const parents = (await db().collection(`schools/${SCHOOL_ID}/libraryCategories`).get()).docs;
@@ -65,12 +65,6 @@ describe('library masters', () => {
     await expect(book({ title: 'Bad', classIds: [0] })).rejects.toMatchObject({
       code: 'invalid-argument',
     });
-  });
-
-  it('requires permission', async () => {
-    await expect(
-      run(masters.catalogueUpsert, { title: 'X', authors: ['Y'], categoryId: category }, '2'),
-    ).rejects.toMatchObject({ code: 'permission-denied' });
   });
 
   it('catalogue: creates and rejects duplicates', async () => {
@@ -131,9 +125,9 @@ describe('library masters', () => {
       expect(
         (await search({ q: 'kalam', categoryIds: [category] })).items.map((item) => item.id),
       ).toEqual([firstBook.id]);
-      expect(
-        (await search({ q: 'kalam', classId: 8 })).items.map((item) => item.id),
-      ).toEqual([firstBook.id]);
+      expect((await search({ q: 'kalam', classId: 8 })).items.map((item) => item.id)).toEqual([
+        firstBook.id,
+      ]);
       await expect(search({ q: '- *' })).rejects.toMatchObject({ code: 'invalid-argument' });
     });
   });

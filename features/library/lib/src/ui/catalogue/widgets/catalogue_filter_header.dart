@@ -22,7 +22,6 @@ class CatalogueFilterHeader extends StatelessWidget {
     required this.statusFilter,
     required this.categories,
     required this.isWide,
-    required this.canEdit,
     required this.totalCount,
     required this.onSearchSubmitted,
     required this.onClearSearch,
@@ -40,7 +39,6 @@ class CatalogueFilterHeader extends StatelessWidget {
   final CatalogueStatusFilter statusFilter;
   final List<LibraryCategory> categories;
   final bool isWide;
-  final bool canEdit;
   final int totalCount;
   final ValueChanged<String> onSearchSubmitted;
   final VoidCallback onClearSearch;
@@ -231,7 +229,7 @@ class CatalogueFilterHeader extends StatelessWidget {
                     tooltip: 'Refresh catalogue',
                     onPressed: onRefresh,
                   ),
-                if (canEdit) ...[
+                ...[
                   const SizedBox(width: 8),
                   FilledButton.icon(
                     onPressed: onAddBook,

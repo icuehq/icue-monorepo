@@ -129,29 +129,21 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   List<LibraryCategory> get topCategories =>
       categories.where((category) => category.parentId == null).toList();
 
-  /// Loads the user's permissions and the small master lists.
+  /// Loads the user's campus scope and the small master lists.
   Future<void> loadMasters() async {
     isLoading = true;
     errorMessage = null;
     notifyListeners();
     try {
-      final granted = await _service.access();
-      // Library sub-actions are fixed in code: every Library user gets every permission.
-      access = ModuleAccess(
-        permissions: {...granted.permissions, ..._libraryPermissions},
-        campusIds: granted.campusIds,
-        hasAllCampuses: granted.hasAllCampuses,
-      );
+      access = await _service.access();
       final masterLists = await Future.wait([
         _service.libraries(),
         _service.categories(),
-        if (access.can('library.members.view')) _service.policies(),
+        _service.policies(),
       ]);
       libraries = masterLists[0] as List<SchoolLibrary>;
       categories = masterLists[1] as List<LibraryCategory>;
-      policies = masterLists.length > 2
-          ? masterLists[2] as List<LibraryPolicy>
-          : [];
+      policies = masterLists[2] as List<LibraryPolicy>;
     } catch (error) {
       errorMessage = callableErrorMessage(error);
     } finally {
@@ -653,12 +645,3 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     return true;
   }
 }
-
-const _libraryPermissions = {
-  'library.settings',
-  'library.catalogue',
-  'library.circulation.operate',
-  'library.fines.waive',
-  'library.reports.view',
-  'library.members.view',
-};

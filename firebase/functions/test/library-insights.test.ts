@@ -34,13 +34,10 @@ describe('library notifications', () => {
     await db()
       .doc(`schools/${SCHOOL_ID}/userAccess/1`)
       .set({
-        permissions: ['library.settings', 'library.catalogue', 'library.circulation.operate'],
+        permissions: [],
         campusIds: [31],
         hasAllCampuses: false,
       });
-    await db()
-      .doc(`schools/${SCHOOL_ID}/userAccess/none`)
-      .set({ permissions: ['library.catalogue'], campusIds: [31], hasAllCampuses: false });
     const category = (await seedLibraryCategory({ name: 'General' })).id;
     title = (
       await run(masters.catalogueUpsert, {
@@ -92,8 +89,6 @@ describe('library notifications', () => {
     )!;
     expect(incident.to).toMatchObject({
       wardStudentIds: [501],
-      permission: 'library.circulation.operate',
-      campusId: 31,
     });
   });
 

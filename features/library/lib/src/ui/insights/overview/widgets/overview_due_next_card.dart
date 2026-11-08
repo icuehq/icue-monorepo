@@ -14,9 +14,6 @@ class OverviewDueNextCard extends StatelessWidget {
     final theme = Theme.of(context);
     final today = todayIST();
     final loans = libraryProvider.loans.take(8).toList();
-    final canOperate = libraryProvider.access.can(
-      'library.circulation.operate',
-    );
 
     return Container(
       decoration: BoxDecoration(
@@ -75,36 +72,22 @@ class OverviewDueNextCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (canOperate)
-                  TextButton.icon(
-                    style: TextButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
+                TextButton.icon(
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
                     ),
-                    onPressed: () =>
-                        context.go(LibraryRoutes.libraryCirculation),
-                    icon: const Icon(Icons.arrow_forward_rounded, size: 14),
-                    label: const Text('All loans'),
                   ),
+                  onPressed: () => context.go(LibraryRoutes.libraryCirculation),
+                  icon: const Icon(Icons.arrow_forward_rounded, size: 14),
+                  label: const Text('All loans'),
+                ),
               ],
             ),
             const SizedBox(height: 14),
-            if (!canOperate)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 20),
-                child: Center(
-                  child: Text(
-                    'Loans are visible to circulation staff',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-              )
-            else if (loans.isEmpty)
+            if (loans.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 20),
                 child: Center(

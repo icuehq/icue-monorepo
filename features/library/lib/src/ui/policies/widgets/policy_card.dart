@@ -8,7 +8,6 @@ class PolicyCard extends StatelessWidget {
     required this.policy,
     required this.libraryName,
     required this.scope,
-    required this.canEdit,
     required this.onTap,
     required this.onToggleActive,
   });
@@ -16,7 +15,6 @@ class PolicyCard extends StatelessWidget {
   final LibraryPolicy policy;
   final String libraryName;
   final String scope;
-  final bool canEdit;
   final VoidCallback onTap;
   final VoidCallback onToggleActive;
 
@@ -38,7 +36,7 @@ class PolicyCard extends StatelessWidget {
           : theme.colorScheme.surfaceContainerLow,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: canEdit ? onTap : null,
+        onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(14),
@@ -115,20 +113,19 @@ class PolicyCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  if (canEdit)
-                    IconButton(
-                      tooltip: policy.active ? 'Deactivate' : 'Activate',
-                      icon: Icon(
-                        policy.active
-                            ? Icons.toggle_on_rounded
-                            : Icons.toggle_off_rounded,
-                        color: policy.active
-                            ? theme.colorScheme.primary
-                            : theme.colorScheme.onSurfaceVariant,
-                        size: 28,
-                      ),
-                      onPressed: onToggleActive,
+                  IconButton(
+                    tooltip: policy.active ? 'Deactivate' : 'Activate',
+                    icon: Icon(
+                      policy.active
+                          ? Icons.toggle_on_rounded
+                          : Icons.toggle_off_rounded,
+                      color: policy.active
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.onSurfaceVariant,
+                      size: 28,
                     ),
+                    onPressed: onToggleActive,
+                  ),
                 ],
               ),
               const SizedBox(height: 12),

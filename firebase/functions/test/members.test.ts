@@ -34,17 +34,14 @@ describe('library members and policies', () => {
     await db()
       .doc(`schools/${SCHOOL_ID}/userAccess/1`)
       .set({
-        permissions: ['library.settings', 'library.catalogue', 'library.circulation.operate'],
+        permissions: [],
         campusIds: [31, 32],
         hasAllCampuses: false,
       });
     await db()
-      .doc(`schools/${SCHOOL_ID}/userAccess/2`)
-      .set({ permissions: ['library.members.view'], campusIds: [31], hasAllCampuses: false });
-    await db()
       .doc(`schools/${SCHOOL_ID}/userAccess/3`)
       .set({
-        permissions: ['library.settings', 'library.circulation.operate'],
+        permissions: [],
         campusIds: [31],
         hasAllCampuses: false,
       });
@@ -107,7 +104,7 @@ describe('library members and policies', () => {
     });
   });
 
-  it('policy rules: fine needs an amount, no fine clears amounts, only student or teacher, permission, campus, unknown category', async () => {
+  it('policy rules: fine needs an amount, no fine clears amounts, only student or teacher, campus, unknown category', async () => {
     await expect(policy({ fineAmount: 0 })).rejects.toMatchObject({ code: 'invalid-argument' });
     await expect(policy({ memberType: 'parent' })).rejects.toMatchObject({
       code: 'invalid-argument',
@@ -128,9 +125,6 @@ describe('library members and policies', () => {
       maxRenewals: 0,
       fineType: 'none',
     };
-    await expect(
-      run(members.policyUpsert, { libraryId: mainLibrary, ...other }, '2'),
-    ).rejects.toMatchObject({ code: 'permission-denied' });
     await expect(policy({ libraryId: secondLibrary })).resolves.toBeTruthy();
     await expect(
       run(members.policyUpsert, { libraryId: secondLibrary, ...other, name: 'y' }, '3'),

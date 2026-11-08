@@ -6,13 +6,11 @@ class LibraryCard extends StatelessWidget {
   const LibraryCard({
     super.key,
     required this.library,
-    required this.canEdit,
     required this.onEdit,
     required this.onToggleActive,
   });
 
   final SchoolLibrary library;
-  final bool canEdit;
   final VoidCallback onEdit;
   final VoidCallback onToggleActive;
 
@@ -40,7 +38,7 @@ class LibraryCard extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: canEdit ? onEdit : null,
+          onTap: onEdit,
           child: Padding(
             padding: const EdgeInsets.all(14),
             child: Column(
@@ -116,46 +114,43 @@ class LibraryCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                    if (canEdit)
-                      PopupMenuButton<String>(
-                        icon: const Icon(Icons.more_vert_rounded, size: 18),
-                        onSelected: (value) {
-                          if (value == 'edit') {
-                            onEdit();
-                          } else if (value == 'toggle') {
-                            onToggleActive();
-                          }
-                        },
-                        itemBuilder: (_) => [
-                          const PopupMenuItem(
-                            value: 'edit',
-                            child: Row(
-                              children: [
-                                Icon(Icons.edit_outlined, size: 18),
-                                SizedBox(width: 10),
-                                Text('Edit'),
-                              ],
-                            ),
+                    PopupMenuButton<String>(
+                      icon: const Icon(Icons.more_vert_rounded, size: 18),
+                      onSelected: (value) {
+                        if (value == 'edit') {
+                          onEdit();
+                        } else if (value == 'toggle') {
+                          onToggleActive();
+                        }
+                      },
+                      itemBuilder: (_) => [
+                        const PopupMenuItem(
+                          value: 'edit',
+                          child: Row(
+                            children: [
+                              Icon(Icons.edit_outlined, size: 18),
+                              SizedBox(width: 10),
+                              Text('Edit'),
+                            ],
                           ),
-                          PopupMenuItem(
-                            value: 'toggle',
-                            child: Row(
-                              children: [
-                                Icon(
-                                  library.active
-                                      ? Icons.block_outlined
-                                      : Icons.check_circle_outline_rounded,
-                                  size: 18,
-                                ),
-                                const SizedBox(width: 10),
-                                Text(
-                                  library.active ? 'Deactivate' : 'Activate',
-                                ),
-                              ],
-                            ),
+                        ),
+                        PopupMenuItem(
+                          value: 'toggle',
+                          child: Row(
+                            children: [
+                              Icon(
+                                library.active
+                                    ? Icons.block_outlined
+                                    : Icons.check_circle_outline_rounded,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 10),
+                              Text(library.active ? 'Deactivate' : 'Activate'),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
                 if (library.location != null || library.hours != null) ...[

@@ -327,46 +327,18 @@ final libraryReports = <LibraryReportDef>[
   ),
 ];
 
-/// Dashboard tiles (FRS 11.1): key, label, permissions that can read the underlying records.
-const libraryDashboardStats = <(String, String, List<String>)>[
-  ('titles', 'Book titles', ['library.catalogue']),
-  ('copies', 'Physical copies', ['library.catalogue']),
-  ('available', 'Available copies', ['library.catalogue']),
-  ('issued', 'Issued copies', ['library.catalogue']),
-  (
-    'overdue',
-    'Overdue books',
-    ['library.circulation.operate', 'library.reports.view'],
-  ),
-  (
-    'reserved',
-    'Reserved books',
-    ['library.circulation.operate', 'library.reports.view'],
-  ),
-  ('lost', 'Lost books', ['library.catalogue']),
-  ('damaged', 'Damaged books', ['library.catalogue']),
-  (
-    'students',
-    'Student borrowers',
-    ['library.members.view', 'library.reports.view'],
-  ),
-  (
-    'teachers',
-    'Teacher borrowers',
-    ['library.members.view', 'library.reports.view'],
-  ),
-  (
-    'pending',
-    'Pending returns',
-    ['library.circulation.operate', 'library.reports.view'],
-  ),
-  (
-    'fines',
-    'Outstanding fines',
-    [
-      'library.circulation.operate',
-      'library.fines.waive',
-      'library.reports.view',
-    ],
-  ),
+/// Dashboard tiles (FRS 11.1): key and label.
+const libraryDashboardStats = <(String, String)>[
+  ('titles', 'Book titles'),
+  ('copies', 'Physical copies'),
+  ('available', 'Available copies'),
+  ('issued', 'Issued copies'),
+  ('overdue', 'Overdue books'),
+  ('reserved', 'Reserved books'),
+  ('lost', 'Lost books'),
+  ('damaged', 'Damaged books'),
+  ('students', 'Student borrowers'),
+  ('teachers', 'Teacher borrowers'),
+  ('pending', 'Pending returns'),
+  ('fines', 'Outstanding fines'),
 ];

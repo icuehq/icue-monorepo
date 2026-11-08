@@ -92,7 +92,8 @@ export class CallableContext {
 
 export interface CallableDef<S extends z.ZodType, R> {
   name: string;
-  permission: Permission;
+  /** Omitted for Library: its Node tile is the only gate (any signed-in staff user). */
+  permission?: Permission;
   input: S;
   handler: (context: CallableContext, input: z.infer<S>) => Promise<R>;
 }
@@ -148,7 +149,7 @@ export async function runCallable<S extends z.ZodType, R>(
     }
     if (!accessSnap.exists) throw new HttpsError('failed-precondition', 'Session not synced');
     const access = accessSnap.data() as UserAccess;
-    if (!access.permissions?.includes(def.permission))
+    if (def.permission && !access.permissions?.includes(def.permission))
       throw new HttpsError('permission-denied', 'Not allowed');
 
     const context = new CallableContext(transaction, schoolId, uid, access);
@@ -175,7 +176,7 @@ export function callable<S extends z.ZodType, R>(def: CallableDef<S, R>) {
 
 export interface QueryDef<S extends z.ZodType, R> {
   name: string;
-  permission: Permission;
+  permission?: Permission;
   input: S;
   handler: (schoolId: string, input: z.infer<S>) => Promise<R>;
 }
@@ -191,7 +192,7 @@ export async function runQuery<S extends z.ZodType, R>(
     await getFirestore().doc(`schools/${schoolId}/userAccess/${uid}`).get()
   ).data() as UserAccess | undefined;
   if (!access) throw new HttpsError('failed-precondition', 'Session not synced');
-  if (!access.permissions?.includes(def.permission))
+  if (def.permission && !access.permissions?.includes(def.permission))
     throw new HttpsError('permission-denied', 'Not allowed');
   const parsed = def.input.safeParse(data ?? {});
   if (!parsed.success) throw new HttpsError('invalid-argument', z.prettifyError(parsed.error));

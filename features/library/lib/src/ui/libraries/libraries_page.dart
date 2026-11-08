@@ -68,7 +68,6 @@ class _LibrariesPageState extends State<LibrariesPage> {
   @override
   Widget build(BuildContext context) {
     final libraryProvider = context.watch<LibraryProvider>();
-    final canEdit = libraryProvider.access.can('library.settings');
     final theme = Theme.of(context);
     final allLibraries = libraryProvider.libraries;
     final isWide = context.isWide;
@@ -112,7 +111,7 @@ class _LibrariesPageState extends State<LibrariesPage> {
           activePath: LibraryRoutes.libraryList,
         ),
       ),
-      floatingActionButton: canEdit && allLibraries.isNotEmpty
+      floatingActionButton: allLibraries.isNotEmpty
           ? FloatingActionButton.extended(
               onPressed: () => AddLibraryDialog.show(context),
               icon: const Icon(Icons.add_rounded),
@@ -126,7 +125,6 @@ class _LibrariesPageState extends State<LibrariesPage> {
                 onRefresh: () => libraryProvider.loadMasters(),
                 child: allLibraries.isEmpty
                     ? LibraryInitialEmptyState(
-                        canEdit: canEdit,
                         onAdd: () => AddLibraryDialog.show(context),
                       )
                     : Column(
@@ -138,7 +136,6 @@ class _LibrariesPageState extends State<LibrariesPage> {
                             statusFilter: _statusFilter,
                             campuses: campuses,
                             isWide: isWide,
-                            canEdit: canEdit,
                             totalCount: filteredLibraries.length,
                             onSearchChanged: (value) =>
                                 setState(() => _searchQuery = value.trim()),
@@ -235,49 +232,47 @@ class _LibrariesPageState extends State<LibrariesPage> {
                                         (lib) => lib.hours ?? '—',
                                         flex: 2,
                                       ),
-                                      if (canEdit)
-                                        AdaptiveColumn(
-                                          label: '',
-                                          width: 96,
-                                          alignment: Alignment.centerRight,
-                                          cell: (context, lib) => Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.end,
-                                            children: [
-                                              IconButton(
-                                                icon: const Icon(
-                                                  Icons.edit_outlined,
-                                                  size: 18,
-                                                ),
-                                                tooltip: 'Edit',
-                                                onPressed: () =>
-                                                    AddLibraryDialog.show(
-                                                      context,
-                                                      library: lib,
-                                                    ),
+                                      AdaptiveColumn(
+                                        label: '',
+                                        width: 96,
+                                        alignment: Alignment.centerRight,
+                                        cell: (context, lib) => Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.end,
+                                          children: [
+                                            IconButton(
+                                              icon: const Icon(
+                                                Icons.edit_outlined,
+                                                size: 18,
                                               ),
-                                              IconButton(
-                                                icon: Icon(
-                                                  lib.active
-                                                      ? Icons.block_outlined
-                                                      : Icons
-                                                            .check_circle_outline_rounded,
-                                                  size: 18,
-                                                ),
-                                                tooltip: lib.active
-                                                    ? 'Deactivate'
-                                                    : 'Activate',
-                                                onPressed: () =>
-                                                    _toggleActive(context, lib),
+                                              tooltip: 'Edit',
+                                              onPressed: () =>
+                                                  AddLibraryDialog.show(
+                                                    context,
+                                                    library: lib,
+                                                  ),
+                                            ),
+                                            IconButton(
+                                              icon: Icon(
+                                                lib.active
+                                                    ? Icons.block_outlined
+                                                    : Icons
+                                                          .check_circle_outline_rounded,
+                                                size: 18,
                                               ),
-                                            ],
-                                          ),
+                                              tooltip: lib.active
+                                                  ? 'Deactivate'
+                                                  : 'Activate',
+                                              onPressed: () =>
+                                                  _toggleActive(context, lib),
+                                            ),
+                                          ],
                                         ),
+                                      ),
                                     ],
                                     cardBuilder: (context, lib) => LibraryCard(
                                       library: lib,
-                                      canEdit: canEdit,
                                       onEdit: () => AddLibraryDialog.show(
                                         context,
                                         library: lib,
@@ -285,12 +280,10 @@ class _LibrariesPageState extends State<LibrariesPage> {
                                       onToggleActive: () =>
                                           _toggleActive(context, lib),
                                     ),
-                                    onTap: canEdit
-                                        ? (lib) => AddLibraryDialog.show(
-                                            context,
-                                            library: lib,
-                                          )
-                                        : null,
+                                    onTap: (lib) => AddLibraryDialog.show(
+                                      context,
+                                      library: lib,
+                                    ),
                                   ),
                           ),
                         ],

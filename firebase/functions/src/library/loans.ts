@@ -14,12 +14,7 @@ import { defineCallable, failed, id, missing, optionalText } from '../shared/mas
 import { enqueue } from '../shared/outbox';
 import { fineBlock, raiseFine } from './fines';
 import { openIncident } from './incidents';
-import {
-  applicablePolicy,
-  ineligibleReason,
-  personInput,
-  writeBorrower,
-} from './members';
+import { applicablePolicy, ineligibleReason, personInput, writeBorrower } from './members';
 import { memberTo } from './notify';
 import { release, waitingQuery } from './reservations';
 
@@ -96,7 +91,6 @@ export const loans = {
   /** Issues one copy to a member (FRS 11.9). Checks member, policy, limit, restriction and copy in one transaction. */
   loanIssue: defineCallable({
     name: 'library.loan.issue',
-    permission: 'library.circulation.operate',
     input: z.object({ person: personInput, barcode: id, remarks: optionalText }),
     handler: async (context, i) => {
       const today = todayIST();
@@ -205,7 +199,6 @@ export const loans = {
    */
   loanReturn: defineCallable({
     name: 'library.loan.return',
-    permission: 'library.circulation.operate',
     input: z.object({ id, condition: z.enum(['good', 'damaged']), remarks: optionalText }),
     handler: async (context, i) => {
       const { ref, loan } = await loadLoan(context, i.id);
@@ -298,7 +291,6 @@ export const loans = {
    */
   loanMarkLost: defineCallable({
     name: 'library.loan.markLost',
-    permission: 'library.circulation.operate',
     input: z.object({
       id,
       reason: optionalText,
@@ -384,7 +376,6 @@ export const loans = {
   /** Extends the due date by the loan's own `loanDays` (FRS 11.11), counted from the later of due date and today. */
   loanRenew: defineCallable({
     name: 'library.loan.renew',
-    permission: 'library.circulation.operate',
     input: z.object({ id }),
     handler: async (context, i) => {
       const { ref, loan } = await loadLoan(context, i.id);

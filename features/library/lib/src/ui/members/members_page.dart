@@ -127,7 +127,6 @@ class _MembersPageState extends State<MembersPage> {
   @override
   Widget build(BuildContext context) {
     final libraryProvider = context.watch<LibraryProvider>();
-    final canEdit = libraryProvider.access.can('library.circulation.operate');
     final theme = Theme.of(context);
     final allMembers = libraryProvider.members;
 
@@ -285,28 +284,23 @@ class _MembersPageState extends State<MembersPage> {
                           ),
                           AdaptiveColumn(
                             label: '',
-                            cell: (context, member) => canEdit
-                                ? IconButton(
-                                    tooltip: member.blocked
-                                        ? 'Unblock'
-                                        : 'Block',
-                                    icon: Icon(
-                                      member.blocked
-                                          ? Icons.lock_open_rounded
-                                          : Icons.block_rounded,
-                                      size: 18,
-                                      color: member.blocked
-                                          ? Colors.green.shade700
-                                          : theme.colorScheme.error,
-                                    ),
-                                    onPressed: () => _toggleBlock(member),
-                                  )
-                                : const SizedBox.shrink(),
+                            cell: (context, member) => IconButton(
+                              tooltip: member.blocked ? 'Unblock' : 'Block',
+                              icon: Icon(
+                                member.blocked
+                                    ? Icons.lock_open_rounded
+                                    : Icons.block_rounded,
+                                size: 18,
+                                color: member.blocked
+                                    ? Colors.green.shade700
+                                    : theme.colorScheme.error,
+                              ),
+                              onPressed: () => _toggleBlock(member),
+                            ),
                           ),
                         ],
                         cardBuilder: (context, member) => MemberCard(
                           member: member,
-                          canEdit: canEdit,
                           onToggleBlock: () => _toggleBlock(member),
                         ),
                         footer: libraryProvider.hasMoreMembers

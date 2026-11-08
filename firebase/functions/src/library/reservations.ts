@@ -13,12 +13,7 @@ import { nextNumber } from '../shared/keys';
 import { defineCallable, failed, id, missing, usable } from '../shared/masters';
 import { enqueue } from '../shared/outbox';
 import { forEachSchool } from '../shared/scheduled';
-import {
-  applicablePolicy,
-  ineligibleReason,
-  personInput,
-  writeBorrower,
-} from './members';
+import { applicablePolicy, ineligibleReason, personInput, writeBorrower } from './members';
 import { memberTo } from './notify';
 
 const DEFAULT_HOLD_DAYS = 3;
@@ -135,7 +130,6 @@ export const reservations = {
    */
   reservationCreate: defineCallable({
     name: 'library.reservation.create',
-    permission: 'library.circulation.operate',
     input: z.object({ person: personInput, catalogueId: id, libraryId: id }),
     handler: async (context, i) => {
       const { personErpId } = i.person;
@@ -209,7 +203,6 @@ export const reservations = {
   /** Cancels a waiting or ready reservation; a held copy moves on to the next member. */
   reservationCancel: defineCallable({
     name: 'library.reservation.cancel',
-    permission: 'library.circulation.operate',
     input: z.object({ id }),
     handler: async (context, i) => {
       const ref = context.doc(`libraryReservations/${i.id}`);

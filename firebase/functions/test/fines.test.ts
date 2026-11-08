@@ -35,20 +35,8 @@ describe('library fines and incidents', () => {
     await db()
       .doc(`schools/${SCHOOL_ID}/userAccess/1`)
       .set({
-        permissions: [
-          'library.settings',
-          'library.catalogue',
-          'library.circulation.operate',
-          'library.fines.waive',
-        ],
+        permissions: [],
         campusIds: [31, 32],
-        hasAllCampuses: false,
-      });
-    await db()
-      .doc(`schools/${SCHOOL_ID}/userAccess/no_waive`)
-      .set({
-        permissions: ['library.circulation.operate'],
-        campusIds: [31],
         hasAllCampuses: false,
       });
     category = (await seedLibraryCategory({ name: 'General' })).id;
@@ -103,18 +91,11 @@ describe('library fines and incidents', () => {
     expect((await get('libraryMembers/501'))!.blocked).toBe(true);
   });
 
-  it('fine waiver: permission check, partial waive, full waive unblocks member', async () => {
+  it('fine waiver: partial waive, full waive unblocks member', async () => {
     const issued = await issue();
     await set(`libraryLoans/${issued.id}`, { dueDate: dayTimestamp(day(-5)) });
     await run(loans.loanReturn, { id: issued.id, condition: 'good' });
     const fineId = `${issued.id}__overdue`;
-
-    // Without lib.fines.waive
-    await expect(
-      run(fines.fineWaive, { id: fineId, amount: 5, reason: 'Valid reason' }, 'no_waive'),
-    ).rejects.toMatchObject({
-      code: 'permission-denied',
-    });
 
     // Partial waive: 5 out of 15
     const firstWaiver = await run(fines.fineWaive, {

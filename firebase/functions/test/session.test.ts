@@ -1,4 +1,3 @@
-import { PERMISSIONS } from '../src/shared/permissions';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { syncSession } from '../src/session';
 import { clearFirestore, db } from './setup';
@@ -9,10 +8,6 @@ const access = (uid: string) =>
     .doc(`schools/${SCHOOL_ID}/userAccess/${uid}`)
     .get()
     .then((snapshot) => snapshot.data());
-
-const libraryPermissions = PERMISSIONS.filter((permission) =>
-  permission.startsWith('library.'),
-).sort();
 
 describe('session', () => {
   beforeEach(clearFirestore);
@@ -27,7 +22,7 @@ describe('session', () => {
       personErpId: 884,
     });
     expect(result).toEqual({
-      permissions: [...libraryPermissions, 'inventory.items.view', 'inventory.stock.view'].sort(),
+      permissions: ['inventory.items.view', 'inventory.stock.view'],
       campusIds: [31, 32],
       hasAllCampuses: false,
     });
@@ -39,10 +34,8 @@ describe('session', () => {
     });
   });
 
-  it('gives only the library permissions without actionIds', async () => {
-    expect((await syncSession(db(), '1', { schoolId: 12, roleIds: [4] })).permissions).toEqual(
-      libraryPermissions,
-    );
+  it('gives no permissions without actionIds', async () => {
+    expect((await syncSession(db(), '1', { schoolId: 12, roleIds: [4] })).permissions).toEqual([]);
   });
 
   it('gives parents no permissions, keeps wardStudentIds', async () => {

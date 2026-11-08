@@ -16,7 +16,6 @@ class LibraryCategorySearchBar extends StatelessWidget {
     super.key,
     required this.searchController,
     required this.isWide,
-    required this.canEdit,
     required this.statusFilter,
     required this.onSearchChanged,
     required this.onFilterChanged,
@@ -25,7 +24,6 @@ class LibraryCategorySearchBar extends StatelessWidget {
 
   final TextEditingController searchController;
   final bool isWide;
-  final bool canEdit;
   final LibraryCategoryStatusFilter statusFilter;
   final ValueChanged<String> onSearchChanged;
   final ValueChanged<LibraryCategoryStatusFilter> onFilterChanged;
@@ -87,7 +85,7 @@ class LibraryCategorySearchBar extends StatelessWidget {
           Expanded(child: searchField),
           const SizedBox(width: 12),
           filterChips,
-          if (canEdit) ...[
+          ...[
             const SizedBox(width: 12),
             FilledButton.icon(
               onPressed: onAddCategory,
@@ -117,13 +115,7 @@ class LibraryCategorySearchBar extends StatelessWidget {
 }
 
 class LibraryCategoryEmptyState extends StatelessWidget {
-  const LibraryCategoryEmptyState({
-    super.key,
-    required this.canEdit,
-    required this.onAdd,
-  });
-
-  final bool canEdit;
+  const LibraryCategoryEmptyState({super.key, required this.onAdd});
   final VoidCallback onAdd;
 
   @override
@@ -174,16 +166,14 @@ class LibraryCategoryEmptyState extends StatelessWidget {
               children: [
                 SeedDefaultsButton<LibraryProvider>(
                   label: 'Add default categories',
-                  canSeed: (provider) =>
-                      provider.access.can('library.catalogue'),
+                  canSeed: (_) => true,
                   seed: (provider) => provider.seedDefaults(),
                 ),
-                if (canEdit)
-                  FilledButton.icon(
-                    onPressed: onAdd,
-                    icon: const Icon(Icons.add_rounded, size: 18),
-                    label: const Text('Add Category'),
-                  ),
+                FilledButton.icon(
+                  onPressed: onAdd,
+                  icon: const Icon(Icons.add_rounded, size: 18),
+                  label: const Text('Add Category'),
+                ),
               ],
             ),
           ],

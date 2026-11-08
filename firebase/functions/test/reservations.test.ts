@@ -40,14 +40,14 @@ describe('library reservations', () => {
     await db()
       .doc(`schools/${SCHOOL_ID}/userAccess/1`)
       .set({
-        permissions: ['library.settings', 'library.catalogue', 'library.circulation.operate'],
+        permissions: [],
         campusIds: [31],
         hasAllCampuses: false,
       });
     await db()
       .doc(`schools/${SCHOOL_ID}/userAccess/2`)
       .set({
-        permissions: ['library.circulation.operate'],
+        permissions: [],
         campusIds: [99],
         hasAllCampuses: false,
       });

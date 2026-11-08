@@ -99,7 +99,6 @@ export const fines = {
    */
   fineWaive: defineCallable({
     name: 'library.fine.waive',
-    permission: 'library.fines.waive',
     input: z.object({
       id,
       amount: z.number().min(0.01).max(10_000_000),
@@ -155,7 +154,6 @@ export const fines = {
    */
   fineSetPayment: defineCallable({
     name: 'library.fine.setPayment',
-    permission: 'library.circulation.operate',
     input: z.object({
       id,
       paidAmount: z.number().min(0.01).max(10_000_000),

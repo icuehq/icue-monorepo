@@ -72,10 +72,6 @@ class _CataloguePageState extends State<CataloguePage> {
   @override
   Widget build(BuildContext context) {
     final libraryProvider = context.watch<LibraryProvider>();
-    final canEdit = libraryProvider.access.can('library.catalogue');
-    final canCirculate = libraryProvider.access.can(
-      'library.circulation.operate',
-    );
     final theme = Theme.of(context);
     final isWide = context.isWide;
     final allBooks = libraryProvider.books;
@@ -105,7 +101,7 @@ class _CataloguePageState extends State<CataloguePage> {
           activePath: LibraryRoutes.libraryCatalogue,
         ),
       ),
-      floatingActionButton: canEdit && !isWide
+      floatingActionButton: !isWide
           ? FloatingActionButton.extended(
               onPressed: () => context.push(LibraryRoutes.libraryBookForm),
               icon: const Icon(Icons.add_rounded),
@@ -122,7 +118,6 @@ class _CataloguePageState extends State<CataloguePage> {
             statusFilter: _statusFilter,
             categories: libraryProvider.categories,
             isWide: isWide,
-            canEdit: canEdit,
             totalCount: filteredBooks.length,
             onSearchSubmitted: (value) =>
                 libraryProvider.loadBooks(search: value.trim()),
@@ -163,7 +158,6 @@ class _CataloguePageState extends State<CataloguePage> {
                           libraryProvider.bookCategoryId == null &&
                           libraryProvider.bookClassId == null
                       ? CatalogueInitialEmptyState(
-                          canEdit: canEdit,
                           onAdd: () =>
                               context.push(LibraryRoutes.libraryBookForm),
                         )
@@ -367,30 +361,23 @@ class _CataloguePageState extends State<CataloguePage> {
                           cell: (context, book) => Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              if (canCirculate)
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.bookmark_add_outlined,
-                                    size: 18,
-                                  ),
-                                  tooltip: 'Reserve book',
-                                  onPressed: () => ReservationDialog.show(
-                                    context,
-                                    book: book,
-                                  ),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.bookmark_add_outlined,
+                                  size: 18,
                                 ),
-                              if (canEdit)
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.edit_outlined,
-                                    size: 18,
-                                  ),
-                                  tooltip: 'Edit book',
-                                  onPressed: () => context.push(
-                                    LibraryRoutes.libraryBookForm,
-                                    extra: book,
-                                  ),
+                                tooltip: 'Reserve book',
+                                onPressed: () =>
+                                    ReservationDialog.show(context, book: book),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.edit_outlined, size: 18),
+                                tooltip: 'Edit book',
+                                onPressed: () => context.push(
+                                  LibraryRoutes.libraryBookForm,
+                                  extra: book,
                                 ),
+                              ),
                               IconButton(
                                 icon: const Icon(
                                   Icons.chevron_right_rounded,
@@ -412,8 +399,6 @@ class _CataloguePageState extends State<CataloguePage> {
                           for (final classId in book.classIds)
                             libraryProvider.className(classId),
                         ],
-                        canEdit: canEdit,
-                        canCirculate: canCirculate,
                         onTap: () => _open(book),
                       ),
                       footer: libraryProvider.hasMoreBooks

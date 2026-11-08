@@ -7,7 +7,7 @@ import { nextNumber } from '../shared/keys';
 import { defineCallable, failed, id, missing, optionalText } from '../shared/masters';
 import { enqueue } from '../shared/outbox';
 import { copyFields, fineBlock, raiseFine } from './fines';
-import { memberAndLibrarians } from './notify';
+import { memberTo } from './notify';
 import { release } from './reservations';
 
 const INCIDENT_TYPES = ['lost', 'damaged'] as const;
@@ -61,11 +61,7 @@ export async function openIncident(
     updatedAt: serverTimestamp(),
   });
   await enqueue(context, `library-incident__${ref.id}`, {
-    to: memberAndLibrarians(
-      (member?.memberType as string) ?? '',
-      (member?.personErpId as number) ?? null,
-      incident.copy.campusId,
-    ),
+    to: member ? memberTo(member.memberType as string, member.personErpId as number) : {},
     category: 'library.incident',
     title: incident.title,
     body: incident.body,
@@ -91,7 +87,6 @@ export const incidents = {
    */
   incidentReport: defineCallable({
     name: 'library.incident.report',
-    permission: 'library.circulation.operate',
     input: z.object({
       barcode: id,
       personErpId: z.number().int().min(1).nullish(),
@@ -182,7 +177,6 @@ export const incidents = {
    */
   resolve: defineCallable({
     name: 'library.incident.resolve',
-    permission: 'library.circulation.operate',
     input: z.object({
       id,
       resolution: z.enum(RESOLUTIONS),

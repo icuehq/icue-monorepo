@@ -9,16 +9,12 @@ class BookCard extends StatelessWidget {
     required this.book,
     required this.categoryName,
     required this.classNames,
-    required this.canEdit,
-    required this.canCirculate,
     required this.onTap,
   });
 
   final LibraryBook book;
   final String categoryName;
   final List<String> classNames;
-  final bool canEdit;
-  final bool canCirculate;
   final VoidCallback onTap;
 
   @override
@@ -189,33 +185,31 @@ class BookCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  if (canCirculate)
-                    TextButton.icon(
-                      onPressed: () =>
-                          ReservationDialog.show(context, book: book),
-                      icon: const Icon(Icons.bookmark_add_outlined, size: 16),
-                      label: const Text(
-                        'Reserve',
-                        style: TextStyle(fontSize: 12),
-                      ),
-                      style: TextButton.styleFrom(
-                        visualDensity: VisualDensity.compact,
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                      ),
+                  TextButton.icon(
+                    onPressed: () =>
+                        ReservationDialog.show(context, book: book),
+                    icon: const Icon(Icons.bookmark_add_outlined, size: 16),
+                    label: const Text(
+                      'Reserve',
+                      style: TextStyle(fontSize: 12),
                     ),
-                  if (canEdit)
-                    TextButton.icon(
-                      onPressed: () => context.push(
-                        LibraryRoutes.libraryBookForm,
-                        extra: book,
-                      ),
-                      icon: const Icon(Icons.edit_outlined, size: 16),
-                      label: const Text('Edit', style: TextStyle(fontSize: 12)),
-                      style: TextButton.styleFrom(
-                        visualDensity: VisualDensity.compact,
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                      ),
+                    style: TextButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
                     ),
+                  ),
+                  TextButton.icon(
+                    onPressed: () => context.push(
+                      LibraryRoutes.libraryBookForm,
+                      extra: book,
+                    ),
+                    icon: const Icon(Icons.edit_outlined, size: 16),
+                    label: const Text('Edit', style: TextStyle(fontSize: 12)),
+                    style: TextButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                    ),
+                  ),
                   TextButton.icon(
                     onPressed: onTap,
                     icon: const Icon(Icons.arrow_forward_rounded, size: 16),

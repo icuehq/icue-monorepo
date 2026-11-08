@@ -17,7 +17,6 @@ class LibraryFilterHeader extends StatelessWidget {
     required this.statusFilter,
     required this.campuses,
     required this.isWide,
-    required this.canEdit,
     required this.totalCount,
     required this.onSearchChanged,
     required this.onCampusChanged,
@@ -31,7 +30,6 @@ class LibraryFilterHeader extends StatelessWidget {
   final LibraryStatusFilter statusFilter;
   final List<int> campuses;
   final bool isWide;
-  final bool canEdit;
   final int totalCount;
   final ValueChanged<String> onSearchChanged;
   final ValueChanged<int?> onCampusChanged;
@@ -131,7 +129,7 @@ class LibraryFilterHeader extends StatelessWidget {
                 Expanded(child: searchField),
                 const SizedBox(width: 12),
                 statusChips,
-                if (canEdit) ...[
+                ...[
                   const SizedBox(width: 12),
                   FilledButton.icon(
                     onPressed: onAddLibrary,

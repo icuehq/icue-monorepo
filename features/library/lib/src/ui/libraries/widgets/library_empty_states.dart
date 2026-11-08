@@ -2,13 +2,7 @@ import 'package:admin_ui/admin_ui.dart';
 import 'package:flutter/material.dart';
 
 class LibraryInitialEmptyState extends StatelessWidget {
-  const LibraryInitialEmptyState({
-    required this.canEdit,
-    required this.onAdd,
-    super.key,
-  });
-
-  final bool canEdit;
+  const LibraryInitialEmptyState({required this.onAdd, super.key});
   final VoidCallback onAdd;
 
   @override
@@ -16,7 +10,7 @@ class LibraryInitialEmptyState extends StatelessWidget {
     icon: Icons.local_library_outlined,
     title: 'No libraries configured',
     message: 'Set up physical or campus library branches to manage book circulation, copy inventories, and borrow policies.',
-    actionLabel: canEdit ? 'Add Library' : null,
+    actionLabel: 'Add Library',
     actionIcon: Icons.add_rounded,
     onAction: onAdd,
   );

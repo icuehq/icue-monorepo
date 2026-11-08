@@ -4,42 +4,33 @@ import 'package:school_library/school_library.dart';
 
 /// Quick action buttons at the top of the Library overview.
 class OverviewQuickActions extends StatelessWidget {
-  const OverviewQuickActions({required this.libraryProvider, super.key});
-
-  final LibraryProvider libraryProvider;
+  const OverviewQuickActions({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final access = libraryProvider.access;
     final theme = Theme.of(context);
 
     final actions = <(String, IconData, String, bool)>[
-      if (access.can('library.circulation.operate'))
-        (
-          'Issue or return',
-          Icons.swap_horiz_rounded,
-          LibraryRoutes.libraryCirculation,
-          true,
-        ),
-      if (access.can('library.catalogue'))
-        ('Add book', Icons.add_rounded, LibraryRoutes.libraryBookForm, false),
-      if (access.can('library.members.view'))
-        (
-          'Members',
-          Icons.people_outline_rounded,
-          LibraryRoutes.libraryMembers,
-          false,
-        ),
-      if (access.can('library.reports.view'))
-        (
-          'Reports',
-          Icons.assessment_outlined,
-          LibraryRoutes.libraryReports,
-          false,
-        ),
+      (
+        'Issue or return',
+        Icons.swap_horiz_rounded,
+        LibraryRoutes.libraryCirculation,
+        true,
+      ),
+      ('Add book', Icons.add_rounded, LibraryRoutes.libraryBookForm, false),
+      (
+        'Members',
+        Icons.people_outline_rounded,
+        LibraryRoutes.libraryMembers,
+        false,
+      ),
+      (
+        'Reports',
+        Icons.assessment_outlined,
+        LibraryRoutes.libraryReports,
+        false,
+      ),
     ];
-
-    if (actions.isEmpty) return const SizedBox.shrink();
 
     return Wrap(
       spacing: 10,

@@ -2,13 +2,7 @@ import 'package:admin_ui/admin_ui.dart';
 import 'package:flutter/material.dart';
 
 class CatalogueInitialEmptyState extends StatelessWidget {
-  const CatalogueInitialEmptyState({
-    required this.canEdit,
-    required this.onAdd,
-    super.key,
-  });
-
-  final bool canEdit;
+  const CatalogueInitialEmptyState({required this.onAdd, super.key});
   final VoidCallback onAdd;
 
   @override
@@ -16,7 +10,7 @@ class CatalogueInitialEmptyState extends StatelessWidget {
     icon: Icons.menu_book_rounded,
     title: 'Catalogue is empty',
     message: 'Start building your school library by cataloguing titles, authors, and classification details.',
-    actionLabel: canEdit ? 'Add First Book' : null,
+    actionLabel: 'Add First Book',
     actionIcon: Icons.add_rounded,
     onAction: onAdd,
   );
