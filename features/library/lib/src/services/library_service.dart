@@ -268,14 +268,6 @@ class LibraryService {
     {'id': id, 'status': status, 'reason': ?reason},
   );
 
-  Future<void> reportIncident(Map<String, Object?> data, {String? requestId}) =>
-      _call('library-incident-report', data, requestId);
-
-  Future<void> resolveIncident(
-    Map<String, Object?> data, {
-    String? requestId,
-  }) => _call('library-incident-resolve', data, requestId);
-
   Future<void> _call(
     String name,
     Map<String, Object?> data, [

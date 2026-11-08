@@ -511,7 +511,7 @@ describe('library client writes (no callable)', () => {
     await assertFails(updateDoc(doc(db('4'), 'schools/12/libraryLoans/l2'), { status: 'active', lastWrite: stamp('libraryLoan.renew') })); // not active
     await assertFails(updateDoc(doc(db('4'), 'schools/12/libraryLoans/l3'), { status: 'active', lastWrite: stamp('libraryLoan.issue') })); // wrong action
     await assertSucceeds(updateDoc(doc(db('4'), 'schools/12/libraryCopies/c1'), { status: 'issued', activeLoanId: 'l3', heldReservationId: null }));
-    await assertFails(updateDoc(doc(db('4'), 'schools/12/libraryCopies/c1'), { status: 'withdrawn' }));
+    await assertFails(updateDoc(doc(db('4'), 'schools/12/libraryCopies/c1'), { status: 'in_transit' }));
     await assertFails(updateDoc(doc(db('4'), 'schools/12/libraryCopies/c1'), { status: 'lost', libraryId: 'junior' }));
     await assertSucceeds(updateDoc(doc(db('4'), 'schools/12/libraryReservations/r1'), { status: 'ready', heldBarcode: 'c1' }));
     const reservation = { campusId: 31, status: 'waiting', createdBy: '4', lastWrite: stamp('libraryReservation.create') };
@@ -543,6 +543,14 @@ describe('library client writes (no callable)', () => {
     await assertFails(updateDoc(doc(db('p', parent), 'schools/12/libraryFines/l1__overdue'), settle({})));
     await assertSucceeds(addDoc(collection(db('4'), 'schools/12/libraryIncidents'), { campusId: 31, status: 'open', createdBy: '4' }));
     await assertFails(addDoc(collection(db('4'), 'schools/12/libraryIncidents'), { campusId: 32, status: 'open', createdBy: '4' }));
+    await env.withSecurityRulesDisabled((context) => setDoc(doc(context.firestore(), 'schools/12/libraryIncidents/i1'), { campusId: 31, status: 'open' }));
+    const resolve = (extra) => ({ status: 'resolved', resolution: 'repaired', charge: 0, lastWrite: stamp('libraryIncident.resolve'), ...extra });
+    await assertSucceeds(updateDoc(doc(db('4'), 'schools/12/libraryIncidents/i1'), resolve({})));
+    await assertFails(updateDoc(doc(db('4'), 'schools/12/libraryIncidents/i1'), resolve({}))); // no longer open
+    await env.withSecurityRulesDisabled((context) => setDoc(doc(context.firestore(), 'schools/12/libraryIncidents/i2'), { campusId: 31, status: 'open', barcode: 'c1' }));
+    await assertFails(updateDoc(doc(db('4'), 'schools/12/libraryIncidents/i2'), resolve({ barcode: 'c9' }))); // identity is fixed
+    await assertFails(updateDoc(doc(db('4'), 'schools/12/libraryIncidents/i2'), resolve({ lastWrite: null })));
+    await assertSucceeds(updateDoc(doc(db('4'), 'schools/12/libraryCopies/c1'), { status: 'withdrawn' }));
   });
 
   it('members: manual block and unblock, every campus of the member must be the caller\'s', async () => {

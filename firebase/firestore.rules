@@ -354,7 +354,7 @@ service cloud.firestore {
     match /schools/{schoolId}/libraryCopies/{barcode} {
       allow update: if staff(schoolId) && onCampus(schoolId, resource.data.campusId)
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'activeLoanId', 'heldReservationId', 'updatedAt'])
-        && request.resource.data.status in ['available', 'reserved', 'issued', 'damaged', 'lost'];
+        && request.resource.data.status in ['available', 'reserved', 'issued', 'damaged', 'lost', 'withdrawn'];
     }
     // The borrower record is created on first issue; circulation only touches what the desk shows and the counters.
     match /schools/{schoolId}/libraryMembers/{id} {
@@ -445,6 +445,10 @@ service cloud.firestore {
     match /schools/{schoolId}/libraryIncidents/{id} {
       allow create: if staff(schoolId) && onCampus(schoolId, request.resource.data.campusId)
         && request.resource.data.createdBy == request.auth.uid && request.resource.data.status == 'open';
+      allow update: if staff(schoolId) && stamped() && onCampus(schoolId, resource.data.campusId) && resource.data.status == 'open'
+        && request.resource.data.status == 'resolved' && request.resource.data.lastWrite.action == 'libraryIncident.resolve'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+          ['status', 'resolution', 'resolutionRemarks', 'repairCost', 'charge', 'repairStatus', 'resolvedBy', 'resolvedAt', 'updatedAt', 'lastWrite']);
       allow read: if inSchool(schoolId)
         && ((staff(schoolId) && onCampus(schoolId, resource.data.campusId)) || own());
     }

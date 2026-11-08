@@ -58,19 +58,21 @@ export const noticeFines = onDocumentCreated(path('libraryFines'), async (event)
   });
 });
 
-/** Lost or damaged during a loan; incidents reported at the desk are queued by their callable. */
+/** Lost or damaged books: the member held responsible (if any) is told. */
 export const noticeIncidents = onDocumentCreated(path('libraryIncidents'), async (event) => {
   const incident = event.data?.data();
-  if (!incident?.loanId || !incident.personErpId) return;
+  if (!incident?.personErpId) return;
   const { schoolId, docId } = event.params;
+  const lost = incident.type === 'lost';
   await post(getFirestore(), schoolId, `library-incident__${docId}`, {
     to: memberTo(incident.memberType, incident.personErpId),
     category: 'library.incident',
-    title: incident.type === 'lost' ? 'Lost book recorded' : 'Damaged book recorded',
-    body:
-      incident.type === 'lost'
+    title: lost ? 'Lost book recorded' : 'Damaged book recorded',
+    body: incident.loanId
+      ? lost
         ? `${incident.barcode} was marked lost.`
-        : `${incident.barcode} was returned damaged.`,
+        : `${incident.barcode} was returned damaged.`
+      : `${incident.barcode} was reported ${incident.type}.`,
     data: { incidentId: docId },
   });
 });

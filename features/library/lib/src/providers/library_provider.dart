@@ -451,17 +451,26 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     reload: loadFines,
   );
 
-  Future<bool> reportIncident(Map<String, Object?> data, {String? requestId}) =>
-      _write(
-        () => _service.reportIncident(data, requestId: requestId),
-        reload: loadIncidents,
-      );
+  Future<bool> reportIncident(Map<String, Object?> data) => _write(
+    () => _loanWrites.reportIncident(
+      barcode: data['barcode']! as String,
+      type: data['type']! as String,
+      personErpId: data['personErpId'] as int?,
+      severity: data['severity']! as String,
+      description: data['description'] as String?,
+      charge: (data['charge']! as num).toDouble(),
+    ),
+    reload: loadIncidents,
+  );
 
-  Future<bool> resolveIncident(
-    Map<String, Object?> data, {
-    String? requestId,
-  }) => _write(
-    () => _service.resolveIncident(data, requestId: requestId),
+  Future<bool> resolveIncident(Map<String, Object?> data) => _write(
+    () => _loanWrites.resolveIncident(
+      id: data['id']! as String,
+      resolution: data['resolution']! as String,
+      repairCost: data['repairCost'] as double?,
+      charge: data['charge'] as double?,
+      remarks: data['remarks'] as String?,
+    ),
     reload: loadIncidents,
   );
 

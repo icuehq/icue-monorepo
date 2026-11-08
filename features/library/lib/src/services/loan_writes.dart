@@ -167,10 +167,12 @@ class LoanWrites {
     required double amount,
     required _Json member,
     required _Json loan,
-    required String loanId,
+    required String? loanId,
+    String? incidentId,
     required Map<String, Object?> calculation,
   }) => {
     'fineNumber': number,
+    'incidentId': ?incidentId,
     'loanId': loanId,
     'memberType': member['memberType'],
     'personErpId': member['personErpId'],
@@ -199,12 +201,14 @@ class LoanWrites {
     required _Json copy,
     required String barcode,
     required _Json? member,
-    required String loanId,
+    required String? loanId,
     required String? severity,
-    required String description,
+    required String? description,
     required double charge,
     required String? repairStatus,
+    Map<String, Object?> extra = const {},
   }) => {
+    ...extra,
     'incidentNumber': number,
     'type': type,
     'barcode': barcode,
@@ -214,7 +218,7 @@ class LoanWrites {
     'memberType': member?['memberType'],
     'personErpId': member?['personErpId'],
     'memberName': member?['name'],
-    'loanId': loanId,
+    'loanId': ?loanId,
     'severity': severity,
     'description': description,
     'photos': <Object?>[],
@@ -925,5 +929,235 @@ class LoanWrites {
         'performedBy': _uid,
       },
     );
+  }
+
+  /// Reports a lost or damaged copy that is on the shelf (not on loan or held). A member held responsible
+  /// ([personErpId]) with a [charge] is fined and blocked. The copy leaves circulation.
+  Future<void> reportIncident({
+    required String barcode,
+    required String type,
+    int? personErpId,
+    String severity = 'moderate',
+    String? description,
+    double charge = 0,
+  }) async {
+    if (type != 'lost' && type != 'damaged') writeFail('Invalid incident type');
+    if (!const ['minor', 'moderate', 'severe'].contains(severity)) {
+      writeFail('Invalid severity');
+    }
+    if (charge < 0) writeFail('Charge cannot be negative');
+    final copyReference = await schoolDocument('libraryCopies', barcode);
+    final open = await (await schoolCollection('libraryIncidents'))
+        .where('barcode', isEqualTo: barcode)
+        .where('status', isEqualTo: 'open')
+        .limit(1)
+        .get();
+    if (open.docs.isNotEmpty) writeFail('Copy already has an open incident');
+    final memberReference = personErpId == null
+        ? null
+        : await _memberReference(personErpId);
+    final incidentNumber = await _nextNumber('INC');
+    final fined = personErpId != null && charge > 0;
+    final fineNumber = fined ? await _nextNumber('FIN') : null;
+    final incidentReference = (await schoolCollection('libraryIncidents'))
+        .doc();
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
+      final copy = (await transaction.get(copyReference)).data();
+      if (copy == null) writeFail('Copy not found', 'not-found');
+      if (copy['status'] == 'lost' || copy['status'] == 'withdrawn') {
+        writeFail('Copy is already ${copy['status']}');
+      }
+      if (copy['activeLoanId'] != null || copy['heldReservationId'] != null) {
+        writeFail(
+          'Copy is on loan or held; use Mark lost / return as damaged, or release the hold first',
+        );
+      }
+      final member = memberReference == null
+          ? null
+          : (await transaction.get(memberReference)).data();
+      if (memberReference != null && member == null) {
+        writeFail('Member not found', 'not-found');
+      }
+      transaction
+        ..set(
+          incidentReference,
+          _newIncident(
+            number: incidentNumber,
+            type: type,
+            copy: copy,
+            barcode: barcode,
+            member: member,
+            loanId: null,
+            severity: type == 'damaged' ? severity : null,
+            description: description,
+            charge: charge,
+            repairStatus: type == 'damaged' ? 'none' : null,
+            extra: {'lastWrite': writeStamp('libraryIncident.report')},
+          ),
+        )
+        ..update(copyReference, {
+          'status': type == 'lost' ? 'lost' : 'damaged',
+          'activeLoanId': null,
+          'heldReservationId': null,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      if (fined && member != null) {
+        transaction
+          ..set(
+            await schoolDocument(
+              'libraryFines',
+              'inc_${incidentReference.id}__$type',
+            ),
+            _newFine(
+              number: fineNumber!,
+              type: type,
+              amount: charge,
+              member: member,
+              loan: copy,
+              loanId: null,
+              incidentId: incidentReference.id,
+              calculation: {
+                'incidentNumber': incidentNumber,
+                'type': type,
+                'severity': severity,
+                'charge': charge,
+              },
+            ),
+          )
+          ..update(memberReference!, {
+            ..._fineBlock(member),
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+      }
+    });
+  }
+
+  /// Resolves an open incident. Repaired or dismissed copies go back to the shelf (or the next waiting
+  /// member); written-off, replaced and paid-for lost copies are withdrawn. A higher [charge] fines the
+  /// difference.
+  Future<void> resolveIncident({
+    required String id,
+    required String resolution,
+    double? repairCost,
+    double? charge,
+    String? remarks,
+  }) async {
+    const resolutions = [
+      'repaired',
+      'replaced',
+      'written_off',
+      'charged',
+      'dismissed',
+    ];
+    if (!resolutions.contains(resolution)) writeFail('Invalid resolution');
+    final incidentReference = await schoolDocument('libraryIncidents', id);
+    final earlier = (await incidentReference.get()).data();
+    if (earlier == null) writeFail('Incident not found', 'not-found');
+    final earlierCharge = (earlier['charge'] as num? ?? 0).toDouble();
+    final newCharge = charge ?? earlierCharge;
+    if (newCharge < earlierCharge) {
+      writeFail('Charge cannot be lowered on resolve; waive the fine instead');
+    }
+    final difference = newCharge - earlierCharge;
+    final personErpId = (earlier['personErpId'] as num?)?.toInt();
+    final fineNumber = difference > 0 && personErpId != null
+        ? await _nextNumber('FIN')
+        : null;
+    final copyReference = await schoolDocument(
+      'libraryCopies',
+      earlier['barcode'] as String,
+    );
+    final earlierCopy = (await copyReference.get()).data();
+    if (earlierCopy == null) writeFail('Copy not found', 'not-found');
+    final freed =
+        (resolution == 'repaired' || resolution == 'dismissed') &&
+        (earlierCopy['status'] == 'damaged' || earlierCopy['status'] == 'lost');
+    final waitingReference = freed
+        ? await _nextWaiting(
+            earlierCopy['catalogueId'] as String,
+            earlierCopy['libraryId'] as String,
+          )
+        : null;
+    final holdDays = waitingReference == null ? 0 : await _holdDays();
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
+      final incident = (await transaction.get(incidentReference)).data();
+      if (incident == null) writeFail('Incident not found', 'not-found');
+      if (incident['status'] != 'open') {
+        writeFail('Incident is already ${incident['status']}');
+      }
+      final copy = (await transaction.get(copyReference)).data();
+      if (copy == null) writeFail('Copy not found', 'not-found');
+      if (resolution == 'repaired' && incident['type'] != 'damaged') {
+        writeFail('Only a damaged copy can be repaired');
+      }
+      final waiting = waitingReference == null
+          ? null
+          : (
+              reference: waitingReference,
+              data: (await transaction.get(waitingReference)).data(),
+            );
+      final memberReference = difference > 0 && personErpId != null
+          ? await _memberReference(personErpId)
+          : null;
+      final member = memberReference == null
+          ? null
+          : (await transaction.get(memberReference)).data();
+      var repairStatus = incident['repairStatus'];
+      if (resolution == 'repaired' || resolution == 'dismissed') {
+        if (resolution == 'repaired') repairStatus = 'repaired';
+        if (copy['status'] == 'damaged' || copy['status'] == 'lost') {
+          _release(transaction, copyReference, waiting, holdDays);
+        }
+      } else if (resolution == 'written_off') {
+        repairStatus = 'writeoff';
+        transaction.update(copyReference, {
+          'status': 'withdrawn',
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      } else if (resolution == 'replaced' ||
+          (resolution == 'charged' && copy['status'] == 'lost')) {
+        // A replaced or paid-for lost copy is gone for good; a replacement comes in as a new book entry.
+        transaction.update(copyReference, {
+          'status': 'withdrawn',
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+      if (member != null) {
+        transaction
+          ..set(
+            await schoolDocument('libraryFines', 'inc_${id}__penalty'),
+            _newFine(
+              number: fineNumber!,
+              type: incident['type'] as String,
+              amount: difference,
+              member: member,
+              loan: incident,
+              loanId: incident['loanId'] as String?,
+              incidentId: id,
+              calculation: {
+                'incidentNumber': incident['incidentNumber'],
+                'resolution': resolution,
+                'charge': difference,
+              },
+            ),
+          )
+          ..update(memberReference!, {
+            ..._fineBlock(member),
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+      }
+      transaction.update(incidentReference, {
+        'status': 'resolved',
+        'resolution': resolution,
+        'resolutionRemarks': remarks,
+        'repairCost': repairCost,
+        'charge': newCharge,
+        'repairStatus': repairStatus,
+        'resolvedBy': _uid,
+        'resolvedAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+        'lastWrite': writeStamp('libraryIncident.resolve', remarks),
+      });
+    });
   }
 }

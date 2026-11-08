@@ -6,7 +6,6 @@ import { masters } from './inventory/masters';
 import { itemSearch } from './inventory/search';
 import { verification } from './inventory/verification';
 import { copies as libraryCopies } from './library/copies';
-import { incidents as libraryIncidents } from './library/incidents';
 import { catalogueSearch } from './library/search';
 import { sync } from './session';
 import { type AnyCallableDef, callable, queryCallable, routes } from './shared/callable';
@@ -24,6 +23,7 @@ export {
   auditLibraryCatalogue,
   auditLibraryCopies,
   auditLibraryFines,
+  auditLibraryIncidents,
   auditLibraryLoans,
   auditLibraryMembers,
   auditLibraryPolicies,
@@ -37,7 +37,6 @@ const mutations: AnyCallableDef[] = [
   verification,
   { seedDefaults: masters.seedDefaults },
   libraryCopies,
-  libraryIncidents,
 ].flatMap((group) => Object.values(group) as AnyCallableDef[]);
 
 // Each callable deploys as its name with dots as dashes, e.g. `inventory.purchaseOrder.receive` → `inventory-purchaseOrder-receive`.

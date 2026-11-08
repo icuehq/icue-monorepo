@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { copies } from '../src/library/copies';
-import { incidents } from '../src/library/incidents';
-import { fines, loans } from './circulation';
+import { fines, incidents, loans } from './circulation';
 import { runCallable, type CallableDef } from '../src/shared/callable';
 import { dayTimestamp } from '../src/shared/dates';
 import {
