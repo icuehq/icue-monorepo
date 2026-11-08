@@ -1,6 +1,4 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { DEFAULT_CATEGORIES } from '../src/library/defaults';
-import { masters } from '../src/library/masters';
 import { applyCatalogueChange, catalogueSearch } from '../src/library/search';
 import { runCallable, runQuery, type CallableDef } from '../src/shared/callable';
 import { seedLibraryCategory, seedLibraryTitle } from './fixtures';
@@ -32,7 +30,6 @@ describe('library masters', () => {
         campusIds: [31],
         hasAllCampuses: false,
       });
-    await run(masters.seedDefaults, {});
     category = (await seedLibraryCategory({ name: 'General' })).id;
   });
 
@@ -43,19 +40,6 @@ describe('library masters', () => {
       categoryId: category,
       ...extra,
     });
-
-  it('seeds the default category tree once, children under their parent', async () => {
-    const seeded = DEFAULT_CATEGORIES.reduce(
-      (total, entry) => total + 1 + entry.children.length,
-      0,
-    );
-    expect(await count('libraryCategories')).toBe(seeded + 1); // plus the fixture's 'General'
-    expect(await run(masters.seedDefaults, {})).toEqual({ categories: 0 });
-    const parents = (await db().collection(`schools/${SCHOOL_ID}/libraryCategories`).get()).docs;
-    const science = parents.find((doc) => doc.data().name === 'Science' && !doc.data().parentId)!;
-    const physics = parents.find((doc) => doc.data().name === 'Physics')!;
-    expect(physics.data().parentId).toBe(science.id);
-  });
 
   describe('search', () => {
     it('finds by title/author/publisher word; filters by category', async () => {

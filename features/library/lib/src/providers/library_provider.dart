@@ -316,18 +316,6 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
 
   // Writes return true on success, else set [errorMessage].
 
-  Future<bool> seedDefaults() =>
-      _write(_service.seedDefaults, reload: loadMasters);
-
-  /// Debug only: fills the emulator with sample data. Returns an error message, or null on success.
-  Future<String?> fillMockData() async {
-    if (await _write(_service.fillMockData, reload: loadMasters)) return null;
-    final message = errorMessage;
-    errorMessage = null;
-    notifyListeners();
-    return message;
-  }
-
   Future<bool> saveLibrary(Map<String, Object?> data) =>
       _write(() => _service.saveLibrary(data), reload: loadMasters);
 

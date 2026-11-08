@@ -1,5 +1,4 @@
 import 'package:admin_ui/admin_ui.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -22,55 +21,13 @@ class _LibraryHomePageState extends State<LibraryHomePage> {
     );
   }
 
-  /// Debug builds: loads sample libraries, books, members, loans, fines and more into the emulator.
-  Future<void> _fillMockData() async {
-    final messenger = ScaffoldMessenger.of(context);
-    final libraryProvider = context.read<LibraryProvider>();
-    final fill = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Fill mock data?'),
-        content: const Text(
-          'Adds sample libraries, policies, books, copies, members, loans, '
-          'reservations, fines and incidents, and replaces them if they were '
-          'added before. Works only on the Firebase emulator.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Fill'),
-          ),
-        ],
-      ),
-    );
-    if (fill != true) return;
-    final error = await libraryProvider.fillMockData();
-    messenger.showSnackBar(
-      SnackBar(content: Text(error ?? 'Mock data filled')),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final libraryProvider = context.watch<LibraryProvider>();
     final visibleTiles = libraryGroups;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Library'),
-        actions: [
-          if (kDebugMode)
-            IconButton(
-              tooltip: 'Fill mock data',
-              icon: const Icon(Icons.dataset_outlined),
-              onPressed: libraryProvider.isLoading ? null : _fillMockData,
-            ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Library')),
       body: libraryProvider.isLoading
           ? const Center(child: CircularProgressIndicator())
           : libraryProvider.errorMessage != null

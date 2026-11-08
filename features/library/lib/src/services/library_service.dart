@@ -236,11 +236,6 @@ class LibraryService {
 
   // --- writes: masters are plain client CRUD (`firestore.rules`); the rest are callables, same requestId on user retry --------------------
 
-  Future<void> seedDefaults() => _call('library-seedDefaults', {});
-
-  /// Debug only: the emulator fills every Library screen with sample data (refused elsewhere).
-  Future<void> fillMockData() => _call('library-mockData-fill', {});
-
   Future<void> saveLibrary(Map<String, Object?> data) =>
       saveMasterDocument('libraries', data);
 

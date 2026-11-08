@@ -1,6 +1,4 @@
-import 'package:admin_ui/admin_ui.dart';
 import 'package:flutter/material.dart';
-import 'package:school_library/school_library.dart';
 
 enum LibraryCategoryStatusFilter {
   all('All'),
@@ -164,11 +162,6 @@ class LibraryCategoryEmptyState extends StatelessWidget {
               runSpacing: 12,
               alignment: WrapAlignment.center,
               children: [
-                SeedDefaultsButton<LibraryProvider>(
-                  label: 'Add default categories',
-                  canSeed: (_) => true,
-                  seed: (provider) => provider.seedDefaults(),
-                ),
                 FilledButton.icon(
                   onPressed: onAdd,
                   icon: const Icon(Icons.add_rounded, size: 18),

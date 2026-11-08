@@ -9,9 +9,7 @@ import { copies as libraryCopies } from './library/copies';
 import { fines as libraryFines } from './library/fines';
 import { incidents as libraryIncidents } from './library/incidents';
 import { loans as libraryLoans } from './library/loans';
-import { masters as libraryMasters } from './library/masters';
 import { members as libraryMembers } from './library/members';
-import { mockDataFill } from './library/mockData';
 import { reservations as libraryReservations } from './library/reservations';
 import { catalogueSearch } from './library/search';
 import { sync } from './session';
@@ -33,7 +31,6 @@ const mutations: AnyCallableDef[] = [
   maintenance,
   verification,
   { seedDefaults: masters.seedDefaults },
-  libraryMasters,
   libraryCopies,
   libraryMembers,
   libraryLoans,
@@ -49,6 +46,5 @@ export const { session, inventory, library } = routes([
   ...mutations.map((def) => [def.name, callable(def)] as [string, unknown]),
   [itemSearch.name, queryCallable(itemSearch)],
   [catalogueSearch.name, queryCallable(catalogueSearch)],
-  ['library.mockData.fill', mockDataFill],
   ['inventory.import.run', importRun],
 ]);
