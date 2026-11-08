@@ -187,7 +187,9 @@ class IssueBooksCard extends StatelessWidget {
                           : Icons.arrow_back_rounded,
                       size: 18,
                     ),
-                    label: Text(successfulCount > 0 ? 'Done' : 'Cancel'),
+                    label: Text(
+                      successfulCount > 0 ? 'Issue Book(s)' : 'Cancel',
+                    ),
                   ),
                 ),
               ],

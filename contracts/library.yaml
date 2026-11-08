@@ -172,6 +172,10 @@ models:
         dueDate: day
         renewals: { type: int, length: true }
         maxRenewals: { type: int, key: policySnapshot.maxRenewals }
+        fineType: { type: string, key: policySnapshot.fineType }
+        fineAmount: { type: double, key: policySnapshot.fineAmount }
+        graceDays: { type: int, key: policySnapshot.graceDays }
+        maxFine: { type: double?, key: policySnapshot.maxFine }
         status: string
         returnedDate: day?
         condition: string?
