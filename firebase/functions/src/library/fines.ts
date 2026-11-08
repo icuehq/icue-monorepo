@@ -10,7 +10,6 @@ import { defineCallable, failed, id, missing } from '../shared/masters';
 /** Where a fine or incident happened: the copy's title, library and campus (a loan or copy document has all four). */
 export const copyFields = (source: DocumentData) => ({
   catalogueId: source.catalogueId,
-  accessionNumber: source.accessionNumber,
   libraryId: source.libraryId,
   campusId: source.campusId,
 });
@@ -31,6 +30,7 @@ export async function raiseFine(
     memberId: string;
     member: DocumentData;
     source: DocumentData;
+    barcode: string;
     calculation: Record<string, unknown>;
     loanId?: string | null;
     incidentId?: string;
@@ -45,6 +45,7 @@ export async function raiseFine(
     memberType: fine.member.memberType,
     personErpId: fine.member.personErpId,
     memberName: fine.member.name ?? null,
+    barcode: fine.barcode,
     ...copyFields(fine.source),
     type: fine.type,
     amount: fine.amount,

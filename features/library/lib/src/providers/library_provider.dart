@@ -135,7 +135,13 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     errorMessage = null;
     notifyListeners();
     try {
-      access = await _service.access();
+      final granted = await _service.access();
+      // Library sub-actions are fixed in code: every Library user gets every permission.
+      access = ModuleAccess(
+        permissions: {...granted.permissions, ..._libraryPermissions},
+        campusIds: granted.campusIds,
+        hasAllCampuses: granted.hasAllCampuses,
+      );
       final masterLists = await Future.wait([
         _service.libraries(),
         _service.categories(),
@@ -362,8 +368,8 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     }
   }
 
-  Future<LibraryLoan?> activeLoanOf(String copyId) =>
-      _service.activeLoanOf(copyId);
+  Future<LibraryLoan?> activeLoanOf(String barcode) =>
+      _service.activeLoanOf(barcode);
 
   Future<LibraryMember?> member(String type, int personErpId) =>
       _service.member(type, personErpId);
@@ -612,3 +618,12 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     return true;
   }
 }
+
+const _libraryPermissions = {
+  'library.settings',
+  'library.catalogue',
+  'library.circulation.operate',
+  'library.fines.waive',
+  'library.reports.view',
+  'library.members.view',
+};

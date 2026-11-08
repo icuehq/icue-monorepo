@@ -25,7 +25,7 @@ export async function runDailyLibrary(schoolId: string, today = todayIST()): Pro
       to: memberTo(loan.memberType, loan.personErpId),
       category: 'library.loan',
       title: 'Book due soon',
-      body: `${loan.accessionNumber} is due on ${timestampDay(loan.dueDate)}.`,
+      body: `${loan.barcode} is due on ${timestampDay(loan.dueDate)}.`,
       data: { loanId: snapshot.id },
     });
   }
@@ -40,7 +40,7 @@ export async function runDailyLibrary(schoolId: string, today = todayIST()): Pro
       to: memberTo(loan.memberType, loan.personErpId),
       category: 'library.loan',
       title: 'Book overdue',
-      body: `${loan.accessionNumber} was due on ${timestampDay(loan.dueDate)}. Please return it.`,
+      body: `${loan.barcode} was due on ${timestampDay(loan.dueDate)}. Please return it.`,
       data: { loanId: snapshot.id },
     });
   }

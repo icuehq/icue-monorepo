@@ -329,9 +329,9 @@ class _ReservationsPageState extends State<ReservationsPage> {
                                 );
                               }
                               if (reservation.status == 'fulfilled' &&
-                                  reservation.fulfilledCopyId != null) {
+                                  reservation.fulfilledBarcode != null) {
                                 return Text(
-                                  'Copy ${reservation.fulfilledCopyId}',
+                                  'Copy ${reservation.fulfilledBarcode}',
                                 );
                               }
                               return const Text('—');

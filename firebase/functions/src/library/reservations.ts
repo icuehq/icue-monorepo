@@ -13,7 +13,13 @@ import { nextNumber } from '../shared/keys';
 import { defineCallable, failed, id, missing, usable } from '../shared/masters';
 import { enqueue } from '../shared/outbox';
 import { forEachSchool } from '../shared/scheduled';
-import { applicablePolicy, ineligibleReason, memberId, personInput, writeBorrower } from './members';
+import {
+  applicablePolicy,
+  ineligibleReason,
+  memberId,
+  personInput,
+  writeBorrower,
+} from './members';
 import { memberTo } from './notify';
 
 const DEFAULT_HOLD_DAYS = 3;
@@ -70,14 +76,14 @@ export async function hold(
   context: CallableContext,
   reservationSnapshot: DocumentSnapshot,
   copyRef: DocumentReference,
-  copyId: string,
+  barcode: string,
   days: number,
 ): Promise<void> {
   const reservation = reservationSnapshot.data()!;
   const holdUntilDay = addDays(todayIST(), days);
   context.update(reservationSnapshot.ref, {
     status: 'ready',
-    heldCopyId: copyId,
+    heldBarcode: barcode,
     holdUntil: dayTimestamp(holdUntilDay),
     readyAt: serverTimestamp(),
   });
@@ -183,10 +189,10 @@ export const reservations = {
         libraryId: i.libraryId,
         campusId: library.campusId,
         status: 'waiting',
-        heldCopyId: null,
+        heldBarcode: null,
         holdUntil: null,
         fulfilledLoanId: null,
-        fulfilledCopyId: null,
+        fulfilledBarcode: null,
       };
       writeBorrower(context, snapshot.ref, member, i.person, library.campusId, 0);
       context.set(ref, { ...after, createdBy: context.uid, createdAt: serverTimestamp() });
@@ -208,7 +214,7 @@ export const reservations = {
       context.requireCampus(reservation.campusId);
       if (reservation.status !== 'waiting' && reservation.status !== 'ready')
         throw failed(`Reservation is ${reservation.status}`);
-      if (reservation.status === 'ready') await freeHeld(context, reservation.heldCopyId, ref.id);
+      if (reservation.status === 'ready') await freeHeld(context, reservation.heldBarcode, ref.id);
       context.update(ref, {
         status: 'cancelled',
         cancelledBy: context.uid,
@@ -228,10 +234,10 @@ export const reservations = {
 /** Releases the copy held for [reservationId], unless it has meanwhile been taken by something else. */
 async function freeHeld(
   context: CallableContext,
-  copyId: string,
+  barcode: string,
   reservationId: string,
 ): Promise<void> {
-  const cRef = context.doc(`libraryCopies/${copyId}`);
+  const cRef = context.doc(`libraryCopies/${barcode}`);
   const copy = (await context.transaction.get(cRef)).data();
   if (copy?.heldReservationId === reservationId) await release(context, cRef, copy);
 }
@@ -253,7 +259,7 @@ export async function runHoldExpiry(schoolId: string, today = todayIST()): Promi
       });
       const reservation = (await transaction.get(snapshot.ref)).data();
       if (reservation?.status !== 'ready' || timestampDay(reservation.holdUntil) >= today) return;
-      await freeHeld(context, reservation.heldCopyId, snapshot.id);
+      await freeHeld(context, reservation.heldBarcode, snapshot.id);
       context.update(snapshot.ref, { status: 'expired', expiredAt: serverTimestamp() });
       context.flush();
     });

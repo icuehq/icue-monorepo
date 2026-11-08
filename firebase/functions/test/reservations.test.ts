@@ -27,20 +27,20 @@ const day = (offset: number) =>
 describe('library reservations', () => {
   let mainLibrary: string, title: string, policy: string;
   const reserve = (memberId: string) =>
-    run(reservations.reservationCreate, { person: person(memberId), catalogueId: title, libraryId: mainLibrary });
-  const issue = (memberId: string, copyId = 'ACC-000001') =>
-    run(loans.loanIssue, { person: person(memberId), copyId });
+    run(reservations.reservationCreate, {
+      person: person(memberId),
+      catalogueId: title,
+      libraryId: mainLibrary,
+    });
+  const issue = (memberId: string, barcode = 'ACC-000001') =>
+    run(loans.loanIssue, { person: person(memberId), barcode });
 
   beforeEach(async () => {
     await clearFirestore();
     await db()
       .doc(`schools/${SCHOOL_ID}/userAccess/1`)
       .set({
-        permissions: [
-          'library.settings',
-          'library.catalogue',
-          'library.circulation.operate',
-        ],
+        permissions: ['library.settings', 'library.catalogue', 'library.circulation.operate'],
         campusIds: [31],
         hasAllCampuses: false,
       });
@@ -64,16 +64,19 @@ describe('library reservations', () => {
       catalogueId: title,
       libraryId: mainLibrary,
       quantity: 1,
+      barcodes: ['ACC-000001'],
     });
-    policy = (await run(members.policyUpsert, {
-      libraryId: mainLibrary,
-      memberType: 'student',
-      name: 'Primary',
-      maxBooks: 2,
-      loanDays: 7,
-      maxRenewals: 2,
-      fineType: 'none',
-    })).id;
+    policy = (
+      await run(members.policyUpsert, {
+        libraryId: mainLibrary,
+        memberType: 'student',
+        name: 'Primary',
+        maxBooks: 2,
+        loanDays: 7,
+        maxRenewals: 2,
+        fineType: 'none',
+      })
+    ).id;
     await issue('student_501');
   });
 
@@ -93,7 +96,7 @@ describe('library reservations', () => {
     });
     expect(await get(`libraryReservations/${first.id}`)).toMatchObject({
       status: 'ready',
-      heldCopyId: 'ACC-000001',
+      heldBarcode: 'ACC-000001',
       holdUntil: dayTimestamp(day(3)),
     });
     expect((await get(`libraryReservations/${second.id}`))!.status).toBe('waiting');
@@ -107,7 +110,7 @@ describe('library reservations', () => {
     expect(await get(`libraryReservations/${first.id}`)).toMatchObject({
       status: 'fulfilled',
       fulfilledLoanId: result.id,
-      fulfilledCopyId: 'ACC-000001',
+      fulfilledBarcode: 'ACC-000001',
     });
     expect(await get('libraryCopies/ACC-000001')).toMatchObject({
       status: 'issued',
@@ -181,16 +184,17 @@ describe('library reservations', () => {
       catalogueId: title,
       libraryId: mainLibrary,
       quantity: 2,
+      barcodes: ['ACC-000002', 'ACC-000003'],
     });
     expect(await get(`libraryReservations/${first.id}`)).toMatchObject({
       status: 'ready',
-      heldCopyId: acq.copyIds[0],
+      heldBarcode: acq.barcodes[0],
     });
-    expect(await get(`libraryCopies/${acq.copyIds[0]}`)).toMatchObject({
+    expect(await get(`libraryCopies/${acq.barcodes[0]}`)).toMatchObject({
       status: 'reserved',
       heldReservationId: first.id,
     });
-    expect(await get(`libraryCopies/${acq.copyIds[1]}`)).toMatchObject({ status: 'available' });
+    expect(await get(`libraryCopies/${acq.barcodes[1]}`)).toMatchObject({ status: 'available' });
     await expect(run(loans.loanRenew, { id: loan.id })).resolves.toBeTruthy(); // nobody waiting any more
   });
 });

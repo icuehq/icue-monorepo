@@ -3,21 +3,19 @@
 import 'package:icue_firebase/icue_firebase.dart'
     show readDayOrNull, readDouble;
 
-/// One physical book. The document ID is the accession number.
+/// One physical book. The document ID is its barcode.
 class LibraryCopy {
   const LibraryCopy({
     required this.id,
-    required this.accessionNumber,
     required this.catalogueId,
     required this.libraryId,
     required this.campusId,
     this.shelf,
-    this.barcode,
+    required this.barcode,
     this.rfidTag,
     required this.condition,
     required this.status,
     required this.price,
-    this.vendorOrDonor,
     this.acquiredDate,
     this.remarks,
     this.heldReservationId,
@@ -26,34 +24,30 @@ class LibraryCopy {
   factory LibraryCopy.fromMap(String id, Map<String, dynamic> data) =>
       LibraryCopy(
         id: id,
-        accessionNumber: data['accessionNumber'] as String? ?? id,
         catalogueId: data['catalogueId'] as String? ?? '',
         libraryId: data['libraryId'] as String? ?? '',
         campusId: (data['campusId'] as num? ?? 0).toInt(),
         shelf: data['shelf'] as String?,
-        barcode: data['barcode'] as String?,
+        barcode: data['barcode'] as String? ?? id,
         rfidTag: data['rfidTag'] as String?,
         condition: data['condition'] as String? ?? 'good',
         status: data['status'] as String? ?? 'available',
         price: readDouble(data['price']),
-        vendorOrDonor: data['vendorOrDonor'] as String?,
         acquiredDate: readDayOrNull(data['acquiredDate']),
         remarks: data['remarks'] as String?,
         heldReservationId: data['heldReservationId'] as String?,
       );
 
   final String id;
-  final String accessionNumber;
   final String catalogueId;
   final String libraryId;
   final int campusId;
   final String? shelf;
-  final String? barcode;
+  final String barcode;
   final String? rfidTag;
   final String condition;
   final String status;
   final double price;
-  final String? vendorOrDonor;
   final String? acquiredDate;
   final String? remarks;
   final String? heldReservationId;
@@ -68,7 +62,6 @@ class LibraryAcquisition {
     required this.quantity,
     required this.price,
     this.date,
-    this.vendorOrDonor,
     this.reference,
   });
 
@@ -81,7 +74,6 @@ class LibraryAcquisition {
         quantity: (data['quantity'] as num? ?? 0).toInt(),
         price: readDouble(data['price']),
         date: readDayOrNull(data['date']),
-        vendorOrDonor: data['vendorOrDonor'] as String?,
         reference: data['reference'] as String?,
       );
 
@@ -92,6 +84,5 @@ class LibraryAcquisition {
   final int quantity;
   final double price;
   final String? date;
-  final String? vendorOrDonor;
   final String? reference;
 }

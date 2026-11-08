@@ -221,8 +221,10 @@ class _BookFormPageState extends State<BookFormPage> {
       BookClassSection(
         standards: libraryProvider.standards,
         selectedIds: _classIds,
-        onToggled: (classId, {required selected}) => setState(() {
-          selected ? _classIds.add(classId) : _classIds.remove(classId);
+        onChanged: (classIds) => setState(() {
+          _classIds
+            ..clear()
+            ..addAll(classIds);
           _dirty = true;
         }),
       ),

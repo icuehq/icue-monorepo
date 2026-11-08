@@ -329,11 +329,11 @@ Flutter:
 
 ### Lib-2
 
-Collections: `libraryCopies` (doc ID = accession number), `libraryAcquisitions`.
+Collections: `libraryCopies` (doc ID = barcode), `libraryAcquisitions`.
 
 Functions (`firebase/functions/src/library/copies.ts`, all `library.catalogue`, campus scoped through the library / copy):
 
-- [x] `library-acquisition-create` (purchase, donation or opening stock; 1–100 copies per call; purchase needs a price, donation may be 0; active title and library only; numbering `ACQ/<financialYear>/<seq>`; creates one copy per unit with school-wide sequential accession numbers `ACC-000001` from `counters/ACC`, used as doc ID and barcode)
+- [x] `library-acquisition-create` (purchase, donation or opening stock; 1–100 copies per call; purchase needs a price, donation may be 0; active title and library only; numbering `ACQ/<financialYear>/<seq>`; creates one copy per unit; each copy's document ID is its required, scanned barcode, so a repeated barcode fails with `already-exists`)
 - [x] `library-copy-update` (shelf, condition, remarks, RFID tag unique per school via `uniqueKeys` `libraryRfid`), `library-copy-move` (available copies only, to another active library on an allowed campus), `library-copy-setStatus` (available / under maintenance / damaged / lost / withdrawn; reason for damaged, lost, withdrawn; lost and withdrawn are final; issued, reserved, in-transit untouchable)
 - [x] Tests: `test/copies.test.ts` (emulator)
 
@@ -385,7 +385,7 @@ Functions (`firebase/functions/src/library/loans.ts`, all `library.circulation.o
 Rules and indexes:
 
 - [x] `firestore.rules`: `libraryLoans` readable by circulation staff on the campus or the borrower / parent (`own()`)
-- [x] `firestore.indexes.json`: `libraryLoans` by `status`+`dueDate`, and `memberId` / `copyId` / `personErpId` + `issuedDate`
+- [x] `firestore.indexes.json`: `libraryLoans` by `status`+`dueDate`, and `memberId` / `barcode` / `personErpId` + `issuedDate`
 - [x] Rules test
 
 Flutter:
@@ -554,7 +554,7 @@ Format: `date · phase · what changed from the architecture doc · why`.
 - 2026-11-01 · Inv-8 · Offline is for verification counts only (direct `lineItems` updates, saved on the device with a "syncs when online" message); submit and every other callable still need a connection. `inventory-verification-count` stays for online use. Web persistent cache was not enabled.
 - 2026-11-01 · Inv-8 · Scanning resolves item code (counting) and asset ID / RFID tag (asset list); items have no separate barcode field, and library copies wait for Lib-2. Fixed RFID gate readers and RFID inventory-by-reader are not built (tags are read as keyboard input). Camera scanning is untested on a device (no native build run).
 - 2026-11-01 · Inv-8 · Export is unchanged from Inv-7 (report CSV / PDF); list-level CSV/XLSX export and downloadable import templates are not built (the import page copies the header row).
-- 2026-11-01 · Lib-2 · A copy's document ID is its accession number, generated from one school-wide counter (`ACC-000001`), not an auto ID plus a `uniqueKeys` claim · uniqueness is structural and bulk numbering needs one counter write; accession numbers cannot be typed in, and importing existing numbers waits for Lib-8 import. Barcode equals the accession number.
+- 2026-11-08 · Lib-2 · A copy's document ID is its barcode (required at acquisition, no generated accession number or `counters/ACC`) · uniqueness is structural and one identifier is enough for labels, scanning and loans.
 - 2026-11-01 · Lib-2 · Acquisition types are purchase, donation and opening stock; transfer arrives with Lib-7 · transfers create no acquisition record. Acquisition attachments are not stored (no uploads) and a new acquisition starts from a book's page, not from the Copies page.
 - 2026-11-01 · Lib-2 · `library-copy-setStatus` is not in the architecture's callable list; damage, loss and withdrawal can be set by hand here, while incidents and fines arrive with Lib-6 · FRS 11.5 needs these statuses now.
 - 2026-11-01 · Lib-2 · Copy issue and transfer history are not shown on the copy sheet · loans arrive with Lib-4, transfers with Lib-7; changes are in `auditLogs`.

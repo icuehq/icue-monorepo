@@ -34,11 +34,7 @@ describe('library members and policies', () => {
     await db()
       .doc(`schools/${SCHOOL_ID}/userAccess/1`)
       .set({
-        permissions: [
-          'library.settings',
-          'library.catalogue',
-          'library.circulation.operate',
-        ],
+        permissions: ['library.settings', 'library.catalogue', 'library.circulation.operate'],
         campusIds: [31, 32],
         hasAllCampuses: false,
       });

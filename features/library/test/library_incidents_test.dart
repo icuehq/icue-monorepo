@@ -7,8 +7,7 @@ void main() {
     final incident = LibraryIncident.fromMap('inc1', {
       'incidentNumber': 'INC/2026-27/000001',
       'type': 'damaged',
-      'copyId': 'ACC-000001',
-      'accessionNumber': 'ACC-000001',
+      'barcode': 'ACC-000001',
       'catalogueId': 'b1',
       'libraryId': 'lib1',
       'campusId': 31,

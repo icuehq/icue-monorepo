@@ -25,8 +25,8 @@ const set = (path: string, data: Record<string, unknown>) =>
 
 describe('library fines and incidents', () => {
   let mainLibrary: string, category: string, title: string;
-  const issue = (copyId = 'ACC-000001', memberId = 'student_501') =>
-    run(loans.loanIssue, { person: person(memberId), copyId });
+  const issue = (barcode = 'ACC-000001', memberId = 'student_501') =>
+    run(loans.loanIssue, { person: person(memberId), barcode });
   const day = (offset: number) =>
     new Date(Date.now() + 330 * 60_000 + offset * 86_400_000).toISOString().slice(0, 10);
 
@@ -64,6 +64,7 @@ describe('library fines and incidents', () => {
       catalogueId: title,
       libraryId: mainLibrary,
       quantity: 3,
+      barcodes: ['ACC-000001', 'ACC-000002', 'ACC-000003'],
       price: 500,
     });
     await run(members.policyUpsert, {
@@ -213,7 +214,7 @@ describe('library fines and incidents', () => {
     expect(incs).toHaveLength(1);
     expect(incs[0].data()).toMatchObject({
       type: 'lost',
-      copyId: 'ACC-000001',
+      barcode: 'ACC-000001',
       charge: 500,
       status: 'open',
     });
@@ -256,7 +257,7 @@ describe('library fines and incidents', () => {
 
   it('reporting direct incident on shelf copy', async () => {
     const result = await run(incidents.incidentReport, {
-      copyId: 'ACC-000002',
+      barcode: 'ACC-000002',
       type: 'damaged',
       severity: 'severe',
       description: 'Water damaged on shelf',
@@ -276,17 +277,17 @@ describe('library fines and incidents', () => {
   it('incident guards: on-loan copy, duplicate open incident, repair of lost, charge reduction; dismissed restores copy', async () => {
     const issued = await issue();
     await expect(
-      run(incidents.incidentReport, { copyId: 'ACC-000001', type: 'lost' }),
+      run(incidents.incidentReport, { barcode: 'ACC-000001', type: 'lost' }),
     ).rejects.toThrow(/on loan/);
 
     const inc = await run(incidents.incidentReport, {
-      copyId: 'ACC-000002',
+      barcode: 'ACC-000002',
       type: 'damaged',
       charge: 40,
       memberId: 'student_501',
     });
     await expect(
-      run(incidents.incidentReport, { copyId: 'ACC-000002', type: 'damaged' }),
+      run(incidents.incidentReport, { barcode: 'ACC-000002', type: 'damaged' }),
     ).rejects.toThrow(/open incident/);
     await expect(
       run(incidents.resolve, { id: inc.id, resolution: 'dismissed', charge: 10 }),

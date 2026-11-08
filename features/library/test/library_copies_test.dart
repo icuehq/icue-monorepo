@@ -10,7 +10,7 @@ void main() {
       'price': 250,
       'status': 'available',
     });
-    expect(copy.accessionNumber, 'ACC-000001');
+    expect(copy.barcode, 'ACC-000001');
     expect(copy.price, 250.0);
     expect(copy.condition, 'good');
     expect(copy.canChangeStatus, isTrue);

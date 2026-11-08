@@ -59,7 +59,7 @@ class _LoanDialogState extends State<LoanDialog> {
         Text(widget.title, style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 4),
         Text(
-          '${loan.accessionNumber} · ${loan.memberLabel} · ${loan.number}\n'
+          '${loan.barcode} · ${loan.memberLabel} · ${loan.number}\n'
           'Issued ${loan.issuedDate.toDisplayDay()} · due ${loan.dueDate.toDisplayDay()}'
           '${late > 0 ? ' · $late day${late == 1 ? '' : 's'} overdue' : ''}\n'
           'Renewed ${loan.renewals} of ${loan.maxRenewals}',
@@ -123,7 +123,7 @@ class _LoanDialogState extends State<LoanDialog> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Mark ${widget.loan.accessionNumber} as lost for ${widget.loan.memberLabel}?',
+              'Mark ${widget.loan.barcode} as lost for ${widget.loan.memberLabel}?',
             ),
             const SizedBox(height: 12),
             AppTextField(

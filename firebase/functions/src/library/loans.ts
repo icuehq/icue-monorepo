@@ -14,7 +14,13 @@ import { defineCallable, failed, id, missing, optionalText } from '../shared/mas
 import { enqueue } from '../shared/outbox';
 import { fineBlock, raiseFine } from './fines';
 import { openIncident } from './incidents';
-import { applicablePolicy, ineligibleReason, memberId, personInput, writeBorrower } from './members';
+import {
+  applicablePolicy,
+  ineligibleReason,
+  memberId,
+  personInput,
+  writeBorrower,
+} from './members';
 import { memberTo } from './notify';
 import { release, waitingQuery } from './reservations';
 
@@ -62,6 +68,7 @@ async function raiseOverdueFine(
     memberId,
     member,
     source: loan,
+    barcode: loan.barcode,
     loanId,
     calculation: {
       overdueDays,
@@ -75,7 +82,7 @@ async function raiseOverdueFine(
     to: memberTo(member.memberType, member.personErpId),
     category: 'library.fine',
     title: 'Fine recorded',
-    body: `${loan.accessionNumber}: overdue fine of ${amount} for ${overdueDays} day(s).`,
+    body: `${loan.barcode}: overdue fine of ${amount} for ${overdueDays} day(s).`,
     data: { fineId: fRef.id },
   });
 }
@@ -95,12 +102,12 @@ export const loans = {
   loanIssue: defineCallable({
     name: 'library.loan.issue',
     permission: 'library.circulation.operate',
-    input: z.object({ person: personInput, copyId: id, remarks: optionalText }),
+    input: z.object({ person: personInput, barcode: id, remarks: optionalText }),
     handler: async (context, i) => {
       const today = todayIST();
       const memberKey = memberId(i.person.memberType, i.person.personErpId);
       const mRef = context.doc(`libraryMembers/${memberKey}`);
-      const cRef = context.doc(`libraryCopies/${i.copyId}`);
+      const cRef = context.doc(`libraryCopies/${i.barcode}`);
       const [memberSnapshot, copySnapshot] = await Promise.all([
         context.transaction.get(mRef),
         context.transaction.get(cRef),
@@ -145,21 +152,22 @@ export const loans = {
           .where('status', '==', LoanStatus.active)
           .where('policySnapshot.policyId', '==', found.id),
       );
-      if (underPolicy.size >= policy.maxBooks) throw failed(`Borrowing limit of ${policy.maxBooks} reached`);
+      if (underPolicy.size >= policy.maxBooks)
+        throw failed(`Borrowing limit of ${policy.maxBooks} reached`);
 
       const loan = context.newDoc(Collections.libraryLoans);
       const number = await nextNumber(context, 'LIS');
-      const snapshot = Object.fromEntries(
-        [['policyId', found.id], ...SNAPSHOT.map((field) => [field, policy[field] ?? null])],
-      ) as unknown as LoanPolicySnapshot;
+      const snapshot = Object.fromEntries([
+        ['policyId', found.id],
+        ...SNAPSHOT.map((field) => [field, policy[field] ?? null]),
+      ]) as unknown as LoanPolicySnapshot;
       const after = {
         number,
         memberId: memberKey,
         memberType: i.person.memberType,
         personErpId: i.person.personErpId,
         memberName: i.person.name,
-        copyId: copySnapshot.id,
-        accessionNumber: copy.accessionNumber,
+        barcode: copySnapshot.id,
         catalogueId: copy.catalogueId,
         libraryId: copy.libraryId,
         campusId: copy.campusId,
@@ -181,7 +189,7 @@ export const loans = {
         context.update(held, {
           status: 'fulfilled',
           fulfilledLoanId: loan.id,
-          fulfilledCopyId: copySnapshot.id,
+          fulfilledBarcode: copySnapshot.id,
           fulfilledAt: serverTimestamp(),
         });
       writeBorrower(context, mRef, member, i.person, copy.campusId, 1);
@@ -189,7 +197,7 @@ export const loans = {
         to: memberTo(i.person.memberType, i.person.personErpId),
         category: 'library.loan',
         title: 'Book issued',
-        body: `${title?.title ?? copy.accessionNumber}: due back ${timestampDay(after.dueDate)}.`,
+        body: `${title?.title ?? copySnapshot.id}: due back ${timestampDay(after.dueDate)}.`,
         data: { loanId: loan.id },
       });
       context.audit({ action: 'libraryLoan.issue', documentPath: loan.path, after });
@@ -207,7 +215,7 @@ export const loans = {
     input: z.object({ id, condition: z.enum(['good', 'damaged']), remarks: optionalText }),
     handler: async (context, i) => {
       const { ref, loan } = await loadLoan(context, i.id);
-      const cRef = context.doc(`libraryCopies/${loan.copyId}`);
+      const cRef = context.doc(`libraryCopies/${loan.barcode}`);
       const mRef = context.doc(`libraryMembers/${loan.memberId}`);
       const [snapshot, memberSnapshot] = await Promise.all([
         context.transaction.get(cRef),
@@ -250,7 +258,7 @@ export const loans = {
         await openIncident(context, {
           type: 'damaged',
           copy: snapshot.data()!,
-          copyId: snapshot.id,
+          barcode: snapshot.id,
           memberId: memberSnapshot.exists ? memberSnapshot.id : null,
           member: memberSnapshot.exists ? memberSnapshot.data()! : null,
           loanId: ref.id,
@@ -259,7 +267,7 @@ export const loans = {
           charge: 0,
           repairStatus: 'none',
           title: 'Damaged book recorded',
-          body: `${snapshot.data()!.accessionNumber} was returned damaged.`,
+          body: `${loan.barcode} was returned damaged.`,
         });
       } else {
         await release(context, cRef, loan);
@@ -268,7 +276,7 @@ export const loans = {
         to: memberTo(loan.memberType, loan.personErpId),
         category: 'library.loan',
         title: 'Book returned',
-        body: `${loan.accessionNumber} was returned${overdueDays ? ` ${overdueDays} day(s) late` : ''}.`,
+        body: `${loan.barcode} was returned${overdueDays ? ` ${overdueDays} day(s) late` : ''}.`,
         data: { loanId: ref.id },
       });
 
@@ -306,7 +314,7 @@ export const loans = {
     }),
     handler: async (context, i) => {
       const { ref, loan } = await loadLoan(context, i.id);
-      const cRef = context.doc(`libraryCopies/${loan.copyId}`);
+      const cRef = context.doc(`libraryCopies/${loan.barcode}`);
       const mRef = context.doc(`libraryMembers/${loan.memberId}`);
       const [snapshot, memberSnapshot] = await Promise.all([
         context.transaction.get(cRef),
@@ -345,6 +353,7 @@ export const loans = {
           memberId: memberSnapshot.id,
           member,
           source: loan,
+          barcode: loan.barcode,
           loanId: ref.id,
           calculation: { copyPrice: copy.price, charge },
         });
@@ -352,7 +361,7 @@ export const loans = {
           to: memberTo(member.memberType, member.personErpId),
           category: 'library.fine',
           title: 'Fine recorded',
-          body: `${loan.accessionNumber}: replacement charge of ${charge}.`,
+          body: `${loan.barcode}: replacement charge of ${charge}.`,
           data: { fineId: fRef.id },
         });
       }
@@ -360,7 +369,7 @@ export const loans = {
       await openIncident(context, {
         type: 'lost',
         copy,
-        copyId: snapshot.id,
+        barcode: snapshot.id,
         memberId: member ? memberSnapshot.id : null,
         member,
         loanId: ref.id,
@@ -369,7 +378,7 @@ export const loans = {
         charge,
         repairStatus: null,
         title: 'Lost book recorded',
-        body: `${loan.accessionNumber} was marked lost.`,
+        body: `${loan.barcode} was marked lost.`,
       });
 
       context.audit({

@@ -166,7 +166,7 @@ class _LoanTile extends StatelessWidget {
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
-                  loan.accessionNumber,
+                  loan.barcode,
                   style: theme.textTheme.labelSmall?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),

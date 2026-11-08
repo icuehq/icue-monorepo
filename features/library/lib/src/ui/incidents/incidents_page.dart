@@ -101,9 +101,7 @@ class _IncidentsPageState extends State<IncidentsPage> {
     final filteredIncidents = allIncidents.where((incident) {
       if (_searchQuery.isNotEmpty) {
         final query = _searchQuery.toLowerCase();
-        final matchAccession = incident.accessionNumber.toLowerCase().contains(
-          query,
-        );
+        final matchAccession = incident.barcode.toLowerCase().contains(query);
         final matchIncident = incident.incidentNumber.toLowerCase().contains(
           query,
         );
@@ -221,7 +219,7 @@ class _IncidentsPageState extends State<IncidentsPage> {
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
-                                  incident.accessionNumber,
+                                  incident.barcode,
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w600,
                                   ),

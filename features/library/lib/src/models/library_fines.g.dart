@@ -73,7 +73,7 @@ class LibraryFine {
     required this.status,
     this.loanId,
     this.incidentId,
-    this.accessionNumber,
+    this.barcode,
     this.catalogueId,
     this.fineCalculation,
     required this.waivers,
@@ -99,7 +99,7 @@ class LibraryFine {
         status: data['status'] as String? ?? 'outstanding',
         loanId: data['loanId'] as String?,
         incidentId: data['incidentId'] as String?,
-        accessionNumber: data['accessionNumber'] as String?,
+        barcode: data['barcode'] as String?,
         catalogueId: data['catalogueId'] as String?,
         fineCalculation: data['fineCalculation'] is Map
             ? Map<String, dynamic>.from(data['fineCalculation'] as Map)
@@ -133,7 +133,7 @@ class LibraryFine {
   final String status;
   final String? loanId;
   final String? incidentId;
-  final String? accessionNumber;
+  final String? barcode;
   final String? catalogueId;
   final Map<String, dynamic>? fineCalculation;
   final List<LibraryFineWaiver> waivers;

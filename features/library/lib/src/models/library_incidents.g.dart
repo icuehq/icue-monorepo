@@ -9,8 +9,7 @@ class LibraryIncident {
     required this.id,
     required this.incidentNumber,
     required this.type,
-    required this.copyId,
-    required this.accessionNumber,
+    required this.barcode,
     required this.catalogueId,
     required this.libraryId,
     required this.campusId,
@@ -37,8 +36,7 @@ class LibraryIncident {
         id: id,
         incidentNumber: data['incidentNumber'] as String? ?? id,
         type: data['type'] as String? ?? 'damaged',
-        copyId: data['copyId'] as String? ?? '',
-        accessionNumber: data['accessionNumber'] as String? ?? '',
+        barcode: data['barcode'] as String? ?? '',
         catalogueId: data['catalogueId'] as String? ?? '',
         libraryId: data['libraryId'] as String? ?? '',
         campusId: (data['campusId'] as num? ?? 0).toInt(),
@@ -67,8 +65,7 @@ class LibraryIncident {
   final String id;
   final String incidentNumber;
   final String type;
-  final String copyId;
-  final String accessionNumber;
+  final String barcode;
   final String catalogueId;
   final String libraryId;
   final int campusId;

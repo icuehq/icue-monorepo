@@ -92,7 +92,7 @@ class CopyCard extends StatelessWidget {
                     Row(
                       children: [
                         Text(
-                          copy.accessionNumber,
+                          copy.barcode,
                           style: theme.textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.w700,
                           ),

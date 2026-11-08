@@ -20,7 +20,7 @@ export async function openIncident(
   incident: {
     type: (typeof INCIDENT_TYPES)[number];
     copy: DocumentData;
-    copyId: string;
+    barcode: string;
     memberId?: string | null;
     member?: DocumentData | null;
     loanId?: string | null;
@@ -38,7 +38,7 @@ export async function openIncident(
   const after = {
     incidentNumber,
     type: incident.type,
-    copyId: incident.copyId,
+    barcode: incident.barcode,
     ...copyFields(incident.copy),
     memberId: member ? incident.memberId : null,
     memberType: member ? member.memberType : null,
@@ -95,7 +95,7 @@ export const incidents = {
     name: 'library.incident.report',
     permission: 'library.circulation.operate',
     input: z.object({
-      copyId: id,
+      barcode: id,
       memberId: id.nullish(),
       type: z.enum(INCIDENT_TYPES),
       severity: z.enum(SEVERITIES).default('moderate'),
@@ -103,7 +103,7 @@ export const incidents = {
       charge: z.number().min(0).max(10_000_000).default(0),
     }),
     handler: async (context, i) => {
-      const cRef = context.doc(`libraryCopies/${i.copyId}`);
+      const cRef = context.doc(`libraryCopies/${i.barcode}`);
       const cSnap = await context.transaction.get(cRef);
       if (!cSnap.exists) throw missing('libraryCopy');
       const copy = cSnap.data()!;
@@ -119,7 +119,7 @@ export const incidents = {
       const open = await context.transaction.get(
         context
           .coll('libraryIncidents')
-          .where('copyId', '==', i.copyId)
+          .where('barcode', '==', i.barcode)
           .where('status', '==', 'open')
           .limit(1),
       );
@@ -141,7 +141,7 @@ export const incidents = {
       } = await openIncident(context, {
         type: i.type,
         copy,
-        copyId: cRef.id,
+        barcode: cRef.id,
         memberId: i.memberId,
         member,
         severity: i.type === 'damaged' ? i.severity : null,
@@ -149,7 +149,7 @@ export const incidents = {
         charge: i.charge,
         repairStatus: i.type === 'damaged' ? 'none' : null,
         title: `${i.type === 'lost' ? 'Lost' : 'Damaged'} book recorded`,
-        body: `${copy.accessionNumber} was reported ${i.type}.`,
+        body: `${cRef.id} was reported ${i.type}.`,
       });
 
       // Lost or damaged copies are taken off circulation.
@@ -168,6 +168,7 @@ export const incidents = {
           memberId: i.memberId!,
           member,
           source: copy,
+          barcode: cRef.id,
           incidentId: incRef.id,
           calculation: { incidentNumber, type: i.type, severity: i.severity, charge: i.charge },
         });
@@ -197,7 +198,7 @@ export const incidents = {
       const { ref, incident } = await loadIncident(context, i.id);
       if (incident.status !== 'open') throw failed(`Incident is already ${incident.status}`);
 
-      const cRef = context.doc(`libraryCopies/${incident.copyId}`);
+      const cRef = context.doc(`libraryCopies/${incident.barcode}`);
       const cSnap = await context.transaction.get(cRef);
       if (!cSnap.exists) throw missing('libraryCopy');
       const copy = cSnap.data()!;
@@ -237,6 +238,7 @@ export const incidents = {
             memberId: incident.memberId,
             member: mSnap.data()!,
             source: incident,
+            barcode: incident.barcode,
             loanId: incident.loanId ?? null,
             incidentId: ref.id,
             calculation: {

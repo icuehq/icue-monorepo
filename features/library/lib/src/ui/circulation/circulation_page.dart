@@ -48,7 +48,7 @@ class _CirculationPageState extends State<CirculationPage> {
   Future<void> _open(LibraryLoan loan) async {
     final book = await context.read<LibraryProvider>().book(loan.catalogueId);
     if (!mounted) return;
-    await LoanDialog.show(context, loan, book?.title ?? loan.accessionNumber);
+    await LoanDialog.show(context, loan, book?.title ?? loan.barcode);
   }
 
   Widget _statusPill(BuildContext context, LibraryLoan loan, String today) {
@@ -173,9 +173,7 @@ class _CirculationPageState extends State<CirculationPage> {
       if (_searchQuery.isNotEmpty) {
         final query = _searchQuery.toLowerCase();
         final matchMember = loan.memberLabel.toLowerCase().contains(query);
-        final matchAccession = loan.accessionNumber.toLowerCase().contains(
-          query,
-        );
+        final matchAccession = loan.barcode.toLowerCase().contains(query);
         final matchNumber = loan.number.toLowerCase().contains(query);
         return matchMember || matchAccession || matchNumber;
       }
@@ -239,7 +237,7 @@ class _CirculationPageState extends State<CirculationPage> {
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
-                                  loan.accessionNumber,
+                                  loan.barcode,
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w600,
                                   ),

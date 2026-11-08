@@ -31,7 +31,7 @@ class _IssueFlowState extends State<IssueFlow> {
     final scanned = _pending;
     _pending = null; // only the first member gets the pre-scanned book
     if (person != null && scanned != null) {
-      await _issue(scanned.accessionNumber);
+      await _issue(scanned.barcode);
     }
   }
 
@@ -49,11 +49,11 @@ class _IssueFlowState extends State<IssueFlow> {
     } else {
       success = await libraryProvider.issueLoan({
         'person': person.toPayload(),
-        'copyId': copy.id,
+        'barcode': copy.id,
       });
       text = success
-          ? '${copy.accessionNumber} issued'
-          : '${copy.accessionNumber}: ${libraryProvider.errorMessage ?? 'Failed'}';
+          ? '${copy.barcode} issued'
+          : '${copy.barcode}: ${libraryProvider.errorMessage ?? 'Failed'}';
     }
     if (!mounted) return;
     setState(() {

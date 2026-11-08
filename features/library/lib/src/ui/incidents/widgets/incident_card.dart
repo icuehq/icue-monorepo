@@ -68,7 +68,7 @@ class IncidentCard extends StatelessWidget {
                         Row(
                           children: [
                             Text(
-                              incident.accessionNumber,
+                              incident.barcode,
                               style: theme.textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.w700,
                                 fontSize: 15,

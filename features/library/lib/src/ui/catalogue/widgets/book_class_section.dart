@@ -1,4 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:routes/routes.dart';
 
@@ -7,35 +8,32 @@ class BookClassSection extends StatelessWidget {
   const BookClassSection({
     required this.standards,
     required this.selectedIds,
-    required this.onToggled,
+    required this.onChanged,
     super.key,
   });
 
   final List<Standards> standards;
   final Set<int> selectedIds;
-  final void Function(int classId, {required bool selected}) onToggled;
+  final ValueChanged<Set<int>> onChanged;
 
   @override
   Widget build(BuildContext context) => FormSectionCard(
     title: 'Classes',
     icon: Icons.school_outlined,
     children: [
-      Text(
-        'Optional. Leave empty for a general book any class can borrow.',
-        style: Theme.of(context).textTheme.bodySmall,
-      ),
-      Wrap(
-        spacing: 8,
-        runSpacing: 4,
-        children: [
+      AppMultiAutocomplete<Standards>(
+        options: standards,
+        selected: [
           for (final standard in standards)
-            FilterChip(
-              label: Text(standard.name),
-              selected: selectedIds.contains(standard.id),
-              onSelected: (selected) =>
-                  onToggled(standard.id, selected: selected),
-            ),
+            if (selectedIds.contains(standard.id)) standard,
         ],
+        labelOf: (standard) => standard.name,
+        onChanged: (picked) =>
+            onChanged({for (final standard in picked) standard.id}),
+        label: 'Classes',
+        hintText: 'Search a class',
+        helperText:
+            'Optional. Leave empty for a general book any class can borrow.',
       ),
     ],
   );

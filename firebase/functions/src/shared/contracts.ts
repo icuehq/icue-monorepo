@@ -127,8 +127,7 @@ export interface LibraryLoan {
   memberType: MemberType;
   personErpId: number;
   memberName?: string | null;
-  copyId: string;
-  accessionNumber: string;
+  barcode: string;
   catalogueId: string;
   libraryId: string;
   campusId: number;

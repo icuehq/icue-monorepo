@@ -132,7 +132,6 @@ class _CopyDialogState extends State<CopyDialog> {
     final facts = <(String, String?)>[
       ('Status', humanizeStatus(copy.status)),
       ('Library', libraryProvider.library(copy.libraryId)?.name),
-      ('Vendor / donor', copy.vendorOrDonor),
       ('Acquired', copy.acquiredDate?.toDisplayDay()),
       ('Price', copy.price.toRupees()),
     ];
@@ -140,10 +139,7 @@ class _CopyDialogState extends State<CopyDialog> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          copy.accessionNumber,
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
+        Text(copy.barcode, style: Theme.of(context).textTheme.titleLarge),
         Text(widget.title),
         const SizedBox(height: 8),
         for (final fact in facts)

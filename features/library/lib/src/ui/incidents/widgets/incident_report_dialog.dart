@@ -46,13 +46,13 @@ class _IncidentReportDialogState extends State<IncidentReportDialog> {
     }
     setState(() {
       _copy = copy;
-      _code.text = copy.accessionNumber;
+      _code.text = copy.barcode;
     });
   }
 
   Future<void> _submit() async {
     if (_copy == null) {
-      showMessage(context, 'Scan or enter a valid book copy accession number');
+      showMessage(context, 'Scan or enter a valid book copy barcode');
       return;
     }
     final personErpId = int.tryParse(_erpId.text.trim());
@@ -63,7 +63,7 @@ class _IncidentReportDialogState extends State<IncidentReportDialog> {
     final libraryProvider = context.read<LibraryProvider>();
     final navigator = Navigator.of(context);
     final ok = await libraryProvider.reportIncident({
-      'copyId': _copy!.id,
+      'barcode': _copy!.id,
       'memberId': ?memberId,
       'type': _kind,
       'severity': _kind == 'damaged' ? _severity : 'moderate',
@@ -94,14 +94,11 @@ class _IncidentReportDialogState extends State<IncidentReportDialog> {
           style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: 12),
-        ScanField(
-          hint: 'Scan barcode or enter accession no.',
-          onScan: _lookupCopy,
-        ),
+        ScanField(hint: 'Scan or enter the copy barcode', onScan: _lookupCopy),
         if (_copy != null) ...[
           const SizedBox(height: 4),
           Text(
-            'Selected copy: ${_copy!.accessionNumber} (${_copy!.status})',
+            'Selected copy: ${_copy!.barcode} (${_copy!.status})',
             style: TextStyle(
               color: Theme.of(context).colorScheme.primary,
               fontWeight: FontWeight.bold,

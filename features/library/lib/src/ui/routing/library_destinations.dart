@@ -116,14 +116,13 @@ final _groups =
       ),
     ];
 
-bool _catalogue(ModuleAccess access) => access.can('library.catalogue');
-bool _circulation(ModuleAccess access) =>
-    access.can('library.circulation.operate');
-bool _fines(ModuleAccess access) =>
-    access.can('library.circulation.operate') ||
-    access.can('library.fines.waive');
-bool _members(ModuleAccess access) => access.can('library.members.view');
-bool _reports(ModuleAccess access) => access.can('library.reports.view');
+// Library sub-actions are fixed in code: every Library user sees every group.
+bool _always(ModuleAccess access) => true;
+bool _catalogue(ModuleAccess access) => _always(access);
+bool _circulation(ModuleAccess access) => _always(access);
+bool _fines(ModuleAccess access) => _always(access);
+bool _members(ModuleAccess access) => _always(access);
+bool _reports(ModuleAccess access) => _always(access);
 
 /// The Library groups [access] may open, each with only the screens it opens.
 List<LibraryGroup> libraryGroups(ModuleAccess access) => [

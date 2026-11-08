@@ -25,7 +25,7 @@ class CirculationNoResultsState extends StatelessWidget {
   @override
   Widget build(BuildContext context) => EmptyState.noResults(
     title: 'No loans match "$searchQuery"',
-    message: 'Try searching by another member name, accession number, or loan number.',
+    message: 'Try searching by another member name, barcode, or loan number.',
     onAction: onClear,
   );
 }

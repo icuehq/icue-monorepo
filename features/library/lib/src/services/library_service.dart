@@ -105,7 +105,7 @@ class LibraryService {
         : null;
   }
 
-  /// Copies of a title across all libraries, by accession number.
+  /// Copies of a title across all libraries, by barcode.
   Future<List<LibraryCopy>> copiesOf(String catalogueId) async {
     final query = (await schoolCollection('libraryCopies'))
         .where('catalogueId', isEqualTo: catalogueId);
@@ -113,28 +113,24 @@ class LibraryService {
     return [
       for (final document in snapshot.docs)
         LibraryCopy.fromMap(document.id, document.data()),
-    ]..sort(
-      (left, right) => left.accessionNumber.compareTo(right.accessionNumber),
-    );
+    ]..sort((left, right) => left.barcode.compareTo(right.barcode));
   }
 
-  /// A copy by accession number, barcode or RFID tag (what a scanner reads).
+  /// A copy by barcode (its document ID) or RFID tag (what a scanner reads).
   Future<LibraryCopy?> findCopy(String code) async {
     final value = code.trim();
     final collection = await schoolCollection('libraryCopies');
-    final byId = await collection.doc(value.toUpperCase()).get();
+    final byId = await collection.doc(value).get();
     if (byId.exists) return LibraryCopy.fromMap(byId.id, byId.data()!);
-    for (final field in const ['barcode', 'rfidTag']) {
-      final snapshot = await collection
-          .where(field, isEqualTo: value)
-          .limit(1)
-          .get();
-      if (snapshot.docs.isNotEmpty) {
-        return LibraryCopy.fromMap(
-          snapshot.docs.first.id,
-          snapshot.docs.first.data(),
-        );
-      }
+    final snapshot = await collection
+        .where('rfidTag', isEqualTo: value)
+        .limit(1)
+        .get();
+    if (snapshot.docs.isNotEmpty) {
+      return LibraryCopy.fromMap(
+        snapshot.docs.first.id,
+        snapshot.docs.first.data(),
+      );
     }
     return null;
   }
@@ -190,9 +186,9 @@ class LibraryService {
   );
 
   /// The active loan of a copy, if it is out.
-  Future<LibraryLoan?> activeLoanOf(String copyId) async {
+  Future<LibraryLoan?> activeLoanOf(String barcode) async {
     final snapshot = await (await schoolCollection('libraryLoans'))
-        .where('copyId', isEqualTo: copyId)
+        .where('barcode', isEqualTo: barcode)
         .where('status', isEqualTo: 'active')
         .limit(1)
         .get();
@@ -292,7 +288,7 @@ class LibraryService {
   Future<void> setBookActive(String id, {required bool active}) =>
       _call('library-catalogue-setStatus', _status(id, active));
 
-  /// Returns the new accession numbers.
+  /// Returns the new copies' barcodes.
   Future<List<String>> createAcquisition(
     Map<String, Object?> data, {
     String? requestId,
@@ -303,7 +299,7 @@ class LibraryService {
       requestId: requestId,
     ) as Map<Object?, Object?>;
     return [
-      for (final row in result['copyIds']! as List<Object?>) row! as String,
+      for (final row in result['barcodes']! as List<Object?>) row! as String,
     ];
   }
 

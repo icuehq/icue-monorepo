@@ -23,8 +23,8 @@ const set = (path: string, data: Record<string, unknown>) =>
 
 describe('library circulation', () => {
   let mainLibrary: string, category: string, title: string, policy: string;
-  const issue = (copyId = 'ACC-000001', memberId = 'student_501') =>
-    run(loans.loanIssue, { person: person(memberId), copyId });
+  const issue = (barcode = 'ACC-000001', memberId = 'student_501') =>
+    run(loans.loanIssue, { person: person(memberId), barcode });
   const day = (offset: number) =>
     new Date(Date.now() + 330 * 60_000 + offset * 86_400_000).toISOString().slice(0, 10);
 
@@ -33,11 +33,7 @@ describe('library circulation', () => {
     await db()
       .doc(`schools/${SCHOOL_ID}/userAccess/1`)
       .set({
-        permissions: [
-          'library.settings',
-          'library.catalogue',
-          'library.circulation.operate',
-        ],
+        permissions: ['library.settings', 'library.catalogue', 'library.circulation.operate'],
         campusIds: [31, 32],
         hasAllCampuses: false,
       });
@@ -61,16 +57,19 @@ describe('library circulation', () => {
       catalogueId: title,
       libraryId: mainLibrary,
       quantity: 3,
+      barcodes: ['ACC-000001', 'ACC-000002', 'ACC-000003'],
     });
-    policy = (await run(members.policyUpsert, {
-      libraryId: mainLibrary,
-      memberType: 'student',
-      name: 'Primary',
-      maxBooks: 2,
-      loanDays: 7,
-      maxRenewals: 1,
-      fineType: 'none',
-    })).id;
+    policy = (
+      await run(members.policyUpsert, {
+        libraryId: mainLibrary,
+        memberType: 'student',
+        name: 'Primary',
+        maxBooks: 2,
+        loanDays: 7,
+        maxRenewals: 1,
+        fineType: 'none',
+      })
+    ).id;
   });
 
   it('issue sets due date from the policy, marks the copy issued and counts the loan', async () => {
@@ -79,7 +78,7 @@ describe('library circulation', () => {
     expect(await get(`libraryLoans/${result.id}`)).toMatchObject({
       status: 'active',
       personErpId: 501,
-      copyId: 'ACC-000001',
+      barcode: 'ACC-000001',
       campusId: 31,
       policySnapshot: { policyId: policy, loanDays: 7, maxRenewals: 1 },
     });
@@ -94,7 +93,7 @@ describe('library circulation', () => {
     expect(await get('libraryMembers/student_501')).toBeUndefined();
     await run(loans.loanIssue, {
       person: { memberType: 'student', personErpId: 501, name: 'Asha Rao', classId: 4 },
-      copyId: 'ACC-000001',
+      barcode: 'ACC-000001',
     });
     expect(await get('libraryMembers/student_501')).toMatchObject({
       memberType: 'student',
@@ -107,7 +106,7 @@ describe('library circulation', () => {
     });
     await run(loans.loanIssue, {
       person: { memberType: 'student', personErpId: 501, name: 'Asha R. Rao', classId: 5 },
-      copyId: 'ACC-000002',
+      barcode: 'ACC-000002',
     });
     expect(await get('libraryMembers/student_501')).toMatchObject({
       name: 'Asha R. Rao',
@@ -116,12 +115,12 @@ describe('library circulation', () => {
     });
     expect((await db().collection(`schools/${SCHOOL_ID}/libraryMembers`).get()).size).toBe(1);
     const loanDocs = await db().collection(`schools/${SCHOOL_ID}/libraryLoans`).get();
-    const firstLoan = loanDocs.docs.find((doc) => doc.data().copyId === 'ACC-000001')!.data();
+    const firstLoan = loanDocs.docs.find((doc) => doc.data().barcode === 'ACC-000001')!.data();
     expect(firstLoan.memberName).toBe('Asha Rao');
     await expect(
       run(loans.loanIssue, {
         person: { memberType: 'teacher', personErpId: 9, name: 'T' },
-        copyId: 'ACC-000003',
+        barcode: 'ACC-000003',
       }),
     ).rejects.toMatchObject({ code: 'failed-precondition' }); // no teacher policy in this library
   });
@@ -146,7 +145,7 @@ describe('library circulation', () => {
     await expect(issue('ACC-000003')).rejects.toMatchObject({ code: 'failed-precondition' });
     await set(`libraryBorrowingPolicies/${policy}`, { status: 'active' });
     await expect(
-      run(loans.loanIssue, { person: person('student_501'), copyId: 'ACC-000003' }, '2'),
+      run(loans.loanIssue, { person: person('student_501'), barcode: 'ACC-000003' }, '2'),
     ).rejects.toMatchObject({ code: 'permission-denied' });
     await set(`libraryBorrowingPolicies/${policy}`, { categoryIds: [], maxBooks: 3 });
     await expect(issue('ACC-000003')).resolves.toBeTruthy();
@@ -186,7 +185,12 @@ describe('library circulation', () => {
     const otherTitle = (
       await run(masters.catalogueUpsert, { title: 'Other', authors: ['A'], categoryId: other.id })
     ).id;
-    await run(copies.acquisitionCreate, { catalogueId: otherTitle, libraryId: mainLibrary, quantity: 1 });
+    await run(copies.acquisitionCreate, {
+      catalogueId: otherTitle,
+      libraryId: mainLibrary,
+      quantity: 1,
+      barcodes: ['ACC-000004'],
+    });
     await issue();
     await expect(issue('ACC-000002')).rejects.toMatchObject({ code: 'failed-precondition' });
     const second = await issue('ACC-000004');

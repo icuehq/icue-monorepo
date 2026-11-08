@@ -132,8 +132,8 @@ final libraryReports = <LibraryReportDef>[
     schoolWide: true,
     hasLibrary: false,
   ),
-  LibraryReportDef('accession', 'Accession register', 'libraryCopies', [
-    _textColumn('Accession no.', 'accessionNumber'),
+  LibraryReportDef('accession', 'Copy register', 'libraryCopies', [
+    _textColumn('Barcode', 'barcode'),
     _title(),
     _lib(),
     _textColumn('Shelf', 'shelf'),
@@ -145,7 +145,7 @@ final libraryReports = <LibraryReportDef>[
     'Library stock',
     'libraryCopies',
     [
-      _textColumn('Accession no.', 'accessionNumber'),
+      _textColumn('Barcode', 'barcode'),
       _title(),
       _lib(),
       _textColumn('Shelf', 'shelf'),
@@ -168,7 +168,7 @@ final libraryReports = <LibraryReportDef>[
     'Available books',
     'libraryCopies',
     [
-      _textColumn('Accession no.', 'accessionNumber'),
+      _textColumn('Barcode', 'barcode'),
       _title(),
       _lib(),
       _textColumn('Shelf', 'shelf'),
@@ -183,7 +183,7 @@ final libraryReports = <LibraryReportDef>[
       _textColumn('Issue', 'number'),
       _person(),
       _title(),
-      _textColumn('Accession no.', 'accessionNumber'),
+      _textColumn('Barcode', 'barcode'),
       _lib(),
       _dayColumn('Issued', 'issuedDate'),
       _dayColumn('Due', 'dueDate'),
@@ -251,7 +251,7 @@ final libraryReports = <LibraryReportDef>[
     [
       _dayColumn('Date', 'reportedDate'),
       _textColumn('Incident', 'incidentNumber'),
-      _textColumn('Accession no.', 'accessionNumber'),
+      _textColumn('Barcode', 'barcode'),
       _title(),
       _lib(),
       _money('Charge', 'charge'),
@@ -267,7 +267,7 @@ final libraryReports = <LibraryReportDef>[
     [
       _dayColumn('Date', 'reportedDate'),
       _textColumn('Incident', 'incidentNumber'),
-      _textColumn('Accession no.', 'accessionNumber'),
+      _textColumn('Barcode', 'barcode'),
       _title(),
       _lib(),
       _textColumn('Severity', 'severity'),
@@ -292,7 +292,6 @@ final libraryReports = <LibraryReportDef>[
         sum: true,
       ),
       _money('Price', 'price'),
-      _textColumn('Vendor / donor', 'vendorOrDonor'),
     ],
     dateField: 'date',
   ),

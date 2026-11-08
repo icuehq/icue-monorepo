@@ -20,17 +20,25 @@ const count = async (collection: string) =>
 
 describe('library copies and acquisitions', () => {
   let title: string, mainLibrary: string, secondLibrary: string;
-  const buy = (extra: Record<string, unknown> = {}) =>
-    run(copies.acquisitionCreate, {
+  let barcodeSequence = 0;
+  const buy = (extra: Record<string, unknown> = {}) => {
+    const quantity = (extra.quantity as number | undefined) ?? 3;
+    return run(copies.acquisitionCreate, {
       catalogueId: title,
       libraryId: mainLibrary,
-      quantity: 3,
+      quantity,
       price: 250,
+      barcodes: Array.from(
+        { length: quantity },
+        () => `ACC-${String(++barcodeSequence).padStart(6, '0')}`,
+      ),
       ...extra,
     });
+  };
 
   beforeEach(async () => {
     await clearFirestore();
+    barcodeSequence = 0;
     await db()
       .doc(`schools/${SCHOOL_ID}/userAccess/1`)
       .set({
@@ -53,11 +61,10 @@ describe('library copies and acquisitions', () => {
     secondLibrary = (await seedLibrary({ name: 'Junior', campusId: 32 })).id;
   });
 
-  it('acquisition creates one copy per unit with sequential school-wide accession numbers', async () => {
+  it('acquisition creates one copy per unit with one copy per barcode, stored under the barcode', async () => {
     const purchase = await buy();
-    expect(purchase.copyIds).toEqual(['ACC-000001', 'ACC-000002', 'ACC-000003']);
+    expect(purchase.barcodes).toEqual(['ACC-000001', 'ACC-000002', 'ACC-000003']);
     expect(await get('libraryCopies/ACC-000002')).toMatchObject({
-      accessionNumber: 'ACC-000002',
       barcode: 'ACC-000002',
       status: 'available',
       campusId: 31,
@@ -66,21 +73,21 @@ describe('library copies and acquisitions', () => {
     });
     expect(await get(`libraryAcquisitions/${purchase.id}`)).toMatchObject({
       quantity: 3,
-      copyIds: purchase.copyIds,
+      barcodes: purchase.barcodes,
     });
     const donation = await buy({
       price: 0,
       libraryId: secondLibrary,
       quantity: 2,
     });
-    expect(donation.copyIds).toEqual(['ACC-000004', 'ACC-000005']);
+    expect(donation.barcodes).toEqual(['ACC-000004', 'ACC-000005']);
     expect(await count('libraryCopies')).toBe(5);
     expect(await get('libraryCopies/ACC-000004')).toMatchObject({ campusId: 32, price: 0 });
   });
 
   it('acquisition stores scanned barcodes and rejects wrong counts or repeats', async () => {
     await buy({ quantity: 2, barcodes: ['9780001', '9780002'] });
-    expect(await get('libraryCopies/ACC-000002')).toMatchObject({ barcode: '9780002' });
+    expect(await get('libraryCopies/9780002')).toMatchObject({ barcode: '9780002' });
     await expect(buy({ quantity: 2, barcodes: ['1'] })).rejects.toThrow();
     await expect(buy({ quantity: 2, barcodes: ['a', 'A'] })).rejects.toThrow();
     await expect(buy({ quantity: 1, barcodes: ['9780001'] })).rejects.toThrow();
@@ -91,7 +98,7 @@ describe('library copies and acquisitions', () => {
     await expect(
       run(
         copies.acquisitionCreate,
-        { catalogueId: title, libraryId: mainLibrary, quantity: 1 },
+        { catalogueId: title, libraryId: mainLibrary, quantity: 1, barcodes: ['X-1'] },
         '2',
       ),
     ).rejects.toMatchObject({ code: 'permission-denied' });

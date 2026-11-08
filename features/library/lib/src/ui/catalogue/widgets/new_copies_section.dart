@@ -101,8 +101,7 @@ class _NewCopiesSectionState extends State<NewCopiesSection> {
             label: 'Number of copies *',
             hintText: 'e.g. 1',
             icon: Icons.copy_rounded,
-            helperText:
-                'Accession numbers are generated; 0 adds the title only',
+            helperText: '0 adds the title only',
           ),
           AppDropdown<String>(
             value: widget.libraryId,

@@ -146,14 +146,9 @@ class FineCard extends StatelessWidget {
                     Icons.category_outlined,
                     fineTypeLabel(fine.type),
                   ),
-                  if (fine.accessionNumber != null &&
-                      fine.accessionNumber!.isNotEmpty) ...[
+                  if (fine.barcode != null && fine.barcode!.isNotEmpty) ...[
                     const SizedBox(width: 6),
-                    _metaPill(
-                      context,
-                      Icons.qr_code_2_rounded,
-                      fine.accessionNumber!,
-                    ),
+                    _metaPill(context, Icons.qr_code_2_rounded, fine.barcode!),
                   ],
                   const Spacer(),
                   Column(

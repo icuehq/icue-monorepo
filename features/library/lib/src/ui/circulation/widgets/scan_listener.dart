@@ -90,7 +90,7 @@ class _LibraryScanListenerState extends State<LibraryScanListener> {
       if (loan == null) return await IssueFlow.show(context, copy: copy);
       final book = await libraryProvider.book(loan.catalogueId);
       if (!mounted) return;
-      await LoanDialog.show(context, loan, book?.title ?? loan.accessionNumber);
+      await LoanDialog.show(context, loan, book?.title ?? loan.barcode);
     } finally {
       _handling = false;
     }

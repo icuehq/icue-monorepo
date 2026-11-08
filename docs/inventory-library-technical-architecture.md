@@ -124,7 +124,7 @@ Common fields on every document: `campusId`, `createdAt`, `createdBy` (uid), `up
 | `config/{doc}` | `rolePermissions`, `inventorySettings` (expiry warning days, approval toggles), `librarySettings` (hold days, blocking rules) |
 | `userAccess/{uid}` | Resolved permissions (§3.2) |
 | `counters/{type_year}` | Sequential numbers: `PR/2026-27/000123`. Incremented inside the owning transaction. |
-| `uniqueKeys/{kind_value}` | Uniqueness guard (item code, vendor code, inventory category code, library code, accession no., asset ID). Created in the same transaction as the record; existing key → `already-exists`. |
+| `uniqueKeys/{kind_value}` | Uniqueness guard (item code, vendor code, inventory category code, library code, asset ID). Created in the same transaction as the record; existing key → `already-exists`. |
 | `requests/{requestId}` | Idempotency: stored result of a completed callable, TTL 7 days. |
 | `auditLogs/{id}` | `{actor, action, ref, before, after, reason, at}`. Function-written only (FRS 16). |
 | `outbox/{eventKey}` | Pending notifications (§7). |
@@ -168,15 +168,15 @@ Common fields on every document: `campusId`, `createdAt`, `createdBy` (uid), `up
 | `libraries` | code, name, campusId, location, staffIds, contact, hours, status | |
 | `libraryCategories` | code, name, parentId, status | Defaults seeded (FRS 11.3) |
 | `libraryCatalogue` | title, subtitle, authors[], isbn10, isbn13, publisher, edition, year, language, categoryId, classIds[], classificationNumber, keywords, coverPath, status, identityKey | School-wide; shared across libraries |
-| `libraryCopies` | accessionNumber, catalogueId, libraryId, campusId, shelf, barcode, rfidTag, acquisitionId, price, source, condition, status (FRS 11.5 + `in_transit`), activeLoanId, heldReservationId | One doc per physical book |
-| `libraryAcquisitions` | type, catalogueId, quantity, libraryId, vendorOrDonor, price, reference, copyIds | |
+| `libraryCopies` | catalogueId, libraryId, campusId, shelf, barcode, rfidTag, acquisitionId, price, source, condition, status (FRS 11.5 + `in_transit`), activeLoanId, heldReservationId | One doc per physical book |
+| `libraryAcquisitions` | type, catalogueId, quantity, libraryId, price, reference, barcodes | |
 | `libraryMembers/{memberType_erpId}` | memberType `student | teacher`, personErpId, classId (students), category (policy key), libraryIds, start, end, status, activeLoans, blocked | Deterministic ID → no duplicate members |
 | `libraryBorrowingPolicies` | libraryId, memberType, categoryIds, maxBooks, loanDays, maxRenewals, fineType, fineAmount, graceDays, maxFine, status | Several per library and person type; a book's category (else its parent, else the catch-all with empty `categoryIds`) picks one; a category belongs to one active policy. |
-| `libraryLoans` | memberId, copyId, catalogueId, libraryId, issuedAt, dueAt, renewals[], policySnapshot, status `active | returned | lost`, returnedAt, condition, overdueDays | `policySnapshot` frozen at issue (FRS 11.8) |
-| `libraryReservations` | memberId, catalogueId, libraryId, status (FRS 11.12), createdAt, heldCopyId, holdUntil, fulfilledLoanId | Queue position is computed (count of earlier `waiting`), not stored |
+| `libraryLoans` | memberId, barcode, catalogueId, libraryId, issuedAt, dueAt, renewals[], policySnapshot, status `active | returned | lost`, returnedAt, condition, overdueDays | `policySnapshot` frozen at issue (FRS 11.8) |
+| `libraryReservations` | memberId, catalogueId, libraryId, status (FRS 11.12), createdAt, heldBarcode, holdUntil, fulfilledLoanId | Queue position is computed (count of earlier `waiting`), not stored |
 | `libraryFines/{loanId__type}` | memberId, loanId, type, fineCalculation, amount, waived, outstanding, status, waivers[] | Deterministic ID → fines cannot duplicate |
-| `libraryIncidents` | kind `lost | damaged`, copyId, memberId, severity, photos, charge, repairStatus, resolution | FRS 11.14 |
-| `libraryTransfers` | fromLibraryId, toLibraryId, lineItems `[{copyId, received, condition}]`, status `requested | approved | dispatched | partially_received | received` | |
+| `libraryIncidents` | kind `lost | damaged`, barcode, memberId, severity, photos, charge, repairStatus, resolution | FRS 11.14 |
+| `libraryTransfers` | fromLibraryId, toLibraryId, lineItems `[{barcode, received, condition}]`, status `requested | approved | dispatched | partially_received | received` | |
 | `libraryVerifications` (+`lineItems`) | libraryId, scope, expected copy IDs, scanned, missing, unexpected, status | Same pattern as inventory |
 
 Parents and teachers read `libraryLoans`, `libraryFines`, `libraryReservations`, `inventoryAssetAssignments` where `memberErpId`/`assignee.personErpId` matches their claim, so those docs carry a flat `personErpId` field for rule and index use.
@@ -209,7 +209,7 @@ Names below are logical; they deploy as `<group>-<name>` (`session.sync` → `se
 | Assets | `inventory.asset.register`, `inventory.asset.assign/return/transfer/setCondition/retire`, `inventory.maintenance.save/setStatus` |
 | Verification | `inventory.verification.create/count/submit/decide` (approve creates adjustments referencing the session; reject reopens counting) |
 | Library masters | `library.catalogue.upsert/setStatus/search`, `library.seedDefaults`, `library.policy.upsert`. Libraries and categories are client Firestore writes. |
-| Copies | `library.acquisition.create` (generates accession numbers + copies), `library.copy.update/move` |
+| Copies | `library.acquisition.create` (creates copies keyed by barcode), `library.copy.update/move` |
 | Members | `library.member.upsert/setStatus` |
 | Circulation | `library.loan.issue`, `library.loan.return`, `library.loan.renew`, `library.loan.markLost` |
 | Reservations | `library.reservation.create/cancel` |
@@ -261,7 +261,7 @@ These are enforced in Functions transactions and covered by unit tests.
 - Fine on return per `policySnapshot`: per-day `min((overdueDays − grace) × amount, maxFine)`, fixed, or none (tracking). Lost → replacement charge; damage → penalty. Fine doc ID `loanId__type` makes duplicates impossible.
 - Waiver requires `library.fines.waive`, stores reason, audited.
 - Reservation: one active reservation per member × catalogue (deterministic check in transaction); member's policy must allow it; queue ordered by `createdAt`.
-- In-transit copies cannot be issued. Lost/withdrawn copies are never available again; replacements get new accession numbers.
+- In-transit copies cannot be issued. Lost/withdrawn copies are never available again; replacements get new barcodes.
 
 **Common**
 
@@ -379,7 +379,7 @@ Types: inventory categories, items, opening stock, stores, assets, vendors; libr
 ## 10. Search, lists and dashboards
 
 - **Pagination:** cursor-based (`startAfterDocument`), 25–50 rows per page.
-- **Search:** Standard Firestore has no full-text search, so searchable collections are mirrored into the Enterprise database `search` (same paths, list-row fields only, `srcUpdatedAt` guards against out-of-order deliveries) by an `onDocumentWritten` trigger (`syncItemSearch`). A read-only callable (`inventory-item-search`) queries the mirror with the `search` pipeline stage, optional `where` filters (e.g. category), `sort`, `offset`/`limit`, and returns list rows; the school comes from the token. The `search` database allows no client access. Exact lookups (code, ISBN, accession, barcode, asset ID, RFID tag) stay equality queries on `(default)`.
+- **Search:** Standard Firestore has no full-text search, so searchable collections are mirrored into the Enterprise database `search` (same paths, list-row fields only, `srcUpdatedAt` guards against out-of-order deliveries) by an `onDocumentWritten` trigger (`syncItemSearch`). A read-only callable (`inventory-item-search`) queries the mirror with the `search` pipeline stage, optional `where` filters (e.g. category), `sort`, `offset`/`limit`, and returns list rows; the school comes from the token. The `search` database allows no client access. Exact lookups (code, ISBN, barcode, asset ID, RFID tag) stay equality queries on `(default)`.
   - Matching is whole-word, case-insensitive with stemming; **no prefix or type-ahead matching** (checked on a dev database, 2026-10-31). A mirror update is searchable in about 150 ms.
   - Needs a text index per project (`firebase/scripts/create-search-index.sh`); Flutter has no Pipelines SDK, hence the callable. The emulator has no text search, so in the emulator the callable falls back to a whole-word scan of the mirror and only the real path needs a cloud project to verify.
   - Library catalogue reuses the same trigger/callable pattern (`syncCatalogueSearch`, `library-catalogue-search`; text index on title, subtitle, authors, publisher, keywords); a query that is a valid ISBN is an exact lookup on `(default)` instead. Vendors will follow.
@@ -391,7 +391,7 @@ Types: inventory categories, items, opening stock, stores, assets, vendors; libr
 
 ## 11. Scanning, RFID and offline
 
-- One scan input in Flutter: camera (`mobile_scanner`) on mobile; USB/Bluetooth barcode scanners and RFID readers in keyboard-wedge mode on web/desktop (text field with autofocus + Enter). The scanned string is resolved by equality on `barcode`, `accessionNumber`, `assetId` or `rfidTag`.
+- One scan input in Flutter: camera (`mobile_scanner`) on mobile; USB/Bluetooth barcode scanners and RFID readers in keyboard-wedge mode on web/desktop (text field with autofocus + Enter). The scanned string is resolved by document ID (copy barcode) or equality on `assetId` or `rfidTag`.
 - RFID: `rfidTag` fields on copies and assets; tag assignment screen. Fixed/gate readers that push events integrate later via an HTTP Function authenticated with a per-school key (FRS Phase 8). Not required for any basic operation.
 - Offline:
   - Mobile: Firestore persistence on (default) → previously loaded records readable offline. Web: enable persistent cache.

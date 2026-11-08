@@ -14,7 +14,7 @@ void main() {
       'libraryId': 'lib1',
       'campusId': 10,
       'status': 'ready',
-      'heldCopyId': 'ACC-000001',
+      'heldBarcode': 'ACC-000001',
       'holdUntil': dayTimestamp('2026-11-04'),
     });
     expect(reservation.memberLabel, 'Student #501');

@@ -34,11 +34,7 @@ describe('library notifications', () => {
     await db()
       .doc(`schools/${SCHOOL_ID}/userAccess/1`)
       .set({
-        permissions: [
-          'library.settings',
-          'library.catalogue',
-          'library.circulation.operate',
-        ],
+        permissions: ['library.settings', 'library.catalogue', 'library.circulation.operate'],
         campusIds: [31],
         hasAllCampuses: false,
       });
@@ -58,6 +54,7 @@ describe('library notifications', () => {
       catalogueId: title,
       libraryId: mainLibrary,
       quantity: 1,
+      barcodes: ['ACC-000001'],
     });
     await run(members.policyUpsert, {
       libraryId: mainLibrary,
@@ -72,7 +69,10 @@ describe('library notifications', () => {
   });
 
   it("issue and return tell the member (the student's parents); an overdue return also reports the fine", async () => {
-    const issued = await run(loans.loanIssue, { person: person('student_501'), copyId: 'ACC-000001' });
+    const issued = await run(loans.loanIssue, {
+      person: person('student_501'),
+      barcode: 'ACC-000001',
+    });
     expect(
       (await outbox()).find((outboxEvent) => outboxEvent.id === `library-issued__${issued.id}`),
     ).toMatchObject({ to: { wardStudentIds: [501] }, title: 'Book issued' });
@@ -98,7 +98,10 @@ describe('library notifications', () => {
   });
 
   it('daily job: due soon and overdue, no membership notices; reruns post nothing new', async () => {
-    const first = await run(loans.loanIssue, { person: person('student_501'), copyId: 'ACC-000001' }); // due in 7 days
+    const first = await run(loans.loanIssue, {
+      person: person('student_501'),
+      barcode: 'ACC-000001',
+    }); // due in 7 days
     await runDailyLibrary(SCHOOL_ID);
     let ids = (await outbox()).map((outboxEvent) => outboxEvent.id);
     expect(ids).not.toContain(`library-due-soon__${first.id}`);

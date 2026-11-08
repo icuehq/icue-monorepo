@@ -49,16 +49,10 @@ once chosen.
 | View Assets | `layout.inventory.assets.view` | `inventory.assets.view` |
 | Inventory Reports | `layout.inventory.reports.view` | `inventory.reports.view` |
 
-### Library sub-actions (children of Library)
+### Library
 
-| DisplayName | RouteState | Permission |
-| --- | --- | --- |
-| Library Settings | `layout.Library.settings` | `library.settings` |
-| Catalogue (view, add, edit) | `layout.Library.catalogue` | `library.catalogue` |
-| Circulation (issue/return) | `layout.Library.circulation.operate` | `library.circulation.operate` |
-| Waive Fines | `layout.Library.fines.waive` | `library.fines.waive` |
-| Library Reports | `layout.Library.reports.view` | `library.reports.view` |
-| View Members | `layout.Library.members.view` | `library.members.view` |
+Node has no Library sub-actions. Every staff user holds all `library.*` permissions
+(granted in `permissionsFromActions`); the Library tile is the only gate.
 
 ## Suggested default grants (FRS §12)
 

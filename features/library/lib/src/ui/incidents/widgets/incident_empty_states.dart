@@ -40,7 +40,7 @@ class IncidentNoResultsState extends StatelessWidget {
   @override
   Widget build(BuildContext context) => EmptyState.noResults(
     title: 'No incidents match "$searchQuery"',
-    message: 'Try searching by another copy accession number, member name, or incident number.',
+    message: 'Try searching by another copy barcode, member name, or incident number.',
     onAction: onClear,
   );
 }

@@ -32,9 +32,7 @@ List<RouteBase> libraryRoutes() => [
         destinations: libraryNavigation(access),
         child: child,
       );
-      return access.can('library.circulation.operate')
-          ? LibraryScanListener(child: shell)
-          : shell;
+      return LibraryScanListener(child: shell);
     },
     routes: _libraryPages,
   ),

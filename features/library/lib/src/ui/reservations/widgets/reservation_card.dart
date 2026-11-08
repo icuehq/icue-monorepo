@@ -161,12 +161,12 @@ class ReservationCard extends StatelessWidget {
                     highlight: true,
                   ),
                 ] else if (reservation.status == 'fulfilled' &&
-                    reservation.fulfilledCopyId != null) ...[
+                    reservation.fulfilledBarcode != null) ...[
                   const SizedBox(width: 6),
                   _metaPill(
                     context,
                     Icons.check_circle_outline,
-                    'Copy ${reservation.fulfilledCopyId}',
+                    'Copy ${reservation.fulfilledBarcode}',
                   ),
                 ],
                 const Spacer(),

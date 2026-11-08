@@ -11,8 +11,7 @@ class LibraryLoan {
     required this.memberType,
     required this.personErpId,
     this.memberName,
-    required this.copyId,
-    required this.accessionNumber,
+    required this.barcode,
     required this.catalogueId,
     required this.libraryId,
     required this.issuedDate,
@@ -33,8 +32,7 @@ class LibraryLoan {
         memberType: data['memberType'] as String? ?? 'student',
         personErpId: (data['personErpId'] as num? ?? 0).toInt(),
         memberName: data['memberName'] as String?,
-        copyId: data['copyId'] as String? ?? '',
-        accessionNumber: data['accessionNumber'] as String? ?? '',
+        barcode: data['barcode'] as String? ?? '',
         catalogueId: data['catalogueId'] as String? ?? '',
         libraryId: data['libraryId'] as String? ?? '',
         issuedDate: readDay(data['issuedDate']),
@@ -55,8 +53,7 @@ class LibraryLoan {
   final String memberType;
   final int personErpId;
   final String? memberName;
-  final String copyId;
-  final String accessionNumber;
+  final String barcode;
   final String catalogueId;
   final String libraryId;
   final String issuedDate;

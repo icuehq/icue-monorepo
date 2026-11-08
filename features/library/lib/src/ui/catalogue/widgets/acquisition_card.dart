@@ -91,15 +91,6 @@ class AcquisitionCard extends StatelessWidget {
                   Icons.collections_bookmark_outlined,
                   '${acquisition.quantity} ${acquisition.quantity == 1 ? 'copy' : 'copies'}',
                 ),
-                if (acquisition.vendorOrDonor != null &&
-                    acquisition.vendorOrDonor!.isNotEmpty) ...[
-                  const SizedBox(width: 6),
-                  _metaPill(
-                    context,
-                    Icons.person_outline_rounded,
-                    acquisition.vendorOrDonor!,
-                  ),
-                ],
                 if (acquisition.date != null) ...[
                   const SizedBox(width: 6),
                   _metaPill(

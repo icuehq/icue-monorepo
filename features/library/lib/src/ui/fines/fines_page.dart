@@ -214,7 +214,7 @@ class _FinesPageState extends State<FinesPage> {
         final matchMember = fine.memberLabel.toLowerCase().contains(query);
         final matchFineNumber = fine.fineNumber.toLowerCase().contains(query);
         final matchAccession =
-            fine.accessionNumber?.toLowerCase().contains(query) ?? false;
+            fine.barcode?.toLowerCase().contains(query) ?? false;
         return matchMember || matchFineNumber || matchAccession;
       }
       return true;

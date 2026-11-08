@@ -2,7 +2,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:school_library/school_library.dart';
 
-/// One label per copy: QR code of the accession number (FRS 11.5); opens the print / share sheet.
+/// One label per copy: QR code of the barcode (FRS 11.5); opens the print / share sheet.
 Future<void> shareCopyLabels(String title, List<LibraryCopy> copies) {
   final doc = pw.Document();
   doc.addPage(
@@ -21,7 +21,7 @@ Future<void> shareCopyLabels(String title, List<LibraryCopy> copies) {
                   children: [
                     pw.BarcodeWidget(
                       barcode: pw.Barcode.qrCode(),
-                      data: copy.barcode ?? copy.accessionNumber,
+                      data: copy.barcode,
                       width: 56,
                       height: 56,
                     ),
@@ -36,7 +36,7 @@ Future<void> shareCopyLabels(String title, List<LibraryCopy> copies) {
                             style: const pw.TextStyle(fontSize: 8),
                           ),
                           pw.Text(
-                            copy.accessionNumber,
+                            copy.barcode,
                             style: const pw.TextStyle(
                               fontSize: 10,
                               fontWeight: pw.FontWeight.bold,

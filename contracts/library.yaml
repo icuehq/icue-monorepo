@@ -27,8 +27,7 @@ documents:
       memberType: MemberType
       personErpId: int
       memberName: string?
-      copyId: string
-      accessionNumber: string
+      barcode: string
       catalogueId: string
       libraryId: string
       campusId: int
@@ -75,20 +74,18 @@ modelsDir: features/library/lib/src/models
 models:
   library_copies:
     LibraryCopy:
-      doc: "One physical book. The document ID is the accession number."
+      doc: "One physical book. The document ID is its barcode."
       id: id
       fields:
-        accessionNumber: { type: string, default: "$id" }
         catalogueId: string
         libraryId: string
         campusId: int
         shelf: string?
-        barcode: string?
+        barcode: { type: string, default: "$id" }
         rfidTag: string?
         condition: { type: string, default: good }
         status: { type: string, default: available }
         price: double
-        vendorOrDonor: string?
         acquiredDate: day?
         remarks: string?
         heldReservationId: string?
@@ -101,7 +98,6 @@ models:
         quantity: int
         price: double
         date: day?
-        vendorOrDonor: string?
         reference: string?
   library_fines:
     LibraryFineWaiver:
@@ -135,7 +131,7 @@ models:
         status: { type: string, default: outstanding }
         loanId: string?
         incidentId: string?
-        accessionNumber: string?
+        barcode: string?
         catalogueId: string?
         fineCalculation: json?
         waivers: list<LibraryFineWaiver>
@@ -148,8 +144,7 @@ models:
       fields:
         incidentNumber: { type: string, default: "$id" }
         type: { type: string, default: damaged }
-        copyId: string
-        accessionNumber: string
+        barcode: string
         catalogueId: string
         libraryId: string
         campusId: int
@@ -180,8 +175,7 @@ models:
         memberType: { type: string, default: student }
         personErpId: int
         memberName: string?
-        copyId: string
-        accessionNumber: string
+        barcode: string
         catalogueId: string
         libraryId: string
         issuedDate: day
@@ -268,8 +262,8 @@ models:
         libraryId: string
         campusId: int
         status: { type: string, default: waiting }
-        heldCopyId: string?
+        heldBarcode: string?
         holdUntil: day?
         fulfilledLoanId: string?
-        fulfilledCopyId: string?
+        fulfilledBarcode: string?
         createdAt: timestamp?

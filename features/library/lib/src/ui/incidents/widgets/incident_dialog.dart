@@ -164,7 +164,7 @@ class _IncidentDialogState extends State<IncidentDialog> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Book copy: ${incident.accessionNumber} · Kind: ${humanizeStatus(incident.type)}',
+          'Book copy: ${incident.barcode} · Kind: ${humanizeStatus(incident.type)}',
         ),
         if (incident.severity != null)
           Text('Severity: ${humanizeStatus(incident.severity)}'),

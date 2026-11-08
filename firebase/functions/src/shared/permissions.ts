@@ -28,7 +28,6 @@ export type Permission = (typeof PERMISSIONS)[number];
 /**
  * Node action Id (`/v1.0/getActionsByRole`, sent as the `actionIds` token claim) → permission.
  * Ids must match docs/inventory-library-node-actions.md. Parent action 300 grants nothing.
- * Library has no sub-actions in Node; its permissions are not mapped here.
  */
 export const ACTION_PERMISSIONS: Record<number, Permission> = {
   310: 'inventory.settings',
@@ -51,5 +50,8 @@ export const ACTION_PERMISSIONS: Record<number, Permission> = {
 /** Permissions of the granted [actionIds]; unknown Ids are ignored. Sorted, unique. */
 export function permissionsFromActions(actionIds: unknown): string[] {
   const ids = Array.isArray(actionIds) ? actionIds : [];
-  return [...new Set(ids.map((id) => ACTION_PERMISSIONS[Number(id)]).filter(Boolean))].sort();
+  const granted = ids.map((id) => ACTION_PERMISSIONS[Number(id)]).filter(Boolean);
+  // Library sub-actions are fixed in code, not in Node: every staff user holds all of them.
+  granted.push(...PERMISSIONS.filter((permission) => permission.startsWith('library.')));
+  return [...new Set(granted)].sort();
 }

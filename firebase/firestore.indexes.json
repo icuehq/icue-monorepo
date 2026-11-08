@@ -631,7 +631,7 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "copyId",
+          "fieldPath": "barcode",
           "order": "ASCENDING"
         },
         {
@@ -829,7 +829,7 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "copyId",
+          "fieldPath": "barcode",
           "order": "ASCENDING"
         },
         {

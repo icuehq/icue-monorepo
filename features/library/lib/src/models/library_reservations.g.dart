@@ -16,10 +16,10 @@ class LibraryReservation {
     required this.libraryId,
     required this.campusId,
     required this.status,
-    this.heldCopyId,
+    this.heldBarcode,
     this.holdUntil,
     this.fulfilledLoanId,
-    this.fulfilledCopyId,
+    this.fulfilledBarcode,
     this.createdAt,
   });
 
@@ -36,10 +36,10 @@ class LibraryReservation {
         libraryId: data['libraryId'] as String? ?? '',
         campusId: (data['campusId'] as num? ?? 0).toInt(),
         status: data['status'] as String? ?? 'waiting',
-        heldCopyId: data['heldCopyId'] as String?,
+        heldBarcode: data['heldBarcode'] as String?,
         holdUntil: readDayOrNull(data['holdUntil']),
         fulfilledLoanId: data['fulfilledLoanId'] as String?,
-        fulfilledCopyId: data['fulfilledCopyId'] as String?,
+        fulfilledBarcode: data['fulfilledBarcode'] as String?,
         createdAt: data['createdAt'] is Timestamp
             ? (data['createdAt'] as Timestamp).toDate()
             : null,
@@ -56,9 +56,9 @@ class LibraryReservation {
   final String libraryId;
   final int campusId;
   final String status;
-  final String? heldCopyId;
+  final String? heldBarcode;
   final String? holdUntil;
   final String? fulfilledLoanId;
-  final String? fulfilledCopyId;
+  final String? fulfilledBarcode;
   final DateTime? createdAt;
 }
