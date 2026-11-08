@@ -16,7 +16,6 @@ import { forEachSchool } from '../shared/scheduled';
 import {
   applicablePolicy,
   ineligibleReason,
-  memberId,
   personInput,
   writeBorrower,
 } from './members';
@@ -50,16 +49,23 @@ export async function nextWaiting(
   libraryId: string,
   count: number,
 ): Promise<DocumentSnapshot[]> {
-  const out: DocumentSnapshot[] = [];
-  for (const snapshot of (await waitingQuery(context, catalogueId, libraryId, count + LOOKAHEAD))
-    .docs) {
-    if (out.length === count) break;
-    const member = (
-      await context.transaction.get(context.doc(`libraryMembers/${snapshot.data().memberId}`))
-    ).data();
-    if (member && !ineligibleReason(member)) out.push(snapshot);
-  }
-  return out;
+  const waiting = (await waitingQuery(context, catalogueId, libraryId, count + LOOKAHEAD)).docs;
+  if (!waiting.length) return [];
+  // One batched read of the distinct members, then the queue is walked in order.
+  const personIds = [...new Set(waiting.map((snapshot) => snapshot.data().personErpId as number))];
+  const members = new Map(
+    (
+      await context.transaction.getAll(
+        ...personIds.map((personErpId) => context.doc(`libraryMembers/${personErpId}`)),
+      )
+    ).map((member) => [Number(member.id), member.data()]),
+  );
+  return waiting
+    .filter((snapshot) => {
+      const member = members.get(snapshot.data().personErpId);
+      return member && !ineligibleReason(member);
+    })
+    .slice(0, count);
 }
 
 export async function holdDays(context: CallableContext): Promise<number> {
@@ -132,9 +138,9 @@ export const reservations = {
     permission: 'library.circulation.operate',
     input: z.object({ person: personInput, catalogueId: id, libraryId: id }),
     handler: async (context, i) => {
-      const memberKey = memberId(i.person.memberType, i.person.personErpId);
+      const { personErpId } = i.person;
       const [snapshot, libraryDocument, category] = await Promise.all([
-        context.transaction.get(context.doc(`libraryMembers/${memberKey}`)),
+        context.transaction.get(context.doc(`libraryMembers/${personErpId}`)),
         context.transaction.get(context.doc(`libraries/${i.libraryId}`)),
         context.transaction.get(context.doc(`libraryCatalogue/${i.catalogueId}`)),
       ]);
@@ -151,7 +157,7 @@ export const reservations = {
       const live = await context.transaction.get(
         context
           .coll('libraryReservations')
-          .where('memberId', '==', memberKey)
+          .where('personErpId', '==', personErpId)
           .where('catalogueId', '==', i.catalogueId)
           .where('status', 'in', ['waiting', 'ready'])
           .limit(1),
@@ -160,7 +166,7 @@ export const reservations = {
       const loans = await context.transaction.get(
         context
           .coll('libraryLoans')
-          .where('memberId', '==', memberKey)
+          .where('personErpId', '==', personErpId)
           .where('catalogueId', '==', i.catalogueId)
           .where('status', '==', 'active')
           .limit(1),
@@ -180,7 +186,6 @@ export const reservations = {
       const number = await nextNumber(context, 'RSV');
       const after = {
         number,
-        memberId: memberKey,
         memberType: i.person.memberType,
         personErpId: i.person.personErpId,
         memberName: i.person.name,

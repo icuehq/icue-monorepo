@@ -7,7 +7,6 @@ class LibraryLoan {
   const LibraryLoan({
     required this.id,
     required this.number,
-    required this.memberId,
     required this.memberType,
     required this.personErpId,
     this.memberName,
@@ -28,8 +27,7 @@ class LibraryLoan {
       LibraryLoan(
         id: id,
         number: data['number'] as String? ?? '',
-        memberId: data['memberId'] as String? ?? '',
-        memberType: data['memberType'] as String? ?? 'student',
+        memberType: data['memberType'] as String? ?? '',
         personErpId: (data['personErpId'] as num? ?? 0).toInt(),
         memberName: data['memberName'] as String?,
         barcode: data['barcode'] as String? ?? '',
@@ -41,7 +39,7 @@ class LibraryLoan {
         maxRenewals:
             ((data['policySnapshot'] as Map?)?['maxRenewals'] as num? ?? 0)
                 .toInt(),
-        status: data['status'] as String? ?? 'active',
+        status: data['status'] as String? ?? '',
         returnedDate: readDayOrNull(data['returnedDate']),
         condition: data['condition'] as String?,
         overdueDays: (data['overdueDays'] as num?)?.toInt(),
@@ -49,7 +47,6 @@ class LibraryLoan {
 
   final String id;
   final String number;
-  final String memberId;
   final String memberType;
   final int personErpId;
   final String? memberName;

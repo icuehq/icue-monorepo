@@ -134,6 +134,10 @@ class _PolicyDialogState extends State<PolicyDialog> {
                 items: const [
                   DropdownMenuItem(value: 'student', child: Text('Students')),
                   DropdownMenuItem(value: 'teacher', child: Text('Teachers')),
+                  DropdownMenuItem(
+                    value: 'all',
+                    child: Text('Everyone (default)'),
+                  ),
                 ],
                 onChanged: editing ? null : (value) => _type = value,
                 validator: (value) => value == null ? 'Required' : null,
@@ -228,7 +232,7 @@ class _PolicyDialogState extends State<PolicyDialog> {
               icon: Icons.category_outlined,
               children: [
                 Text(
-                  'These rules apply to books of the selected categories. Leave all unselected to apply them to every category no other policy covers.',
+                  'These rules apply to books of the selected categories. Leave all unselected to apply them to every category no other policy covers. A policy for Everyone is the default for members whose type has no policy of its own.',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),

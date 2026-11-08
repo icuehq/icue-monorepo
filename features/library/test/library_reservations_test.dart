@@ -6,9 +6,8 @@ void main() {
   test('LibraryReservation parses a document and determines status', () {
     final reservation = LibraryReservation.fromMap('r1', {
       'number': 'RSV-000001',
-      'memberId': 'student_501',
-      'memberType': 'student',
       'personErpId': 501,
+      'memberType': 'student',
       'catalogueId': 'b1',
       'title': 'Test Book',
       'libraryId': 'lib1',

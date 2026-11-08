@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
-import 'package:school_library/src/ui/circulation/widgets/issue_flow.dart';
+import 'package:school_library/src/ui/circulation/widgets/book_scan_dialog.dart';
 import 'package:school_library/src/ui/circulation/widgets/loan_dialog.dart';
 
 /// Opens the circulation flow when the librarian scans a book anywhere in the Library screens.
@@ -86,10 +87,19 @@ class _LibraryScanListenerState extends State<LibraryScanListener> {
         return;
       }
       final loan = await libraryProvider.activeLoanOf(copy.id);
+      final book = await libraryProvider.book(copy.catalogueId);
       if (!mounted) return;
-      if (loan == null) return await IssueFlow.show(context, copy: copy);
-      final book = await libraryProvider.book(loan.catalogueId);
-      if (!mounted) return;
+      final proceed = await BookScanDialog.show(
+        context,
+        copy: copy,
+        book: book,
+        loan: loan,
+      );
+      if (!proceed || !mounted) return;
+      if (loan == null) {
+        await context.push<void>(LibraryRoutes.libraryIssue, extra: copy);
+        return;
+      }
       await LoanDialog.show(context, loan, book?.title ?? loan.barcode);
     } finally {
       _handling = false;

@@ -157,7 +157,6 @@ const orderablePurchaseRequestStatuses = [
 /// One issue of a copy to a member.
 abstract final class LibraryLoanFields {
   static const number = 'number';
-  static const memberId = 'memberId';
   static const memberType = 'memberType';
   static const personErpId = 'personErpId';
   static const memberName = 'memberName';
@@ -172,21 +171,18 @@ abstract final class LibraryLoanFields {
   static const policySnapshot = 'policySnapshot';
   static const status = 'status';
   static const issuedBy = 'issuedBy';
-  static const issuedAt = 'issuedAt';
   static const returnNumber = 'returnNumber';
   static const returnedDate = 'returnedDate';
   static const condition = 'condition';
   static const overdueDays = 'overdueDays';
   static const returnRemarks = 'returnRemarks';
   static const receivedBy = 'receivedBy';
-  static const returnedAt = 'returnedAt';
   static const updatedAt = 'updatedAt';
 }
 
 /// Embedded in a loan on each renewal.
 abstract final class LoanRenewalFields {
   static const renewedDate = 'renewedDate';
-  static const previousDueDate = 'previousDueDate';
   static const newDueDate = 'newDueDate';
   static const performedBy = 'performedBy';
 }
@@ -194,8 +190,6 @@ abstract final class LoanRenewalFields {
 /// Policy values frozen on the loan at issue so later policy edits never move its due date.
 abstract final class LoanPolicySnapshotFields {
   static const policyId = 'policyId';
-  static const name = 'name';
-  static const maxBooks = 'maxBooks';
   static const loanDays = 'loanDays';
   static const maxRenewals = 'maxRenewals';
   static const fineType = 'fineType';

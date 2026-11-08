@@ -923,8 +923,9 @@ export const resolveUnavailable = defineCallable({
   },
 });
 
-/** The person a desk sends to issue or reserve: `student_501` → `{ memberType, personErpId, name }`. */
-export const person = (memberId: string) => {
-  const [memberType, erpId] = memberId.split('_');
-  return { memberType, personErpId: Number(erpId), name: `${memberType} ${erpId}` };
-};
+/** The person a desk sends to issue or reserve. */
+export const person = (erpId: number, memberType = 'student') => ({
+  memberType,
+  personErpId: erpId,
+  name: `${memberType} ${erpId}`,
+});

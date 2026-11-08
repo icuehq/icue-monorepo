@@ -23,7 +23,6 @@ class _IncidentReportDialogState extends State<IncidentReportDialog> {
 
   String _kind = 'damaged';
   String _severity = 'moderate';
-  String _memberType = 'student';
   LibraryCopy? _copy;
   bool _busy = false;
 
@@ -56,7 +55,6 @@ class _IncidentReportDialogState extends State<IncidentReportDialog> {
       return;
     }
     final personErpId = int.tryParse(_erpId.text.trim());
-    final memberId = personErpId != null ? '${_memberType}_$personErpId' : null;
     final charge = double.tryParse(_charge.text.trim()) ?? 0;
 
     setState(() => _busy = true);
@@ -64,7 +62,7 @@ class _IncidentReportDialogState extends State<IncidentReportDialog> {
     final navigator = Navigator.of(context);
     final ok = await libraryProvider.reportIncident({
       'barcode': _copy!.id,
-      'memberId': ?memberId,
+      'personErpId': ?personErpId,
       'type': _kind,
       'severity': _kind == 'damaged' ? _severity : 'moderate',
       'description': ?blankToNull(_description),
@@ -130,28 +128,12 @@ class _IncidentReportDialogState extends State<IncidentReportDialog> {
           ),
         ],
         const SizedBox(height: 12),
-        Row(
-          children: [
-            SegmentedButton<String>(
-              segments: const [
-                ButtonSegment(value: 'student', label: Text('Student')),
-                ButtonSegment(value: 'teacher', label: Text('Teacher')),
-              ],
-              selected: {_memberType},
-              onSelectionChanged: (values) =>
-                  setState(() => _memberType = values.first),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: TextField(
-                controller: _erpId,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  hintText: 'Member ERP ID (optional)',
-                ),
-              ),
-            ),
-          ],
+        TextField(
+          controller: _erpId,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(
+            hintText: 'Member ERP ID (optional)',
+          ),
         ),
         const SizedBox(height: 8),
         AppTextField(

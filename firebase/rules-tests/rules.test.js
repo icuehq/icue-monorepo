@@ -453,8 +453,8 @@ describe('library reports and parent view (Lib-8)', () => {
       await setDoc(doc(firestore, 'schools/12/userAccess/parent-1'), { permissions: [], campusIds: [], hasAllCampuses: false });
       await setDoc(doc(firestore, 'schools/12/libraryCatalogue/a'), { title: 'a' });
       await setDoc(doc(firestore, 'schools/12/libraryCopies/a'), { campusId: 31 });
-      await setDoc(doc(firestore, 'schools/12/libraryMembers/student_501'), { personErpId: 501 });
-      await setDoc(doc(firestore, 'schools/12/libraryMembers/student_502'), { personErpId: 502 });
+      await setDoc(doc(firestore, 'schools/12/libraryMembers/501'), { personErpId: 501 });
+      await setDoc(doc(firestore, 'schools/12/libraryMembers/502'), { personErpId: 502 });
       for (const [collectionName, d] of Object.entries({
         libraryLoans: { campusId: 31, personErpId: 501 },
         libraryReservations: { campusId: 31, personErpId: 501 },
@@ -474,7 +474,7 @@ describe('library reports and parent view (Lib-8)', () => {
       await assertFails(getDoc(doc(db('r'), `schools/12/${collectionName}/r32`)));
       await assertFails(setDoc(doc(db('r'), `schools/12/${collectionName}/r31`), { x: 1 }));
     }
-    await assertSucceeds(getDoc(doc(db('r'), 'schools/12/libraryMembers/student_501'))); // dashboard member counts
+    await assertSucceeds(getDoc(doc(db('r'), 'schools/12/libraryMembers/501'))); // dashboard member counts
     await assertFails(getDoc(doc(db('4'), 'schools/12/libraryLoans/r31')));
   });
 
@@ -484,12 +484,12 @@ describe('library reports and parent view (Lib-8)', () => {
       await assertFails(setDoc(doc(db('parent-1', parent), `schools/12/${collectionName}/r31`), { x: 1 }));
     }
     await assertFails(getDoc(doc(db('parent-1', { ...parent, wardStudentIds: [999] }), 'schools/12/libraryLoans/r31')));
-    await assertSucceeds(getDoc(doc(db('parent-1', parent), 'schools/12/libraryMembers/student_501')));
-    await assertFails(getDoc(doc(db('parent-1', parent), 'schools/12/libraryMembers/student_502')));
+    await assertSucceeds(getDoc(doc(db('parent-1', parent), 'schools/12/libraryMembers/501')));
+    await assertFails(getDoc(doc(db('parent-1', parent), 'schools/12/libraryMembers/502')));
     await assertSucceeds(getDoc(doc(db('parent-1', parent), 'schools/12/libraryCatalogue/a')));
     await assertFails(getDoc(doc(db('parent-1', parent), 'schools/12/libraryCopies/a')));
     await assertFails(getDoc(doc(db('parent-1', { ...parent, schoolId: 13 }), 'schools/12/libraryCatalogue/a')));
-    await assertFails(getDoc(doc(db('4'), 'schools/12/libraryMembers/student_501')));
+    await assertFails(getDoc(doc(db('4'), 'schools/12/libraryMembers/501')));
   });
 });
 

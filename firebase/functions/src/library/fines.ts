@@ -27,7 +27,6 @@ export async function raiseFine(
     id: string;
     type: string;
     amount: number;
-    memberId: string;
     member: DocumentData;
     source: DocumentData;
     barcode: string;
@@ -41,7 +40,6 @@ export async function raiseFine(
     fineNumber: await nextNumber(context, 'FIN'),
     ...(fine.incidentId ? { incidentId: fine.incidentId } : {}),
     loanId: fine.loanId ?? null,
-    memberId: fine.memberId,
     memberType: fine.member.memberType,
     personErpId: fine.member.personErpId,
     memberName: fine.member.name ?? null,
@@ -74,19 +72,19 @@ async function loadFine(context: CallableContext, fineId: string) {
 
 async function checkUnblockMember(
   context: CallableContext,
-  memberId: string,
+  personErpId: number,
   currentFineId: string,
 ) {
   const otherFines = await context.transaction.get(
     context
       .coll('libraryFines')
-      .where('memberId', '==', memberId)
+      .where('personErpId', '==', personErpId)
       .where('status', 'in', ['outstanding', 'partially_paid'])
       .limit(2),
   );
   const hasOther = otherFines.docs.some((doc) => doc.id !== currentFineId);
   if (!hasOther) {
-    const mRef = context.doc(`libraryMembers/${memberId}`);
+    const mRef = context.doc(`libraryMembers/${personErpId}`);
     const mSnap = await context.transaction.get(mRef);
     if (mSnap.exists && mSnap.data()?.blocked && mSnap.data()?.blockedBy !== 'manual') {
       context.update(mRef, { blocked: false, blockedBy: null, updatedAt: serverTimestamp() });
@@ -136,8 +134,8 @@ export const fines = {
         },
       ];
 
-      if (outstanding <= 0 && fine.memberId) {
-        await checkUnblockMember(context, fine.memberId, ref.id);
+      if (outstanding <= 0 && fine.personErpId) {
+        await checkUnblockMember(context, fine.personErpId, ref.id);
       }
 
       context.update(ref, { waived, outstanding, status, waivers, updatedAt: serverTimestamp() });
@@ -186,8 +184,8 @@ export const fines = {
         },
       ];
 
-      if (outstanding <= 0 && fine.memberId) {
-        await checkUnblockMember(context, fine.memberId, ref.id);
+      if (outstanding <= 0 && fine.personErpId) {
+        await checkUnblockMember(context, fine.personErpId, ref.id);
       }
 
       context.update(ref, { paid, outstanding, status, payments, updatedAt: serverTimestamp() });

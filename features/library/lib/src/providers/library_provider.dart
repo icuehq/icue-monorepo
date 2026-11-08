@@ -371,8 +371,8 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   Future<LibraryLoan?> activeLoanOf(String barcode) =>
       _service.activeLoanOf(barcode);
 
-  Future<LibraryMember?> member(String type, int personErpId) =>
-      _service.member(type, personErpId);
+  Future<LibraryMember?> member(int personErpId) =>
+      _service.member(personErpId);
 
   Future<LibraryBook?> book(String id) => _service.book(id);
 
@@ -460,6 +460,32 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
         () => _service.savePolicy(data, requestId: requestId),
         reload: loadMasters,
       );
+
+  /// Starter borrowing rules for everyone, in each active library that has no default yet.
+  Future<bool> seedDefaultPolicies() => _write(() async {
+    for (final schoolLibrary in libraries) {
+      final hasDefault = policies.any(
+        (policy) =>
+            policy.libraryId == schoolLibrary.id &&
+            policy.memberType == 'all' &&
+            policy.categoryIds.isEmpty,
+      );
+      if (!schoolLibrary.active || hasDefault) continue;
+      await _service.savePolicy({
+        'libraryId': schoolLibrary.id,
+        'memberType': 'all',
+        'name': 'Default policy',
+        'maxBooks': 3,
+        'loanDays': 14,
+        'maxRenewals': 1,
+        'fineType': 'per_day',
+        'fineAmount': 1,
+        'graceDays': 1,
+        'maxFine': 100,
+        'categoryIds': <String>[],
+      });
+    }
+  }, reload: loadMasters);
 
   Future<bool> setPolicyActive(String id, {required bool active}) => _write(
     () => _service.setPolicyActive(id, active: active),

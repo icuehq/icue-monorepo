@@ -25,8 +25,8 @@ const set = (path: string, data: Record<string, unknown>) =>
 
 describe('library fines and incidents', () => {
   let mainLibrary: string, category: string, title: string;
-  const issue = (barcode = 'ACC-000001', memberId = 'student_501') =>
-    run(loans.loanIssue, { person: person(memberId), barcode });
+  const issue = (barcode = 'ACC-000001', erpId = 501) =>
+    run(loans.loanIssue, { person: person(erpId), barcode });
   const day = (offset: number) =>
     new Date(Date.now() + 330 * 60_000 + offset * 86_400_000).toISOString().slice(0, 10);
 
@@ -91,7 +91,7 @@ describe('library fines and incidents', () => {
     const fine = await get(`libraryFines/${issued.id}__overdue`);
     expect(fine).toMatchObject({
       loanId: issued.id,
-      memberId: 'student_501',
+      personErpId: 501,
       personErpId: 501,
       type: 'overdue',
       amount: 15,
@@ -100,7 +100,7 @@ describe('library fines and incidents', () => {
       paid: 0,
       status: 'outstanding',
     });
-    expect((await get('libraryMembers/student_501'))!.blocked).toBe(true);
+    expect((await get('libraryMembers/501'))!.blocked).toBe(true);
   });
 
   it('fine waiver: permission check, partial waive, full waive unblocks member', async () => {
@@ -123,7 +123,7 @@ describe('library fines and incidents', () => {
       reason: 'Discretionary',
     });
     expect(firstWaiver).toMatchObject({ outstanding: 10, status: 'outstanding' });
-    expect((await get('libraryMembers/student_501'))!.blocked).toBe(true);
+    expect((await get('libraryMembers/501'))!.blocked).toBe(true);
 
     // Cannot waive more than outstanding
     await expect(
@@ -141,18 +141,18 @@ describe('library fines and incidents', () => {
     expect(secondWaiver).toMatchObject({ outstanding: 0, status: 'waived' });
     expect((await get(`libraryFines/${fineId}`))!.status).toBe('waived');
     // Member is now unblocked
-    expect((await get('libraryMembers/student_501'))!.blocked).toBe(false);
+    expect((await get('libraryMembers/501'))!.blocked).toBe(false);
   });
 
   it('a hand-set block is not lifted by paying fines', async () => {
     const issued = await issue();
     await set(`libraryLoans/${issued.id}`, { dueDate: dayTimestamp(day(-5)) });
     await run(loans.loanReturn, { id: issued.id, condition: 'good' });
-    await run(members.memberSetBlocked, { id: 'student_501', blocked: true, reason: 'Misconduct' });
+    await run(members.memberSetBlocked, { id: '501', blocked: true, reason: 'Misconduct' });
     await run(fines.fineSetPayment, { id: `${issued.id}__overdue`, paidAmount: 15 });
-    expect((await get('libraryMembers/student_501'))!.blocked).toBe(true);
-    await run(members.memberSetBlocked, { id: 'student_501', blocked: false });
-    expect((await get('libraryMembers/student_501'))!.blocked).toBe(false);
+    expect((await get('libraryMembers/501'))!.blocked).toBe(true);
+    await run(members.memberSetBlocked, { id: '501', blocked: false });
+    expect((await get('libraryMembers/501'))!.blocked).toBe(false);
   });
 
   it('payment recording: partial payment, full payment unblocks member', async () => {
@@ -167,7 +167,7 @@ describe('library fines and incidents', () => {
       reference: 'REC-123',
     });
     expect(firstPayment).toMatchObject({ outstanding: 5, status: 'partially_paid' });
-    expect((await get('libraryMembers/student_501'))!.blocked).toBe(true);
+    expect((await get('libraryMembers/501'))!.blocked).toBe(true);
 
     const secondPayment = await run(fines.fineSetPayment, {
       id: fineId,
@@ -175,7 +175,7 @@ describe('library fines and incidents', () => {
       reference: 'REC-124',
     });
     expect(secondPayment).toMatchObject({ outstanding: 0, status: 'paid' });
-    expect((await get('libraryMembers/student_501'))!.blocked).toBe(false);
+    expect((await get('libraryMembers/501'))!.blocked).toBe(false);
   });
 
   it('mark lost: updates loan and copy, fines replacement cost, creates incident, blocks member', async () => {
@@ -195,7 +195,7 @@ describe('library fines and incidents', () => {
       status: 'lost',
       activeLoanId: null,
     });
-    expect((await get('libraryMembers/student_501'))!.blocked).toBe(true);
+    expect((await get('libraryMembers/501'))!.blocked).toBe(true);
 
     const fine = await get(`libraryFines/${issued.id}__lost`);
     expect(fine).toMatchObject({
@@ -284,7 +284,7 @@ describe('library fines and incidents', () => {
       barcode: 'ACC-000002',
       type: 'damaged',
       charge: 40,
-      memberId: 'student_501',
+      personErpId: 501,
     });
     await expect(
       run(incidents.incidentReport, { barcode: 'ACC-000002', type: 'damaged' }),

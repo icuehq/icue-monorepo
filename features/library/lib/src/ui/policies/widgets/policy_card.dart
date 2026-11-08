@@ -23,7 +23,6 @@ class PolicyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isStudent = policy.memberType == 'student';
 
     return Card(
       elevation: 0,
@@ -59,9 +58,11 @@ class PolicyCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(
-                      isStudent
-                          ? Icons.school_outlined
-                          : Icons.person_outline_rounded,
+                      switch (policy.memberType) {
+                        'student' => Icons.school_outlined,
+                        'teacher' => Icons.person_outline_rounded,
+                        _ => Icons.groups_outlined,
+                      },
                       color: theme.colorScheme.primary,
                       size: 22,
                     ),

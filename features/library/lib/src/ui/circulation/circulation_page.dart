@@ -1,11 +1,11 @@
 import 'package:admin_ui/admin_ui.dart';
 import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/circulation/widgets/circulation_empty_states.dart';
 import 'package:school_library/src/ui/circulation/widgets/circulation_tabs.dart';
-import 'package:school_library/src/ui/circulation/widgets/issue_flow.dart';
 import 'package:school_library/src/ui/circulation/widgets/loan_card.dart';
 import 'package:school_library/src/ui/circulation/widgets/loan_dialog.dart';
 
@@ -185,7 +185,7 @@ class _CirculationPageState extends State<CirculationPage> {
         title: const Text('Circulation'),
         actions: [
           FilledButton.icon(
-            onPressed: () => IssueFlow.show(context),
+            onPressed: () => context.push(LibraryRoutes.libraryIssue),
             icon: const Icon(Icons.add_rounded),
             label: const Text('Issue'),
             style: FilledButton.styleFrom(minimumSize: const Size(0, 40)),

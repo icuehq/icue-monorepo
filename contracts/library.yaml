@@ -23,7 +23,6 @@ documents:
     collection: libraryLoans
     fields:
       number: string
-      memberId: string
       memberType: MemberType
       personErpId: int
       memberName: string?
@@ -38,28 +37,23 @@ documents:
       policySnapshot: LoanPolicySnapshot
       status: LoanStatus
       issuedBy: string
-      issuedAt: timestamp
       returnNumber: string?
       returnedDate: timestamp?
       condition: string?
       overdueDays: int?
       returnRemarks: string?
       receivedBy: string?
-      returnedAt: timestamp?
       updatedAt: timestamp?
   LoanRenewal:
     doc: Embedded in a loan on each renewal.
     fields:
       renewedDate: timestamp
-      previousDueDate: timestamp
       newDueDate: timestamp
       performedBy: string
   LoanPolicySnapshot:
     doc: Policy values frozen on the loan at issue so later policy edits never move its due date.
     fields:
       policyId: string
-      name: string
-      maxBooks: int
       loanDays: int
       maxRenewals: int
       fineType: string
@@ -82,8 +76,8 @@ models:
         campusId: int
         shelf: string?
         barcode: { type: string, default: "$id" }
-        condition: { type: string, default: good }
-        status: { type: string, default: available }
+        condition: string
+        status: string
         price: double
         acquiredDate: day?
         remarks: string?
@@ -116,18 +110,17 @@ models:
       id: id
       fields:
         fineNumber: { type: string, default: "$id" }
-        memberId: string
-        memberType: { type: string, default: student }
+        memberType: string
         personErpId: int
         memberName: string?
         libraryId: string
         campusId: int
-        type: { type: string, default: overdue }
+        type: string
         amount: double
         waived: double
         paid: double
         outstanding: double
-        status: { type: string, default: outstanding }
+        status: string
         loanId: string?
         incidentId: string?
         barcode: string?
@@ -142,14 +135,13 @@ models:
       id: id
       fields:
         incidentNumber: { type: string, default: "$id" }
-        type: { type: string, default: damaged }
+        type: string
         barcode: string
         catalogueId: string
         libraryId: string
         campusId: int
-        status: { type: string, default: open }
+        status: string
         reportedDate: day
-        memberId: string?
         memberType: string?
         personErpId: int?
         memberName: string?
@@ -170,8 +162,7 @@ models:
       id: id
       fields:
         number: string
-        memberId: string
-        memberType: { type: string, default: student }
+        memberType: string
         personErpId: int
         memberName: string?
         barcode: string
@@ -181,7 +172,7 @@ models:
         dueDate: day
         renewals: { type: int, length: true }
         maxRenewals: { type: int, key: policySnapshot.maxRenewals }
-        status: { type: string, default: active }
+        status: string
         returnedDate: day?
         condition: string?
         overdueDays: int?
@@ -226,11 +217,11 @@ models:
       fields:
         name: string
         libraryId: string
-        memberType: { type: string, default: student }
+        memberType: string
         maxBooks: int
         loanDays: int
         maxRenewals: int
-        fineType: { type: string, default: none }
+        fineType: string
         fineAmount: double
         graceDays: int
         maxFine: double?
@@ -240,7 +231,7 @@ models:
       doc: "A student or teacher who has borrowed or reserved (FRS 11.7). Created on first use from the ERP details; the ERP stays the source of truth."
       id: id
       fields:
-        memberType: { type: string, default: student }
+        memberType: string
         personErpId: int
         name: string
         classId: int?
@@ -252,15 +243,14 @@ models:
       id: id
       fields:
         number: string
-        memberId: string
-        memberType: { type: string, default: student }
+        memberType: string
         personErpId: int
         memberName: string?
         catalogueId: string
         title: string
         libraryId: string
         campusId: int
-        status: { type: string, default: waiting }
+        status: string
         heldBarcode: string?
         holdUntil: day?
         fulfilledLoanId: string?

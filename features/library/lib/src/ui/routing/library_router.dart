@@ -7,6 +7,7 @@ import 'package:school_library/src/ui/catalogue/book_form_page.dart';
 import 'package:school_library/src/ui/catalogue/catalogue_page.dart';
 import 'package:school_library/src/ui/catalogue/copies_page.dart';
 import 'package:school_library/src/ui/circulation/circulation_page.dart';
+import 'package:school_library/src/ui/circulation/issue_books_page.dart';
 import 'package:school_library/src/ui/circulation/widgets/scan_listener.dart';
 import 'package:school_library/src/ui/fines/fines_page.dart';
 import 'package:school_library/src/ui/incidents/incidents_page.dart';
@@ -80,6 +81,12 @@ final _libraryPages = <RouteBase>[
     path: LibraryRoutes.libraryCirculation,
     name: LibraryRoutes.libraryCirculationName,
     builder: (context, state) => const CirculationPage(),
+  ),
+  GoRoute(
+    path: LibraryRoutes.libraryIssue,
+    name: LibraryRoutes.libraryIssueName,
+    builder: (context, state) =>
+        IssueBooksPage(copy: state.extra as LibraryCopy?),
   ),
   GoRoute(
     path: LibraryRoutes.libraryReservations,

@@ -100,6 +100,13 @@ describe('library members and policies', () => {
     await policy({ name: 'Reference again', categoryIds: [category] });
   });
 
+  it('policy: one default for everyone per library', async () => {
+    await policy({ memberType: 'all', name: 'Default' });
+    await expect(policy({ memberType: 'all', name: 'Again' })).rejects.toMatchObject({
+      code: 'failed-precondition',
+    });
+  });
+
   it('policy rules: fine needs an amount, no fine clears amounts, only student or teacher, permission, campus, unknown category', async () => {
     await expect(policy({ fineAmount: 0 })).rejects.toMatchObject({ code: 'invalid-argument' });
     await expect(policy({ memberType: 'parent' })).rejects.toMatchObject({

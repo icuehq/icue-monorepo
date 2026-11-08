@@ -18,6 +18,8 @@ import {
 
 const FINES = ['none', 'per_day', 'flat'] as const;
 const MEMBER_TYPES = ['student', 'teacher'] as const;
+/** A policy may also be the library's default for everyone ('all'), used when none names the person type. */
+const POLICY_MEMBER_TYPES = [...MEMBER_TYPES, 'all'] as const;
 
 /** Why [member] cannot borrow or reserve, or null when they can. A person never seen before can. */
 export function ineligibleReason(member: { blocked?: boolean } | undefined): string | null {
@@ -26,8 +28,9 @@ export function ineligibleReason(member: { blocked?: boolean } | undefined): str
 
 /**
  * The active policy of a person type in a library that covers a book of [categoryId]: one naming the
- * category, else one naming its parent, else the catch-all (no categories). Saving refuses overlaps, so
- * each level has at most one. Null means the member cannot borrow or reserve this book.
+ * category, else one naming its parent, else the catch-all (no categories); policies of the person type
+ * win over the library's default for everyone ('all'). Saving refuses overlaps, so each level has at
+ * most one. Null means the member cannot borrow or reserve this book.
  */
 export async function applicablePolicy(
   context: CallableContext,
@@ -40,20 +43,25 @@ export async function applicablePolicy(
       context
         .coll('libraryBorrowingPolicies')
         .where('libraryId', '==', libraryId)
-        .where('memberType', '==', memberType)
+        .where('memberType', 'in', [memberType, 'all'])
         .where('status', '==', 'active'),
     )
   ).docs;
-  const covering = (categoryIds: (string | undefined)[]) =>
-    policies.find((policy) =>
-      categoryIds.some((category) => category && policy.data().categoryIds.includes(category)),
-    );
   const parentId = (await context.transaction.get(context.doc(`libraryCategories/${categoryId}`)))
     .data()?.parentId;
-  const found =
-    covering([categoryId]) ??
-    covering([parentId]) ??
-    policies.find((policy) => !policy.data().categoryIds.length);
+  let found: (typeof policies)[number] | undefined;
+  for (const type of [memberType, 'all']) {
+    const own = policies.filter((policy) => policy.data().memberType === type);
+    const covering = (categoryIds: (string | undefined)[]) =>
+      own.find((policy) =>
+        categoryIds.some((category) => category && policy.data().categoryIds.includes(category)),
+      );
+    found =
+      covering([categoryId]) ??
+      covering([parentId]) ??
+      own.find((policy) => !policy.data().categoryIds.length);
+    if (found) break;
+  }
   return found ? { id: found.id, data: found.data() } : null;
 }
 
@@ -82,8 +90,6 @@ async function assertNoOverlap(
       throw failed(`A selected category already belongs to "${other.data().name}"`);
   }
 }
-
-export const memberId = (type: string, personErpId: number) => `${type}_${personErpId}`;
 
 /**
  * The borrower as the desk found them in the ERP (Node). Only what the Library shows is kept; the ERP
@@ -153,7 +159,7 @@ export const members = {
       .object({
         id: id.optional(),
         libraryId: id,
-        memberType: z.enum(MEMBER_TYPES),
+        memberType: z.enum(POLICY_MEMBER_TYPES),
         name,
         maxBooks: z.number().int().min(1).max(100),
         loanDays: z.number().int().min(1).max(365),

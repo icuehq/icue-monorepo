@@ -23,8 +23,8 @@ const set = (path: string, data: Record<string, unknown>) =>
 
 describe('library circulation', () => {
   let mainLibrary: string, category: string, title: string, policy: string;
-  const issue = (barcode = 'ACC-000001', memberId = 'student_501') =>
-    run(loans.loanIssue, { person: person(memberId), barcode });
+  const issue = (barcode = 'ACC-000001', erpId = 501) =>
+    run(loans.loanIssue, { person: person(erpId), barcode });
   const day = (offset: number) =>
     new Date(Date.now() + 330 * 60_000 + offset * 86_400_000).toISOString().slice(0, 10);
 
@@ -86,16 +86,39 @@ describe('library circulation', () => {
       status: 'issued',
       activeLoanId: result.id,
     });
-    expect((await get('libraryMembers/student_501'))!.activeLoans).toBe(1);
+    expect((await get('libraryMembers/501'))!.activeLoans).toBe(1);
+  });
+
+  it('issue falls back to the default policy for everyone when the person type has none', async () => {
+    const teacher = () =>
+      run(loans.loanIssue, {
+        person: { memberType: 'teacher', personErpId: 9, name: 'T' },
+        barcode: 'ACC-000003',
+      });
+    await expect(teacher()).rejects.toMatchObject({ code: 'failed-precondition' });
+    const everyone = await run(members.policyUpsert, {
+      libraryId: mainLibrary,
+      memberType: 'all',
+      name: 'Default',
+      maxBooks: 5,
+      loanDays: 14,
+      maxRenewals: 0,
+      fineType: 'none',
+    });
+    const loan = await teacher();
+    expect(await get(`libraryLoans/${loan.id}`)).toMatchObject({
+      policySnapshot: { policyId: everyone.id, loanDays: 14 },
+    });
+    expect((await issue()).dueDate).toBe(day(7)); // students keep their own policy
   });
 
   it('issue creates the borrower on first use and refreshes the name and class after', async () => {
-    expect(await get('libraryMembers/student_501')).toBeUndefined();
+    expect(await get('libraryMembers/501')).toBeUndefined();
     await run(loans.loanIssue, {
       person: { memberType: 'student', personErpId: 501, name: 'Asha Rao', classId: 4 },
       barcode: 'ACC-000001',
     });
-    expect(await get('libraryMembers/student_501')).toMatchObject({
+    expect(await get('libraryMembers/501')).toMatchObject({
       memberType: 'student',
       personErpId: 501,
       name: 'Asha Rao',
@@ -108,7 +131,7 @@ describe('library circulation', () => {
       person: { memberType: 'student', personErpId: 501, name: 'Asha R. Rao', classId: 5 },
       barcode: 'ACC-000002',
     });
-    expect(await get('libraryMembers/student_501')).toMatchObject({
+    expect(await get('libraryMembers/501')).toMatchObject({
       name: 'Asha R. Rao',
       classId: 5,
       activeLoans: 2,
@@ -130,9 +153,9 @@ describe('library circulation', () => {
     await expect(issue()).rejects.toMatchObject({ code: 'failed-precondition' });
     await issue('ACC-000002');
     await expect(issue('ACC-000003')).rejects.toMatchObject({ code: 'failed-precondition' }); // maxBooks 2
-    await set('libraryMembers/student_501', { activeLoans: 0, blocked: true });
+    await set('libraryMembers/501', { activeLoans: 0, blocked: true });
     await expect(issue('ACC-000003')).rejects.toMatchObject({ code: 'failed-precondition' });
-    await set('libraryMembers/student_501', { blocked: false });
+    await set('libraryMembers/501', { blocked: false });
     // A policy for other categories does not cover this book.
     const other = await seedLibraryCategory({ name: 'Other' });
     await set(`libraryBorrowingPolicies/${policy}`, { categoryIds: [other.id] });
@@ -145,7 +168,7 @@ describe('library circulation', () => {
     await expect(issue('ACC-000003')).rejects.toMatchObject({ code: 'failed-precondition' });
     await set(`libraryBorrowingPolicies/${policy}`, { status: 'active' });
     await expect(
-      run(loans.loanIssue, { person: person('student_501'), barcode: 'ACC-000003' }, '2'),
+      run(loans.loanIssue, { person: person(501), barcode: 'ACC-000003' }, '2'),
     ).rejects.toMatchObject({ code: 'permission-denied' });
     await set(`libraryBorrowingPolicies/${policy}`, { categoryIds: [], maxBooks: 3 });
     await expect(issue('ACC-000003')).resolves.toBeTruthy();
@@ -211,7 +234,7 @@ describe('library circulation', () => {
       status: 'available',
       activeLoanId: null,
     });
-    expect((await get('libraryMembers/student_501'))!.activeLoans).toBe(0);
+    expect((await get('libraryMembers/501'))!.activeLoans).toBe(0);
     await expect(run(loans.loanReturn, { id: result.id, condition: 'good' })).rejects.toMatchObject(
       { code: 'failed-precondition' },
     );

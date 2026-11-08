@@ -9,7 +9,11 @@ const fineTypes = {
 };
 
 extension LibraryPolicyMembers on LibraryPolicy {
-  String get appliesTo => memberType == 'student' ? 'Students' : 'Teachers';
+  String get appliesTo => switch (memberType) {
+    'student' => 'Students',
+    'teacher' => 'Teachers',
+    _ => 'Everyone',
+  };
 
   String get summary =>
       '$maxBooks book${maxBooks == 1 ? '' : 's'} · $loanDays days · '

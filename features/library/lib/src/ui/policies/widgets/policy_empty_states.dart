@@ -2,17 +2,17 @@ import 'package:admin_ui/admin_ui.dart';
 import 'package:flutter/material.dart';
 
 class PolicyInitialEmptyState extends StatelessWidget {
-  const PolicyInitialEmptyState({this.onCreate, super.key});
+  const PolicyInitialEmptyState({this.onAddDefault, super.key});
 
-  final VoidCallback? onCreate;
+  final VoidCallback? onAddDefault;
 
   @override
   Widget build(BuildContext context) => EmptyState(
     icon: Icons.rule_rounded,
     title: 'No borrowing policies configured',
-    message: 'Define policies per library to set maximum books allowed, loan duration, renewals, and overdue fine amounts.',
-    actionLabel: 'Add borrowing policy',
-    actionIcon: Icons.add_rounded,
-    onAction: onCreate,
+    message: 'Start with a default policy for everyone (3 books, 14 days, 1 renewal, ₹1 per day overdue fine). You can edit it, or add policies per member type and category with the + button.',
+    actionLabel: 'Add default policy',
+    actionIcon: Icons.auto_fix_high_rounded,
+    onAction: onAddDefault,
   );
 }

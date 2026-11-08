@@ -70,7 +70,7 @@ describe('library notifications', () => {
 
   it("issue and return tell the member (the student's parents); an overdue return also reports the fine", async () => {
     const issued = await run(loans.loanIssue, {
-      person: person('student_501'),
+      person: person(501),
       barcode: 'ACC-000001',
     });
     expect(
@@ -99,7 +99,7 @@ describe('library notifications', () => {
 
   it('daily job: due soon and overdue, no membership notices; reruns post nothing new', async () => {
     const first = await run(loans.loanIssue, {
-      person: person('student_501'),
+      person: person(501),
       barcode: 'ACC-000001',
     }); // due in 7 days
     await runDailyLibrary(SCHOOL_ID);

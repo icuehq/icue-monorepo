@@ -59,7 +59,6 @@ class LibraryFine {
   const LibraryFine({
     required this.id,
     required this.fineNumber,
-    required this.memberId,
     required this.memberType,
     required this.personErpId,
     this.memberName,
@@ -85,18 +84,17 @@ class LibraryFine {
       LibraryFine(
         id: id,
         fineNumber: data['fineNumber'] as String? ?? id,
-        memberId: data['memberId'] as String? ?? '',
-        memberType: data['memberType'] as String? ?? 'student',
+        memberType: data['memberType'] as String? ?? '',
         personErpId: (data['personErpId'] as num? ?? 0).toInt(),
         memberName: data['memberName'] as String?,
         libraryId: data['libraryId'] as String? ?? '',
         campusId: (data['campusId'] as num? ?? 0).toInt(),
-        type: data['type'] as String? ?? 'overdue',
+        type: data['type'] as String? ?? '',
         amount: readDouble(data['amount']),
         waived: readDouble(data['waived']),
         paid: readDouble(data['paid']),
         outstanding: readDouble(data['outstanding']),
-        status: data['status'] as String? ?? 'outstanding',
+        status: data['status'] as String? ?? '',
         loanId: data['loanId'] as String?,
         incidentId: data['incidentId'] as String?,
         barcode: data['barcode'] as String?,
@@ -119,7 +117,6 @@ class LibraryFine {
 
   final String id;
   final String fineNumber;
-  final String memberId;
   final String memberType;
   final int personErpId;
   final String? memberName;

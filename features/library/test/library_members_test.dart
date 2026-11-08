@@ -10,6 +10,7 @@ void main() {
       'maxBooks': 1,
       'loanDays': 7,
       'maxRenewals': 2,
+      'fineType': 'none',
       'maxFine': 50,
       'status': 'inactive',
     });
@@ -19,7 +20,7 @@ void main() {
     expect(policy.fineType, 'none');
     expect(policy.active, isFalse);
 
-    final member = LibraryMember.fromMap('teacher_9', {
+    final member = LibraryMember.fromMap('9', {
       'memberType': 'teacher',
       'personErpId': 9,
     });
@@ -27,7 +28,7 @@ void main() {
     expect(member.blocked, isFalse);
     expect(member.activeLoans, 0);
 
-    final named = LibraryMember.fromMap('student_5', {
+    final named = LibraryMember.fromMap('5', {
       'memberType': 'student',
       'personErpId': 5,
       'name': 'Asha Rao',

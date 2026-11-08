@@ -17,7 +17,6 @@ import { openIncident } from './incidents';
 import {
   applicablePolicy,
   ineligibleReason,
-  memberId,
   personInput,
   writeBorrower,
 } from './members';
@@ -26,8 +25,6 @@ import { release, waitingQuery } from './reservations';
 
 /** Policy values copied onto the loan so later policy edits never move its due date (FRS 11.8). */
 const SNAPSHOT = [
-  'name',
-  'maxBooks',
   'loanDays',
   'maxRenewals',
   'fineType',
@@ -55,17 +52,15 @@ async function raiseOverdueFine(
   fineId: string,
   loanId: string,
   loan: DocumentData,
-  memberId: string,
   member: DocumentData,
   amount: number,
   overdueDays: number,
 ): Promise<void> {
-  const policy = loan.policySnapshot ?? {};
+  const policy = loan.policySnapshot;
   const fRef = await raiseFine(context, {
     id: fineId,
     type: 'overdue',
     amount,
-    memberId,
     member,
     source: loan,
     barcode: loan.barcode,
@@ -105,8 +100,8 @@ export const loans = {
     input: z.object({ person: personInput, barcode: id, remarks: optionalText }),
     handler: async (context, i) => {
       const today = todayIST();
-      const memberKey = memberId(i.person.memberType, i.person.personErpId);
-      const mRef = context.doc(`libraryMembers/${memberKey}`);
+      const { personErpId } = i.person;
+      const mRef = context.doc(`libraryMembers/${personErpId}`);
       const cRef = context.doc(`libraryCopies/${i.barcode}`);
       const [memberSnapshot, copySnapshot] = await Promise.all([
         context.transaction.get(mRef),
@@ -125,7 +120,7 @@ export const loans = {
       if (copy.status === 'reserved') {
         held = context.doc(`libraryReservations/${copy.heldReservationId}`);
         const reservation = (await context.transaction.get(held)).data();
-        if (reservation?.memberId !== memberKey || reservation.status !== 'ready')
+        if (reservation?.personErpId !== personErpId || reservation.status !== 'ready')
           throw failed('Copy is held for another member');
         if (!reservation.holdUntil || timestampDay(reservation.holdUntil) < today)
           throw failed('The hold on this copy has expired');
@@ -148,7 +143,7 @@ export const loans = {
       const underPolicy = await context.transaction.get(
         context
           .coll(Collections.libraryLoans)
-          .where('memberId', '==', memberKey)
+          .where('personErpId', '==', personErpId)
           .where('status', '==', LoanStatus.active)
           .where('policySnapshot.policyId', '==', found.id),
       );
@@ -163,7 +158,6 @@ export const loans = {
       ]) as unknown as LoanPolicySnapshot;
       const after = {
         number,
-        memberId: memberKey,
         memberType: i.person.memberType,
         personErpId: i.person.personErpId,
         memberName: i.person.name,
@@ -178,7 +172,7 @@ export const loans = {
         policySnapshot: snapshot,
         status: LoanStatus.active,
       } satisfies Partial<LibraryLoan>;
-      context.set(loan, { ...after, issuedBy: context.uid, issuedAt: serverTimestamp() });
+      context.set(loan, { ...after, issuedBy: context.uid });
       context.update(cRef, {
         status: 'issued',
         activeLoanId: loan.id,
@@ -216,7 +210,7 @@ export const loans = {
     handler: async (context, i) => {
       const { ref, loan } = await loadLoan(context, i.id);
       const cRef = context.doc(`libraryCopies/${loan.barcode}`);
-      const mRef = context.doc(`libraryMembers/${loan.memberId}`);
+      const mRef = context.doc(`libraryMembers/${loan.personErpId}`);
       const [snapshot, memberSnapshot] = await Promise.all([
         context.transaction.get(cRef),
         context.transaction.get(mRef),
@@ -233,16 +227,15 @@ export const loans = {
         overdueDays,
         returnRemarks: i.remarks ?? null,
       } satisfies Partial<LibraryLoan>;
-      context.update(ref, { ...after, receivedBy: context.uid, returnedAt: serverTimestamp() });
+      context.update(ref, { ...after, receivedBy: context.uid });
 
-      const fineAmount = overdueFineAmount(loan.policySnapshot ?? {}, overdueDays);
+      const fineAmount = overdueFineAmount(loan.policySnapshot, overdueDays);
       if (fineAmount > 0 && memberSnapshot.exists) {
         await raiseOverdueFine(
           context,
           `${ref.id}__overdue`,
           ref.id,
           loan,
-          memberSnapshot.id,
           memberSnapshot.data()!,
           fineAmount,
           overdueDays,
@@ -259,7 +252,6 @@ export const loans = {
           type: 'damaged',
           copy: snapshot.data()!,
           barcode: snapshot.id,
-          memberId: memberSnapshot.exists ? memberSnapshot.id : null,
           member: memberSnapshot.exists ? memberSnapshot.data()! : null,
           loanId: ref.id,
           severity: 'moderate',
@@ -315,7 +307,7 @@ export const loans = {
     handler: async (context, i) => {
       const { ref, loan } = await loadLoan(context, i.id);
       const cRef = context.doc(`libraryCopies/${loan.barcode}`);
-      const mRef = context.doc(`libraryMembers/${loan.memberId}`);
+      const mRef = context.doc(`libraryMembers/${loan.personErpId}`);
       const [snapshot, memberSnapshot] = await Promise.all([
         context.transaction.get(cRef),
         context.transaction.get(mRef),
@@ -333,7 +325,7 @@ export const loans = {
         lostRemarks: i.reason ?? null,
         charge,
       };
-      context.update(ref, { ...after, receivedBy: context.uid, returnedAt: serverTimestamp() });
+      context.update(ref, { ...after, receivedBy: context.uid });
       context.update(cRef, { status: 'lost', activeLoanId: null, updatedAt: serverTimestamp() });
 
       if (member) {
@@ -350,7 +342,6 @@ export const loans = {
           id: `${ref.id}__lost`,
           type: 'lost',
           amount: charge,
-          memberId: memberSnapshot.id,
           member,
           source: loan,
           barcode: loan.barcode,
@@ -370,7 +361,6 @@ export const loans = {
         type: 'lost',
         copy,
         barcode: snapshot.id,
-        memberId: member ? memberSnapshot.id : null,
         member,
         loanId: ref.id,
         severity: null,
@@ -399,7 +389,7 @@ export const loans = {
     handler: async (context, i) => {
       const { ref, loan } = await loadLoan(context, i.id);
       const member = (
-        await context.transaction.get(context.doc(`libraryMembers/${loan.memberId}`))
+        await context.transaction.get(context.doc(`libraryMembers/${loan.personErpId}`))
       ).data();
       if (!member || member.blocked) throw failed('Member cannot renew');
       const policy = loan.policySnapshot;
@@ -416,7 +406,6 @@ export const loans = {
         ...loan.renewals,
         {
           renewedDate: dayTimestamp(today),
-          previousDueDate: loan.dueDate,
           newDueDate: dueDate,
           performedBy: context.uid,
         },

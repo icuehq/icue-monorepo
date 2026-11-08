@@ -73,7 +73,17 @@ class PoliciesPage extends StatelessWidget {
             ? const Center(child: CircularProgressIndicator())
             : allPolicies.isEmpty
             ? PolicyInitialEmptyState(
-                onCreate: canEdit ? () => PolicyDialog.show(context) : null,
+                onAddDefault: canEdit
+                    ? () async {
+                        if (!await libraryProvider.seedDefaultPolicies() &&
+                            context.mounted) {
+                          showMessage(
+                            context,
+                            libraryProvider.errorMessage ?? 'Failed',
+                          );
+                        }
+                      }
+                    : null,
               )
             : RefreshIndicator(
                 onRefresh: () => libraryProvider.loadMasters(),

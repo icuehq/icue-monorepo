@@ -170,12 +170,12 @@ Common fields on every document: `campusId`, `createdAt`, `createdBy` (uid), `up
 | `libraryCatalogue` | title, subtitle, authors[], isbn10, isbn13, publisher, edition, year, language, categoryId, classIds[], classificationNumber, keywords, coverPath, status, identityKey | School-wide; shared across libraries |
 | `libraryCopies` | catalogueId, libraryId, campusId, shelf, barcode, rfidTag, acquisitionId, price, source, condition, status (FRS 11.5 + `in_transit`), activeLoanId, heldReservationId | One doc per physical book |
 | `libraryAcquisitions` | type, catalogueId, quantity, libraryId, price, reference, barcodes | |
-| `libraryMembers/{memberType_erpId}` | memberType `student | teacher`, personErpId, classId (students), category (policy key), libraryIds, start, end, status, activeLoans, blocked | Deterministic ID → no duplicate members |
+| `libraryMembers/{personErpId}` | memberType `student | teacher`, personErpId, classId (students), category (policy key), libraryIds, start, end, status, activeLoans, blocked | Document ID is the ERP ID (unique across students and staff) → no duplicate members |
 | `libraryBorrowingPolicies` | libraryId, memberType, categoryIds, maxBooks, loanDays, maxRenewals, fineType, fineAmount, graceDays, maxFine, status | Several per library and person type; a book's category (else its parent, else the catch-all with empty `categoryIds`) picks one; a category belongs to one active policy. |
-| `libraryLoans` | memberId, barcode, catalogueId, libraryId, issuedAt, dueAt, renewals[], policySnapshot, status `active | returned | lost`, returnedAt, condition, overdueDays | `policySnapshot` frozen at issue (FRS 11.8) |
-| `libraryReservations` | memberId, catalogueId, libraryId, status (FRS 11.12), createdAt, heldBarcode, holdUntil, fulfilledLoanId | Queue position is computed (count of earlier `waiting`), not stored |
-| `libraryFines/{loanId__type}` | memberId, loanId, type, fineCalculation, amount, waived, outstanding, status, waivers[] | Deterministic ID → fines cannot duplicate |
-| `libraryIncidents` | kind `lost | damaged`, barcode, memberId, severity, photos, charge, repairStatus, resolution | FRS 11.14 |
+| `libraryLoans` | personErpId, barcode, catalogueId, libraryId, issuedDate, dueDate, renewals[], policySnapshot, status `active | returned | lost`, returnedDate, condition, overdueDays | `policySnapshot` frozen at issue (FRS 11.8) |
+| `libraryReservations` | personErpId, catalogueId, libraryId, status (FRS 11.12), createdAt, heldBarcode, holdUntil, fulfilledLoanId | Queue position is computed (count of earlier `waiting`), not stored |
+| `libraryFines/{loanId__type}` | personErpId, loanId, type, fineCalculation, amount, waived, outstanding, status, waivers[] | Deterministic ID → fines cannot duplicate |
+| `libraryIncidents` | kind `lost | damaged`, barcode, personErpId, severity, photos, charge, repairStatus, resolution | FRS 11.14 |
 | `libraryTransfers` | fromLibraryId, toLibraryId, lineItems `[{barcode, received, condition}]`, status `requested | approved | dispatched | partially_received | received` | |
 | `libraryVerifications` (+`lineItems`) | libraryId, scope, expected copy IDs, scanned, missing, unexpected, status | Same pattern as inventory |
 

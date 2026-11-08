@@ -120,7 +120,6 @@ class _PersonPickerState extends State<PersonPicker> {
             segments: const [
               ButtonSegment(value: 'number', label: Text('Admission no.')),
               ButtonSegment(value: 'class', label: Text('Class')),
-              ButtonSegment(value: 'search', label: Text('Search')),
             ],
             selected: {_mode},
             onSelectionChanged: (values) =>

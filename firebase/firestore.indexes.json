@@ -617,7 +617,7 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "memberId",
+          "fieldPath": "personErpId",
           "order": "ASCENDING"
         },
         {
@@ -632,20 +632,6 @@
       "fields": [
         {
           "fieldPath": "barcode",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "issuedDate",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "libraryLoans",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "personErpId",
           "order": "ASCENDING"
         },
         {
@@ -769,7 +755,7 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "memberId",
+          "fieldPath": "personErpId",
           "order": "ASCENDING"
         },
         {

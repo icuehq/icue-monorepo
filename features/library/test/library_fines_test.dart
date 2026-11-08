@@ -6,9 +6,8 @@ void main() {
   test('LibraryFine parses fine document, calculations, waivers, payments, and statuses', () {
     final fine = LibraryFine.fromMap('f1', {
       'fineNumber': 'FIN/2026-27/000001',
-      'memberId': 'student_501',
-      'memberType': 'student',
       'personErpId': 501,
+      'memberType': 'student',
       'libraryId': 'lib1',
       'campusId': 31,
       'type': 'overdue',

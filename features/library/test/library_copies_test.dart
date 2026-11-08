@@ -9,6 +9,7 @@ void main() {
       'campusId': 31,
       'price': 250,
       'status': 'available',
+      'condition': 'good',
     });
     expect(copy.barcode, 'ACC-000001');
     expect(copy.price, 250.0);

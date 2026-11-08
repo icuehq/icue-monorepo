@@ -21,7 +21,6 @@ export async function openIncident(
     type: (typeof INCIDENT_TYPES)[number];
     copy: DocumentData;
     barcode: string;
-    memberId?: string | null;
     member?: DocumentData | null;
     loanId?: string | null;
     severity: string | null;
@@ -40,7 +39,6 @@ export async function openIncident(
     type: incident.type,
     barcode: incident.barcode,
     ...copyFields(incident.copy),
-    memberId: member ? incident.memberId : null,
     memberType: member ? member.memberType : null,
     personErpId: member ? member.personErpId : null,
     memberName: member ? (member.name ?? null) : null,
@@ -96,7 +94,7 @@ export const incidents = {
     permission: 'library.circulation.operate',
     input: z.object({
       barcode: id,
-      memberId: id.nullish(),
+      personErpId: z.number().int().min(1).nullish(),
       type: z.enum(INCIDENT_TYPES),
       severity: z.enum(SEVERITIES).default('moderate'),
       description: optionalText,
@@ -127,8 +125,8 @@ export const incidents = {
 
       let member: Record<string, unknown> | null = null;
       let mRef = null;
-      if (i.memberId) {
-        mRef = context.doc(`libraryMembers/${i.memberId}`);
+      if (i.personErpId) {
+        mRef = context.doc(`libraryMembers/${i.personErpId}`);
         const mSnap = await context.transaction.get(mRef);
         if (!mSnap.exists) throw missing('libraryMember');
         member = mSnap.data()!;
@@ -142,7 +140,6 @@ export const incidents = {
         type: i.type,
         copy,
         barcode: cRef.id,
-        memberId: i.memberId,
         member,
         severity: i.type === 'damaged' ? i.severity : null,
         description: i.description ?? null,
@@ -165,7 +162,6 @@ export const incidents = {
           id: `inc_${incRef.id}__${i.type}`,
           type: i.type,
           amount: i.charge,
-          memberId: i.memberId!,
           member,
           source: copy,
           barcode: cRef.id,
@@ -226,16 +222,15 @@ export const incidents = {
       }
 
       // If additional charge is levied and member is on incident and not already charged
-      if (charge > (incident.charge ?? 0) && incident.memberId) {
+      if (charge > (incident.charge ?? 0) && incident.personErpId) {
         const difference = charge - (incident.charge ?? 0);
-        const mRef = context.doc(`libraryMembers/${incident.memberId}`);
+        const mRef = context.doc(`libraryMembers/${incident.personErpId}`);
         const mSnap = await context.transaction.get(mRef);
         if (mSnap.exists) {
           await raiseFine(context, {
             id: `inc_${ref.id}__penalty`,
             type: incident.type,
             amount: difference,
-            memberId: incident.memberId,
             member: mSnap.data()!,
             source: incident,
             barcode: incident.barcode,

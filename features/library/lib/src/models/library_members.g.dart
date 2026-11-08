@@ -25,11 +25,11 @@ class LibraryPolicy {
         id: id,
         name: data['name'] as String? ?? '',
         libraryId: data['libraryId'] as String? ?? '',
-        memberType: data['memberType'] as String? ?? 'student',
+        memberType: data['memberType'] as String? ?? '',
         maxBooks: (data['maxBooks'] as num? ?? 0).toInt(),
         loanDays: (data['loanDays'] as num? ?? 0).toInt(),
         maxRenewals: (data['maxRenewals'] as num? ?? 0).toInt(),
-        fineType: data['fineType'] as String? ?? 'none',
+        fineType: data['fineType'] as String? ?? '',
         fineAmount: readDouble(data['fineAmount']),
         graceDays: (data['graceDays'] as num? ?? 0).toInt(),
         maxFine: (data['maxFine'] as num?)?.toDouble(),
@@ -67,7 +67,7 @@ class LibraryMember {
   factory LibraryMember.fromMap(String id, Map<String, dynamic> data) =>
       LibraryMember(
         id: id,
-        memberType: data['memberType'] as String? ?? 'student',
+        memberType: data['memberType'] as String? ?? '',
         personErpId: (data['personErpId'] as num? ?? 0).toInt(),
         name: data['name'] as String? ?? '',
         classId: (data['classId'] as num?)?.toInt(),

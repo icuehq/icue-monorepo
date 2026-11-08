@@ -123,7 +123,6 @@ export const orderablePurchaseRequestStatuses = [PurchaseRequestStatus.approved,
 /** One issue of a copy to a member. */
 export interface LibraryLoan {
   number: string;
-  memberId: string;
   memberType: MemberType;
   personErpId: number;
   memberName?: string | null;
@@ -138,21 +137,18 @@ export interface LibraryLoan {
   policySnapshot: LoanPolicySnapshot;
   status: LoanStatus;
   issuedBy: string;
-  issuedAt: Timestamp;
   returnNumber?: string | null;
   returnedDate?: Timestamp | null;
   condition?: string | null;
   overdueDays?: number | null;
   returnRemarks?: string | null;
   receivedBy?: string | null;
-  returnedAt?: Timestamp | null;
   updatedAt?: Timestamp | null;
 }
 
 /** Embedded in a loan on each renewal. */
 export interface LoanRenewal {
   renewedDate: Timestamp;
-  previousDueDate: Timestamp;
   newDueDate: Timestamp;
   performedBy: string;
 }
@@ -160,8 +156,6 @@ export interface LoanRenewal {
 /** Policy values frozen on the loan at issue so later policy edits never move its due date. */
 export interface LoanPolicySnapshot {
   policyId: string;
-  name: string;
-  maxBooks: number;
   loanDays: number;
   maxRenewals: number;
   fineType: string;

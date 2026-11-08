@@ -75,7 +75,7 @@ class _IncidentDialogState extends State<IncidentDialog> {
                     label: 'Repair cost (₹)',
                     hintText: 'Optional',
                   ),
-                if (widget.incident.memberId != null) ...[
+                if (widget.incident.personErpId != null) ...[
                   const SizedBox(height: 8),
                   AppTextField(
                     controller: chargeController,

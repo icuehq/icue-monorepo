@@ -15,7 +15,6 @@ class LibraryIncident {
     required this.campusId,
     required this.status,
     required this.reportedDate,
-    this.memberId,
     this.memberType,
     this.personErpId,
     this.memberName,
@@ -35,14 +34,13 @@ class LibraryIncident {
       LibraryIncident(
         id: id,
         incidentNumber: data['incidentNumber'] as String? ?? id,
-        type: data['type'] as String? ?? 'damaged',
+        type: data['type'] as String? ?? '',
         barcode: data['barcode'] as String? ?? '',
         catalogueId: data['catalogueId'] as String? ?? '',
         libraryId: data['libraryId'] as String? ?? '',
         campusId: (data['campusId'] as num? ?? 0).toInt(),
-        status: data['status'] as String? ?? 'open',
+        status: data['status'] as String? ?? '',
         reportedDate: readDay(data['reportedDate']),
-        memberId: data['memberId'] as String?,
         memberType: data['memberType'] as String?,
         personErpId: (data['personErpId'] as num?)?.toInt(),
         memberName: data['memberName'] as String?,
@@ -71,7 +69,6 @@ class LibraryIncident {
   final int campusId;
   final String status;
   final String reportedDate;
-  final String? memberId;
   final String? memberType;
   final int? personErpId;
   final String? memberName;

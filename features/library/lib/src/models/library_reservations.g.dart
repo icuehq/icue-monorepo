@@ -7,7 +7,6 @@ class LibraryReservation {
   const LibraryReservation({
     required this.id,
     required this.number,
-    required this.memberId,
     required this.memberType,
     required this.personErpId,
     this.memberName,
@@ -27,15 +26,14 @@ class LibraryReservation {
       LibraryReservation(
         id: id,
         number: data['number'] as String? ?? '',
-        memberId: data['memberId'] as String? ?? '',
-        memberType: data['memberType'] as String? ?? 'student',
+        memberType: data['memberType'] as String? ?? '',
         personErpId: (data['personErpId'] as num? ?? 0).toInt(),
         memberName: data['memberName'] as String?,
         catalogueId: data['catalogueId'] as String? ?? '',
         title: data['title'] as String? ?? '',
         libraryId: data['libraryId'] as String? ?? '',
         campusId: (data['campusId'] as num? ?? 0).toInt(),
-        status: data['status'] as String? ?? 'waiting',
+        status: data['status'] as String? ?? '',
         heldBarcode: data['heldBarcode'] as String?,
         holdUntil: readDayOrNull(data['holdUntil']),
         fulfilledLoanId: data['fulfilledLoanId'] as String?,
@@ -47,7 +45,6 @@ class LibraryReservation {
 
   final String id;
   final String number;
-  final String memberId;
   final String memberType;
   final int personErpId;
   final String? memberName;

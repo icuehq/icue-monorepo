@@ -152,10 +152,10 @@ class LibraryService {
     after: after,
   );
 
-  /// One member by type and ERP ID (the member ID is `<type>_<personErpId>`).
-  Future<LibraryMember?> member(String memberType, int personErpId) async {
+  /// One member by ERP ID (the member document ID).
+  Future<LibraryMember?> member(int personErpId) async {
     final document = await (await schoolCollection('libraryMembers'))
-        .doc('${memberType}_$personErpId')
+        .doc('$personErpId')
         .get();
     return document.exists
         ? LibraryMember.fromMap(document.id, document.data()!)
