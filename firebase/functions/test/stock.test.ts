@@ -14,6 +14,7 @@ import {
   requestTransfer,
   receiveStock,
   seedIssueRequest,
+  seedStore,
 } from './fixtures';
 import { clearFirestore, db } from './setup';
 
@@ -91,8 +92,8 @@ describe('inventory stock', () => {
       }).then((result) => result.id as string);
     pen = await makeItem('PEN', { reorderLevel: 5 });
     med = await makeItem('MED', { tracking: 'batch' });
-    firstStore = (await run(masters.storeUpsert, { name: 'Main', campusId: 31 })).id;
-    secondStore = (await run(masters.storeUpsert, { name: 'Branch', campusId: 31 })).id;
+    firstStore = (await seedStore({ name: 'Main', campusId: 31 })).id;
+    secondStore = (await seedStore({ name: 'Branch', campusId: 31 })).id;
   });
 
   it('receives accepted stock only, with weighted cost, ledger rows and numbering', async () => {

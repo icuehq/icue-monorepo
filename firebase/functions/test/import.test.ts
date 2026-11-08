@@ -3,6 +3,7 @@ import { assets as a } from '../src/inventory/assets';
 import { runImport } from '../src/inventory/import';
 import { masters } from '../src/inventory/masters';
 import { runCallable, type CallableDef } from '../src/shared/callable';
+import { seedStore } from './fixtures';
 import { clearFirestore, db } from './setup';
 
 const SCHOOL_ID = '12';
@@ -85,7 +86,7 @@ describe('import and RFID', () => {
         tracking: 'asset',
       })
     ).id;
-    const store = (await run(masters.storeUpsert, { name: 'Main', campusId: 31 })).id;
+    const store = (await seedStore({ name: 'Main', campusId: 31 })).id;
     const [firstAsset, secondAsset] = [
       (await run(a.register, { itemId: item, storeId: store })).id,
       (await run(a.register, { itemId: item, storeId: store })).id,

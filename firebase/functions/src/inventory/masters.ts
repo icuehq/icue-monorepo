@@ -6,7 +6,6 @@ import {
   defineCallable,
   failed,
   id,
-  missing,
   name,
   optionalText,
   saveMaster,
@@ -129,52 +128,6 @@ export const masters = {
           };
         },
       }),
-  }),
-
-  storeUpsert: defineCallable({
-    name: 'inventory.store.upsert',
-    permission: 'inventory.settings',
-    input: z.object({
-      id: id.optional(),
-      name,
-      campusId: z.number().int(),
-      description: optionalText,
-      location: optionalText,
-      storekeeperIds: z.array(z.number().int()).max(20).default([]),
-    }),
-    // Stores have no code: the Firestore auto ID is the identity.
-    handler: async (context, i) => {
-      const ref = i.id ? context.doc(`inventoryStores/${i.id}`) : context.newDoc('inventoryStores');
-      const snapshot = i.id ? await context.transaction.get(ref) : undefined;
-      if (i.id && !snapshot!.exists) throw missing('inventoryStore');
-      const before = snapshot?.data();
-      if (before && before.campusId !== i.campusId)
-        throw failed('A store cannot move to another campus');
-      const now = serverTimestamp();
-      const after = {
-        name: i.name,
-        campusId: i.campusId,
-        description: i.description ?? null,
-        location: i.location ?? null,
-        storekeeperIds: [...new Set(i.storekeeperIds)],
-      };
-      if (before) context.update(ref, { ...after, updatedAt: now });
-      else
-        context.set(ref, {
-          status: 'active',
-          ...after,
-          createdAt: now,
-          createdBy: context.uid,
-          updatedAt: now,
-        });
-      context.audit({
-        action: `inventoryStore.${before ? 'update' : 'create'}`,
-        documentPath: ref.path,
-        before,
-        after,
-      });
-      return { id: ref.id };
-    },
   }),
 
   /** Adds the FRS default categories and units that do not exist yet. Safe to repeat. */

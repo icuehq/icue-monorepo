@@ -17,7 +17,6 @@ class LibraryRoutes {
   static const String libraryBookForm = '/layout.Library/catalogue/form';
   static const String libraryBookFormName = 'libraryBookForm';
 
-
   static const String libraryBookDetails = '/layout.Library/catalogue/details';
   static const String libraryBookDetailsName = 'libraryBookDetails';
 

@@ -23,9 +23,6 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   final LibraryWrites _writes;
   final LibraryPeopleService _people;
 
-  /// Latest load per list; an older response never overwrites a newer filter's list.
-  final Map<String, int> _generation = {};
-
   ModuleAccess access = const ModuleAccess();
   List<SchoolLibrary> libraries = [];
   List<LibraryCategory> categories = [];
@@ -43,40 +40,42 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   int? bookClassId;
   DocumentSnapshot<Map<String, dynamic>>? _cursor;
   int _searchOffset = 0;
+  int _bookGeneration = 0;
 
-  // Member list (paged, one type at a time).
-  final List<LibraryMember> members = [];
-  bool membersLoading = false;
-  bool hasMoreMembers = false;
+  // Paged lists; each is a `_Paged` holder behind the getters below.
+  final _members = _Paged<LibraryMember>();
+  final _loans = _Paged<LibraryLoan>();
+  final _reservations = _Paged<LibraryReservation>();
+  final _fines = _Paged<LibraryFine>();
+  final _incidents = _Paged<LibraryIncident>();
+
+  /// Members of [memberType], one type at a time.
+  List<LibraryMember> get members => _members.items;
+  bool get membersLoading => _members.loading;
+  bool get hasMoreMembers => _members.hasMore;
   String memberType = 'student';
-  DocumentSnapshot<Map<String, dynamic>>? _memberCursor;
 
-  // Active loans (paged, earliest due first).
-  final List<LibraryLoan> loans = [];
-  bool loansLoading = false;
-  bool hasMoreLoans = false;
-  DocumentSnapshot<Map<String, dynamic>>? _loanCursor;
+  /// Active loans, earliest due first.
+  List<LibraryLoan> get loans => _loans.items;
+  bool get loansLoading => _loans.loading;
+  bool get hasMoreLoans => _loans.hasMore;
 
-  // Reservations (paged, by status).
-  final List<LibraryReservation> reservations = [];
-  bool reservationsLoading = false;
-  bool hasMoreReservations = false;
+  List<LibraryReservation> get reservations => _reservations.items;
+  bool get reservationsLoading => _reservations.loading;
+  bool get hasMoreReservations => _reservations.hasMore;
   String reservationStatus = 'waiting';
-  DocumentSnapshot<Map<String, dynamic>>? _reservationCursor;
 
-  // Fines (paged, by status: 'outstanding', 'partially_paid', 'paid', 'waived', or 'all').
-  final List<LibraryFine> fines = [];
-  bool finesLoading = false;
-  bool hasMoreFines = false;
+  /// Fines by status: 'outstanding', 'partially_paid', 'paid', 'waived', or 'all'.
+  List<LibraryFine> get fines => _fines.items;
+  bool get finesLoading => _fines.loading;
+  bool get hasMoreFines => _fines.hasMore;
   String fineStatus = 'outstanding';
-  DocumentSnapshot<Map<String, dynamic>>? _fineCursor;
 
-  // Incidents (paged, by status: 'open', 'resolved', or 'all').
-  final List<LibraryIncident> incidents = [];
-  bool incidentsLoading = false;
-  bool hasMoreIncidents = false;
+  /// Incidents by status: 'open', 'resolved', or 'all'.
+  List<LibraryIncident> get incidents => _incidents.items;
+  bool get incidentsLoading => _incidents.loading;
+  bool get hasMoreIncidents => _incidents.hasMore;
   String incidentStatus = 'open';
-  DocumentSnapshot<Map<String, dynamic>>? _incidentCursor;
 
   /// The student (`student`) or staff member (`teacher`) with [admissionNumber] in the ERP, or null.
   Future<LibraryPerson?> findPerson(String type, String admissionNumber) =>
@@ -86,9 +85,6 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
 
   Future<List<StudentData>> studentsOf(int classId, String section) =>
       _people.studentsOf(classId, section);
-
-  Future<List<StudentData>> searchStudents(String text) =>
-      _people.searchStudents(text);
 
   LibraryPerson studentPerson(StudentData student) =>
       _people.personFrom('student', student);
@@ -132,27 +128,18 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
       categories.where((category) => category.parentId == null).toList();
 
   /// Loads the user's campus scope and the small master lists.
-  Future<void> loadMasters() async {
-    isLoading = true;
-    errorMessage = null;
-    notifyListeners();
-    try {
-      access = await _service.access();
-      final masterLists = await Future.wait([
-        _service.libraries(),
-        _service.categories(),
-        _service.policies(),
-      ]);
-      libraries = masterLists[0] as List<SchoolLibrary>;
-      categories = masterLists[1] as List<LibraryCategory>;
-      policies = masterLists[2] as List<LibraryPolicy>;
-    } catch (error) {
-      errorMessage = callableErrorMessage(error);
-    } finally {
-      isLoading = false;
-      notifyListeners();
-    }
-  }
+  Future<void> loadMasters() =>
+      _busy((loading) => isLoading = loading, () async {
+        access = await _service.access();
+        final masterLists = await Future.wait([
+          _service.libraries(),
+          _service.categories(),
+          _service.policies(),
+        ]);
+        libraries = masterLists[0] as List<SchoolLibrary>;
+        categories = masterLists[1] as List<LibraryCategory>;
+        policies = masterLists[2] as List<LibraryPolicy>;
+      });
 
   /// (Re)loads the first page, or the next one when [more] is true.
   Future<void> loadBooks({
@@ -164,7 +151,7 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     bool clearClass = false,
   }) async {
     if (more && (booksLoading || !hasMoreBooks)) return;
-    final generation = _generation['books'] = (_generation['books'] ?? 0) + 1;
+    final generation = ++_bookGeneration;
     if (!more) {
       bookSearch = search ?? bookSearch;
       bookCategoryId = clearCategory ? null : (categoryId ?? bookCategoryId);
@@ -183,7 +170,7 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
           classId: bookClassId,
           after: _cursor,
         );
-        if (generation != _generation['books']) return;
+        if (generation != _bookGeneration) return;
         if (!more) books.clear();
         books.addAll(page.items);
         _cursor = page.cursor;
@@ -195,7 +182,7 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
           classId: bookClassId,
           offset: _searchOffset,
         );
-        if (generation != _generation['books']) return;
+        if (generation != _bookGeneration) return;
         if (!more) books.clear();
         books.addAll(page.items);
         _searchOffset += page.items.length;
@@ -204,162 +191,93 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     } catch (error) {
       errorMessage = callableErrorMessage(error);
     } finally {
-      if (generation == _generation['books']) {
+      if (generation == _bookGeneration) {
         booksLoading = false;
         notifyListeners();
       }
     }
   }
 
-  /// (Re)loads the first page of [type] members, or the next one when [more] is true.
-  Future<void> loadMembers({bool more = false, String? type}) async {
-    if (more && (membersLoading || !hasMoreMembers)) return;
-    final generation = _generation['members'] =
-        (_generation['members'] ?? 0) + 1;
-    if (!more) {
-      memberType = type ?? memberType;
-      _memberCursor = null;
-    }
-    membersLoading = true;
+  /// Loads the first page of a paged list, or the next one when [more] is true; an older
+  /// response never overwrites a newer one.
+  Future<void> _loadPage<T>(
+    _Paged<T> paged,
+    Future<PagedResult<T>> Function(
+      DocumentSnapshot<Map<String, dynamic>>? after,
+    )
+    fetch, {
+    required bool more,
+  }) async {
+    if (more && (paged.loading || !paged.hasMore)) return;
+    final generation = ++paged.generation;
+    if (!more) paged.cursor = null;
+    paged.loading = true;
     errorMessage = null;
     notifyListeners();
     try {
-      final page = await _service.members(memberType, after: _memberCursor);
-      if (generation != _generation['members']) return;
-      if (!more) members.clear();
-      members.addAll(page.items);
-      _memberCursor = page.cursor;
-      hasMoreMembers = page.hasMore;
+      final page = await fetch(paged.cursor);
+      if (generation != paged.generation) return;
+      if (!more) paged.items.clear();
+      paged.items.addAll(page.items);
+      paged.cursor = page.cursor;
+      paged.hasMore = page.hasMore;
     } catch (error) {
       errorMessage = callableErrorMessage(error);
     } finally {
-      if (generation == _generation['members']) {
-        membersLoading = false;
+      if (generation == paged.generation) {
+        paged.loading = false;
         notifyListeners();
       }
     }
+  }
+
+  /// (Re)loads the first page of [type] members, or the next one when [more] is true.
+  Future<void> loadMembers({bool more = false, String? type}) {
+    if (!more) memberType = type ?? memberType;
+    return _loadPage(
+      _members,
+      (after) => _service.members(memberType, after: after),
+      more: more,
+    );
   }
 
   /// (Re)loads the first page of active loans, or the next one when [more] is true.
-  Future<void> loadLoans({bool more = false}) async {
-    if (more && (loansLoading || !hasMoreLoans)) return;
-    final generation = _generation['loans'] = (_generation['loans'] ?? 0) + 1;
-    if (!more) _loanCursor = null;
-    loansLoading = true;
-    errorMessage = null;
-    notifyListeners();
-    try {
-      final page = await _service.loans('active', after: _loanCursor);
-      if (generation != _generation['loans']) return;
-      if (!more) loans.clear();
-      loans.addAll(page.items);
-      _loanCursor = page.cursor;
-      hasMoreLoans = page.hasMore;
-    } catch (error) {
-      errorMessage = callableErrorMessage(error);
-    } finally {
-      if (generation == _generation['loans']) {
-        loansLoading = false;
-        notifyListeners();
-      }
-    }
-  }
+  Future<void> loadLoans({bool more = false}) => _loadPage(
+    _loans,
+    (after) => _service.loans('active', after: after),
+    more: more,
+  );
 
   /// (Re)loads the first page of reservations, or the next one when [more] is true.
-  Future<void> loadReservations({bool more = false, String? status}) async {
-    if (more && (reservationsLoading || !hasMoreReservations)) return;
-    final generation = _generation['reservations'] =
-        (_generation['reservations'] ?? 0) + 1;
-    if (!more) {
-      reservationStatus = status ?? reservationStatus;
-      _reservationCursor = null;
-    }
-    reservationsLoading = true;
-    errorMessage = null;
-    notifyListeners();
-    try {
-      final page = await _service.reservations(
-        reservationStatus,
-        after: _reservationCursor,
-      );
-      if (generation != _generation['reservations']) return;
-      if (!more) reservations.clear();
-      reservations.addAll(page.items);
-      _reservationCursor = page.cursor;
-      hasMoreReservations = page.hasMore;
-    } catch (error) {
-      errorMessage = callableErrorMessage(error);
-    } finally {
-      if (generation == _generation['reservations']) {
-        reservationsLoading = false;
-        notifyListeners();
-      }
-    }
+  Future<void> loadReservations({bool more = false, String? status}) {
+    if (!more) reservationStatus = status ?? reservationStatus;
+    return _loadPage(
+      _reservations,
+      (after) => _service.reservations(reservationStatus, after: after),
+      more: more,
+    );
   }
 
   /// (Re)loads the first page of fines, or the next one when [more] is true.
-  Future<void> loadFines({bool more = false, String? status}) async {
-    if (more && (finesLoading || !hasMoreFines)) return;
-    final generation = _generation['fines'] = (_generation['fines'] ?? 0) + 1;
-    if (!more) {
-      fineStatus = status ?? fineStatus;
-      _fineCursor = null;
-    }
-    finesLoading = true;
-    errorMessage = null;
-    notifyListeners();
-    try {
-      final page = await _service.fines(
-        status: fineStatus == 'all' ? null : fineStatus,
-        after: _fineCursor,
-      );
-      if (generation != _generation['fines']) return;
-      if (!more) fines.clear();
-      fines.addAll(page.items);
-      _fineCursor = page.cursor;
-      hasMoreFines = page.hasMore;
-    } catch (error) {
-      errorMessage = callableErrorMessage(error);
-    } finally {
-      if (generation == _generation['fines']) {
-        finesLoading = false;
-        notifyListeners();
-      }
-    }
+  Future<void> loadFines({bool more = false, String? status}) {
+    if (!more) fineStatus = status ?? fineStatus;
+    return _loadPage(
+      _fines,
+      (after) => _service.fines(status: fineStatus, after: after),
+      more: more,
+    );
   }
 
   Future<LibraryFine?> fine(String id) => _service.fine(id);
 
   /// (Re)loads the first page of incidents, or the next one when [more] is true.
-  Future<void> loadIncidents({bool more = false, String? status}) async {
-    if (more && (incidentsLoading || !hasMoreIncidents)) return;
-    final generation = _generation['incidents'] =
-        (_generation['incidents'] ?? 0) + 1;
-    if (!more) {
-      incidentStatus = status ?? incidentStatus;
-      _incidentCursor = null;
-    }
-    incidentsLoading = true;
-    errorMessage = null;
-    notifyListeners();
-    try {
-      final page = await _service.incidents(
-        status: incidentStatus == 'all' ? null : incidentStatus,
-        after: _incidentCursor,
-      );
-      if (generation != _generation['incidents']) return;
-      if (!more) incidents.clear();
-      incidents.addAll(page.items);
-      _incidentCursor = page.cursor;
-      hasMoreIncidents = page.hasMore;
-    } catch (error) {
-      errorMessage = callableErrorMessage(error);
-    } finally {
-      if (generation == _generation['incidents']) {
-        incidentsLoading = false;
-        notifyListeners();
-      }
-    }
+  Future<void> loadIncidents({bool more = false, String? status}) {
+    if (!more) incidentStatus = status ?? incidentStatus;
+    return _loadPage(
+      _incidents,
+      (after) => _service.incidents(status: incidentStatus, after: after),
+      more: more,
+    );
   }
 
   Future<LibraryLoan?> activeLoanOf(String barcode) =>
@@ -589,8 +507,12 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
       categories.where((category) => category.id == id).firstOrNull?.name ??
       '$id';
 
-  Future<void> _insights(Future<void> Function() body) async {
-    insightsLoading = true;
+  /// Runs [body] with [setLoading] flagged around it; a failure becomes [errorMessage].
+  Future<void> _busy(
+    void Function(bool loading) setLoading,
+    Future<void> Function() body,
+  ) async {
+    setLoading(true);
     errorMessage = null;
     notifyListeners();
     try {
@@ -598,10 +520,13 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     } catch (error) {
       errorMessage = callableErrorMessage(error);
     } finally {
-      insightsLoading = false;
+      setLoading(false);
       notifyListeners();
     }
   }
+
+  Future<void> _insights(Future<void> Function() body) =>
+      _busy((loading) => insightsLoading = loading, body);
 
   Future<void> loadDashboard({SchoolLibrary? library}) => _insights(
     () async => dashboard = await _service.dashboard(access, library: library),
@@ -646,4 +571,13 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     await reload?.call();
     return true;
   }
+}
+
+/// One paged list: its items, cursor and the latest load generation.
+class _Paged<T> {
+  final items = <T>[];
+  bool loading = false;
+  bool hasMore = false;
+  DocumentSnapshot<Map<String, dynamic>>? cursor;
+  int generation = 0;
 }

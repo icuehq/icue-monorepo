@@ -9,7 +9,6 @@ import { Stock } from './stock';
 
 // Known limit: one transaction applies every difference (3 writes each), so a session is capped; narrow by category for larger stores.
 const MAX_LINES = 150;
-const reason = z.enum(['count_correction', 'missing', 'excess', 'other']);
 
 export const verification = {
   /** Snapshots the expected quantity (`quantityAvailable`) of every balance in scope into `lineItems/{balanceId}`. */
@@ -80,52 +79,6 @@ export const verification = {
         after: { number, lineItems: balances.length },
       });
       return { id: ref.id, number };
-    },
-  }),
-
-  /** Records counts (and reasons for differences) while the session is open; callable again to recount. */
-  count: defineCallable({
-    name: 'inventory.verification.count',
-    permission: 'inventory.stock.operate',
-    input: z.object({
-      id,
-      lineItems: z
-        .array(
-          z.object({
-            balanceId: id,
-            counted: z.number().min(0).max(1_000_000),
-            reason: reason.nullish(),
-            remarks: z.string().trim().max(500).nullish(),
-          }),
-        )
-        .min(1)
-        .max(MAX_LINES),
-    }),
-    handler: async (context, i) => {
-      const ref = context.doc(`inventoryVerifications/${i.id}`);
-      const session = (await context.transaction.get(ref)).data();
-      if (!session) throw missing('Verification');
-      context.requireCampus(session.campusId);
-      if (session.status !== 'counting') throw failed(`Verification is ${session.status}`);
-      const refs = i.lineItems.map((lineItem) =>
-        ref.collection('lineItems').doc(lineItem.balanceId),
-      );
-      const snapshots = await context.transaction.getAll(...refs);
-      snapshots.forEach((snapshot, index) => {
-        const lineItem = i.lineItems[index];
-        if (!snapshot.exists) throw missing('Count line');
-        const difference = lineItem.counted - snapshot.data()!.expected;
-        context.update(snapshot.ref, {
-          counted: lineItem.counted,
-          difference,
-          reason: difference === 0 ? null : (lineItem.reason ?? null),
-          remarks: lineItem.remarks ?? null,
-          countedBy: context.uid,
-          countedAt: serverTimestamp(),
-        });
-      });
-      context.update(ref, { updatedAt: serverTimestamp() });
-      return { id: i.id };
     },
   }),
 

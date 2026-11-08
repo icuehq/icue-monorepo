@@ -10,6 +10,7 @@ import {
   receiveStock,
   seedPurchaseOrder,
   seedPurchaseRequest,
+  seedStore,
 } from './fixtures';
 import { clearFirestore, db } from './setup';
 
@@ -70,7 +71,7 @@ describe('assets and maintenance', () => {
         '1',
       ).then((extra) => extra.id as string);
     [laptop, ink] = [await item('LAP', 'asset'), await item('INK', 'quantity')];
-    store = (await run(masters.storeUpsert, { name: 'Main', campusId: 31 }, '1')).id;
+    store = (await seedStore({ name: 'Main', campusId: 31 })).id;
     asset = (await run(a.register, { itemId: laptop, storeId: store, serialNumber: 'SN1' })).id;
   });
 

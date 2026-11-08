@@ -23,10 +23,6 @@ class LibraryPeopleService {
   /// Classes with their sections, for picking a student from a class list.
   Future<List<Standards>> classes() => _routes.getStandards();
 
-  /// Students whose name or admission number matches [text], for the desk's free search.
-  Future<List<StudentData>> searchStudents(String text) =>
-      _routes.searchStudent(search: text.trim());
-
   /// Every student of [classId] in [section], following Node's pages.
   Future<List<StudentData>> studentsOf(int classId, String section) async {
     final students = <StudentData>[];

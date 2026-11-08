@@ -1,14 +1,12 @@
 import 'dart:async';
 
 import 'package:admin_ui/admin_ui.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/catalogue/widgets/book_class_section.dart';
 import 'package:school_library/src/ui/catalogue/widgets/book_form_sections.dart';
-import 'package:school_library/src/ui/catalogue/widgets/mock_books.dart';
 import 'package:school_library/src/ui/catalogue/widgets/new_copies_section.dart';
 
 class BookFormPage extends StatefulWidget {
@@ -21,9 +19,6 @@ class BookFormPage extends StatefulWidget {
 }
 
 class _BookFormPageState extends State<BookFormPage> {
-  /// Which [mockBooks] entry the next "Fill sample" press uses.
-  static int _nextSample = 0;
-
   final _form = GlobalKey<FormState>();
   final _copiesRequestId = newRequestId();
   final _copies = TextEditingController(text: '1');
@@ -142,35 +137,6 @@ class _BookFormPageState extends State<BookFormPage> {
         ),
       ) ??
       false;
-
-  /// Fills the form with the next entry of [mockBooks] (debug builds, new books only).
-  void _fillSample() {
-    final sample = mockBooks[_nextSample++ % mockBooks.length];
-    final categories = context.read<LibraryProvider>().categories.where(
-      (category) => category.active,
-    );
-    final category = categories
-        .where(
-          (category) =>
-              category.name.toLowerCase() == sample.categoryName.toLowerCase(),
-        )
-        .firstOrNull;
-    setState(() {
-      _title.text = sample.title;
-      _subtitle.text = sample.subtitle ?? '';
-      _authors.text = sample.authors.join(', ');
-      _publisher.text = sample.publisher;
-      _edition.text = sample.edition;
-      _year.text = '${sample.year}';
-      _language.text = sample.language;
-      _pages.text = '${sample.pages}';
-      _shelf.text = 'Shelf A-3, Rack 2';
-      _keywords.text = sample.keywords.join(', ');
-      _description.text = sample.description;
-      _categoryId = category?.id ?? categories.firstOrNull?.id;
-      _dirty = true;
-    });
-  }
 
   /// The copies to create with a new book; null when editing or when none are asked for.
   Map<String, Object?>? _newCopies() {
@@ -294,13 +260,6 @@ class _BookFormPageState extends State<BookFormPage> {
         appBar: AppBar(
           title: Text(editing ? 'Edit book' : 'Add book'),
           actions: [
-            if (kDebugMode && !editing)
-              TextButton.icon(
-                onPressed: _busy ? null : _fillSample,
-                icon: const Icon(Icons.auto_fix_high_rounded, size: 18),
-                label: const Text('Fill sample'),
-                style: TextButton.styleFrom(foregroundColor: Colors.white),
-              ),
             IconButton(
               tooltip: editing ? 'Update book' : 'Save book',
               icon: _busy

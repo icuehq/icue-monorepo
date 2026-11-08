@@ -41,9 +41,7 @@ const mutations: AnyCallableDef[] = [
   libraryFines,
   libraryIncidents,
 ]
-  .flatMap((group) => Object.values(group) as AnyCallableDef[])
-  // Counts are written by the client straight to the lines (rules-checked); the callable is the tests' stand-in.
-  .filter((def) => def.name !== 'inventory.verification.count');
+  .flatMap((group) => Object.values(group) as AnyCallableDef[]);
 
 // Each callable deploys as its name with dots as dashes, e.g. `inventory.purchaseOrder.receive` → `inventory-purchaseOrder-receive`.
 export const { session, inventory, library } = routes([

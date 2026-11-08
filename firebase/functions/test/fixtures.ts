@@ -34,6 +34,36 @@ const audit = {
   updatedAt: FieldValue.serverTimestamp(),
 };
 
+export async function seedStore(fields: {
+  name: string;
+  campusId: number;
+  storekeeperIds?: number[];
+}): Promise<{ id: string }> {
+  const ref = db().collection(`${SCHOOL}/inventoryStores`).doc();
+  await ref.set({ description: null, location: null, storekeeperIds: [], ...fields, ...audit });
+  return { id: ref.id };
+}
+
+/** Counts written straight to the lines, as the client does (rules tests cover that path). */
+export async function seedCount(
+  id: string,
+  lineItems: { balanceId: string; counted: number; reason?: string; remarks?: string }[],
+): Promise<void> {
+  for (const lineItem of lineItems) {
+    const ref = db().doc(`${SCHOOL}/inventoryVerifications/${id}/lineItems/${lineItem.balanceId}`);
+    const expected = (await ref.get()).data()!.expected as number;
+    const difference = lineItem.counted - expected;
+    await ref.update({
+      counted: lineItem.counted,
+      difference,
+      reason: difference === 0 ? null : (lineItem.reason ?? null),
+      remarks: lineItem.remarks ?? null,
+      countedBy: '1',
+      countedAt: FieldValue.serverTimestamp(),
+    });
+  }
+}
+
 export async function seedLibrary(fields: {
   name: string;
   campusId: number;

@@ -4,7 +4,7 @@ import { masters } from '../src/inventory/masters';
 import { verification as v } from '../src/inventory/verification';
 import { runCallable, type CallableDef } from '../src/shared/callable';
 import { dayTimestamp } from '../src/shared/dates';
-import { adjustStock, receiveStock } from './fixtures';
+import { adjustStock, receiveStock, seedCount, seedStore } from './fixtures';
 import { clearFirestore, db } from './setup';
 
 const SCHOOL_ID = '12';
@@ -17,7 +17,7 @@ const run = (definition: CallableDef<any, any>, data: Record<string, unknown>, u
     { requestId: `req-${String(++requestSequence).padStart(6, '0')}`, ...data },
   );
 const get = async (path: string) => (await db().doc(`schools/${SCHOOL_ID}/${path}`).get()).data();
-const col = async (path: string) =>
+const col = async (path: string): Promise<Record<string, any>[]> =>
   (await db().collection(`schools/${SCHOOL_ID}/${path}`).get()).docs.map((outboxDocument) => ({
     id: outboxDocument.id,
     ...outboxDocument.data(),
@@ -34,8 +34,8 @@ describe('stock verification and daily job', () => {
   let store: string, pen: string, ink: string, med: string;
   const bid = (item: string, batch = '-') => `${store}__${item}__-__${batch}`;
   const open = async () => (await run(v.create, { storeId: store })) as { id: string };
-  const count = (id: string, lineItems: Record<string, unknown>[]) =>
-    run(v.count, { id, lineItems });
+  const count = (id: string, lineItems: Parameters<typeof seedCount>[1]) =>
+    seedCount(id, lineItems);
 
   beforeEach(async () => {
     await clearFirestore();
@@ -82,7 +82,7 @@ describe('stock verification and daily job', () => {
       await makeItem('INK'),
       await makeItem('MED', { tracking: 'batch' }),
     ];
-    store = (await run(masters.storeUpsert, { name: 'Main', campusId: 31 })).id;
+    store = (await seedStore({ name: 'Main', campusId: 31 })).id;
     await run(receiveStock, {
       storeId: store,
       source: 'opening',
@@ -113,9 +113,6 @@ describe('stock verification and daily job', () => {
     expect(await code(run(v.submit, { id }))).toBe('failed-precondition'); // reason contradicts direction
     await count(id, [{ balanceId: bid(pen), counted: 8, reason: 'missing' }]);
     expect(await run(v.submit, { id })).toMatchObject({ differences: 1 });
-    expect(await code(count(id, [{ balanceId: bid(pen), counted: 9 }]))).toBe(
-      'failed-precondition',
-    ); // counting is closed
   });
 
   it('approval applies differences as adjustments that reference the session; rejection reopens counting', async () => {

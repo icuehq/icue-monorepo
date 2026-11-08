@@ -23,6 +23,34 @@ class LibraryService {
     ];
   }
 
+  /// One document by ID, or null when it does not exist.
+  Future<T?> _one<T>(
+    String collection,
+    String id,
+    T Function(String id, Map<String, dynamic> data) parse,
+  ) async {
+    final document = await (await schoolCollection(collection)).doc(id).get();
+    return document.exists ? parse(document.id, document.data()!) : null;
+  }
+
+  /// A page of [collection], newest first, optionally filtered by [status] (`all` means none).
+  Future<PagedResult<T>> _statusPage<T>(
+    String collection,
+    T Function(String id, Map<String, dynamic> data) parse, {
+    String? status,
+    DocumentSnapshot<Map<String, dynamic>>? after,
+  }) async {
+    Query<Map<String, dynamic>> query = await schoolCollection(collection);
+    if (status != null && status != 'all') {
+      query = query.where('status', isEqualTo: status);
+    }
+    return fetchPage(
+      query.orderBy('createdAt', descending: true),
+      (document) => parse(document.id, document.data()!),
+      after: after,
+    );
+  }
+
   Future<ModuleAccess> access() async {
     final user = FirebaseAuth.instance.currentUser!;
     final doc = await (await schoolCollection('userAccess'))
@@ -31,17 +59,24 @@ class LibraryService {
     return ModuleAccess.fromMap(doc.data() ?? {});
   }
 
-  Future<List<SchoolLibrary>> libraries() async =>
-      (await _all('libraries', SchoolLibrary.fromMap))..sort(
-        (left, right) =>
-            left.name.toLowerCase().compareTo(right.name.toLowerCase()),
-      );
+  Future<List<SchoolLibrary>> libraries() =>
+      _sortedByName('libraries', SchoolLibrary.fromMap, (item) => item.name);
 
-  Future<List<LibraryCategory>> categories() async =>
-      (await _all('libraryCategories', LibraryCategory.fromMap))..sort(
-        (left, right) =>
-            left.name.toLowerCase().compareTo(right.name.toLowerCase()),
-      );
+  Future<List<LibraryCategory>> categories() => _sortedByName(
+    'libraryCategories',
+    LibraryCategory.fromMap,
+    (item) => item.name,
+  );
+
+  Future<List<T>> _sortedByName<T>(
+    String path,
+    T Function(String id, Map<String, dynamic> data) parse,
+    String Function(T item) name,
+  ) async => (await _all(path, parse))
+    ..sort(
+      (left, right) =>
+          name(left).toLowerCase().compareTo(name(right).toLowerCase()),
+    );
 
   /// A page of titles by title, optionally within [categoryIds] (a category and its subcategories)
   /// and meant for class [classId] (Firestore query).
@@ -96,14 +131,8 @@ class LibraryService {
     );
   }
 
-  Future<LibraryBook?> book(String id) async {
-    final document = await (await schoolCollection('libraryCatalogue'))
-        .doc(id)
-        .get();
-    return document.exists
-        ? LibraryBook.fromMap(document.id, document.data()!)
-        : null;
-  }
+  Future<LibraryBook?> book(String id) =>
+      _one('libraryCatalogue', id, LibraryBook.fromMap);
 
   /// Copies of a title across all libraries, by barcode.
   Future<List<LibraryCopy>> copiesOf(String catalogueId) async {
@@ -117,12 +146,8 @@ class LibraryService {
   }
 
   /// A copy by barcode (its document ID).
-  Future<LibraryCopy?> findCopy(String code) async {
-    final value = code.trim();
-    final collection = await schoolCollection('libraryCopies');
-    final byId = await collection.doc(value).get();
-    return byId.exists ? LibraryCopy.fromMap(byId.id, byId.data()!) : null;
-  }
+  Future<LibraryCopy?> findCopy(String code) =>
+      _one('libraryCopies', code.trim(), LibraryCopy.fromMap);
 
   Future<List<LibraryPolicy>> policies() async =>
       (await _all('libraryBorrowingPolicies', LibraryPolicy.fromMap))
@@ -141,14 +166,8 @@ class LibraryService {
   );
 
   /// One member by ERP ID (the member document ID).
-  Future<LibraryMember?> member(int personErpId) async {
-    final document = await (await schoolCollection('libraryMembers'))
-        .doc('$personErpId')
-        .get();
-    return document.exists
-        ? LibraryMember.fromMap(document.id, document.data()!)
-        : null;
-  }
+  Future<LibraryMember?> member(int personErpId) =>
+      _one('libraryMembers', '$personErpId', LibraryMember.fromMap);
 
   /// A page of loans in [status], earliest due first.
   Future<PagedResult<LibraryLoan>> loans(
@@ -193,45 +212,27 @@ class LibraryService {
   Future<PagedResult<LibraryFine>> fines({
     String? status,
     DocumentSnapshot<Map<String, dynamic>>? after,
-  }) async {
-    Query<Map<String, dynamic>> query = await schoolCollection('libraryFines');
-    if (status != null && status != 'all') {
-      query = query.where('status', isEqualTo: status);
-    }
-    return fetchPage(
-      query.orderBy('createdAt', descending: true),
-      (document) => LibraryFine.fromMap(document.id, document.data()!),
-      after: after,
-    );
-  }
+  }) => _statusPage(
+    'libraryFines',
+    LibraryFine.fromMap,
+    status: status,
+    after: after,
+  );
 
   /// A single fine by ID.
-  Future<LibraryFine?> fine(String id) async {
-    final document = await (await schoolCollection('libraryFines'))
-        .doc(id)
-        .get();
-    return document.exists
-        ? LibraryFine.fromMap(document.id, document.data()!)
-        : null;
-  }
+  Future<LibraryFine?> fine(String id) =>
+      _one('libraryFines', id, LibraryFine.fromMap);
 
   /// A page of lost/damaged incidents, optionally filtered by [status] ('open', 'resolved').
   Future<PagedResult<LibraryIncident>> incidents({
     String? status,
     DocumentSnapshot<Map<String, dynamic>>? after,
-  }) async {
-    Query<Map<String, dynamic>> query = await schoolCollection(
-      'libraryIncidents',
-    );
-    if (status != null && status != 'all') {
-      query = query.where('status', isEqualTo: status);
-    }
-    return fetchPage(
-      query.orderBy('createdAt', descending: true),
-      (document) => LibraryIncident.fromMap(document.id, document.data()!),
-      after: after,
-    );
-  }
+  }) => _statusPage(
+    'libraryIncidents',
+    LibraryIncident.fromMap,
+    status: status,
+    after: after,
+  );
 
   // --- writes: masters are plain client CRUD (`firestore.rules`); the rest are callables, same requestId on user retry --------------------
 

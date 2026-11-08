@@ -126,24 +126,6 @@ describe('inventory masters', () => {
     ).rejects.toMatchObject({ code: 'failed-precondition' });
   });
 
-  it('stores: campus scope enforced, campus fixed after creation', async () => {
-    await expect(run(masters.storeUpsert, { name: 'Main', campusId: 99 })).rejects.toMatchObject({
-      code: 'permission-denied',
-    });
-    const { id } = await run(masters.storeUpsert, {
-      name: 'Main',
-      campusId: 31,
-      storekeeperIds: [5, 5, 6],
-    });
-    expect((await get(`inventoryStores/${id}`))?.storekeeperIds).toEqual([5, 6]);
-    await db()
-      .doc(`schools/${SCHOOL_ID}/userAccess/1`)
-      .update({ campusIds: [31, 32] });
-    await expect(
-      run(masters.storeUpsert, { id, name: 'Main', campusId: 32 }),
-    ).rejects.toMatchObject({ code: 'failed-precondition' });
-  });
-
   it('audits changes', async () => {
     await newItem();
     expect(await count('auditLogs')).toBeGreaterThan(2);
