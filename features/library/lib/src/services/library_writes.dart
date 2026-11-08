@@ -1,12 +1,14 @@
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:injectable/injectable.dart';
 
-/// Library writes that need no Cloud Function: title create / edit / status, copy edit / move and
-/// manual member block. `firestore.rules` checks the shape; each write stamps `lastWrite` and the audit
+/// Library writes that need no Cloud Function: title create / edit / status, copy edit / move,
+/// manual member block and borrowing policy create / edit / status. `firestore.rules` checks the shape; each write stamps `lastWrite` and the audit
 /// triggers in `firebase/functions/src/library/audit.ts` log it. No retry idempotency.
 @lazySingleton
 class LibraryWrites {
   static const _conditions = ['good', 'fair', 'poor'];
+  static const _fineTypes = ['none', 'per_day', 'flat'];
+  static const _policyMemberTypes = ['student', 'teacher', 'all'];
 
   Never _fail(String message, [String code = 'failed-precondition']) =>
       throw FirebaseException(
@@ -190,6 +192,121 @@ class LibraryWrites {
       'blockReason': blocked ? reason!.trim() : null,
       'updatedAt': FieldValue.serverTimestamp(),
       'lastWrite': _stamp('libraryMember.block', reason),
+    });
+  }
+
+  /// Refuses [categoryIds] (empty: the catch-all) when another active policy of the library and person
+  /// type already covers them. ponytail: checked before the write, not atomic (client transactions
+  /// cannot query); two librarians saving at the same instant could overlap.
+  Future<void> _assertNoOverlap(
+    String libraryId,
+    String memberType,
+    List<String> categoryIds,
+    String? selfId,
+  ) async {
+    final others = await (await schoolCollection('libraryBorrowingPolicies'))
+        .where('libraryId', isEqualTo: libraryId)
+        .where('memberType', isEqualTo: memberType)
+        .where('status', isEqualTo: 'active')
+        .get();
+    for (final other in others.docs) {
+      if (other.id == selfId) continue;
+      final taken = (other['categoryIds'] as List).cast<String>();
+      if (categoryIds.isEmpty && taken.isEmpty) {
+        _fail('"${other['name']}" already covers all other categories');
+      }
+      if (categoryIds.any(taken.contains)) {
+        _fail('A selected category already belongs to "${other['name']}"');
+      }
+    }
+  }
+
+  /// Creates a borrowing policy, or edits `data['id']`. Returns its ID.
+  Future<String> savePolicy(Map<String, Object?> data) async {
+    final id = data['id'] as String?;
+    final libraryId = data['libraryId']! as String;
+    final memberType = data['memberType']! as String;
+    final fineType = data['fineType']! as String;
+    final fineAmount = (data['fineAmount']! as num).toDouble();
+    final maxFine = (data['maxFine'] as num?)?.toDouble();
+    final categoryIds = {...(data['categoryIds']! as List).cast<String>()}
+        .toList();
+    final name = '${data['name'] ?? ''}'.trim();
+    if (name.isEmpty || name.length > 200) {
+      _fail('Name must be 1 to 200 characters');
+    }
+    if (!_policyMemberTypes.contains(memberType)) _fail('Invalid member type');
+    if (!_fineTypes.contains(fineType)) _fail('Invalid fine type');
+    if (fineType != 'none' && fineAmount <= 0) _fail('A fine needs an amount');
+    if (categoryIds.length > 50) _fail('Choose at most 50 categories');
+    final reference = (await schoolCollection('libraryBorrowingPolicies'))
+        .doc(id);
+    final before = id == null ? null : (await reference.get()).data();
+    if (id != null && before == null) _fail('Policy not found', 'not-found');
+    if (before != null &&
+        (before['libraryId'] != libraryId ||
+            before['memberType'] != memberType)) {
+      _fail('The library and member type of a policy cannot change');
+    }
+    final library = (await (await _doc('libraries', libraryId)).get()).data();
+    if (library == null) _fail('Library not found', 'not-found');
+    if (before == null && library['status'] != 'active') {
+      _fail('Library is inactive');
+    }
+    for (final categoryId in categoryIds) {
+      if (!(await (await _doc('libraryCategories', categoryId)).get()).exists) {
+        _fail('Category not found');
+      }
+    }
+    await _assertNoOverlap(libraryId, memberType, categoryIds, id);
+    final policy = {
+      'name': name,
+      'libraryId': libraryId,
+      'campusId': library['campusId'],
+      'memberType': memberType,
+      'maxBooks': data['maxBooks'],
+      'loanDays': data['loanDays'],
+      'maxRenewals': data['maxRenewals'],
+      'fineType': fineType,
+      'fineAmount': fineType == 'none' ? 0 : fineAmount,
+      'graceDays': data['graceDays'],
+      'maxFine': fineType == 'none' ? null : maxFine,
+      'categoryIds': categoryIds,
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+    if (before == null) {
+      await reference.set({
+        ...policy,
+        'status': 'active',
+        'createdAt': FieldValue.serverTimestamp(),
+        'createdBy': FirebaseAuth.instance.currentUser!.uid,
+        'lastWrite': _stamp('libraryPolicy.create'),
+      });
+    } else {
+      await reference.update({
+        ...policy,
+        'lastWrite': _stamp('libraryPolicy.update'),
+      });
+    }
+    return reference.id;
+  }
+
+  Future<void> setPolicyActive(String id, {required bool active}) async {
+    final reference = await _doc('libraryBorrowingPolicies', id);
+    final policy = (await reference.get()).data();
+    if (policy == null) _fail('Policy not found', 'not-found');
+    if (active && policy['status'] != 'active') {
+      await _assertNoOverlap(
+        policy['libraryId'] as String,
+        policy['memberType'] as String,
+        (policy['categoryIds'] as List).cast<String>(),
+        id,
+      );
+    }
+    await reference.update({
+      'status': active ? 'active' : 'inactive',
+      'updatedAt': FieldValue.serverTimestamp(),
+      'lastWrite': _stamp('libraryPolicy.status'),
     });
   }
 }

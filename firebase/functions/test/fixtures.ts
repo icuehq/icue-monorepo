@@ -78,6 +78,34 @@ export async function seedLibrary(fields: {
   return { id: ref.id };
 }
 
+/** A borrowing policy written straight to Firestore (policies are client-written; rules tests cover that path). */
+export async function seedLibraryPolicy(fields: {
+  libraryId: string;
+  campusId?: number;
+  memberType: string;
+  name: string;
+  maxBooks: number;
+  loanDays: number;
+  maxRenewals: number;
+  fineType: string;
+  fineAmount?: number;
+  graceDays?: number;
+  maxFine?: number | null;
+  categoryIds?: string[];
+}): Promise<{ id: string }> {
+  const ref = db().collection(`${SCHOOL}/libraryBorrowingPolicies`).doc();
+  await ref.set({
+    campusId: 31,
+    fineAmount: 0,
+    graceDays: 0,
+    maxFine: null,
+    categoryIds: [],
+    ...fields,
+    ...audit,
+  });
+  return { id: ref.id };
+}
+
 export async function seedLibraryCategory(fields: {
   name: string;
   parentId?: string;

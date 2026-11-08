@@ -9,7 +9,6 @@ import { copies as libraryCopies } from './library/copies';
 import { fines as libraryFines } from './library/fines';
 import { incidents as libraryIncidents } from './library/incidents';
 import { loans as libraryLoans } from './library/loans';
-import { members as libraryMembers } from './library/members';
 import { reservations as libraryReservations } from './library/reservations';
 import { catalogueSearch } from './library/search';
 import { sync } from './session';
@@ -23,7 +22,12 @@ export { outboxSend } from './shared/outbox';
 export { dailyInventory } from './inventory/daily';
 export { holdExpiry } from './library/reservations';
 export { dailyLibrary } from './library/daily';
-export { auditLibraryCatalogue, auditLibraryCopies, auditLibraryMembers } from './library/audit';
+export {
+  auditLibraryCatalogue,
+  auditLibraryCopies,
+  auditLibraryMembers,
+  auditLibraryPolicies,
+} from './library/audit';
 
 // Inventory masters other than seedDefaults are written by the client or only through the importer.
 const mutations: AnyCallableDef[] = [
@@ -32,7 +36,6 @@ const mutations: AnyCallableDef[] = [
   verification,
   { seedDefaults: masters.seedDefaults },
   libraryCopies,
-  libraryMembers,
   libraryLoans,
   libraryReservations,
   libraryFines,

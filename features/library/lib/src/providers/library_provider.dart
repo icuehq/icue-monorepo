@@ -364,11 +364,8 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   Future<bool> setCopyStatus(String id, String status, String? reason) =>
       _write(() => _service.setCopyStatus(id, status, reason));
 
-  Future<bool> savePolicy(Map<String, Object?> data, {String? requestId}) =>
-      _write(
-        () => _service.savePolicy(data, requestId: requestId),
-        reload: loadMasters,
-      );
+  Future<bool> savePolicy(Map<String, Object?> data) =>
+      _write(() => _writes.savePolicy(data), reload: loadMasters);
 
   /// Starter borrowing rules for everyone, in each active library that has no default yet.
   Future<bool> seedDefaultPolicies() => _write(() async {
@@ -380,7 +377,7 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
             policy.categoryIds.isEmpty,
       );
       if (!schoolLibrary.active || hasDefault) continue;
-      await _service.savePolicy({
+      await _writes.savePolicy({
         'libraryId': schoolLibrary.id,
         'memberType': 'all',
         'name': 'Default policy',
@@ -397,7 +394,7 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   }, reload: loadMasters);
 
   Future<bool> setPolicyActive(String id, {required bool active}) => _write(
-    () => _service.setPolicyActive(id, active: active),
+    () => _writes.setPolicyActive(id, active: active),
     reload: loadMasters,
   );
 

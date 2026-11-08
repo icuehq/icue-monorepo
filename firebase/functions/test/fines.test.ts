@@ -3,10 +3,15 @@ import { copies } from '../src/library/copies';
 import { fines } from '../src/library/fines';
 import { incidents } from '../src/library/incidents';
 import { loans } from '../src/library/loans';
-import { members } from '../src/library/members';
 import { runCallable, type CallableDef } from '../src/shared/callable';
 import { dayTimestamp } from '../src/shared/dates';
-import { seedLibrary, seedLibraryCategory, seedLibraryTitle, person } from './fixtures';
+import {
+  seedLibrary,
+  seedLibraryCategory,
+  seedLibraryPolicy,
+  seedLibraryTitle,
+  person,
+} from './fixtures';
 import { clearFirestore, db } from './setup';
 
 const SCHOOL_ID = '12';
@@ -54,7 +59,7 @@ describe('library fines and incidents', () => {
       barcodes: ['ACC-000001', 'ACC-000002', 'ACC-000003'],
       price: 500,
     });
-    await run(members.policyUpsert, {
+    await seedLibraryPolicy({
       libraryId: mainLibrary,
       memberType: 'student',
       name: 'Primary',

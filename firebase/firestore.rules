@@ -356,6 +356,19 @@ service cloud.firestore {
         && (access(schoolId).hasAllCampuses == true || resource.data.campusIds.hasOnly(access(schoolId).campusIds))
         && request.resource.data.lastWrite.action == 'libraryMember.block';
     }
+    // Borrowing policies: library, person type and campus are fixed once created; the campus comes from the library.
+    match /schools/{schoolId}/libraryBorrowingPolicies/{id} {
+      allow create: if staff(schoolId) && stamped() && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.lastWrite.action == 'libraryPolicy.create'
+        && onCampus(schoolId, request.resource.data.campusId)
+        && libraryCampus(schoolId, request.resource.data.libraryId).status == 'active'
+        && request.resource.data.campusId == libraryCampus(schoolId, request.resource.data.libraryId).campusId;
+      allow update: if staff(schoolId) && stamped() && onCampus(schoolId, resource.data.campusId)
+        && request.resource.data.lastWrite.action in ['libraryPolicy.update', 'libraryPolicy.status']
+        && request.resource.data.libraryId == resource.data.libraryId
+        && request.resource.data.memberType == resource.data.memberType
+        && request.resource.data.campusId == resource.data.campusId;
+    }
     // Book records (Lib-2): librarians, and report readers on the campus.
     match /schools/{schoolId}/libraryBooks/{id} {
       allow read: if staff(schoolId);

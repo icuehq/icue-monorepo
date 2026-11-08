@@ -41,3 +41,4 @@ const auditClientWrites = (collection: string) =>
 export const auditLibraryCatalogue = auditClientWrites('libraryCatalogue');
 export const auditLibraryCopies = auditClientWrites('libraryCopies');
 export const auditLibraryMembers = auditClientWrites('libraryMembers');
+export const auditLibraryPolicies = auditClientWrites('libraryBorrowingPolicies');

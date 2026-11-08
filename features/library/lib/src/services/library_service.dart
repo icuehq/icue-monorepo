@@ -268,12 +268,6 @@ class LibraryService {
     {'id': id, 'status': status, 'reason': ?reason},
   );
 
-  Future<void> savePolicy(Map<String, Object?> data, {String? requestId}) =>
-      _call('library-policy-upsert', data, requestId);
-
-  Future<void> setPolicyActive(String id, {required bool active}) =>
-      _call('library-policy-setStatus', _status(id, active));
-
   Future<void> issueLoan(Map<String, Object?> data, {String? requestId}) =>
       _call('library-loan-issue', data, requestId);
 
@@ -307,11 +301,6 @@ class LibraryService {
 
   Future<void> markLoanLost(Map<String, Object?> data, {String? requestId}) =>
       _call('library-loan-markLost', data, requestId);
-
-  Map<String, Object?> _status(String id, bool active) => {
-    'id': id,
-    'status': active ? 'active' : 'inactive',
-  };
 
   Future<void> _call(
     String name,

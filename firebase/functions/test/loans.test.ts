@@ -1,10 +1,15 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { copies } from '../src/library/copies';
 import { loans } from '../src/library/loans';
-import { members } from '../src/library/members';
 import { runCallable, type CallableDef } from '../src/shared/callable';
 import { dayTimestamp } from '../src/shared/dates';
-import { seedLibrary, seedLibraryCategory, seedLibraryTitle, person } from './fixtures';
+import {
+  seedLibrary,
+  seedLibraryCategory,
+  seedLibraryPolicy,
+  seedLibraryTitle,
+  person,
+} from './fixtures';
 import { clearFirestore, db } from './setup';
 
 const SCHOOL_ID = '12';
@@ -59,7 +64,7 @@ describe('library circulation', () => {
       barcodes: ['ACC-000001', 'ACC-000002', 'ACC-000003'],
     });
     policy = (
-      await run(members.policyUpsert, {
+      await seedLibraryPolicy({
         libraryId: mainLibrary,
         memberType: 'student',
         name: 'Primary',
@@ -95,7 +100,7 @@ describe('library circulation', () => {
         barcode: 'ACC-000003',
       });
     await expect(teacher()).rejects.toMatchObject({ code: 'failed-precondition' });
-    const everyone = await run(members.policyUpsert, {
+    const everyone = await seedLibraryPolicy({
       libraryId: mainLibrary,
       memberType: 'all',
       name: 'Default',
@@ -195,7 +200,7 @@ describe('library circulation', () => {
   it('the borrowing limit counts only loans under the same policy', async () => {
     const other = await seedLibraryCategory({ name: 'Other' });
     await set(`libraryBorrowingPolicies/${policy}`, { maxBooks: 1, categoryIds: [category] });
-    await run(members.policyUpsert, {
+    await seedLibraryPolicy({
       libraryId: mainLibrary,
       memberType: 'student',
       name: 'Rest',

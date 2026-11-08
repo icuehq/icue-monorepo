@@ -203,7 +203,7 @@ Names below are logical; they deploy as `<group>-<name>` (`session.sync` → `se
 | Procurement | Purchase requests, quotations, draft purchase orders (save, issue, revise, acknowledge, cancel, close, receive goods) and invoices are client Firestore writes (`ProcurementWrites`). |
 | Assets | `inventory.asset.register`, `inventory.asset.assign/return/transfer/setCondition/retire`, `inventory.maintenance.save/setStatus` |
 | Verification | `inventory.verification.create/count/submit/decide` (approve creates adjustments referencing the session; reject reopens counting) |
-| Library masters | `library.catalogue.upsert/setStatus/search`, `library.policy.upsert`. Libraries and categories are client Firestore writes. |
+| Library masters | `library.catalogue.search`. Borrowing policies, libraries and categories are client Firestore writes. |
 | Copies | `library.book.create` (creates copies keyed by barcode), `library.copy.update/move` |
 | Members | `library.member.upsert/setStatus` |
 | Circulation | `library.loan.issue`, `library.loan.return`, `library.loan.renew`, `library.loan.markLost` |

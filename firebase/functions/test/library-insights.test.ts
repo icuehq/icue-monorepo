@@ -2,10 +2,15 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { copies } from '../src/library/copies';
 import { runDailyLibrary } from '../src/library/daily';
 import { loans } from '../src/library/loans';
-import { members } from '../src/library/members';
 import { runCallable, type CallableDef } from '../src/shared/callable';
 import { dayTimestamp } from '../src/shared/dates';
-import { seedLibrary, seedLibraryCategory, seedLibraryTitle, person } from './fixtures';
+import {
+  seedLibrary,
+  seedLibraryCategory,
+  seedLibraryPolicy,
+  seedLibraryTitle,
+  person,
+} from './fixtures';
 import { clearFirestore, db } from './setup';
 
 const SCHOOL_ID = '12';
@@ -52,7 +57,7 @@ describe('library notifications', () => {
       quantity: 1,
       barcodes: ['ACC-000001'],
     });
-    await run(members.policyUpsert, {
+    await seedLibraryPolicy({
       libraryId: mainLibrary,
       memberType: 'student',
       name: 'Primary',

@@ -479,6 +479,22 @@ describe('library client writes (no callable)', () => {
     await assertSucceeds(updateDoc(doc(db('4'), 'schools/12/libraryCopies/c1'), move('second', 31)));
   });
 
+  it('policies: stamped create on an active library of an allowed campus; library, person type and campus fixed', async () => {
+    await env.withSecurityRulesDisabled((context) => setDoc(doc(context.firestore(), 'schools/12/libraryBorrowingPolicies/p1'), { libraryId: 'main', campusId: 31, memberType: 'student', status: 'active' }));
+    const policy = (libraryId, campusId, action = 'libraryPolicy.create', by = '4') => ({ libraryId, campusId, memberType: 'student', status: 'active', createdBy: by, lastWrite: stamp(action) });
+    await assertSucceeds(setDoc(doc(db('4'), 'schools/12/libraryBorrowingPolicies/p2'), policy('main', 31)));
+    await assertFails(setDoc(doc(db('4'), 'schools/12/libraryBorrowingPolicies/p3'), { ...policy('main', 31), lastWrite: null })); // unstamped
+    await assertFails(setDoc(doc(db('4'), 'schools/12/libraryBorrowingPolicies/p3'), policy('junior', 32))); // campus 32 not allowed
+    await assertFails(setDoc(doc(db('4'), 'schools/12/libraryBorrowingPolicies/p3'), policy('other', 31))); // inactive library
+    await assertFails(setDoc(doc(db('4'), 'schools/12/libraryBorrowingPolicies/p3'), policy('main', 32))); // campus must come from the library
+    await assertFails(setDoc(doc(db('p', parent), 'schools/12/libraryBorrowingPolicies/p3'), policy('main', 31, 'libraryPolicy.create', 'p')));
+    const edit = (extra) => ({ libraryId: 'main', campusId: 31, memberType: 'student', maxBooks: 3, lastWrite: stamp('libraryPolicy.update'), ...extra });
+    await assertSucceeds(updateDoc(doc(db('4'), 'schools/12/libraryBorrowingPolicies/p1'), edit({})));
+    await assertSucceeds(updateDoc(doc(db('4'), 'schools/12/libraryBorrowingPolicies/p1'), { status: 'inactive', lastWrite: stamp('libraryPolicy.status') }));
+    await assertFails(updateDoc(doc(db('4'), 'schools/12/libraryBorrowingPolicies/p1'), edit({ memberType: 'teacher' })));
+    await assertFails(updateDoc(doc(db('4'), 'schools/12/libraryBorrowingPolicies/p1'), edit({ libraryId: 'other' })));
+  });
+
   it('members: manual block and unblock, every campus of the member must be the caller\'s', async () => {
     const block = { blocked: true, blockedBy: 'manual', blockReason: 'Misconduct', lastWrite: stamp('libraryMember.block') };
     await assertSucceeds(updateDoc(doc(db('4'), 'schools/12/libraryMembers/501'), block));

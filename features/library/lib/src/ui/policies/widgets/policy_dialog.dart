@@ -1,7 +1,6 @@
 import 'package:admin_ui/admin_ui.dart';
 import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
-import 'package:icue_firebase/icue_firebase.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
@@ -20,7 +19,6 @@ class PolicyDialog extends StatefulWidget {
 
 class _PolicyDialogState extends State<PolicyDialog> {
   final _form = GlobalKey<FormState>();
-  final _requestId = newRequestId();
   late String? _type = widget.policy?.memberType;
   late final _name = TextEditingController(text: widget.policy?.name);
   late final _books = TextEditingController(
@@ -90,7 +88,7 @@ class _PolicyDialogState extends State<PolicyDialog> {
         'graceDays': int.parse(_grace.text.trim()),
         'maxFine': fines ? double.tryParse(_maxFine.text.trim()) : null,
         'categoryIds': _categories.toList(),
-      }, requestId: _requestId),
+      }),
     );
     if (mounted) setState(() => _busy = false);
   }
