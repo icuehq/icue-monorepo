@@ -9,6 +9,7 @@ import { copies as libraryCopies } from './library/copies';
 import { fines as libraryFines } from './library/fines';
 import { incidents as libraryIncidents } from './library/incidents';
 import { loans as libraryLoans } from './library/loans';
+import { mockDataFill } from './library/mockData';
 import { masters as libraryMasters } from './library/masters';
 import { members as libraryMembers } from './library/members';
 import { reservations as libraryReservations } from './library/reservations';
@@ -49,5 +50,6 @@ export const { session, inventory, library } = routes([
   ...mutations.map((def) => [def.name, callable(def)] as [string, unknown]),
   [itemSearch.name, queryCallable(itemSearch)],
   [catalogueSearch.name, queryCallable(catalogueSearch)],
+  ['library.mockData.fill', mockDataFill],
   ['inventory.import.run', importRun],
 ]);
