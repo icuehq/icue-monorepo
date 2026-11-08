@@ -1,5 +1,6 @@
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:injectable/injectable.dart';
+import 'package:school_library/src/services/write_support.dart';
 
 /// Library writes that need no Cloud Function: title create / edit / status, copy edit / move,
 /// manual member block and borrowing policy create / edit / status. `firestore.rules` checks the shape; each write stamps `lastWrite` and the audit
@@ -9,25 +10,6 @@ class LibraryWrites {
   static const _conditions = ['good', 'fair', 'poor'];
   static const _fineTypes = ['none', 'per_day', 'flat'];
   static const _policyMemberTypes = ['student', 'teacher', 'all'];
-
-  Never _fail(String message, [String code = 'failed-precondition']) =>
-      throw FirebaseException(
-        plugin: 'cloud_firestore',
-        code: code,
-        message: message,
-      );
-
-  Map<String, Object?> _stamp(String action, [String? reason]) => {
-    'by': FirebaseAuth.instance.currentUser!.uid,
-    'action': action,
-    'reason': ?reason,
-    'at': FieldValue.serverTimestamp(),
-  };
-
-  Future<DocumentReference<Map<String, dynamic>>> _doc(
-    String collection,
-    String id,
-  ) async => (await schoolCollection(collection)).doc(id);
 
   String _words(Object? value) => ('${value ?? ''}'.toLowerCase())
       .split(RegExp(r'[^\p{L}\p{N}]+', unicode: true))
@@ -68,11 +50,11 @@ class LibraryWrites {
     final id = fields.remove('id') as String?;
     final title = '${fields['title'] ?? ''}'.trim();
     if (title.isEmpty || title.length > 200) {
-      _fail('Title must be 1 to 200 characters');
+      writeFail('Title must be 1 to 200 characters');
     }
     final authors = fields['authors'] as List?;
     if (authors == null || authors.isEmpty || authors.length > 10) {
-      _fail('Enter 1 to 10 authors');
+      writeFail('Enter 1 to 10 authors');
     }
     final key = _identityKey(fields);
     final catalogue = await schoolCollection('libraryCatalogue');
@@ -85,17 +67,23 @@ class LibraryWrites {
           ? null
           : (await transaction.get(reference)).data();
       final category = (await transaction.get(
-        await _doc('libraryCategories', fields['categoryId']! as String),
+        await schoolDocument(
+          'libraryCategories',
+          fields['categoryId']! as String,
+        ),
       )).data();
-      if (category == null) _fail('Category not found');
+      if (category == null) writeFail('Category not found');
       if (category['status'] != 'active' &&
           before?['categoryId'] != fields['categoryId']) {
-        _fail('Category is inactive');
+        writeFail('Category is inactive');
       }
       if (before == null || before['identityKey'] != key) {
         final keyReference = keys.doc(_titleKeyId(key));
         if ((await transaction.get(keyReference)).exists) {
-          _fail('This book already exists in the catalogue', 'already-exists');
+          writeFail(
+            'This book already exists in the catalogue',
+            'already-exists',
+          );
         }
         transaction.set(keyReference, {
           'keyType': 'libraryTitle',
@@ -121,12 +109,12 @@ class LibraryWrites {
           'status': 'active',
           'createdAt': FieldValue.serverTimestamp(),
           'createdBy': FirebaseAuth.instance.currentUser!.uid,
-          'lastWrite': _stamp('libraryCatalogue.create'),
+          'lastWrite': writeStamp('libraryCatalogue.create'),
         });
       } else {
         transaction.update(reference, {
           ...book,
-          'lastWrite': _stamp('libraryCatalogue.update'),
+          'lastWrite': writeStamp('libraryCatalogue.update'),
         });
       }
     });
@@ -134,45 +122,49 @@ class LibraryWrites {
   }
 
   Future<void> setBookActive(String id, {required bool active}) async {
-    await (await _doc('libraryCatalogue', id)).update({
+    await (await schoolDocument('libraryCatalogue', id)).update({
       'status': active ? 'active' : 'inactive',
       'updatedAt': FieldValue.serverTimestamp(),
-      'lastWrite': _stamp('libraryCatalogue.status'),
+      'lastWrite': writeStamp('libraryCatalogue.status'),
     });
   }
 
   /// Shelf, condition and remarks of copy `data['id']`.
   Future<void> updateCopy(Map<String, Object?> data) async {
-    if (!_conditions.contains(data['condition'])) _fail('Invalid condition');
-    await (await _doc('libraryCopies', data['id']! as String)).update({
-      'shelf': data['shelf'],
-      'condition': data['condition'],
-      'remarks': data['remarks'],
-      'updatedAt': FieldValue.serverTimestamp(),
-      'lastWrite': _stamp('libraryCopy.update'),
-    });
+    if (!_conditions.contains(data['condition'])) {
+      writeFail('Invalid condition');
+    }
+    await (await schoolDocument('libraryCopies', data['id']! as String)).update(
+      {
+        'shelf': data['shelf'],
+        'condition': data['condition'],
+        'remarks': data['remarks'],
+        'updatedAt': FieldValue.serverTimestamp(),
+        'lastWrite': writeStamp('libraryCopy.update'),
+      },
+    );
   }
 
   /// Moves an available copy to another library.
   Future<void> moveCopy(String id, String libraryId, String? shelf) async {
-    final reference = await _doc('libraryCopies', id);
-    final libraryReference = await _doc('libraries', libraryId);
+    final reference = await schoolDocument('libraryCopies', id);
+    final libraryReference = await schoolDocument('libraries', libraryId);
     await FirebaseFirestore.instance.runTransaction((transaction) async {
       final copy = (await transaction.get(reference)).data();
-      if (copy == null) _fail('Copy not found');
-      if (copy['status'] != 'available') _fail('Copy is ${copy['status']}');
+      if (copy == null) writeFail('Copy not found');
+      if (copy['status'] != 'available') writeFail('Copy is ${copy['status']}');
       if (copy['libraryId'] == libraryId) {
-        _fail('Copy is already in this library');
+        writeFail('Copy is already in this library');
       }
       final library = (await transaction.get(libraryReference)).data();
-      if (library == null) _fail('Library not found');
-      if (library['status'] != 'active') _fail('Library is inactive');
+      if (library == null) writeFail('Library not found');
+      if (library['status'] != 'active') writeFail('Library is inactive');
       transaction.update(reference, {
         'libraryId': libraryId,
         'campusId': library['campusId'],
         'shelf': shelf,
         'updatedAt': FieldValue.serverTimestamp(),
-        'lastWrite': _stamp('libraryCopy.move'),
+        'lastWrite': writeStamp('libraryCopy.move'),
       });
     });
   }
@@ -184,14 +176,14 @@ class LibraryWrites {
     String? reason,
   }) async {
     if (blocked && (reason == null || reason.trim().isEmpty)) {
-      _fail('A reason is required to block a member');
+      writeFail('A reason is required to block a member');
     }
-    await (await _doc('libraryMembers', id)).update({
+    await (await schoolDocument('libraryMembers', id)).update({
       'blocked': blocked,
       'blockedBy': blocked ? 'manual' : null,
       'blockReason': blocked ? reason!.trim() : null,
       'updatedAt': FieldValue.serverTimestamp(),
-      'lastWrite': _stamp('libraryMember.block', reason),
+      'lastWrite': writeStamp('libraryMember.block', reason),
     });
   }
 
@@ -213,10 +205,10 @@ class LibraryWrites {
       if (other.id == selfId) continue;
       final taken = (other['categoryIds'] as List).cast<String>();
       if (categoryIds.isEmpty && taken.isEmpty) {
-        _fail('"${other['name']}" already covers all other categories');
+        writeFail('"${other['name']}" already covers all other categories');
       }
       if (categoryIds.any(taken.contains)) {
-        _fail('A selected category already belongs to "${other['name']}"');
+        writeFail('A selected category already belongs to "${other['name']}"');
       }
     }
   }
@@ -233,29 +225,41 @@ class LibraryWrites {
         .toList();
     final name = '${data['name'] ?? ''}'.trim();
     if (name.isEmpty || name.length > 200) {
-      _fail('Name must be 1 to 200 characters');
+      writeFail('Name must be 1 to 200 characters');
     }
-    if (!_policyMemberTypes.contains(memberType)) _fail('Invalid member type');
-    if (!_fineTypes.contains(fineType)) _fail('Invalid fine type');
-    if (fineType != 'none' && fineAmount <= 0) _fail('A fine needs an amount');
-    if (categoryIds.length > 50) _fail('Choose at most 50 categories');
+    if (!_policyMemberTypes.contains(memberType)) {
+      writeFail('Invalid member type');
+    }
+    if (!_fineTypes.contains(fineType)) writeFail('Invalid fine type');
+    if (fineType != 'none' && fineAmount <= 0) {
+      writeFail('A fine needs an amount');
+    }
+    if (categoryIds.length > 50) writeFail('Choose at most 50 categories');
     final reference = (await schoolCollection('libraryBorrowingPolicies'))
         .doc(id);
     final before = id == null ? null : (await reference.get()).data();
-    if (id != null && before == null) _fail('Policy not found', 'not-found');
+    if (id != null && before == null) {
+      writeFail('Policy not found', 'not-found');
+    }
     if (before != null &&
         (before['libraryId'] != libraryId ||
             before['memberType'] != memberType)) {
-      _fail('The library and member type of a policy cannot change');
+      writeFail('The library and member type of a policy cannot change');
     }
-    final library = (await (await _doc('libraries', libraryId)).get()).data();
-    if (library == null) _fail('Library not found', 'not-found');
+    final library = (await (await schoolDocument(
+      'libraries',
+      libraryId,
+    )).get()).data();
+    if (library == null) writeFail('Library not found', 'not-found');
     if (before == null && library['status'] != 'active') {
-      _fail('Library is inactive');
+      writeFail('Library is inactive');
     }
     for (final categoryId in categoryIds) {
-      if (!(await (await _doc('libraryCategories', categoryId)).get()).exists) {
-        _fail('Category not found');
+      if (!(await (await schoolDocument(
+        'libraryCategories',
+        categoryId,
+      )).get()).exists) {
+        writeFail('Category not found');
       }
     }
     await _assertNoOverlap(libraryId, memberType, categoryIds, id);
@@ -280,21 +284,21 @@ class LibraryWrites {
         'status': 'active',
         'createdAt': FieldValue.serverTimestamp(),
         'createdBy': FirebaseAuth.instance.currentUser!.uid,
-        'lastWrite': _stamp('libraryPolicy.create'),
+        'lastWrite': writeStamp('libraryPolicy.create'),
       });
     } else {
       await reference.update({
         ...policy,
-        'lastWrite': _stamp('libraryPolicy.update'),
+        'lastWrite': writeStamp('libraryPolicy.update'),
       });
     }
     return reference.id;
   }
 
   Future<void> setPolicyActive(String id, {required bool active}) async {
-    final reference = await _doc('libraryBorrowingPolicies', id);
+    final reference = await schoolDocument('libraryBorrowingPolicies', id);
     final policy = (await reference.get()).data();
-    if (policy == null) _fail('Policy not found', 'not-found');
+    if (policy == null) writeFail('Policy not found', 'not-found');
     if (active && policy['status'] != 'active') {
       await _assertNoOverlap(
         policy['libraryId'] as String,
@@ -306,7 +310,7 @@ class LibraryWrites {
     await reference.update({
       'status': active ? 'active' : 'inactive',
       'updatedAt': FieldValue.serverTimestamp(),
-      'lastWrite': _stamp('libraryPolicy.status'),
+      'lastWrite': writeStamp('libraryPolicy.status'),
     });
   }
 }

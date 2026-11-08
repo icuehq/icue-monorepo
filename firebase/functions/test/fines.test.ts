@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { copies } from '../src/library/copies';
 import { fines } from '../src/library/fines';
 import { incidents } from '../src/library/incidents';
-import { loans } from '../src/library/loans';
+import { loans } from './circulation';
 import { runCallable, type CallableDef } from '../src/shared/callable';
 import { dayTimestamp } from '../src/shared/dates';
 import {

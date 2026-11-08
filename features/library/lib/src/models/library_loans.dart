@@ -15,8 +15,7 @@ extension LibraryLoanMembers on LibraryLoan {
     return DateTime.parse(today).difference(DateTime.parse(dueDate)).inDays;
   }
 
-  /// Fine the return will raise as of [today]; mirrors `overdueFineAmount` in
-  /// `firebase/functions/src/library/loans.ts` (per day or flat after the grace days, capped).
+  /// Fine the return will raise as of [today] (`LoanWrites.returnLoan`): per day or flat after the grace days, capped.
   double fineOn(String today) {
     final days = overdueOn(today);
     if (days <= graceDays) return 0;

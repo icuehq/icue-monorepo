@@ -206,7 +206,7 @@ Names below are logical; they deploy as `<group>-<name>` (`session.sync` → `se
 | Library masters | `library.catalogue.search`. Borrowing policies, libraries and categories are client Firestore writes. |
 | Copies | `library.book.create` (creates copies keyed by barcode), `library.copy.update/move` |
 | Members | `library.member.upsert/setStatus` |
-| Circulation | `library.loan.issue`, `library.loan.return`, `library.loan.renew`, `library.loan.markLost` |
+| Circulation | Client transactions (`LoanWrites`): issue, return, renew, mark lost. Notices come from `notices.ts` triggers. |
 | Reservations | `library.reservation.create/cancel` |
 | Fines | `library.fine.waive`, `library.fine.setPayment` (Finance reference only) |
 | Incidents | `library.incident.report/resolve` |

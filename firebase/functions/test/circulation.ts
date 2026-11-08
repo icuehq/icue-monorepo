@@ -1,22 +1,27 @@
 import { type DocumentData, type DocumentReference } from 'firebase-admin/firestore';
 import { z } from 'zod';
-import type { CallableContext } from '../shared/callable';
+import type { CallableContext } from '../src/shared/callable';
 import {
   Collections,
   LoanStatus,
   type LibraryLoan,
   type LoanPolicySnapshot,
-} from '../shared/contracts';
-import { todayIST, addDays, daysBetween, dayTimestamp, timestampDay } from '../shared/dates';
-import { serverTimestamp } from '../shared/firestore';
-import { nextNumber } from '../shared/keys';
-import { defineCallable, failed, id, missing, optionalText } from '../shared/masters';
-import { enqueue } from '../shared/outbox';
-import { fineBlock, raiseFine } from './fines';
-import { openIncident } from './incidents';
-import { applicablePolicy, ineligibleReason, personInput, writeBorrower } from './members';
-import { memberTo } from './notify';
-import { release, waitingQuery } from './reservations';
+} from '../src/shared/contracts';
+import { todayIST, addDays, daysBetween, dayTimestamp, timestampDay } from '../src/shared/dates';
+import { serverTimestamp } from '../src/shared/firestore';
+import { nextNumber } from '../src/shared/keys';
+import { defineCallable, failed, id, missing, optionalText } from '../src/shared/masters';
+import { enqueue } from '../src/shared/outbox';
+import { fineBlock, raiseFine } from '../src/library/fines';
+import { openIncident } from '../src/library/incidents';
+import {
+  applicablePolicy,
+  ineligibleReason,
+  personInput,
+  writeBorrower,
+} from '../src/library/members';
+import { memberTo } from '../src/library/notify';
+import { release, waitingQuery } from '../src/library/reservations';
 
 /** Policy values copied onto the loan so later policy edits never move its due date (FRS 11.8). */
 const SNAPSHOT = [
@@ -87,6 +92,11 @@ async function loadLoan(context: CallableContext, loanId: string) {
   return { ref, loan };
 }
 
+/**
+ * Circulation seeders for tests: issuing, returning, renewing and losing a book are client transactions
+ * (`LoanWrites`) whose notices come from `src/library/notices.ts`. These callables mirror them so the
+ * other library tests can build their state.
+ */
 export const loans = {
   /** Issues one copy to a member (FRS 11.9). Checks member, policy, limit, restriction and copy in one transaction. */
   loanIssue: defineCallable({

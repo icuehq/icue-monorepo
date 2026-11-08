@@ -350,6 +350,25 @@ service cloud.firestore {
           && onCampus(schoolId, request.resource.data.campusId)
           && request.resource.data.lastWrite.action == 'libraryCopy.move'));
     }
+    // Circulation moves a copy between shelf, hold, loan, damaged and lost (LoanWrites); nothing else changes.
+    match /schools/{schoolId}/libraryCopies/{barcode} {
+      allow update: if staff(schoolId) && onCampus(schoolId, resource.data.campusId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'activeLoanId', 'heldReservationId', 'updatedAt'])
+        && request.resource.data.status in ['available', 'reserved', 'issued', 'damaged', 'lost'];
+    }
+    // The borrower record is created on first issue; circulation only touches what the desk shows and the counters.
+    match /schools/{schoolId}/libraryMembers/{id} {
+      allow create: if staff(schoolId) && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.blocked == false && request.resource.data.activeLoans == 1
+        && (access(schoolId).hasAllCampuses == true || request.resource.data.campusIds.hasOnly(access(schoolId).campusIds));
+      allow update: if staff(schoolId)
+        && (access(schoolId).hasAllCampuses == true || request.resource.data.campusIds.hasAny(access(schoolId).campusIds))
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'classId', 'campusIds', 'activeLoans', 'blocked', 'blockedBy', 'updatedAt']);
+    }
+    // Library numbers (LIS, LRT, FIN, INC); Library staff hold no permissions, so the counter rule below does not cover them.
+    match /schools/{schoolId}/counters/{id} {
+      allow read, write: if staff(schoolId) && id.matches('(LIS|LRT|FIN|INC)_.*');
+    }
     // Manual block / unblock of a member; the member needs every campus of theirs to be one of the caller's.
     match /schools/{schoolId}/libraryMembers/{id} {
       allow update: if staff(schoolId) && stamped()
@@ -385,21 +404,37 @@ service cloud.firestore {
     // Loans (Lib-4): staff on the campus, or the borrower / parent by ERP ID.
     match /schools/{schoolId}/libraryLoans/{id} {
       allow read: if inSchool(schoolId) && ((staff(schoolId) && onCampus(schoolId, resource.data.campusId)) || own());
+      // Circulation (client transactions in LoanWrites): issue, then return / renew / mark lost of an active loan.
+      allow create: if staff(schoolId) && stamped() && onCampus(schoolId, request.resource.data.campusId)
+        && request.resource.data.lastWrite.action == 'libraryLoan.issue'
+        && request.resource.data.issuedBy == request.auth.uid && request.resource.data.status == 'active';
+      allow update: if staff(schoolId) && stamped() && onCampus(schoolId, resource.data.campusId) && resource.data.status == 'active'
+        && request.resource.data.lastWrite.action in ['libraryLoan.return', 'libraryLoan.renew', 'libraryLoan.markLost'];
     }
 
     // Reservations (Lib-5): same readers as loans.
     match /schools/{schoolId}/libraryReservations/{id} {
+      // A return holds the copy for the next waiting member; issuing a held copy fulfils the reservation.
+      allow update: if staff(schoolId) && onCampus(schoolId, resource.data.campusId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+          ['status', 'heldBarcode', 'holdUntil', 'readyAt', 'fulfilledLoanId', 'fulfilledBarcode', 'fulfilledAt'])
+        && request.resource.data.status in ['ready', 'fulfilled'];
       allow read: if inSchool(schoolId) && ((staff(schoolId) && onCampus(schoolId, resource.data.campusId)) || own());
     }
 
     // Fines (Lib-6): staff on the campus, or the borrower / parent by ERP ID.
     match /schools/{schoolId}/libraryFines/{id} {
+      // Raised by a return or a lost mark (LoanWrites); every later change goes through callables.
+      allow create: if staff(schoolId) && onCampus(schoolId, request.resource.data.campusId)
+        && request.resource.data.createdBy == request.auth.uid && request.resource.data.status == 'outstanding';
       allow read: if inSchool(schoolId)
         && ((staff(schoolId) && onCampus(schoolId, resource.data.campusId)) || own());
     }
 
     // Incidents (Lib-6): staff on the campus, or the member / parent by ERP ID.
     match /schools/{schoolId}/libraryIncidents/{id} {
+      allow create: if staff(schoolId) && onCampus(schoolId, request.resource.data.campusId)
+        && request.resource.data.createdBy == request.auth.uid && request.resource.data.status == 'open';
       allow read: if inSchool(schoolId)
         && ((staff(schoolId) && onCampus(schoolId, resource.data.campusId)) || own());
     }

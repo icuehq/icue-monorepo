@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { assertFails, assertSucceeds, initializeTestEnvironment } from '@firebase/rules-unit-testing';
-import { collection, deleteDoc, doc, getDoc, getDocs, query, serverTimestamp, setDoc, updateDoc, where } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, query, serverTimestamp, setDoc, updateDoc, where } from 'firebase/firestore';
 import { getBytes, ref, uploadString } from 'firebase/storage';
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
 
@@ -493,6 +493,43 @@ describe('library client writes (no callable)', () => {
     await assertSucceeds(updateDoc(doc(db('4'), 'schools/12/libraryBorrowingPolicies/p1'), { status: 'inactive', lastWrite: stamp('libraryPolicy.status') }));
     await assertFails(updateDoc(doc(db('4'), 'schools/12/libraryBorrowingPolicies/p1'), edit({ memberType: 'teacher' })));
     await assertFails(updateDoc(doc(db('4'), 'schools/12/libraryBorrowingPolicies/p1'), edit({ libraryId: 'other' })));
+  });
+
+  it('circulation: stamped loans, narrow copy / member / reservation edits, library counters, fines and incidents on the campus', async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      const firestore = context.firestore();
+      await setDoc(doc(firestore, 'schools/12/libraryLoans/l1'), { campusId: 31, status: 'active' });
+      await setDoc(doc(firestore, 'schools/12/libraryLoans/l2'), { campusId: 31, status: 'returned' });
+      await setDoc(doc(firestore, 'schools/12/libraryReservations/r1'), { campusId: 31, status: 'waiting' });
+    });
+    const loan = { campusId: 31, status: 'active', issuedBy: '4', lastWrite: stamp('libraryLoan.issue') };
+    await assertSucceeds(setDoc(doc(db('4'), 'schools/12/libraryLoans/l3'), loan));
+    await assertFails(setDoc(doc(db('4'), 'schools/12/libraryLoans/l4'), { ...loan, lastWrite: null }));
+    await assertFails(setDoc(doc(db('4'), 'schools/12/libraryLoans/l4'), { ...loan, campusId: 32 }));
+    await assertFails(setDoc(doc(db('p', parent), 'schools/12/libraryLoans/l4'), loan));
+    await assertSucceeds(updateDoc(doc(db('4'), 'schools/12/libraryLoans/l1'), { status: 'returned', lastWrite: stamp('libraryLoan.return') }));
+    await assertFails(updateDoc(doc(db('4'), 'schools/12/libraryLoans/l2'), { status: 'active', lastWrite: stamp('libraryLoan.renew') })); // not active
+    await assertFails(updateDoc(doc(db('4'), 'schools/12/libraryLoans/l3'), { status: 'active', lastWrite: stamp('libraryLoan.issue') })); // wrong action
+    await assertSucceeds(updateDoc(doc(db('4'), 'schools/12/libraryCopies/c1'), { status: 'issued', activeLoanId: 'l3', heldReservationId: null }));
+    await assertFails(updateDoc(doc(db('4'), 'schools/12/libraryCopies/c1'), { status: 'withdrawn' }));
+    await assertFails(updateDoc(doc(db('4'), 'schools/12/libraryCopies/c1'), { status: 'lost', libraryId: 'junior' }));
+    await assertSucceeds(updateDoc(doc(db('4'), 'schools/12/libraryReservations/r1'), { status: 'ready', heldBarcode: 'c1' }));
+    await assertFails(updateDoc(doc(db('4'), 'schools/12/libraryReservations/r1'), { status: 'cancelled' }));
+    const member = { memberType: 'student', personErpId: 777, campusIds: [31], activeLoans: 1, blocked: false, createdBy: '4' };
+    await assertSucceeds(setDoc(doc(db('4'), 'schools/12/libraryMembers/777'), member));
+    await assertFails(setDoc(doc(db('4'), 'schools/12/libraryMembers/778'), { ...member, blocked: true }));
+    await assertFails(setDoc(doc(db('4'), 'schools/12/libraryMembers/778'), { ...member, campusIds: [32] }));
+    await assertSucceeds(updateDoc(doc(db('4'), 'schools/12/libraryMembers/501'), { activeLoans: 2, name: 'A' }));
+    await assertFails(updateDoc(doc(db('4'), 'schools/12/libraryMembers/501'), { memberType: 'teacher' }));
+    await assertSucceeds(setDoc(doc(db('4'), 'schools/12/counters/LIS_2026-27'), { next: 1 }));
+    await assertFails(setDoc(doc(db('4'), 'schools/12/counters/PO_2026-27'), { next: 1 }));
+    await assertFails(setDoc(doc(db('p', parent), 'schools/12/counters/LIS_2026-27'), { next: 1 }));
+    const fine = { campusId: 31, status: 'outstanding', createdBy: '4' };
+    await assertSucceeds(setDoc(doc(db('4'), 'schools/12/libraryFines/l1__overdue'), fine));
+    await assertFails(setDoc(doc(db('4'), 'schools/12/libraryFines/x'), { ...fine, campusId: 32 }));
+    await assertFails(setDoc(doc(db('4'), 'schools/12/libraryFines/x'), { ...fine, status: 'paid' }));
+    await assertSucceeds(addDoc(collection(db('4'), 'schools/12/libraryIncidents'), { campusId: 31, status: 'open', createdBy: '4' }));
+    await assertFails(addDoc(collection(db('4'), 'schools/12/libraryIncidents'), { campusId: 32, status: 'open', createdBy: '4' }));
   });
 
   it('members: manual block and unblock, every campus of the member must be the caller\'s', async () => {

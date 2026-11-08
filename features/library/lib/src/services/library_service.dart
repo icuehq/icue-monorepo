@@ -10,7 +10,7 @@ import 'package:school_library/src/models/library_masters.dart';
 import 'package:school_library/src/models/library_members.dart';
 import 'package:school_library/src/models/library_reservations.dart';
 
-/// Library reads from Firestore; its remaining writes go through callables (`LibraryWrites` has the client ones).
+/// Library reads from Firestore; its remaining writes go through callables (`LibraryWrites` and `LoanWrites` have the client ones).
 @lazySingleton
 class LibraryService {
   Future<List<T>> _all<T>(
@@ -268,15 +268,6 @@ class LibraryService {
     {'id': id, 'status': status, 'reason': ?reason},
   );
 
-  Future<void> issueLoan(Map<String, Object?> data, {String? requestId}) =>
-      _call('library-loan-issue', data, requestId);
-
-  Future<void> returnLoan(Map<String, Object?> data, {String? requestId}) =>
-      _call('library-loan-return', data, requestId);
-
-  Future<void> renewLoan(String id, {String? requestId}) =>
-      _call('library-loan-renew', {'id': id}, requestId);
-
   Future<void> createReservation(
     Map<String, Object?> data, {
     String? requestId,
@@ -298,9 +289,6 @@ class LibraryService {
     Map<String, Object?> data, {
     String? requestId,
   }) => _call('library-incident-resolve', data, requestId);
-
-  Future<void> markLoanLost(Map<String, Object?> data, {String? requestId}) =>
-      _call('library-loan-markLost', data, requestId);
 
   Future<void> _call(
     String name,

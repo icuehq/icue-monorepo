@@ -14,13 +14,15 @@ import 'package:school_library/src/models/library_reservations.dart';
 import 'package:school_library/src/services/library_people_service.dart';
 import 'package:school_library/src/services/library_service.dart';
 import 'package:school_library/src/services/library_writes.dart';
+import 'package:school_library/src/services/loan_writes.dart';
 
 @lazySingleton
 class LibraryProvider extends ChangeNotifier implements ErrorReporting {
-  LibraryProvider(this._service, this._people, this._writes);
+  LibraryProvider(this._service, this._people, this._writes, this._loanWrites);
 
   final LibraryService _service;
   final LibraryWrites _writes;
+  final LoanWrites _loanWrites;
   final LibraryPeopleService _people;
 
   ModuleAccess access = const ModuleAccess();
@@ -398,22 +400,26 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     reload: loadMasters,
   );
 
-  Future<bool> issueLoan(Map<String, Object?> data, {String? requestId}) =>
-      _write(
-        () => _service.issueLoan(data, requestId: requestId),
-        reload: loadLoans,
-      );
-
-  Future<bool> returnLoan(Map<String, Object?> data, {String? requestId}) =>
-      _write(
-        () => _service.returnLoan(data, requestId: requestId),
-        reload: loadLoans,
-      );
-
-  Future<bool> renewLoan(String id, {String? requestId}) => _write(
-    () => _service.renewLoan(id, requestId: requestId),
+  Future<bool> issueLoan(Map<String, Object?> data) => _write(
+    () => _loanWrites.issue(
+      person: data['person']! as Map<String, Object?>,
+      barcode: data['barcode']! as String,
+      remarks: data['remarks'] as String?,
+    ),
     reload: loadLoans,
   );
+
+  Future<bool> returnLoan(Map<String, Object?> data) => _write(
+    () => _loanWrites.returnLoan(
+      id: data['id']! as String,
+      condition: data['condition']! as String,
+      remarks: data['remarks'] as String?,
+    ),
+    reload: loadLoans,
+  );
+
+  Future<bool> renewLoan(String id) =>
+      _write(() => _loanWrites.renew(id), reload: loadLoans);
 
   Future<bool> createReservation(
     Map<String, Object?> data, {
@@ -463,11 +469,14 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     reload: loadMembers,
   );
 
-  Future<bool> markLoanLost(Map<String, Object?> data, {String? requestId}) =>
-      _write(
-        () => _service.markLoanLost(data, requestId: requestId),
-        reload: loadLoans,
-      );
+  Future<bool> markLoanLost(Map<String, Object?> data) => _write(
+    () => _loanWrites.markLost(
+      id: data['id']! as String,
+      reason: data['reason'] as String?,
+      charge: data['charge'] as double?,
+    ),
+    reload: loadLoans,
+  );
 
   // Dashboard and reports (Lib-8).
   Map<String, num?> dashboard = {};

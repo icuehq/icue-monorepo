@@ -42,3 +42,4 @@ export const auditLibraryCatalogue = auditClientWrites('libraryCatalogue');
 export const auditLibraryCopies = auditClientWrites('libraryCopies');
 export const auditLibraryMembers = auditClientWrites('libraryMembers');
 export const auditLibraryPolicies = auditClientWrites('libraryBorrowingPolicies');
+export const auditLibraryLoans = auditClientWrites('libraryLoans');

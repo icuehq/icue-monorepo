@@ -8,7 +8,6 @@ import { verification } from './inventory/verification';
 import { copies as libraryCopies } from './library/copies';
 import { fines as libraryFines } from './library/fines';
 import { incidents as libraryIncidents } from './library/incidents';
-import { loans as libraryLoans } from './library/loans';
 import { reservations as libraryReservations } from './library/reservations';
 import { catalogueSearch } from './library/search';
 import { sync } from './session';
@@ -17,6 +16,7 @@ import { type AnyCallableDef, callable, queryCallable, routes } from './shared/c
 initializeApp();
 
 export { syncItemSearch } from './inventory/search';
+export { noticeFines, noticeIncidents, noticeLoans, noticeReservations } from './library/notices';
 export { syncCatalogueSearch } from './library/search';
 export { outboxSend } from './shared/outbox';
 export { dailyInventory } from './inventory/daily';
@@ -25,6 +25,7 @@ export { dailyLibrary } from './library/daily';
 export {
   auditLibraryCatalogue,
   auditLibraryCopies,
+  auditLibraryLoans,
   auditLibraryMembers,
   auditLibraryPolicies,
 } from './library/audit';
@@ -36,12 +37,10 @@ const mutations: AnyCallableDef[] = [
   verification,
   { seedDefaults: masters.seedDefaults },
   libraryCopies,
-  libraryLoans,
   libraryReservations,
   libraryFines,
   libraryIncidents,
-]
-  .flatMap((group) => Object.values(group) as AnyCallableDef[]);
+].flatMap((group) => Object.values(group) as AnyCallableDef[]);
 
 // Each callable deploys as its name with dots as dashes, e.g. `inventory.purchaseOrder.receive` → `inventory-purchaseOrder-receive`.
 export const { session, inventory, library } = routes([
