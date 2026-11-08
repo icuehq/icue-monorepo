@@ -1,4 +1,4 @@
-import { type DocumentData, type DocumentReference } from 'firebase-admin/firestore';
+import { Timestamp, type DocumentData, type DocumentReference } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import type { CallableContext } from '../src/shared/callable';
 import {
@@ -7,7 +7,14 @@ import {
   type LibraryLoan,
   type LoanPolicySnapshot,
 } from '../src/shared/contracts';
-import { todayIST, addDays, daysBetween, dayTimestamp, timestampDay } from '../src/shared/dates';
+import {
+  todayIST,
+  addDays,
+  daysBetween,
+  dayTimestamp,
+  isoDate,
+  timestampDay,
+} from '../src/shared/dates';
 import { serverTimestamp } from '../src/shared/firestore';
 import { nextNumber } from '../src/shared/keys';
 import { defineCallable, failed, id, missing, optionalText, usable } from '../src/shared/masters';
@@ -540,3 +547,141 @@ async function freeHeld(
   const copy = (await context.transaction.get(cRef)).data();
   if (copy?.heldReservationId === reservationId) await release(context, cRef, copy);
 }
+
+async function loadFine(context: CallableContext, fineId: string) {
+  const ref = context.doc(`libraryFines/${fineId}`);
+  const snapshot = await context.transaction.get(ref);
+  if (!snapshot.exists) throw missing('libraryFine');
+  const fine = snapshot.data()!;
+  context.requireCampus(fine.campusId);
+  return { ref, fine };
+}
+
+async function checkUnblockMember(
+  context: CallableContext,
+  personErpId: number,
+  currentFineId: string,
+) {
+  const otherFines = await context.transaction.get(
+    context
+      .coll('libraryFines')
+      .where('personErpId', '==', personErpId)
+      .where('status', 'in', ['outstanding', 'partially_paid'])
+      .limit(2),
+  );
+  const hasOther = otherFines.docs.some((doc) => doc.id !== currentFineId);
+  if (!hasOther) {
+    const mRef = context.doc(`libraryMembers/${personErpId}`);
+    const mSnap = await context.transaction.get(mRef);
+    if (mSnap.exists && mSnap.data()?.blocked && mSnap.data()?.blockedBy !== 'manual') {
+      context.update(mRef, { blocked: false, blockedBy: null, updatedAt: serverTimestamp() });
+    }
+  }
+}
+
+/** Mirrors of `LoanWrites.waiveFine` / `recordFinePayment`, for tests that settle fines. */
+export const fines = {
+  /**
+   * Waives all or part of an outstanding fine (FRS 11.13). Requires `library.fines.waive`.
+   * When no open fines remain, unblocks the member.
+   */
+  fineWaive: defineCallable({
+    name: 'library.fine.waive',
+    input: z.object({
+      id,
+      amount: z.number().min(0.01).max(10_000_000),
+      reason: z.string().trim().min(1).max(500),
+    }),
+    handler: async (context, i) => {
+      const { ref, fine } = await loadFine(context, i.id);
+      if (fine.status === 'paid' || fine.status === 'waived' || (fine.outstanding ?? 0) <= 0) {
+        throw failed(`Fine is already ${fine.status}`);
+      }
+      if (i.amount > fine.outstanding) {
+        throw failed('Waived amount cannot exceed outstanding balance');
+      }
+
+      const waived = Math.round(((fine.waived ?? 0) + i.amount) * 100) / 100;
+      const outstanding = Math.round((fine.outstanding - i.amount) * 100) / 100;
+      const status =
+        outstanding > 0
+          ? (fine.paid ?? 0) > 0
+            ? 'partially_paid'
+            : 'outstanding'
+          : (fine.paid ?? 0) > 0
+            ? 'paid'
+            : 'waived';
+      const waivers = [
+        ...(fine.waivers ?? []),
+        {
+          amount: i.amount,
+          reason: i.reason,
+          performedBy: context.uid,
+          performedAt: Timestamp.now(),
+        },
+      ];
+
+      if (outstanding <= 0 && fine.personErpId) {
+        await checkUnblockMember(context, fine.personErpId, ref.id);
+      }
+
+      context.update(ref, { waived, outstanding, status, waivers, updatedAt: serverTimestamp() });
+      context.audit({
+        action: 'libraryFine.waive',
+        documentPath: ref.path,
+        before: { waived: fine.waived, outstanding: fine.outstanding, status: fine.status },
+        after: { waived, outstanding, status, reason: i.reason },
+      });
+      return { id: ref.id, outstanding, status };
+    },
+  }),
+
+  /**
+   * Records a payment against a fine (FRS 11.13, Finance reference only).
+   * When outstanding reaches 0 and no other open fines remain, unblocks the member.
+   */
+  fineSetPayment: defineCallable({
+    name: 'library.fine.setPayment',
+    input: z.object({
+      id,
+      paidAmount: z.number().min(0.01).max(10_000_000),
+      reference: z.string().trim().max(60).nullish(),
+      paidDate: isoDate.optional(),
+    }),
+    handler: async (context, i) => {
+      const { ref, fine } = await loadFine(context, i.id);
+      if (fine.status === 'paid' || fine.status === 'waived' || (fine.outstanding ?? 0) <= 0) {
+        throw failed(`Fine is already ${fine.status}`);
+      }
+      if (i.paidAmount > fine.outstanding) {
+        throw failed('Payment amount cannot exceed outstanding balance');
+      }
+
+      const paid = Math.round(((fine.paid ?? 0) + i.paidAmount) * 100) / 100;
+      const outstanding = Math.round((fine.outstanding - i.paidAmount) * 100) / 100;
+      const status = outstanding <= 0 ? 'paid' : 'partially_paid';
+      const payments = [
+        ...(fine.payments ?? []),
+        {
+          amount: i.paidAmount,
+          reference: i.reference ?? null,
+          date: dayTimestamp(i.paidDate ?? todayIST()),
+          performedBy: context.uid,
+        },
+      ];
+
+      if (outstanding <= 0 && fine.personErpId) {
+        await checkUnblockMember(context, fine.personErpId, ref.id);
+      }
+
+      context.update(ref, { paid, outstanding, status, payments, updatedAt: serverTimestamp() });
+      context.audit({
+        action: 'libraryFine.setPayment',
+        documentPath: ref.path,
+        before: { paid: fine.paid, outstanding: fine.outstanding, status: fine.status },
+        after: { paid, outstanding, status, reference: i.reference ?? null },
+      });
+      return { id: ref.id, outstanding, status };
+    },
+  }),
+};

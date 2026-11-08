@@ -534,6 +534,13 @@ describe('library client writes (no callable)', () => {
     await assertSucceeds(setDoc(doc(db('4'), 'schools/12/libraryFines/l1__overdue'), fine));
     await assertFails(setDoc(doc(db('4'), 'schools/12/libraryFines/x'), { ...fine, campusId: 32 }));
     await assertFails(setDoc(doc(db('4'), 'schools/12/libraryFines/x'), { ...fine, status: 'paid' }));
+    const settle = (extra, action = 'libraryFine.waive') => ({ waived: 5, outstanding: 5, status: 'partially_paid', lastWrite: stamp(action), ...extra });
+    await assertSucceeds(updateDoc(doc(db('4'), 'schools/12/libraryFines/l1__overdue'), settle({})));
+    await assertSucceeds(updateDoc(doc(db('4'), 'schools/12/libraryFines/l1__overdue'), settle({ paid: 5 }, 'libraryFine.setPayment')));
+    await assertFails(updateDoc(doc(db('4'), 'schools/12/libraryFines/l1__overdue'), settle({}, 'libraryFine.other')));
+    await assertFails(updateDoc(doc(db('4'), 'schools/12/libraryFines/l1__overdue'), settle({ amount: 1 }))); // amount is fixed
+    await assertFails(updateDoc(doc(db('4'), 'schools/12/libraryFines/l1__overdue'), { waived: 5 })); // unstamped
+    await assertFails(updateDoc(doc(db('p', parent), 'schools/12/libraryFines/l1__overdue'), settle({})));
     await assertSucceeds(addDoc(collection(db('4'), 'schools/12/libraryIncidents'), { campusId: 31, status: 'open', createdBy: '4' }));
     await assertFails(addDoc(collection(db('4'), 'schools/12/libraryIncidents'), { campusId: 32, status: 'open', createdBy: '4' }));
   });

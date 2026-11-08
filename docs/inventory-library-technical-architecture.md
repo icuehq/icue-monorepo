@@ -208,7 +208,7 @@ Names below are logical; they deploy as `<group>-<name>` (`session.sync` → `se
 | Members | `library.member.upsert/setStatus` |
 | Circulation | Client transactions (`LoanWrites`): issue, return, renew, mark lost. Notices come from `notices.ts` triggers. |
 | Reservations | Client transactions (`LoanWrites`): reserve, cancel. Hold expiry stays a scheduled job. |
-| Fines | `library.fine.waive`, `library.fine.setPayment` (Finance reference only) |
+| Fines | Client transactions (`LoanWrites`): waive, record payment (Finance reference only). |
 | Incidents | `library.incident.report/resolve` |
 | Transfers | `library.transfer.request/approve/dispatch/receive` |
 | Verification | `library.verification.create/submit/approve` |

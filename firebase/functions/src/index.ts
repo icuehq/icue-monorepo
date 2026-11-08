@@ -6,7 +6,6 @@ import { masters } from './inventory/masters';
 import { itemSearch } from './inventory/search';
 import { verification } from './inventory/verification';
 import { copies as libraryCopies } from './library/copies';
-import { fines as libraryFines } from './library/fines';
 import { incidents as libraryIncidents } from './library/incidents';
 import { catalogueSearch } from './library/search';
 import { sync } from './session';
@@ -24,6 +23,7 @@ export { dailyLibrary } from './library/daily';
 export {
   auditLibraryCatalogue,
   auditLibraryCopies,
+  auditLibraryFines,
   auditLibraryLoans,
   auditLibraryMembers,
   auditLibraryPolicies,
@@ -37,7 +37,6 @@ const mutations: AnyCallableDef[] = [
   verification,
   { seedDefaults: masters.seedDefaults },
   libraryCopies,
-  libraryFines,
   libraryIncidents,
 ].flatMap((group) => Object.values(group) as AnyCallableDef[]);
 

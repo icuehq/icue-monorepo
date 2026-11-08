@@ -785,4 +785,145 @@ class LoanWrites {
       });
     });
   }
+
+  double _rounded(double value) => (value * 100).round() / 100;
+
+  /// A fine's amounts and status after [waivedNow] and [paidNow] (money in cents, so no float drift).
+  ({double waived, double paid, double outstanding, String status}) _settle(
+    _Json fine, {
+    double waivedNow = 0,
+    double paidNow = 0,
+  }) {
+    final waived = _rounded((fine['waived'] as num? ?? 0) + waivedNow);
+    final paid = _rounded((fine['paid'] as num? ?? 0) + paidNow);
+    final outstanding = _rounded(
+      (fine['outstanding'] as num) - waivedNow - paidNow,
+    );
+    final status = outstanding > 0
+        ? (paid > 0 ? 'partially_paid' : 'outstanding')
+        : (paid > 0 ? 'paid' : 'waived');
+    return (
+      waived: waived,
+      paid: paid,
+      outstanding: outstanding,
+      status: status,
+    );
+  }
+
+  /// Settles [fineId] with a waiver or payment [entry] and lifts the member's fine block once no other
+  /// fine of theirs is open. A hand-set block is never lifted.
+  Future<void> _settleFine(
+    String fineId,
+    String action, {
+    required double amount,
+    required bool waive,
+    required Map<String, Object?> entry,
+    required String over,
+  }) async {
+    final fineReference = await schoolDocument('libraryFines', fineId);
+    final earlier = (await fineReference.get()).data();
+    if (earlier == null) writeFail('Fine not found', 'not-found');
+    final personErpId = (earlier['personErpId'] as num?)?.toInt();
+    final otherOpen = personErpId == null
+        ? <QueryDocumentSnapshot<_Json>>[]
+        : (await (await schoolCollection('libraryFines'))
+                  .where('personErpId', isEqualTo: personErpId)
+                  .where('status', whereIn: ['outstanding', 'partially_paid'])
+                  .limit(2)
+                  .get())
+              .docs
+              .where((other) => other.id != fineId)
+              .toList();
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
+      final fine = (await transaction.get(fineReference)).data();
+      if (fine == null) writeFail('Fine not found', 'not-found');
+      final outstanding = (fine['outstanding'] as num? ?? 0).toDouble();
+      if (fine['status'] == 'paid' ||
+          fine['status'] == 'waived' ||
+          outstanding <= 0) {
+        writeFail('Fine is already ${fine['status']}');
+      }
+      if (amount > outstanding) {
+        writeFail('$over cannot exceed outstanding balance');
+      }
+      final settled = waive
+          ? _settle(fine, waivedNow: amount)
+          : _settle(fine, paidNow: amount);
+      final member = personErpId == null || settled.outstanding > 0
+          ? null
+          : (await transaction.get(await _memberReference(personErpId))).data();
+      transaction.update(fineReference, {
+        'waived': settled.waived,
+        'paid': settled.paid,
+        'outstanding': settled.outstanding,
+        'status': settled.status,
+        waive ? 'waivers' : 'payments': [
+          ...((fine[waive ? 'waivers' : 'payments'] as List?) ?? const []),
+          entry,
+        ],
+        'updatedAt': FieldValue.serverTimestamp(),
+        'lastWrite': writeStamp(
+          action,
+          waive ? entry['reason'] as String? : null,
+        ),
+      });
+      if (member != null &&
+          otherOpen.isEmpty &&
+          member['blocked'] == true &&
+          member['blockedBy'] != 'manual') {
+        transaction.update(await _memberReference(personErpId!), {
+          'blocked': false,
+          'blockedBy': null,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+    });
+  }
+
+  /// Waives part or all of an outstanding fine.
+  Future<void> waiveFine({
+    required String id,
+    required double amount,
+    required String reason,
+  }) async {
+    if (amount < 0.01) writeFail('Enter an amount');
+    if (reason.trim().isEmpty) {
+      writeFail('A reason is required to waive a fine');
+    }
+    await _settleFine(
+      id,
+      'libraryFine.waive',
+      amount: amount,
+      waive: true,
+      over: 'Waived amount',
+      entry: {
+        'amount': amount,
+        'reason': reason.trim(),
+        'performedBy': _uid,
+        'performedAt': Timestamp.now(),
+      },
+    );
+  }
+
+  /// Records a payment against a fine (Finance reference only).
+  Future<void> recordFinePayment({
+    required String id,
+    required double amount,
+    String? reference,
+  }) async {
+    if (amount < 0.01) writeFail('Enter an amount');
+    await _settleFine(
+      id,
+      'libraryFine.setPayment',
+      amount: amount,
+      waive: false,
+      over: 'Payment amount',
+      entry: {
+        'amount': amount,
+        'reference': reference,
+        'date': dayTimestamp(todayIST()),
+        'performedBy': _uid,
+      },
+    );
+  }
 }

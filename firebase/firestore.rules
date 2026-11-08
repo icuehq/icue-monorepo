@@ -430,7 +430,11 @@ service cloud.firestore {
 
     // Fines (Lib-6): staff on the campus, or the borrower / parent by ERP ID.
     match /schools/{schoolId}/libraryFines/{id} {
-      // Raised by a return or a lost mark (LoanWrites); every later change goes through callables.
+      // Raised by a return or a lost mark; waiving or paying settles it (LoanWrites). Amounts are validated in the client.
+      allow update: if staff(schoolId) && stamped() && onCampus(schoolId, resource.data.campusId)
+        && request.resource.data.lastWrite.action in ['libraryFine.waive', 'libraryFine.setPayment']
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+          ['waived', 'paid', 'outstanding', 'status', 'waivers', 'payments', 'updatedAt', 'lastWrite']);
       allow create: if staff(schoolId) && onCampus(schoolId, request.resource.data.campusId)
         && request.resource.data.createdBy == request.auth.uid && request.resource.data.status == 'outstanding';
       allow read: if inSchool(schoolId)

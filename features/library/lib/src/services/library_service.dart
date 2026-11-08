@@ -268,12 +268,6 @@ class LibraryService {
     {'id': id, 'status': status, 'reason': ?reason},
   );
 
-  Future<void> waiveFine(Map<String, Object?> data, {String? requestId}) =>
-      _call('library-fine-waive', data, requestId);
-
-  Future<void> setFinePayment(Map<String, Object?> data, {String? requestId}) =>
-      _call('library-fine-setPayment', data, requestId);
-
   Future<void> reportIncident(Map<String, Object?> data, {String? requestId}) =>
       _call('library-incident-report', data, requestId);
 
