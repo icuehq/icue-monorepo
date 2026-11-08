@@ -421,18 +421,17 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   Future<bool> renewLoan(String id) =>
       _write(() => _loanWrites.renew(id), reload: loadLoans);
 
-  Future<bool> createReservation(
-    Map<String, Object?> data, {
-    String? requestId,
-  }) => _write(
-    () => _service.createReservation(data, requestId: requestId),
+  Future<bool> createReservation(Map<String, Object?> data) => _write(
+    () => _loanWrites.reserve(
+      person: data['person']! as Map<String, Object?>,
+      catalogueId: data['catalogueId']! as String,
+      libraryId: data['libraryId']! as String,
+    ),
     reload: loadReservations,
   );
 
-  Future<bool> cancelReservation(String id, {String? requestId}) => _write(
-    () => _service.cancelReservation(id, requestId: requestId),
-    reload: loadReservations,
-  );
+  Future<bool> cancelReservation(String id) =>
+      _write(() => _loanWrites.cancelReservation(id), reload: loadReservations);
 
   Future<bool> waiveFine(Map<String, Object?> data, {String? requestId}) =>
       _write(

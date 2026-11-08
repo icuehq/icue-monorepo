@@ -10,7 +10,7 @@ import {
 import { todayIST, addDays, daysBetween, dayTimestamp, timestampDay } from '../src/shared/dates';
 import { serverTimestamp } from '../src/shared/firestore';
 import { nextNumber } from '../src/shared/keys';
-import { defineCallable, failed, id, missing, optionalText } from '../src/shared/masters';
+import { defineCallable, failed, id, missing, optionalText, usable } from '../src/shared/masters';
 import { enqueue } from '../src/shared/outbox';
 import { fineBlock, raiseFine } from '../src/library/fines';
 import { openIncident } from '../src/library/incidents';
@@ -422,3 +422,121 @@ export const loans = {
     },
   }),
 };
+
+/** Mirrors of `LoanWrites.reserve` / `cancelReservation`, for tests that build reservations. */
+export const reservations = {
+  /**
+   * Joins the waiting list of a title (FRS 11.12). Only when no copy is on the shelf, and only for an
+   * eligible member whose policy allows reserving; one live reservation per member and title.
+   */
+  reservationCreate: defineCallable({
+    name: 'library.reservation.create',
+    input: z.object({ person: personInput, catalogueId: id, libraryId: id }),
+    handler: async (context, i) => {
+      const { personErpId } = i.person;
+      const [snapshot, libraryDocument, category] = await Promise.all([
+        context.transaction.get(context.doc(`libraryMembers/${personErpId}`)),
+        context.transaction.get(context.doc(`libraries/${i.libraryId}`)),
+        context.transaction.get(context.doc(`libraryCatalogue/${i.catalogueId}`)),
+      ]);
+      const member = snapshot.data();
+      const library = usable(libraryDocument, 'Library', false);
+      context.requireCampus(library.campusId);
+      const title = usable(category, 'Title', false);
+
+      const ineligible = ineligibleReason(member);
+      if (ineligible) throw failed(ineligible);
+      if (!(await applicablePolicy(context, i.libraryId, i.person.memberType, title.categoryId)))
+        throw failed('No active borrowing policy for this member and book category');
+
+      const live = await context.transaction.get(
+        context
+          .coll('libraryReservations')
+          .where('personErpId', '==', personErpId)
+          .where('catalogueId', '==', i.catalogueId)
+          .where('status', 'in', ['waiting', 'ready'])
+          .limit(1),
+      );
+      if (!live.empty) throw failed('Member already has a reservation for this title');
+      const loans = await context.transaction.get(
+        context
+          .coll('libraryLoans')
+          .where('personErpId', '==', personErpId)
+          .where('catalogueId', '==', i.catalogueId)
+          .where('status', '==', 'active')
+          .limit(1),
+      );
+      if (!loans.empty) throw failed('Member already has this title on loan');
+      const shelf = await context.transaction.get(
+        context
+          .coll('libraryCopies')
+          .where('catalogueId', '==', i.catalogueId)
+          .where('libraryId', '==', i.libraryId)
+          .where('status', '==', 'available')
+          .limit(1),
+      );
+      if (!shelf.empty) throw failed('A copy is available; issue it instead');
+
+      const ref = context.newDoc('libraryReservations');
+      const number = await nextNumber(context, 'RSV');
+      const after = {
+        number,
+        memberType: i.person.memberType,
+        personErpId: i.person.personErpId,
+        memberName: i.person.name,
+        catalogueId: i.catalogueId,
+        title: title.title,
+        libraryId: i.libraryId,
+        campusId: library.campusId,
+        status: 'waiting',
+        heldBarcode: null,
+        holdUntil: null,
+        fulfilledLoanId: null,
+        fulfilledBarcode: null,
+      };
+      writeBorrower(context, snapshot.ref, member, i.person, library.campusId, 0);
+      context.set(ref, { ...after, createdBy: context.uid, createdAt: serverTimestamp() });
+      context.audit({ action: 'libraryReservation.create', documentPath: ref.path, after });
+      return { id: ref.id, number };
+    },
+  }),
+
+  /** Cancels a waiting or ready reservation; a held copy moves on to the next member. */
+  reservationCancel: defineCallable({
+    name: 'library.reservation.cancel',
+    input: z.object({ id }),
+    handler: async (context, i) => {
+      const ref = context.doc(`libraryReservations/${i.id}`);
+      const snapshot = await context.transaction.get(ref);
+      if (!snapshot.exists) throw missing('libraryReservation');
+      const reservation = snapshot.data()!;
+      context.requireCampus(reservation.campusId);
+      if (reservation.status !== 'waiting' && reservation.status !== 'ready')
+        throw failed(`Reservation is ${reservation.status}`);
+      if (reservation.status === 'ready') await freeHeld(context, reservation.heldBarcode, ref.id);
+      context.update(ref, {
+        status: 'cancelled',
+        cancelledBy: context.uid,
+        cancelledAt: serverTimestamp(),
+      });
+      context.audit({
+        action: 'libraryReservation.cancel',
+        documentPath: ref.path,
+        before: { status: reservation.status },
+        after: { status: 'cancelled' },
+      });
+      return { id: ref.id };
+    },
+  }),
+};
+
+/** Releases the copy held for [reservationId], unless it has meanwhile been taken by something else. */
+async function freeHeld(
+  context: CallableContext,
+  barcode: string,
+  reservationId: string,
+): Promise<void> {
+  const cRef = context.doc(`libraryCopies/${barcode}`);
+  const copy = (await context.transaction.get(cRef)).data();
+  if (copy?.heldReservationId === reservationId) await release(context, cRef, copy);
+}

@@ -7,13 +7,13 @@ import 'package:school_library/src/services/write_support.dart';
 typedef _Json = Map<String, dynamic>;
 typedef _Ref = DocumentReference<_Json>;
 
-/// Circulation without Cloud Functions: issue, return, renew and mark lost. `firestore.rules` checks who,
+/// Circulation without Cloud Functions: issue, return, renew, mark lost, reserve and cancel a reservation. `firestore.rules` checks who,
 /// the campus and the shape; business checks live here. Each loan write stamps `lastWrite` (audited by
 /// `auditLibraryLoans`) and `firebase/functions/src/library/notices.ts` sends the member's notices.
 ///
 /// ponytail: queries (policy, borrowing limit, reservation queue) run just before the transaction, which
 /// client transactions cannot do; two desks acting in the same instant could exceed a limit or renew past
-/// a waiting member. Retries are not idempotent and numbers (`LIS`, `LRT`, `FIN`, `INC`) may skip.
+/// a waiting member. Retries are not idempotent and numbers (`LIS`, `LRT`, `FIN`, `INC`, `RSV`) may skip.
 @lazySingleton
 class LoanWrites {
   static const _snapshotFields = [
@@ -624,6 +624,164 @@ class LoanWrites {
         ],
         'updatedAt': FieldValue.serverTimestamp(),
         'lastWrite': writeStamp('libraryLoan.renew'),
+      });
+    });
+  }
+
+  /// Joins the waiting list of a title in a library, only when no copy is on the shelf and the member
+  /// is eligible, has a policy for the book and holds no live reservation or loan of the title.
+  Future<void> reserve({
+    required Map<String, Object?> person,
+    required String catalogueId,
+    required String libraryId,
+  }) async {
+    final personErpId = (person['personErpId']! as num).toInt();
+    final memberType = person['memberType']! as String;
+    final library = (await (await schoolDocument(
+      'libraries',
+      libraryId,
+    )).get()).data();
+    if (library == null) writeFail('Library not found', 'not-found');
+    if (library['status'] != 'active') writeFail('Library is inactive');
+    final title = (await (await schoolDocument(
+      'libraryCatalogue',
+      catalogueId,
+    )).get()).data();
+    if (title == null) writeFail('Title not found', 'not-found');
+    if (title['status'] != 'active') writeFail('Title is inactive');
+    final memberReference = await _memberReference(personErpId);
+    if ((await memberReference.get()).data()?['blocked'] == true) {
+      writeFail('Member is blocked');
+    }
+    if (await _applicablePolicy(
+          libraryId,
+          memberType,
+          title['categoryId'] as String,
+        ) ==
+        null) {
+      writeFail('No active borrowing policy for this member and book category');
+    }
+    final live = await (await schoolCollection('libraryReservations'))
+        .where('personErpId', isEqualTo: personErpId)
+        .where('catalogueId', isEqualTo: catalogueId)
+        .where('status', whereIn: ['waiting', 'ready'])
+        .limit(1)
+        .get();
+    if (live.docs.isNotEmpty) {
+      writeFail('Member already has a reservation for this title');
+    }
+    final onLoan = await (await schoolCollection('libraryLoans'))
+        .where('personErpId', isEqualTo: personErpId)
+        .where('catalogueId', isEqualTo: catalogueId)
+        .where('status', isEqualTo: 'active')
+        .limit(1)
+        .get();
+    if (onLoan.docs.isNotEmpty) {
+      writeFail('Member already has this title on loan');
+    }
+    final shelf = await (await schoolCollection('libraryCopies'))
+        .where('catalogueId', isEqualTo: catalogueId)
+        .where('libraryId', isEqualTo: libraryId)
+        .where('status', isEqualTo: 'available')
+        .limit(1)
+        .get();
+    if (shelf.docs.isNotEmpty) {
+      writeFail('A copy is available; issue it instead');
+    }
+    final number = await _nextNumber('RSV');
+    final reservationReference = (await schoolCollection('libraryReservations'))
+        .doc();
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
+      final member = (await transaction.get(memberReference)).data();
+      if (member?['blocked'] == true) writeFail('Member is blocked');
+      final shown = {
+        'name': person['name'],
+        'classId': memberType == 'student' ? person['classId'] : null,
+      };
+      transaction.set(reservationReference, {
+        'number': number,
+        'memberType': memberType,
+        'personErpId': personErpId,
+        'memberName': person['name'],
+        'catalogueId': catalogueId,
+        'title': title['title'],
+        'libraryId': libraryId,
+        'campusId': library['campusId'],
+        'status': 'waiting',
+        'heldBarcode': null,
+        'holdUntil': null,
+        'fulfilledLoanId': null,
+        'fulfilledBarcode': null,
+        'createdBy': _uid,
+        'createdAt': FieldValue.serverTimestamp(),
+        'lastWrite': writeStamp('libraryReservation.create'),
+      });
+      if (member == null) {
+        transaction.set(memberReference, {
+          'memberType': memberType,
+          'personErpId': personErpId,
+          ...shown,
+          'campusIds': [library['campusId']],
+          'activeLoans': 0,
+          'blocked': false,
+          'createdAt': FieldValue.serverTimestamp(),
+          'createdBy': _uid,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      } else {
+        transaction.update(memberReference, {
+          ...shown,
+          'campusIds': FieldValue.arrayUnion([library['campusId']]),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+    });
+  }
+
+  /// Cancels a waiting or ready reservation; a held copy moves on to the next waiting member.
+  Future<void> cancelReservation(String id) async {
+    final reservationReference = await schoolDocument(
+      'libraryReservations',
+      id,
+    );
+    final earlier = (await reservationReference.get()).data();
+    if (earlier == null) writeFail('Reservation not found', 'not-found');
+    final waitingReference = earlier['status'] == 'ready'
+        ? await _nextWaiting(
+            earlier['catalogueId'] as String,
+            earlier['libraryId'] as String,
+          )
+        : null;
+    final holdDays = waitingReference == null ? 0 : await _holdDays();
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
+      final reservation = (await transaction.get(reservationReference)).data();
+      if (reservation == null) writeFail('Reservation not found', 'not-found');
+      final status = reservation['status'];
+      if (status != 'waiting' && status != 'ready') {
+        writeFail('Reservation is $status');
+      }
+      if (status == 'ready') {
+        final copyReference = await schoolDocument(
+          'libraryCopies',
+          reservation['heldBarcode'] as String,
+        );
+        final copy = (await transaction.get(copyReference)).data();
+        final waiting = waitingReference == null
+            ? null
+            : (
+                reference: waitingReference,
+                data: (await transaction.get(waitingReference)).data(),
+              );
+        // Unless the copy has meanwhile been taken by something else.
+        if (copy?['heldReservationId'] == id) {
+          _release(transaction, copyReference, waiting, holdDays);
+        }
+      }
+      transaction.update(reservationReference, {
+        'status': 'cancelled',
+        'cancelledBy': _uid,
+        'cancelledAt': FieldValue.serverTimestamp(),
+        'lastWrite': writeStamp('libraryReservation.cancel'),
       });
     });
   }

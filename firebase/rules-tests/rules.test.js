@@ -514,6 +514,12 @@ describe('library client writes (no callable)', () => {
     await assertFails(updateDoc(doc(db('4'), 'schools/12/libraryCopies/c1'), { status: 'withdrawn' }));
     await assertFails(updateDoc(doc(db('4'), 'schools/12/libraryCopies/c1'), { status: 'lost', libraryId: 'junior' }));
     await assertSucceeds(updateDoc(doc(db('4'), 'schools/12/libraryReservations/r1'), { status: 'ready', heldBarcode: 'c1' }));
+    const reservation = { campusId: 31, status: 'waiting', createdBy: '4', lastWrite: stamp('libraryReservation.create') };
+    await assertSucceeds(setDoc(doc(db('4'), 'schools/12/libraryReservations/r2'), reservation));
+    await assertFails(setDoc(doc(db('4'), 'schools/12/libraryReservations/r3'), { ...reservation, lastWrite: null }));
+    await assertFails(setDoc(doc(db('4'), 'schools/12/libraryReservations/r3'), { ...reservation, campusId: 32 }));
+    await assertSucceeds(updateDoc(doc(db('4'), 'schools/12/libraryReservations/r2'), { status: 'cancelled', lastWrite: stamp('libraryReservation.cancel') }));
+    await assertFails(updateDoc(doc(db('4'), 'schools/12/libraryReservations/r2'), { status: 'cancelled', lastWrite: stamp('libraryReservation.cancel') })); // already cancelled
     await assertFails(updateDoc(doc(db('4'), 'schools/12/libraryReservations/r1'), { status: 'cancelled' }));
     const member = { memberType: 'student', personErpId: 777, campusIds: [31], activeLoans: 1, blocked: false, createdBy: '4' };
     await assertSucceeds(setDoc(doc(db('4'), 'schools/12/libraryMembers/777'), member));

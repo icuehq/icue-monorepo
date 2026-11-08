@@ -359,7 +359,7 @@ service cloud.firestore {
     // The borrower record is created on first issue; circulation only touches what the desk shows and the counters.
     match /schools/{schoolId}/libraryMembers/{id} {
       allow create: if staff(schoolId) && request.resource.data.createdBy == request.auth.uid
-        && request.resource.data.blocked == false && request.resource.data.activeLoans == 1
+        && request.resource.data.blocked == false && request.resource.data.activeLoans in [0, 1]
         && (access(schoolId).hasAllCampuses == true || request.resource.data.campusIds.hasOnly(access(schoolId).campusIds));
       allow update: if staff(schoolId)
         && (access(schoolId).hasAllCampuses == true || request.resource.data.campusIds.hasAny(access(schoolId).campusIds))
@@ -367,7 +367,7 @@ service cloud.firestore {
     }
     // Library numbers (LIS, LRT, FIN, INC); Library staff hold no permissions, so the counter rule below does not cover them.
     match /schools/{schoolId}/counters/{id} {
-      allow read, write: if staff(schoolId) && id.matches('(LIS|LRT|FIN|INC)_.*');
+      allow read, write: if staff(schoolId) && id.matches('(LIS|LRT|FIN|INC|RSV)_.*');
     }
     // Manual block / unblock of a member; the member needs every campus of theirs to be one of the caller's.
     match /schools/{schoolId}/libraryMembers/{id} {
@@ -415,6 +415,12 @@ service cloud.firestore {
     // Reservations (Lib-5): same readers as loans.
     match /schools/{schoolId}/libraryReservations/{id} {
       // A return holds the copy for the next waiting member; issuing a held copy fulfils the reservation.
+      allow create: if staff(schoolId) && stamped() && onCampus(schoolId, request.resource.data.campusId)
+        && request.resource.data.lastWrite.action == 'libraryReservation.create'
+        && request.resource.data.createdBy == request.auth.uid && request.resource.data.status == 'waiting';
+      allow update: if staff(schoolId) && stamped() && onCampus(schoolId, resource.data.campusId)
+        && resource.data.status in ['waiting', 'ready'] && request.resource.data.status == 'cancelled'
+        && request.resource.data.lastWrite.action == 'libraryReservation.cancel';
       allow update: if staff(schoolId) && onCampus(schoolId, resource.data.campusId)
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
           ['status', 'heldBarcode', 'holdUntil', 'readyAt', 'fulfilledLoanId', 'fulfilledBarcode', 'fulfilledAt'])

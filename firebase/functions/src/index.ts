@@ -8,7 +8,6 @@ import { verification } from './inventory/verification';
 import { copies as libraryCopies } from './library/copies';
 import { fines as libraryFines } from './library/fines';
 import { incidents as libraryIncidents } from './library/incidents';
-import { reservations as libraryReservations } from './library/reservations';
 import { catalogueSearch } from './library/search';
 import { sync } from './session';
 import { type AnyCallableDef, callable, queryCallable, routes } from './shared/callable';
@@ -28,6 +27,7 @@ export {
   auditLibraryLoans,
   auditLibraryMembers,
   auditLibraryPolicies,
+  auditLibraryReservations,
 } from './library/audit';
 
 // Inventory masters other than seedDefaults are written by the client or only through the importer.
@@ -37,7 +37,6 @@ const mutations: AnyCallableDef[] = [
   verification,
   { seedDefaults: masters.seedDefaults },
   libraryCopies,
-  libraryReservations,
   libraryFines,
   libraryIncidents,
 ].flatMap((group) => Object.values(group) as AnyCallableDef[]);

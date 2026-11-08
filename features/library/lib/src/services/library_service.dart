@@ -268,14 +268,6 @@ class LibraryService {
     {'id': id, 'status': status, 'reason': ?reason},
   );
 
-  Future<void> createReservation(
-    Map<String, Object?> data, {
-    String? requestId,
-  }) => _call('library-reservation-create', data, requestId);
-
-  Future<void> cancelReservation(String id, {String? requestId}) =>
-      _call('library-reservation-cancel', {'id': id}, requestId);
-
   Future<void> waiveFine(Map<String, Object?> data, {String? requestId}) =>
       _call('library-fine-waive', data, requestId);
 
