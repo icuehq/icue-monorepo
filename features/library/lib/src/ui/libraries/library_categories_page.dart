@@ -149,102 +149,107 @@ class _LibraryCategoriesPageState extends State<LibraryCategoriesPage> {
               label: const Text('Category'),
             )
           : null,
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final isWide = constraints.maxWidth >= 720;
-          final isTwoColumn = constraints.maxWidth >= 880;
-          final contentPadding = EdgeInsets.symmetric(
-            horizontal: isWide ? 24.0 : 16.0,
-            vertical: 16.0,
-          );
-
-          if (libraryProvider.isLoading && !hasAnyCategories) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (!hasAnyCategories) {
-            return LibraryCategoryEmptyState(
-              onAdd: () => LibraryCategoryDialog.show(context),
+      body: CenteredBody(
+        child: Builder(
+          builder: (context) {
+            final isWide = context.isWide;
+            final isTwoColumn = isWide;
+            final contentPadding = EdgeInsets.symmetric(
+              horizontal: isWide ? 24.0 : 16.0,
+              vertical: 16.0,
             );
-          }
 
-          return RefreshIndicator(
-            onRefresh: () => libraryProvider.loadMasters(),
-            child: ListView(
-              padding: contentPadding,
-              children: [
-                LibraryCategorySearchBar(
-                  searchController: _searchController,
-                  isWide: isWide,
-                  statusFilter: _statusFilter,
-                  onSearchChanged: (_) => setState(() {}),
-                  onFilterChanged: (filter) =>
-                      setState(() => _statusFilter = filter),
-                  onAddCategory: () => LibraryCategoryDialog.show(context),
-                ),
-                const SizedBox(height: 12),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Text(
-                    '${matchingGroups.length} ${matchingGroups.length == 1 ? 'category' : 'categories'} · $totalSubsCount ${totalSubsCount == 1 ? 'subcategory' : 'subcategories'}',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.outline,
-                      fontWeight: FontWeight.w500,
+            if (libraryProvider.isLoading && !hasAnyCategories) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            if (!hasAnyCategories) {
+              return LibraryCategoryEmptyState(
+                onAdd: () => LibraryCategoryDialog.show(context),
+              );
+            }
+
+            return RefreshIndicator(
+              onRefresh: () => libraryProvider.loadMasters(),
+              child: ListView(
+                padding: contentPadding,
+                children: [
+                  LibraryCategorySearchBar(
+                    searchController: _searchController,
+                    isWide: isWide,
+                    statusFilter: _statusFilter,
+                    onSearchChanged: (_) => setState(() {}),
+                    onFilterChanged: (filter) =>
+                        setState(() => _statusFilter = filter),
+                    onAddCategory: () => LibraryCategoryDialog.show(context),
+                  ),
+                  const SizedBox(height: 12),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Text(
+                      '${matchingGroups.length} ${matchingGroups.length == 1 ? 'category' : 'categories'} · $totalSubsCount ${totalSubsCount == 1 ? 'subcategory' : 'subcategories'}',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.outline,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                if (matchingGroups.isEmpty)
-                  LibraryCategoryNoResultsState(
-                    query: query,
-                    onClear: _clearFilters,
-                  )
-                else if (isTwoColumn)
-                  _TwoColumnCategoryLayout(
-                    groups: matchingGroups,
-                    isSearching: isSearching,
-                    onViewBooks: (category) => context.push(
-                      '${LibraryRoutes.libraryCatalogue}?category=${category.id}',
-                    ),
-                    onEdit: (category) =>
-                        LibraryCategoryDialog.show(context, category: category),
-                    onAddSubcategory: (category) => LibraryCategoryDialog.show(
-                      context,
-                      parentId: category.id,
-                    ),
-                    onToggleActive: (category) =>
-                        _toggleActive(libraryProvider, category),
-                  )
-                else
-                  Column(
-                    children: [
-                      for (final (top, subs) in matchingGroups)
-                        LibraryCategoryCard(
-                          key: ValueKey(top.id),
-                          category: top,
-                          subcategories: subs,
-                          initiallyExpanded: isSearching,
-                          onViewBooks: (category) => context.push(
-                            '${LibraryRoutes.libraryCatalogue}?category=${category.id}',
-                          ),
-                          onEdit: (category) => LibraryCategoryDialog.show(
+                  const SizedBox(height: 8),
+                  if (matchingGroups.isEmpty)
+                    LibraryCategoryNoResultsState(
+                      query: query,
+                      onClear: _clearFilters,
+                    )
+                  else if (isTwoColumn)
+                    _TwoColumnCategoryLayout(
+                      groups: matchingGroups,
+                      isSearching: isSearching,
+                      onViewBooks: (category) => context.push(
+                        '${LibraryRoutes.libraryCatalogue}?category=${category.id}',
+                      ),
+                      onEdit: (category) => LibraryCategoryDialog.show(
+                        context,
+                        category: category,
+                      ),
+                      onAddSubcategory: (category) =>
+                          LibraryCategoryDialog.show(
                             context,
-                            category: category,
+                            parentId: category.id,
                           ),
-                          onAddSubcategory: (category) =>
-                              LibraryCategoryDialog.show(
-                                context,
-                                parentId: category.id,
-                              ),
-                          onToggleActive: (category) =>
-                              _toggleActive(libraryProvider, category),
-                        ),
-                    ],
-                  ),
-              ],
-            ),
-          );
-        },
+                      onToggleActive: (category) =>
+                          _toggleActive(libraryProvider, category),
+                    )
+                  else
+                    Column(
+                      children: [
+                        for (final (top, subs) in matchingGroups)
+                          LibraryCategoryCard(
+                            key: ValueKey(top.id),
+                            category: top,
+                            subcategories: subs,
+                            initiallyExpanded: isSearching,
+                            onViewBooks: (category) => context.push(
+                              '${LibraryRoutes.libraryCatalogue}?category=${category.id}',
+                            ),
+                            onEdit: (category) => LibraryCategoryDialog.show(
+                              context,
+                              category: category,
+                            ),
+                            onAddSubcategory: (category) =>
+                                LibraryCategoryDialog.show(
+                                  context,
+                                  parentId: category.id,
+                                ),
+                            onToggleActive: (category) =>
+                                _toggleActive(libraryProvider, category),
+                          ),
+                      ],
+                    ),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }

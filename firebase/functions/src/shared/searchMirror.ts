@@ -5,6 +5,8 @@ import {
   getFirestore,
   Timestamp,
 } from 'firebase-admin/firestore';
+import { onDocumentWritten } from 'firebase-functions/v2/firestore';
+import { HttpsError } from 'firebase-functions/v2/https';
 import { z } from 'zod';
 
 /**
@@ -115,3 +117,35 @@ export async function searchMirror(
     .execute();
   return result.results.map((row) => ({ id: row.id!, data: row.data() }));
 }
+
+/** Validates the query, searches the mirror and returns one page of projected rows plus `hasMore`. */
+export async function searchPage(
+  schoolId: string,
+  collection: string,
+  query: z.infer<typeof searchInput>,
+  options: Omit<Parameters<typeof searchMirror>[3], 'terms'>,
+  project: (data: DocumentData) => DocumentData,
+  db: Firestore = searchDb(),
+) {
+  // Punctuation is dropped so users cannot inject search-DSL operators (quotes, -, *, OR).
+  const terms = words(query.q);
+  if (!terms.length) throw new HttpsError('invalid-argument', 'Enter a word to search for');
+  const rows = await searchMirror(schoolId, collection, query, { ...options, terms }, db);
+  return {
+    items: rows.slice(0, query.limit).map((row) => ({ id: row.id, ...project(row.data) })),
+    hasMore: rows.length > query.limit,
+  };
+}
+
+/** Trigger that mirrors every write of `schools/{schoolId}/<collection>/{id}` into the search database. */
+export const syncTrigger = (collection: string, project: (data: DocumentData) => DocumentData) =>
+  onDocumentWritten(`schools/{schoolId}/${collection}/{id}`, (event) =>
+    applyChange(
+      collection,
+      project,
+      event.params.schoolId,
+      event.params.id,
+      event.data?.after.data(),
+      event.data?.after.updateTime,
+    ),
+  );

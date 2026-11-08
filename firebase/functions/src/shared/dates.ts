@@ -24,16 +24,8 @@ export const dayTimestampOrNull = (day?: string | null) => (day ? dayTimestamp(d
 export const timestampDay = (stamp: Timestamp) =>
   new Date(stamp.toMillis() + INDIA_OFFSET_MILLISECONDS).toISOString().slice(0, 10);
 
-/** Same as [timestampDay], null when nothing is stored. */
-export const timestampDayOrNull = (stamp?: Timestamp | null) =>
-  stamp ? timestampDay(stamp) : null;
-
 export const addDays = (date: string, days: number) =>
   new Date(toMilliseconds(date) + days * MILLISECONDS_PER_DAY).toISOString().slice(0, 10);
-
-/** Whole days from [from] to [to] (negative when [to] is earlier). */
-export const daysBetween = (from: string, to: string) =>
-  Math.round((toMilliseconds(to) - toMilliseconds(from)) / MILLISECONDS_PER_DAY);
 
 /** Week number since the epoch, so a reminder can repeat weekly with a stable key. */
 export const weekOf = (date: string) =>

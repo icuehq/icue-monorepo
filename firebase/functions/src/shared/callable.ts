@@ -109,6 +109,11 @@ function signedInStaff(auth: Auth): { uid: string; schoolId: string } {
   return { uid: auth.uid, schoolId: String(auth.token.schoolId) };
 }
 
+function requirePermission(permission: Permission | undefined, access: UserAccess): void {
+  if (permission && !access.permissions?.includes(permission))
+    throw new HttpsError('permission-denied', 'Not allowed');
+}
+
 /** Any callable definition, for lists of differently-typed callables. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- each entry keeps its own input type
 export type AnyCallableDef = CallableDef<any, any>;
@@ -149,8 +154,7 @@ export async function runCallable<S extends z.ZodType, R>(
     }
     if (!accessSnap.exists) throw new HttpsError('failed-precondition', 'Session not synced');
     const access = accessSnap.data() as UserAccess;
-    if (def.permission && !access.permissions?.includes(def.permission))
-      throw new HttpsError('permission-denied', 'Not allowed');
+    requirePermission(def.permission, access);
 
     const context = new CallableContext(transaction, schoolId, uid, access);
     const campusId = (input as { campusId?: unknown })?.campusId;
@@ -192,8 +196,7 @@ export async function runQuery<S extends z.ZodType, R>(
     await getFirestore().doc(`schools/${schoolId}/userAccess/${uid}`).get()
   ).data() as UserAccess | undefined;
   if (!access) throw new HttpsError('failed-precondition', 'Session not synced');
-  if (def.permission && !access.permissions?.includes(def.permission))
-    throw new HttpsError('permission-denied', 'Not allowed');
+  requirePermission(def.permission, access);
   const parsed = def.input.safeParse(data ?? {});
   if (!parsed.success) throw new HttpsError('invalid-argument', z.prettifyError(parsed.error));
   return def.handler(schoolId, parsed.data);

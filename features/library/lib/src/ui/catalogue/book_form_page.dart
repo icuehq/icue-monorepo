@@ -276,71 +276,75 @@ class _BookFormPageState extends State<BookFormPage> {
             ),
           ],
         ),
-        body: Form(
-          key: _form,
-          onChanged: () {
-            if (!_dirty) setState(() => _dirty = true);
-          },
-          child: ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-            children: [
-              if (_duplicate)
-                Container(
-                  margin: const EdgeInsets.only(bottom: 16),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.errorContainer,
-                    borderRadius: BorderRadius.circular(8),
+        body: CenteredBody(
+          child: Form(
+            key: _form,
+            onChanged: () {
+              if (!_dirty) setState(() => _dirty = true);
+            },
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              children: [
+                if (_duplicate)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.errorContainer,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'This book already exists in the catalogue (same title, '
+                      'first author, edition, publisher and year).',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onErrorContainer,
+                      ),
+                    ),
                   ),
-                  child: Text(
-                    'This book already exists in the catalogue (same title, '
-                    'first author, edition, publisher and year).',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onErrorContainer,
+                if (context.isWide)
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: Column(children: leftSections)),
+                      const SizedBox(width: 16),
+                      Expanded(child: Column(children: rightSections)),
+                    ],
+                  )
+                else ...[
+                  ...leftSections,
+                  ...rightSections,
+                ],
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: FilledButton.icon(
+                    onPressed: _busy ? null : _save,
+                    icon: _busy
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(Icons.check_circle_outline, size: 20),
+                    label: Text(
+                      _busy
+                          ? 'Saving…'
+                          : (editing ? 'Update book' : 'Save book'),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
-              if (context.isWide)
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(child: Column(children: leftSections)),
-                    const SizedBox(width: 16),
-                    Expanded(child: Column(children: rightSections)),
-                  ],
-                )
-              else ...[
-                ...leftSections,
-                ...rightSections,
+                const SizedBox(height: 24),
               ],
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: FilledButton.icon(
-                  onPressed: _busy ? null : _save,
-                  icon: _busy
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Icon(Icons.check_circle_outline, size: 20),
-                  label: Text(
-                    _busy ? 'Saving…' : (editing ? 'Update book' : 'Save book'),
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-            ],
+            ),
           ),
         ),
       ),

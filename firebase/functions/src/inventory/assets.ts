@@ -22,6 +22,8 @@ import { lineKey, stockPerson, positiveQuantity, Stock } from './stock';
 const MAX_BULK = 50;
 const condition = z.enum(['new', 'good', 'fair', 'poor', 'damaged']);
 // Maintenance status drives the asset status (architecture §6): `restoreTo` is what the asset was before.
+/** Statuses an asset cannot leave through condition or RFID edits. */
+const GONE = ['retired', 'disposed'];
 const LIVE = ['open', 'assigned', 'in_progress', 'waiting_for_parts'];
 const WORKING = {
   assigned: 'under_maintenance',
@@ -157,7 +159,8 @@ export const assets = {
         throw failed('Serial numbers are per unit; register units with a serial one at a time');
       if (i.warrantyStart && i.warrantyEnd && i.warrantyEnd < i.warrantyStart)
         throw failed('Warranty ends before it starts');
-      let { vendorId, price } = { vendorId: i.vendorId ?? null, price: i.price ?? null };
+      let vendorId = i.vendorId ?? null;
+      let price = i.price ?? null;
       if (i.purchaseOrderId) {
         const purchaseOrder = (
           await context.transaction.get(context.doc(`inventoryPurchaseOrders/${i.purchaseOrderId}`))
@@ -344,7 +347,7 @@ export const assets = {
     }),
     handler: async (context, i) => {
       const { ref, asset } = await loadAsset(context, i.id);
-      if (['retired', 'disposed'].includes(asset.status)) throw failed(`Asset is ${asset.status}`);
+      if (GONE.includes(asset.status)) throw failed(`Asset is ${asset.status}`);
       const patch: Record<string, unknown> = {
         condition: i.condition,
         updatedAt: serverTimestamp(),
@@ -381,7 +384,7 @@ export const assets = {
     input: z.object({ id, rfidTag: z.string().trim().min(1).max(64).nullable() }),
     handler: async (context, i) => {
       const { ref, asset } = await loadAsset(context, i.id);
-      if (['retired', 'disposed'].includes(asset.status)) throw failed(`Asset is ${asset.status}`);
+      if (GONE.includes(asset.status)) throw failed(`Asset is ${asset.status}`);
       if (i.rfidTag) await claimUniqueKey(context, 'inventoryRfid', i.rfidTag, ref.path);
       if (asset.rfidTag && asset.rfidTag.toLowerCase() !== i.rfidTag?.toLowerCase())
         context.delete(uniqueKeyRef(context, 'inventoryRfid', asset.rfidTag));
@@ -408,9 +411,10 @@ export const assets = {
     }),
     handler: async (context, i) => {
       const { ref, asset } = await loadAsset(context, i.id);
-      const from = ['available', 'damaged', 'lost'].concat(
-        i.status === 'disposed' ? ['retired'] : [],
-      );
+      const from =
+        i.status === 'disposed'
+          ? ['available', 'damaged', 'lost', 'retired']
+          : ['available', 'damaged', 'lost'];
       if (!from.includes(asset.status))
         throw failed(
           asset.status === 'assigned' ? 'Return the asset first' : `Asset is ${asset.status}`,
@@ -477,7 +481,7 @@ export const maintenance = {
         return { id: ref.id, number: maintenanceJob.number };
       }
       const { ref: aRef, asset } = await loadAsset(context, i.assetId);
-      if (['lost', 'retired', 'disposed'].includes(asset.status))
+      if (asset.status === 'lost' || GONE.includes(asset.status))
         throw failed(`Asset is ${asset.status}`);
       if (asset.activeMaintenanceId) throw failed('Asset already has an open maintenance request');
       const reported = i.reportedDate ?? todayIST();
@@ -585,14 +589,15 @@ export const maintenance = {
       }
 
       const done = i.status === 'completed' || i.status === 'cancelled';
+      const nextServiceDate = i.nextServiceDate
+        ? dayTimestamp(i.nextServiceDate)
+        : maintenanceJob.nextServiceDate;
       context.update(ref, {
         status: i.status,
         technician: technician ?? null,
         cost: cost ?? null,
         repairDetails: i.repairDetails ?? maintenanceJob.repairDetails,
-        nextServiceDate: i.nextServiceDate
-          ? dayTimestamp(i.nextServiceDate)
-          : maintenanceJob.nextServiceDate,
+        nextServiceDate,
         partsUsed: [...maintenanceJob.partsUsed, ...used],
         completedDate: done ? dayTimestamp(todayIST()) : null,
         updatedAt: serverTimestamp(),
@@ -607,9 +612,7 @@ export const maintenance = {
               : maintenanceJob.restoreTo,
           activeMaintenanceId: null,
           ...(i.status === 'completed' && {
-            nextServiceDate: i.nextServiceDate
-              ? dayTimestamp(i.nextServiceDate)
-              : maintenanceJob.nextServiceDate,
+            nextServiceDate,
             ...(i.condition && { condition: i.condition }),
           }),
         });

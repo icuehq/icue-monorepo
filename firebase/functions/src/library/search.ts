@@ -1,9 +1,7 @@
 import { type DocumentData, type Firestore, type Timestamp } from 'firebase-admin/firestore';
-import { onDocumentWritten } from 'firebase-functions/v2/firestore';
-import { HttpsError } from 'firebase-functions/v2/https';
 import { z } from 'zod';
 import type { QueryDef } from '../shared/callable';
-import { applyChange, searchDb, searchInput, searchMirror, words } from '../shared/searchMirror';
+import { applyChange, searchInput, searchPage, syncTrigger } from '../shared/searchMirror';
 
 /** A parent category's search includes its subcategories, so the caller sends the expanded ids. */
 const catalogueSearchInput = searchInput.omit({ categoryId: true }).extend({
@@ -45,43 +43,26 @@ export const applyCatalogueChange = (
   db?: Firestore,
 ) => applyChange(COLL, projectCatalogue, schoolId, catalogueId, after, changedAt, db);
 
-export const syncCatalogueSearch = onDocumentWritten(
-  `schools/{schoolId}/${COLL}/{id}`,
-  (snapshot) =>
-    applyCatalogueChange(
-      snapshot.params.schoolId,
-      snapshot.params.id,
-      snapshot.data?.after.data(),
-      snapshot.data?.after.updateTime,
-    ),
-);
+export const syncCatalogueSearch = syncTrigger(COLL, projectCatalogue);
 
-export async function searchCatalogue(
+export const searchCatalogue = (
   schoolId: string,
   query: z.infer<typeof catalogueSearchInput>,
-  db: Firestore = searchDb(),
-) {
-  // Punctuation is dropped so users cannot inject search-DSL operators (quotes, -, *, OR).
-  const terms = words(query.q);
-  if (!terms.length) throw new HttpsError('invalid-argument', 'Enter a word to search for');
-  const rows = await searchMirror(
+  db?: Firestore,
+) =>
+  searchPage(
     schoolId,
     COLL,
     query,
     {
-      terms,
       textFields: TEXT,
       sortField: 'title',
       categoryIds: query.categoryIds,
       classId: query.classId,
     },
+    projectRow,
     db,
   );
-  return {
-    items: rows.slice(0, query.limit).map((row) => ({ id: row.id, ...projectRow(row.data) })),
-    hasMore: rows.length > query.limit,
-  };
-}
 
 export const catalogueSearch: QueryDef<
   typeof catalogueSearchInput,

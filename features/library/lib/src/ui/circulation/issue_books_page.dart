@@ -298,21 +298,42 @@ class _IssueBooksPageState extends State<IssueBooksPage> {
             ),
         ],
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(
-            horizontal: isWide ? 24 : 16,
-            vertical: 16,
-          ),
-          child: isWide
-              ? Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(flex: 5, child: _buildBorrowerCard(context)),
-                    const SizedBox(width: 24),
-                    Expanded(
-                      flex: 7,
-                      child: IssueBooksCard(
+      body: CenteredBody(
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.symmetric(
+              horizontal: isWide ? 24 : 16,
+              vertical: 16,
+            ),
+            child: isWide
+                ? Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(flex: 5, child: _buildBorrowerCard(context)),
+                      const SizedBox(width: 24),
+                      Expanded(
+                        flex: 7,
+                        child: IssueBooksCard(
+                          person: person,
+                          pendingRecord: pendingRecord,
+                          records: _records,
+                          successfulCount: _successfulCount,
+                          busy: _busy,
+                          onScan: _issue,
+                          onRemovePending: () =>
+                              setState(() => _pending = null),
+                          onIssuePending: _issuePending,
+                          onDone: () => Navigator.of(context).pop(),
+                        ),
+                      ),
+                    ],
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildBorrowerCard(context),
+                      const SizedBox(height: 16),
+                      IssueBooksCard(
                         person: person,
                         pendingRecord: pendingRecord,
                         records: _records,
@@ -323,27 +344,9 @@ class _IssueBooksPageState extends State<IssueBooksPage> {
                         onIssuePending: _issuePending,
                         onDone: () => Navigator.of(context).pop(),
                       ),
-                    ),
-                  ],
-                )
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _buildBorrowerCard(context),
-                    const SizedBox(height: 16),
-                    IssueBooksCard(
-                      person: person,
-                      pendingRecord: pendingRecord,
-                      records: _records,
-                      successfulCount: _successfulCount,
-                      busy: _busy,
-                      onScan: _issue,
-                      onRemovePending: () => setState(() => _pending = null),
-                      onIssuePending: _issuePending,
-                      onDone: () => Navigator.of(context).pop(),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+          ),
         ),
       ),
     );

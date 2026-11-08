@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:admin_ui/admin_ui.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
+import 'package:school_library/src/ui/catalogue/book_form_page.dart';
 import 'package:school_library/src/ui/catalogue/widgets/book_copies_section.dart';
 import 'package:school_library/src/ui/catalogue/widgets/book_details_cards.dart';
 import 'package:school_library/src/ui/reservations/widgets/reservation_dialog.dart';
@@ -71,50 +71,58 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
             icon: const Icon(Icons.edit_outlined),
             tooltip: 'Edit book',
             onPressed: () async {
-              await context.push(LibraryRoutes.libraryBookForm, extra: book);
+              await showFormPage(context, () => BookFormPage(book: book));
               await _load();
             },
           ),
         ],
       ),
-      body: ListView(
-        padding: EdgeInsets.symmetric(
-          horizontal: isWide ? 24 : 16,
-          vertical: 16,
-        ),
-        children: [
-          BookHeroCard(
-            book: book,
-            categoryName: categoryName,
-            classNames: [
-              for (final classId in book.classIds)
-                libraryProvider.className(classId),
-            ],
-            onActiveChanged: (value) async {
-              if (await libraryProvider.setBookActive(book.id, active: value)) {
-                await _load();
-              } else if (context.mounted) {
-                showMessage(context, libraryProvider.errorMessage ?? 'Failed');
-              }
-            },
+      body: CenteredBody(
+        child: ListView(
+          padding: EdgeInsets.symmetric(
+            horizontal: isWide ? 24 : 16,
+            vertical: 16,
           ),
-          const SizedBox(height: 16),
-          if (isWide)
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(flex: 3, child: info),
-                const SizedBox(width: 16),
-                Expanded(flex: 2, child: description),
+          children: [
+            BookHeroCard(
+              book: book,
+              categoryName: categoryName,
+              classNames: [
+                for (final classId in book.classIds)
+                  libraryProvider.className(classId),
               ],
-            )
-          else ...[
-            info,
+              onActiveChanged: (value) async {
+                if (await libraryProvider.setBookActive(
+                  book.id,
+                  active: value,
+                )) {
+                  await _load();
+                } else if (context.mounted) {
+                  showMessage(
+                    context,
+                    libraryProvider.errorMessage ?? 'Failed',
+                  );
+                }
+              },
+            ),
             const SizedBox(height: 16),
-            description,
+            if (isWide)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(flex: 3, child: info),
+                  const SizedBox(width: 16),
+                  Expanded(flex: 2, child: description),
+                ],
+              )
+            else ...[
+              info,
+              const SizedBox(height: 16),
+              description,
+            ],
+            BookCopiesSection(book: book),
           ],
-          BookCopiesSection(book: book),
-        ],
+        ),
       ),
     );
   }

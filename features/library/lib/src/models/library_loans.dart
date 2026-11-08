@@ -12,7 +12,9 @@ extension LibraryLoanMembers on LibraryLoan {
   /// Days past due as of [today] (`yyyy-MM-dd`); 0 when not overdue.
   int overdueOn(String today) {
     if (!isActive || dueDate.compareTo(today) >= 0) return 0;
-    return DateTime.parse(today).difference(DateTime.parse(dueDate)).inDays;
+    return DateTime.parse('${today}T00:00:00Z')
+        .difference(DateTime.parse('${dueDate}T00:00:00Z'))
+        .inDays;
   }
 
   /// Fine the return will raise as of [today] (`LoanWrites.returnLoan`): per day or flat after the grace days, capped.

@@ -74,7 +74,7 @@ Inventory definition of done: FRS §31.
 | Lib-4 | Issue, return, renewal (11.9–11.11) | done, not deployed | 04fe97f |
 | Lib-5 | Reservations, waiting lists (11.12) | done, not deployed | 0ab4b80 |
 | Lib-6 | Fines, lost and damaged books (11.13–11.14) | done, not deployed | 44c1383 |
-| Lib-7 | Inter-library transfers, stock verification (11.15–11.16) | done, not deployed | – |
+| Lib-7 | Inter-library transfers, stock verification (11.15–11.16) | in progress (backend done; UI pending) | – |
 | Lib-8 | Reports, notifications, dashboard, import/export, parent view (11.1, 11.17–11.18) | done, not deployed | – |
 
 Library definition of done: FRS §32.
@@ -460,8 +460,8 @@ Rules and indexes:
 
 Flutter:
 
-- [x] `features/library`: `lib_transfers.dart`, `lib_verifications.dart`, service/provider methods, unit tests
-- [x] `icueadmin`: Transfers page (request sheet, transfer sheet with approve/dispatch/receive) and Stock verification page (create sheet, session sheet with scan, submit, approve); routes `/layout.Library/transfers` and `/layout.Library/verification`; home tiles
+- [ ] `features/library`: transfers and stock verifications models, service/provider methods, unit tests
+- [ ] `school_library`: Transfers page and Stock verification page; routes `/layout.Library/{transfers,verification}`; home tiles
 - [x] Lint passes (library, icueadmin); functions build, 118 emulator tests and 33 rules tests pass
 
 ### Lib-8

@@ -61,10 +61,6 @@ export const stockPerson = z.object({
   type: z.enum(['staff', 'student', 'department']),
   personErpId: z.number().int(),
 });
-/** Header fields stamped on every transaction (FRS 13): date defaults to today (IST). */
-export const transactionFields = {
-  date: isoDate.optional(),
-};
 export const lineKey = { itemId: id, variantId: id.nullish() };
 /** Batch identity of a stock line (FRS 10.7). */
 export const batch = {
@@ -73,24 +69,12 @@ export const batch = {
   expiryDate: isoDate.nullish(),
 };
 
-/** Identifies a line by item and variant. */
-export const lineItemKey = (lineItem: { itemId?: string; variantId?: string | null }) =>
-  `${lineItem.itemId}__${lineItem.variantId ?? '-'}`;
-
-export function assertUniqueLines(lineItems: { itemId: string; variantId?: string | null }[]) {
-  if (new Set(lineItems.map(lineItemKey)).size !== lineItems.length)
-    throw failed('Each item (and variant) may appear once');
-}
-
 export const balanceId = (
   storeId: string,
   itemId: string,
   variantId?: string | null,
   batchNumber?: string | null,
-) =>
-  [storeId, itemId, variantId || '-', batchNumber ? encodeURIComponent(batchNumber) : '-'].join(
-    '__',
-  );
+) => [storeId, itemId, variantId || '-', encodeURIComponent(batchNumber || '-')].join('__');
 
 export class Stock {
   readonly date: string;
@@ -331,8 +315,8 @@ export class Stock {
     balance.data[field] += quantity;
     if (movement.type === 'receive' || movement.type === 'transfer_in')
       balance.data.totalQuantityReceived += quantity;
-    if (movement.type === 'issue') balance.data.totalQuantityIssued -= quantity;
-    if (movement.type === 'return') balance.data.totalQuantityIssued -= quantity;
+    if (movement.type === 'issue' || movement.type === 'return')
+      balance.data.totalQuantityIssued -= quantity;
     this.moves.push({
       type: movement.type,
       balanceId: balance.id,
@@ -385,21 +369,30 @@ export class Stock {
           ? balance.data.expiryDate
           : null;
       this.context.set(balance.ref, { ...balance.data, updatedAt: serverTimestamp() });
-      if (balance.data.isBelowReorderLevel && !balance.wasLow) {
-        await enqueue(this.context, `inventory-low-stock__${balance.id}__${this.date}`, {
+      const name = this.items.get(balance.data.itemId)?.name ?? 'An item';
+      const alerts = [
+        balance.data.isBelowReorderLevel &&
+          !balance.wasLow && {
+            slug: 'low-stock',
+            category: 'inventory.lowStock',
+            title: 'Low stock',
+            body: `${name} is at ${balance.data.quantityAvailable} (reorder level ${balance.reorder}).`,
+          },
+        balance.data.quantityAvailable === 0 &&
+          !balance.wasOut && {
+            slug: 'out-of-stock',
+            category: 'inventory.outOfStock',
+            title: 'Out of stock',
+            body: `${name} is out of stock.`,
+          },
+      ];
+      for (const alert of alerts) {
+        if (!alert) continue;
+        await enqueue(this.context, `inventory-${alert.slug}__${balance.id}__${this.date}`, {
           to: { permission: 'inventory.stock.operate', campusId: balance.data.campusId },
-          category: 'inventory.lowStock',
-          title: 'Low stock',
-          body: `${this.items.get(balance.data.itemId)?.name ?? 'An item'} is at ${balance.data.quantityAvailable} (reorder level ${balance.reorder}).`,
-          data: { balanceId: balance.id },
-        });
-      }
-      if (balance.data.quantityAvailable === 0 && !balance.wasOut) {
-        await enqueue(this.context, `inventory-out-of-stock__${balance.id}__${this.date}`, {
-          to: { permission: 'inventory.stock.operate', campusId: balance.data.campusId },
-          category: 'inventory.outOfStock',
-          title: 'Out of stock',
-          body: `${this.items.get(balance.data.itemId)?.name ?? 'An item'} is out of stock.`,
+          category: alert.category,
+          title: alert.title,
+          body: alert.body,
           data: { balanceId: balance.id },
         });
       }

@@ -56,9 +56,8 @@ class _PersonPickerState extends State<PersonPicker> {
       final person = await libraryProvider.findPerson(_type, number);
       if (!mounted) return;
       if (person == null) {
-        setState(
-          () => _error = 'No $_label found with admission number "$number"',
-        );
+        final identifier = _type == 'student' ? 'admission number' : 'staff ID';
+        setState(() => _error = 'No $_label found with $identifier "$number"');
         _focusNode.requestFocus();
       } else {
         _choose(person);
@@ -133,10 +132,13 @@ class _PersonPickerState extends State<PersonPicker> {
             focusNode: _focusNode,
             autofocus: widget.autofocus,
             enabled: !_loading,
+            keyboardType: _type == 'teacher' ? TextInputType.number : null,
             textInputAction: TextInputAction.search,
             onSubmitted: _find,
             decoration: InputDecoration(
-              hintText: 'Enter admission number',
+              hintText: _type == 'student'
+                  ? 'Enter admission number'
+                  : 'Enter staff ID (ERP ID)',
               prefixIcon: const Icon(Icons.badge_outlined),
               suffixIcon: _loading
                   ? const Padding(

@@ -9,12 +9,22 @@ class LibraryPeopleService {
 
   final RouteService _routes;
 
-  /// The student or staff member with exactly [admissionNumber] in the ERP (Node), or null.
+  /// The student by admission number, or staff member by ERP ID, or null.
   Future<LibraryPerson?> findByAdmissionNumber(
     String memberType,
     String admissionNumber,
   ) async {
     final number = admissionNumber.trim();
+    if (memberType == 'teacher') {
+      final staffId = int.tryParse(number);
+      if (staffId == null || staffId <= 0) return null;
+      return LibraryPerson(
+        memberType: 'teacher',
+        personErpId: staffId,
+        name: 'Staff #$staffId',
+        detail: 'Staff ID $staffId',
+      );
+    }
     final student = await _routes.searchStudentByAdmissionNumber(number);
     if (student == null) return null;
     return personFrom(memberType, student);

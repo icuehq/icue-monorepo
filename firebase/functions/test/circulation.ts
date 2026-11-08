@@ -7,14 +7,7 @@ import {
   type LibraryLoan,
   type LoanPolicySnapshot,
 } from '../src/shared/contracts';
-import {
-  todayIST,
-  addDays,
-  daysBetween,
-  dayTimestamp,
-  isoDate,
-  timestampDay,
-} from '../src/shared/dates';
+import { todayIST, addDays, dayTimestamp, isoDate, timestampDay } from '../src/shared/dates';
 import { serverTimestamp } from '../src/shared/firestore';
 import { nextNumber } from '../src/shared/keys';
 import { defineCallable, failed, id, missing, optionalText, usable } from '../src/shared/masters';
@@ -225,7 +218,10 @@ export const loans = {
       ]);
       if (snapshot.data()?.activeLoanId !== ref.id) throw failed('Copy is not on this loan');
       const today = todayIST();
-      const overdueDays = Math.max(0, daysBetween(timestampDay(loan.dueDate), today));
+      const overdueDays = Math.max(
+        0,
+        Math.round((Date.parse(today) - Date.parse(timestampDay(loan.dueDate))) / 86_400_000),
+      );
       const returnNumber = await nextNumber(context, 'LRT');
       const after = {
         status: LoanStatus.returned,

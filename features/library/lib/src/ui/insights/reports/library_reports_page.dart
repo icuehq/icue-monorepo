@@ -154,72 +154,74 @@ class _LibraryReportsPageState extends State<LibraryReportsPage> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Library Reports')),
-      body: ListView(
-        padding: EdgeInsets.symmetric(
-          horizontal: context.isWide ? 24 : 16,
-          vertical: 16,
-        ),
-        children: [
-          Text(
-            'Choose a report to filter, search and sort.',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+      body: CenteredBody(
+        child: ListView(
+          padding: EdgeInsets.symmetric(
+            horizontal: context.isWide ? 24 : 16,
+            vertical: 16,
           ),
-          const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: TextField(
-                decoration: const InputDecoration(
-                  hintText: 'Search reports',
-                  prefixIcon: Icon(Icons.search),
-                ),
-                onChanged: (value) => setState(() => _search = value.trim()),
+          children: [
+            Text(
+              'Choose a report to filter, search and sort.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
-          ),
-          if (groups.isEmpty)
-            SizedBox(
-              height: 320,
-              child: EmptyState.noResults(
-                title: 'No reports match "$_search"',
-                onAction: () => setState(() => _search = ''),
-              ),
-            ),
-          for (final entry in groups.entries) ...[
-            Padding(
-              padding: const EdgeInsets.only(top: 24, bottom: 10),
-              child: Text(
-                entry.key,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: TextField(
+                  decoration: const InputDecoration(
+                    hintText: 'Search reports',
+                    prefixIcon: Icon(Icons.search),
+                  ),
+                  onChanged: (value) => setState(() => _search = value.trim()),
                 ),
               ),
             ),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final columns = constraints.maxWidth >= 1000
-                    ? 3
-                    : constraints.maxWidth >= 620
-                    ? 2
-                    : 1;
-                const gap = 12.0;
-                final width =
-                    (constraints.maxWidth - gap * (columns - 1)) / columns;
-                return Wrap(
-                  spacing: gap,
-                  runSpacing: gap,
-                  children: [
-                    for (final def in entry.value)
-                      SizedBox(width: width, child: _card(context, def)),
-                  ],
-                );
-              },
-            ),
+            if (groups.isEmpty)
+              SizedBox(
+                height: 320,
+                child: EmptyState.noResults(
+                  title: 'No reports match "$_search"',
+                  onAction: () => setState(() => _search = ''),
+                ),
+              ),
+            for (final entry in groups.entries) ...[
+              Padding(
+                padding: const EdgeInsets.only(top: 24, bottom: 10),
+                child: Text(
+                  entry.key,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final columns = constraints.maxWidth >= 1000
+                      ? 3
+                      : constraints.maxWidth >= 620
+                      ? 2
+                      : 1;
+                  const gap = 12.0;
+                  final width =
+                      (constraints.maxWidth - gap * (columns - 1)) / columns;
+                  return Wrap(
+                    spacing: gap,
+                    runSpacing: gap,
+                    children: [
+                      for (final def in entry.value)
+                        SizedBox(width: width, child: _card(context, def)),
+                    ],
+                  );
+                },
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

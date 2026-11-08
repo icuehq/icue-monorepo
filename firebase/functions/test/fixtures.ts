@@ -1,17 +1,14 @@
 import { FieldValue } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import {
-  assertUniqueLines,
   batch,
-  lineItemKey,
   lineKey,
   positiveQuantity,
   Stock,
   stockPerson,
-  transactionFields,
   unavailableEntry,
 } from '../src/inventory/stock';
-import { dayTimestamp, timestampDay, todayIST } from '../src/shared/dates';
+import { dayTimestamp, isoDate, timestampDay, todayIST } from '../src/shared/dates';
 import { serverTimestamp } from '../src/shared/firestore';
 import {
   defineCallable,
@@ -24,6 +21,14 @@ import {
 } from '../src/shared/masters';
 import { enqueue } from '../src/shared/outbox';
 import { db } from './setup';
+
+const transactionFields = { date: isoDate.optional() };
+const lineItemKey = (lineItem: { itemId?: string; variantId?: string | null }) =>
+  `${lineItem.itemId}__${lineItem.variantId ?? '-'}`;
+function assertUniqueLines(lineItems: { itemId: string; variantId?: string | null }[]) {
+  if (new Set(lineItems.map(lineItemKey)).size !== lineItems.length)
+    throw failed('Each item (and variant) may appear once');
+}
 
 /** Documents the client writes directly (`firestore.rules`); the server only reads them, so tests seed them. */
 const SCHOOL = 'schools/12';
