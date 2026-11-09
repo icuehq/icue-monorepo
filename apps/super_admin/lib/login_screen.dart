@@ -162,7 +162,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ],
           ),
-          child: Image.asset('assets/images/logo.png', fit: BoxFit.contain),
+          child: Image.asset('assets/images/logo.webp', fit: BoxFit.contain),
         ),
         const SizedBox(height: 16),
         Text(
