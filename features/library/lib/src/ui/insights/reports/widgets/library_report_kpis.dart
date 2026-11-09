@@ -25,11 +25,7 @@ class _KpiMetric {
 
 /// Executive KPI cards summarizing current library report data.
 class LibraryReportKpis extends StatelessWidget {
-  const LibraryReportKpis({
-    required this.kind,
-    required this.rows,
-    super.key,
-  });
+  const LibraryReportKpis({required this.kind, required this.rows, super.key});
 
   final LibraryReportKind kind;
   final List<Map<String, dynamic>> rows;
@@ -206,8 +202,8 @@ class LibraryReportKpis extends StatelessWidget {
         color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: borderColor ??
-              colorScheme.outlineVariant.withValues(alpha: 0.5),
+          color:
+              borderColor ?? colorScheme.outlineVariant.withValues(alpha: 0.5),
         ),
         boxShadow: [
           BoxShadow(
@@ -270,8 +266,9 @@ class LibraryReportKpis extends StatelessWidget {
                         ? colorScheme.error
                         : colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
                     fontSize: 11,
-                    fontWeight:
-                        metric.isAlert ? FontWeight.w600 : FontWeight.normal,
+                    fontWeight: metric.isAlert
+                        ? FontWeight.w600
+                        : FontWeight.normal,
                   ),
                 ),
               ],

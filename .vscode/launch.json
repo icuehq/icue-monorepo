@@ -65,6 +65,30 @@
       ]
     },
     {
+      "name": "super_admin [Dev]",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "apps/super_admin",
+      "program": "lib/main.dart",
+      "args": [
+        "--flavor",
+        "dev",
+        "--dart-define=ENV=dev"
+      ]
+    },
+    {
+      "name": "super_admin [Prod]",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "apps/super_admin",
+      "program": "lib/main.dart",
+      "args": [
+        "--flavor",
+        "prod",
+        "--dart-define=ENV=prod"
+      ]
+    },
+    {
       "name": "impl [Dev]",
       "request": "launch",
       "type": "dart",

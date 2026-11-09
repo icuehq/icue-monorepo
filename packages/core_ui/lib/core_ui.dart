@@ -3,6 +3,8 @@ library;
 export 'src/app_update/app_update_service.dart';
 export 'src/connectivity/connectivity_banner.dart';
 export 'src/connectivity/connectivity_service.dart';
+export 'src/theme/app_theme.dart';
+export 'src/theme/brand_colors.dart';
 export 'src/typography/app_fonts.dart';
 export 'src/utils/csv_utils.dart';
 export 'src/utils/date_time_formatting.dart';

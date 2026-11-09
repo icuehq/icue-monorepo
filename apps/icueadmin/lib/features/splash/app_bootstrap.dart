@@ -8,7 +8,6 @@ import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icueadmin/app_firebase_options.dart';
 import 'package:icueadmin/di/injection.dart';
 import 'package:icueadmin/features/splash/splash_page.dart';
-import 'package:icueadmin/theme/app_theme.dart';
 import 'package:local_storage/local_storage.dart';
 
 /// Shows [SplashPage] while startup tasks run, then builds [builder].
@@ -78,7 +77,7 @@ class _AppBootstrapState extends State<AppBootstrap> {
         if (snapshot.hasData) return widget.builder(snapshot.data!);
         return MaterialApp(
           debugShowCheckedModeBanner: false,
-          theme: AppTheme.forEnvironment(widget.environment),
+          theme: AppTheme.forEnvironment(isProd: widget.environment.isProd),
           // Always show the splash, whatever URL the browser opened on
           // (e.g. /login), which this router-less app has no route for.
           onGenerateInitialRoutes: (_) => [

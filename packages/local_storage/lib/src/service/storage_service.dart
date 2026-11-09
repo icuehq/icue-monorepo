@@ -68,6 +68,11 @@ class StorageService {
     await box.put(key, value);
   }
 
+  Future<void> putAll<T>(String boxName, Map<dynamic, T> entries) async {
+    final box = await openBox<T>(boxName);
+    await box.putAll(entries);
+  }
+
   T? get<T>(String boxName, dynamic key, {T? defaultValue}) {
     final lower = boxName.toLowerCase();
     if (_openBoxes.containsKey(lower)) {

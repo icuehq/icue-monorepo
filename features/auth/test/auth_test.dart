@@ -396,6 +396,8 @@ class _FakeStorageService implements StorageService {
   @override
   T? get<T>(String boxName, dynamic key, {T? defaultValue}) => defaultValue;
   @override
+  Future<void> putAll<T>(String boxName, Map<dynamic, T> entries) async {}
+  @override
   Future<void> delete(String boxName, dynamic key) async {}
   @override
   bool containsKey(String boxName, dynamic key) => false;
@@ -496,6 +498,8 @@ class _FakeAuthService extends AuthService {
   Future<UserInfo> login({
     required String username,
     required String password,
+    String path = '/v2.0/login',
+    String? source,
   }) async {
     if (errorToThrow != null) {
       throw errorToThrow!;

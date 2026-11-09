@@ -75,10 +75,7 @@ class _LibraryReportsPageState extends State<LibraryReportsPage> {
     _load();
   }
 
-  Future<void> _exportCsv(
-    List<String> header,
-    List<List<String>> rows,
-  ) async {
+  Future<void> _exportCsv(List<String> header, List<List<String>> rows) async {
     final query = _searchQuery.toLowerCase().trim();
     final matchingRows = rows
         .where(
@@ -125,8 +122,10 @@ class _LibraryReportsPageState extends State<LibraryReportsPage> {
     final filteredCount = query.isEmpty
         ? rows.length
         : rows
-            .where((row) => row.any((cell) => cell.toLowerCase().contains(query)))
-            .length;
+              .where(
+                (row) => row.any((cell) => cell.toLowerCase().contains(query)),
+              )
+              .length;
 
     final footerNote =
         _def.kind == LibraryReportKind.loans &&
@@ -170,10 +169,7 @@ class _LibraryReportsPageState extends State<LibraryReportsPage> {
               onSelected: _onReportChanged,
             ),
             const SizedBox(height: 18),
-            LibraryReportKpis(
-              kind: _def.kind,
-              rows: library.reportRows,
-            ),
+            LibraryReportKpis(kind: _def.kind, rows: library.reportRows),
             const SizedBox(height: 18),
             LibraryReportFilters(
               searchController: _searchController,

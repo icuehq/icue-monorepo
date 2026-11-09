@@ -192,6 +192,38 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  /// Password login against `/v1.0/login` (super admin app); skips role actions.
+  Future<bool> loginWithPassword({
+    required String username,
+    required String password,
+  }) async {
+    loading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      user = await _authService.login(
+        username: username,
+        password: password,
+        path: '/v1.0/login',
+        source: 'App',
+      );
+      _step = AuthStep.authenticated;
+      return true;
+    } on ApiException catch (e) {
+      _errorMessage = e is UnauthorizedException
+          ? 'Invalid username or password.'
+          : e.message;
+      return false;
+    } catch (_) {
+      _errorMessage = 'Unable to log in. Please try again.';
+      return false;
+    } finally {
+      loading = false;
+      notifyListeners();
+    }
+  }
+
   /// Fetches actions permitted for the current user role against `/v1.0/getActionsByRole`.
   Future<void> getRoleActions({bool isSplash = false}) async {
     if (user == null) {

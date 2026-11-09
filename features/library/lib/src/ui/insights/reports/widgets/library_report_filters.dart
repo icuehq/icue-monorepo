@@ -74,7 +74,10 @@ class LibraryReportFilters extends StatelessWidget {
                 onPressed: onClearSearch,
               ),
         isDense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 12,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide(
@@ -87,22 +90,19 @@ class LibraryReportFilters extends StatelessWidget {
   }
 
   Widget _libraryDropdown(BuildContext context) => SizedBox(
-        width: 220,
-        child: AppDropdown<String>(
-          value: selectedLibraryId,
-          items: [
-            const DropdownMenuItem(child: Text('All libraries')),
-            for (final library in libraries)
-              DropdownMenuItem(
-                value: library.id,
-                child: Text(library.name),
-              ),
-          ],
-          onChanged: onLibraryChanged,
-          icon: Icons.local_library_outlined,
-          label: 'Library',
-        ),
-      );
+    width: 220,
+    child: AppDropdown<String>(
+      value: selectedLibraryId,
+      items: [
+        const DropdownMenuItem(child: Text('All libraries')),
+        for (final library in libraries)
+          DropdownMenuItem(value: library.id, child: Text(library.name)),
+      ],
+      onChanged: onLibraryChanged,
+      icon: Icons.local_library_outlined,
+      label: 'Library',
+    ),
+  );
 
   Widget _dateControls(BuildContext context) {
     final theme = Theme.of(context);

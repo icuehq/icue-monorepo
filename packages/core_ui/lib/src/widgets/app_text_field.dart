@@ -51,6 +51,9 @@ class AppTextField extends StatefulWidget {
     this.textCapitalization = TextCapitalization.none,
     this.obscureText = false,
     this.autofocus = false,
+    this.autofillHints,
+    this.autocorrect = true,
+    this.enableSuggestions = true,
     this.enabled = true,
     this.readOnly = false,
     this.minLines,
@@ -79,6 +82,9 @@ class AppTextField extends StatefulWidget {
   final TextCapitalization textCapitalization;
   final bool obscureText;
   final bool autofocus;
+  final Iterable<String>? autofillHints;
+  final bool autocorrect;
+  final bool enableSuggestions;
   final bool enabled;
   final bool readOnly;
   final int? minLines;
@@ -128,6 +134,9 @@ class _AppTextFieldState extends State<AppTextField> {
       textInputAction: widget.textInputAction,
       textCapitalization: widget.textCapitalization,
       autofocus: widget.autofocus,
+      autofillHints: widget.autofillHints,
+      autocorrect: widget.autocorrect,
+      enableSuggestions: widget.enableSuggestions,
       enabled: widget.enabled,
       readOnly: widget.readOnly,
       obscureText: _obscure,

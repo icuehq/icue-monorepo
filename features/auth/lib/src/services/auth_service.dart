@@ -44,15 +44,22 @@ class AuthService {
     return OtpResponse.fromJson(data);
   }
 
-  /// Performs user login with OTP against `/v2.0/login`.
+  /// Performs user login against [path] (`/v2.0/login` with an OTP, or
+  /// `/v1.0/login` with a password).
   /// Automatically stores the received token and user info into [tokenProvider] and [userLocalStorage].
   Future<UserInfo> login({
     required String username,
     required String password,
+    String path = '/v2.0/login',
+    String? source,
   }) async {
     final response = await apiClient.post<dynamic>(
-      '/v2.0/login',
-      data: <String, dynamic>{'username': username, 'password': password},
+      path,
+      data: <String, dynamic>{
+        'username': username,
+        'password': password,
+        'Source': ?source,
+      },
       options: Options(extra: <String, dynamic>{'no_auth': true}),
     );
 

@@ -52,7 +52,9 @@ class _LibraryReportTableState extends State<LibraryReportTable> {
 
     switch (lower) {
       case 'active':
-        backgroundColor = theme.colorScheme.primaryContainer.withValues(alpha: 0.55);
+        backgroundColor = theme.colorScheme.primaryContainer.withValues(
+          alpha: 0.55,
+        );
         foregroundColor = theme.colorScheme.primary;
         icon = Icons.sync_rounded;
       case 'returned':
@@ -60,7 +62,9 @@ class _LibraryReportTableState extends State<LibraryReportTable> {
         foregroundColor = Colors.green.shade800;
         icon = Icons.check_circle_outline_rounded;
       case 'lost':
-        backgroundColor = theme.colorScheme.errorContainer.withValues(alpha: 0.6);
+        backgroundColor = theme.colorScheme.errorContainer.withValues(
+          alpha: 0.6,
+        );
         foregroundColor = theme.colorScheme.error;
         icon = Icons.cancel_outlined;
       default:
@@ -144,10 +148,7 @@ class _LibraryReportTableState extends State<LibraryReportTable> {
       );
     }
 
-    return Text(
-      cell,
-      style: theme.textTheme.bodyMedium,
-    );
+    return Text(cell, style: theme.textTheme.bodyMedium);
   }
 
   @override
@@ -286,8 +287,9 @@ class _LibraryReportTableState extends State<LibraryReportTable> {
                         DataRow(
                           color: hasTotals && index == tableRows.length - 1
                               ? WidgetStatePropertyAll(
-                                  theme.colorScheme.primaryContainer
-                                      .withValues(alpha: 0.25),
+                                  theme.colorScheme.primaryContainer.withValues(
+                                    alpha: 0.25,
+                                  ),
                                 )
                               : null,
                           cells: [

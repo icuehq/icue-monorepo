@@ -1,17 +1,15 @@
-import 'package:api_client/api_client.dart';
-import 'package:core_ui/core_ui.dart';
+import 'package:core_ui/src/theme/brand_colors.dart';
+import 'package:core_ui/src/typography/app_fonts.dart';
 import 'package:flutter/material.dart';
-import 'package:icueadmin/theme/brand_colors.dart';
 
 /// Auto-picks a readable foreground for solid fills.
 Color _onColor(Color c) =>
     c.computeLuminance() > 0.5 ? Colors.black : Colors.white;
 
 abstract final class AppTheme {
-  /// Returns the appropriate theme for the active [ApiEnvironment] (Dev vs Prod).
-  static ThemeData forEnvironment(ApiEnvironment environment) {
-    return environment.isProd ? prodTheme() : devTheme();
-  }
+  /// Prod (teal) or dev (purple) theme.
+  static ThemeData forEnvironment({required bool isProd}) =>
+      isProd ? prodTheme() : devTheme();
 
   /// Production theme (Teal/Emerald).
   static ThemeData prodTheme() => _buildTheme(

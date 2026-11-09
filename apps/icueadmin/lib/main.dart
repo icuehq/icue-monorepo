@@ -16,7 +16,6 @@ import 'package:icueadmin/analytics/app_events.dart';
 import 'package:icueadmin/di/injection.dart';
 import 'package:icueadmin/features/splash/app_bootstrap.dart';
 import 'package:icueadmin/routing/app_router.dart';
-import 'package:icueadmin/theme/app_theme.dart';
 import 'package:inventory/inventory.dart';
 import 'package:logbook/logbook.dart';
 import 'package:provider/provider.dart';
@@ -222,7 +221,7 @@ class _IcueAdminAppState extends State<IcueAdminApp> {
       child: MaterialApp.router(
         title: 'iCue Admin',
         debugShowCheckedModeBanner: false,
-        theme: AppTheme.forEnvironment(widget.environment),
+        theme: AppTheme.forEnvironment(isProd: widget.environment.isProd),
         routerConfig: _router,
         builder: (context, child) =>
             ConnectivityBanner(service: widget.connectivity, child: child!),

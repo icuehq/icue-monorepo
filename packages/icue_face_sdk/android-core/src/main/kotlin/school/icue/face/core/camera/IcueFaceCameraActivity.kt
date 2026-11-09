@@ -68,6 +68,7 @@ class IcueFaceCameraActivity : ComponentActivity() {
     private lateinit var previewView: PreviewView
     private lateinit var overlay: FaceOverlayView
     private lateinit var statusPill: TextView
+    private var countLabel: TextView? = null
     private var camera: Camera? = null
     private var scaleGestureDetector: ScaleGestureDetector? = null
     private var zoomSlider: SeekBar? = null
@@ -171,6 +172,8 @@ class IcueFaceCameraActivity : ComponentActivity() {
                 is CameraSession.MultiPhotoAttendance -> "MULTI-PHOTO • 0 PHOTO(S) • 0/${activeSession.roster.size} PRESENT"
                 else -> "ATTENDANCE • SCANNING CLASSROOM"
             }
+            // Live attendance shows its count large in the header instead.
+            if (session is CameraSession.LiveAttendance) visibility = View.GONE
         }
 
         val topScrim = View(this).apply {
@@ -186,18 +189,20 @@ class IcueFaceCameraActivity : ComponentActivity() {
             )
         }
 
-        val titleStack = LinearLayout(this).apply {
+        val titleBlock = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             addView(TextView(this@IcueFaceCameraActivity).apply {
                 text = when (session) {
                     is CameraSession.Capture -> "STUDENT ENROLLMENT"
-                    is CameraSession.LiveAttendance -> "LIVE CLASS ATTENDANCE"
+                    is CameraSession.LiveAttendance -> "TRANSPORT ATTENDANCE"
                     is CameraSession.MultiPhotoAttendance -> "MULTI-GROUP ATTENDANCE"
                     else -> "STUDENT ATTENDANCE SCAN"
                 }
                 setTextColor(COLOR_ACCENT_CYAN)
                 textSize = 13f
                 letterSpacing = 0.18f
+                // Wraps onto a second line on narrow screens instead of reaching the buttons.
+                maxLines = 2
                 typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
             })
             addView(TextView(this@IcueFaceCameraActivity).apply {
@@ -206,6 +211,21 @@ class IcueFaceCameraActivity : ComponentActivity() {
                 textSize = 11f
                 setPadding(0, dp(2), 0, 0)
             })
+        }
+
+        // Live attendance shows the present count after the title block, centred on it.
+        (session as? CameraSession.LiveAttendance)?.let { live ->
+            countLabel = TextView(this).apply {
+                setTextColor(Color.WHITE)
+                textSize = 28f
+                typeface = Typeface.create("sans-serif-black", Typeface.BOLD)
+            }
+            setAttendanceCount(live.roster.size, 0)
+        }
+
+        val titleStack = HeaderRow(this).apply {
+            addView(titleBlock)
+            countLabel?.let { addView(it) }
         }
 
         val cameraFlipBtn = FrameLayout(this).apply {
@@ -565,6 +585,44 @@ class IcueFaceCameraActivity : ComponentActivity() {
         }
     }
 
+    private fun setAttendanceCount(total: Int, present: Int) {
+        countLabel?.text = "$present/$total"
+    }
+
+    /**
+     * Title block with an optional count after it. The title wraps within whatever width the
+     * count leaves, so the count never overlaps the header buttons; both are centred
+     * vertically on each other.
+     */
+    private class HeaderRow(context: Context) : LinearLayout(context) {
+        private val gap = (12 * resources.displayMetrics.density).toInt()
+
+        override fun onMeasure(widthSpec: Int, heightSpec: Int) {
+            val block = getChildAt(0)
+            val count = if (childCount > 1) getChildAt(1) else null
+            val unspecified = MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED)
+            count?.measure(unspecified, unspecified)
+            val countWidth = count?.let { it.measuredWidth + gap } ?: 0
+            val available = (MeasureSpec.getSize(widthSpec) - countWidth).coerceAtLeast(0)
+            block.measure(MeasureSpec.makeMeasureSpec(available, MeasureSpec.AT_MOST), unspecified)
+            // Fill the width the parent gives, so the header buttons stay at the far end.
+            setMeasuredDimension(
+                resolveSize(block.measuredWidth + countWidth, widthSpec),
+                maxOf(block.measuredHeight, count?.measuredHeight ?: 0),
+            )
+        }
+
+        override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
+            var x = 0
+            for (index in 0 until childCount) {
+                val child = getChildAt(index)
+                val y = (measuredHeight - child.measuredHeight) / 2
+                child.layout(x, y, x + child.measuredWidth, y + child.measuredHeight)
+                x += child.measuredWidth + gap
+            }
+        }
+    }
+
     private fun roundedPill(bgColor: Int, strokeColor: Int) = GradientDrawable().apply {
         cornerRadius = dp(20).toFloat()
         setColor(bgColor)
@@ -889,7 +947,6 @@ class IcueFaceCameraActivity : ComponentActivity() {
             val faces = recognitions.map { it.boundingBox }
             val totalRoster = activeSession.roster.size
             val presentCount = markedPresentMap.size
-            val percent = if (totalRoster == 0) 0 else (presentCount * 100 / totalRoster)
 
             runOnUiThread {
                 overlay.update(
@@ -909,8 +966,7 @@ class IcueFaceCameraActivity : ComponentActivity() {
                     },
                     recognitions.map { it.matched && it.personId != null }
                 )
-                statusPill.text = "LIVE ATTENDANCE • $presentCount/$totalRoster PRESENT ($percent%)"
-                statusPill.background = roundedPill(0xCC0B1422.toInt(), 0x6600E676.toInt())
+                setAttendanceCount(totalRoster, presentCount)
             }
 
             if (activeSession.autoFinish && totalRoster > 0 && presentCount >= totalRoster) {
