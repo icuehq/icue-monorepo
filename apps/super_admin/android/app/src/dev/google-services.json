@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "483508933555",
+    "project_id": "icueadmin-dev",
+    "storage_bucket": "icueadmin-dev.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:483508933555:android:8ee188c89cbd3f9e4771c6",
+        "android_client_info": {
+          "package_name": "com.thoughtniques.icueadmin.dev"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDhwNHoUIIaKbFQE2WZao_ZYFrzBnxRZDU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:483508933555:android:a9a5e923e3b332384771c6",
+        "android_client_info": {
+          "package_name": "school.icue.super_admin.dev"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDhwNHoUIIaKbFQE2WZao_ZYFrzBnxRZDU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

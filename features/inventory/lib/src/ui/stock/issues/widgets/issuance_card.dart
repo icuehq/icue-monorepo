@@ -103,19 +103,21 @@ class IssuanceCard extends StatelessWidget {
               children: [
                 if (!issue.acknowledged)
                   Expanded(
-                    child: FilledButton.tonal(
+                    child: AppButton(
+                      label: 'Confirm receipt',
                       onPressed: busy ? null : onConfirmReceipt,
-                      child: const Text('Confirm receipt'),
+                      variant: AppButtonVariant.secondary,
                     ),
                   ),
                 if (!issue.acknowledged && hasOutstanding)
                   const SizedBox(width: 8),
                 if (hasOutstanding)
                   Expanded(
-                    child: OutlinedButton.icon(
+                    child: AppButton(
+                      label: 'Return items',
                       onPressed: busy ? null : onReturn,
-                      icon: const Icon(Icons.undo_rounded, size: 18),
-                      label: const Text('Return items'),
+                      variant: AppButtonVariant.outline,
+                      leadingIcon: Icons.undo_rounded,
                     ),
                   ),
               ],

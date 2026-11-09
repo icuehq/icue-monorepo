@@ -1,4 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
@@ -55,9 +56,10 @@ class _RfidSheetState extends State<RfidSheet> {
         ),
       ),
       if (widget.asset.rfidTag != null)
-        TextButton(
+        AppButton(
+          label: 'Remove tag',
           onPressed: _busy ? null : () => _save(null),
-          child: const Text('Remove tag'),
+          variant: AppButtonVariant.ghost,
         ),
     ],
   );

@@ -184,11 +184,10 @@ class _CirculationPageState extends State<CirculationPage> {
       appBar: AppBar(
         title: const Text('Circulation'),
         actions: [
-          FilledButton.icon(
+          AppButton(
+            label: 'Issue',
             onPressed: () => context.push(LibraryRoutes.libraryIssue),
-            icon: const Icon(Icons.add_rounded),
-            label: const Text('Issue'),
-            style: FilledButton.styleFrom(minimumSize: const Size(0, 40)),
+            leadingIcon: Icons.add_rounded,
           ),
           IconButton(
             tooltip: 'Refresh loans',
@@ -294,13 +293,14 @@ class _CirculationPageState extends State<CirculationPage> {
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 8,
                                   ),
-                                  child: TextButton(
+                                  child: AppButton(
+                                    label: 'Load more',
                                     onPressed: libraryProvider.loansLoading
                                         ? null
                                         : () => libraryProvider.loadLoans(
                                             more: true,
                                           ),
-                                    child: const Text('Load more'),
+                                    variant: AppButtonVariant.ghost,
                                   ),
                                 ),
                               )

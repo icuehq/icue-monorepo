@@ -87,13 +87,14 @@ class _MaintenanceUpdateDialogState extends State<MaintenanceUpdateDialog> {
             ],
           ),
           actions: [
-            TextButton(
+            AppButton(
+              label: 'Back',
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Back'),
+              variant: AppButtonVariant.ghost,
             ),
-            FilledButton(
+            AppButton(
+              label: 'Add',
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Add'),
             ),
           ],
         ),
@@ -216,16 +217,17 @@ class _MaintenanceUpdateDialogState extends State<MaintenanceUpdateDialog> {
             if (context.read<InventoryProvider>().access.can(
               'inventory.stock.operate',
             ))
-              TextButton.icon(
-                icon: const Icon(Icons.add),
-                label: const Text('Add part from store'),
+              AppButton(
+                label: 'Add part from store',
                 onPressed: _addPart,
+                variant: AppButtonVariant.ghost,
+                leadingIcon: Icons.add,
               ),
           ],
           const SizedBox(height: 16),
-          FilledButton(
+          AppButton(
+            label: _busy ? 'Saving…' : humanizeStatus(widget.status),
             onPressed: _busy ? null : _save,
-            child: Text(_busy ? 'Saving…' : humanizeStatus(widget.status)),
           ),
         ],
       ),

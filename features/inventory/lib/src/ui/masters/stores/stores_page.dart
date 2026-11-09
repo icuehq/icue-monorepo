@@ -1,4 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:inventory/inventory.dart';
@@ -126,12 +127,12 @@ class _StoresPageState extends State<StoresPage> {
                               ),
                               if (canEdit) ...[
                                 const SizedBox(height: 20),
-                                FilledButton.icon(
+                                AppButton(
+                                  label: 'Create first store',
                                   onPressed: () => context.push(
                                     InventoryRoutes.inventoryStoreForm,
                                   ),
-                                  icon: const Icon(Icons.add, size: 18),
-                                  label: const Text('Create first store'),
+                                  leadingIcon: Icons.add,
                                 ),
                               ],
                             ],
@@ -256,7 +257,8 @@ class _StoresPageState extends State<StoresPage> {
                                                 ),
                                           ),
                                           const SizedBox(height: 12),
-                                          TextButton(
+                                          AppButton(
+                                            label: 'Clear filters',
                                             onPressed: () {
                                               setState(() {
                                                 _searchController.clear();
@@ -264,7 +266,7 @@ class _StoresPageState extends State<StoresPage> {
                                                 _selectedCampus = null;
                                               });
                                             },
-                                            child: const Text('Clear filters'),
+                                            variant: AppButtonVariant.ghost,
                                           ),
                                         ],
                                       ),

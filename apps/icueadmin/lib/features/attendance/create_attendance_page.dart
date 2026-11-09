@@ -1,5 +1,6 @@
 import 'package:attendance/attendance.dart';
 import 'package:auth/auth.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icueadmin/features/attendance/widgets/attendance_swipe_actions.dart';
@@ -127,12 +128,10 @@ class _CreateAttendancePageState extends State<CreateAttendancePage> {
         title: Text('${widget.standard.standard} - Sec ${widget.section}'),
         actions: [
           if (total > 0)
-            TextButton(
+            AppButton(
+              label: 'Review',
               onPressed: _navigateToConfirmation,
-              child: const Text(
-                'Review',
-                style: TextStyle(color: Colors.white),
-              ),
+              variant: AppButtonVariant.ghost,
             ),
         ],
       ),
@@ -208,9 +207,9 @@ class _CreateAttendancePageState extends State<CreateAttendancePage> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        FilledButton(
+                        AppButton(
+                          label: 'Proceed to Confirmation',
                           onPressed: _navigateToConfirmation,
-                          child: const Text('Proceed to Confirmation'),
                         ),
                       ],
                     ),

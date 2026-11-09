@@ -119,9 +119,10 @@ class LineEditor extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 14),
-            FilledButton.tonalIcon(
-              icon: const Icon(Icons.add_rounded, size: 18),
-              label: const Text('Add item'),
+            AppButton(
+              label: 'Add item',
+              variant: AppButtonVariant.secondary,
+              leadingIcon: Icons.add_rounded,
               onPressed: () => _addItem(context),
             ),
           ],
@@ -143,16 +144,11 @@ class LineEditor extends StatelessWidget {
             },
           ),
         const SizedBox(height: 4),
-        OutlinedButton.icon(
-          icon: const Icon(Icons.add_rounded),
-          label: const Text('Add another item'),
-          style: OutlinedButton.styleFrom(
-            minimumSize: const Size.fromHeight(44),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
+        AppButton(
+          label: 'Add another item',
           onPressed: () => _addItem(context),
+          variant: AppButtonVariant.outline,
+          leadingIcon: Icons.add_rounded,
         ),
       ],
     );

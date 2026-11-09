@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 
 enum LibraryCategoryStatusFilter {
@@ -85,20 +86,10 @@ class LibraryCategorySearchBar extends StatelessWidget {
           filterChips,
           ...[
             const SizedBox(width: 12),
-            FilledButton.icon(
+            AppButton(
+              label: 'Add Category',
               onPressed: onAddCategory,
-              icon: const Icon(Icons.add_rounded, size: 18),
-              label: const Text('Add Category'),
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(0, 44),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
+              leadingIcon: Icons.add_rounded,
             ),
           ],
         ],
@@ -162,10 +153,10 @@ class LibraryCategoryEmptyState extends StatelessWidget {
               runSpacing: 12,
               alignment: WrapAlignment.center,
               children: [
-                FilledButton.icon(
+                AppButton(
+                  label: 'Add Category',
                   onPressed: onAdd,
-                  icon: const Icon(Icons.add_rounded, size: 18),
-                  label: const Text('Add Category'),
+                  leadingIcon: Icons.add_rounded,
                 ),
               ],
             ),
@@ -210,9 +201,10 @@ class LibraryCategoryNoResultsState extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
-            OutlinedButton(
+            AppButton(
+              label: 'Clear search & filters',
               onPressed: onClear,
-              child: const Text('Clear search & filters'),
+              variant: AppButtonVariant.outline,
             ),
           ],
         ),

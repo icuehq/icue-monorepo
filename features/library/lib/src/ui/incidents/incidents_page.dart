@@ -302,13 +302,14 @@ class _IncidentsPageState extends State<IncidentsPage> {
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 8,
                                   ),
-                                  child: TextButton(
+                                  child: AppButton(
+                                    label: 'Load more',
                                     onPressed: libraryProvider.incidentsLoading
                                         ? null
                                         : () => libraryProvider.loadIncidents(
                                             more: true,
                                           ),
-                                    child: const Text('Load more'),
+                                    variant: AppButtonVariant.ghost,
                                   ),
                                 ),
                               )

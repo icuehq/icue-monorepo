@@ -174,25 +174,11 @@ class _IssueRequestFormPageState extends State<IssueRequestFormPage> {
                 ),
               ),
               const SizedBox(height: 24),
-              FilledButton.icon(
+              AppButton(
+                label: _busy ? 'Submitting…' : 'Submit Request',
                 onPressed: _busy ? null : _save,
-                icon: _busy
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.send_rounded),
-                label: Text(_busy ? 'Submitting…' : 'Submit Request'),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(48),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
+                leadingIcon: Icons.send_rounded,
+                isLoading: _busy,
               ),
             ],
           ),

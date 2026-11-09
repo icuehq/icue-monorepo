@@ -409,36 +409,17 @@ class _PurchaseOrderFormPageState extends State<PurchaseOrderFormPage> {
               const SizedBox(height: 24),
 
               // Actions
-              FilledButton.icon(
+              AppButton(
+                label: _busy ? 'Saving…' : 'Save and Issue PO',
                 onPressed: _busy ? null : () => _save(issue: true),
-                icon: _busy
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.send_rounded),
-                label: Text(_busy ? 'Saving…' : 'Save and Issue PO'),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(48),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
+                leadingIcon: Icons.send_rounded,
+                isLoading: _busy,
               ),
               const SizedBox(height: 10),
-              OutlinedButton(
+              AppButton(
+                label: 'Save Draft PO',
                 onPressed: _busy ? null : () => _save(issue: false),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(44),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: const Text('Save Draft PO'),
+                variant: AppButtonVariant.outline,
               ),
             ],
           ),

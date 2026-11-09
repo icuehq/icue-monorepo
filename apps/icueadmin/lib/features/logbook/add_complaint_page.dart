@@ -73,14 +73,15 @@ class _AddComplaintPageState extends State<AddComplaintPage> {
               ),
             ),
           if (_photos.length < limit)
-            TextButton.icon(
+            AppButton(
+              label: 'Attach',
               onPressed: () async {
                 final picked = await pickFile(context);
                 if (picked == null || !mounted) return;
                 setState(() => _photos.add(picked));
               },
-              icon: const Icon(Icons.attach_file, size: 16),
-              label: const Text('Attach'),
+              variant: AppButtonVariant.ghost,
+              leadingIcon: Icons.attach_file,
             ),
         ],
       ),
@@ -223,28 +224,11 @@ class _AddComplaintPageState extends State<AddComplaintPage> {
             const SizedBox(height: 16),
             _photosSection(),
             const SizedBox(height: 24),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
+            AppButton(
+              label: 'Submit Complaint',
               onPressed: logBookProvider.isLoading ? null : _submit,
-              icon: const Icon(Icons.save_rounded),
-              label: logBookProvider.isLoading
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text(
-                      'Submit Complaint',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+              leadingIcon: Icons.save_rounded,
+              isLoading: logBookProvider.isLoading,
             ),
           ],
         ),

@@ -102,37 +102,12 @@ class _RequestOtpFormState extends State<RequestOtpForm> {
           onFieldSubmitted: (_) => _handleSubmit(),
         ),
         const SizedBox(height: 20),
-        SizedBox(
-          width: double.infinity,
-          height: 48,
-          child: ElevatedButton(
-            onPressed: widget.isLoading ? null : _handleSubmit,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: widget.primaryColor,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            child: widget.isLoading
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : const Text(
-                    'Generate OTP',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
-          ),
+        AppButton(
+          label: 'Generate OTP',
+          size: AppButtonSize.large,
+          isFullWidth: true,
+          isLoading: widget.isLoading,
+          onPressed: widget.isLoading ? null : _handleSubmit,
         ),
       ],
     );

@@ -237,25 +237,11 @@ class _InvoiceDialogState extends State<InvoiceDialog> {
             ],
             const SizedBox(height: 20),
 
-            FilledButton.icon(
+            AppButton(
+              label: _busy ? 'Recording…' : 'Record Invoice',
               onPressed: _busy ? null : _save,
-              icon: _busy
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Icon(Icons.save_rounded),
-              label: Text(_busy ? 'Recording…' : 'Record Invoice'),
-              style: FilledButton.styleFrom(
-                minimumSize: const Size.fromHeight(44),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
+              leadingIcon: Icons.save_rounded,
+              isLoading: _busy,
             ),
           ],
         ),

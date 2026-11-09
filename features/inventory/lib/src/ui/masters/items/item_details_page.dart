@@ -394,16 +394,11 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
             const SizedBox(height: 8),
 
             // Action Buttons
-            OutlinedButton.icon(
+            AppButton(
+              label: 'View stock levels in stores',
               onPressed: () => context.push(InventoryRoutes.inventoryStock),
-              icon: const Icon(Icons.stacked_bar_chart_outlined, size: 20),
-              label: const Text('View stock levels in stores'),
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size.fromHeight(46),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
+              variant: AppButtonVariant.outline,
+              leadingIcon: Icons.stacked_bar_chart_outlined,
             ),
             const SizedBox(height: 24),
           ],

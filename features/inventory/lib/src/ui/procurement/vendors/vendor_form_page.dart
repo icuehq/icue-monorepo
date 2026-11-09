@@ -99,14 +99,14 @@ class _VendorFormPageState extends State<VendorFormPage> {
           title: const Text('Discard changes?'),
           content: const Text('Your changes to this vendor are not saved.'),
           actions: [
-            TextButton(
+            AppButton(
+              label: 'Keep editing',
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Keep editing'),
+              variant: AppButtonVariant.ghost,
             ),
-            FilledButton(
-              style: FilledButton.styleFrom(minimumSize: Size.zero),
+            AppButton(
+              label: 'Discard',
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Discard'),
             ),
           ],
         ),
@@ -305,10 +305,10 @@ class _VendorFormPageState extends State<VendorFormPage> {
           child: SafeArea(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-              child: FilledButton.icon(
+              child: AppButton(
+                label: _busy ? 'Saving…' : 'Save vendor',
                 onPressed: _busy ? null : _save,
-                icon: const Icon(Icons.save_rounded),
-                label: Text(_busy ? 'Saving…' : 'Save vendor'),
+                leadingIcon: Icons.save_rounded,
               ),
             ),
           ),

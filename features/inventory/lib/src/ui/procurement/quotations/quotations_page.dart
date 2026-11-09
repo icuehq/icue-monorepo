@@ -9,11 +9,6 @@ import 'package:inventory/src/ui/procurement/quotations/widgets/quotation_compar
 import 'package:inventory/src/ui/procurement/quotations/widgets/quotation_details.dart';
 import 'package:provider/provider.dart';
 
-/// The app theme stretches buttons to full width; inside a Row they must size to content.
-const _inlineButton = ButtonStyle(
-  minimumSize: WidgetStatePropertyAll(Size(0, 40)),
-);
-
 /// Quotations of one request (FRS 10.15): side-by-side comparison, select the preferred one.
 class QuotationsPage extends StatefulWidget {
   const QuotationsPage({required this.request, super.key});
@@ -69,18 +64,19 @@ class _QuotationsPageState extends State<QuotationsPage> {
               ],
             ),
             actions: [
-              TextButton(
+              AppButton(
+                label: 'Cancel',
                 onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('Cancel'),
+                variant: AppButtonVariant.ghost,
               ),
-              FilledButton(
+              AppButton(
+                label: 'Select Quotation',
                 onPressed: () {
                   if (reason.text.trim().isEmpty) {
                     return setDialogState(() => error = 'A reason is required');
                   }
                   Navigator.pop(dialogContext, reason.text.trim());
                 },
-                child: const Text('Select Quotation'),
               ),
             ],
           ),
@@ -403,69 +399,52 @@ class _QuotationsPageState extends State<QuotationsPage> {
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
                                 if (quotation.isDraft) ...[
-                                  OutlinedButton.icon(
-                                    style: _inlineButton,
-                                    icon: const Icon(
-                                      Icons.edit_outlined,
-                                      size: 16,
-                                    ),
-                                    label: const Text('Edit Draft'),
+                                  AppButton(
+                                    label: 'Edit Draft',
                                     onPressed: () => _open(
                                       InventoryRoutes.inventoryQuotationForm,
                                       (purchaseRequest, quotation),
                                     ),
+                                    variant: AppButtonVariant.outline,
+                                    leadingIcon: Icons.edit_outlined,
                                   ),
                                   const SizedBox(width: 8),
-                                  FilledButton.icon(
-                                    style: _inlineButton,
-                                    icon: const Icon(
-                                      Icons.check_circle_outline,
-                                      size: 16,
-                                    ),
-                                    label: const Text('Record Quotation'),
+                                  AppButton(
+                                    label: 'Record Quotation',
                                     onPressed: () => _finalize(quotation),
+                                    leadingIcon: Icons.check_circle_outline,
                                   ),
                                 ] else if (!quotation.selected)
-                                  FilledButton.icon(
-                                    style: _inlineButton,
-                                    icon: const Icon(
-                                      Icons.check_circle_outline,
-                                      size: 16,
-                                    ),
-                                    label: const Text('Select this Quote'),
+                                  AppButton(
+                                    label: 'Select this Quote',
                                     onPressed: () => _select(quotation),
+                                    leadingIcon: Icons.check_circle_outline,
                                   )
                                 else if (_orderOf(
                                       procurementProvider,
                                       quotation,
                                     )
                                     case final order?)
-                                  OutlinedButton.icon(
-                                    style: _inlineButton,
-                                    icon: const Icon(
-                                      Icons.receipt_long_outlined,
-                                      size: 16,
-                                    ),
-                                    label: Text('View ${order.number}'),
+                                  AppButton(
+                                    label: 'View ${order.number}',
                                     onPressed: () => _open(
                                       InventoryRoutes
                                           .inventoryPurchaseOrderDetail,
                                       order,
                                     ),
+                                    variant: AppButtonVariant.outline,
+                                    leadingIcon: Icons.receipt_long_outlined,
                                   )
                                 else
-                                  FilledButton.icon(
-                                    style: _inlineButton,
-                                    icon: const Icon(
-                                      Icons.shopping_cart_checkout_rounded,
-                                      size: 16,
-                                    ),
-                                    label: const Text('Create PO from Quote'),
+                                  AppButton(
+                                    label: 'Create PO from Quote',
                                     onPressed: () => _open(
                                       InventoryRoutes
                                           .inventoryPurchaseOrderForm,
                                       (purchaseRequest, quotation, null),
                                     ),
+                                    leadingIcon:
+                                        Icons.shopping_cart_checkout_rounded,
                                   ),
                               ],
                             ),

@@ -197,13 +197,13 @@ class _AdjustState extends State<_Adjust> with _Submit {
           label: 'Note',
         ),
         const SizedBox(height: 12),
-        FilledButton(
+        AppButton(
+          label: 'Apply adjustment',
           onPressed: () => send('inventory-adjustment-create', {
             'delta': double.parse(quantity.text.trim()),
             'reason': _reason,
             'remarks': note.text.trim(),
           }),
-          child: const Text('Apply adjustment'),
         ),
       ],
     ),
@@ -264,13 +264,13 @@ class _ReportState extends State<_Report> with _Submit {
           label: 'Details',
         ),
         const SizedBox(height: 12),
-        FilledButton(
+        AppButton(
+          label: 'Report',
           onPressed: () => send('inventory-unavailable-report', {
             'quantity': double.parse(quantity.text.trim()),
             'reason': _reason,
             'remarks': note.text.trim(),
           }),
-          child: const Text('Report'),
         ),
       ],
     ),

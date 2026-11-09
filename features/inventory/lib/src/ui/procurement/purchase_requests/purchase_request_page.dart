@@ -1,4 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:inventory/inventory.dart';
@@ -89,24 +90,20 @@ class _PurchaseRequestPageState extends State<PurchaseRequestPage> {
             ),
           ),
           actions: [
-            TextButton(
+            AppButton(
+              label: 'Cancel',
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              variant: AppButtonVariant.ghost,
             ),
-            FilledButton(
-              style: FilledButton.styleFrom(
-                minimumSize: Size.zero,
-                backgroundColor: destructive
-                    ? Theme.of(context).colorScheme.error
-                    : null,
-              ),
+            AppButton(
+              label: action,
               onPressed: () {
                 if (required && comment.text.trim().isEmpty) {
                   return setDialogState(() => error = 'A comment is required');
                 }
                 Navigator.pop(context, comment.text.trim());
               },
-              child: Text(action),
+              variant: AppButtonVariant.destructive,
             ),
           ],
         ),
@@ -160,11 +157,11 @@ class _PurchaseRequestPageState extends State<PurchaseRequestPage> {
     InventoryProvider inventoryProvider,
   ) {
     final access = inventoryProvider.access;
-    final theme = Theme.of(context);
     final List<Widget> buttons;
     if (request.isPending && access.can('inventory.purchaseRequest.approve')) {
       buttons = [
-        OutlinedButton(
+        AppButton(
+          label: 'Reject',
           onPressed: _busy
               ? null
               : () => _decide(
@@ -175,13 +172,10 @@ class _PurchaseRequestPageState extends State<PurchaseRequestPage> {
                   required: true,
                   destructive: true,
                 ),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: theme.colorScheme.error,
-            side: BorderSide(color: theme.colorScheme.error),
-          ),
-          child: const Text('Reject'),
+          variant: AppButtonVariant.destructive,
         ),
-        OutlinedButton(
+        AppButton(
+          label: 'Return',
           onPressed: _busy
               ? null
               : () => _decide(
@@ -191,9 +185,10 @@ class _PurchaseRequestPageState extends State<PurchaseRequestPage> {
                   'Returned for revision',
                   required: true,
                 ),
-          child: const Text('Return'),
+          variant: AppButtonVariant.outline,
         ),
-        FilledButton(
+        AppButton(
+          label: 'Approve',
           onPressed: _busy
               ? null
               : () => _decide(
@@ -203,22 +198,23 @@ class _PurchaseRequestPageState extends State<PurchaseRequestPage> {
                   'Request approved',
                   required: false,
                 ),
-          child: const Text('Approve'),
         ),
       ];
     } else if (own && request.isEditable) {
       buttons = [
-        OutlinedButton.icon(
+        AppButton(
+          label: 'Edit',
           onPressed: _busy
               ? null
               : () => _open(
                   InventoryRoutes.inventoryPurchaseRequestForm,
                   request,
                 ),
-          icon: const Icon(Icons.edit_outlined, size: 18),
-          label: const Text('Edit'),
+          variant: AppButtonVariant.outline,
+          leadingIcon: Icons.edit_outlined,
         ),
-        FilledButton.icon(
+        AppButton(
+          label: 'Submit',
           onPressed: _busy
               ? null
               : () => _act(
@@ -226,25 +222,25 @@ class _PurchaseRequestPageState extends State<PurchaseRequestPage> {
                   {},
                   'Submitted for approval',
                 ),
-          icon: const Icon(Icons.send_rounded, size: 18),
-          label: const Text('Submit'),
+          leadingIcon: Icons.send_rounded,
         ),
       ];
     } else if (request.isOrderable && access.can('inventory.procure.operate')) {
       buttons = [
-        OutlinedButton.icon(
+        AppButton(
+          label: 'Direct PO',
           onPressed: () => _open(InventoryRoutes.inventoryPurchaseOrderForm, (
             request,
             null,
             null,
           )),
-          icon: const Icon(Icons.shopping_cart_checkout_rounded, size: 18),
-          label: const Text('Direct PO'),
+          variant: AppButtonVariant.outline,
+          leadingIcon: Icons.shopping_cart_checkout_rounded,
         ),
-        FilledButton.icon(
+        AppButton(
+          label: 'Quotations',
           onPressed: () => _open(InventoryRoutes.inventoryQuotations, request),
-          icon: const Icon(Icons.request_quote_outlined, size: 18),
-          label: const Text('Quotations'),
+          leadingIcon: Icons.request_quote_outlined,
         ),
       ];
     } else {
@@ -284,12 +280,13 @@ class _PurchaseRequestPageState extends State<PurchaseRequestPage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(_loadError ?? 'Request not found'),
-                    TextButton(
+                    AppButton(
+                      label: 'Try again',
                       onPressed: () {
                         setState(() => _loading = true);
                         _load();
                       },
-                      child: const Text('Try again'),
+                      variant: AppButtonVariant.ghost,
                     ),
                   ],
                 ),

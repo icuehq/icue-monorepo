@@ -1,4 +1,4 @@
-import 'package:core_ui/src/utils/date_time_formatting.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 
 /// Status model for a manageable document (e.g. License, RC, Insurance).
@@ -146,37 +146,29 @@ class AppDocumentAccordion extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     if (document.isUploaded && onViewDocument != null)
-                      TextButton.icon(
+                      AppButton(
+                        label: 'View',
                         onPressed: onViewDocument,
-                        icon: const Icon(Icons.visibility_outlined, size: 16),
-                        label: const Text('View'),
+                        variant: AppButtonVariant.ghost,
+                        leadingIcon: Icons.visibility_outlined,
                       ),
                     if (document.isUploaded && onDeleteDocument != null) ...[
                       const SizedBox(width: 8),
-                      TextButton.icon(
+                      AppButton(
+                        label: 'Delete',
+                        variant: AppButtonVariant.destructive,
+                        leadingIcon: Icons.delete_outline,
                         onPressed: onDeleteDocument,
-                        icon: const Icon(
-                          Icons.delete_outline,
-                          color: Colors.red,
-                          size: 16,
-                        ),
-                        label: const Text(
-                          'Delete',
-                          style: TextStyle(color: Colors.red),
-                        ),
                       ),
                     ],
                     if (onUploadDocument != null) ...[
                       const SizedBox(width: 8),
-                      ElevatedButton.icon(
+                      AppButton(
+                        label: document.isUploaded ? 'Replace' : 'Upload',
                         onPressed: onUploadDocument,
-                        icon: Icon(
-                          document.isUploaded
-                              ? Icons.edit_rounded
-                              : Icons.upload_file_rounded,
-                          size: 16,
-                        ),
-                        label: Text(document.isUploaded ? 'Replace' : 'Upload'),
+                        leadingIcon: document.isUploaded
+                            ? Icons.edit_rounded
+                            : Icons.upload_file_rounded,
                       ),
                     ],
                   ],

@@ -411,7 +411,8 @@ class _StockPageState extends State<StockPage> {
                                       ),
                                       const SizedBox(height: 18),
                                       if (_lowOnly || _query.isNotEmpty)
-                                        OutlinedButton.icon(
+                                        AppButton(
+                                          label: 'Reset filters',
                                           onPressed: () {
                                             _searchController.clear();
                                             setState(() {
@@ -419,19 +420,17 @@ class _StockPageState extends State<StockPage> {
                                               _lowOnly = false;
                                             });
                                           },
-                                          icon: const Icon(
-                                            Icons.filter_alt_off_outlined,
-                                            size: 18,
-                                          ),
-                                          label: const Text('Reset filters'),
+                                          variant: AppButtonVariant.outline,
+                                          leadingIcon:
+                                              Icons.filter_alt_off_outlined,
                                         )
                                       else if (canOperate)
-                                        FilledButton.icon(
+                                        AppButton(
+                                          label: 'Receive stock',
                                           onPressed: () => _open(
                                             InventoryRoutes.inventoryReceive,
                                           ),
-                                          icon: const Icon(Icons.add, size: 18),
-                                          label: const Text('Receive stock'),
+                                          leadingIcon: Icons.add,
                                         ),
                                     ],
                                   ),

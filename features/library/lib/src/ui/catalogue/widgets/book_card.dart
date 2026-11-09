@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:school_library/school_library.dart';
@@ -185,42 +186,27 @@ class BookCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  TextButton.icon(
+                  AppButton(
+                    label: 'Reserve',
                     onPressed: () =>
                         ReservationDialog.show(context, book: book),
-                    icon: const Icon(Icons.bookmark_add_outlined, size: 16),
-                    label: const Text(
-                      'Reserve',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                    style: TextButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                    ),
+                    variant: AppButtonVariant.ghost,
+                    leadingIcon: Icons.bookmark_add_outlined,
                   ),
-                  TextButton.icon(
+                  AppButton(
+                    label: 'Edit',
                     onPressed: () => context.push(
                       LibraryRoutes.libraryBookForm,
                       extra: book,
                     ),
-                    icon: const Icon(Icons.edit_outlined, size: 16),
-                    label: const Text('Edit', style: TextStyle(fontSize: 12)),
-                    style: TextButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                    ),
+                    variant: AppButtonVariant.ghost,
+                    leadingIcon: Icons.edit_outlined,
                   ),
-                  TextButton.icon(
+                  AppButton(
+                    label: 'Details',
                     onPressed: onTap,
-                    icon: const Icon(Icons.arrow_forward_rounded, size: 16),
-                    label: const Text(
-                      'Details',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                    style: TextButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                    ),
+                    variant: AppButtonVariant.ghost,
+                    leadingIcon: Icons.arrow_forward_rounded,
                   ),
                 ],
               ),

@@ -262,7 +262,8 @@ class _EndFillingPageState extends State<EndFillingPage> {
                       },
                     )
                   else
-                    TextButton.icon(
+                    AppButton(
+                      label: 'Capture',
                       onPressed: () async {
                         final picked = await pickFile(context);
                         if (picked == null || !mounted) return;
@@ -271,37 +272,20 @@ class _EndFillingPageState extends State<EndFillingPage> {
                           _gaugeFileBytes = picked.bytes;
                         });
                       },
-                      icon: const Icon(Icons.camera_alt, size: 16),
-                      label: const Text('Capture'),
+                      variant: AppButtonVariant.ghost,
+                      leadingIcon: Icons.camera_alt,
                     ),
                 ],
               ),
             ),
             const SizedBox(height: 24),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
+            AppButton(
+              label: 'Finish & Close Session',
               onPressed: provider.isLoading
                   ? null
                   : () => _submit(startReading),
-              icon: const Icon(Icons.stop_circle_rounded),
-              label: provider.isLoading
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text(
-                      'Finish & Close Session',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+              leadingIcon: Icons.stop_circle_rounded,
+              isLoading: provider.isLoading,
             ),
           ],
         ),

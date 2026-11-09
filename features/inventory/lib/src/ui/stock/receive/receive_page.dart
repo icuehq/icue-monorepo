@@ -220,25 +220,11 @@ class _ReceivePageState extends State<ReceivePage> {
               ),
               const SizedBox(height: 24),
 
-              FilledButton.icon(
+              AppButton(
+                label: _busy ? 'Receiving…' : 'Confirm Receiving',
                 onPressed: _busy ? null : _save,
-                icon: _busy
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.check_circle_outline_rounded),
-                label: Text(_busy ? 'Receiving…' : 'Confirm Receiving'),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(48),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
+                leadingIcon: Icons.check_circle_outline_rounded,
+                isLoading: _busy,
               ),
             ],
           ),

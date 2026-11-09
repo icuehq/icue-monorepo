@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icueadmin/analytics/app_events.dart';
@@ -82,12 +83,13 @@ class _CleaningLogPageState extends State<CleaningLogPage> {
             '${res.failedCount} vehicle(s) were already logged or could not be updated:\n${res.failedMessages.join("\n")}',
           ),
           actions: [
-            TextButton(
+            AppButton(
+              label: 'OK',
               onPressed: () {
                 Navigator.pop(ctx);
                 context.pop();
               },
-              child: const Text('OK'),
+              variant: AppButtonVariant.ghost,
             ),
           ],
         ),
@@ -126,14 +128,18 @@ class _CleaningLogPageState extends State<CleaningLogPage> {
             children: [
               if (_currentStep > 0)
                 Expanded(
-                  child: OutlinedButton(
+                  child: AppButton(
+                    label: 'Back to Vehicles',
                     onPressed: () => setState(() => _currentStep = 0),
-                    child: const Text('Back to Vehicles'),
+                    variant: AppButtonVariant.outline,
                   ),
                 ),
               if (_currentStep > 0) const SizedBox(width: 12),
               Expanded(
-                child: ElevatedButton(
+                child: AppButton(
+                  label: _currentStep == 0
+                      ? 'Next: Cleaning Checklist (${_selectedVehicleIds.length})'
+                      : 'Submit Inspection',
                   onPressed: _currentStep == 0
                       ? () {
                           if (_selectedVehicleIds.isEmpty) {
@@ -147,12 +153,6 @@ class _CleaningLogPageState extends State<CleaningLogPage> {
                           setState(() => _currentStep = 1);
                         }
                       : () => _submitCleaning(allVehicles),
-                  child: Text(
-                    _currentStep == 0
-                        ? 'Next: Cleaning Checklist (${_selectedVehicleIds.length})'
-                        : 'Submit Inspection',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
                 ),
               ),
             ],
@@ -180,7 +180,11 @@ class _CleaningLogPageState extends State<CleaningLogPage> {
                                 setState(() => _query = '');
                               },
                             ),
-                          TextButton(
+                          AppButton(
+                            label:
+                                _selectedVehicleIds.length == allVehicles.length
+                                ? 'Deselect All'
+                                : 'Select All',
                             onPressed: () {
                               setState(() {
                                 if (_selectedVehicleIds.length ==
@@ -193,12 +197,7 @@ class _CleaningLogPageState extends State<CleaningLogPage> {
                                 }
                               });
                             },
-                            child: Text(
-                              _selectedVehicleIds.length == allVehicles.length
-                                  ? 'Deselect All'
-                                  : 'Select All',
-                              style: const TextStyle(fontSize: 12),
-                            ),
+                            variant: AppButtonVariant.ghost,
                           ),
                         ],
                       ),

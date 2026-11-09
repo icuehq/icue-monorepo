@@ -1,4 +1,4 @@
-import 'package:core_ui/src/utils/date_time_formatting.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 
 /// Modes for filtering report / list items by temporal dimensions.
@@ -318,22 +318,13 @@ class _AppDateFilterModalState extends State<AppDateFilterModal> {
               ),
             ],
             const SizedBox(height: 24),
-            ElevatedButton(
+            AppButton(
+              label: 'Apply Filter',
               onPressed:
                   (_selectedMode == AppFilterMode.byRange &&
                       _selectedRange == null)
                   ? null
                   : _applyFilter,
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Text(
-                'Apply Filter',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
             ),
           ],
         ),

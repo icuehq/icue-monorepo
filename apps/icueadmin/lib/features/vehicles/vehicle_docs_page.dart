@@ -120,12 +120,13 @@ class _VehicleDocsPageState extends State<VehicleDocsPage> {
           'Are you sure you want to delete the uploaded $docType document for ${widget.vehicle.number}?',
         ),
         actions: [
-          TextButton(
+          AppButton(
+            label: 'Cancel',
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel'),
+            variant: AppButtonVariant.ghost,
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+          AppButton(
+            label: 'Delete',
             onPressed: () async {
               Navigator.of(ctx).pop();
               final provider = context.read<VehicleProvider>();
@@ -146,7 +147,7 @@ class _VehicleDocsPageState extends State<VehicleDocsPage> {
                 );
               }
             },
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+            variant: AppButtonVariant.destructive,
           ),
         ],
       ),

@@ -133,9 +133,9 @@ class _ArrivalTimeReportPageState extends State<ArrivalTimeReportPage> {
                                     ),
                                     child: reportsProvider.isLoading
                                         ? const CircularProgressIndicator()
-                                        : ElevatedButton(
+                                        : AppButton(
+                                            label: 'Load More',
                                             onPressed: _loadMore,
-                                            child: const Text('Load More'),
                                           ),
                                   ),
                                 );

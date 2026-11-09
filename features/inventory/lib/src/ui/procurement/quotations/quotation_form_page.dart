@@ -347,36 +347,17 @@ class _QuotationFormPageState extends State<QuotationFormPage> {
               const SizedBox(height: 24),
 
               // Actions
-              FilledButton.icon(
+              AppButton(
+                label: _busy ? 'Saving…' : 'Record Quotation',
                 onPressed: _busy ? null : () => _save(finalize: true),
-                icon: _busy
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.check_circle_outline),
-                label: Text(_busy ? 'Saving…' : 'Record Quotation'),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(48),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
+                leadingIcon: Icons.check_circle_outline,
+                isLoading: _busy,
               ),
               const SizedBox(height: 10),
-              OutlinedButton(
+              AppButton(
+                label: 'Save Draft Quotation',
                 onPressed: _busy ? null : () => _save(finalize: false),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(44),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: const Text('Save Draft Quotation'),
+                variant: AppButtonVariant.outline,
               ),
             ],
           ),

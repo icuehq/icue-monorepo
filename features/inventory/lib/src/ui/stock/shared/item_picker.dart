@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
@@ -87,10 +88,11 @@ class _PickerDialog extends StatelessWidget {
                             onTap: () => Navigator.pop(context, i),
                           ),
                         if (inventoryProvider.hasMoreItems)
-                          TextButton(
+                          AppButton(
+                            label: 'Load more',
                             onPressed: () =>
                                 inventoryProvider.loadItems(more: true),
-                            child: const Text('Load more'),
+                            variant: AppButtonVariant.ghost,
                           ),
                       ],
                     ),

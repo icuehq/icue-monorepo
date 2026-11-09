@@ -1,4 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/masters/units/widgets/unit_card.dart';
@@ -278,10 +279,11 @@ class _EmptyUnitsView extends StatelessWidget {
                         provider.access.can('inventory.settings'),
                     seed: (provider) => provider.seedDefaults(),
                   ),
-                  OutlinedButton.icon(
+                  AppButton(
+                    label: 'Add unit',
                     onPressed: onAddUnit,
-                    icon: const Icon(Icons.add_rounded, size: 18),
-                    label: const Text('Add unit'),
+                    variant: AppButtonVariant.outline,
+                    leadingIcon: Icons.add_rounded,
                   ),
                 ],
               ),
@@ -328,9 +330,10 @@ class _NoSearchResultsView extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            TextButton(
+            AppButton(
+              label: 'Clear search',
               onPressed: onClearSearch,
-              child: const Text('Clear search'),
+              variant: AppButtonVariant.ghost,
             ),
           ],
         ),

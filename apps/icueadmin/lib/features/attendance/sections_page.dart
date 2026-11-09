@@ -90,20 +90,11 @@ class _SectionsPageState extends State<SectionsPage> {
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: FilledButton(
+          child: AppButton(
+            label: 'Start Attendance',
             onPressed: _selectedSection == null || _isChecking
                 ? null
                 : _handleStartAttendance,
-            style: FilledButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: const Text(
-              'Start Attendance',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
           ),
         ),
       ),

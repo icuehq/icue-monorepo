@@ -20,12 +20,13 @@ class DriverInfoPage extends StatelessWidget {
         title: const Text('Delete Driver'),
         content: Text('Are you sure you want to remove ${driver.fullName}?'),
         actions: [
-          TextButton(
+          AppButton(
+            label: 'Cancel',
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel'),
+            variant: AppButtonVariant.ghost,
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+          AppButton(
+            label: 'Delete',
             onPressed: () async {
               Navigator.of(ctx).pop();
               final provider = context.read<DriverProvider>();
@@ -52,7 +53,7 @@ class DriverInfoPage extends StatelessWidget {
                 }
               }
             },
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+            variant: AppButtonVariant.destructive,
           ),
         ],
       ),
@@ -221,34 +222,23 @@ class DriverInfoPage extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
+                  child: AppButton(
+                    label: 'Edit Driver',
                     onPressed: () {
                       context.push(AppRoutes.addDriver, extra: driver);
                     },
-                    icon: const Icon(Icons.edit_rounded, size: 18),
-                    label: const Text('Edit Driver'),
+                    variant: AppButtonVariant.outline,
+                    leadingIcon: Icons.edit_rounded,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
+                  child: AppButton(
+                    label: 'Documents',
                     onPressed: () {
                       context.push(AppRoutes.driverDocs, extra: driver);
                     },
-                    icon: const Icon(Icons.folder_shared_outlined, size: 18),
-                    label: const Text('Documents'),
+                    leadingIcon: Icons.folder_shared_outlined,
                   ),
                 ),
               ],

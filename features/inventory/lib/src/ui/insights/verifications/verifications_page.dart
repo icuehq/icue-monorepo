@@ -187,9 +187,9 @@ class _NewVerificationDialogState extends State<_NewVerificationDialog> {
           ],
         ),
         const SizedBox(height: 16),
-        FilledButton(
+        AppButton(
+          label: 'Generate expected stock',
           onPressed: _busy ? null : _create,
-          child: const Text('Generate expected stock'),
         ),
       ],
     );

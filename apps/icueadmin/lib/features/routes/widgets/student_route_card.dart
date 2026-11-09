@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:routes/routes.dart';
 
@@ -65,19 +66,10 @@ class StudentRouteCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                OutlinedButton(
+                AppButton(
+                  label: 'Change',
                   onPressed: onChangeRoute,
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: Size.zero,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: const Text('Change', style: TextStyle(fontSize: 12)),
+                  variant: AppButtonVariant.outline,
                 ),
               ],
             ),

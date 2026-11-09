@@ -239,34 +239,18 @@ class _UnitDialogState extends State<UnitDialog> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    TextButton(
+                    AppButton(
+                      label: 'Cancel',
                       onPressed: _isBusy
                           ? null
                           : () => Navigator.of(context).pop(false),
-                      child: const Text('Cancel'),
+                      variant: AppButtonVariant.ghost,
                     ),
                     const SizedBox(width: 8),
-                    FilledButton(
+                    AppButton(
+                      label: _isEditing ? 'Save changes' : 'Add unit',
                       onPressed: _isBusy ? null : _handleSave,
-                      style: FilledButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 12,
-                        ),
-                      ),
-                      child: _isBusy
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : Text(_isEditing ? 'Save changes' : 'Add unit'),
+                      isLoading: _isBusy,
                     ),
                   ],
                 ),

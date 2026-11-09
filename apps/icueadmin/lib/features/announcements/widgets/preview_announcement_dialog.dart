@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 
 class PreviewAnnouncementDialog extends StatelessWidget {
@@ -103,21 +104,17 @@ class PreviewAnnouncementDialog extends StatelessWidget {
         ),
       ),
       actions: [
-        TextButton(
+        AppButton(
+          label: 'Cancel',
           onPressed: isSubmitting
               ? null
               : () => Navigator.of(context).pop(false),
-          child: const Text('Cancel'),
+          variant: AppButtonVariant.ghost,
         ),
-        ElevatedButton(
+        AppButton(
+          label: 'Send Broadcast',
           onPressed: isSubmitting ? null : onConfirm,
-          child: isSubmitting
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text('Send Broadcast'),
+          isLoading: isSubmitting,
         ),
       ],
     );

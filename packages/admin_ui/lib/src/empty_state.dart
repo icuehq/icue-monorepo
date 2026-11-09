@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 
 /// A centred icon, title, optional message and optional action, for lists with nothing to show.
@@ -81,16 +82,17 @@ class EmptyState extends StatelessWidget {
               if (label != null && action != null) ...[
                 const SizedBox(height: 20),
                 if (outlinedAction)
-                  OutlinedButton.icon(
+                  AppButton(
+                    label: label,
                     onPressed: action,
-                    icon: Icon(actionIcon, size: 18),
-                    label: Text(label),
+                    variant: AppButtonVariant.outline,
+                    leadingIcon: actionIcon,
                   )
                 else
-                  FilledButton.icon(
+                  AppButton(
+                    label: label,
                     onPressed: action,
-                    icon: Icon(actionIcon, size: 18),
-                    label: Text(label),
+                    leadingIcon: actionIcon,
                   ),
               ],
             ],

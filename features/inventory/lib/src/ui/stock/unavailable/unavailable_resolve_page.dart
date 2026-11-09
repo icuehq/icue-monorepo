@@ -91,16 +91,15 @@ class _UnavailableResolvePageState extends State<UnavailableResolvePage> {
             'This will permanently resolve ${item.quantity.toQuantityText()} units as ${choice.title}. This cannot be undone.',
           ),
           actions: [
-            TextButton(
+            AppButton(
+              label: 'Cancel',
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Cancel'),
+              variant: AppButtonVariant.ghost,
             ),
-            FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: Theme.of(dialogContext).colorScheme.error,
-              ),
+            AppButton(
+              label: 'Confirm',
               onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('Confirm'),
+              variant: AppButtonVariant.destructive,
             ),
           ],
         ),
@@ -277,12 +276,12 @@ class _UnavailableResolvePageState extends State<UnavailableResolvePage> {
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-            child: FilledButton.icon(
+            child: AppButton(
+              label: selected?.title ?? 'Select an action',
               onPressed: selected == null || _busy
                   ? null
                   : () => _submit(selected, item),
-              icon: const Icon(Icons.check_rounded),
-              label: Text(selected?.title ?? 'Select an action'),
+              leadingIcon: Icons.check_rounded,
             ),
           ),
         ),

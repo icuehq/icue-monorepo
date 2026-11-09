@@ -1,5 +1,6 @@
 import 'package:attendance/attendance.dart';
 import 'package:auth/auth.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icue_face_sdk/icue_face_sdk.dart';
@@ -285,10 +286,7 @@ class _SdkAttendancePageState extends State<SdkAttendancePage> {
                       style: const TextStyle(color: Colors.red),
                     ),
                     const SizedBox(height: 20),
-                    FilledButton(
-                      onPressed: _initSdkAndFetch,
-                      child: const Text('Retry'),
-                    ),
+                    AppButton(label: 'Retry', onPressed: _initSdkAndFetch),
                   ],
                 ),
               ),
@@ -330,7 +328,8 @@ class _SdkAttendancePageState extends State<SdkAttendancePage> {
                       ),
                     ),
                     const SizedBox(height: 32),
-                    FilledButton.icon(
+                    AppButton(
+                      label: 'Open Camera Scanner',
                       onPressed: _cameraBusy
                           ? null
                           : () {
@@ -341,14 +340,7 @@ class _SdkAttendancePageState extends State<SdkAttendancePage> {
                                 _startMultiPhotoAttendance();
                               }
                             },
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 14,
-                        ),
-                      ),
-                      icon: const Icon(Icons.camera),
-                      label: const Text('Open Camera Scanner'),
+                      leadingIcon: Icons.camera,
                     ),
                   ],
                 ),

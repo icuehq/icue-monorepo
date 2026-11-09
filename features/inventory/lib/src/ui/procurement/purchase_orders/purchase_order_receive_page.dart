@@ -287,13 +287,11 @@ class _PurchaseOrderReceivePageState extends State<PurchaseOrderReceivePage> {
                   ),
                   Row(
                     children: [
-                      TextButton.icon(
+                      AppButton(
+                        label: 'Accept all due',
                         onPressed: _acceptAllDue,
-                        icon: const Icon(Icons.done_all_rounded, size: 18),
-                        label: const Text('Accept all due'),
-                        style: TextButton.styleFrom(
-                          visualDensity: VisualDensity.compact,
-                        ),
+                        variant: AppButtonVariant.ghost,
+                        leadingIcon: Icons.done_all_rounded,
                       ),
                       const SizedBox(width: 4),
                       IconButton(
@@ -328,25 +326,15 @@ class _PurchaseOrderReceivePageState extends State<PurchaseOrderReceivePage> {
               ),
               const SizedBox(height: 24),
 
-              FilledButton.icon(
+              AppButton(
+                label: _busy
+                    ? 'Saving…'
+                    : acceptedCount > 0
+                    ? 'Confirm receiving ($acceptedCount ${acceptedCount == 1 ? "item" : "items"})'
+                    : 'Confirm receiving',
                 onPressed: _busy ? null : _save,
-                icon: _busy
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.inventory_2_rounded),
-                label: Text(
-                  _busy
-                      ? 'Saving…'
-                      : acceptedCount > 0
-                      ? 'Confirm receiving ($acceptedCount ${acceptedCount == 1 ? "item" : "items"})'
-                      : 'Confirm receiving',
-                ),
+                leadingIcon: Icons.inventory_2_rounded,
+                isLoading: _busy,
               ),
               const SizedBox(height: 16),
             ],

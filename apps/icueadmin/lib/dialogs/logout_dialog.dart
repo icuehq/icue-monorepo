@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:auth/auth.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -17,15 +18,16 @@ class LogoutDialog extends StatelessWidget {
         child: Text('Are you sure you want to logout?'),
       ),
       actions: [
-        TextButton(
-          child: const Text('No'),
+        AppButton(
+          label: 'No',
           onPressed: () {
             unawaited(HapticFeedback.vibrate());
             Navigator.of(context).pop();
           },
+          variant: AppButtonVariant.ghost,
         ),
-        FilledButton(
-          child: const Text('Yes'),
+        AppButton(
+          label: 'Yes',
           onPressed: () async {
             unawaited(HapticFeedback.vibrate());
             final auth = context.read<AuthProvider>();

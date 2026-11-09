@@ -104,30 +104,28 @@ class _VehicleDocUploadDialogState extends State<VehicleDocUploadDialog> {
               ),
             ),
             const SizedBox(height: 8),
-            OutlinedButton(
+            AppButton(
+              label: _start == null
+                  ? startLabel
+                  : '$startLabel: ${_start!.toNumericDate()}',
               onPressed: () async {
                 final date = await _pickDate(_start, future: false);
                 if (date != null) setState(() => _start = date);
               },
-              child: Text(
-                _start == null
-                    ? startLabel
-                    : '$startLabel: ${_start!.toNumericDate()}',
-              ),
+              variant: AppButtonVariant.outline,
             ),
-            OutlinedButton(
+            AppButton(
+              label: _expiry == null
+                  ? 'Expiry date'
+                  : 'Expiry date: ${_expiry!.toNumericDate()}',
               onPressed: () async {
                 final date = await _pickDate(_expiry, future: true);
                 if (date != null) setState(() => _expiry = date);
               },
-              child: Text(
-                _expiry == null
-                    ? 'Expiry date'
-                    : 'Expiry date: ${_expiry!.toNumericDate()}',
-              ),
+              variant: AppButtonVariant.outline,
             ),
-            OutlinedButton.icon(
-              icon: const Icon(Icons.attach_file, size: 16),
+            AppButton(
+              label: _file?.name ?? 'Choose document',
               onPressed: () async {
                 final picked = await pickFile(context, allowDocuments: true);
                 if (picked == null) return;
@@ -140,7 +138,8 @@ class _VehicleDocUploadDialogState extends State<VehicleDocUploadDialog> {
                   _error = null;
                 });
               },
-              label: Text(_file?.name ?? 'Choose document'),
+              variant: AppButtonVariant.outline,
+              leadingIcon: Icons.attach_file,
             ),
             if (_error != null)
               Padding(
@@ -151,11 +150,12 @@ class _VehicleDocUploadDialogState extends State<VehicleDocUploadDialog> {
         ),
       ),
       actions: [
-        TextButton(
+        AppButton(
+          label: 'Cancel',
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          variant: AppButtonVariant.ghost,
         ),
-        FilledButton(onPressed: _submit, child: const Text('Upload')),
+        AppButton(label: 'Upload', onPressed: _submit),
       ],
     );
   }

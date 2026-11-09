@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:school_library/school_library.dart';
 
@@ -109,13 +110,11 @@ class IssueMemberCard extends StatelessWidget {
                   ),
                 ),
                 if (onChange != null)
-                  TextButton.icon(
+                  AppButton(
+                    label: 'Change',
                     onPressed: disabled ? null : onChange,
-                    icon: const Icon(Icons.swap_horiz_rounded, size: 18),
-                    label: const Text('Change'),
-                    style: TextButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                    ),
+                    variant: AppButtonVariant.ghost,
+                    leadingIcon: Icons.swap_horiz_rounded,
                   ),
               ],
             ),

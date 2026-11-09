@@ -1,4 +1,5 @@
 import 'package:auth/auth.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 
 class DashboardUserSummaryCard extends StatelessWidget {
@@ -188,14 +189,11 @@ class DashboardUserSummaryCard extends StatelessWidget {
                       ),
                     ),
                     if (onChangeBranch != null)
-                      TextButton.icon(
+                      AppButton(
+                        label: 'Switch Branch',
                         onPressed: onChangeBranch,
-                        icon: const Icon(Icons.swap_horiz, size: 16),
-                        label: const Text('Switch Branch'),
-                        style: TextButton.styleFrom(
-                          visualDensity: VisualDensity.compact,
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                        ),
+                        variant: AppButtonVariant.ghost,
+                        leadingIcon: Icons.swap_horiz,
                       ),
                   ],
                 ),

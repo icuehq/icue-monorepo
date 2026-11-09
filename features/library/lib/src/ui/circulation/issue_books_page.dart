@@ -1,4 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
@@ -289,10 +290,11 @@ class _IssueBooksPageState extends State<IssueBooksPage> {
             Padding(
               padding: const EdgeInsets.only(right: 16),
               child: Center(
-                child: TextButton.icon(
+                child: AppButton(
+                  label: 'Finish',
                   onPressed: _busy ? null : () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.done_all_rounded, size: 18),
-                  label: const Text('Finish'),
+                  variant: AppButtonVariant.ghost,
+                  leadingIcon: Icons.done_all_rounded,
                 ),
               ),
             ),

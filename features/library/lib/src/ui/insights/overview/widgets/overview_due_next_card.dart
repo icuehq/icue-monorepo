@@ -72,17 +72,11 @@ class OverviewDueNextCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                TextButton.icon(
-                  style: TextButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                  ),
+                AppButton(
+                  label: 'All loans',
                   onPressed: () => context.go(LibraryRoutes.libraryCirculation),
-                  icon: const Icon(Icons.arrow_forward_rounded, size: 14),
-                  label: const Text('All loans'),
+                  variant: AppButtonVariant.ghost,
+                  leadingIcon: Icons.arrow_forward_rounded,
                 ),
               ],
             ),

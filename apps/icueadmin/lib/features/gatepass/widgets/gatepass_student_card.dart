@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:routes/routes.dart';
 
@@ -39,16 +40,7 @@ class GatePassStudentCard extends StatelessWidget {
             style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
           ),
         ),
-        trailing: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-          onPressed: onIssue,
-          child: const Text('Issue Pass'),
-        ),
+        trailing: AppButton(label: 'Issue Pass', onPressed: onIssue),
       ),
     );
   }

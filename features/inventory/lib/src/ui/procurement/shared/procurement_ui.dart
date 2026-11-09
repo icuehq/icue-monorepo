@@ -94,17 +94,18 @@ class _AskTextDialogState extends State<_AskTextDialog> {
       hintText: widget.hint,
     ),
     actions: [
-      TextButton(
+      AppButton(
+        label: 'Back',
         onPressed: () => Navigator.pop(context),
-        child: const Text('Back'),
+        variant: AppButtonVariant.ghost,
       ),
-      FilledButton(
+      AppButton(
+        label: 'Confirm',
         onPressed: () {
           final value = _controller.text.trim();
           if (widget.required && value.isEmpty) return;
           Navigator.pop(context, value);
         },
-        child: const Text('Confirm'),
       ),
     ],
   );

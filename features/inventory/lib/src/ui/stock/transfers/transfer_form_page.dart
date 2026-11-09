@@ -210,25 +210,11 @@ class _TransferFormPageState extends State<TransferFormPage> {
               ),
               const SizedBox(height: 24),
 
-              FilledButton.icon(
+              AppButton(
+                label: _busy ? 'Submitting…' : 'Request Transfer',
                 onPressed: _busy ? null : _save,
-                icon: _busy
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.arrow_forward_rounded),
-                label: Text(_busy ? 'Submitting…' : 'Request Transfer'),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(48),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
+                leadingIcon: Icons.arrow_forward_rounded,
+                isLoading: _busy,
               ),
             ],
           ),

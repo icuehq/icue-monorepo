@@ -1,4 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:inventory/inventory.dart';
 
@@ -282,14 +283,11 @@ class _CategoryCardState extends State<CategoryCard> {
                       ),
                       child: Align(
                         alignment: Alignment.centerLeft,
-                        child: TextButton.icon(
+                        child: AppButton(
+                          label: 'Add subcategory',
                           onPressed: () => widget.onAddSubcategory(category),
-                          icon: const Icon(Icons.add_rounded, size: 16),
-                          label: const Text('Add subcategory'),
-                          style: TextButton.styleFrom(
-                            visualDensity: VisualDensity.compact,
-                            textStyle: const TextStyle(fontSize: 12),
-                          ),
+                          variant: AppButtonVariant.ghost,
+                          leadingIcon: Icons.add_rounded,
                         ),
                       ),
                     ),

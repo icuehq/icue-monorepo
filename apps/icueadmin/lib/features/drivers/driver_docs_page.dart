@@ -139,12 +139,13 @@ class _DriverDocsPageState extends State<DriverDocsPage> {
           'Are you sure you want to delete the uploaded $docType file for ${widget.driver.fullName}?',
         ),
         actions: [
-          TextButton(
+          AppButton(
+            label: 'Cancel',
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel'),
+            variant: AppButtonVariant.ghost,
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+          AppButton(
+            label: 'Delete',
             onPressed: () async {
               Navigator.of(ctx).pop();
               final provider = context.read<DriverProvider>();
@@ -165,7 +166,7 @@ class _DriverDocsPageState extends State<DriverDocsPage> {
                 );
               }
             },
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+            variant: AppButtonVariant.destructive,
           ),
         ],
       ),

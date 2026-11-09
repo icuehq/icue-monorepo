@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 
 class BranchesEmptyState extends StatelessWidget {
@@ -64,20 +65,17 @@ class BranchesEmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             if (isFiltered)
-              OutlinedButton.icon(
+              AppButton(
+                label: 'Clear Search',
                 onPressed: onAction,
-                icon: const Icon(Icons.clear_rounded, size: 18),
-                label: const Text('Clear Search'),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(160, 44),
-                ),
+                variant: AppButtonVariant.outline,
+                leadingIcon: Icons.clear_rounded,
               )
             else
-              FilledButton.icon(
+              AppButton(
+                label: 'Retry',
                 onPressed: onAction,
-                icon: const Icon(Icons.refresh_rounded, size: 18),
-                label: const Text('Retry'),
-                style: FilledButton.styleFrom(minimumSize: const Size(160, 44)),
+                leadingIcon: Icons.refresh_rounded,
               ),
           ],
         ),

@@ -5,9 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/insights/reports/widgets/library_report_filters.dart';
-import 'package:school_library/src/ui/insights/reports/widgets/library_report_header.dart';
 import 'package:school_library/src/ui/insights/reports/widgets/library_report_kpis.dart';
-import 'package:school_library/src/ui/insights/reports/widgets/library_report_selector.dart';
 import 'package:school_library/src/ui/insights/reports/widgets/library_report_table.dart';
 
 /// Enterprise library reports page: executive metrics, interactive report switcher,
@@ -21,23 +19,12 @@ class LibraryReportsPage extends StatefulWidget {
 
 class _LibraryReportsPageState extends State<LibraryReportsPage> {
   LibraryReportDef _def = libraryReports.first;
-  late DateTimeRange _range = _defaultRange();
+  LibraryDatePreset _datePreset = LibraryDatePreset.currentMonth;
+  late DateTimeRange _range = calculateRangeForPreset(_datePreset);
   String? _status;
   String? _libraryId;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-
-  /// This month, or the last 12 months for the monthly report.
-  DateTimeRange _defaultRange() {
-    final today = DateTime.now().dateOnly;
-    return DateTimeRange(
-      start: DateTime(
-        today.year,
-        today.month - (_def.kind == LibraryReportKind.monthly ? 11 : 0),
-      ),
-      end: today,
-    );
-  }
 
   @override
   void dispose() {
@@ -70,7 +57,26 @@ class _LibraryReportsPageState extends State<LibraryReportsPage> {
     setState(() {
       _def = def;
       _status = null;
-      _range = _defaultRange();
+    });
+    _load();
+  }
+
+  void _onDatePresetChanged(LibraryDatePreset preset) {
+    setState(() {
+      _datePreset = preset;
+      if (preset != LibraryDatePreset.custom) {
+        _range = calculateRangeForPreset(preset);
+      }
+    });
+    if (preset != LibraryDatePreset.custom) {
+      _load();
+    }
+  }
+
+  void _onRangeChanged(DateTimeRange newRange) {
+    setState(() {
+      _datePreset = LibraryDatePreset.custom;
+      _range = newRange;
     });
     _load();
   }
@@ -138,6 +144,28 @@ class _LibraryReportsPageState extends State<LibraryReportsPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Library Reports'),
+        actions: [
+          AppButton(
+            label: 'Export CSV',
+            variant: AppButtonVariant.outline,
+            size: AppButtonSize.small,
+            leadingIcon: Icons.download_rounded,
+            onPressed: rows.isNotEmpty ? () => _exportCsv(header, rows) : null,
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            tooltip: 'Refresh report',
+            icon: library.insightsLoading
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.refresh_rounded),
+            onPressed: library.insightsLoading ? null : _load,
+          ),
+          const SizedBox(width: 12),
+        ],
         bottom: library.insightsLoading
             ? const PreferredSize(
                 preferredSize: Size.fromHeight(3),
@@ -146,48 +174,25 @@ class _LibraryReportsPageState extends State<LibraryReportsPage> {
             : null,
       ),
       body: CenteredBody(
-        maxWidth: 1400,
+        maxWidth: double.infinity,
         child: ListView(
           padding: EdgeInsets.symmetric(
             horizontal: horizontalPadding,
             vertical: 20,
           ),
           children: [
-            LibraryReportHeader(
-              title: _def.title,
-              description: _def.blurb,
-              rowCount: rows.length,
-              filteredRowCount: filteredCount,
-              onRefresh: _load,
-              onExportCsv: () => _exportCsv(header, rows),
-              isLoading: library.insightsLoading,
-            ),
-            const SizedBox(height: 18),
-            LibraryReportSelector(
-              reports: libraryReports,
-              selected: _def,
-              onSelected: _onReportChanged,
-            ),
-            const SizedBox(height: 18),
-            LibraryReportKpis(kind: _def.kind, rows: library.reportRows),
-            const SizedBox(height: 18),
             LibraryReportFilters(
-              searchController: _searchController,
-              searchQuery: _searchQuery,
-              onSearchChanged: (query) => setState(() => _searchQuery = query),
-              onClearSearch: () {
-                _searchController.clear();
-                setState(() => _searchQuery = '');
-              },
+              reports: libraryReports,
+              selectedReport: _def,
+              onReportChanged: _onReportChanged,
+              datePreset: _datePreset,
+              onDatePresetChanged: _onDatePresetChanged,
+              range: _range,
+              onRangeChanged: _onRangeChanged,
               libraries: library.libraries,
               selectedLibraryId: _libraryId,
-              onLibraryChanged: (id) {
-                setState(() => _libraryId = id);
-                _load();
-              },
-              range: _range,
-              onRangeChanged: (range) {
-                setState(() => _range = range);
+              onLibraryChanged: (libraryId) {
+                setState(() => _libraryId = libraryId);
                 _load();
               },
               statuses: _def.statuses,
@@ -196,8 +201,18 @@ class _LibraryReportsPageState extends State<LibraryReportsPage> {
                 setState(() => _status = status);
                 _load();
               },
-              isMonthly: _def.kind == LibraryReportKind.monthly,
+              searchController: _searchController,
+              searchQuery: _searchQuery,
+              onSearchChanged: (query) => setState(() => _searchQuery = query),
+              onClearSearch: () {
+                _searchController.clear();
+                setState(() => _searchQuery = '');
+              },
+              rowCount: rows.length,
+              filteredRowCount: filteredCount,
             ),
+            const SizedBox(height: 18),
+            LibraryReportKpis(kind: _def.kind, rows: library.reportRows),
             const SizedBox(height: 18),
             LibraryReportTable(
               header: header,

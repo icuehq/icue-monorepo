@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:routes/routes.dart';
 
@@ -56,7 +57,8 @@ class _SelectPointsDialogState extends State<SelectPointsDialog> {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ),
-          TextButton(
+          AppButton(
+            label: allSelected ? 'Deselect All' : 'Select All',
             onPressed: () {
               setState(() {
                 if (allSelected) {
@@ -68,7 +70,7 @@ class _SelectPointsDialogState extends State<SelectPointsDialog> {
                 }
               });
             },
-            child: Text(allSelected ? 'Deselect All' : 'Select All'),
+            variant: AppButtonVariant.ghost,
           ),
         ],
       ),
@@ -134,11 +136,13 @@ class _SelectPointsDialogState extends State<SelectPointsDialog> {
         ),
       ),
       actions: [
-        TextButton(
+        AppButton(
+          label: 'Cancel',
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          variant: AppButtonVariant.ghost,
         ),
-        ElevatedButton(
+        AppButton(
+          label: 'Done (${_selectedNames.length})',
           onPressed: () {
             final studentIds = <int>{};
             for (final name in _selectedNames) {
@@ -155,7 +159,6 @@ class _SelectPointsDialogState extends State<SelectPointsDialog> {
               ),
             );
           },
-          child: Text('Done (${_selectedNames.length})'),
         ),
       ],
     );

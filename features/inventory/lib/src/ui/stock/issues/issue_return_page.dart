@@ -183,10 +183,10 @@ class _IssueReturnPageState extends State<IssueReturnPage> {
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-            child: FilledButton.icon(
+            child: AppButton(
+              label: _busy ? 'Recording…' : 'Record return',
               onPressed: _busy ? null : _save,
-              icon: const Icon(Icons.assignment_return_rounded),
-              label: Text(_busy ? 'Recording…' : 'Record return'),
+              leadingIcon: Icons.assignment_return_rounded,
             ),
           ),
         ),

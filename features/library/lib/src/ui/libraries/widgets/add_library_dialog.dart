@@ -164,10 +164,11 @@ class _AddLibraryDialogState extends State<AddLibraryDialog> {
                 ),
               ),
               if (kDebugMode && !editing)
-                TextButton.icon(
+                AppButton(
+                  label: 'Fill sample',
                   onPressed: _busy ? null : _fillSample,
-                  icon: const Icon(Icons.auto_fix_high_rounded, size: 18),
-                  label: const Text('Fill sample'),
+                  variant: AppButtonVariant.ghost,
+                  leadingIcon: Icons.auto_fix_high_rounded,
                 ),
             ],
           ),
@@ -245,46 +246,19 @@ class _AddLibraryDialogState extends State<AddLibraryDialog> {
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              OutlinedButton(
+              AppButton(
+                label: 'Cancel',
                 onPressed: _busy ? null : () => Navigator.of(context).pop(),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 18,
-                    vertical: 12,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: const Text('Cancel'),
+                variant: AppButtonVariant.outline,
               ),
               const SizedBox(width: 12),
-              FilledButton.icon(
+              AppButton(
+                label: _busy
+                    ? 'Saving…'
+                    : (editing ? 'Save changes' : 'Create library'),
                 onPressed: _busy ? null : _save,
-                icon: _busy
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.check_rounded, size: 18),
-                label: Text(
-                  _busy
-                      ? 'Saving…'
-                      : (editing ? 'Save changes' : 'Create library'),
-                ),
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 12,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
+                leadingIcon: Icons.check_rounded,
+                isLoading: _busy,
               ),
             ],
           ),

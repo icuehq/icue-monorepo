@@ -156,24 +156,13 @@ class _ConfirmGatePassPageState extends State<ConfirmGatePassPage> {
               SizedBox(
                 width: double.infinity,
                 height: 48,
-                child: ElevatedButton.icon(
+                child: AppButton(
+                  label: provider.isLoading ? 'Issuing...' : 'Issue Gate Pass',
                   onPressed: _selectedCategory == null || provider.isLoading
                       ? null
                       : _handleIssue,
-                  icon: provider.isLoading
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Icon(Icons.check_circle_outline),
-                  label: Text(
-                    provider.isLoading ? 'Issuing...' : 'Issue Gate Pass',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
+                  leadingIcon: Icons.check_circle_outline,
+                  isLoading: provider.isLoading,
                 ),
               ),
             ] else ...[
@@ -207,16 +196,17 @@ class _ConfirmGatePassPageState extends State<ConfirmGatePassPage> {
               Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton(
+                    child: AppButton(
+                      label: 'Issue Another',
                       onPressed: () => context.pop(),
-                      child: const Text('Issue Another'),
+                      variant: AppButtonVariant.outline,
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: ElevatedButton(
+                    child: AppButton(
+                      label: 'Go Home',
                       onPressed: () => context.go(AppRoutes.dashboard),
-                      child: const Text('Go Home'),
                     ),
                   ),
                 ],

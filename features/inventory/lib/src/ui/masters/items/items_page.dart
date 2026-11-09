@@ -1,4 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:inventory/inventory.dart';
@@ -248,7 +249,8 @@ class _ItemsPageState extends State<ItemsPage> {
                                       ),
                                       const SizedBox(height: 18),
                                       if (hasFilter)
-                                        OutlinedButton.icon(
+                                        AppButton(
+                                          label: 'Reset filters',
                                           onPressed: () {
                                             _search.clear();
                                             inventoryProvider.loadItems(
@@ -256,19 +258,17 @@ class _ItemsPageState extends State<ItemsPage> {
                                               clearCategory: true,
                                             );
                                           },
-                                          icon: const Icon(
-                                            Icons.filter_alt_off_outlined,
-                                            size: 18,
-                                          ),
-                                          label: const Text('Reset filters'),
+                                          variant: AppButtonVariant.outline,
+                                          leadingIcon:
+                                              Icons.filter_alt_off_outlined,
                                         )
                                       else if (canEdit)
-                                        FilledButton.icon(
+                                        AppButton(
+                                          label: 'Add item',
                                           onPressed: () => context.push(
                                             InventoryRoutes.inventoryItemForm,
                                           ),
-                                          icon: const Icon(Icons.add, size: 18),
-                                          label: const Text('Add item'),
+                                          leadingIcon: Icons.add,
                                         ),
                                     ],
                                   ),

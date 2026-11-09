@@ -56,17 +56,16 @@ class _MembersPageState extends State<MembersPage> {
             label: 'Reason for blocking',
           ),
           actions: [
-            TextButton(
+            AppButton(
+              label: 'Cancel',
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
+              variant: AppButtonVariant.ghost,
             ),
-            FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.error,
-              ),
+            AppButton(
+              label: 'Block borrower',
               onPressed: () =>
                   Navigator.pop(dialogContext, reasonController.text.trim()),
-              child: const Text('Block borrower'),
+              variant: AppButtonVariant.destructive,
             ),
           ],
         ),
@@ -309,13 +308,14 @@ class _MembersPageState extends State<MembersPage> {
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 8,
                                   ),
-                                  child: TextButton(
+                                  child: AppButton(
+                                    label: 'Load more',
                                     onPressed: libraryProvider.membersLoading
                                         ? null
                                         : () => libraryProvider.loadMembers(
                                             more: true,
                                           ),
-                                    child: const Text('Load more'),
+                                    variant: AppButtonVariant.ghost,
                                   ),
                                 ),
                               )

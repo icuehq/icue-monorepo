@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -76,10 +77,10 @@ class _LibraryScanListenerState extends State<LibraryScanListener> {
             title: const Text('Invalid barcode'),
             content: Text('No book copy found for "$code".'),
             actions: [
-              FilledButton(
+              AppButton(
                 autofocus: true,
+                label: 'OK',
                 onPressed: () => Navigator.of(dialogContext).pop(),
-                child: const Text('OK'),
               ),
             ],
           ),

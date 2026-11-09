@@ -165,41 +165,43 @@ class _LoanDialogState extends State<LoanDialog> {
             padding: EdgeInsets.only(bottom: 8),
             child: LinearProgressIndicator(),
           ),
-        FilledButton.icon(
+        AppButton(
+          label: 'Return book',
           onPressed: _busy ? null : () => _return('good'),
-          icon: const Icon(Icons.assignment_returned_rounded, size: 18),
-          label: const Text('Return book'),
+          leadingIcon: Icons.assignment_returned_rounded,
         ),
         const SizedBox(height: 8),
         Row(
           children: [
             Expanded(
-              child: OutlinedButton.icon(
+              child: AppButton(
+                label: 'Damaged',
                 onPressed: _busy ? null : () => _return('damaged'),
-                icon: const Icon(Icons.heart_broken_outlined, size: 18),
-                label: const Text('Damaged'),
+                variant: AppButtonVariant.outline,
+                leadingIcon: Icons.heart_broken_outlined,
               ),
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: OutlinedButton.icon(
+              child: AppButton(
+                label: 'Renew',
                 onPressed: _busy || !loan.canRenew
                     ? null
                     : () => _run(
                         (libraryProvider) => libraryProvider.renewLoan(loan.id),
                       ),
-                icon: const Icon(Icons.autorenew_rounded, size: 18),
-                label: const Text('Renew'),
+                variant: AppButtonVariant.outline,
+                leadingIcon: Icons.autorenew_rounded,
               ),
             ),
           ],
         ),
         const SizedBox(height: 4),
-        TextButton.icon(
+        AppButton(
+          label: 'Mark as lost',
           onPressed: _busy ? null : _markLost,
-          style: TextButton.styleFrom(foregroundColor: colors.error),
-          icon: const Icon(Icons.report_gmailerrorred_rounded, size: 18),
-          label: const Text('Mark as lost'),
+          variant: AppButtonVariant.destructive,
+          leadingIcon: Icons.report_gmailerrorred_rounded,
         ),
       ],
     );
@@ -253,13 +255,14 @@ class _LoanDialogState extends State<LoanDialog> {
           ],
         ),
         actions: [
-          TextButton(
+          AppButton(
+            label: 'Cancel',
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            variant: AppButtonVariant.ghost,
           ),
-          FilledButton(
+          AppButton(
+            label: 'Confirm lost',
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Confirm lost'),
           ),
         ],
       ),

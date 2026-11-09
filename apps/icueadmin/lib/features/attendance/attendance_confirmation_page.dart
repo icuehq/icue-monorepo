@@ -1,5 +1,6 @@
 import 'package:attendance/attendance.dart';
 import 'package:auth/auth.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icueadmin/analytics/app_events.dart';
@@ -42,13 +43,14 @@ class _AttendanceConfirmationPageState extends State<AttendanceConfirmationPage>
           'Are you sure you want to mark ${student.name} as $newStatus?',
         ),
         actions: [
-          TextButton(
+          AppButton(
+            label: 'Cancel',
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            variant: AppButtonVariant.ghost,
           ),
-          FilledButton(
+          AppButton(
+            label: 'Confirm',
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Confirm'),
           ),
         ],
       ),
@@ -86,13 +88,14 @@ class _AttendanceConfirmationPageState extends State<AttendanceConfirmationPage>
           'Are you sure you want to submit this attendance record? Once submitted, it cannot be edited.',
         ),
         actions: [
-          TextButton(
+          AppButton(
+            label: 'Cancel',
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            variant: AppButtonVariant.ghost,
           ),
-          FilledButton(
+          AppButton(
+            label: 'Submit',
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Submit'),
           ),
         ],
       ),
@@ -147,9 +150,9 @@ class _AttendanceConfirmationPageState extends State<AttendanceConfirmationPage>
               const SizedBox(height: 16),
               const Text('No active attendance record found.'),
               const SizedBox(height: 16),
-              FilledButton(
+              AppButton(
+                label: 'Return to Dashboard',
                 onPressed: () => context.go(AppRoutes.dashboard),
-                child: const Text('Return to Dashboard'),
               ),
             ],
           ),
@@ -177,19 +180,10 @@ class _AttendanceConfirmationPageState extends State<AttendanceConfirmationPage>
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: FilledButton.icon(
+          child: AppButton(
+            label: 'Submit Attendance',
             onPressed: attendanceProvider.isLoading ? null : _handleSubmit,
-            icon: const Icon(Icons.send_rounded),
-            label: const Text(
-              'Submit Attendance',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            style: FilledButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
+            leadingIcon: Icons.send_rounded,
           ),
         ),
       ),

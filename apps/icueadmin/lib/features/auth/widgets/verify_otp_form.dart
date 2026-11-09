@@ -104,49 +104,19 @@ class _VerifyOtpFormState extends State<VerifyOtpForm> {
           onFieldSubmitted: (_) => _handleVerify(),
         ),
         const SizedBox(height: 20),
-        SizedBox(
-          width: double.infinity,
-          height: 48,
-          child: ElevatedButton(
-            onPressed: widget.isLoading ? null : _handleVerify,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: widget.primaryColor,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            child: widget.isLoading
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : const Text(
-                    'Verify & Login',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
-          ),
+        AppButton(
+          label: 'Verify & Login',
+          size: AppButtonSize.large,
+          isFullWidth: true,
+          isLoading: widget.isLoading,
+          onPressed: widget.isLoading ? null : _handleVerify,
         ),
         const SizedBox(height: 10),
-        TextButton.icon(
+        AppButton(
+          label: 'Change Mobile Number',
+          variant: AppButtonVariant.ghost,
+          leadingIcon: Icons.arrow_back,
           onPressed: widget.isLoading ? null : widget.onBack,
-          icon: Icon(Icons.arrow_back, size: 16, color: widget.primaryColor),
-          label: Text(
-            'Change Mobile Number',
-            style: TextStyle(
-              color: widget.primaryColor,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
         ),
       ],
     );

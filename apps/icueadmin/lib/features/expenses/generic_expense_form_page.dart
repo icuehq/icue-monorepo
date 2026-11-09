@@ -300,13 +300,14 @@ class _GenericExpenseFormPageState extends State<GenericExpenseFormPage> {
     final name = _odometerFile?.name;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: OutlinedButton.icon(
-        icon: const Icon(Icons.camera_alt, size: 16),
-        label: Text(name ?? 'Upload Odometer *'),
+      child: AppButton(
+        label: name ?? 'Upload Odometer *',
         onPressed: () async {
           final picked = await pickFile(context);
           if (picked != null && mounted) setState(() => _odometerFile = picked);
         },
+        variant: AppButtonVariant.outline,
+        leadingIcon: Icons.camera_alt,
       ),
     );
   }
@@ -464,19 +465,11 @@ class _GenericExpenseFormPageState extends State<GenericExpenseFormPage> {
               maxLines: 3,
             ),
             const SizedBox(height: 24),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
+            AppButton(
+              label: 'Submit Expense Record',
               onPressed: provider.isLoading ? null : _submit,
-              icon: const Icon(Icons.check_circle_outline),
-              label: provider.isLoading
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('Submit Expense Record'),
+              leadingIcon: Icons.check_circle_outline,
+              isLoading: provider.isLoading,
             ),
           ],
         ),

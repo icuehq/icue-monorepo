@@ -1,4 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/circulation/widgets/issue_scan_item_card.dart';
@@ -129,10 +130,10 @@ class IssueBooksCard extends StatelessWidget {
             if (pendingRecord != null && hasPerson)
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
-                child: FilledButton.icon(
+                child: AppButton(
+                  label: 'Issue book',
                   onPressed: busy ? null : onIssuePending,
-                  icon: const Icon(Icons.menu_book_rounded, size: 18),
-                  label: const Text('Issue book'),
+                  leadingIcon: Icons.menu_book_rounded,
                 ),
               ),
             for (final record in records) IssueScanItemCard(record: record),
@@ -179,17 +180,12 @@ class IssueBooksCard extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: FilledButton.icon(
+                  child: AppButton(
+                    label: successfulCount > 0 ? 'Issue Book(s)' : 'Cancel',
                     onPressed: busy ? null : onDone,
-                    icon: Icon(
-                      successfulCount > 0
-                          ? Icons.check_rounded
-                          : Icons.arrow_back_rounded,
-                      size: 18,
-                    ),
-                    label: Text(
-                      successfulCount > 0 ? 'Issue Book(s)' : 'Cancel',
-                    ),
+                    leadingIcon: successfulCount > 0
+                        ? Icons.check_rounded
+                        : Icons.arrow_back_rounded,
                   ),
                 ),
               ],

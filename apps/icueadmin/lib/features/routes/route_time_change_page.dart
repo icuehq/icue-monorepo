@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icueadmin/analytics/app_events.dart';
 import 'package:icueadmin/features/routes/widgets/route_time_item.dart';
@@ -122,23 +123,14 @@ class _RouteTimeChangePageState extends State<RouteTimeChangePage> {
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: ElevatedButton.icon(
+          child: AppButton(
+            label: _selectedRouteIds.isEmpty
+                ? 'Select routes to update time'
+                : 'Update Time for ${_selectedRouteIds.length} routes',
             onPressed: provider.isLoading || _selectedRouteIds.isEmpty
                 ? null
                 : () => _onPickTimeAndSubmit(filteredRoutes),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            icon: const Icon(Icons.schedule_rounded),
-            label: Text(
-              _selectedRouteIds.isEmpty
-                  ? 'Select routes to update time'
-                  : 'Update Time for ${_selectedRouteIds.length} routes',
-              style: const TextStyle(fontSize: 15),
-            ),
+            leadingIcon: Icons.schedule_rounded,
           ),
         ),
       ),

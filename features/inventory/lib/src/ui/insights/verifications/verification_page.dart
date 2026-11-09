@@ -134,13 +134,14 @@ class _VerificationPageState extends State<VerificationPage> {
           label: decision == 'approve' ? 'Comment (optional)' : 'Reason',
         ),
         actions: [
-          TextButton(
+          AppButton(
+            label: 'Cancel',
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            variant: AppButtonVariant.ghost,
           ),
-          FilledButton(
+          AppButton(
+            label: 'Confirm',
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Confirm'),
           ),
         ],
       ),
@@ -168,16 +169,18 @@ class _VerificationPageState extends State<VerificationPage> {
             children: [
               if (editable) ...[
                 Expanded(
-                  child: OutlinedButton(
+                  child: AppButton(
+                    label: 'Save counts',
                     onPressed: _busy
                         ? null
                         : () => _save(insightsProvider.lineItems),
-                    child: const Text('Save counts'),
+                    variant: AppButtonVariant.outline,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: FilledButton(
+                  child: AppButton(
+                    label: 'Submit',
                     onPressed: _busy
                         ? null
                         : () async {
@@ -190,23 +193,23 @@ class _VerificationPageState extends State<VerificationPage> {
                               );
                             }
                           },
-                    child: const Text('Submit'),
                   ),
                 ),
               ],
               if (_v.submitted &&
                   access.can('inventory.adjustment.approve')) ...[
                 Expanded(
-                  child: OutlinedButton(
+                  child: AppButton(
+                    label: 'Send back',
                     onPressed: _busy ? null : () => _decide('reject'),
-                    child: const Text('Send back'),
+                    variant: AppButtonVariant.outline,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: FilledButton(
+                  child: AppButton(
+                    label: 'Approve & apply',
                     onPressed: _busy ? null : () => _decide('approve'),
-                    child: const Text('Approve & apply'),
                   ),
                 ),
               ],

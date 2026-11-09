@@ -78,13 +78,8 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
+          child: AppButton(
+            label: 'Update Status / Log Action',
             onPressed: () {
               UpdateComplaintModal.show(
                 context,
@@ -92,11 +87,7 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
                 onSubmit: _handleUpdate,
               );
             },
-            icon: const Icon(Icons.edit_note_rounded),
-            label: const Text(
-              'Update Status / Log Action',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-            ),
+            leadingIcon: Icons.edit_note_rounded,
           ),
         ),
       ),

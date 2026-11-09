@@ -1,4 +1,5 @@
 import 'package:auth/auth.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icueadmin/routing/app_routes.dart';
@@ -26,12 +27,11 @@ class BranchSelectorBar extends StatelessWidget {
               style: const TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(minimumSize: const Size(100, 38)),
+          AppButton(
+            label: 'Change',
             onPressed: () {
               context.push(AppRoutes.branches);
             },
-            child: const Text('Change'),
           ),
         ],
       ),

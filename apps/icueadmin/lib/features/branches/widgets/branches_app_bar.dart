@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 
 class BranchesAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -9,7 +10,6 @@ class BranchesAppBar extends StatelessWidget implements PreferredSizeWidget {
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 
   Future<void> _handleLogout(BuildContext context) async {
-    final theme = Theme.of(context);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -18,17 +18,15 @@ class BranchesAppBar extends StatelessWidget implements PreferredSizeWidget {
           'Are you sure you want to sign out of this session?',
         ),
         actions: [
-          TextButton(
+          AppButton(
+            label: 'Cancel',
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
+            variant: AppButtonVariant.ghost,
           ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: theme.colorScheme.error,
-              foregroundColor: theme.colorScheme.onError,
-            ),
+          AppButton(
+            label: 'Sign Out',
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Sign Out'),
+            variant: AppButtonVariant.destructive,
           ),
         ],
       ),
@@ -41,8 +39,6 @@ class BranchesAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return AppBar(
       elevation: 0.5,
       title: Row(
@@ -63,13 +59,11 @@ class BranchesAppBar extends StatelessWidget implements PreferredSizeWidget {
       actions: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8.0),
-          child: TextButton.icon(
+          child: AppButton(
+            label: 'Sign Out',
             onPressed: () => _handleLogout(context),
-            icon: const Icon(Icons.logout, size: 18),
-            label: const Text('Sign Out'),
-            style: TextButton.styleFrom(
-              foregroundColor: theme.colorScheme.error,
-            ),
+            variant: AppButtonVariant.destructive,
+            leadingIcon: Icons.logout,
           ),
         ),
       ],

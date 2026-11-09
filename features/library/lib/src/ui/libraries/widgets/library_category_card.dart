@@ -1,4 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:school_library/school_library.dart';
 
@@ -267,24 +268,18 @@ class _LibraryCategoryCardState extends State<LibraryCategoryCard> {
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             child: Row(
               children: [
-                TextButton.icon(
+                AppButton(
+                  label: 'View books',
                   onPressed: () => widget.onViewBooks(category),
-                  icon: const Icon(Icons.menu_book_outlined, size: 16),
-                  label: const Text('View books'),
-                  style: TextButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    textStyle: const TextStyle(fontSize: 12),
-                  ),
+                  variant: AppButtonVariant.ghost,
+                  leadingIcon: Icons.menu_book_outlined,
                 ),
                 const Spacer(),
-                TextButton.icon(
+                AppButton(
+                  label: 'Add subcategory',
                   onPressed: () => widget.onAddSubcategory(category),
-                  icon: const Icon(Icons.add_rounded, size: 16),
-                  label: const Text('Add subcategory'),
-                  style: TextButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    textStyle: const TextStyle(fontSize: 12),
-                  ),
+                  variant: AppButtonVariant.ghost,
+                  leadingIcon: Icons.add_rounded,
                 ),
               ],
             ),

@@ -96,10 +96,8 @@ class ExpenseConfirmationPage extends StatelessWidget {
               Row(
                 children: [
                   Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
+                    child: AppButton(
+                      label: 'Add Another',
                       onPressed: () {
                         if (isSelfFilling) {
                           context.pop();
@@ -107,15 +105,12 @@ class ExpenseConfirmationPage extends StatelessWidget {
                           context.pushReplacement(AppRoutes.repairsExpense);
                         }
                       },
-                      child: const Text('Add Another'),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
+                    child: AppButton(
+                      label: isSelfFilling ? 'End Filling' : 'Dashboard',
                       onPressed: () {
                         if (isSelfFilling) {
                           context.pushReplacement(
@@ -126,7 +121,7 @@ class ExpenseConfirmationPage extends StatelessWidget {
                           context.go(AppRoutes.dashboard);
                         }
                       },
-                      child: Text(isSelfFilling ? 'End Filling' : 'Dashboard'),
+                      variant: AppButtonVariant.outline,
                     ),
                   ),
                 ],

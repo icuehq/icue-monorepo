@@ -384,13 +384,14 @@ class _FinesPageState extends State<FinesPage> {
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 8,
                                   ),
-                                  child: TextButton(
+                                  child: AppButton(
+                                    label: 'Load more',
                                     onPressed: libraryProvider.finesLoading
                                         ? null
                                         : () => libraryProvider.loadFines(
                                             more: true,
                                           ),
-                                    child: const Text('Load more'),
+                                    variant: AppButtonVariant.ghost,
                                   ),
                                 ),
                               )

@@ -24,15 +24,12 @@ class ResumeAttendanceDialog extends StatelessWidget {
         style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
       ),
       actions: [
-        OutlinedButton(
-          style: OutlinedButton.styleFrom(
-            foregroundColor: Colors.red,
-            side: const BorderSide(color: Colors.red),
-          ),
+        AppButton(
+          label: 'Discard',
           onPressed: onDelete,
-          child: const Text('Discard'),
+          variant: AppButtonVariant.destructive,
         ),
-        FilledButton(onPressed: onResume, child: const Text('Resume')),
+        AppButton(label: 'Resume', onPressed: onResume),
       ],
     );
   }

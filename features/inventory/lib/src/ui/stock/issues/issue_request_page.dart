@@ -193,22 +193,20 @@ class _IssueRequestPageState extends State<IssueRequestPage> {
             ),
           ),
           actions: [
-            TextButton(
+            AppButton(
+              label: 'Cancel',
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              variant: AppButtonVariant.ghost,
             ),
-            FilledButton(
-              style: FilledButton.styleFrom(
-                minimumSize: Size.zero,
-                backgroundColor: Theme.of(context).colorScheme.error,
-              ),
+            AppButton(
+              label: action,
               onPressed: () {
                 if (reason.text.trim().isEmpty) {
                   return setDialogState(() => error = 'A reason is required');
                 }
                 Navigator.pop(context, reason.text.trim());
               },
-              child: Text(action),
+              variant: AppButtonVariant.destructive,
             ),
           ],
         ),
@@ -292,14 +290,14 @@ class _IssueRequestPageState extends State<IssueRequestPage> {
         title: const Text('Confirm receipt'),
         content: Text('Confirm the recipient received ${issue.number}?'),
         actions: [
-          TextButton(
+          AppButton(
+            label: 'Cancel',
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            variant: AppButtonVariant.ghost,
           ),
-          FilledButton(
-            style: FilledButton.styleFrom(minimumSize: Size.zero),
+          AppButton(
+            label: 'Confirm',
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Confirm'),
           ),
         ],
       ),
@@ -325,17 +323,14 @@ class _IssueRequestPageState extends State<IssueRequestPage> {
     if (request.isPending && access.can('inventory.issue.approve')) {
       return _ActionBar(
         children: [
-          OutlinedButton(
+          AppButton(
+            label: 'Reject',
             onPressed: _busy ? null : () => _reject(request),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Theme.of(context).colorScheme.error,
-              side: BorderSide(color: Theme.of(context).colorScheme.error),
-            ),
-            child: const Text('Reject'),
+            variant: AppButtonVariant.destructive,
           ),
-          FilledButton(
+          AppButton(
+            label: 'Approve',
             onPressed: _busy ? null : () => _approve(request),
-            child: const Text('Approve'),
           ),
         ],
       );
@@ -343,10 +338,10 @@ class _IssueRequestPageState extends State<IssueRequestPage> {
     if (request.isIssuable && access.can('inventory.stock.operate')) {
       return _ActionBar(
         children: [
-          FilledButton.icon(
+          AppButton(
+            label: 'Issue stock',
             onPressed: _busy ? null : () => _issue(request),
-            icon: const Icon(Icons.outbox_rounded, size: 18),
-            label: const Text('Issue stock'),
+            leadingIcon: Icons.outbox_rounded,
           ),
         ],
       );
@@ -373,12 +368,13 @@ class _IssueRequestPageState extends State<IssueRequestPage> {
             children: [
               Text(_loadError ?? 'Request not found'),
               const SizedBox(height: 12),
-              TextButton(
+              AppButton(
+                label: 'Try again',
                 onPressed: () {
                   setState(() => _loading = true);
                   _load();
                 },
-                child: const Text('Try again'),
+                variant: AppButtonVariant.ghost,
               ),
             ],
           ),
@@ -449,16 +445,18 @@ class _IssueRequestPageState extends State<IssueRequestPage> {
           if (request != null &&
               request.isPending &&
               request.createdBy == stockProvider.uid)
-            TextButton(
+            AppButton(
+              label: 'Cancel request',
               onPressed: _busy ? null : () => _end(request, cancel: true),
-              child: const Text('Cancel request'),
+              variant: AppButtonVariant.ghost,
             ),
           if (request != null &&
               request.isIssuable &&
               access.can('inventory.stock.operate'))
-            TextButton(
+            AppButton(
+              label: 'Close request',
               onPressed: _busy ? null : () => _end(request, cancel: false),
-              child: const Text('Close request'),
+              variant: AppButtonVariant.ghost,
             ),
         ],
       ),

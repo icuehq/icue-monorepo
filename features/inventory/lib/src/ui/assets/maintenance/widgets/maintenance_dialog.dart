@@ -92,9 +92,9 @@ class _MaintenanceDialogState extends State<MaintenanceDialog> {
             last: now.add(const Duration(days: 1095)),
           ),
           const SizedBox(height: 16),
-          FilledButton(
+          AppButton(
+            label: _busy ? 'Saving…' : 'Save',
             onPressed: _busy ? null : _save,
-            child: Text(_busy ? 'Saving…' : 'Save'),
           ),
         ],
       ),

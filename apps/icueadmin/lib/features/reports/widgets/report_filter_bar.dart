@@ -21,7 +21,8 @@ class ReportFilterBar extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: OutlinedButton.icon(
+            child: AppButton(
+              label: currentFilter.displayLabel,
               onPressed: () async {
                 final result = await AppDateFilterModal.show(
                   context,
@@ -35,22 +36,8 @@ class ReportFilterBar extends StatelessWidget {
                   onFilterChanged(result);
                 }
               },
-              icon: const Icon(Icons.date_range_rounded, size: 18),
-              label: Text(
-                currentFilter.displayLabel,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-              style: OutlinedButton.styleFrom(
-                alignment: Alignment.centerLeft,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
+              variant: AppButtonVariant.outline,
+              leadingIcon: Icons.date_range_rounded,
             ),
           ),
           if (trailing != null) ...[const SizedBox(width: 10), trailing!],

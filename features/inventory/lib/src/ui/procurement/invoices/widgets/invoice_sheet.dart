@@ -268,7 +268,8 @@ class InvoiceSheet extends StatelessWidget {
 
           // Actions
           if (canOperate && !i.isCancelled) ...[
-            FilledButton.icon(
+            AppButton(
+              label: 'Update Payment Status',
               onPressed: () => _ask(
                 context,
                 title: 'Update Paid Amount',
@@ -284,22 +285,13 @@ class InvoiceSheet extends StatelessWidget {
                   done: 'Payment status updated',
                 ),
               ),
-              icon: const Icon(Icons.payment_rounded),
-              label: const Text('Update Payment Status'),
-              style: FilledButton.styleFrom(
-                minimumSize: const Size.fromHeight(44),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
+              leadingIcon: Icons.payment_rounded,
             ),
             if (i.isUnpaid) ...[
               const SizedBox(height: 8),
               Align(
-                child: TextButton.icon(
-                  style: TextButton.styleFrom(
-                    foregroundColor: theme.colorScheme.error,
-                  ),
+                child: AppButton(
+                  label: 'Cancel Invoice',
                   onPressed: () => _ask(
                     context,
                     title: 'Cancel ${i.invoiceNumber}',
@@ -313,8 +305,8 @@ class InvoiceSheet extends StatelessWidget {
                       done: 'Invoice cancelled',
                     ),
                   ),
-                  icon: const Icon(Icons.cancel_outlined, size: 16),
-                  label: const Text('Cancel Invoice'),
+                  variant: AppButtonVariant.destructive,
+                  leadingIcon: Icons.cancel_outlined,
                 ),
               ),
             ],

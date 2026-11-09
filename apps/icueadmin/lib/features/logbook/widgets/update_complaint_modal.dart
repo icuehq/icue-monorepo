@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:logbook/logbook.dart';
 
@@ -191,38 +192,25 @@ class _UpdateComplaintModalState extends State<UpdateComplaintModal> {
                         },
                       )
                     else
-                      TextButton.icon(
+                      AppButton(
+                        label: 'Attach',
                         onPressed: () {
                           setState(() {
                             _photoName = 'resolution_proof.jpg';
                             _photoBytes = [10, 20, 30];
                           });
                         },
-                        icon: const Icon(Icons.attach_file, size: 16),
-                        label: const Text('Attach'),
+                        variant: AppButtonVariant.ghost,
+                        leadingIcon: Icons.attach_file,
                       ),
                   ],
                 ),
               ),
               const SizedBox(height: 20),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 48),
-                ),
+              AppButton(
+                label: 'Update Complaint Status',
                 onPressed: _isSubmitting ? null : _handleSave,
-                child: _isSubmitting
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text(
-                        'Update Complaint Status',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                isLoading: _isSubmitting,
               ),
             ],
           ),

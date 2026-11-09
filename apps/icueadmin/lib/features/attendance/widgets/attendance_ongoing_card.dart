@@ -1,4 +1,5 @@
 import 'package:attendance/attendance.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 
 class AttendanceOngoingCard extends StatelessWidget {
@@ -93,38 +94,19 @@ class AttendanceOngoingCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.red.shade700,
-                    side: BorderSide(color: Colors.red.shade200),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 11),
-                  ),
+                child: AppButton(
+                  label: 'Discard',
                   onPressed: onDiscard,
-                  child: const Text(
-                    'Discard',
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                  ),
+                  variant: AppButtonVariant.destructive,
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 flex: 2,
-                child: FilledButton.icon(
-                  style: FilledButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 11),
-                  ),
+                child: AppButton(
+                  label: 'Resume Session',
                   onPressed: onResume,
-                  icon: const Icon(Icons.arrow_forward_rounded, size: 18),
-                  label: const Text(
-                    'Resume Session',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                  ),
+                  leadingIcon: Icons.arrow_forward_rounded,
                 ),
               ),
             ],

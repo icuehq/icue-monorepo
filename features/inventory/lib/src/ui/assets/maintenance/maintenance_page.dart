@@ -195,10 +195,11 @@ class MaintenanceSheet extends StatelessWidget {
           Wrap(
             spacing: 8,
             children: [
-              OutlinedButton(
+              AppButton(
+                label: 'Edit',
                 onPressed: () =>
                     _go(context, () => MaintenanceDialog(job: maintenance)),
-                child: const Text('Edit'),
+                variant: AppButtonVariant.outline,
               ),
               for (final value in const [
                 'assigned',
@@ -208,7 +209,8 @@ class MaintenanceSheet extends StatelessWidget {
                 'cancelled',
               ])
                 if (value != maintenance.status)
-                  OutlinedButton(
+                  AppButton(
+                    label: humanizeStatus(value),
                     onPressed: () => _go(
                       context,
                       () => MaintenanceUpdateDialog(
@@ -216,7 +218,7 @@ class MaintenanceSheet extends StatelessWidget {
                         status: value,
                       ),
                     ),
-                    child: Text(humanizeStatus(value)),
+                    variant: AppButtonVariant.outline,
                   ),
             ],
           ),

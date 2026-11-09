@@ -206,13 +206,14 @@ class _CopyDialogState extends State<CopyDialog> {
             ),
           ),
           actions: [
-            TextButton(
+            AppButton(
+              label: 'Cancel',
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Cancel'),
+              variant: AppButtonVariant.ghost,
             ),
-            FilledButton(
+            AppButton(
+              label: 'Move copy',
               onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('Move copy'),
             ),
           ],
         ),
@@ -448,24 +449,18 @@ class _CopyDialogState extends State<CopyDialog> {
           runSpacing: 8,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            FilledButton.icon(
-              icon: _busy
-                  ? const SizedBox.square(
-                      dimension: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Icon(Icons.check_rounded),
-              label: Text(_busy ? 'Saving…' : 'Save changes'),
+            AppButton(
+              label: _busy ? 'Saving…' : 'Save changes',
               onPressed: _busy ? null : _save,
+              leadingIcon: Icons.check_rounded,
+              isLoading: _busy,
             ),
             if (copy.status == 'available' && _status == 'available')
-              OutlinedButton.icon(
-                icon: const Icon(Icons.swap_horiz_rounded),
-                label: const Text('Move library'),
+              AppButton(
+                label: 'Move library',
                 onPressed: _busy ? null : _move,
+                variant: AppButtonVariant.outline,
+                leadingIcon: Icons.swap_horiz_rounded,
               ),
           ],
         ),

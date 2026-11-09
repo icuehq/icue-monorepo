@@ -174,9 +174,9 @@ class _AssetActionDialogState extends State<AssetActionDialog> {
               label: _a == AssetAction.retire ? 'Reason *' : 'Remarks',
             ),
           const SizedBox(height: 16),
-          FilledButton(
+          AppButton(
+            label: _busy ? 'Saving…' : _a.title,
             onPressed: _busy ? null : _save,
-            child: Text(_busy ? 'Saving…' : _a.title),
           ),
         ],
       ),

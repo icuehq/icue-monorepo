@@ -49,13 +49,14 @@ class _FineDialogState extends State<FineDialog> {
           ],
         ),
         actions: [
-          TextButton(
+          AppButton(
+            label: 'Cancel',
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            variant: AppButtonVariant.ghost,
           ),
-          FilledButton(
+          AppButton(
+            label: 'Confirm waive',
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Confirm waive'),
           ),
         ],
       ),
@@ -126,13 +127,14 @@ class _FineDialogState extends State<FineDialog> {
           ],
         ),
         actions: [
-          TextButton(
+          AppButton(
+            label: 'Cancel',
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            variant: AppButtonVariant.ghost,
           ),
-          FilledButton(
+          AppButton(
+            label: 'Record payment',
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Record payment'),
           ),
         ],
       ),
@@ -239,16 +241,17 @@ class _FineDialogState extends State<FineDialog> {
           Row(
             children: [
               Expanded(
-                child: FilledButton.tonal(
+                child: AppButton(
+                  label: 'Waive',
                   onPressed: _busy ? null : _waive,
-                  child: const Text('Waive'),
+                  variant: AppButtonVariant.secondary,
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: FilledButton(
+                child: AppButton(
+                  label: 'Record payment',
                   onPressed: _busy ? null : _recordPayment,
-                  child: const Text('Record payment'),
                 ),
               ),
             ],

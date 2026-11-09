@@ -171,14 +171,11 @@ class ReservationCard extends StatelessWidget {
                 ],
                 const Spacer(),
                 if (onCancel != null)
-                  TextButton.icon(
-                    style: TextButton.styleFrom(
-                      foregroundColor: theme.colorScheme.error,
-                      visualDensity: VisualDensity.compact,
-                    ),
-                    icon: const Icon(Icons.cancel_outlined, size: 16),
-                    label: const Text('Cancel'),
+                  AppButton(
+                    label: 'Cancel',
                     onPressed: onCancel,
+                    variant: AppButtonVariant.destructive,
+                    leadingIcon: Icons.cancel_outlined,
                   ),
               ],
             ),

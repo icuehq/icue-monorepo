@@ -198,30 +198,25 @@ class _IssueRequestsPageState extends State<IssueRequestsPage> {
                                       ),
                                       const SizedBox(height: 18),
                                       if (stockProvider.errorMessage != null)
-                                        OutlinedButton.icon(
+                                        AppButton(
+                                          label: 'Try again',
                                           onPressed: _load,
-                                          icon: const Icon(
-                                            Icons.refresh,
-                                            size: 18,
-                                          ),
-                                          label: const Text('Try again'),
+                                          variant: AppButtonVariant.outline,
+                                          leadingIcon: Icons.refresh,
                                         )
                                       else if (_status != null)
-                                        OutlinedButton.icon(
+                                        AppButton(
+                                          label: 'Show all requests',
                                           onPressed: () => _filter(null),
-                                          icon: const Icon(
-                                            Icons.filter_alt_off_outlined,
-                                            size: 18,
-                                          ),
-                                          label: const Text(
-                                            'Show all requests',
-                                          ),
+                                          variant: AppButtonVariant.outline,
+                                          leadingIcon:
+                                              Icons.filter_alt_off_outlined,
                                         )
                                       else if (canRequest)
-                                        FilledButton.icon(
+                                        AppButton(
+                                          label: 'New request',
                                           onPressed: _newRequest,
-                                          icon: const Icon(Icons.add, size: 18),
-                                          label: const Text('New request'),
+                                          leadingIcon: Icons.add,
                                         ),
                                     ],
                                   ),

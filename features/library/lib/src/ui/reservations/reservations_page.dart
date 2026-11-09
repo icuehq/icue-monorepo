@@ -72,16 +72,15 @@ class _ReservationsPageState extends State<ReservationsPage> {
           'Cancel reservation ${reservation.number} for "${reservation.title}"?',
         ),
         actions: [
-          TextButton(
+          AppButton(
+            label: 'Back',
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Back'),
+            variant: AppButtonVariant.ghost,
           ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
+          AppButton(
+            label: 'Cancel reservation',
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Cancel reservation'),
+            variant: AppButtonVariant.destructive,
           ),
         ],
       ),
@@ -372,13 +371,14 @@ class _ReservationsPageState extends State<ReservationsPage> {
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 8,
                                   ),
-                                  child: TextButton(
+                                  child: AppButton(
+                                    label: 'Load more',
                                     onPressed:
                                         libraryProvider.reservationsLoading
                                         ? null
                                         : () => libraryProvider
                                               .loadReservations(more: true),
-                                    child: const Text('Load more'),
+                                    variant: AppButtonVariant.ghost,
                                   ),
                                 ),
                               )

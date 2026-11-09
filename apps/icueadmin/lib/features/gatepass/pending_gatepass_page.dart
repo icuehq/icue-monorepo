@@ -101,23 +101,11 @@ class _PendingGatePassPageState extends State<PendingGatePassPage> {
             child: Row(
               children: [
                 Expanded(
-                  child: OutlinedButton.icon(
+                  child: AppButton(
+                    label: 'Date: $dateDisplay',
                     onPressed: _pickDate,
-                    icon: const Icon(Icons.calendar_today, size: 18),
-                    label: Text(
-                      'Date: $dateDisplay',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      alignment: Alignment.centerLeft,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 12,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
+                    variant: AppButtonVariant.outline,
+                    leadingIcon: Icons.calendar_today,
                   ),
                 ),
                 const SizedBox(width: 10),

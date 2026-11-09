@@ -253,10 +253,10 @@ class _PolicyDialogState extends State<PolicyDialog> {
                 ),
               ],
             ),
-          FilledButton.icon(
+          AppButton(
+            label: _busy ? 'Saving…' : 'Save policy',
             onPressed: _busy ? null : _save,
-            icon: const Icon(Icons.check_rounded),
-            label: Text(_busy ? 'Saving…' : 'Save policy'),
+            leadingIcon: Icons.check_rounded,
           ),
         ],
       ),

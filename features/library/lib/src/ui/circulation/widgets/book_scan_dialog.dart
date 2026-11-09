@@ -210,24 +210,20 @@ class BookScanDialog extends StatelessWidget {
         ],
         const SizedBox(height: 20),
         if (onLoan)
-          FilledButton.icon(
+          AppButton(
             autofocus: true,
-            style: FilledButton.styleFrom(
-              minimumSize: const Size.fromHeight(48),
-            ),
-            icon: const Icon(Icons.assignment_return_rounded),
+            isFullWidth: true,
+            label: 'Return Book',
+            leadingIcon: Icons.assignment_return_rounded,
             onPressed: () => Navigator.of(context).pop(true),
-            label: const Text('Return Book'),
           )
         else if (canIssue)
-          FilledButton.icon(
+          AppButton(
             autofocus: true,
-            style: FilledButton.styleFrom(
-              minimumSize: const Size.fromHeight(48),
-            ),
-            icon: const Icon(Icons.outbox_rounded),
+            isFullWidth: true,
+            label: 'Issue Book',
+            leadingIcon: Icons.outbox_rounded,
             onPressed: () => Navigator.of(context).pop(true),
-            label: const Text('Issue Book'),
           ),
       ],
     );

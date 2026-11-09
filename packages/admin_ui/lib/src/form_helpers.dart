@@ -1,4 +1,5 @@
 import 'package:admin_ui/src/adaptive.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:icue_firebase/icue_firebase.dart' show ErrorReporting;
@@ -163,15 +164,15 @@ class SeedDefaultsButton<P extends ErrorReporting> extends StatelessWidget {
   Widget build(BuildContext context) {
     final provider = context.read<P>();
     if (!canSeed(provider)) return const SizedBox.shrink();
-    return FilledButton.icon(
-      icon: const Icon(Icons.auto_fix_high_rounded),
-      label: Text(label),
+    return AppButton(
+      label: label,
       onPressed: () async {
         final seeded = await seed(provider);
         if (context.mounted && !seeded) {
           showMessage(context, provider.errorMessage ?? 'Failed');
         }
       },
+      leadingIcon: Icons.auto_fix_high_rounded,
     );
   }
 }

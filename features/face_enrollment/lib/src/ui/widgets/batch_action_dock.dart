@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:face_enrollment/src/providers/student_provider.dart';
 import 'package:face_enrollment/src/ui/theme_context.dart';
 import 'package:face_enrollment/src/ui/widgets/batch_progress_dialog.dart';
@@ -74,38 +75,13 @@ class BatchActionDock extends StatelessWidget {
                 ],
               ),
             ),
-            ElevatedButton(
+            AppButton(
+              size: AppButtonSize.small,
+              leadingIcon: Icons.bolt_rounded,
+              label:
+                  'Enroll (${pendingStudents.length}${studentProvider.hasMore ? '+' : ''})',
               onPressed: () =>
                   showBatchProgressDialog(context, studentProvider),
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size(0, 38),
-                backgroundColor: context.scheme.primary,
-                foregroundColor: Colors.white,
-                elevation: 4,
-                shadowColor: context.scheme.primary.withValues(alpha: 0.4),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.bolt_rounded, size: 16),
-                  const SizedBox(width: 4),
-                  Text(
-                    'ENROLL (${pendingStudents.length}${studentProvider.hasMore ? '+' : ''})',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.4,
-                    ),
-                  ),
-                ],
-              ),
             ),
           ],
         ),

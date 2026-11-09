@@ -229,9 +229,9 @@ class _AssetFormPageState extends State<AssetFormPage> {
                 helperText: 'Takes vendor and price from the order; limited to its accepted units',
               ),
               const SizedBox(height: 16),
-              FilledButton(
+              AppButton(
+                label: _busy ? 'Saving…' : 'Register',
                 onPressed: _busy ? null : _save,
-                child: Text(_busy ? 'Saving…' : 'Register'),
               ),
             ],
           ),

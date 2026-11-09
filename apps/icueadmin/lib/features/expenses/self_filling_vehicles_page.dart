@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:expenses/expenses.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -43,11 +44,13 @@ class _SelfFillingVehiclesPageState extends State<SelfFillingVehiclesPage> {
         title: const Text('End Filling'),
         content: const Text('Are you sure you want to end the fuel filling?'),
         actions: [
-          TextButton(
+          AppButton(
+            label: 'No',
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('No'),
+            variant: AppButtonVariant.ghost,
           ),
-          TextButton(
+          AppButton(
+            label: 'Yes',
             onPressed: () {
               Navigator.of(ctx).pop();
               context.pushReplacement(
@@ -55,7 +58,7 @@ class _SelfFillingVehiclesPageState extends State<SelfFillingVehiclesPage> {
                 extra: widget.fuelType,
               );
             },
-            child: const Text('Yes'),
+            variant: AppButtonVariant.ghost,
           ),
         ],
       ),
@@ -128,9 +131,9 @@ class _SelfFillingVehiclesPageState extends State<SelfFillingVehiclesPage> {
             : SafeArea(
                 child: Padding(
                   padding: const EdgeInsets.all(12),
-                  child: ElevatedButton(
+                  child: AppButton(
+                    label: 'End Filling',
                     onPressed: _confirmEndFilling,
-                    child: const Text('End Filling'),
                   ),
                 ),
               ),

@@ -338,10 +338,11 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
                         ),
                         const SizedBox(height: 8),
                       ],
-                      OutlinedButton.icon(
-                        icon: const Icon(Icons.add_rounded),
-                        label: const Text('Add Item to Request'),
+                      AppButton(
+                        label: 'Add Item to Request',
                         onPressed: _addItem,
+                        variant: AppButtonVariant.outline,
+                        leadingIcon: Icons.add_rounded,
                       ),
                     ],
                   ),
@@ -350,36 +351,17 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
               const SizedBox(height: 24),
 
               // Actions
-              FilledButton.icon(
+              AppButton(
+                label: _busy ? 'Saving…' : 'Submit for Approval',
                 onPressed: _busy ? null : () => _save(submit: true),
-                icon: _busy
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.send_rounded),
-                label: Text(_busy ? 'Saving…' : 'Submit for Approval'),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(48),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
+                leadingIcon: Icons.send_rounded,
+                isLoading: _busy,
               ),
               const SizedBox(height: 10),
-              OutlinedButton(
+              AppButton(
+                label: 'Save as Draft',
                 onPressed: _busy ? null : () => _save(submit: false),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(44),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: const Text('Save as Draft'),
+                variant: AppButtonVariant.outline,
               ),
             ],
           ),

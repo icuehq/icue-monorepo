@@ -328,7 +328,8 @@ class PurchaseOrderPage extends StatelessWidget {
               const SizedBox(height: 20),
 
               if (canStockOperate && purchaseOrder.canReceive) ...[
-                FilledButton.icon(
+                AppButton(
+                  label: 'Receive Goods (GRN)',
                   onPressed: () {
                     final router = GoRouter.of(context);
                     Navigator.of(context).pop();
@@ -337,34 +338,21 @@ class PurchaseOrderPage extends StatelessWidget {
                       extra: purchaseOrder,
                     );
                   },
-                  icon: const Icon(Icons.inventory_2_outlined),
-                  label: const Text('Receive Goods (GRN)'),
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size.fromHeight(44),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
+                  leadingIcon: Icons.inventory_2_outlined,
                 ),
                 const SizedBox(height: 8),
               ],
 
               if (canOperate && purchaseOrder.isIssued) ...[
-                FilledButton.icon(
+                AppButton(
+                  label: 'Confirm Vendor Acknowledged',
                   onPressed: () => _act(
                     context,
                     'inventory-purchaseOrder-acknowledge',
                     {},
                     'Vendor acknowledged',
                   ),
-                  icon: const Icon(Icons.check_circle_outline_rounded),
-                  label: const Text('Confirm Vendor Acknowledged'),
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size.fromHeight(44),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
+                  leadingIcon: Icons.check_circle_outline_rounded,
                 ),
                 const SizedBox(height: 8),
               ],
@@ -373,22 +361,21 @@ class PurchaseOrderPage extends StatelessWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: FilledButton.icon(
+                      child: AppButton(
+                        label: 'Issue PO',
                         onPressed: () => _act(
                           context,
                           'inventory-purchaseOrder-issue',
                           {},
                           'Purchase order issued',
                         ),
-                        icon: const Icon(Icons.send_rounded),
-                        label: const Text('Issue PO'),
+                        leadingIcon: Icons.send_rounded,
                       ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: OutlinedButton.icon(
-                        icon: const Icon(Icons.edit_outlined),
-                        label: const Text('Edit'),
+                      child: AppButton(
+                        label: 'Edit',
                         onPressed: () async {
                           final navigator = Navigator.of(context);
                           final router = GoRouter.of(context);
@@ -402,6 +389,8 @@ class PurchaseOrderPage extends StatelessWidget {
                             extra: (request, null, purchaseOrder),
                           );
                         },
+                        variant: AppButtonVariant.outline,
+                        leadingIcon: Icons.edit_outlined,
                       ),
                     ),
                   ],
@@ -413,21 +402,21 @@ class PurchaseOrderPage extends StatelessWidget {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  OutlinedButton.icon(
-                    icon: const Icon(Icons.picture_as_pdf_rounded),
-                    label: const Text('Download / Share PDF'),
+                  AppButton(
+                    label: 'Download / Share PDF',
                     onPressed: () => sharePurchaseOrderPdf(
                       purchaseOrder,
                       vendor: vendor,
                       itemName: procurementProvider.itemName,
                     ),
+                    variant: AppButtonVariant.outline,
+                    leadingIcon: Icons.picture_as_pdf_rounded,
                   ),
                   if (canOperate &&
                       !purchaseOrder.isDraft &&
                       purchaseOrder.status != 'cancelled')
-                    OutlinedButton.icon(
-                      icon: const Icon(Icons.receipt_long_outlined),
-                      label: const Text('Record Invoice'),
+                    AppButton(
+                      label: 'Record Invoice',
                       onPressed: () async {
                         await InvoiceDialog.show(context, purchaseOrder);
                         if (!context.mounted) return;
@@ -436,17 +425,19 @@ class PurchaseOrderPage extends StatelessWidget {
                           purchaseOrderId: purchaseOrder.id,
                         );
                       },
+                      variant: AppButtonVariant.outline,
+                      leadingIcon: Icons.receipt_long_outlined,
                     ),
                   if (canOperate && purchaseOrder.canRevise)
-                    OutlinedButton.icon(
-                      icon: const Icon(Icons.replay_rounded),
-                      label: const Text('Revise PO'),
+                    AppButton(
+                      label: 'Revise PO',
                       onPressed: () => _revise(context),
+                      variant: AppButtonVariant.outline,
+                      leadingIcon: Icons.replay_rounded,
                     ),
                   if (canOperate && purchaseOrder.canClose)
-                    OutlinedButton.icon(
-                      icon: const Icon(Icons.done_all_rounded),
-                      label: const Text('Close PO'),
+                    AppButton(
+                      label: 'Close PO',
                       onPressed: () => _withReason(
                         context,
                         'Close ${purchaseOrder.number}',
@@ -454,20 +445,20 @@ class PurchaseOrderPage extends StatelessWidget {
                         'Closed',
                         required: purchaseOrder.status != 'fully_received',
                       ),
+                      variant: AppButtonVariant.outline,
+                      leadingIcon: Icons.done_all_rounded,
                     ),
                   if (canOperate && purchaseOrder.canCancel)
-                    TextButton.icon(
-                      style: TextButton.styleFrom(
-                        foregroundColor: theme.colorScheme.error,
-                      ),
-                      icon: const Icon(Icons.cancel_outlined, size: 16),
-                      label: const Text('Cancel PO'),
+                    AppButton(
+                      label: 'Cancel PO',
                       onPressed: () => _withReason(
                         context,
                         'Cancel ${purchaseOrder.number}',
                         'inventory-purchaseOrder-cancel',
                         'Cancelled',
                       ),
+                      variant: AppButtonVariant.destructive,
+                      leadingIcon: Icons.cancel_outlined,
                     ),
                 ],
               ),

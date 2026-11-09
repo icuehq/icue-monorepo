@@ -1,10 +1,10 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:face_enrollment/src/models/student.dart';
 import 'package:face_enrollment/src/providers/embedding_provider.dart';
 import 'package:face_enrollment/src/providers/student_provider.dart';
 import 'package:face_enrollment/src/ui/theme_context.dart';
 import 'package:face_enrollment/src/ui/widgets/ambient_background.dart';
 import 'package:face_enrollment/src/ui/widgets/biometric_scanner_view.dart';
-import 'package:face_enrollment/src/ui/widgets/custom_button.dart';
 import 'package:face_enrollment/src/ui/widgets/student_header_card.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -163,15 +163,13 @@ class _EmbeddingScreenState extends State<EmbeddingScreen>
             actions: [
               SizedBox(
                 width: 90,
-                child: CustomButton(
-                  text: 'DONE',
-                  height: 38,
-                  borderRadius: 10,
-                  fontSize: 12.5,
+                child: AppButton(
+                  label: 'DONE',
                   onPressed: () {
                     Navigator.pop(dialogContext);
                     Navigator.pop(context);
                   },
+                  isFullWidth: true,
                 ),
               ),
             ],
@@ -402,41 +400,28 @@ class _EmbeddingScreenState extends State<EmbeddingScreen>
                 Row(
                   children: [
                     Expanded(
-                      child: OutlinedButton.icon(
+                      child: AppButton(
+                        label: 'Camera',
                         onPressed:
                             embeddingProvider.isScanning ||
                                 embeddingProvider.isDownloading
                             ? null
                             : () => _pickImage(ImageSource.camera),
-                        icon: const Icon(Icons.camera_alt_outlined, size: 16),
-                        label: const Text('Camera'),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
+                        variant: AppButtonVariant.outline,
+                        leadingIcon: Icons.camera_alt_outlined,
                       ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: OutlinedButton.icon(
+                      child: AppButton(
+                        label: 'Gallery',
                         onPressed:
                             embeddingProvider.isScanning ||
                                 embeddingProvider.isDownloading
                             ? null
                             : () => _pickImage(ImageSource.gallery),
-                        icon: const Icon(
-                          Icons.photo_library_outlined,
-                          size: 16,
-                        ),
-                        label: const Text('Gallery'),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
+                        variant: AppButtonVariant.outline,
+                        leadingIcon: Icons.photo_library_outlined,
                       ),
                     ),
                     if (embeddingProvider.imageSource != 'Server URL' &&
@@ -466,8 +451,8 @@ class _EmbeddingScreenState extends State<EmbeddingScreen>
 
                 // Primary Action Button Flow
                 if (embeddingProvider.generatedEmbedding == null) ...[
-                  CustomButton(
-                    text: embeddingProvider.isScanning
+                  AppButton(
+                    label: embeddingProvider.isScanning
                         ? 'EXTRACTING 192-D VECTOR...'
                         : 'GENERATE EMBEDDING',
                     isLoading: embeddingProvider.isScanning,
@@ -476,27 +461,28 @@ class _EmbeddingScreenState extends State<EmbeddingScreen>
                             embeddingProvider.isDownloading
                         ? null
                         : _triggerScan,
-                    icon: Icons.face_unlock_rounded,
+                    leadingIcon: Icons.face_unlock_rounded,
+                    isFullWidth: true,
                   ),
                 ] else ...[
-                  CustomButton(
-                    text: 'UPLOAD EMBEDDING TO SERVER',
+                  AppButton(
+                    label: 'UPLOAD EMBEDDING TO SERVER',
                     isLoading: studentProvider.isUploadingEmbedding,
                     onPressed: () => _handleUpload(studentProvider),
-                    icon: Icons.cloud_upload_outlined,
+                    leadingIcon: Icons.cloud_upload_outlined,
+                    isFullWidth: true,
                   ),
                   const SizedBox(height: 10),
-                  CustomButton(
-                    text: 'Re-generate Vector',
-                    height: 40,
-                    isOutlined: true,
-                    fontSize: 12.5,
-                    icon: Icons.refresh_rounded,
+                  AppButton(
+                    label: 'Re-generate Vector',
+                    variant: AppButtonVariant.outline,
+                    leadingIcon: Icons.refresh_rounded,
                     onPressed:
                         embeddingProvider.isScanning ||
                             studentProvider.isUploadingEmbedding
                         ? null
                         : _triggerScan,
+                    isFullWidth: true,
                   ),
                 ],
               ],

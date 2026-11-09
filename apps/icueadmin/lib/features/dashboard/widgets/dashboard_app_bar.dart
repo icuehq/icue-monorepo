@@ -1,5 +1,6 @@
 import 'package:api_client/api_client.dart';
 import 'package:auth/auth.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 
 class DashboardAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -19,7 +20,6 @@ class DashboardAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final isDev = environment.isDev;
 
     return AppBar(
@@ -61,13 +61,11 @@ class DashboardAppBar extends StatelessWidget implements PreferredSizeWidget {
       actions: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8.0),
-          child: TextButton.icon(
+          child: AppButton(
+            label: 'Sign Out',
             onPressed: onLogout,
-            icon: const Icon(Icons.logout, size: 18),
-            label: const Text('Sign Out'),
-            style: TextButton.styleFrom(
-              foregroundColor: theme.colorScheme.error,
-            ),
+            variant: AppButtonVariant.destructive,
+            leadingIcon: Icons.logout,
           ),
         ),
       ],

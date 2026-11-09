@@ -95,13 +95,14 @@ class _IncidentDialogState extends State<IncidentDialog> {
             ),
           ),
           actions: [
-            TextButton(
+            AppButton(
+              label: 'Cancel',
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
+              variant: AppButtonVariant.ghost,
             ),
-            FilledButton(
+            AppButton(
+              label: 'Resolve',
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Resolve'),
             ),
           ],
         ),
@@ -189,9 +190,9 @@ class _IncidentDialogState extends State<IncidentDialog> {
         ],
         if (incident.isOpen) ...[
           const SizedBox(height: 16),
-          FilledButton(
+          AppButton(
+            label: 'Resolve incident',
             onPressed: _busy ? null : _resolve,
-            child: const Text('Resolve incident'),
           ),
         ],
       ],

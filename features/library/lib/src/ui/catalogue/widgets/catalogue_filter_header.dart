@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:routes/routes.dart';
 import 'package:school_library/school_library.dart';
@@ -231,19 +232,10 @@ class CatalogueFilterHeader extends StatelessWidget {
                   ),
                 ...[
                   const SizedBox(width: 8),
-                  FilledButton.icon(
+                  AppButton(
+                    label: 'Add Book',
                     onPressed: onAddBook,
-                    icon: const Icon(Icons.add_rounded, size: 18),
-                    label: const Text('Add Book'),
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
+                    leadingIcon: Icons.add_rounded,
                   ),
                 ],
               ],

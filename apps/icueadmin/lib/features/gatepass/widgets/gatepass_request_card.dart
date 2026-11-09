@@ -125,35 +125,18 @@ class GatePassRequestCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: TextButton.icon(
-                  style: TextButton.styleFrom(
-                    backgroundColor: Colors.red.shade50,
-                    foregroundColor: Colors.red.shade700,
-                    shape: const RoundedRectangleBorder(),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
+                child: AppButton(
+                  label: 'Reject',
                   onPressed: onReject,
-                  icon: const Icon(Icons.close, size: 18),
-                  label: const Text(
-                    'Reject',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
+                  variant: AppButtonVariant.destructive,
+                  leadingIcon: Icons.close,
                 ),
               ),
               Expanded(
-                child: TextButton.icon(
-                  style: TextButton.styleFrom(
-                    backgroundColor: Colors.green.shade50,
-                    foregroundColor: Colors.green.shade800,
-                    shape: const RoundedRectangleBorder(),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
+                child: AppButton(
+                  label: 'Approve',
                   onPressed: onApprove,
-                  icon: const Icon(Icons.check, size: 18),
-                  label: const Text(
-                    'Approve',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
+                  leadingIcon: Icons.check,
                 ),
               ),
             ],

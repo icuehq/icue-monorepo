@@ -1,6 +1,6 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:face_enrollment/src/providers/student_provider.dart';
 import 'package:face_enrollment/src/ui/theme_context.dart';
-import 'package:face_enrollment/src/ui/widgets/custom_button.dart';
 import 'package:flutter/material.dart';
 
 void confirmLogout(BuildContext context, VoidCallback onConfirm) {
@@ -38,30 +38,19 @@ void confirmLogout(BuildContext context, VoidCallback onConfirm) {
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                TextButton(
+                AppButton(
+                  label: 'Cancel',
                   onPressed: () => Navigator.pop(context),
-                  child: Text(
-                    'Cancel',
-                    style: TextStyle(color: Colors.grey.shade600),
-                  ),
+                  variant: AppButtonVariant.ghost,
                 ),
                 const SizedBox(width: 8),
-                ElevatedButton(
+                AppButton(
+                  label: 'Logout',
                   onPressed: () {
                     Navigator.pop(context);
                     onConfirm();
                   },
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: const Size(0, 40),
-                    backgroundColor: context.scheme.error,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    'Logout',
-                    style: TextStyle(color: Colors.white),
-                  ),
+                  variant: AppButtonVariant.destructive,
                 ),
               ],
             ),
@@ -212,15 +201,13 @@ void handleSyncEmbeddings(
                       if (!isProcessing)
                         SizedBox(
                           width: 100,
-                          child: CustomButton(
-                            text: 'Close',
-                            height: 40,
-                            borderRadius: 12,
-                            fontSize: 14,
+                          child: AppButton(
+                            label: 'Close',
                             onPressed: () {
                               Navigator.pop(dialogContext);
                               studentProvider.resetAndFetch();
                             },
+                            isFullWidth: true,
                           ),
                         ),
                     ],

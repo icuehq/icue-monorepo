@@ -236,7 +236,8 @@ class _AlcoholTestFormPageState extends State<AlcoholTestFormPage> {
                       },
                     )
                   else
-                    TextButton.icon(
+                    AppButton(
+                      label: 'Capture',
                       onPressed: () async {
                         final picked = await pickFile(context);
                         if (picked == null || !mounted) return;
@@ -245,35 +246,18 @@ class _AlcoholTestFormPageState extends State<AlcoholTestFormPage> {
                           _photoBytes = picked.bytes;
                         });
                       },
-                      icon: const Icon(Icons.camera_alt, size: 16),
-                      label: const Text('Capture'),
+                      variant: AppButtonVariant.ghost,
+                      leadingIcon: Icons.camera_alt,
                     ),
                 ],
               ),
             ),
             const SizedBox(height: 24),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
+            AppButton(
+              label: 'Submit Alcohol Test Record',
               onPressed: logBookProvider.isLoading ? null : _submit,
-              icon: const Icon(Icons.verified_user_rounded),
-              label: logBookProvider.isLoading
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text(
-                      'Submit Alcohol Test Record',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+              leadingIcon: Icons.verified_user_rounded,
+              isLoading: logBookProvider.isLoading,
             ),
           ],
         ),

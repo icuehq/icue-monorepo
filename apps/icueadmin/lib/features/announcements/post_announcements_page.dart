@@ -1,4 +1,5 @@
 import 'package:announcements/announcements.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icueadmin/analytics/app_events.dart';
@@ -427,24 +428,12 @@ class _PostAnnouncementsPageState extends State<PostAnnouncementsPage> {
                     interpolatedMessage: _getInterpolatedMessage(),
                   ),
                   const SizedBox(height: 24),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
+                  AppButton(
+                    label: 'Preview & Broadcast',
                     onPressed: annProvider.isLoading
                         ? null
                         : () => _submitAnnouncement(routes),
-                    icon: const Icon(Icons.send_rounded),
-                    label: const Text(
-                      'Preview & Broadcast',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    leadingIcon: Icons.send_rounded,
                   ),
                 ],
               ),

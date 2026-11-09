@@ -1,4 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/masters/categories/widgets/category_card.dart';
@@ -168,20 +169,10 @@ class CategorySearchBar extends StatelessWidget {
           filterChips,
           if (canEdit) ...[
             const SizedBox(width: 12),
-            FilledButton.icon(
+            AppButton(
+              label: 'New Category',
               onPressed: onAddCategory,
-              icon: const Icon(Icons.add_rounded, size: 20),
-              label: const Text('New Category'),
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(0, 44),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
+              leadingIcon: Icons.add_rounded,
             ),
           ],
         ],
@@ -255,10 +246,10 @@ class CategoryEmptyState extends StatelessWidget {
                   seed: (provider) => provider.seedDefaults(),
                 ),
                 if (canEdit)
-                  FilledButton.icon(
+                  AppButton(
+                    label: 'Add Category',
                     onPressed: onAdd,
-                    icon: const Icon(Icons.add_rounded),
-                    label: const Text('Add Category'),
+                    leadingIcon: Icons.add_rounded,
                   ),
               ],
             ),
@@ -310,10 +301,11 @@ class CategoryNoResultsState extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          TextButton.icon(
+          AppButton(
+            label: 'Clear search & filters',
             onPressed: onClear,
-            icon: const Icon(Icons.clear_rounded, size: 18),
-            label: const Text('Clear search & filters'),
+            variant: AppButtonVariant.ghost,
+            leadingIcon: Icons.clear_rounded,
           ),
         ],
       ),

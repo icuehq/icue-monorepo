@@ -156,10 +156,11 @@ class ExpenseBillSection extends StatelessWidget {
                   tooltip: 'Remove File',
                 )
               else
-                TextButton.icon(
+                AppButton(
+                  label: 'Attach',
                   onPressed: onPickBillFile,
-                  icon: const Icon(Icons.attach_file, size: 16),
-                  label: const Text('Attach'),
+                  variant: AppButtonVariant.ghost,
+                  leadingIcon: Icons.attach_file,
                 ),
             ],
           ),

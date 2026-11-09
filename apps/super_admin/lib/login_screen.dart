@@ -118,11 +118,12 @@ class _LoginScreenState extends State<LoginScreen> {
                                 _buildErrorAlert(authProvider.errorMessage!),
 
                               // Submit Login Button
-                              CustomButton(
-                                text: 'SIGN IN TO PORTAL',
+                              AppButton(
+                                label: 'SIGN IN TO PORTAL',
                                 isLoading: authProvider.isLoading,
                                 onPressed: _handleLogin,
-                                icon: Icons.login_rounded,
+                                leadingIcon: Icons.login_rounded,
+                                isFullWidth: true,
                               ),
                             ],
                           ),

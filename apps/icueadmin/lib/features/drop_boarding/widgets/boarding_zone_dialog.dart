@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:drop_boarding/drop_boarding.dart';
 import 'package:flutter/material.dart';
 
@@ -64,15 +65,16 @@ class _BoardingZoneDialogState extends State<BoardingZoneDialog> {
         ),
       ),
       actions: [
-        TextButton(
+        AppButton(
+          label: 'Cancel',
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          variant: AppButtonVariant.ghost,
         ),
-        FilledButton(
+        AppButton(
+          label: 'Confirm',
           onPressed: _selectedZone == null
               ? null
               : () => Navigator.of(context).pop(_selectedZone),
-          child: const Text('Confirm'),
         ),
       ],
     );

@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 
 enum LibraryStatusFilter {
@@ -131,20 +132,10 @@ class LibraryFilterHeader extends StatelessWidget {
                 statusChips,
                 ...[
                   const SizedBox(width: 12),
-                  FilledButton.icon(
+                  AppButton(
+                    label: 'Add Library',
                     onPressed: onAddLibrary,
-                    icon: const Icon(Icons.add_rounded, size: 18),
-                    label: const Text('Add Library'),
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size(0, 44),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
+                    leadingIcon: Icons.add_rounded,
                   ),
                 ],
               ],

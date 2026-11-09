@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:expenses/expenses.dart';
 import 'package:flutter/material.dart';
 
@@ -46,9 +47,10 @@ class FuelModeDialog extends StatelessWidget {
         ],
       ),
       actions: [
-        TextButton(
+        AppButton(
+          label: 'Cancel',
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          variant: AppButtonVariant.ghost,
         ),
       ],
     );

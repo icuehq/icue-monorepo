@@ -207,15 +207,10 @@ class _LooseFuelExpensePageState extends State<LooseFuelExpensePage> {
               ),
             ),
             const SizedBox(height: 24),
-            ElevatedButton(
+            AppButton(
+              label: 'Submit',
               onPressed: loading ? null : _submit,
-              child: loading
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('Submit'),
+              isLoading: loading,
             ),
           ],
         ),

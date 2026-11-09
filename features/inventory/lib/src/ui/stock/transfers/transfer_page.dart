@@ -80,14 +80,14 @@ class _StockTransferPageState extends State<StockTransferPage> {
           title: Text(title),
           content: Text(message),
           actions: [
-            TextButton(
+            AppButton(
+              label: 'Cancel',
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
+              variant: AppButtonVariant.ghost,
             ),
-            FilledButton(
-              style: FilledButton.styleFrom(minimumSize: Size.zero),
+            AppButton(
+              label: action,
               onPressed: () => Navigator.pop(context, true),
-              child: Text(action),
             ),
           ],
         ),
@@ -165,14 +165,14 @@ class _StockTransferPageState extends State<StockTransferPage> {
           label: 'Reason',
         ),
         actions: [
-          TextButton(
+          AppButton(
+            label: 'Back',
             onPressed: () => Navigator.pop(context),
-            child: const Text('Back'),
+            variant: AppButtonVariant.ghost,
           ),
-          FilledButton(
-            style: FilledButton.styleFrom(minimumSize: Size.zero),
+          AppButton(
+            label: 'Cancel transfer',
             onPressed: () => Navigator.pop(context, reason.text.trim()),
-            child: const Text('Cancel transfer'),
           ),
         ],
       ),
@@ -251,9 +251,10 @@ class _StockTransferPageState extends State<StockTransferPage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(stockProvider.errorMessage ?? 'Transfer not found'),
-                    TextButton(
+                    AppButton(
+                      label: 'Try again',
                       onPressed: _load,
-                      child: const Text('Try again'),
+                      variant: AppButtonVariant.ghost,
                     ),
                   ],
                 ),
@@ -282,9 +283,10 @@ class _StockTransferPageState extends State<StockTransferPage> {
         title: Text(transfer.number),
         actions: [
           if (canCancelTransfer(transfer, access))
-            TextButton(
+            AppButton(
+              label: 'Cancel transfer',
               onPressed: _busy ? null : () => _cancel(transfer),
-              child: const Text('Cancel transfer'),
+              variant: AppButtonVariant.ghost,
             ),
         ],
       ),
@@ -351,7 +353,12 @@ class _StockTransferPageState extends State<StockTransferPage> {
               child: SafeArea(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-                  child: FilledButton.icon(
+                  child: AppButton(
+                    label: canApprove
+                        ? 'Approve transfer'
+                        : canDispatch
+                        ? 'Dispatch transfer'
+                        : 'Confirm receipt',
                     onPressed: _busy
                         ? null
                         : canApprove
@@ -362,20 +369,11 @@ class _StockTransferPageState extends State<StockTransferPage> {
                             storeName(transfer.fromStoreId),
                           )
                         : () => _confirmReceipt(transfer),
-                    icon: Icon(
-                      canApprove
-                          ? Icons.thumb_up_alt_outlined
-                          : canDispatch
-                          ? Icons.local_shipping_outlined
-                          : Icons.check_circle_outline,
-                    ),
-                    label: Text(
-                      canApprove
-                          ? 'Approve transfer'
-                          : canDispatch
-                          ? 'Dispatch transfer'
-                          : 'Confirm receipt',
-                    ),
+                    leadingIcon: canApprove
+                        ? Icons.thumb_up_alt_outlined
+                        : canDispatch
+                        ? Icons.local_shipping_outlined
+                        : Icons.check_circle_outline,
                   ),
                 ),
               ),

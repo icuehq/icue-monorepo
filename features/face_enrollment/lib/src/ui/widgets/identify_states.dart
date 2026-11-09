@@ -1,5 +1,5 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:face_enrollment/src/ui/theme_context.dart';
-import 'package:face_enrollment/src/ui/widgets/custom_button.dart';
 import 'package:flutter/material.dart';
 
 class PreparingState extends StatelessWidget {
@@ -166,27 +166,23 @@ class EmptyRosterState extends StatelessWidget {
                 if (onBack != null)
                   SizedBox(
                     width: 130,
-                    child: CustomButton(
-                      text: 'Go Back',
-                      height: 40,
-                      borderRadius: 12,
-                      fontSize: 12.5,
-                      isOutlined: true,
-                      icon: Icons.arrow_back_rounded,
+                    child: AppButton(
+                      label: 'Go Back',
+                      variant: AppButtonVariant.outline,
+                      leadingIcon: Icons.arrow_back_rounded,
                       onPressed: onBack,
+                      isFullWidth: true,
                     ),
                   ),
                 if (onBack != null && onSync != null) const SizedBox(width: 12),
                 if (onSync != null)
                   SizedBox(
                     width: 150,
-                    child: CustomButton(
-                      text: 'Sync Cloud',
-                      height: 40,
-                      borderRadius: 12,
-                      fontSize: 12.5,
-                      icon: Icons.sync_rounded,
+                    child: AppButton(
+                      label: 'Sync Cloud',
+                      leadingIcon: Icons.sync_rounded,
                       onPressed: onSync,
+                      isFullWidth: true,
                     ),
                   ),
               ],

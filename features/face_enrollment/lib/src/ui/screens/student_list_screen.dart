@@ -1,13 +1,13 @@
 import 'dart:async';
 
 import 'package:auth/auth.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:face_enrollment/src/models/student.dart';
 import 'package:face_enrollment/src/providers/student_provider.dart';
 import 'package:face_enrollment/src/ui/face_enrollment_routes.dart';
 import 'package:face_enrollment/src/ui/theme_context.dart';
 import 'package:face_enrollment/src/ui/widgets/ambient_background.dart';
 import 'package:face_enrollment/src/ui/widgets/batch_action_dock.dart';
-import 'package:face_enrollment/src/ui/widgets/custom_button.dart';
 import 'package:face_enrollment/src/ui/widgets/directory_dialogs.dart';
 import 'package:face_enrollment/src/ui/widgets/student_card.dart';
 import 'package:face_enrollment/src/ui/widgets/student_directory_header.dart';
@@ -144,11 +144,10 @@ class _StudentListScreenState extends State<StudentListScreen> {
               const SizedBox(height: 16),
               SizedBox(
                 width: 150,
-                child: CustomButton(
-                  text: 'Try Again',
-                  height: 42,
-                  borderRadius: 12,
+                child: AppButton(
+                  label: 'Try Again',
                   onPressed: () => studentProvider.resetAndFetch(),
+                  isFullWidth: true,
                 ),
               ),
             ],
@@ -228,16 +227,14 @@ class _StudentListScreenState extends State<StudentListScreen> {
                 const SizedBox(height: 16),
                 SizedBox(
                   width: 140,
-                  child: CustomButton(
-                    text: 'Clear Search',
-                    height: 40,
-                    borderRadius: 12,
-                    fontSize: 13,
-                    isOutlined: true,
+                  child: AppButton(
+                    label: 'Clear Search',
+                    variant: AppButtonVariant.outline,
                     onPressed: () {
                       _searchController.clear();
                       studentProvider.updateSearchQuery('');
                     },
+                    isFullWidth: true,
                   ),
                 ),
               ],
@@ -273,13 +270,11 @@ class _StudentListScreenState extends State<StudentListScreen> {
               const SizedBox(height: 16),
               SizedBox(
                 width: 140,
-                child: CustomButton(
-                  text: 'Refresh',
-                  height: 40,
-                  borderRadius: 12,
-                  fontSize: 13,
-                  isOutlined: true,
+                child: AppButton(
+                  label: 'Refresh',
+                  variant: AppButtonVariant.outline,
                   onPressed: () => studentProvider.resetAndFetch(),
+                  isFullWidth: true,
                 ),
               ),
             ],

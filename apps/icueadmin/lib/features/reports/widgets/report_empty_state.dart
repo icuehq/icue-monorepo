@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 
 class ReportEmptyState extends StatelessWidget {
@@ -37,10 +38,11 @@ class ReportEmptyState extends StatelessWidget {
             ),
             if (onRetry != null) ...[
               const SizedBox(height: 16),
-              OutlinedButton.icon(
+              AppButton(
+                label: 'Refresh',
                 onPressed: onRetry,
-                icon: const Icon(Icons.refresh, size: 18),
-                label: const Text('Refresh'),
+                variant: AppButtonVariant.outline,
+                leadingIcon: Icons.refresh,
               ),
             ],
           ],

@@ -1,4 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -126,27 +127,23 @@ class VendorPage extends StatelessWidget {
                   child: Row(
                     children: [
                       Expanded(
-                        child: OutlinedButton.icon(
+                        child: AppButton(
+                          label: vendor.active ? 'Deactivate' : 'Activate',
                           onPressed: () => toggleVendorActive(context, vendor),
-                          icon: Icon(
-                            vendor.active
-                                ? Icons.block_rounded
-                                : Icons.check_circle_outline_rounded,
-                            size: 18,
-                          ),
-                          label: Text(
-                            vendor.active ? 'Deactivate' : 'Activate',
-                          ),
+                          variant: AppButtonVariant.outline,
+                          leadingIcon: vendor.active
+                              ? Icons.block_rounded
+                              : Icons.check_circle_outline_rounded,
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: FilledButton.icon(
+                        child: AppButton(
+                          label: 'Edit',
                           onPressed: () => context.push(
                             '${InventoryRoutes.inventoryVendorForm}?id=${vendor.id}',
                           ),
-                          icon: const Icon(Icons.edit_outlined, size: 18),
-                          label: const Text('Edit'),
+                          leadingIcon: Icons.edit_outlined,
                         ),
                       ),
                     ],

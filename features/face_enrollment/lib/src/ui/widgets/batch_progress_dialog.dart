@@ -1,6 +1,6 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:face_enrollment/src/providers/student_provider.dart';
 import 'package:face_enrollment/src/ui/theme_context.dart';
-import 'package:face_enrollment/src/ui/widgets/custom_button.dart';
 import 'package:face_enrollment/src/ui/widgets/directory_dialogs.dart';
 import 'package:flutter/material.dart';
 
@@ -157,28 +157,24 @@ void showBatchProgressDialog(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         if (isProcessing)
-                          TextButton.icon(
+                          AppButton(
+                            label: 'Cancel',
                             onPressed: batch.cancelRequested
                                 ? null
                                 : batch.requestCancel,
-                            icon: const Icon(Icons.cancel_rounded, size: 18),
-                            label: const Text('Cancel'),
-                            style: TextButton.styleFrom(
-                              foregroundColor: context.scheme.error,
-                            ),
+                            variant: AppButtonVariant.destructive,
+                            leadingIcon: Icons.cancel_rounded,
                           )
                         else
                           SizedBox(
                             width: 100,
-                            child: CustomButton(
-                              text: 'Close',
-                              height: 40,
-                              borderRadius: 12,
-                              fontSize: 14,
+                            child: AppButton(
+                              label: 'Close',
                               onPressed: () {
                                 Navigator.pop(dialogContext);
                                 studentProvider.resetAndFetch();
                               },
+                              isFullWidth: true,
                             ),
                           ),
                       ],

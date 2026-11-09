@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
-import 'package:school_library/src/ui/catalogue/book_form_page.dart';
 import 'package:school_library/src/ui/catalogue/widgets/book_card.dart';
 import 'package:school_library/src/ui/catalogue/widgets/catalogue_empty_states.dart';
 import 'package:school_library/src/ui/catalogue/widgets/catalogue_filter_header.dart';
@@ -99,7 +98,7 @@ class _CataloguePageState extends State<CataloguePage> {
       floatingActionButton: !isWide
           ? FloatingActionButton.extended(
               onPressed: () =>
-                  showFormPage(context, () => const BookFormPage()),
+                  context.pushNamed(LibraryRoutes.libraryBookFormName),
               icon: const Icon(Icons.add_rounded),
               label: const Text('Book'),
             )
@@ -133,7 +132,7 @@ class _CataloguePageState extends State<CataloguePage> {
               onStatusChanged: (filter) =>
                   setState(() => _statusFilter = filter),
               onAddBook: () =>
-                  showFormPage(context, () => const BookFormPage()),
+                  context.pushNamed(LibraryRoutes.libraryBookFormName),
               onRefresh: () => libraryProvider.loadBooks(
                 search: _searchController.text.trim(),
               ),
@@ -157,9 +156,8 @@ class _CataloguePageState extends State<CataloguePage> {
                             libraryProvider.bookCategoryId == null &&
                             libraryProvider.bookClassId == null
                         ? CatalogueInitialEmptyState(
-                            onAdd: () => showFormPage(
-                              context,
-                              () => const BookFormPage(),
+                            onAdd: () => context.pushNamed(
+                              LibraryRoutes.libraryBookFormName,
                             ),
                           )
                         : CatalogueNoResultsState(
@@ -383,9 +381,9 @@ class _CataloguePageState extends State<CataloguePage> {
                                     size: 18,
                                   ),
                                   tooltip: 'Edit book',
-                                  onPressed: () => showFormPage(
-                                    context,
-                                    () => BookFormPage(book: book),
+                                  onPressed: () => context.pushNamed(
+                                    LibraryRoutes.libraryBookFormName,
+                                    extra: book,
                                   ),
                                 ),
                                 IconButton(

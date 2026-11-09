@@ -3,38 +3,96 @@ import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:school_library/school_library.dart';
 
-/// Filter toolbar with instant search, library picker, date presets, and status chips.
+/// Available date range presets for library reports.
+enum LibraryDatePreset {
+  currentMonth('Current Month'),
+  lastMonth('Last Month'),
+  last6Months('Last 6 Months'),
+  last12Months('Last 12 Months'),
+  custom('Custom Date Range');
+
+  const LibraryDatePreset(this.label);
+  final String label;
+}
+
+/// Computes the [DateTimeRange] for a given [LibraryDatePreset].
+DateTimeRange calculateRangeForPreset(
+  LibraryDatePreset preset, {
+  DateTimeRange? customRange,
+}) {
+  final today = DateTime.now().dateOnly;
+  switch (preset) {
+    case LibraryDatePreset.currentMonth:
+      return DateTimeRange(
+        start: DateTime(today.year, today.month),
+        end: today,
+      );
+    case LibraryDatePreset.lastMonth:
+      return DateTimeRange(
+        start: DateTime(today.year, today.month - 1),
+        end: DateTime(today.year, today.month, 0),
+      );
+    case LibraryDatePreset.last6Months:
+      return DateTimeRange(
+        start: DateTime(today.year, today.month - 5),
+        end: today,
+      );
+    case LibraryDatePreset.last12Months:
+      return DateTimeRange(
+        start: DateTime(today.year, today.month - 11),
+        end: today,
+      );
+    case LibraryDatePreset.custom:
+      return customRange ??
+          DateTimeRange(start: DateTime(today.year, today.month), end: today);
+  }
+}
+
+/// Filter toolbar with date presets, custom date range, report switcher,
+/// library picker, status filter, record search, and count indicator.
 class LibraryReportFilters extends StatelessWidget {
   const LibraryReportFilters({
+    required this.reports,
+    required this.selectedReport,
+    required this.onReportChanged,
+    required this.datePreset,
+    required this.onDatePresetChanged,
+    required this.range,
+    required this.onRangeChanged,
+    required this.libraries,
+    required this.selectedLibraryId,
+    required this.onLibraryChanged,
+    required this.statuses,
+    required this.selectedStatus,
+    required this.onStatusChanged,
     required this.searchController,
     required this.searchQuery,
     required this.onSearchChanged,
     required this.onClearSearch,
-    required this.libraries,
-    required this.selectedLibraryId,
-    required this.onLibraryChanged,
-    required this.range,
-    required this.onRangeChanged,
-    required this.statuses,
-    required this.selectedStatus,
-    required this.onStatusChanged,
-    required this.isMonthly,
+    required this.rowCount,
+    required this.filteredRowCount,
     super.key,
   });
 
+  final List<LibraryReportDef> reports;
+  final LibraryReportDef selectedReport;
+  final ValueChanged<LibraryReportDef> onReportChanged;
+  final LibraryDatePreset datePreset;
+  final ValueChanged<LibraryDatePreset> onDatePresetChanged;
+  final DateTimeRange range;
+  final ValueChanged<DateTimeRange> onRangeChanged;
+  final List<SchoolLibrary> libraries;
+  final String? selectedLibraryId;
+  final ValueChanged<String?> onLibraryChanged;
+  final List<String> statuses;
+  final String? selectedStatus;
+  final ValueChanged<String?> onStatusChanged;
   final TextEditingController searchController;
   final String searchQuery;
   final ValueChanged<String> onSearchChanged;
   final VoidCallback onClearSearch;
-  final List<SchoolLibrary> libraries;
-  final String? selectedLibraryId;
-  final ValueChanged<String?> onLibraryChanged;
-  final DateTimeRange range;
-  final ValueChanged<DateTimeRange> onRangeChanged;
-  final List<String> statuses;
-  final String? selectedStatus;
-  final ValueChanged<String?> onStatusChanged;
-  final bool isMonthly;
+  final int rowCount;
+  final int filteredRowCount;
 
   Future<void> _pickCustomRange(BuildContext context) async {
     final now = DateTime.now();
@@ -47,146 +105,220 @@ class LibraryReportFilters extends StatelessWidget {
     if (picked != null) onRangeChanged(picked);
   }
 
-  void _applyPreset(int monthsBack) {
-    final today = DateTime.now().dateOnly;
-    final start = DateTime(today.year, today.month - monthsBack);
-    onRangeChanged(DateTimeRange(start: start, end: today));
-  }
-
-  void _applyDaysPreset(int daysBack) {
-    final today = DateTime.now().dateOnly;
-    final start = today.subtract(Duration(days: daysBack));
-    onRangeChanged(DateTimeRange(start: start, end: today));
-  }
-
-  Widget _searchField(BuildContext context) {
-    final theme = Theme.of(context);
-    return TextField(
-      controller: searchController,
-      decoration: InputDecoration(
-        hintText: 'Search these records…',
-        prefixIcon: const Icon(Icons.search, size: 20),
-        suffixIcon: searchQuery.isEmpty
-            ? null
-            : IconButton(
-                tooltip: 'Clear search',
-                icon: const Icon(Icons.clear, size: 18),
-                onPressed: onClearSearch,
-              ),
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 14,
-          vertical: 12,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
-          ),
-        ),
+  Widget _datePresetDropdown(BuildContext context) {
+    final width = context.isWide ? 190.0 : null;
+    return SizedBox(
+      width: width,
+      child: AppDropdown<LibraryDatePreset>(
+        key: ValueKey(datePreset),
+        value: datePreset,
+        icon: Icons.calendar_today_outlined,
+        label: 'Period',
+        items: [
+          for (final preset in LibraryDatePreset.values)
+            DropdownMenuItem(value: preset, child: Text(preset.label)),
+        ],
+        onChanged: (preset) {
+          if (preset == null) return;
+          onDatePresetChanged(preset);
+          if (preset == LibraryDatePreset.custom) {
+            _pickCustomRange(context);
+          }
+        },
       ),
-      onChanged: onSearchChanged,
     );
   }
 
-  Widget _libraryDropdown(BuildContext context) => SizedBox(
-    width: 220,
-    child: AppDropdown<String>(
-      value: selectedLibraryId,
-      items: [
-        const DropdownMenuItem(child: Text('All libraries')),
-        for (final library in libraries)
-          DropdownMenuItem(value: library.id, child: Text(library.name)),
-      ],
-      onChanged: onLibraryChanged,
-      icon: Icons.local_library_outlined,
-      label: 'Library',
-    ),
-  );
-
-  Widget _dateControls(BuildContext context) {
+  Widget _customRangeField(BuildContext context) {
     final theme = Theme.of(context);
     final rangeText =
         '${range.start.toNumericDate()} → ${range.end.toNumericDate()}';
+    final width = context.isWide ? 230.0 : null;
 
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        if (isMonthly) ...[
-          ActionChip(
-            label: const Text('Last 6 Months'),
-            onPressed: () => _applyPreset(5),
-          ),
-          ActionChip(
-            label: const Text('Last 12 Months'),
-            onPressed: () => _applyPreset(11),
-          ),
-          ActionChip(
-            label: const Text('Last 24 Months'),
-            onPressed: () => _applyPreset(23),
-          ),
-        ] else ...[
-          ActionChip(
-            label: const Text('This Month'),
-            onPressed: () => _applyPreset(0),
-          ),
-          ActionChip(
-            label: const Text('Last 30 Days'),
-            onPressed: () => _applyDaysPreset(30),
-          ),
-          ActionChip(
-            label: const Text('Last 90 Days'),
-            onPressed: () => _applyDaysPreset(90),
-          ),
-        ],
-        OutlinedButton.icon(
-          style: OutlinedButton.styleFrom(
-            minimumSize: const Size(0, 36),
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
+    return SizedBox(
+      width: width,
+      child: InkWell(
+        onTap: () => _pickCustomRange(context),
+        borderRadius: BorderRadius.circular(10),
+        child: InputDecorator(
+          decoration: InputDecoration(
+            labelText: 'Custom Range',
+            prefixIcon: const Icon(Icons.date_range_outlined, size: 20),
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 12,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
+              ),
             ),
           ),
-          icon: Icon(
-            Icons.date_range_rounded,
-            size: 16,
-            color: theme.colorScheme.primary,
-          ),
-          label: Text(
+          child: Text(
             rangeText,
-            style: theme.textTheme.labelMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+            style: theme.textTheme.bodyMedium,
+            overflow: TextOverflow.ellipsis,
           ),
-          onPressed: () => _pickCustomRange(context),
         ),
-      ],
+      ),
     );
   }
 
-  Widget _statusChips(BuildContext context) {
-    if (statuses.isEmpty) return const SizedBox.shrink();
+  Widget _reportTypeDropdown(BuildContext context) {
+    final width = context.isWide ? 180.0 : null;
+    return SizedBox(
+      width: width,
+      child: AppDropdown<String>(
+        key: ValueKey(selectedReport.key),
+        value: selectedReport.key,
+        icon: Icons.assignment_outlined,
+        label: 'Report',
+        items: const [
+          DropdownMenuItem(value: 'dateRange', child: Text('All Issues')),
+          DropdownMenuItem(value: 'student', child: Text('Student')),
+          DropdownMenuItem(value: 'staff', child: Text('Staff')),
+          DropdownMenuItem(value: 'monthly', child: Text('Monthly')),
+        ],
+        onChanged: (reportKey) {
+          if (reportKey == null) return;
+          final matchedReport = reports.firstWhere(
+            (reportDef) => reportDef.key == reportKey,
+          );
+          onReportChanged(matchedReport);
+        },
+      ),
+    );
+  }
 
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        for (final value in [null, ...statuses])
-          ChoiceChip(
-            label: Text(value == null ? 'All Statuses' : humanizeStatus(value)),
-            selected: selectedStatus == value,
-            onSelected: (_) => onStatusChanged(value),
+  Widget _libraryDropdown(BuildContext context) {
+    final width = context.isWide ? 190.0 : null;
+    return SizedBox(
+      width: width,
+      child: AppDropdown<String>(
+        key: ValueKey(selectedLibraryId),
+        value: selectedLibraryId,
+        icon: Icons.local_library_outlined,
+        label: 'Library',
+        items: [
+          const DropdownMenuItem(child: Text('All libraries')),
+          for (final schoolLibrary in libraries)
+            DropdownMenuItem(
+              value: schoolLibrary.id,
+              child: Text(schoolLibrary.name),
+            ),
+        ],
+        onChanged: onLibraryChanged,
+      ),
+    );
+  }
+
+  Widget _statusDropdown(BuildContext context) {
+    final width = context.isWide ? 170.0 : null;
+    return SizedBox(
+      width: width,
+      child: AppDropdown<String>(
+        key: ValueKey(selectedStatus),
+        value: selectedStatus,
+        icon: Icons.filter_alt_outlined,
+        label: 'Status',
+        items: [
+          const DropdownMenuItem(child: Text('All statuses')),
+          for (final status in statuses)
+            DropdownMenuItem(
+              value: status,
+              child: Text(humanizeStatus(status)),
+            ),
+        ],
+        onChanged: onStatusChanged,
+      ),
+    );
+  }
+
+  Widget _searchField(BuildContext context) {
+    final width = context.isWide ? 220.0 : null;
+    final theme = Theme.of(context);
+    return SizedBox(
+      width: width,
+      child: TextField(
+        controller: searchController,
+        decoration: InputDecoration(
+          hintText: 'Search records…',
+          prefixIcon: const Icon(Icons.search, size: 20),
+          suffixIcon: searchQuery.isEmpty
+              ? null
+              : IconButton(
+                  tooltip: 'Clear search',
+                  icon: const Icon(Icons.clear, size: 18),
+                  onPressed: onClearSearch,
+                ),
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 12,
           ),
-      ],
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
+            ),
+          ),
+        ),
+        onChanged: onSearchChanged,
+      ),
+    );
+  }
+
+  Widget _recordCountChip(BuildContext context) {
+    final theme = Theme.of(context);
+    final countText = filteredRowCount == rowCount
+        ? '$rowCount ${rowCount == 1 ? 'record' : 'records'}'
+        : '$filteredRowCount of $rowCount records';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.analytics_outlined,
+            size: 16,
+            color: theme.colorScheme.primary,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            countText,
+            style: theme.textTheme.labelMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    final filterControls = [
+      _datePresetDropdown(context),
+      if (datePreset == LibraryDatePreset.custom) _customRangeField(context),
+      _reportTypeDropdown(context),
+      _libraryDropdown(context),
+      if (statuses.isNotEmpty) _statusDropdown(context),
+      _searchField(context),
+      _recordCountChip(context),
+    ];
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -197,53 +329,22 @@ class LibraryReportFilters extends StatelessWidget {
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (context.isWide)
-            Row(
-              children: [
-                Expanded(flex: 3, child: _searchField(context)),
-                const SizedBox(width: 14),
-                _libraryDropdown(context),
-              ],
+      child: context.isWide
+          ? Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: filterControls,
             )
-          else
-            Column(
+          : Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _searchField(context),
-                const SizedBox(height: 12),
-                _libraryDropdown(context),
-              ],
-            ),
-          const SizedBox(height: 14),
-          const Divider(height: 1, thickness: 0.5),
-          const SizedBox(height: 12),
-          if (context.isWide)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(child: _dateControls(context)),
-                if (statuses.isNotEmpty) ...[
-                  const SizedBox(width: 16),
-                  _statusChips(context),
-                ],
-              ],
-            )
-          else
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _dateControls(context),
-                if (statuses.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  _statusChips(context),
+                for (var index = 0; index < filterControls.length; index++) ...[
+                  if (index > 0) const SizedBox(height: 12),
+                  filterControls[index],
                 ],
               ],
             ),
-        ],
-      ),
     );
   }
 }

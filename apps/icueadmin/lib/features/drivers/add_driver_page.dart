@@ -304,24 +304,10 @@ class _AddDriverPageState extends State<AddDriverPage> {
                   ),
                 ),
                 const SizedBox(height: 32),
-                ElevatedButton(
+                AppButton(
+                  label: isEditing ? 'Update Driver' : 'Add Driver',
                   onPressed: provider.isLoading ? null : _onSubmit,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  child: provider.isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(
-                          isEditing ? 'Update Driver' : 'Add Driver',
-                          style: const TextStyle(fontSize: 16),
-                        ),
+                  isLoading: provider.isLoading,
                 ),
               ],
             ),

@@ -171,27 +171,13 @@ class _StoreFormPageState extends State<StoreFormPage> {
               SizedBox(
                 width: double.infinity,
                 height: 48,
-                child: FilledButton.icon(
+                child: AppButton(
+                  label: _busy
+                      ? 'Saving…'
+                      : (editing ? 'Update store' : 'Save store'),
                   onPressed: _busy ? null : _save,
-                  icon: _busy
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Icon(Icons.check_circle_outline, size: 20),
-                  label: Text(
-                    _busy
-                        ? 'Saving…'
-                        : (editing ? 'Update store' : 'Save store'),
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  leadingIcon: Icons.check_circle_outline,
+                  isLoading: _busy,
                 ),
               ),
               const SizedBox(height: 24),

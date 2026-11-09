@@ -347,24 +347,10 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
                   onDriverSelected: (d) => setState(() => _selectedDriver = d),
                 ),
                 const SizedBox(height: 32),
-                ElevatedButton(
+                AppButton(
+                  label: isEditing ? 'Update Vehicle' : 'Add Vehicle',
                   onPressed: vehicleProvider.isLoading ? null : _onSubmit,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  child: vehicleProvider.isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(
-                          isEditing ? 'Update Vehicle' : 'Add Vehicle',
-                          style: const TextStyle(fontSize: 16),
-                        ),
+                  isLoading: vehicleProvider.isLoading,
                 ),
               ],
             ),

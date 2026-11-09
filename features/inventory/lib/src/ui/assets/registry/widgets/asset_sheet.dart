@@ -142,11 +142,16 @@ class _AssetSheetState extends State<AssetSheet> {
           spacing: 8,
           children: [
             for (final (label, form) in actions)
-              OutlinedButton(onPressed: () => _open(form), child: Text(label)),
-            OutlinedButton.icon(
-              icon: const Icon(Icons.qr_code_2_rounded),
-              label: const Text('Label'),
+              AppButton(
+                label: label,
+                onPressed: () => _open(form),
+                variant: AppButtonVariant.outline,
+              ),
+            AppButton(
+              label: 'Label',
               onPressed: () => shareAssetLabel(asset),
+              variant: AppButtonVariant.outline,
+              leadingIcon: Icons.qr_code_2_rounded,
             ),
           ],
         ),

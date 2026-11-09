@@ -132,10 +132,7 @@ class _ReservationDialogState extends State<ReservationDialog> {
           label: 'Preferred library',
         ),
         const SizedBox(height: 16),
-        FilledButton(
-          onPressed: _busy ? null : _submit,
-          child: const Text('Reserve'),
-        ),
+        AppButton(label: 'Reserve', onPressed: _busy ? null : _submit),
       ],
     );
   }

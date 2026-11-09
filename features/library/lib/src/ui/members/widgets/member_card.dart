@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:school_library/school_library.dart';
 
@@ -156,21 +157,13 @@ class MemberCard extends StatelessWidget {
                   highlight: member.activeLoans > 0,
                 ),
                 const Spacer(),
-                TextButton.icon(
-                  style: TextButton.styleFrom(
-                    foregroundColor: member.blocked
-                        ? Colors.green.shade700
-                        : theme.colorScheme.error,
-                    visualDensity: VisualDensity.compact,
-                  ),
-                  icon: Icon(
-                    member.blocked
-                        ? Icons.lock_open_rounded
-                        : Icons.block_rounded,
-                    size: 16,
-                  ),
-                  label: Text(member.blocked ? 'Unblock' : 'Block'),
+                AppButton(
+                  label: member.blocked ? 'Unblock' : 'Block',
                   onPressed: onToggleBlock,
+                  variant: AppButtonVariant.destructive,
+                  leadingIcon: member.blocked
+                      ? Icons.lock_open_rounded
+                      : Icons.block_rounded,
                 ),
               ],
             ),

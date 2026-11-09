@@ -145,10 +145,7 @@ class _IncidentReportDialogState extends State<IncidentReportDialog> {
         const SizedBox(height: 8),
         AppTextField(controller: _description, label: 'Description / remarks'),
         const SizedBox(height: 16),
-        FilledButton(
-          onPressed: _busy ? null : _submit,
-          child: const Text('Submit report'),
-        ),
+        AppButton(label: 'Submit report', onPressed: _busy ? null : _submit),
       ],
     );
   }

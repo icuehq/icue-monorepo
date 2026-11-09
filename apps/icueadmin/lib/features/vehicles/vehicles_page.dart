@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:go_router/go_router.dart';
@@ -117,10 +118,10 @@ class _VehiclesPageState extends State<VehiclesPage> {
                 style: const TextStyle(fontSize: 14, color: Colors.grey),
               ),
               const SizedBox(height: 16),
-              ElevatedButton.icon(
+              AppButton(
+                label: 'Retry',
                 onPressed: () => provider.fetchVehiclesData(),
-                icon: const Icon(Icons.refresh_rounded, size: 18),
-                label: const Text('Retry'),
+                leadingIcon: Icons.refresh_rounded,
               ),
             ],
           ),

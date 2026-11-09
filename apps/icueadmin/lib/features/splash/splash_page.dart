@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -32,7 +33,7 @@ class SplashPage extends StatelessWidget {
                 SelectableText('$error', textAlign: TextAlign.center),
               ],
               const SizedBox(height: 12),
-              FilledButton(onPressed: onRetry, child: const Text('Retry')),
+              AppButton(label: 'Retry', onPressed: onRetry),
             ],
           ],
         ),

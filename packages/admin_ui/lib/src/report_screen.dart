@@ -359,15 +359,12 @@ class ReportFilterBar extends StatelessWidget {
     children: [
       ...leading,
       if (showDateRange)
-        OutlinedButton.icon(
-          // The app theme makes buttons full width; keep this one as wide as its text.
-          style: OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
-          icon: const Icon(Icons.event_rounded, size: 18),
-          label: Text(
-            range == null
-                ? 'Any date'
-                : '${range!.start.toNumericDate()} → ${range!.end.toNumericDate()}',
-          ),
+        AppButton(
+          variant: AppButtonVariant.outline,
+          leadingIcon: Icons.event_rounded,
+          label: range == null
+              ? 'Any date'
+              : '${range!.start.toNumericDate()} → ${range!.end.toNumericDate()}',
           onPressed: () => _pickRange(context),
         ),
       if (range != null)

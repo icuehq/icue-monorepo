@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:face_enrollment/src/services/student_service.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_face_sdk/icue_face_sdk.dart';
+import 'package:icue_firebase/icue_firebase.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:injectable/injectable.dart';
 
@@ -66,10 +67,16 @@ class EmbeddingProvider extends ChangeNotifier {
       _imageSource = 'Server URL';
       _scanStatusText = 'Photo downloaded. Ready to extract embedding.';
       notifyListeners();
-    } catch (e) {
+    } catch (e, stack) {
       _isDownloading = false;
       _scanStatusText = 'Download failed. Use camera or gallery.';
       notifyListeners();
+      CrashlyticsService.instance.recordError(
+        e,
+        stack,
+        reason: 'Student photo download failed for student $studentId',
+        information: ['photoUrl: $photoUrl'],
+      );
       rethrow;
     }
   }
@@ -148,10 +155,16 @@ class EmbeddingProvider extends ChangeNotifier {
       _generatedEmbedding = embedding;
       _scanStatusText = 'Biometric signature verified!';
       notifyListeners();
-    } catch (e) {
+    } catch (e, stack) {
       _isScanning = false;
       _scanStatusText = 'Extraction failed: $e';
       notifyListeners();
+      CrashlyticsService.instance.recordError(
+        e,
+        stack,
+        reason: 'Face embedding extraction failed for $_localImagePath',
+        information: ['imageSource: $_imageSource'],
+      );
       rethrow;
     }
   }

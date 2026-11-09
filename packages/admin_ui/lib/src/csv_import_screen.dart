@@ -146,10 +146,11 @@ class _CsvImportScreenState extends State<CsvImportScreen> {
               'Columns: $header\n${_kind.hint} Up to $_rowsPerRequest rows per request.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
-            TextButton.icon(
-              icon: const Icon(Icons.copy),
-              label: const Text('Copy header row'),
+            AppButton(
+              label: 'Copy header row',
               onPressed: () => Clipboard.setData(ClipboardData(text: header)),
+              variant: AppButtonVariant.ghost,
+              leadingIcon: Icons.copy,
             ),
             TextField(
               controller: _csv,
@@ -161,9 +162,9 @@ class _CsvImportScreenState extends State<CsvImportScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            FilledButton(
+            AppButton(
+              label: _isImporting ? 'Importing…' : 'Import',
               onPressed: _isImporting ? null : _import,
-              child: Text(_isImporting ? 'Importing…' : 'Import'),
             ),
             if (_summary != null) ...[
               const SizedBox(height: 12),

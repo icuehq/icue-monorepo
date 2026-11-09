@@ -8,6 +8,7 @@ import 'package:face_enrollment/src/storage/embedding_store.dart';
 import 'package:face_enrollment/src/utils/error_message.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_face_sdk/icue_face_sdk.dart';
+import 'package:icue_firebase/icue_firebase.dart';
 import 'package:injectable/injectable.dart';
 
 @injectable
@@ -200,10 +201,20 @@ class StudentProvider extends ChangeNotifier {
         unsent.add(studentEmbedding);
         generated++;
         batch.record(succeeded: 1);
-      } catch (e) {
+      } catch (e, stack) {
         debugPrint('Failed to process student ${student.name}: $e');
         logFailure('${student.name} (id ${student.id}): ${describeError(e)}');
         batch.record(succeeded: 0, failed: 1);
+        CrashlyticsService.instance.recordError(
+          e,
+          stack,
+          reason:
+              'Batch face embedding extraction failed for student ${student.id}',
+          information: [
+            'studentId: ${student.id}',
+            'admissionNumber: ${student.admissionNumber}',
+          ],
+        );
       } finally {
         await _deleteQuietly(path);
       }

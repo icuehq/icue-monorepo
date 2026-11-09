@@ -1,3 +1,4 @@
+import 'package:core_ui/core_ui.dart';
 import 'package:face_enrollment/src/models/student.dart';
 import 'package:face_enrollment/src/ui/theme_context.dart';
 import 'package:face_enrollment/src/ui/widgets/glass_card.dart';
@@ -244,34 +245,24 @@ class ScanHub extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: OutlinedButton.icon(
+                child: AppButton(
+                  label: 'Camera',
                   onPressed: isScanning
                       ? null
                       : () => onSinglePhoto(ImageSource.camera),
-                  icon: const Icon(Icons.camera_alt_outlined, size: 16),
-                  label: const Text('Camera'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
+                  variant: AppButtonVariant.outline,
+                  leadingIcon: Icons.camera_alt_outlined,
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: OutlinedButton.icon(
+                child: AppButton(
+                  label: 'Gallery',
                   onPressed: isScanning
                       ? null
                       : () => onSinglePhoto(ImageSource.gallery),
-                  icon: const Icon(Icons.photo_library_outlined, size: 16),
-                  label: const Text('Gallery'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
+                  variant: AppButtonVariant.outline,
+                  leadingIcon: Icons.photo_library_outlined,
                 ),
               ),
             ],

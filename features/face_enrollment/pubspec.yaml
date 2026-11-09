@@ -9,11 +9,13 @@ environment:
 dependencies:
   api_client:
   auth:
+  core_ui:
   flutter:
     sdk: flutter
   get_it: ^8.0.2
   go_router: ^18.1.1
   icue_face_sdk:
+  icue_firebase:
   image_picker: ^1.0.7
   injectable: ^2.5.0
   local_storage:

@@ -1,4 +1,5 @@
 import 'package:admin_ui/admin_ui.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:inventory/inventory.dart';
@@ -130,25 +131,27 @@ class _VendorsPageState extends State<VendorsPage> {
             ),
             const SizedBox(height: 16),
             if (failure != null)
-              OutlinedButton.icon(
+              AppButton(
+                label: 'Try again',
                 onPressed: _load,
-                icon: const Icon(Icons.refresh, size: 18),
-                label: const Text('Try again'),
+                variant: AppButtonVariant.outline,
+                leadingIcon: Icons.refresh,
               )
             else if (filtering)
-              OutlinedButton(
+              AppButton(
+                label: 'Clear filters',
                 onPressed: () => setState(() {
                   _searchController.clear();
                   _selectedFilter = 'all';
                   _categoryId = null;
                 }),
-                child: const Text('Clear filters'),
+                variant: AppButtonVariant.outline,
               )
             else if (canEdit)
-              FilledButton.icon(
+              AppButton(
+                label: 'New vendor',
                 onPressed: () => _open(InventoryRoutes.inventoryVendorForm),
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('New vendor'),
+                leadingIcon: Icons.add,
               ),
           ],
         ),

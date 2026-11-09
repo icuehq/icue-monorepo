@@ -90,11 +90,12 @@ class _RevisionDialogState extends State<_RevisionDialog> {
         ),
       ),
       actions: [
-        TextButton(
+        AppButton(
+          label: 'Cancel',
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          variant: AppButtonVariant.ghost,
         ),
-        FilledButton(onPressed: _save, child: const Text('Save Revision')),
+        AppButton(label: 'Save Revision', onPressed: _save),
       ],
     );
   }
