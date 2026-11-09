@@ -542,9 +542,9 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
 
   Future<void> loadReport(
     LibraryReportDef def, {
+    required DateTime from,
+    required DateTime to,
     SchoolLibrary? library,
-    DateTime? from,
-    DateTime? to,
     String? status,
   }) => _insights(() async {
     reportRows = await _service.report(

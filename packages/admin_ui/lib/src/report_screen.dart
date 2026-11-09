@@ -360,6 +360,8 @@ class ReportFilterBar extends StatelessWidget {
       ...leading,
       if (showDateRange)
         OutlinedButton.icon(
+          // The app theme makes buttons full width; keep this one as wide as its text.
+          style: OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
           icon: const Icon(Icons.event_rounded, size: 18),
           label: Text(
             range == null

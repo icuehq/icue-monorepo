@@ -411,130 +411,112 @@ class LibraryService {
   }
 
   static const reportLimit = 500;
+  static const loanLimit = 5000;
 
-  /// Rows of [def] for the user's campuses; `popular` / `inactive` are computed over up to [rankLimit] loans.
-  Future<List<ReportRow>> report(
+  /// Loans whose [field] (`issuedDate` / `returnedDate`) falls in the range, newest first.
+  Future<List<ReportRow>> _loansBetween(
     ModuleAccess access,
-    LibraryReportDef def, {
     SchoolLibrary? library,
-    DateTime? from,
-    DateTime? to,
-    String? status,
+    String field,
+    DateTime from,
+    DateTime to, {
+    int limit = loanLimit,
   }) async {
-    final fromS = from?.toApiDate();
-    final toS = to?.toApiDate();
-    if (def.type != LibraryReportType.query) {
-      return _ranking(access, def, library, fromS, toS);
-    }
-    final collection = await schoolCollection(def.collection);
-    final base = def.schoolWide
-        ? collection
-        : _scoped(collection, access, library: def.hasLibrary ? library : null);
-    if (base == null) return [];
-    var query = base;
-    for (final mapEntry in def.where.entries) {
-      query = query.where(mapEntry.key, isEqualTo: mapEntry.value);
-    }
-    if (status != null) {
-      query = query.where(
-        def.collection == 'libraryBooks' ? 'type' : 'status',
-        isEqualTo: status,
-      );
-    }
-    if (def.overdue) {
-      query = query
-          .where('dueDate', isLessThan: dayTimestamp(todayIST()))
-          .orderBy('dueDate');
-    } else if (def.dateField != null) {
-      final currentValue = def.dateField!;
-      final isTimestamp = const {'createdAt'}.contains(currentValue);
-      Object bound(String value, {bool end = false}) => isTimestamp
-          ? Timestamp.fromDate(
-              DateTime.parse(value).add(Duration(days: end ? 1 : 0)),
-            )
-          : dayTimestamp(value);
-      if (fromS != null) {
-        query = query.where(currentValue, isGreaterThanOrEqualTo: bound(fromS));
-      }
-      if (toS != null) {
-        query = isTimestamp
-            ? query.where(currentValue, isLessThan: bound(toS, end: true))
-            : query.where(currentValue, isLessThanOrEqualTo: dayTimestamp(toS));
-      }
-      query = query.orderBy(currentValue, descending: true);
-    } else if (def.schoolWide) {
-      query = query.orderBy('title');
-    }
-    final snapshot = await query.limit(reportLimit).get();
+    final query = _scoped(
+      await schoolCollection('libraryLoans'),
+      access,
+      library: library,
+    );
+    if (query == null) return [];
+    final snapshot = await query
+        .where(field, isGreaterThanOrEqualTo: dayTimestamp(from.toApiDate()))
+        .where(field, isLessThanOrEqualTo: dayTimestamp(to.toApiDate()))
+        .orderBy(field, descending: true)
+        .limit(limit)
+        .get();
     return [for (final document in snapshot.docs) document.data()];
   }
 
-  static const rankLimit = 5000;
-
-  Future<List<ReportRow>> _ranking(
+  /// Rows of [def] over the loans issued (and, monthly, returned) from [from] to [to].
+  Future<List<ReportRow>> report(
     ModuleAccess access,
-    LibraryReportDef def,
+    LibraryReportDef def, {
+    required DateTime from,
+    required DateTime to,
     SchoolLibrary? library,
-    String? from,
-    String? to,
-  ) async {
-    Future<List<ReportRow>> fetch(String name, {String? dateField}) async {
-      var query = _scoped(
-        await schoolCollection(name),
+    String? status,
+  }) async {
+    if (def.kind == LibraryReportKind.loans) {
+      final loans = await _loansBetween(
         access,
-        library: library,
+        library,
+        'issuedDate',
+        from,
+        to,
+        limit: reportLimit,
       );
-      if (query == null) return [];
-      if (dateField != null) {
-        if (from != null) {
-          query = query.where(
-            dateField,
-            isGreaterThanOrEqualTo: dayTimestamp(from),
-          );
-        }
-        if (to != null) {
-          query = query.where(dateField, isLessThanOrEqualTo: dayTimestamp(to));
-        }
-        query = query.orderBy(dateField, descending: true);
+      return [
+        for (final loan in loans)
+          if (status == null || loan['status'] == status) loan,
+      ];
+    }
+    final issued = await _loansBetween(access, library, 'issuedDate', from, to);
+    if (def.kind == LibraryReportKind.monthly) {
+      final returned = await _loansBetween(
+        access,
+        library,
+        'returnedDate',
+        from,
+        to,
+      );
+      final months = <String, Map<String, int>>{};
+      void add(ReportRow loan, String field, String counter) {
+        final month = readDay(loan[field]).substring(0, 7);
+        months.putIfAbsent(month, () => {'issued': 0, 'returned': 0})[counter] =
+            months[month]![counter]! + 1;
+      }
+
+      for (final loan in issued) {
+        add(loan, 'issuedDate', 'issued');
+      }
+      for (final loan in returned) {
+        add(loan, 'returnedDate', 'returned');
       }
       return [
-        for (final document in (await query.limit(rankLimit).get()).docs)
-          document.data(),
+        for (final month in months.keys.toList()..sort())
+          {'month': month, ...months[month]!},
       ];
     }
-
-    final loans = await fetch('libraryLoans', dateField: 'issuedDate');
-    final loanCount = <String, int>{};
-    for (final data in loans) {
-      loanCount.update(
-        '${data['catalogueId']}',
-        (number) => number + 1,
-        ifAbsent: () => 1,
+    final memberType = def.kind == LibraryReportKind.student
+        ? 'student'
+        : 'teacher';
+    final today = dayTimestamp(todayIST());
+    final members = <Object?, ReportRow>{};
+    for (final loan in issued) {
+      if (loan['memberType'] != memberType) continue;
+      final row = members.putIfAbsent(
+        loan['personErpId'],
+        () => {
+          'personErpId': loan['personErpId'],
+          'memberName': loan['memberName'],
+          'issued': 0,
+          'returned': 0,
+          'active': 0,
+          'overdue': 0,
+        },
       );
+      row['issued'] = (row['issued'] as int) + 1;
+      if (loan['status'] == 'returned') {
+        row['returned'] = (row['returned'] as int) + 1;
+      }
+      if (loan['status'] == 'active') {
+        row['active'] = (row['active'] as int) + 1;
+        if ((loan['dueDate'] as Timestamp).compareTo(today) < 0) {
+          row['overdue'] = (row['overdue'] as int) + 1;
+        }
+      }
     }
-    if (def.type == LibraryReportType.popular) {
-      return [
-        for (final mapEntry
-            in loanCount.entries.toList()..sort(
-              (currentMapEntry, mapEntry) =>
-                  mapEntry.value.compareTo(currentMapEntry.value),
-            ))
-          {'catalogueId': mapEntry.key, 'count': mapEntry.value},
-      ];
-    }
-    final copyCount = <String, int>{};
-    for (final data in await fetch('libraryCopies')) {
-      if (data['status'] == 'withdrawn') continue;
-      copyCount.update(
-        '${data['catalogueId']}',
-        (number) => number + 1,
-        ifAbsent: () => 1,
-      );
-    }
-    return [
-      for (final mapEntry in copyCount.entries)
-        if (!loanCount.containsKey(mapEntry.key))
-          {'catalogueId': mapEntry.key, 'count': mapEntry.value},
-    ];
+    return members.values.toList()
+      ..sort((a, b) => (b['issued'] as int).compareTo(a['issued'] as int));
   }
 }

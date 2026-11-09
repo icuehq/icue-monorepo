@@ -10,7 +10,6 @@ import 'package:school_library/src/ui/circulation/widgets/scan_listener.dart';
 import 'package:school_library/src/ui/fines/fines_page.dart';
 import 'package:school_library/src/ui/incidents/incidents_page.dart';
 import 'package:school_library/src/ui/insights/overview/library_overview_page.dart';
-import 'package:school_library/src/ui/insights/reports/library_report_page.dart';
 import 'package:school_library/src/ui/insights/reports/library_reports_page.dart';
 import 'package:school_library/src/ui/libraries/libraries_page.dart';
 import 'package:school_library/src/ui/libraries/library_categories_page.dart';
@@ -99,12 +98,6 @@ final _libraryPages = <RouteBase>[
     path: LibraryRoutes.libraryReports,
     name: LibraryRoutes.libraryReportsName,
     builder: (context, state) => const LibraryReportsPage(),
-  ),
-  GoRoute(
-    path: LibraryRoutes.libraryReport,
-    name: LibraryRoutes.libraryReportName,
-    builder: (context, state) =>
-        LibraryReportPage(def: state.extra! as LibraryReportDef),
   ),
   GoRoute(
     path: LibraryRoutes.libraryPolicies,
