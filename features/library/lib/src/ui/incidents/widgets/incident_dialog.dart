@@ -138,63 +138,108 @@ class _IncidentDialogState extends State<IncidentDialog> {
   @override
   Widget build(BuildContext context) {
     final incident = widget.incident;
+    final theme = Theme.of(context);
+    final statusColor = incident.isOpen
+        ? theme.colorScheme.error
+        : Colors.green.shade700;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              incident.incidentNumber,
-              style: Theme.of(context).textTheme.titleMedium,
+            Expanded(
+              child: Text(
+                incident.incidentNumber,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
-            Chip(
-              label: Text(humanizeStatus(incident.status)),
-              backgroundColor: incident.isOpen
-                  ? Theme.of(context).colorScheme.errorContainer
-                  : null,
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: statusColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                humanizeStatus(incident.status),
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: statusColor,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
           ],
         ),
-        const SizedBox(height: 8),
-        Text(
-          'Book copy: ${incident.barcode} · Kind: ${humanizeStatus(incident.type)}',
-        ),
+        const SizedBox(height: 16),
+        _Field('Book copy', incident.barcode),
+        _Field('Kind', humanizeStatus(incident.type)),
         if (incident.severity != null)
-          Text('Severity: ${humanizeStatus(incident.severity)}'),
+          _Field('Severity', humanizeStatus(incident.severity)),
         if (incident.memberLabel != null)
-          Text('Member: ${incident.memberLabel}'),
-        Text('Reported on: ${incident.reportedDate.toDisplayDay()}'),
-        if (incident.description != null &&
-            incident.description!.isNotEmpty) ...[
-          const SizedBox(height: 4),
-          Text(
-            'Description: ${incident.description}',
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-        ],
-        if (incident.charge > 0) Text('Charge: ${incident.charge.toRupees()}'),
+          _Field('Member', incident.memberLabel!),
+        _Field('Reported on', incident.reportedDate.toDisplayDay()),
+        if (incident.description != null && incident.description!.isNotEmpty)
+          _Field('Description', incident.description!),
+        if (incident.charge > 0) _Field('Charge', incident.charge.toRupees()),
         if (incident.repairCost != null)
-          Text('Repair cost: ${incident.repairCost!.toRupees()}'),
+          _Field('Repair cost', incident.repairCost!.toRupees()),
         if (!incident.isOpen) ...[
           const Divider(height: 24),
-          Text(
-            'Resolution: ${incidentResolutionLabel(incident.resolution)}',
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
+          _Field('Resolution', incidentResolutionLabel(incident.resolution)),
           if (incident.resolutionRemarks != null)
-            Text('Remarks: ${incident.resolutionRemarks}'),
+            _Field('Remarks', incident.resolutionRemarks!),
         ],
         if (incident.isOpen) ...[
-          const SizedBox(height: 16),
-          IcueButton(
-            label: 'Resolve incident',
-            onPressed: _busy ? null : _resolve,
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: IcueButton(
+              label: 'Resolve incident',
+              onPressed: _busy ? null : _resolve,
+            ),
           ),
         ],
       ],
+    );
+  }
+}
+
+class _Field extends StatelessWidget {
+  const _Field(this.label, this.value);
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 110,
+            child: Text(
+              label,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -14,7 +14,7 @@ const copyManualStatuses = [
 ];
 
 extension LibraryCopyMembers on LibraryCopy {
-  /// Lost and withdrawn copies are final; issued/reserved/in-transit belong to circulation.
+  /// Lost and withdrawn copies are final; issued/in-transit belong to circulation.
   bool get canChangeStatus =>
       copyManualStatuses.contains(status) &&
       status != 'lost' &&

@@ -7,6 +7,7 @@ import 'package:school_library/src/ui/incidents/widgets/incident_card.dart';
 import 'package:school_library/src/ui/incidents/widgets/incident_dialog.dart';
 import 'package:school_library/src/ui/incidents/widgets/incident_empty_states.dart';
 import 'package:school_library/src/ui/incidents/widgets/incident_report_dialog.dart';
+import 'package:school_library/src/ui/incidents/widgets/incidents_table.dart';
 
 /// Manage lost and damaged book incidents (FRS 11.14).
 class IncidentsPage extends StatefulWidget {
@@ -120,205 +121,245 @@ class _IncidentsPageState extends State<IncidentsPage> {
         ],
         bottom: CirculationTabBar(activeTab: CirculationTab.incidents),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _openReportIncident,
-        icon: const Icon(Icons.report_problem_outlined),
-        label: const Text('Report incident'),
-      ),
-      body: IcueCenteredBody(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
+      floatingActionButton: context.isWide
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: _openReportIncident,
+              icon: const Icon(Icons.report_problem_outlined),
+              label: const Text('Report incident'),
+            ),
+      body: context.isWide
+          ? Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
                 children: [
                   Expanded(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: SegmentedButton<String>(
-                        segments: const [
-                          ButtonSegment(value: 'open', label: Text('Open')),
-                          ButtonSegment(
-                            value: 'resolved',
-                            label: Text('Resolved'),
-                          ),
-                          ButtonSegment(value: 'all', label: Text('All')),
-                        ],
-                        selected: {_status},
-                        onSelectionChanged: (values) =>
-                            _onStatusChanged(values.first),
-                      ),
+                    child: IncidentsTable(
+                      incidents: allIncidents,
+                      loading:
+                          libraryProvider.incidentsLoading &&
+                          allIncidents.isEmpty,
+                      status: _status,
+                      onStatusChanged: _onStatusChanged,
+                      onOpen: _open,
+                      onReport: _openReportIncident,
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  SizedBox(
-                    width: 220,
-                    child: TextField(
-                      controller: _searchController,
-                      decoration: InputDecoration(
-                        hintText: 'Search copy, member…',
-                        prefixIcon: const Icon(Icons.search, size: 18),
-                        isDense: true,
-                        filled: true,
-                        fillColor: theme.colorScheme.surfaceContainerHighest
-                            .withValues(alpha: 0.35),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 8,
-                        ),
-                        suffixIcon: _searchQuery.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.clear, size: 16),
-                                onPressed: _clearSearch,
-                              )
-                            : null,
+                  if (libraryProvider.hasMoreIncidents)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: IcueButton(
+                        label: 'Load more',
+                        onPressed: libraryProvider.incidentsLoading
+                            ? null
+                            : () => libraryProvider.loadIncidents(more: true),
+                        variant: IcueButtonVariant.ghost,
                       ),
-                      onChanged: (value) =>
-                          setState(() => _searchQuery = value.trim()),
                     ),
+                ],
+              ),
+            )
+          : IcueCenteredBody(
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: SegmentedButton<String>(
+                              segments: const [
+                                ButtonSegment(
+                                  value: 'open',
+                                  label: Text('Open'),
+                                ),
+                                ButtonSegment(
+                                  value: 'resolved',
+                                  label: Text('Resolved'),
+                                ),
+                                ButtonSegment(value: 'all', label: Text('All')),
+                              ],
+                              selected: {_status},
+                              onSelectionChanged: (values) =>
+                                  _onStatusChanged(values.first),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        SizedBox(
+                          width: 220,
+                          child: TextField(
+                            controller: _searchController,
+                            decoration: InputDecoration(
+                              hintText: 'Search copy, member…',
+                              prefixIcon: const Icon(Icons.search, size: 18),
+                              isDense: true,
+                              filled: true,
+                              fillColor: theme
+                                  .colorScheme
+                                  .surfaceContainerHighest
+                                  .withValues(alpha: 0.35),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 8,
+                              ),
+                              suffixIcon: _searchQuery.isNotEmpty
+                                  ? IconButton(
+                                      icon: const Icon(Icons.clear, size: 16),
+                                      onPressed: _clearSearch,
+                                    )
+                                  : null,
+                            ),
+                            onChanged: (value) =>
+                                setState(() => _searchQuery = value.trim()),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child:
+                        libraryProvider.incidentsLoading && allIncidents.isEmpty
+                        ? const Center(child: CircularProgressIndicator())
+                        : filteredIncidents.isEmpty
+                        ? (allIncidents.isEmpty
+                              ? IncidentInitialEmptyState(
+                                  status: _status,
+                                  onReport: _openReportIncident,
+                                )
+                              : IncidentNoResultsState(
+                                  searchQuery: _searchQuery,
+                                  onClear: _clearSearch,
+                                ))
+                        : RefreshIndicator(
+                            onRefresh: () =>
+                                libraryProvider.loadIncidents(status: _status),
+                            child: IcueAdaptiveList<LibraryIncident>(
+                              items: filteredIncidents,
+                              onTap: _open,
+                              columns: [
+                                IcueAdaptiveColumn(
+                                  label: 'Copy',
+                                  flex: 2,
+                                  cell: (context, incident) => Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.qr_code_2_rounded,
+                                        size: 16,
+                                        color: Colors.grey,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        incident.barcode,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                IcueAdaptiveColumn(
+                                  label: 'Member',
+                                  flex: 3,
+                                  cell: (context, incident) {
+                                    final member = incident.memberLabel;
+                                    if (member == null) {
+                                      return const Text(
+                                        'In stock',
+                                        style: TextStyle(color: Colors.grey),
+                                      );
+                                    }
+                                    return Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          incident.memberType == 'teacher'
+                                              ? Icons.person_outline_rounded
+                                              : Icons.school_outlined,
+                                          size: 16,
+                                          color: Colors.grey,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Flexible(
+                                          child: Text(
+                                            member,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                ),
+                                IcueAdaptiveColumn.text(
+                                  'Incident #',
+                                  (incident) => incident.incidentNumber,
+                                ),
+                                IcueAdaptiveColumn(
+                                  label: 'Type',
+                                  flex: 2,
+                                  cell: (context, incident) => Text(
+                                    '${humanizeStatus(incident.type)}'
+                                    '${incident.severity != null ? ' (${humanizeStatus(incident.severity!)})' : ''}',
+                                  ),
+                                ),
+                                IcueAdaptiveColumn.text(
+                                  'Reported',
+                                  (incident) =>
+                                      incident.reportedDate.toDisplayDay(),
+                                ),
+                                IcueAdaptiveColumn(
+                                  label: 'Charge',
+                                  cell: (context, incident) => Text(
+                                    incident.charge > 0
+                                        ? incident.charge.toRupees()
+                                        : '—',
+                                    style: TextStyle(
+                                      color: incident.charge > 0
+                                          ? theme.colorScheme.error
+                                          : null,
+                                      fontWeight: incident.charge > 0
+                                          ? FontWeight.w600
+                                          : FontWeight.normal,
+                                    ),
+                                  ),
+                                ),
+                                IcueAdaptiveColumn(
+                                  label: 'Status',
+                                  cell: (context, incident) =>
+                                      _statusPill(context, incident),
+                                ),
+                              ],
+                              cardBuilder: (context, incident) => IncidentCard(
+                                incident: incident,
+                                onTap: () => _open(incident),
+                              ),
+                              footer: libraryProvider.hasMoreIncidents
+                                  ? Center(
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 8,
+                                        ),
+                                        child: IcueButton(
+                                          label: 'Load more',
+                                          onPressed:
+                                              libraryProvider.incidentsLoading
+                                              ? null
+                                              : () => libraryProvider
+                                                    .loadIncidents(more: true),
+                                          variant: IcueButtonVariant.ghost,
+                                        ),
+                                      ),
+                                    )
+                                  : null,
+                            ),
+                          ),
                   ),
                 ],
               ),
             ),
-            Expanded(
-              child: libraryProvider.incidentsLoading && allIncidents.isEmpty
-                  ? const Center(child: CircularProgressIndicator())
-                  : filteredIncidents.isEmpty
-                  ? (allIncidents.isEmpty
-                        ? IncidentInitialEmptyState(
-                            status: _status,
-                            onReport: _openReportIncident,
-                          )
-                        : IncidentNoResultsState(
-                            searchQuery: _searchQuery,
-                            onClear: _clearSearch,
-                          ))
-                  : RefreshIndicator(
-                      onRefresh: () =>
-                          libraryProvider.loadIncidents(status: _status),
-                      child: IcueAdaptiveList<LibraryIncident>(
-                        items: filteredIncidents,
-                        onTap: _open,
-                        columns: [
-                          IcueAdaptiveColumn(
-                            label: 'Copy',
-                            flex: 2,
-                            cell: (context, incident) => Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.qr_code_2_rounded,
-                                  size: 16,
-                                  color: Colors.grey,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  incident.barcode,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          IcueAdaptiveColumn(
-                            label: 'Member',
-                            flex: 3,
-                            cell: (context, incident) {
-                              final member = incident.memberLabel;
-                              if (member == null) {
-                                return const Text(
-                                  'In stock',
-                                  style: TextStyle(color: Colors.grey),
-                                );
-                              }
-                              return Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    incident.memberType == 'teacher'
-                                        ? Icons.person_outline_rounded
-                                        : Icons.school_outlined,
-                                    size: 16,
-                                    color: Colors.grey,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Flexible(
-                                    child: Text(
-                                      member,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              );
-                            },
-                          ),
-                          IcueAdaptiveColumn.text(
-                            'Incident #',
-                            (incident) => incident.incidentNumber,
-                          ),
-                          IcueAdaptiveColumn(
-                            label: 'Type',
-                            flex: 2,
-                            cell: (context, incident) => Text(
-                              '${humanizeStatus(incident.type)}'
-                              '${incident.severity != null ? ' (${humanizeStatus(incident.severity!)})' : ''}',
-                            ),
-                          ),
-                          IcueAdaptiveColumn.text(
-                            'Reported',
-                            (incident) => incident.reportedDate.toDisplayDay(),
-                          ),
-                          IcueAdaptiveColumn(
-                            label: 'Charge',
-                            cell: (context, incident) => Text(
-                              incident.charge > 0
-                                  ? incident.charge.toRupees()
-                                  : '—',
-                              style: TextStyle(
-                                color: incident.charge > 0
-                                    ? theme.colorScheme.error
-                                    : null,
-                                fontWeight: incident.charge > 0
-                                    ? FontWeight.w600
-                                    : FontWeight.normal,
-                              ),
-                            ),
-                          ),
-                          IcueAdaptiveColumn(
-                            label: 'Status',
-                            cell: (context, incident) =>
-                                _statusPill(context, incident),
-                          ),
-                        ],
-                        cardBuilder: (context, incident) => IncidentCard(
-                          incident: incident,
-                          onTap: () => _open(incident),
-                        ),
-                        footer: libraryProvider.hasMoreIncidents
-                            ? Center(
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 8,
-                                  ),
-                                  child: IcueButton(
-                                    label: 'Load more',
-                                    onPressed: libraryProvider.incidentsLoading
-                                        ? null
-                                        : () => libraryProvider.loadIncidents(
-                                            more: true,
-                                          ),
-                                    variant: IcueButtonVariant.ghost,
-                                  ),
-                                ),
-                              )
-                            : null,
-                      ),
-                    ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

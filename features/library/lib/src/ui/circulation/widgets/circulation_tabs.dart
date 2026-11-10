@@ -4,7 +4,6 @@ import 'package:school_library/src/ui/routing/library_tab_bar.dart';
 
 enum CirculationTab {
   loans('Loans', LibraryRoutes.libraryCirculation),
-  reservations('Reservations', LibraryRoutes.libraryReservations),
   fines('Fines', LibraryRoutes.libraryFines),
   incidents('Lost & damaged', LibraryRoutes.libraryIncidents);
 
@@ -14,7 +13,7 @@ enum CirculationTab {
   final String path;
 }
 
-/// Persistent tabs inside the circulation app bar across loans, reservations, fines, and incidents.
+/// Persistent tabs inside the circulation app bar across loans, fines, and incidents.
 class CirculationTabBar extends LibraryTabBar {
   CirculationTabBar({required CirculationTab activeTab, super.key})
     : super(

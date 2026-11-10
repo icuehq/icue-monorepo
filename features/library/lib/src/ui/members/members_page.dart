@@ -6,8 +6,8 @@ import 'package:school_library/src/ui/members/widgets/member_card.dart';
 import 'package:school_library/src/ui/members/widgets/member_empty_states.dart';
 import 'package:school_library/src/ui/members/widgets/members_table.dart';
 
-/// People who have borrowed or reserved (FRS 11.7). Nobody is enrolled here: the ERP is searched at
-/// the desk, and a person appears on this list the first time they borrow or reserve.
+/// People who have borrowed (FRS 11.7). Nobody is enrolled here: the ERP is searched at
+/// the desk, and a person appears on this list the first time they borrow.
 class MembersPage extends StatefulWidget {
   const MembersPage({super.key});
 

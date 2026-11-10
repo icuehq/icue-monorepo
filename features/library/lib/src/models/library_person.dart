@@ -1,4 +1,4 @@
-/// A student or teacher the desk found in the ERP (Node), about to borrow or reserve.
+/// A student or teacher the desk found in the ERP (Node), about to borrow.
 class LibraryPerson {
   const LibraryPerson({
     required this.memberType,
@@ -18,7 +18,7 @@ class LibraryPerson {
 
   bool get isStudent => memberType == 'student';
 
-  /// What the issue and reserve callables take as `person`.
+  /// What the issue callable take as `person`.
   Map<String, Object?> toPayload() => {
     'memberType': memberType,
     'personErpId': personErpId,

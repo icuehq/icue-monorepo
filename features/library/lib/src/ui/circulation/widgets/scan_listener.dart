@@ -16,6 +16,10 @@ class LibraryScanListener extends StatefulWidget {
 
   final Widget child;
 
+  /// A screen that consumes scans itself (Issue Books) sets this while open;
+  /// scans then go to it instead of the book popup.
+  static ValueChanged<String>? scanOverride;
+
   @override
   State<LibraryScanListener> createState() => _LibraryScanListenerState();
 }
@@ -64,6 +68,11 @@ class _LibraryScanListenerState extends State<LibraryScanListener> {
   }
 
   Future<void> _handle(String code) async {
+    final override = LibraryScanListener.scanOverride;
+    if (override != null) {
+      override(code);
+      return;
+    }
     _handling = true;
     try {
       final libraryProvider = context.read<LibraryProvider>();

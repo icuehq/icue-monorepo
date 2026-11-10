@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/catalogue/widgets/add_copies_form.dart';
-import 'package:school_library/src/ui/catalogue/widgets/copy_card.dart';
 import 'package:school_library/src/ui/catalogue/widgets/copy_dialog.dart';
 import 'package:school_library/src/ui/catalogue/widgets/copy_labels.dart';
 
@@ -40,132 +40,92 @@ class _BookCopiesSectionState extends State<BookCopiesSection> {
   @override
   Widget build(BuildContext context) {
     final libraryProvider = context.watch<LibraryProvider>();
-    final theme = Theme.of(context);
-    final copies = _copies;
-    final available = copies
-        ?.where((copy) => copy.status == 'available')
-        .length;
+    final copies = _copies ?? const <LibraryCopy>[];
+    String libraryName(LibraryCopy copy) =>
+        libraryProvider.library(copy.libraryId)?.name ?? copy.libraryId;
 
-    return Card(
-      elevation: 0,
-      margin: const EdgeInsets.only(top: 16, bottom: 24),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: BorderSide(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
-        ),
-      ),
-      color: theme.colorScheme.surface,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.collections_bookmark_outlined,
-                  size: 20,
-                  color: theme.colorScheme.primary,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Physical Copies',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                if (copies != null) ...[
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primaryContainer.withValues(
-                        alpha: 0.5,
-                      ),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      '${copies.length} copies · $available available',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-                const Spacer(),
-                if (copies != null && copies.isNotEmpty)
-                  IconButton(
-                    tooltip: 'Print barcode labels',
-                    icon: const Icon(Icons.print_outlined),
-                    onPressed: () => shareCopyLabels(widget.book.title, [
-                      for (final copy in copies)
-                        (barcode: copy.barcode, shelf: copy.shelf),
-                    ]),
-                  ),
-                IconButton(
-                  tooltip: 'Add copies',
-                  icon: const Icon(Icons.add_rounded),
-                  onPressed: () async {
-                    await AddCopiesForm.show(context, widget.book);
-                    await _load();
-                  },
-                ),
-              ],
+    return Padding(
+      padding: const EdgeInsets.only(top: 16, bottom: 24),
+      // Bounded height: rows scroll under the header and the footer stays at the bottom.
+      child: SizedBox(
+        height: 520,
+        child: IcueClientTable<LibraryCopy>(
+          title: 'Physical copies',
+          items: copies,
+          rowKey: (copy) => copy.id,
+          rowLabel: (copy) => copy.barcode,
+          searchText: (copy) =>
+              '${copy.barcode} ${libraryName(copy)} ${copy.shelf ?? ''}',
+          searchHint: 'Search barcode, library, or shelf...',
+          status: IcueTableStatus.of(
+            failed: _error != null,
+            loading: _copies == null && _error == null,
+          ),
+          errorMessage: _error,
+          onRetry: _load,
+          columns: [
+            IcueTableColumn<LibraryCopy>(
+              id: 'barcode',
+              label: 'Barcode',
+              sortable: true,
+              comparator: (copy) => copy.barcode,
+              cellBuilder: (context, copy) => Text(copy.barcode),
             ),
-            const SizedBox(height: 12),
-            if (_error != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Text(
-                  _error!,
-                  style: TextStyle(color: theme.colorScheme.error),
-                ),
-              )
-            else if (copies == null)
-              const Padding(
-                padding: EdgeInsets.all(24),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else if (copies.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 24),
-                child: Center(
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.inbox_outlined,
-                        size: 36,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'No physical copies registered yet',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              )
-            else
-              for (final copy in copies)
-                CopyCard(
-                  copy: copy,
-                  libraryName:
-                      libraryProvider.library(copy.libraryId)?.name ??
-                      copy.libraryId,
-                  onTap: () async {
-                    await CopyDialog.show(context, copy, widget.book.title);
-                    await _load();
-                  },
-                ),
+            IcueTableColumn<LibraryCopy>(
+              id: 'library',
+              label: 'Library',
+              cellBuilder: (context, copy) => Text(libraryName(copy)),
+            ),
+            IcueTableColumn<LibraryCopy>(
+              id: 'shelf',
+              label: 'Shelf',
+              cellBuilder: (context, copy) => Text(copy.shelf ?? '—'),
+            ),
+            IcueTableColumn<LibraryCopy>(
+              id: 'condition',
+              label: 'Condition',
+              cellBuilder: (context, copy) =>
+                  Text(humanizeStatus(copy.condition)),
+            ),
+            IcueTableColumn<LibraryCopy>(
+              id: 'status',
+              label: 'Status',
+              sortable: true,
+              comparator: (copy) => copy.status,
+              cellBuilder: (context, copy) => Text(humanizeStatus(copy.status)),
+            ),
+            IcueTableColumn<LibraryCopy>(
+              id: 'price',
+              label: 'Price',
+              alignment: Alignment.centerRight,
+              sortable: true,
+              comparator: (copy) => copy.price,
+              cellBuilder: (context, copy) => Text(copy.price.toRupees()),
+            ),
           ],
+          onRowTap: (copy) async {
+            await CopyDialog.show(context, copy, widget.book.title);
+            await _load();
+          },
+          primaryAction: IcueTableAction(
+            label: 'Copies',
+            icon: Icons.add_rounded,
+            onPressed: () async {
+              await AddCopiesForm.show(context, widget.book);
+              await _load();
+            },
+          ),
+          secondaryAction: copies.isEmpty
+              ? null
+              : IcueTableAction(
+                  label: 'Print labels',
+                  icon: Icons.print_outlined,
+                  onPressed: () => shareCopyLabels(widget.book.title, [
+                    for (final copy in copies)
+                      (barcode: copy.barcode, shelf: copy.shelf),
+                  ]),
+                ),
+          emptyTitle: 'No physical copies registered yet',
         ),
       ),
     );

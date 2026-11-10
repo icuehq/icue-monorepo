@@ -6,6 +6,7 @@ import 'package:school_library/src/ui/circulation/widgets/circulation_tabs.dart'
 import 'package:school_library/src/ui/fines/widgets/fine_card.dart';
 import 'package:school_library/src/ui/fines/widgets/fine_dialog.dart';
 import 'package:school_library/src/ui/fines/widgets/fine_empty_states.dart';
+import 'package:school_library/src/ui/fines/widgets/fines_table.dart';
 
 /// Manage overdue fines, damage penalties, and lost book charges (FRS 11.13).
 class FinesPage extends StatefulWidget {
@@ -231,176 +232,225 @@ class _FinesPageState extends State<FinesPage> {
         ],
         bottom: CirculationTabBar(activeTab: CirculationTab.fines),
       ),
-      body: IcueCenteredBody(
-        child: Column(
-          children: [
-            _summaryBar(context, allFines),
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: SegmentedButton<String>(
-                        segments: const [
-                          ButtonSegment(
-                            value: 'outstanding',
-                            label: Text('Outstanding'),
+      body: context.isWide
+          ? Column(
+              children: [
+                _summaryBar(context, allFines),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: FinesTable(
+                            fines: allFines,
+                            loading:
+                                libraryProvider.finesLoading &&
+                                allFines.isEmpty,
+                            status: _status,
+                            onStatusChanged: _onStatusChanged,
+                            onOpen: _open,
                           ),
-                          ButtonSegment(
-                            value: 'partially_paid',
-                            label: Text('Partially paid'),
+                        ),
+                        if (libraryProvider.hasMoreFines)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: IcueButton(
+                              label: 'Load more',
+                              onPressed: libraryProvider.finesLoading
+                                  ? null
+                                  : () => libraryProvider.loadFines(more: true),
+                              variant: IcueButtonVariant.ghost,
+                            ),
                           ),
-                          ButtonSegment(value: 'paid', label: Text('Paid')),
-                          ButtonSegment(value: 'waived', label: Text('Waived')),
-                          ButtonSegment(value: 'all', label: Text('All')),
-                        ],
-                        selected: {_status},
-                        onSelectionChanged: (values) =>
-                            _onStatusChanged(values.first),
-                      ),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  SizedBox(
-                    width: 220,
-                    child: TextField(
-                      controller: _searchController,
-                      decoration: InputDecoration(
-                        hintText: 'Search member, fine #…',
-                        prefixIcon: const Icon(Icons.search, size: 18),
-                        isDense: true,
-                        filled: true,
-                        fillColor: theme.colorScheme.surfaceContainerHighest
-                            .withValues(alpha: 0.35),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 8,
+                ),
+              ],
+            )
+          : IcueCenteredBody(
+              child: Column(
+                children: [
+                  _summaryBar(context, allFines),
+                  Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: SegmentedButton<String>(
+                              segments: const [
+                                ButtonSegment(
+                                  value: 'outstanding',
+                                  label: Text('Outstanding'),
+                                ),
+                                ButtonSegment(
+                                  value: 'partially_paid',
+                                  label: Text('Partially paid'),
+                                ),
+                                ButtonSegment(
+                                  value: 'paid',
+                                  label: Text('Paid'),
+                                ),
+                                ButtonSegment(
+                                  value: 'waived',
+                                  label: Text('Waived'),
+                                ),
+                                ButtonSegment(value: 'all', label: Text('All')),
+                              ],
+                              selected: {_status},
+                              onSelectionChanged: (values) =>
+                                  _onStatusChanged(values.first),
+                            ),
+                          ),
                         ),
-                        suffixIcon: _searchQuery.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.clear, size: 16),
-                                onPressed: _clearSearch,
-                              )
-                            : null,
-                      ),
-                      onChanged: (value) =>
-                          setState(() => _searchQuery = value.trim()),
+                        const SizedBox(width: 12),
+                        SizedBox(
+                          width: 220,
+                          child: TextField(
+                            controller: _searchController,
+                            decoration: InputDecoration(
+                              hintText: 'Search member, fine #…',
+                              prefixIcon: const Icon(Icons.search, size: 18),
+                              isDense: true,
+                              filled: true,
+                              fillColor: theme
+                                  .colorScheme
+                                  .surfaceContainerHighest
+                                  .withValues(alpha: 0.35),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 8,
+                              ),
+                              suffixIcon: _searchQuery.isNotEmpty
+                                  ? IconButton(
+                                      icon: const Icon(Icons.clear, size: 16),
+                                      onPressed: _clearSearch,
+                                    )
+                                  : null,
+                            ),
+                            onChanged: (value) =>
+                                setState(() => _searchQuery = value.trim()),
+                          ),
+                        ),
+                      ],
                     ),
+                  ),
+                  Expanded(
+                    child: libraryProvider.finesLoading && allFines.isEmpty
+                        ? const Center(child: CircularProgressIndicator())
+                        : filteredFines.isEmpty
+                        ? (allFines.isEmpty
+                              ? FineInitialEmptyState(status: _status)
+                              : FineNoResultsState(
+                                  searchQuery: _searchQuery,
+                                  onClear: _clearSearch,
+                                ))
+                        : RefreshIndicator(
+                            onRefresh: () =>
+                                libraryProvider.loadFines(status: _status),
+                            child: IcueAdaptiveList<LibraryFine>(
+                              items: filteredFines,
+                              onTap: _open,
+                              columns: [
+                                IcueAdaptiveColumn(
+                                  label: 'Fine #',
+                                  flex: 2,
+                                  cell: (context, fine) => Text(
+                                    fine.fineNumber,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                IcueAdaptiveColumn(
+                                  label: 'Member',
+                                  flex: 3,
+                                  cell: (context, fine) => Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        fine.memberType == 'teacher'
+                                            ? Icons.person_outline_rounded
+                                            : Icons.school_outlined,
+                                        size: 16,
+                                        color: Colors.grey,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Flexible(
+                                        child: Text(
+                                          fine.memberLabel,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                IcueAdaptiveColumn(
+                                  label: 'Type',
+                                  flex: 2,
+                                  cell: (context, fine) =>
+                                      _typePill(context, fine.type),
+                                ),
+                                IcueAdaptiveColumn.text(
+                                  'Total',
+                                  (fine) => fine.amount.toRupees(),
+                                ),
+                                IcueAdaptiveColumn.text(
+                                  'Paid',
+                                  (fine) => fine.paid.toRupees(),
+                                ),
+                                IcueAdaptiveColumn(
+                                  label: 'Due',
+                                  cell: (context, fine) => Text(
+                                    fine.outstanding.toRupees(),
+                                    style: TextStyle(
+                                      color: fine.outstanding > 0
+                                          ? theme.colorScheme.error
+                                          : null,
+                                      fontWeight: fine.outstanding > 0
+                                          ? FontWeight.w600
+                                          : FontWeight.normal,
+                                    ),
+                                  ),
+                                ),
+                                IcueAdaptiveColumn(
+                                  label: 'Status',
+                                  cell: (context, fine) =>
+                                      _statusPill(context, fine),
+                                ),
+                              ],
+                              cardBuilder: (context, fine) => FineCard(
+                                fine: fine,
+                                onTap: () => _open(fine),
+                              ),
+                              footer: libraryProvider.hasMoreFines
+                                  ? Center(
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 8,
+                                        ),
+                                        child: IcueButton(
+                                          label: 'Load more',
+                                          onPressed:
+                                              libraryProvider.finesLoading
+                                              ? null
+                                              : () => libraryProvider.loadFines(
+                                                  more: true,
+                                                ),
+                                          variant: IcueButtonVariant.ghost,
+                                        ),
+                                      ),
+                                    )
+                                  : null,
+                            ),
+                          ),
                   ),
                 ],
               ),
             ),
-            Expanded(
-              child: libraryProvider.finesLoading && allFines.isEmpty
-                  ? const Center(child: CircularProgressIndicator())
-                  : filteredFines.isEmpty
-                  ? (allFines.isEmpty
-                        ? FineInitialEmptyState(status: _status)
-                        : FineNoResultsState(
-                            searchQuery: _searchQuery,
-                            onClear: _clearSearch,
-                          ))
-                  : RefreshIndicator(
-                      onRefresh: () =>
-                          libraryProvider.loadFines(status: _status),
-                      child: IcueAdaptiveList<LibraryFine>(
-                        items: filteredFines,
-                        onTap: _open,
-                        columns: [
-                          IcueAdaptiveColumn(
-                            label: 'Fine #',
-                            flex: 2,
-                            cell: (context, fine) => Text(
-                              fine.fineNumber,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                          IcueAdaptiveColumn(
-                            label: 'Member',
-                            flex: 3,
-                            cell: (context, fine) => Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  fine.memberType == 'teacher'
-                                      ? Icons.person_outline_rounded
-                                      : Icons.school_outlined,
-                                  size: 16,
-                                  color: Colors.grey,
-                                ),
-                                const SizedBox(width: 6),
-                                Flexible(
-                                  child: Text(
-                                    fine.memberLabel,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          IcueAdaptiveColumn(
-                            label: 'Type',
-                            flex: 2,
-                            cell: (context, fine) =>
-                                _typePill(context, fine.type),
-                          ),
-                          IcueAdaptiveColumn.text(
-                            'Total',
-                            (fine) => fine.amount.toRupees(),
-                          ),
-                          IcueAdaptiveColumn.text(
-                            'Paid',
-                            (fine) => fine.paid.toRupees(),
-                          ),
-                          IcueAdaptiveColumn(
-                            label: 'Due',
-                            cell: (context, fine) => Text(
-                              fine.outstanding.toRupees(),
-                              style: TextStyle(
-                                color: fine.outstanding > 0
-                                    ? theme.colorScheme.error
-                                    : null,
-                                fontWeight: fine.outstanding > 0
-                                    ? FontWeight.w600
-                                    : FontWeight.normal,
-                              ),
-                            ),
-                          ),
-                          IcueAdaptiveColumn(
-                            label: 'Status',
-                            cell: (context, fine) => _statusPill(context, fine),
-                          ),
-                        ],
-                        cardBuilder: (context, fine) =>
-                            FineCard(fine: fine, onTap: () => _open(fine)),
-                        footer: libraryProvider.hasMoreFines
-                            ? Center(
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 8,
-                                  ),
-                                  child: IcueButton(
-                                    label: 'Load more',
-                                    onPressed: libraryProvider.finesLoading
-                                        ? null
-                                        : () => libraryProvider.loadFines(
-                                            more: true,
-                                          ),
-                                    variant: IcueButtonVariant.ghost,
-                                  ),
-                                ),
-                              )
-                            : null,
-                      ),
-                    ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

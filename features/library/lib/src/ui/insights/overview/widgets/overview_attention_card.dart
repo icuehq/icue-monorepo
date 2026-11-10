@@ -39,12 +39,6 @@ class OverviewAttentionCard extends StatelessWidget {
           Colors.amber.shade800,
         ),
         (
-          'reserved',
-          count('reserved', 'book on hold', 'books on hold'),
-          Icons.bookmark_added_outlined,
-          theme.colorScheme.primary,
-        ),
-        (
           'damaged',
           count('damaged', 'damaged book', 'damaged books'),
           Icons.report_problem_outlined,

@@ -36,8 +36,7 @@ class BookScanDialog extends StatelessWidget {
     final loan = this.loan;
     final onLoan = loan != null;
     final overdue = loan?.overdueOn(todayIST()) ?? 0;
-    final canIssue =
-        !onLoan && (copy.status == 'available' || copy.status == 'reserved');
+    final canIssue = !onLoan && copy.status == 'available';
     final statusLabel = onLoan
         ? (overdue > 0
               ? 'Overdue · $overdue day${overdue == 1 ? '' : 's'}'

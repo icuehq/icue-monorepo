@@ -17,7 +17,6 @@ class LibraryCopy {
     required this.price,
     this.acquiredDate,
     this.remarks,
-    this.heldReservationId,
   });
 
   factory LibraryCopy.fromMap(String id, Map<String, dynamic> data) =>
@@ -33,7 +32,6 @@ class LibraryCopy {
         price: readDouble(data['price']),
         acquiredDate: readDayOrNull(data['acquiredDate']),
         remarks: data['remarks'] as String?,
-        heldReservationId: data['heldReservationId'] as String?,
       );
 
   final String id;
@@ -47,5 +45,4 @@ class LibraryCopy {
   final double price;
   final String? acquiredDate;
   final String? remarks;
-  final String? heldReservationId;
 }

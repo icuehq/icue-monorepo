@@ -31,9 +31,6 @@ class LibraryRoutes {
   static const String libraryIssue = '/layout.Library/circulation/issue';
   static const String libraryIssueName = 'libraryIssue';
 
-  static const String libraryReservations = '/layout.Library/reservations';
-  static const String libraryReservationsName = 'libraryReservations';
-
   static const String libraryFines = '/layout.Library/fines';
   static const String libraryFinesName = 'libraryFines';
 

@@ -8,7 +8,7 @@ class MemberInitialEmptyState extends StatelessWidget {
   Widget build(BuildContext context) => const IcueEmptyState(
     icon: Icons.groups_outlined,
     title: 'No borrowers yet',
-    message: 'Members are enrolled automatically when they first borrow or reserve a book from the circulation desk.',
+    message: 'Members are enrolled automatically when they first borrow a book from the circulation desk.',
   );
 }
 

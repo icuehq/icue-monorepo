@@ -5,6 +5,8 @@ import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/circulation/widgets/issue_books_card.dart';
 import 'package:school_library/src/ui/circulation/widgets/issue_member_card.dart';
 import 'package:school_library/src/ui/circulation/widgets/issue_scan_item_card.dart';
+import 'package:school_library/src/ui/circulation/widgets/issue_step_card.dart';
+import 'package:school_library/src/ui/circulation/widgets/scan_listener.dart';
 import 'package:school_library/src/ui/shared/person_picker.dart';
 
 /// Issue books at the circulation desk: select borrower and scan books (FRS 11.9).
@@ -32,10 +34,17 @@ class _IssueBooksPageState extends State<IssueBooksPage> {
   @override
   void initState() {
     super.initState();
+    LibraryScanListener.scanOverride = _scan;
     final copy = widget.copy;
     if (copy != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _enqueue(copy));
     }
+  }
+
+  @override
+  void dispose() {
+    LibraryScanListener.scanOverride = null;
+    super.dispose();
   }
 
   Future<void> _found(LibraryPerson? person) async {
@@ -72,7 +81,11 @@ class _IssueBooksPageState extends State<IssueBooksPage> {
   /// Looks the barcode up and queues it; nothing is issued until the button.
   Future<void> _scan(String rawCode) async {
     final code = rawCode.trim();
-    if (code.isEmpty || _person == null || _busy) return;
+    if (code.isEmpty || _busy) return;
+    if (_person == null) {
+      _notify('Select a borrower before scanning books');
+      return;
+    }
 
     final libraryProvider = context.read<LibraryProvider>();
     setState(() => _busy = true);
@@ -180,103 +193,38 @@ class _IssueBooksPageState extends State<IssueBooksPage> {
   int get _successfulCount => _records.where((record) => record.success).length;
 
   Widget _buildBorrowerCard(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final person = _person;
 
-    return Card(
-      elevation: 0,
-      margin: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: colorScheme.outlineVariant),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: colorScheme.primaryContainer,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.person_rounded,
-                    size: 20,
-                    color: colorScheme.onPrimaryContainer,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Borrower',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        person == null
-                            ? 'Search and select member'
-                            : 'Selected borrower profile',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (person != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.green.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.check_circle_rounded,
-                          size: 14,
-                          color: Colors.green.shade800,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Ready',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.green.shade800,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
-            const Divider(height: 24),
-            if (person == null)
-              PersonPicker(autofocus: true, onChanged: _found)
-            else
-              IssueMemberCard(
-                person: person,
-                member: _member,
-                onChange: _changePerson,
-                disabled: _busy,
+    return IssueStepCard(
+      step: 1,
+      title: 'Borrower',
+      subtitle: person == null
+          ? 'Search and select member'
+          : 'Selected borrower profile',
+      trailing: person == null
+          ? null
+          : Chip(
+              avatar: Icon(
+                Icons.check_circle_rounded,
+                size: 16,
+                color: Colors.green.shade800,
               ),
-          ],
-        ),
-      ),
+              label: const Text('Ready'),
+              visualDensity: VisualDensity.compact,
+              backgroundColor: Colors.green.withValues(alpha: 0.15),
+              side: BorderSide.none,
+            ),
+      children: [
+        if (person == null)
+          PersonPicker(autofocus: true, onChanged: _found)
+        else
+          IssueMemberCard(
+            person: person,
+            member: _member,
+            onChange: _changePerson,
+            disabled: _busy,
+          ),
+      ],
     );
   }
 
@@ -303,42 +251,21 @@ class _IssueBooksPageState extends State<IssueBooksPage> {
             ),
         ],
       ),
-      body: IcueCenteredBody(
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.symmetric(
-              horizontal: isWide ? 24 : 16,
-              vertical: 16,
-            ),
-            child: isWide
-                ? Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(flex: 5, child: _buildBorrowerCard(context)),
-                      const SizedBox(width: 24),
-                      Expanded(
-                        flex: 7,
-                        child: IssueBooksCard(
-                          person: person,
-                          queue: _queue,
-                          records: _records,
-                          successfulCount: _successfulCount,
-                          busy: _busy,
-                          onScan: _scan,
-                          onRemoveQueued: (record) =>
-                              setState(() => _queue.remove(record)),
-                          onIssue: _issueQueued,
-                          onDone: () => Navigator.of(context).pop(),
-                        ),
-                      ),
-                    ],
-                  )
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _buildBorrowerCard(context),
-                      const SizedBox(height: 16),
-                      IssueBooksCard(
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.symmetric(
+            horizontal: isWide ? 24 : 16,
+            vertical: 16,
+          ),
+          child: isWide
+              ? Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(flex: 5, child: _buildBorrowerCard(context)),
+                    const SizedBox(width: 24),
+                    Expanded(
+                      flex: 7,
+                      child: IssueBooksCard(
                         person: person,
                         queue: _queue,
                         records: _records,
@@ -350,9 +277,28 @@ class _IssueBooksPageState extends State<IssueBooksPage> {
                         onIssue: _issueQueued,
                         onDone: () => Navigator.of(context).pop(),
                       ),
-                    ],
-                  ),
-          ),
+                    ),
+                  ],
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildBorrowerCard(context),
+                    const SizedBox(height: 16),
+                    IssueBooksCard(
+                      person: person,
+                      queue: _queue,
+                      records: _records,
+                      successfulCount: _successfulCount,
+                      busy: _busy,
+                      onScan: _scan,
+                      onRemoveQueued: (record) =>
+                          setState(() => _queue.remove(record)),
+                      onIssue: _issueQueued,
+                      onDone: () => Navigator.of(context).pop(),
+                    ),
+                  ],
+                ),
         ),
       ),
     );

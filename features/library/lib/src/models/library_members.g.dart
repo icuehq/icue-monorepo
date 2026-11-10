@@ -52,7 +52,7 @@ class LibraryPolicy {
   final bool active;
 }
 
-/// A student or teacher who has borrowed or reserved (FRS 11.7). Created on first use from the ERP details; the ERP stays the source of truth.
+/// A student or teacher who has borrowed (FRS 11.7). Created on first use from the ERP details; the ERP stays the source of truth.
 class LibraryMember {
   const LibraryMember({
     required this.id,

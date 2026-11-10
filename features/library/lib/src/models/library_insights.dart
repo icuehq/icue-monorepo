@@ -131,7 +131,6 @@ const libraryDashboardStats = <(String, String)>[
   ('available', 'Available copies'),
   ('issued', 'Issued copies'),
   ('overdue', 'Overdue books'),
-  ('reserved', 'Reserved books'),
   ('lost', 'Lost books'),
   ('damaged', 'Damaged books'),
   ('students', 'Student borrowers'),

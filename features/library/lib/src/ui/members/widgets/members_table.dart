@@ -52,8 +52,8 @@ class MembersTable extends StatelessWidget {
       ],
       emptyTitle: 'No borrowers yet',
       emptyMessage:
-          'Members are enrolled automatically when they first borrow or '
-          'reserve a book from the circulation desk.',
+          'Members are enrolled automatically when they first borrow '
+          'a book from the circulation desk.',
       rowActions: (member) => [
         IcueTableRowAction(
           label: member.blocked ? 'Unblock' : 'Block',

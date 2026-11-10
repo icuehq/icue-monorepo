@@ -5,7 +5,7 @@ import { serverTimestamp } from '../shared/firestore';
 
 const MEMBER_TYPES = ['student', 'teacher'] as const;
 
-/** Why [member] cannot borrow or reserve, or null when they can. A person never seen before can. */
+/** Why [member] cannot borrow, or null when they can. A person never seen before can. */
 export function ineligibleReason(member: { blocked?: boolean } | undefined): string | null {
   return member?.blocked ? 'Member is blocked' : null;
 }
@@ -14,7 +14,7 @@ export function ineligibleReason(member: { blocked?: boolean } | undefined): str
  * The active policy of a person type in a library that covers a book of [categoryId]: one naming the
  * category, else one naming its parent, else the catch-all (no categories); policies of the person type
  * win over the library's default for everyone ('all'). Saving refuses overlaps, so each level has at
- * most one. Null means the member cannot borrow or reserve this book.
+ * most one. Null means the member cannot borrow this book.
  */
 export async function applicablePolicy(
   context: CallableContext,

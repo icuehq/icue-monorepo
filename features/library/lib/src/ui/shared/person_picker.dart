@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/shared/class_student_chooser.dart';
@@ -81,18 +82,45 @@ class _PersonPickerState extends State<PersonPicker> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        SegmentedButton<String>(
-          segments: const [
-            ButtonSegment(value: 'student', label: Text('Student')),
-            ButtonSegment(value: 'teacher', label: Text('Staff')),
+        Row(
+          children: [
+            Expanded(
+              child: IcueDropdown<String>(
+                label: 'Borrower type',
+                value: _type,
+                items: const [
+                  DropdownMenuItem(value: 'student', child: Text('Student')),
+                  DropdownMenuItem(value: 'teacher', child: Text('Staff')),
+                ],
+                onChanged: (value) {
+                  if (value == null) return;
+                  setState(() => _type = value);
+                  _choose(null);
+                },
+              ),
+            ),
+            if (chosen == null && _type == 'student') ...[
+              const SizedBox(width: 12),
+              Expanded(
+                child: IcueDropdown<String>(
+                  label: 'Search by',
+                  value: _mode,
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'number',
+                      child: Text('Admission no.'),
+                    ),
+                    DropdownMenuItem(value: 'class', child: Text('Class')),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) setState(() => _mode = value);
+                  },
+                ),
+              ),
+            ],
           ],
-          selected: {_type},
-          onSelectionChanged: (values) {
-            setState(() => _type = values.first);
-            _choose(null);
-          },
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         if (chosen != null)
           Card(
             margin: EdgeInsets.zero,
@@ -113,18 +141,7 @@ class _PersonPickerState extends State<PersonPicker> {
               ),
             ),
           )
-        else if (_type == 'student')
-          SegmentedButton<String>(
-            segments: const [
-              ButtonSegment(value: 'number', label: Text('Admission no.')),
-              ButtonSegment(value: 'class', label: Text('Class')),
-            ],
-            selected: {_mode},
-            onSelectionChanged: (values) =>
-                setState(() => _mode = values.first),
-          ),
-        if (chosen == null && _type == 'student') const SizedBox(height: 8),
-        if (chosen == null && _type == 'student' && _mode == 'class')
+        else if (chosen == null && _type == 'student' && _mode == 'class')
           ClassStudentChooser(onChosen: _choose)
         else if (chosen == null) ...[
           TextField(

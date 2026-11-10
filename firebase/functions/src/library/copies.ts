@@ -5,12 +5,11 @@ import { dayTimestamp, isoDate, todayIST } from '../shared/dates';
 import { serverTimestamp } from '../shared/firestore';
 import { nextNumber, nextSequence } from '../shared/keys';
 import { defineCallable, failed, id, missing, optionalText, usable } from '../shared/masters';
-import { holdDays, hold, nextWaiting, release } from './reservations';
 
 const text = z.string().trim().min(1).max(120);
 const CONDITIONS = ['good', 'fair', 'poor'] as const;
 
-/** Statuses a librarian may set by hand; issued / reserved / in_transit belong to circulation and transfers. */
+/** Statuses a librarian may set by hand; issued / in_transit belong to circulation and transfers. */
 const MANUAL = ['available', 'under_maintenance', 'damaged', 'lost', 'withdrawn'] as const;
 const TERMINAL = ['lost', 'withdrawn'];
 
@@ -100,7 +99,6 @@ export const copies = {
           status: 'available',
           remarks: i.remarks ?? null,
           activeLoanId: null,
-          heldReservationId: null,
           createdAt: serverTimestamp(),
           createdBy: context.uid,
           updatedAt: serverTimestamp(),
@@ -118,18 +116,13 @@ export const copies = {
         remarks: i.remarks ?? null,
         barcodes: ids,
       };
-      // New copies serve the waiting list first, in queue order.
-      const waiting = await nextWaiting(context, i.catalogueId, i.libraryId, i.quantity);
-      const days = waiting.length ? await holdDays(context) : 0;
-      for (const [index, snapshot] of waiting.entries())
-        await hold(context, snapshot, context.doc(`libraryCopies/${ids[index]}`), ids[index], days);
       context.set(book, { ...after, createdAt: serverTimestamp(), createdBy: context.uid });
       context.audit({ action: 'libraryBook.create', documentPath: book.path, after });
       return { id: book.id, number, barcodes: ids };
     },
   }),
 
-  /** Maintenance, damage, loss and withdrawal. Lost and withdrawn copies never become available again here (a lost copy that turns up is released by dismissing its incident). */
+  /** Maintenance, damage, loss and withdrawal. Lost and withdrawn copies never become available again here (a lost copy that turns up is put back by dismissing its incident). */
   copySetStatus: defineCallable({
     name: 'library.copy.setStatus',
     input: z.object({ id, status: z.enum(MANUAL), reason: z.string().trim().max(500).nullish() }),
@@ -140,8 +133,7 @@ export const copies = {
       if (copy.status === i.status) return { id: ref.id };
       if (i.status !== 'available' && i.status !== 'under_maintenance' && !i.reason)
         throw failed('A reason is required');
-      if (i.status === 'available') await release(context, ref, copy);
-      else context.update(ref, { status: i.status, updatedAt: serverTimestamp() });
+      context.update(ref, { status: i.status, updatedAt: serverTimestamp() });
       context.audit({
         action: 'libraryCopy.status',
         documentPath: ref.path,

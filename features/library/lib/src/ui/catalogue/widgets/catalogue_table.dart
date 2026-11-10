@@ -4,7 +4,6 @@ import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/catalogue/widgets/catalogue_filter_header.dart';
-import 'package:school_library/src/ui/reservations/widgets/reservation_dialog.dart';
 
 /// Wide-screen catalogue: books as an [IcueTable]. Search, category and class
 /// are server-side (the provider reloads); status filters the loaded books.
@@ -126,12 +125,6 @@ class CatalogueTable extends StatelessWidget {
         onPressed: addBook,
       ),
       rowActions: (book) => [
-        IcueTableRowAction(
-          label: 'Reserve',
-          icon: Icons.bookmark_add_outlined,
-          inline: true,
-          onPressed: (book) => ReservationDialog.show(context, book: book),
-        ),
         IcueTableRowAction(
           label: 'Edit',
           icon: Icons.edit_outlined,

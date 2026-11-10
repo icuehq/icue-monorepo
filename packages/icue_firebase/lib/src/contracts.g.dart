@@ -26,7 +26,6 @@ abstract final class Collections {
   static const libraryFines = 'libraryFines';
   static const libraryLoans = 'libraryLoans';
   static const libraryMembers = 'libraryMembers';
-  static const libraryReservations = 'libraryReservations';
 }
 
 /// Lifecycle of a purchase request; ordered quantities move it to partially_ordered / ordered.

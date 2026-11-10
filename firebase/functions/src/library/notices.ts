@@ -6,8 +6,7 @@ import { memberTo } from './notify';
 
 /**
  * Notices for circulation, which the client writes directly (`LoanWrites`): the member (a student's
- * parents, or the teacher) hears of an issue, a return, a fine, a lost or damaged book and a ready
- * reservation. Outbox keys are fixed per event, so a redelivered trigger, or a callable that already
+ * parents, or the teacher) hears of an issue, a return, a fine, a lost or damaged book. Outbox keys are fixed per event, so a redelivered trigger, or a callable that already
  * queued the same notice, never sends it twice.
  */
 const path = (collection: string) => `schools/{schoolId}/${collection}/{docId}`;
@@ -74,20 +73,5 @@ export const noticeIncidents = onDocumentCreated(path('libraryIncidents'), async
         : `${incident.barcode} was returned damaged.`
       : `${incident.barcode} was reported ${incident.type}.`,
     data: { incidentId: docId },
-  });
-});
-
-/** A returned copy held for the next waiting member; holds made by callables queue the same key. */
-export const noticeReservations = onDocumentWritten(path('libraryReservations'), async (event) => {
-  const before = event.data?.before.data();
-  const reservation = event.data?.after.data();
-  if (!reservation || reservation.status !== 'ready' || before?.status === 'ready') return;
-  const { schoolId, docId } = event.params;
-  await post(getFirestore(), schoolId, `library-reservation-ready__${docId}`, {
-    to: memberTo(reservation.memberType, reservation.personErpId),
-    category: 'library.reservation',
-    title: 'Reserved book is ready',
-    body: `${reservation.title}: collect it by ${timestampDay(reservation.holdUntil)}.`,
-    data: { reservationId: docId },
   });
 });

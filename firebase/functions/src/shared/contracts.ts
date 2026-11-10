@@ -28,7 +28,6 @@ export const Collections = {
   libraryFines: 'libraryFines',
   libraryLoans: 'libraryLoans',
   libraryMembers: 'libraryMembers',
-  libraryReservations: 'libraryReservations',
 } as const;
 
 /** Lifecycle of a purchase request; ordered quantities move it to partially_ordered / ordered. */

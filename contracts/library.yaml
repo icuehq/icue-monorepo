@@ -7,7 +7,6 @@ collections:
   - libraryFines
   - libraryLoans
   - libraryMembers
-  - libraryReservations
 
 enums:
   LoanStatus:
@@ -81,7 +80,6 @@ models:
         price: double
         acquiredDate: day?
         remarks: string?
-        heldReservationId: string?
   library_fines:
     LibraryFineWaiver:
       fields:
@@ -222,7 +220,7 @@ models:
         categoryIds: list<string>
         active: { type: bool, key: status, notEquals: inactive }
     LibraryMember:
-      doc: "A student or teacher who has borrowed or reserved (FRS 11.7). Created on first use from the ERP details; the ERP stays the source of truth."
+      doc: "A student or teacher who has borrowed (FRS 11.7). Created on first use from the ERP details; the ERP stays the source of truth."
       id: id
       fields:
         memberType: string
@@ -231,22 +229,3 @@ models:
         classId: int?
         activeLoans: int
         blocked: bool
-  library_reservations:
-    LibraryReservation:
-      doc: "A book reservation placed by a member (FRS 11.12)."
-      id: id
-      fields:
-        number: string
-        memberType: string
-        personErpId: int
-        memberName: string?
-        catalogueId: string
-        title: string
-        libraryId: string
-        campusId: int
-        status: string
-        heldBarcode: string?
-        holdUntil: day?
-        fulfilledLoanId: string?
-        fulfilledBarcode: string?
-        createdAt: timestamp?

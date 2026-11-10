@@ -28,9 +28,11 @@ class IssueMemberCard extends StatelessWidget {
       elevation: 0,
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: isBlocked ? colorScheme.error : colorScheme.outlineVariant,
+          color: isBlocked
+              ? colorScheme.error
+              : colorScheme.outlineVariant.withValues(alpha: 0.5),
         ),
       ),
       child: Padding(

@@ -350,11 +350,11 @@ service cloud.firestore {
           && onCampus(schoolId, request.resource.data.campusId)
           && request.resource.data.lastWrite.action == 'libraryCopy.move'));
     }
-    // Circulation moves a copy between shelf, hold, loan, damaged and lost (LoanWrites); nothing else changes.
+    // Circulation moves a copy between shelf, loan, damaged and lost (LoanWrites); nothing else changes.
     match /schools/{schoolId}/libraryCopies/{barcode} {
       allow update: if staff(schoolId) && onCampus(schoolId, resource.data.campusId)
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'activeLoanId', 'heldReservationId', 'updatedAt'])
-        && request.resource.data.status in ['available', 'reserved', 'issued', 'damaged', 'lost', 'withdrawn'];
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'activeLoanId', 'updatedAt'])
+        && request.resource.data.status in ['available', 'issued', 'damaged', 'lost', 'withdrawn'];
     }
     // The borrower record is created on first issue; circulation only touches what the desk shows and the counters.
     match /schools/{schoolId}/libraryMembers/{id} {
@@ -410,22 +410,6 @@ service cloud.firestore {
         && request.resource.data.issuedBy == request.auth.uid && request.resource.data.status == 'active';
       allow update: if staff(schoolId) && stamped() && onCampus(schoolId, resource.data.campusId) && resource.data.status == 'active'
         && request.resource.data.lastWrite.action in ['libraryLoan.return', 'libraryLoan.renew', 'libraryLoan.markLost'];
-    }
-
-    // Reservations (Lib-5): same readers as loans.
-    match /schools/{schoolId}/libraryReservations/{id} {
-      // A return holds the copy for the next waiting member; issuing a held copy fulfils the reservation.
-      allow create: if staff(schoolId) && stamped() && onCampus(schoolId, request.resource.data.campusId)
-        && request.resource.data.lastWrite.action == 'libraryReservation.create'
-        && request.resource.data.createdBy == request.auth.uid && request.resource.data.status == 'waiting';
-      allow update: if staff(schoolId) && stamped() && onCampus(schoolId, resource.data.campusId)
-        && resource.data.status in ['waiting', 'ready'] && request.resource.data.status == 'cancelled'
-        && request.resource.data.lastWrite.action == 'libraryReservation.cancel';
-      allow update: if staff(schoolId) && onCampus(schoolId, resource.data.campusId)
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
-          ['status', 'heldBarcode', 'holdUntil', 'readyAt', 'fulfilledLoanId', 'fulfilledBarcode', 'fulfilledAt'])
-        && request.resource.data.status in ['ready', 'fulfilled'];
-      allow read: if inSchool(schoolId) && ((staff(schoolId) && onCampus(schoolId, resource.data.campusId)) || own());
     }
 
     // Fines (Lib-6): staff on the campus, or the borrower / parent by ERP ID.

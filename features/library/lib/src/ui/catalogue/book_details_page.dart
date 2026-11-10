@@ -7,7 +7,6 @@ import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/catalogue/widgets/book_copies_section.dart';
 import 'package:school_library/src/ui/catalogue/widgets/book_details_cards.dart';
-import 'package:school_library/src/ui/reservations/widgets/reservation_dialog.dart';
 
 class BookDetailsPage extends StatefulWidget {
   const BookDetailsPage({super.key, required this.bookId});
@@ -63,11 +62,6 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
         title: const Text('Book Details'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.bookmark_add_outlined),
-            tooltip: 'Reserve book',
-            onPressed: () => ReservationDialog.show(context, book: book),
-          ),
-          IconButton(
             icon: const Icon(Icons.edit_outlined),
             tooltip: 'Edit book',
             onPressed: () async {
@@ -81,6 +75,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
         ],
       ),
       body: IcueCenteredBody(
+        maxWidth: double.infinity,
         child: ListView(
           padding: EdgeInsets.symmetric(
             horizontal: isWide ? 24 : 16,

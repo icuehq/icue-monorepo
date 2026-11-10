@@ -54,7 +54,6 @@ class _CopyDialogState extends State<CopyDialog> {
 
   String? _statusDisabledReason(String status) => switch (status) {
     'issued' => 'Cannot change status while issued to a member',
-    'reserved' => 'Cannot change status while held for reservation',
     'in_transit' => 'Cannot change status while in transit',
     'lost' => 'Lost status is final and cannot be modified',
     'withdrawn' => 'Withdrawn status is final and cannot be modified',
@@ -70,10 +69,6 @@ class _CopyDialogState extends State<CopyDialog> {
       'issued' => (
         theme.colorScheme.primary,
         theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
-      ),
-      'reserved' => (
-        Colors.orange.shade800,
-        Colors.orange.withValues(alpha: 0.12),
       ),
       'in_transit' => (
         Colors.amber.shade900,

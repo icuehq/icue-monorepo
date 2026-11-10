@@ -1011,7 +1011,7 @@ export const resolveUnavailable = defineCallable({
   },
 });
 
-/** The person a desk sends to issue or reserve. */
+/** The person a desk sends to issue. */
 export const person = (erpId: number, memberType = 'student') => ({
   memberType,
   personErpId: erpId,

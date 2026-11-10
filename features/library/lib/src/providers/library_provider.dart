@@ -10,7 +10,6 @@ import 'package:school_library/src/models/library_loans.dart';
 import 'package:school_library/src/models/library_masters.dart';
 import 'package:school_library/src/models/library_members.dart';
 import 'package:school_library/src/models/library_person.dart';
-import 'package:school_library/src/models/library_reservations.dart';
 import 'package:school_library/src/services/library_people_service.dart';
 import 'package:school_library/src/services/library_service.dart';
 import 'package:school_library/src/services/library_writes.dart';
@@ -47,11 +46,10 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   // Paged lists; each is a `_Paged` holder behind the getters below.
   final _members = _Paged<LibraryMember>();
   final _loans = _Paged<LibraryLoan>();
-  final _reservations = _Paged<LibraryReservation>();
   final _fines = _Paged<LibraryFine>();
   final _incidents = _Paged<LibraryIncident>();
 
-  /// Every member who has borrowed or reserved; the page filters by kind.
+  /// Every member who has borrowed; the page filters by kind.
   List<LibraryMember> get members => _members.items;
   bool get membersLoading => _members.loading;
   bool get hasMoreMembers => _members.hasMore;
@@ -60,11 +58,6 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   List<LibraryLoan> get loans => _loans.items;
   bool get loansLoading => _loans.loading;
   bool get hasMoreLoans => _loans.hasMore;
-
-  List<LibraryReservation> get reservations => _reservations.items;
-  bool get reservationsLoading => _reservations.loading;
-  bool get hasMoreReservations => _reservations.hasMore;
-  String reservationStatus = 'waiting';
 
   /// Fines by status: 'outstanding', 'partially_paid', 'paid', 'waived', or 'all'.
   List<LibraryFine> get fines => _fines.items;
@@ -248,16 +241,6 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     more: more,
   );
 
-  /// (Re)loads the first page of reservations, or the next one when [more] is true.
-  Future<void> loadReservations({bool more = false, String? status}) {
-    if (!more) reservationStatus = status ?? reservationStatus;
-    return _loadPage(
-      _reservations,
-      (after) => _service.reservations(reservationStatus, after: after),
-      more: more,
-    );
-  }
-
   /// (Re)loads the first page of fines, or the next one when [more] is true.
   Future<void> loadFines({bool more = false, String? status}) {
     if (!more) fineStatus = status ?? fineStatus;
@@ -435,18 +418,6 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
 
   Future<bool> renewLoan(String id) =>
       _write(() => _loanWrites.renew(id), reload: loadLoans);
-
-  Future<bool> createReservation(Map<String, Object?> data) => _write(
-    () => _loanWrites.reserve(
-      person: data['person']! as Map<String, Object?>,
-      catalogueId: data['catalogueId']! as String,
-      libraryId: data['libraryId']! as String,
-    ),
-    reload: loadReservations,
-  );
-
-  Future<bool> cancelReservation(String id) =>
-      _write(() => _loanWrites.cancelReservation(id), reload: loadReservations);
 
   Future<bool> waiveFine(Map<String, Object?> data) => _write(
     () => _loanWrites.waiveFine(

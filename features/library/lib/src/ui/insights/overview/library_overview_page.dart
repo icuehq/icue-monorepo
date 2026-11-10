@@ -23,11 +23,7 @@ const _sections = <(String, IconData, List<String>)>[
     Icons.collections_bookmark_outlined,
     ['titles', 'copies', 'available', 'lost', 'damaged'],
   ),
-  (
-    'Circulation',
-    Icons.sync_alt_rounded,
-    ['issued', 'pending', 'overdue', 'reserved'],
-  ),
+  ('Circulation', Icons.sync_alt_rounded, ['issued', 'pending', 'overdue']),
   (
     'Members and fines',
     Icons.badge_outlined,
@@ -44,7 +40,6 @@ const _icons = <String, IconData>{
   'issued': Icons.swap_horiz_rounded,
   'pending': Icons.assignment_return_outlined,
   'overdue': Icons.schedule_rounded,
-  'reserved': Icons.bookmark_added_outlined,
   'students': Icons.school_outlined,
   'teachers': Icons.person_outline_rounded,
   'fines': Icons.payments_outlined,
@@ -59,7 +54,6 @@ const _targets = <String, String>{
   'issued': LibraryRoutes.libraryCirculation,
   'pending': LibraryRoutes.libraryCirculation,
   'overdue': LibraryRoutes.libraryCirculation,
-  'reserved': LibraryRoutes.libraryReservations,
   'students': LibraryRoutes.libraryMembers,
   'teachers': LibraryRoutes.libraryMembers,
   'fines': LibraryRoutes.libraryFines,

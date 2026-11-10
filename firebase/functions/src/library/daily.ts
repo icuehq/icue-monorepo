@@ -44,22 +44,6 @@ export async function runDailyLibrary(schoolId: string, today = todayIST()): Pro
       data: { loanId: snapshot.id },
     });
   }
-
-  const holds = await collection('libraryReservations')
-    .where('status', '==', 'ready')
-    .where('holdUntil', '>=', dayTimestamp(today))
-    .where('holdUntil', '<=', dayTimestamp(addDays(today, 1)))
-    .get();
-  for (const snapshot of holds.docs) {
-    const reservation = snapshot.data();
-    await post(db, schoolId, `library-reservation-expiring__${snapshot.id}`, {
-      to: memberTo(reservation.memberType, reservation.personErpId),
-      category: 'library.reservation',
-      title: 'Reserved book hold ending',
-      body: `${reservation.title}: collect it by ${timestampDay(reservation.holdUntil)}.`,
-      data: { reservationId: snapshot.id },
-    });
-  }
 }
 
 /** 07:00 IST, every school. */

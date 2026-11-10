@@ -15,13 +15,7 @@ void main() {
     expect(copy.price, 250.0);
     expect(copy.condition, 'good');
     expect(copy.canChangeStatus, isTrue);
-    for (final value in [
-      'issued',
-      'reserved',
-      'in_transit',
-      'lost',
-      'withdrawn',
-    ]) {
+    for (final value in ['issued', 'in_transit', 'lost', 'withdrawn']) {
       expect(
         LibraryCopy.fromMap('x', {'status': value}).canChangeStatus,
         isFalse,

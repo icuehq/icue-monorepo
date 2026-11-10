@@ -380,7 +380,7 @@ describe('library (staff gate)', () => {
       await setDoc(doc(firestore, 'schools/12/userAccess/8'), { permissions: [], campusIds: [32], hasAllCampuses: false });
       await setDoc(doc(firestore, 'schools/12/userAccess/parent-1'), { permissions: [], campusIds: [], hasAllCampuses: false });
       for (const collectionName of ['libraries', 'libraryCategories', 'libraryCatalogue', 'libraryCopies', 'libraryBooks', 'libraryMembers', 'libraryBorrowingPolicies']) await setDoc(doc(firestore, `schools/12/${collectionName}/a`), { name: 'a' });
-      for (const collectionName of ['libraryLoans', 'libraryReservations', 'libraryFines', 'libraryIncidents']) await setDoc(doc(firestore, `schools/12/${collectionName}/a`), { campusId: 31, personErpId: 501 });
+      for (const collectionName of ['libraryLoans', 'libraryFines', 'libraryIncidents']) await setDoc(doc(firestore, `schools/12/${collectionName}/a`), { campusId: 31, personErpId: 501 });
     }),
   );
 
@@ -401,8 +401,8 @@ describe('library (staff gate)', () => {
     }
   });
 
-  it('loans, reservations, fines, incidents: staff on the campus or the borrower read; nobody writes', async () => {
-    for (const collectionName of ['libraryLoans', 'libraryReservations', 'libraryFines', 'libraryIncidents']) {
+  it('loans, fines, incidents: staff on the campus or the borrower read; nobody writes', async () => {
+    for (const collectionName of ['libraryLoans', 'libraryFines', 'libraryIncidents']) {
       const path = `schools/12/${collectionName}/a`;
       await assertSucceeds(getDoc(doc(db('4'), path)));
       await assertFails(getDoc(doc(db('8'), path))); // other campus
@@ -495,12 +495,11 @@ describe('library client writes (no callable)', () => {
     await assertFails(updateDoc(doc(db('4'), 'schools/12/libraryBorrowingPolicies/p1'), edit({ libraryId: 'other' })));
   });
 
-  it('circulation: stamped loans, narrow copy / member / reservation edits, library counters, fines and incidents on the campus', async () => {
+  it('circulation: stamped loans, narrow copy / member edits, library counters, fines and incidents on the campus', async () => {
     await env.withSecurityRulesDisabled(async (context) => {
       const firestore = context.firestore();
       await setDoc(doc(firestore, 'schools/12/libraryLoans/l1'), { campusId: 31, status: 'active' });
       await setDoc(doc(firestore, 'schools/12/libraryLoans/l2'), { campusId: 31, status: 'returned' });
-      await setDoc(doc(firestore, 'schools/12/libraryReservations/r1'), { campusId: 31, status: 'waiting' });
     });
     const loan = { campusId: 31, status: 'active', issuedBy: '4', lastWrite: stamp('libraryLoan.issue') };
     await assertSucceeds(setDoc(doc(db('4'), 'schools/12/libraryLoans/l3'), loan));
@@ -510,17 +509,9 @@ describe('library client writes (no callable)', () => {
     await assertSucceeds(updateDoc(doc(db('4'), 'schools/12/libraryLoans/l1'), { status: 'returned', lastWrite: stamp('libraryLoan.return') }));
     await assertFails(updateDoc(doc(db('4'), 'schools/12/libraryLoans/l2'), { status: 'active', lastWrite: stamp('libraryLoan.renew') })); // not active
     await assertFails(updateDoc(doc(db('4'), 'schools/12/libraryLoans/l3'), { status: 'active', lastWrite: stamp('libraryLoan.issue') })); // wrong action
-    await assertSucceeds(updateDoc(doc(db('4'), 'schools/12/libraryCopies/c1'), { status: 'issued', activeLoanId: 'l3', heldReservationId: null }));
+    await assertSucceeds(updateDoc(doc(db('4'), 'schools/12/libraryCopies/c1'), { status: 'issued', activeLoanId: 'l3' }));
     await assertFails(updateDoc(doc(db('4'), 'schools/12/libraryCopies/c1'), { status: 'in_transit' }));
     await assertFails(updateDoc(doc(db('4'), 'schools/12/libraryCopies/c1'), { status: 'lost', libraryId: 'junior' }));
-    await assertSucceeds(updateDoc(doc(db('4'), 'schools/12/libraryReservations/r1'), { status: 'ready', heldBarcode: 'c1' }));
-    const reservation = { campusId: 31, status: 'waiting', createdBy: '4', lastWrite: stamp('libraryReservation.create') };
-    await assertSucceeds(setDoc(doc(db('4'), 'schools/12/libraryReservations/r2'), reservation));
-    await assertFails(setDoc(doc(db('4'), 'schools/12/libraryReservations/r3'), { ...reservation, lastWrite: null }));
-    await assertFails(setDoc(doc(db('4'), 'schools/12/libraryReservations/r3'), { ...reservation, campusId: 32 }));
-    await assertSucceeds(updateDoc(doc(db('4'), 'schools/12/libraryReservations/r2'), { status: 'cancelled', lastWrite: stamp('libraryReservation.cancel') }));
-    await assertFails(updateDoc(doc(db('4'), 'schools/12/libraryReservations/r2'), { status: 'cancelled', lastWrite: stamp('libraryReservation.cancel') })); // already cancelled
-    await assertFails(updateDoc(doc(db('4'), 'schools/12/libraryReservations/r1'), { status: 'cancelled' }));
     const member = { memberType: 'student', personErpId: 777, campusIds: [31], activeLoans: 1, blocked: false, createdBy: '4' };
     await assertSucceeds(setDoc(doc(db('4'), 'schools/12/libraryMembers/777'), member));
     await assertFails(setDoc(doc(db('4'), 'schools/12/libraryMembers/778'), { ...member, blocked: true }));

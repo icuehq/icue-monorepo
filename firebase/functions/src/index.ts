@@ -13,11 +13,10 @@ import { type AnyCallableDef, callable, queryCallable, routes } from './shared/c
 initializeApp();
 
 export { syncItemSearch } from './inventory/search';
-export { noticeFines, noticeIncidents, noticeLoans, noticeReservations } from './library/notices';
+export { noticeFines, noticeIncidents, noticeLoans } from './library/notices';
 export { syncCatalogueSearch } from './library/search';
 export { outboxSend } from './shared/outbox';
 export { dailyInventory } from './inventory/daily';
-export { holdExpiry } from './library/reservations';
 export { dailyLibrary } from './library/daily';
 export {
   auditLibraryCatalogue,
@@ -27,7 +26,6 @@ export {
   auditLibraryLoans,
   auditLibraryMembers,
   auditLibraryPolicies,
-  auditLibraryReservations,
 } from './library/audit';
 
 // Inventory masters other than seedDefaults are written by the client or only through the importer.

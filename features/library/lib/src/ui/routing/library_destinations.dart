@@ -41,10 +41,6 @@ const _groups = <(String, String, List<LibraryEntry>)>[
     'assets/dashboard/library-circulation.png',
     [
       LibraryEntry(label: 'Loans', path: LibraryRoutes.libraryCirculation),
-      LibraryEntry(
-        label: 'Reservations',
-        path: LibraryRoutes.libraryReservations,
-      ),
       LibraryEntry(label: 'Fines', path: LibraryRoutes.libraryFines),
       LibraryEntry(
         label: 'Lost & Damaged',

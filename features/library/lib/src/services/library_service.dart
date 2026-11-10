@@ -8,7 +8,6 @@ import 'package:school_library/src/models/library_insights.dart';
 import 'package:school_library/src/models/library_loans.dart';
 import 'package:school_library/src/models/library_masters.dart';
 import 'package:school_library/src/models/library_members.dart';
-import 'package:school_library/src/models/library_reservations.dart';
 
 /// Library reads from Firestore; its remaining writes go through callables (`LibraryWrites` and `LoanWrites` have the client ones).
 @lazySingleton
@@ -193,18 +192,6 @@ class LibraryService {
           );
   }
 
-  /// A page of reservations in [status], ordered by [createdAt].
-  Future<PagedResult<LibraryReservation>> reservations(
-    String status, {
-    DocumentSnapshot<Map<String, dynamic>>? after,
-  }) async => fetchPage(
-    (await schoolCollection('libraryReservations'))
-        .where('status', isEqualTo: status)
-        .orderBy('createdAt'),
-    (document) => LibraryReservation.fromMap(document.id, document.data()!),
-    after: after,
-  );
-
   /// A page of fines, optionally filtered by [status] ('outstanding', 'paid', 'waived').
   Future<PagedResult<LibraryFine>> fines({
     String? status,
@@ -373,10 +360,6 @@ class LibraryService {
       'pending': count(
         'libraryLoans',
         (query) => query.where('status', isEqualTo: 'active'),
-      ),
-      'reserved': count(
-        'libraryReservations',
-        (query) => query.where('status', whereIn: ['waiting', 'ready']),
       ),
       'students': members('student'),
       'teachers': members('teacher'),
