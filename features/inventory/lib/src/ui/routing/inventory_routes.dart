@@ -8,18 +8,11 @@ class InventoryRoutes {
   static const String inventoryCategories = '/layout.inventory/categories';
   static const String inventoryCategoriesName = 'inventoryCategories';
 
-  static const String inventoryCategoryForm =
-      '/layout.inventory/categories/form';
-  static const String inventoryCategoryFormName = 'inventoryCategoryForm';
-
   static const String inventoryUnits = '/layout.inventory/units';
   static const String inventoryUnitsName = 'inventoryUnits';
 
   static const String inventoryStores = '/layout.inventory/stores';
   static const String inventoryStoresName = 'inventoryStores';
-
-  static const String inventoryStoreForm = '/layout.inventory/stores/form';
-  static const String inventoryStoreFormName = 'inventoryStoreForm';
 
   static const String inventoryItems = '/layout.inventory/items';
   static const String inventoryItemsName = 'inventoryItems';
@@ -59,9 +52,6 @@ class InventoryRoutes {
 
   static const String inventoryTransferForm = '/layout.inventory/transfers/new';
   static const String inventoryTransferFormName = 'inventoryTransferForm';
-
-  static const String inventoryDashboard = '/layout.inventory/dashboard';
-  static const String inventoryDashboardName = 'inventoryDashboard';
 
   static const String inventoryReports = '/layout.inventory/reports';
   static const String inventoryReportsName = 'inventoryReports';

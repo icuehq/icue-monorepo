@@ -25,7 +25,10 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
   Widget build(BuildContext context) {
     final inventoryProvider = context.watch<InventoryProvider>();
     final access = inventoryProvider.access;
-    final visibleTiles = inventoryEntries(access);
+    final visibleTiles = [
+      for (final entry in inventoryEntries(access))
+        if (entry.path != InventoryRoutes.inventory) entry,
+    ];
 
     return Scaffold(
       appBar: AppBar(title: const Text('Inventory')),

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-/// One headline figure on the Library overview: value, label and a context line.
-class OverviewKpiCard extends StatelessWidget {
-  const OverviewKpiCard({
+/// One headline figure on a module overview: value, label and a context line.
+class IcueKpiCard extends StatelessWidget {
+  const IcueKpiCard({
     required this.label,
     required this.value,
     required this.icon,

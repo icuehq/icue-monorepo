@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
-import 'package:inventory/src/ui/masters/categories/widgets/category_card.dart';
 
 enum CategoryStatusFilter {
   all('All'),
@@ -12,89 +11,10 @@ enum CategoryStatusFilter {
   final String label;
 }
 
-class CategoryTwoColumnLayout extends StatelessWidget {
-  const CategoryTwoColumnLayout({
-    super.key,
-    required this.groups,
-    required this.canEdit,
-    required this.isSearching,
-    required this.onViewItems,
-    required this.onEdit,
-    required this.onAddSubcategory,
-    required this.onToggleActive,
-  });
-
-  final List<(InventoryCategory, List<InventoryCategory>)> groups;
-  final bool canEdit;
-  final bool isSearching;
-  final ValueChanged<InventoryCategory> onViewItems;
-  final ValueChanged<InventoryCategory> onEdit;
-  final ValueChanged<InventoryCategory> onAddSubcategory;
-  final ValueChanged<InventoryCategory> onToggleActive;
-
-  @override
-  Widget build(BuildContext context) {
-    final leftCol = <(InventoryCategory, List<InventoryCategory>)>[];
-    final rightCol = <(InventoryCategory, List<InventoryCategory>)>[];
-
-    for (var i = 0; i < groups.length; i++) {
-      if (i.isEven) {
-        leftCol.add(groups[i]);
-      } else {
-        rightCol.add(groups[i]);
-      }
-    }
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Column(
-            children: [
-              for (final (top, subs) in leftCol)
-                CategoryCard(
-                  key: ValueKey(top.id),
-                  category: top,
-                  subcategories: subs,
-                  canEdit: canEdit,
-                  initiallyExpanded: isSearching,
-                  onViewItems: onViewItems,
-                  onEdit: onEdit,
-                  onAddSubcategory: onAddSubcategory,
-                  onToggleActive: onToggleActive,
-                ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            children: [
-              for (final (top, subs) in rightCol)
-                CategoryCard(
-                  key: ValueKey(top.id),
-                  category: top,
-                  subcategories: subs,
-                  canEdit: canEdit,
-                  initiallyExpanded: isSearching,
-                  onViewItems: onViewItems,
-                  onEdit: onEdit,
-                  onAddSubcategory: onAddSubcategory,
-                  onToggleActive: onToggleActive,
-                ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 class CategorySearchBar extends StatelessWidget {
   const CategorySearchBar({
     super.key,
     required this.searchController,
-    required this.isWide,
     required this.canEdit,
     required this.statusFilter,
     required this.onSearchChanged,
@@ -103,7 +23,6 @@ class CategorySearchBar extends StatelessWidget {
   });
 
   final TextEditingController searchController;
-  final bool isWide;
   final bool canEdit;
   final CategoryStatusFilter statusFilter;
   final ValueChanged<String> onSearchChanged;
@@ -159,24 +78,6 @@ class CategorySearchBar extends StatelessWidget {
         ],
       ),
     );
-
-    if (isWide) {
-      return Row(
-        children: [
-          Expanded(child: searchField),
-          const SizedBox(width: 12),
-          filterChips,
-          if (canEdit) ...[
-            const SizedBox(width: 12),
-            IcueButton(
-              label: 'New Category',
-              onPressed: onAddCategory,
-              leadingIcon: Icons.add_rounded,
-            ),
-          ],
-        ],
-      );
-    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

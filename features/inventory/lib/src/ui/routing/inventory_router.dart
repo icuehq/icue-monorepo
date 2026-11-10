@@ -4,19 +4,16 @@ import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/assets/maintenance/maintenance_page.dart';
 import 'package:inventory/src/ui/assets/registry/asset_form_page.dart';
 import 'package:inventory/src/ui/assets/registry/assets_page.dart';
-import 'package:inventory/src/ui/home/inventory_home_page.dart';
-import 'package:inventory/src/ui/insights/dashboard/dashboard_page.dart';
 import 'package:inventory/src/ui/insights/import/import_page.dart';
+import 'package:inventory/src/ui/insights/overview/inventory_overview_page.dart';
 import 'package:inventory/src/ui/insights/reports/report_page.dart';
 import 'package:inventory/src/ui/insights/reports/reports_page.dart';
 import 'package:inventory/src/ui/insights/verifications/verification_page.dart';
 import 'package:inventory/src/ui/insights/verifications/verifications_page.dart';
 import 'package:inventory/src/ui/masters/categories/categories_page.dart';
-import 'package:inventory/src/ui/masters/categories/category_form_page.dart';
 import 'package:inventory/src/ui/masters/items/item_details_page.dart';
 import 'package:inventory/src/ui/masters/items/item_form_page.dart';
 import 'package:inventory/src/ui/masters/items/items_page.dart';
-import 'package:inventory/src/ui/masters/stores/store_form_page.dart';
 import 'package:inventory/src/ui/masters/stores/stores_page.dart';
 import 'package:inventory/src/ui/masters/units/units_page.dart';
 import 'package:inventory/src/ui/procurement/invoices/invoices_page.dart';
@@ -69,21 +66,12 @@ final _inventoryPages = <RouteBase>[
   GoRoute(
     path: InventoryRoutes.inventory,
     name: InventoryRoutes.inventoryName,
-    builder: (context, state) => const InventoryHomePage(),
+    builder: (context, state) => const InventoryLanding(),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryCategories,
     name: InventoryRoutes.inventoryCategoriesName,
     builder: (context, state) => const CategoriesPage(),
-  ),
-  GoRoute(
-    path: InventoryRoutes.inventoryCategoryForm,
-    name: InventoryRoutes.inventoryCategoryFormName,
-    builder: (context, state) => CategoryFormPage(
-      category: state.extra as InventoryCategory?,
-      categoryId: state.uri.queryParameters['id'],
-      parentId: state.uri.queryParameters['parent'],
-    ),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryUnits,
@@ -94,12 +82,6 @@ final _inventoryPages = <RouteBase>[
     path: InventoryRoutes.inventoryStores,
     name: InventoryRoutes.inventoryStoresName,
     builder: (context, state) => const StoresPage(),
-  ),
-  GoRoute(
-    path: InventoryRoutes.inventoryStoreForm,
-    name: InventoryRoutes.inventoryStoreFormName,
-    builder: (context, state) =>
-        StoreFormPage(store: state.extra as InventoryStore?),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryItems,
@@ -247,11 +229,6 @@ final _inventoryPages = <RouteBase>[
     path: InventoryRoutes.inventoryMaintenance,
     name: InventoryRoutes.inventoryMaintenanceName,
     builder: (context, state) => const MaintenancePage(),
-  ),
-  GoRoute(
-    path: InventoryRoutes.inventoryDashboard,
-    name: InventoryRoutes.inventoryDashboardName,
-    builder: (context, state) => const InventoryDashboardPage(),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryReports,

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:school_library/school_library.dart';
-import 'package:school_library/src/ui/insights/overview/widgets/overview_kpi_card.dart';
 
 /// Headline figures of the Library overview, two per row on phones up to five on desktop.
 class OverviewKpiGrid extends StatelessWidget {
@@ -104,7 +103,7 @@ class OverviewKpiGrid extends StatelessWidget {
             for (final (key, label, value, icon, caption, route, color)
                 in tiles)
               if (value != null)
-                OverviewKpiCard(
+                IcueKpiCard(
                   label: label,
                   value: key == 'fines' ? value.toRupees() : '${value.round()}',
                   icon: icon,

@@ -27,6 +27,7 @@ export 'src/widgets/icue_dropdown.dart';
 export 'src/widgets/icue_empty_state.dart';
 export 'src/widgets/icue_form_helpers.dart';
 export 'src/widgets/icue_form_section_card.dart';
+export 'src/widgets/icue_kpi_card.dart';
 export 'src/widgets/icue_multi_autocomplete.dart';
 export 'src/widgets/icue_option_grid_card.dart';
 export 'src/widgets/icue_scan_field.dart';

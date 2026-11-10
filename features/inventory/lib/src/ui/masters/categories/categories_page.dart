@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
+import 'package:inventory/src/ui/masters/categories/widgets/categories_table.dart';
 import 'package:inventory/src/ui/masters/categories/widgets/category_card.dart';
+import 'package:inventory/src/ui/masters/categories/widgets/category_dialog.dart';
 import 'package:inventory/src/ui/masters/categories/widgets/category_list_views.dart';
 import 'package:provider/provider.dart';
 
@@ -127,31 +129,40 @@ class _CategoriesPageState extends State<CategoriesPage> {
           ),
         ],
       ),
-      floatingActionButton: canEdit && hasAnyCategories
+      floatingActionButton: canEdit && hasAnyCategories && !context.isWide
           ? FloatingActionButton.extended(
-              onPressed: () =>
-                  context.push(InventoryRoutes.inventoryCategoryForm),
+              onPressed: () => CategoryDialog.show(context),
               icon: const Icon(Icons.add_rounded),
               label: const Text('Category'),
             )
           : null,
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final isWide = constraints.maxWidth >= 720;
-          final isTwoColumn = constraints.maxWidth >= 960;
-          final contentPadding = EdgeInsets.symmetric(
-            horizontal: isWide ? 24.0 : 16.0,
-            vertical: 12.0,
+          const contentPadding = EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
           );
 
           if (inventoryProvider.isLoading && !hasAnyCategories) {
             return const Center(child: CircularProgressIndicator());
           }
 
+          if (context.isWide) {
+            return Padding(
+              padding: const EdgeInsets.all(16),
+              child: CategoriesTable(
+                categories: inventoryProvider.categories,
+                canEdit: canEdit,
+                onToggleActive: (category) =>
+                    _onMenu(context, 'toggle', category),
+              ),
+            );
+          }
+
           if (!hasAnyCategories) {
             return CategoryEmptyState(
               canEdit: canEdit,
-              onAdd: () => context.push(InventoryRoutes.inventoryCategoryForm),
+              onAdd: () => CategoryDialog.show(context),
             );
           }
 
@@ -166,14 +177,12 @@ class _CategoriesPageState extends State<CategoriesPage> {
                   children: [
                     CategorySearchBar(
                       searchController: _searchController,
-                      isWide: isWide,
                       canEdit: canEdit,
                       statusFilter: _statusFilter,
                       onSearchChanged: (_) => setState(() {}),
                       onFilterChanged: (filter) =>
                           setState(() => _statusFilter = filter),
-                      onAddCategory: () =>
-                          context.push(InventoryRoutes.inventoryCategoryForm),
+                      onAddCategory: () => CategoryDialog.show(context),
                     ),
                     const SizedBox(height: 12),
                     Padding(
@@ -191,20 +200,6 @@ class _CategoriesPageState extends State<CategoriesPage> {
                       CategoryNoResultsState(
                         query: query,
                         onClear: _clearFilters,
-                      )
-                    else if (isTwoColumn)
-                      CategoryTwoColumnLayout(
-                        groups: matchingGroups,
-                        canEdit: canEdit,
-                        isSearching: isSearching,
-                        onViewItems: (category) =>
-                            _onMenu(context, 'items', category),
-                        onEdit: (category) =>
-                            _onMenu(context, 'edit', category),
-                        onAddSubcategory: (category) =>
-                            _onMenu(context, 'sub', category),
-                        onToggleActive: (category) =>
-                            _onMenu(context, 'toggle', category),
                       )
                     else
                       for (final (top, subs) in matchingGroups)
@@ -246,14 +241,9 @@ class _CategoriesPageState extends State<CategoriesPage> {
           '${InventoryRoutes.inventoryItems}?category=${category.id}',
         );
       case 'edit':
-        await context.push(
-          '${InventoryRoutes.inventoryCategoryForm}?id=${category.id}',
-          extra: category,
-        );
+        await CategoryDialog.show(context, category: category);
       case 'sub':
-        await context.push(
-          '${InventoryRoutes.inventoryCategoryForm}?parent=${category.id}',
-        );
+        await CategoryDialog.show(context, parentId: category.id);
       case 'toggle':
         if (!await inventoryProvider.setCategoryActive(
               category.id,

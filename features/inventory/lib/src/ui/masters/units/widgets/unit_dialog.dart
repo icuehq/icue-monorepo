@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
@@ -90,64 +91,82 @@ String generateUnitCode(String unitName, List<InventoryUnit> existingUnits) {
   return candidate;
 }
 
+/// Adds a unit or edits [unit]: a dialog on wide screens, a full screen on phones.
 class UnitDialog extends StatefulWidget {
   const UnitDialog({super.key, this.unit});
 
   final InventoryUnit? unit;
 
-  static Future<bool?> show(BuildContext context, {InventoryUnit? unit}) =>
-      showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => UnitDialog(unit: unit),
-      );
+  static Future<void> show(BuildContext context, {InventoryUnit? unit}) =>
+      showFormPage(context, () => UnitDialog(unit: unit));
 
   @override
   State<UnitDialog> createState() => _UnitDialogState();
 }
 
 class _UnitDialogState extends State<UnitDialog> {
-  final _formKey = GlobalKey<FormState>();
-  late final _nameController = TextEditingController(text: widget.unit?.name);
-  bool _isBusy = false;
-  bool _hasSubmitted = false;
+  final _form = GlobalKey<FormState>();
+  late final _name = TextEditingController(text: widget.unit?.name);
+  int _nextSample = 0;
+  bool _busy = false;
+  bool _submitted = false;
   String? _errorMessage;
-
-  bool get _isEditing => widget.unit != null;
 
   @override
   void dispose() {
-    _nameController.dispose();
+    _name.dispose();
     super.dispose();
   }
 
-  Future<void> _handleSave() async {
+  /// Fills the form with the next sample whose name is not taken yet (debug builds, new units only).
+  void _fillSample() {
+    final taken = {
+      for (final unit in context.read<InventoryProvider>().units)
+        unit.name.trim().toLowerCase(),
+    };
+    for (var tried = 0; tried < _sampleUnits.length; tried++) {
+      final sample = _sampleUnits[_nextSample++ % _sampleUnits.length];
+      if (taken.contains(sample.toLowerCase())) continue;
+      setState(() => _name.text = sample);
+      return;
+    }
+    setState(() => _errorMessage = 'All sample units already exist');
+  }
+
+  /// Required, and unique among units (compared ignoring case).
+  String? _validateName(String? value) {
+    final required = requiredText(value);
+    if (required != null) return required;
+    final name = value!.trim().toLowerCase();
+    final exists = context.read<InventoryProvider>().units.any(
+      (unit) =>
+          unit.code != widget.unit?.code &&
+          unit.name.trim().toLowerCase() == name,
+    );
+    return exists ? '"${value.trim()}" already exists' : null;
+  }
+
+  Future<void> _save() async {
     setState(() {
-      _hasSubmitted = true;
+      _submitted = true;
       _errorMessage = null;
     });
-
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() => _isBusy = true);
-    final inventoryProvider = context.read<InventoryProvider>();
-    final enteredName = _nameController.text.trim();
-
-    final String unitCode;
-    if (_isEditing) {
-      unitCode = widget.unit!.code;
-    } else {
-      unitCode = generateUnitCode(enteredName, inventoryProvider.units);
-    }
-
-    final success = await inventoryProvider.saveUnit(unitCode, enteredName);
-    if (!mounted) return;
-
-    if (success) {
-      Navigator.of(context).pop(true);
-    } else {
+    if (!_form.currentState!.validate()) return;
+    setState(() => _busy = true);
+    final unit = widget.unit;
+    final provider = context.read<InventoryProvider>();
+    final name = _name.text.trim();
+    final saved = await submitAndClose<InventoryProvider>(
+      context,
+      () => provider.saveUnit(
+        unit?.code ?? generateUnitCode(name, provider.units),
+        name,
+      ),
+    );
+    if (mounted && !saved) {
       setState(() {
-        _isBusy = false;
-        _errorMessage = inventoryProvider.errorMessage ?? 'Could not save unit';
+        _busy = false;
+        _errorMessage = provider.errorMessage ?? 'Could not save unit';
       });
     }
   }
@@ -155,109 +174,148 @@ class _UnitDialogState extends State<UnitDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final editing = widget.unit != null;
 
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      clipBehavior: Clip.antiAlias,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
-          child: Form(
-            key: _formKey,
-            autovalidateMode: _hasSubmitted
-                ? AutovalidateMode.onUserInteraction
-                : null,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
+    return Form(
+      key: _form,
+      autovalidateMode: _submitted
+          ? AutovalidateMode.onUserInteraction
+          : AutovalidateMode.disabled,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  Icons.straighten_rounded,
+                  color: theme.colorScheme.primary,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primaryContainer.withValues(
-                          alpha: 0.6,
-                        ),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(
-                        Icons.straighten_rounded,
-                        size: 20,
-                        color: theme.colorScheme.primary,
+                    Text(
+                      editing ? 'Edit Unit' : 'New Unit',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.3,
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        _isEditing ? 'Edit unit' : 'Add unit',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                        ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'A unit of measurement for stock quantities.',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontSize: 13,
                       ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close_rounded, size: 20),
-                      visualDensity: VisualDensity.compact,
-                      onPressed: () => Navigator.of(context).pop(false),
                     ),
                   ],
                 ),
-                const SizedBox(height: 18),
-                IcueTextField(
-                  controller: _nameController,
-                  autofocus: true,
-                  textCapitalization: TextCapitalization.words,
-                  validator: requiredText,
-                  onChanged: (_) {
-                    if (_errorMessage != null) {
-                      setState(() => _errorMessage = null);
-                    }
-                  },
-                  onFieldSubmitted: (_) => _handleSave(),
-                  label: 'Unit name *',
-                  hintText: 'e.g. Kilogram, Box, Piece',
-                  icon: Icons.label_outline,
+              ),
+              if (kDebugMode && !editing)
+                IcueButton(
+                  label: 'Fill sample',
+                  onPressed: _busy ? null : _fillSample,
+                  variant: IcueButtonVariant.ghost,
+                  leadingIcon: Icons.auto_fix_high_rounded,
                 ),
-                if (_errorMessage != null) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    _errorMessage!,
-                    style: TextStyle(
-                      color: theme.colorScheme.error,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
+            ],
+          ),
+          const SizedBox(height: 20),
+          if (_errorMessage != null) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.error.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: theme.colorScheme.error.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.error_outline_rounded,
+                    color: theme.colorScheme.error,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      _errorMessage!,
+                      style: TextStyle(
+                        color: theme.colorScheme.error,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                    textAlign: TextAlign.center,
                   ),
                 ],
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    IcueButton(
-                      label: 'Cancel',
-                      onPressed: _isBusy
-                          ? null
-                          : () => Navigator.of(context).pop(false),
-                      variant: IcueButtonVariant.ghost,
-                    ),
-                    const SizedBox(width: 8),
-                    IcueButton(
-                      label: _isEditing ? 'Save changes' : 'Add unit',
-                      onPressed: _isBusy ? null : _handleSave,
-                      isLoading: _isBusy,
-                    ),
-                  ],
-                ),
-              ],
+              ),
             ),
+            const SizedBox(height: 16),
+          ],
+          IcueFormSectionCard(
+            title: 'Unit Details',
+            icon: Icons.straighten_outlined,
+            children: [
+              IcueTextField(
+                controller: _name,
+                autofocus: true,
+                textCapitalization: TextCapitalization.words,
+                validator: _validateName,
+                onFieldSubmitted: (_) => _save(),
+                label: 'Unit name *',
+                hintText: 'e.g. Kilogram, Box, Piece',
+                icon: Icons.label_outline,
+              ),
+            ],
           ),
-        ),
+          const SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              IcueButton(
+                label: 'Cancel',
+                onPressed: _busy ? null : () => Navigator.of(context).pop(),
+                variant: IcueButtonVariant.outline,
+              ),
+              const SizedBox(width: 12),
+              IcueButton(
+                label: _busy
+                    ? 'Saving…'
+                    : (editing ? 'Save changes' : 'Create unit'),
+                onPressed: _busy ? null : _save,
+                leadingIcon: Icons.check_rounded,
+                isLoading: _busy,
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 }
+
+const _sampleUnits = [
+  'Kilogram',
+  'Litre',
+  'Piece',
+  'Box',
+  'Metre',
+  'Packet',
+  'Dozen',
+  'Roll',
+];
