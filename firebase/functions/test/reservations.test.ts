@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { copies } from '../src/library/copies';
-import { loans, reservations } from './circulation';
 import { runHoldExpiry } from '../src/library/reservations';
 import { runCallable, type CallableDef } from '../src/shared/callable';
 import { dayTimestamp } from '../src/shared/dates';
+import { loans, reservations } from './circulation';
 import {
   seedLibrary,
   seedLibraryCategory,

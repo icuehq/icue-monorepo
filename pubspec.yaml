@@ -88,6 +88,22 @@ melos:
       description: Cloud Functions and Security Rules tests on the emulator.
       run: cd firebase/functions && npm ci && npm test && cd ../rules-tests && npm ci && npm test
 
+    build:web:dev:
+      description: Build icueadmin web app for dev.
+      run: cd apps/icueadmin && flutter build web --dart-define=ENV=dev
+
+    build:web:prod:
+      description: Build icueadmin web app for prod.
+      run: cd apps/icueadmin && flutter build web --dart-define=ENV=prod
+
+    deploy:web:dev:
+      description: Build and deploy icueadmin web app to the dev Firebase project (icueadmin-dev).
+      run: cd apps/icueadmin && flutter build web --dart-define=ENV=dev && firebase deploy --only hosting --project dev
+
+    deploy:web:prod:
+      description: Build and deploy icueadmin web app to the prod Firebase project (icueadmin).
+      run: cd apps/icueadmin && flutter build web --dart-define=ENV=prod && firebase deploy --only hosting --project prod
+
     emulators:
       description: Start Firebase emulators; loads and saves firebase/.emulator-data (Ctrl-C saves).
       run: firebase/scripts/emulators.sh start standard

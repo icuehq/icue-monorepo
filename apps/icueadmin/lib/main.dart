@@ -9,6 +9,7 @@ import 'package:drivers/drivers.dart';
 import 'package:drop_boarding/drop_boarding.dart';
 import 'package:expenses/expenses.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:gatepass/gatepass.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icue_firebase/icue_firebase.dart';
@@ -26,6 +27,7 @@ import 'package:tracking/tracking.dart';
 import 'package:vehicles/vehicles.dart';
 
 void main() {
+  usePathUrlStrategy();
   WidgetsFlutterBinding.ensureInitialized();
   // Env is a compile-time define, so it's safe to resolve before bootstrap.
   final env = ApiEnvironment.fromEnvironment();

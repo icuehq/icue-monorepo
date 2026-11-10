@@ -1,5 +1,13 @@
 import { Timestamp, type DocumentData, type DocumentReference } from 'firebase-admin/firestore';
 import { z } from 'zod';
+import {
+  applicablePolicy,
+  ineligibleReason,
+  personInput,
+  writeBorrower,
+} from '../src/library/members';
+import { memberTo } from '../src/library/notify';
+import { release, waitingQuery } from '../src/library/reservations';
 import type { CallableContext } from '../src/shared/callable';
 import {
   Collections,
@@ -12,14 +20,6 @@ import { serverTimestamp } from '../src/shared/firestore';
 import { nextNumber } from '../src/shared/keys';
 import { defineCallable, failed, id, missing, optionalText, usable } from '../src/shared/masters';
 import { enqueue } from '../src/shared/outbox';
-import {
-  applicablePolicy,
-  ineligibleReason,
-  personInput,
-  writeBorrower,
-} from '../src/library/members';
-import { memberTo } from '../src/library/notify';
-import { release, waitingQuery } from '../src/library/reservations';
 
 /** Policy values copied onto the loan so later policy edits never move its due date (FRS 11.8). */
 const SNAPSHOT = [
@@ -595,7 +595,7 @@ export const fines = {
         throw failed('Waived amount cannot exceed outstanding balance');
       }
 
-      const waived = Math.round(((fine.waived ?? 0) + i.amount) * 100) / 100;
+      const waived = Math.round((Number(fine.waived ?? 0) + i.amount) * 100) / 100;
       const outstanding = Math.round((fine.outstanding - i.amount) * 100) / 100;
       const status =
         outstanding > 0
@@ -651,7 +651,7 @@ export const fines = {
         throw failed('Payment amount cannot exceed outstanding balance');
       }
 
-      const paid = Math.round(((fine.paid ?? 0) + i.paidAmount) * 100) / 100;
+      const paid = Math.round((Number(fine.paid ?? 0) + i.paidAmount) * 100) / 100;
       const outstanding = Math.round((fine.outstanding - i.paidAmount) * 100) / 100;
       const status = outstanding <= 0 ? 'paid' : 'partially_paid';
       const payments = [

@@ -1,21 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { applyCatalogueChange, catalogueSearch } from '../src/library/search';
-import { runCallable, runQuery, type CallableDef } from '../src/shared/callable';
+import { runQuery } from '../src/shared/callable';
 import { seedLibraryCategory, seedLibraryTitle } from './fixtures';
 import { clearFirestore, db } from './setup';
 
 const SCHOOL_ID = '12';
-let requestSequence = 0;
 
-const run = (definition: CallableDef<any, any>, data: Record<string, unknown>, uid = '1') =>
-  runCallable(
-    definition,
-    { uid, token: { schoolId: 12, personType: 'staff' } },
-    { requestId: `req-${String(++requestSequence).padStart(6, '0')}`, ...data },
-  );
 const get = async (path: string) => (await db().doc(`schools/${SCHOOL_ID}/${path}`).get()).data();
-const count = async (collection: string) =>
-  (await db().collection(`schools/${SCHOOL_ID}/${collection}`).get()).size;
 const search = (data: Record<string, unknown>) =>
   runQuery(catalogueSearch, { uid: '1', token: { schoolId: 12, personType: 'staff' } }, data);
 

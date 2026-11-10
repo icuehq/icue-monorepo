@@ -7,7 +7,7 @@ import { itemSearch } from './inventory/search';
 import { verification } from './inventory/verification';
 import { copies as libraryCopies } from './library/copies';
 import { catalogueSearch } from './library/search';
-import { sync } from './session';
+import { sync, token } from './session';
 import { type AnyCallableDef, callable, queryCallable, routes } from './shared/callable';
 
 initializeApp();
@@ -42,6 +42,7 @@ const mutations: AnyCallableDef[] = [
 // Each callable deploys as its name with dots as dashes, e.g. `inventory.purchaseOrder.receive` → `inventory-purchaseOrder-receive`.
 export const { session, inventory, library } = routes([
   ['session.sync', sync],
+  ['session.token', token],
   ...mutations.map((def) => [def.name, callable(def)] as [string, unknown]),
   [itemSearch.name, queryCallable(itemSearch)],
   [catalogueSearch.name, queryCallable(catalogueSearch)],

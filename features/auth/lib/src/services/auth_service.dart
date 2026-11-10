@@ -94,7 +94,13 @@ class AuthService {
     final user = userLocalStorage.getUser();
     if (user == null || Firebase.apps.isEmpty) return false;
     // Web restores the Firebase user asynchronously.
-    final current = await FirebaseAuth.instance.authStateChanges().first;
+    final current = await FirebaseAuth.instance
+        .authStateChanges()
+        .first
+        .timeout(
+          const Duration(seconds: 3),
+          onTimeout: () => FirebaseAuth.instance.currentUser,
+        );
     if (!refresh && current?.uid == user.id.toString()) return true;
     return _firebaseSignIn ??= _exchangeFirebaseToken().whenComplete(
       () => _firebaseSignIn = null,
@@ -107,24 +113,54 @@ class AuthService {
       if (auth.currentUser != null) await auth.signOut();
       final token = usesEmulator
           ? await _emulatorToken()
-          : await _nodeFirebaseToken();
+          : await _cloudFirebaseToken();
       if (token == null || token.isEmpty) return false;
       final credential = await auth.signInWithCustomToken(token);
       final name = userLocalStorage.getUser()?.name ?? '';
       if (name.isNotEmpty) await credential.user?.updateDisplayName(name);
       await callFunction('session-sync');
       return true;
-    } catch (_) {
-      // Not logged: errors may carry the custom token. Retried on next call.
+    } catch (error) {
+      debugPrint('Firebase token exchange error: $error');
       return false;
     }
   }
 
-  Future<String?> _nodeFirebaseToken() async {
-    final response = await apiClient.post<dynamic>('/v1.0/firebaseToken');
-    final dynamic data = response.data;
-    final token = data is Map<String, dynamic> ? data['token'] : null;
-    return token is String ? token : null;
+  Future<String?> _cloudFirebaseToken() async {
+    final user = userLocalStorage.getUser();
+    if (user == null) return null;
+    List<RoleActions> actions;
+    try {
+      actions = await getRoleActions();
+    } catch (_) {
+      actions = userLocalStorage.getRoleActions();
+    }
+    final branch = userLocalStorage.getSelectedBranch()?.id ?? user.branchId;
+    final nodeToken = tokenProvider.currentToken ?? user.token;
+    final response = await callFunction(
+      'session-token',
+      data: <String, Object?>{
+        'token': nodeToken,
+        'uid': user.id.toString(),
+        'schoolId': user.organizationId,
+        'campusIds': <int>[if (branch != 0) branch],
+        'hasAllCampuses': false,
+        'roleIds': [for (final role in user.roles) role.id],
+        'actionIds': [
+          for (final action in actions) ...[
+            action.id,
+            for (final subAction in action.subActionItems ?? <RoleActions>[])
+              subAction.id,
+          ],
+        ],
+        'personType': 'staff',
+        'personErpId': user.id,
+      },
+    );
+    if (response is Map && response['token'] is String) {
+      return response['token'] as String;
+    }
+    return null;
   }
 
   /// Local runs against the emulators: claims built from the Node user and

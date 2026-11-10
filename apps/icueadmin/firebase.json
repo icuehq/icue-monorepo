@@ -1,4 +1,38 @@
 {
+    "hosting": {
+        "public": "build/web",
+        "ignore": [
+            "firebase.json",
+            "**/.*",
+            "**/node_modules/**"
+        ],
+        "rewrites": [
+            {
+                "source": "**",
+                "destination": "/index.html"
+            }
+        ],
+        "headers": [
+            {
+                "source": "**/*.@(js|css|wasm|mjs)",
+                "headers": [
+                    {
+                        "key": "Cache-Control",
+                        "value": "no-cache, no-store, must-revalidate"
+                    }
+                ]
+            },
+            {
+                "source": "@(index.html|flutter_bootstrap.js|flutter_service_worker.js|version.json|main.dart.js|main.dart.wasm)",
+                "headers": [
+                    {
+                        "key": "Cache-Control",
+                        "value": "no-cache, no-store, must-revalidate"
+                    }
+                ]
+            }
+        ]
+    },
     "flutter": {
         "platforms": {
             "android": {

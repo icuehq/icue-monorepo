@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { copies } from '../src/library/copies';
-import { fines, incidents, loans } from './circulation';
 import { runCallable, type CallableDef } from '../src/shared/callable';
 import { dayTimestamp } from '../src/shared/dates';
+import { fines, incidents, loans } from './circulation';
 import {
   seedLibrary,
   seedLibraryCategory,
@@ -81,7 +81,6 @@ describe('library fines and incidents', () => {
     const fine = await get(`libraryFines/${issued.id}__overdue`);
     expect(fine).toMatchObject({
       loanId: issued.id,
-      personErpId: 501,
       personErpId: 501,
       type: 'overdue',
       amount: 15,
