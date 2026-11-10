@@ -31,6 +31,9 @@ class InventoryRoutes {
   static const String inventoryReceive = '/layout.inventory/stock/receive';
   static const String inventoryReceiveName = 'inventoryReceive';
 
+  static const String inventoryMyRequests = '/layout.inventory/my-requests';
+  static const String inventoryMyRequestsName = 'inventoryMyRequests';
+
   static const String inventoryRequests = '/layout.inventory/requests';
   static const String inventoryRequestsName = 'inventoryRequests';
 

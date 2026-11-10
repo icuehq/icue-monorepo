@@ -37,18 +37,16 @@ class StockService {
     ];
   }
 
-  /// Approvers and stock users see the campus's requests; everyone else their own.
+  /// [mine]: the signed-in user's own requests; otherwise the campus's (approvers, stock users).
   Future<List<InventoryIssueRequest>> requests(
     ModuleAccess access, {
+    required bool mine,
     String? status,
   }) async {
     final base = await schoolCollection('inventoryIssueRequests');
-    final wide =
-        access.can('inventory.stock.view') ||
-        access.can('inventory.issue.approve');
-    var query = wide
-        ? access.restrictToCampuses(base)
-        : base.where('createdBy', isEqualTo: uid);
+    var query = mine
+        ? base.where('createdBy', isEqualTo: uid)
+        : access.restrictToCampuses(base);
     if (query == null) return [];
     if (status != null) query = query.where('status', isEqualTo: status);
     final snapshot = await query

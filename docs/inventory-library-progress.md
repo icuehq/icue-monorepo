@@ -167,7 +167,7 @@ Rules and indexes:
 Flutter:
 
 - [x] `features/inventory`: `inv_stock.dart` models, `StockService`, `StockProvider`, DI, model tests
-- [x] `icueadmin` screens under `features/inventory/stock/` (stock overview with movement history / adjust / report, receive, issue requests with approve / issue / acknowledge / return, transfers, damaged-expired register); routes `/layout.inventory/{stock,requests,transfers,unavailable}`
+- [x] `icueadmin` screens under `features/inventory/stock/` (stock overview with movement history / adjust / report, receive, issue requests split into staff "My requests" (own, raise new) and the campus list for approvers / storekeepers, with approve / issue / acknowledge / return, transfers, damaged-expired register); routes `/layout.inventory/{stock,my-requests,requests,transfers,unavailable}`
 - [x] `melos run lint` passes (inventory, icueadmin); functions and rules tests pass
 
 ### Inv-3

@@ -117,7 +117,12 @@ final _inventoryPages = <RouteBase>[
   GoRoute(
     path: InventoryRoutes.inventoryRequests,
     name: InventoryRoutes.inventoryRequestsName,
-    builder: (context, state) => const IssueRequestsPage(),
+    builder: (context, state) => const IssueRequestsPage(mine: false),
+  ),
+  GoRoute(
+    path: InventoryRoutes.inventoryMyRequests,
+    name: InventoryRoutes.inventoryMyRequestsName,
+    builder: (context, state) => const IssueRequestsPage(mine: true),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryRequestForm,

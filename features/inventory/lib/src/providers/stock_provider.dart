@@ -87,10 +87,18 @@ class StockProvider extends ChangeNotifier {
   var _requestsLoad = 0;
 
   /// Newer calls win, so quickly switching a status filter never shows an older answer.
-  Future<void> loadRequests(ModuleAccess access, {String? status}) {
+  Future<void> loadRequests(
+    ModuleAccess access, {
+    required bool mine,
+    String? status,
+  }) {
     final load = ++_requestsLoad;
     return _load(() async {
-      final loaded = await _service.requests(access, status: status);
+      final loaded = await _service.requests(
+        access,
+        mine: mine,
+        status: status,
+      );
       await _names(
         loaded.expand(
           (issueRequest) =>

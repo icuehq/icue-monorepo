@@ -58,7 +58,7 @@ Launch config **icueadmin [Dev + Emulators · Android]** (or iOS). It signs in w
 
 ## Part 1 – Inventory
 
-Open **Inventory** from the dashboard. The Inventory hub shows 14 option grid tiles: Dashboard, Import, Reports, Items, Categories, Units, Stock, Issue requests, Purchase requests, Purchase orders, Vendor invoices, Assets, Vendors, Stores.
+Open **Inventory** from the dashboard. The Inventory hub shows 15 option grid tiles: Dashboard, Import, Reports, Items, Categories, Units, Stock, My requests, Issue requests, Purchase requests, Purchase orders, Vendor invoices, Assets, Vendors, Stores.
 
 ### 1.1 Masters (Inv-1)
 
@@ -183,7 +183,7 @@ Open **Stock** from Inventory tiles.
 
 #### 1.2.5 Create Issue Request (Requisition)
 
-- [ ] Open **Issue requests** (from tile or Stock quick-action chip) → tap FAB **New request**:
+- [ ] As a requester (`inventory.issue.request`), open **My requests** (only your own requests are listed) → tap FAB **New request**:
   - Issue from store: `Central Main Store`
   - Purpose: `Exam Hall Supplies for Midterms`
   - Destination: `Main Exam Hall - Block A`
@@ -193,7 +193,7 @@ Open **Stock** from Inventory tiles.
 
 #### 1.2.6 Approve Issue Request
 
-- [ ] As Approver (`inventory.issue.approve`), tap the pending request card to open the request screen.
+- [ ] As Approver (`inventory.issue.approve`), open **Issue requests** (all campus requests, no **New request** button) and tap the pending request card.
 - [ ] **Expect** the progress strip shows `Requested` done, and the Items section has the Approve quantity field pre-filled with `30`.
 - [ ] Change it to `31` and tap **Approve**. **Expect** blocked: cannot approve more than the requested `30`. Set it back to `30`.
 - [ ] Tap **Approve**.
@@ -717,7 +717,7 @@ Edit permissions in `schools/<schoolId>/userAccess/<uid>` via Emulator UI (or si
 - [ ] 1.7.1 **Role: `teacher`**:
   - Set permissions: `inventory.issue.request`, `inventory.purchaseRequest.request`, `inventory.assets.view`.
   - Restart / reload app.
-  - **Expect**: Only Issue requests, Purchase requests, and Assets tiles are visible. Stores, Stock management, Vendors, Quotations, Invoices, and Reports are hidden.
+  - **Expect**: Only My requests, Purchase requests, and Assets tiles are visible. Stores, Stock management, Vendors, Quotations, Invoices, and Reports are hidden.
 - [ ] 1.7.2 **Role: `storekeeper`**:
   - Set permissions: `inventory.items.view`, `inventory.stock.view`, `inventory.stock.operate`, `inventory.issue.request`, `inventory.purchaseRequest.request`, `inventory.assets.manage`, `inventory.assets.view`.
   - **Expect**: Full operational access to Stock (Receive, Issue, Transfers, Damaged/Expired). Vendor management, Quotation selection, PO creation, and Invoices are hidden.
