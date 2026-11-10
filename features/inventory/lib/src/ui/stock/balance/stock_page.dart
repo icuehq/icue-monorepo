@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
-import 'package:inventory/src/ui/stock/balance/widgets/balance_sheets.dart';
 import 'package:inventory/src/ui/stock/balance/widgets/stock_balance_list.dart';
+import 'package:inventory/src/ui/stock/balance/widgets/stock_balance_table.dart';
 import 'package:provider/provider.dart';
 
 /// Stock overview (FRS 10.6): balances per store × item × variant × batch.
@@ -55,30 +55,10 @@ class _StockPageState extends State<StockPage> {
     super.dispose();
   }
 
-  Widget _quickActionChip(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: ActionChip(
-        avatar: Icon(icon, size: 16, color: theme.colorScheme.primary),
-        label: Text(label),
-        onPressed: onTap,
-        visualDensity: VisualDensity.compact,
-        backgroundColor: theme.colorScheme.surface,
-        side: BorderSide(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
-        ),
-      ),
-    );
-  }
-
-  void _actions(InventoryBalance balance) =>
-      showFormPage(context, () => BalanceActions(balance: balance));
+  void _actions(InventoryBalance balance) => context.push(
+    '${InventoryRoutes.inventoryStockDetails}'
+    '?id=${Uri.encodeQueryComponent(balance.id)}',
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -87,6 +67,7 @@ class _StockPageState extends State<StockPage> {
     final access = inventoryProvider.access;
     final theme = Theme.of(context);
     final canOperate = access.can('inventory.stock.operate');
+    final wide = context.isWide;
 
     final activeStores = inventoryProvider.stores
         .where((store) => store.active)
@@ -119,7 +100,7 @@ class _StockPageState extends State<StockPage> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Store Stock')),
-      floatingActionButton: canOperate
+      floatingActionButton: canOperate && !wide
           ? FloatingActionButton.extended(
               onPressed: () => _open(InventoryRoutes.inventoryReceive),
               icon: const Icon(Icons.add_rounded),
@@ -129,321 +110,303 @@ class _StockPageState extends State<StockPage> {
       body: IcueCenteredBody(
         child: Column(
           children: [
-            // Store Selector & Summary Bar
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest.withValues(
-                    alpha: 0.35,
+            // Store selector (phones) and summary bar
+            if (!wide || (stockProvider.store != null && allRows.isNotEmpty))
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
                   ),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: theme.colorScheme.outlineVariant.withValues(
-                      alpha: 0.5,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest.withValues(
+                      alpha: 0.35,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: theme.colorScheme.outlineVariant.withValues(
+                        alpha: 0.5,
+                      ),
                     ),
                   ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.storefront_outlined,
-                          size: 20,
-                          color: theme.colorScheme.primary,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              isExpanded: true,
-                              value: stockProvider.store?.id,
-                              hint: const Text('Select a store'),
-                              items: [
-                                for (final store in activeStores)
-                                  DropdownMenuItem(
-                                    value: store.id,
-                                    child: Text(
-                                      '${store.name} · Campus ${store.campusId}',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 14,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (!wide)
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.storefront_outlined,
+                              size: 20,
+                              color: theme.colorScheme.primary,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<String>(
+                                  isExpanded: true,
+                                  value: stockProvider.store?.id,
+                                  hint: const Text('Select a store'),
+                                  items: [
+                                    for (final store in activeStores)
+                                      DropdownMenuItem(
+                                        value: store.id,
+                                        child: Text(
+                                          store.name,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 14,
+                                          ),
+                                        ),
                                       ),
-                                    ),
-                                  ),
-                              ],
-                              onChanged: (id) {
-                                if (id == null) return;
-                                final store = activeStores.firstWhere(
-                                  (store) => store.id == id,
-                                );
-                                stockProvider.loadBalances(store);
-                              },
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (stockProvider.store != null && allRows.isNotEmpty) ...[
-                      const Divider(height: 12),
-                      Row(
-                        children: [
-                          Text(
-                            '${allRows.length} item${allRows.length == 1 ? '' : 's'} in store',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            'Value: ${totalStoreValue.toRupees()}',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          if (lowStockCount > 0) ...[
-                            const Spacer(),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.orange.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.warning_amber_rounded,
-                                    size: 13,
-                                    color: Colors.orange.shade900,
-                                  ),
-                                  const SizedBox(width: 3),
-                                  Text(
-                                    '$lowStockCount low stock',
-                                    style: TextStyle(
-                                      color: Colors.orange.shade900,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ],
+                                  ],
+                                  onChanged: (id) {
+                                    if (id == null) return;
+                                    final store = activeStores.firstWhere(
+                                      (store) => store.id == id,
+                                    );
+                                    stockProvider.loadBalances(store);
+                                  },
+                                ),
                               ),
                             ),
                           ],
-                        ],
-                      ),
+                        ),
+                      if (stockProvider.store != null &&
+                          allRows.isNotEmpty) ...[
+                        if (!wide) const Divider(height: 12),
+                        Row(
+                          children: [
+                            Text(
+                              '${allRows.length} item${allRows.length == 1 ? '' : 's'} in store',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              'Value: ${totalStoreValue.toRupees()}',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            if (lowStockCount > 0) ...[
+                              const Spacer(),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.orange.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.warning_amber_rounded,
+                                      size: 13,
+                                      color: Colors.orange.shade900,
+                                    ),
+                                    const SizedBox(width: 3),
+                                    Text(
+                                      '$lowStockCount low stock',
+                                      style: TextStyle(
+                                        color: Colors.orange.shade900,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ],
                     ],
+                  ),
+                ),
+              ),
+
+            if (wide)
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: StockBalanceTable(
+                    stockProvider: stockProvider,
+                    stores: activeStores,
+                    onOpen: _actions,
+                    onReceive: canOperate
+                        ? () => _open(InventoryRoutes.inventoryReceive)
+                        : null,
+                  ),
+                ),
+              )
+            else ...[
+              // Search & Filter Bar
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 6),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: (value) =>
+                            setState(() => _query = value.trim().toLowerCase()),
+                        decoration: InputDecoration(
+                          hintText: 'Search stock by item or batch…',
+                          prefixIcon: const Icon(Icons.search, size: 20),
+                          filled: true,
+                          fillColor: theme.colorScheme.surfaceContainerHighest
+                              .withValues(alpha: 0.35),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 10,
+                          ),
+                          isDense: true,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide.none,
+                          ),
+                          suffixIcon: _query.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(Icons.clear, size: 18),
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    setState(() => _query = '');
+                                  },
+                                )
+                              : null,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    FilterChip(
+                      avatar: _lowOnly
+                          ? const Icon(
+                              Icons.warning_amber_rounded,
+                              size: 16,
+                              color: Colors.orange,
+                            )
+                          : null,
+                      label: Text(
+                        lowStockCount > 0 ? 'Low ($lowStockCount)' : 'Low',
+                      ),
+                      selected: _lowOnly,
+                      showCheckmark: false,
+                      visualDensity: VisualDensity.compact,
+                      onSelected: (value) => setState(() => _lowOnly = value),
+                    ),
                   ],
                 ),
               ),
-            ),
 
-            // Horizontal Quick Actions Bar
-            SizedBox(
-              height: 42,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 4,
-                ),
-                children: [
-                  if (canOperate)
-                    _quickActionChip(
-                      context,
-                      icon: Icons.move_to_inbox_outlined,
-                      label: 'Receive',
-                      onTap: () => _open(InventoryRoutes.inventoryReceive),
-                    ),
-                  _quickActionChip(
-                    context,
-                    icon: Icons.outbox_outlined,
-                    label: 'Issue requests',
-                    onTap: () => _open(InventoryRoutes.inventoryRequests),
-                  ),
-                  _quickActionChip(
-                    context,
-                    icon: Icons.swap_horiz_rounded,
-                    label: 'Transfers',
-                    onTap: () => _open(InventoryRoutes.inventoryTransfers),
-                  ),
-                  _quickActionChip(
-                    context,
-                    icon: Icons.report_problem_outlined,
-                    label: 'Damaged / Expired',
-                    onTap: () => _open(InventoryRoutes.inventoryUnavailable),
-                  ),
-                ],
-              ),
-            ),
-
-            // Search & Filter Bar
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 6),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _searchController,
-                      onChanged: (value) =>
-                          setState(() => _query = value.trim().toLowerCase()),
-                      decoration: InputDecoration(
-                        hintText: 'Search stock by item or batch…',
-                        prefixIcon: const Icon(Icons.search, size: 20),
-                        filled: true,
-                        fillColor: theme.colorScheme.surfaceContainerHighest
-                            .withValues(alpha: 0.35),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 10,
-                        ),
-                        isDense: true,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide.none,
-                        ),
-                        suffixIcon: _query.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.clear, size: 18),
-                                onPressed: () {
-                                  _searchController.clear();
-                                  setState(() => _query = '');
-                                },
-                              )
-                            : null,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  FilterChip(
-                    avatar: _lowOnly
-                        ? const Icon(
-                            Icons.warning_amber_rounded,
-                            size: 16,
-                            color: Colors.orange,
-                          )
-                        : null,
-                    label: Text(
-                      lowStockCount > 0 ? 'Low ($lowStockCount)' : 'Low',
-                    ),
-                    selected: _lowOnly,
-                    showCheckmark: false,
-                    visualDensity: VisualDensity.compact,
-                    onSelected: (value) => setState(() => _lowOnly = value),
-                  ),
-                ],
-              ),
-            ),
-
-            // Stock Balances List
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: () async {
-                  if (stockProvider.store != null) {
-                    await stockProvider.loadBalances(stockProvider.store!);
-                  }
-                },
-                child: filteredRows.isEmpty
-                    ? Center(
-                        child: stockProvider.isLoading
-                            ? const CircularProgressIndicator()
-                            : SingleChildScrollView(
-                                physics: const AlwaysScrollableScrollPhysics(),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(32),
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Container(
-                                        width: 72,
-                                        height: 72,
-                                        decoration: BoxDecoration(
-                                          color: theme
-                                              .colorScheme
-                                              .surfaceContainerHighest
-                                              .withValues(alpha: 0.5),
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: Icon(
-                                          Icons.inventory_2_outlined,
-                                          size: 36,
-                                          color: theme
-                                              .colorScheme
-                                              .onSurfaceVariant,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 16),
-                                      Text(
-                                        stockProvider.store == null
-                                            ? 'No store selected'
-                                            : (_lowOnly || _query.isNotEmpty
-                                                  ? 'No matching stock'
-                                                  : 'No stock in this store'),
-                                        style: theme.textTheme.titleMedium
-                                            ?.copyWith(
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Text(
-                                        stockProvider.store == null
-                                            ? 'Select an active store above to view inventory balances.'
-                                            : (_lowOnly || _query.isNotEmpty
-                                                  ? 'Try clearing the search query or low stock filter.'
-                                                  : 'Receive items or transfer stock into this store to see balances.'),
-                                        textAlign: TextAlign.center,
-                                        style: theme.textTheme.bodySmall
-                                            ?.copyWith(
-                                              color: theme
-                                                  .colorScheme
-                                                  .onSurfaceVariant,
-                                            ),
-                                      ),
-                                      const SizedBox(height: 18),
-                                      if (_lowOnly || _query.isNotEmpty)
-                                        IcueButton(
-                                          label: 'Reset filters',
-                                          onPressed: () {
-                                            _searchController.clear();
-                                            setState(() {
-                                              _query = '';
-                                              _lowOnly = false;
-                                            });
-                                          },
-                                          variant: IcueButtonVariant.outline,
-                                          leadingIcon:
-                                              Icons.filter_alt_off_outlined,
-                                        )
-                                      else if (canOperate)
-                                        IcueButton(
-                                          label: 'Receive stock',
-                                          onPressed: () => _open(
-                                            InventoryRoutes.inventoryReceive,
+              // Stock Balances List
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: () async {
+                    if (stockProvider.store != null) {
+                      await stockProvider.loadBalances(stockProvider.store!);
+                    }
+                  },
+                  child: filteredRows.isEmpty
+                      ? Center(
+                          child: stockProvider.isLoading
+                              ? const CircularProgressIndicator()
+                              : SingleChildScrollView(
+                                  physics:
+                                      const AlwaysScrollableScrollPhysics(),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(32),
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Container(
+                                          width: 72,
+                                          height: 72,
+                                          decoration: BoxDecoration(
+                                            color: theme
+                                                .colorScheme
+                                                .surfaceContainerHighest
+                                                .withValues(alpha: 0.5),
+                                            shape: BoxShape.circle,
                                           ),
-                                          leadingIcon: Icons.add,
+                                          child: Icon(
+                                            Icons.inventory_2_outlined,
+                                            size: 36,
+                                            color: theme
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                          ),
                                         ),
-                                    ],
+                                        const SizedBox(height: 16),
+                                        Text(
+                                          stockProvider.store == null
+                                              ? 'No store selected'
+                                              : (_lowOnly || _query.isNotEmpty
+                                                    ? 'No matching stock'
+                                                    : 'No stock in this store'),
+                                          style: theme.textTheme.titleMedium
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          stockProvider.store == null
+                                              ? 'Select an active store above to view inventory balances.'
+                                              : (_lowOnly || _query.isNotEmpty
+                                                    ? 'Try clearing the search query or low stock filter.'
+                                                    : 'Receive items or transfer stock into this store to see balances.'),
+                                          textAlign: TextAlign.center,
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(
+                                                color: theme
+                                                    .colorScheme
+                                                    .onSurfaceVariant,
+                                              ),
+                                        ),
+                                        const SizedBox(height: 18),
+                                        if (_lowOnly || _query.isNotEmpty)
+                                          IcueButton(
+                                            label: 'Reset filters',
+                                            onPressed: () {
+                                              _searchController.clear();
+                                              setState(() {
+                                                _query = '';
+                                                _lowOnly = false;
+                                              });
+                                            },
+                                            variant: IcueButtonVariant.outline,
+                                            leadingIcon:
+                                                Icons.filter_alt_off_outlined,
+                                          )
+                                        else if (canOperate)
+                                          IcueButton(
+                                            label: 'Receive stock',
+                                            onPressed: () => _open(
+                                              InventoryRoutes.inventoryReceive,
+                                            ),
+                                            leadingIcon: Icons.add,
+                                          ),
+                                      ],
+                                    ),
                                   ),
                                 ),
-                              ),
-                      )
-                    : StockBalanceList(
-                        scroll: _scroll,
-                        rows: filteredRows,
-                        stockProvider: stockProvider,
-                        onOpen: _actions,
-                      ),
+                        )
+                      : StockBalanceList(
+                          scroll: _scroll,
+                          rows: filteredRows,
+                          stockProvider: stockProvider,
+                          onOpen: _actions,
+                        ),
+                ),
               ),
-            ),
+            ],
           ],
         ),
       ),

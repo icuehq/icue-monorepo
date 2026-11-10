@@ -334,15 +334,16 @@ class _Cta extends StatelessWidget {
 }
 
 List<Widget> _filterItems(BuildContext context, IcueTableFilter filter) => [
-  MenuItemButton(
-    style: adminTableMenuItemStyle(context),
-    leadingIcon: Icon(
-      filter.value == null ? Icons.check_rounded : null,
-      size: 15,
+  if (filter.allowAll)
+    MenuItemButton(
+      style: adminTableMenuItemStyle(context),
+      leadingIcon: Icon(
+        filter.value == null ? Icons.check_rounded : null,
+        size: 15,
+      ),
+      onPressed: () => filter.onChanged(null),
+      child: const Text('All'),
     ),
-    onPressed: () => filter.onChanged(null),
-    child: const Text('All'),
-  ),
   for (final option in filter.options)
     MenuItemButton(
       style: adminTableMenuItemStyle(context),
@@ -366,7 +367,7 @@ class _FilterChip extends StatelessWidget {
     builder: (_, menu, _) => IcueTableChipButton(
       label: filter.label,
       value: filter.valueLabel,
-      active: filter.value != null,
+      active: filter.isActive,
       onTap: () => toggleAdminTableMenu(menu),
       tooltip: 'Filter by ${filter.label.toLowerCase()}',
     ),
@@ -381,7 +382,7 @@ class _FilterMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final active = filters.where((filter) => filter.value != null).toList();
+    final active = filters.where((filter) => filter.isActive).toList();
     return MenuAnchor(
       style: adminTableMenuStyle(context),
       menuChildren: [

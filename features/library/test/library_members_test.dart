@@ -8,10 +8,8 @@ class _FakeRouteService implements RouteService {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 
   @override
-  Future<StudentData?> searchStudentByAdmissionNumber(
-    String admissionNumber,
-  ) async {
-    if (admissionNumber == 'ADM001') {
+  Future<StudentData?> findStudentByAdmissionNumberOrRfid(String value) async {
+    if (value == 'ADM001') {
       return const StudentData(
         id: 10,
         name: 'Student 10',
@@ -67,26 +65,23 @@ void main() {
     () async {
       final peopleService = LibraryPeopleService(_FakeRouteService());
 
-      final student = await peopleService.findByAdmissionNumber(
-        'student',
-        'ADM001',
-      );
+      final student = await peopleService.findByIdentifier('student', 'ADM001');
       expect(student?.personErpId, 10);
       expect(student?.name, 'Student 10');
       expect(student?.memberType, 'student');
 
-      final missingStudent = await peopleService.findByAdmissionNumber(
+      final missingStudent = await peopleService.findByIdentifier(
         'student',
         'UNKNOWN',
       );
       expect(missingStudent, isNull);
 
-      final staff = await peopleService.findByAdmissionNumber('teacher', '42');
+      final staff = await peopleService.findByIdentifier('teacher', '42');
       expect(staff?.personErpId, 42);
       expect(staff?.name, 'Staff #42');
       expect(staff?.memberType, 'teacher');
 
-      final invalidStaff = await peopleService.findByAdmissionNumber(
+      final invalidStaff = await peopleService.findByIdentifier(
         'teacher',
         'abc',
       );

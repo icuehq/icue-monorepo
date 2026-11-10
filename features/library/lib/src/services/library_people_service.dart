@@ -9,12 +9,12 @@ class LibraryPeopleService {
 
   final RouteService _routes;
 
-  /// The student by admission number, or staff member by ERP ID, or null.
-  Future<LibraryPerson?> findByAdmissionNumber(
+  /// The student by admission number or RFID, or staff member by ERP ID, or null.
+  Future<LibraryPerson?> findByIdentifier(
     String memberType,
-    String admissionNumber,
+    String identifier,
   ) async {
-    final number = admissionNumber.trim();
+    final number = identifier.trim();
     if (memberType == 'teacher') {
       final staffId = int.tryParse(number);
       if (staffId == null || staffId <= 0) return null;
@@ -25,7 +25,7 @@ class LibraryPeopleService {
         detail: 'Staff ID $staffId',
       );
     }
-    final student = await _routes.searchStudentByAdmissionNumber(number);
+    final student = await _routes.findStudentByAdmissionNumberOrRfid(number);
     if (student == null) return null;
     return personFrom(memberType, student);
   }

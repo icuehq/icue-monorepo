@@ -1,18 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icue_ui/icue_ui.dart';
+import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/stock/shared/line_editor.dart';
 import 'package:inventory/src/ui/stock/shared/stock_ui.dart';
 
+/// Why stock is being added: its label and a one-line explanation.
 const _sources = {
-  'opening': 'Opening stock',
-  'adjustment': 'Authorised adjustment',
-  'department_return': 'Department return',
-  'person_return': 'Staff/student return',
-  'other': 'Other authorised receipt',
+  'opening': (
+    'Existing stock',
+    'Stock already in the store that is not in the system yet.',
+  ),
+  'return': (
+    'Returned stock',
+    'Items handed back to the store by a department or a person.',
+  ),
 };
 
-/// Stock receiving (FRS 10.7). Purchase-order receiving arrives with Inv-5.
+/// Adds existing or returned stock to a store. Purchases are received on their
+/// purchase order.
 class ReceivePage extends StatefulWidget {
   const ReceivePage({this.storeId, super.key});
 
@@ -51,6 +57,22 @@ class _ReceivePageState extends State<ReceivePage> {
   Future<void> _save() async {
     if (!_form.currentState!.validate()) return;
     if (_lines.isEmpty) return showMessage(context, 'Add at least one item');
+    final seen = <String>{};
+    for (final lineDraft in _lines) {
+      final batch = lineDraft.item.tracking == Tracking.batch
+          ? lineDraft.batchNumber.text.trim()
+          : '';
+      final key = '${lineDraft.item.id}|${lineDraft.variant?.id}|$batch';
+      if (!seen.add(key)) {
+        final name = lineDraft.item.name;
+        return showMessage(
+          context,
+          batch.isEmpty
+              ? '$name is added twice. Combine it into one line.'
+              : '$name batch $batch is added twice. Combine it into one line.',
+        );
+      }
+    }
     setState(() => _busy = true);
     await stockSubmit(
       context,
@@ -82,6 +104,7 @@ class _ReceivePageState extends State<ReceivePage> {
         maxWidth: 900,
         child: Form(
           key: _form,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
@@ -106,7 +129,7 @@ class _ReceivePageState extends State<ReceivePage> {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            'Destination & Source',
+                            'Store & source',
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.w600,
                             ),
@@ -119,27 +142,42 @@ class _ReceivePageState extends State<ReceivePage> {
                         onChanged: (value) => setState(() => _store = value),
                       ),
                       const SizedBox(height: 12),
-                      IcueDropdown<String>(
-                        value: _source,
-                        items: [
-                          for (final mapEntry in _sources.entries)
-                            DropdownMenuItem(
-                              value: mapEntry.key,
-                              child: Text(
-                                mapEntry.value,
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                      Text(
+                        'Source of stock',
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      SegmentedButton<String>(
+                        showSelectedIcon: false,
+                        segments: [
+                          for (final entry in _sources.entries)
+                            ButtonSegment(
+                              value: entry.key,
+                              label: Text(entry.value.$1),
                             ),
                         ],
-                        onChanged: (value) => setState(() => _source = value!),
-                        label: 'Source of stock',
-                        icon: Icons.source_outlined,
+                        selected: {_source},
+                        onSelectionChanged: (value) =>
+                            setState(() => _source = value.first),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        _sources[_source]!.$2,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
                       const SizedBox(height: 12),
                       IcueTextField(
                         controller: _reference,
-                        label: 'Reference number / Challan (optional)',
-                        hintText: 'e.g. DC-2024-001, OP-STOCK-2024',
+                        label: 'Reference (optional)',
+                        maxLength: 50,
+                        validator: (value) => (value ?? '').trim().length > 50
+                            ? 'At most 50 characters'
+                            : null,
+                        hintText: 'e.g. OP-STOCK-2024, return slip number',
                         icon: Icons.tag_rounded,
                       ),
                     ],
@@ -169,7 +207,7 @@ class _ReceivePageState extends State<ReceivePage> {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            'Items to Receive',
+                            'Items',
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.w600,
                             ),
@@ -214,6 +252,8 @@ class _ReceivePageState extends State<ReceivePage> {
               IcueTextField(
                 controller: _remarks,
                 label: 'Remarks / Notes (optional)',
+                maxLength: 500,
+                maxLines: 3,
                 hintText: 'e.g. Verified by physical count',
                 icon: Icons.notes_rounded,
               ),
@@ -243,82 +283,37 @@ class _ReceiveSummaryBar extends StatelessWidget {
     final theme = Theme.of(context);
     return ListenableBuilder(
       listenable: Listenable.merge([
-        for (final lineDraft in lines) ...[
-          lineDraft.quantity,
-          lineDraft.rejected,
-          lineDraft.cost,
-        ],
+        for (final lineDraft in lines) ...[lineDraft.quantity, lineDraft.cost],
       ]),
       builder: (context, _) {
-        double totalAccepted = 0;
-        double totalRejected = 0;
-        double totalValuation = 0;
-        var hasValuation = false;
-
+        var totalQuantity = 0.0;
+        var totalValue = 0.0;
         for (final lineDraft in lines) {
-          final accepted = double.tryParse(lineDraft.quantity.text.trim()) ?? 0;
-          final rejected = double.tryParse(lineDraft.rejected.text.trim()) ?? 0;
-          final unitCost = double.tryParse(lineDraft.cost.text.trim());
-          totalAccepted += accepted;
-          totalRejected += rejected;
-          if (unitCost != null && unitCost > 0 && accepted > 0) {
-            totalValuation += accepted * unitCost;
-            hasValuation = true;
-          }
+          final quantity = double.tryParse(lineDraft.quantity.text.trim()) ?? 0;
+          final unitCost = double.tryParse(lineDraft.cost.text.trim()) ?? 0;
+          totalQuantity += quantity;
+          totalValue += quantity * unitCost;
         }
-
-        if (totalAccepted == 0 && totalRejected == 0 && !hasValuation) {
-          return const SizedBox.shrink();
-        }
-
+        if (totalQuantity == 0) return const SizedBox.shrink();
+        final style = theme.textTheme.labelLarge?.copyWith(
+          fontWeight: FontWeight.w700,
+          color: theme.colorScheme.primary,
+        );
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
             color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: theme.colorScheme.primary.withValues(alpha: 0.2),
-            ),
           ),
           child: Row(
             children: [
-              Icon(
-                Icons.summarize_outlined,
-                size: 18,
-                color: theme.colorScheme.primary,
+              Text(
+                'Total quantity: ${totalQuantity.toQuantityText()}',
+                style: style,
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Wrap(
-                  spacing: 12,
-                  runSpacing: 4,
-                  children: [
-                    Text(
-                      'Accepted: ${totalAccepted.toQuantityText()}',
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
-                    if (totalRejected > 0)
-                      Text(
-                        'Rejected: ${totalRejected.toQuantityText()}',
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: theme.colorScheme.error,
-                        ),
-                      ),
-                    if (hasValuation)
-                      Text(
-                        'Total Value: ${totalValuation.toRupees()}',
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.onSurface,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
+              const Spacer(),
+              if (totalValue > 0)
+                Text('Value: ${totalValue.toRupees()}', style: style),
             ],
           ),
         );

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/stock/shared/item_picker.dart';
+import 'package:inventory/src/ui/stock/shared/receipt_line_fields.dart';
+import 'package:inventory/src/ui/stock/shared/stock_validators.dart';
 
 /// One editable stock line. Controllers live here so the editor can rebuild freely.
 class LineDraft {
@@ -10,13 +12,12 @@ class LineDraft {
   final InventoryItem item;
   final InventoryVariant? variant;
   final quantity = TextEditingController();
-  final rejected = TextEditingController();
   final batchNumber = TextEditingController();
   final expiry = TextEditingController();
   final cost = TextEditingController();
 
   void dispose() {
-    for (final controller in [quantity, rejected, batchNumber, expiry, cost]) {
+    for (final controller in [quantity, batchNumber, expiry, cost]) {
       controller.dispose();
     }
   }
@@ -33,8 +34,6 @@ class LineDraft {
       'itemId': item.id,
       'variantId': ?variant?.id,
       quantityKey: double.tryParse(quantity.text.trim()) ?? 0,
-      if (receipt)
-        'quantityRejected': double.tryParse(rejected.text.trim()) ?? 0,
       if (receipt) 'unitCost': ?double.tryParse(cost.text.trim()),
       if (batch && item.tracking == Tracking.batch) ...{
         'batchNumber': text(batchNumber),
@@ -79,53 +78,45 @@ class LineEditor extends StatelessWidget {
     final theme = Theme.of(context);
 
     if (lineItems.isEmpty) {
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHighest.withValues(
-            alpha: 0.25,
+      final color = theme.colorScheme.primary;
+      return InkWell(
+        onTap: () => _addItem(context),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 16),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: color.withValues(alpha: 0.35)),
           ),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
+          child: Column(
+            children: [
+              CircleAvatar(
+                radius: 24,
+                backgroundColor: color.withValues(alpha: 0.12),
+                child: Icon(Icons.add_rounded, size: 28, color: color),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Add item',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: color,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                receipt
+                    ? 'Pick the items you are adding to the store'
+                    : 'Add items and specify the quantities',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ),
-        ),
-        child: Column(
-          children: [
-            Icon(
-              receipt
-                  ? Icons.move_to_inbox_rounded
-                  : Icons.inventory_2_outlined,
-              size: 40,
-              color: theme.colorScheme.outline,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              receipt ? 'No items to receive' : 'No items added',
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              receipt
-                  ? 'Select items to receive them into the chosen store'
-                  : 'Add items and specify the quantities',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.outline,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 14),
-            IcueButton(
-              label: 'Add item',
-              variant: IcueButtonVariant.secondary,
-              leadingIcon: Icons.add_rounded,
-              onPressed: () => _addItem(context),
-            ),
-          ],
         ),
       );
     }
@@ -143,7 +134,6 @@ class LineEditor extends StatelessWidget {
               onChanged();
             },
           ),
-        const SizedBox(height: 4),
         IcueButton(
           label: 'Add another item',
           onPressed: () => _addItem(context),
@@ -253,244 +243,15 @@ class _LineCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           if (receipt) ...[
-            // Row 1: Quantities
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: lineDraft.quantity,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    decoration: InputDecoration(
-                      labelText: 'Accepted',
-                      hintText: '0',
-                      prefixIcon: const Icon(
-                        Icons.check_circle_outline_rounded,
-                        color: Colors.green,
-                      ),
-                      suffixText: item.stockUnit.isNotEmpty
-                          ? item.stockUnit
-                          : null,
-                    ),
-                    validator: (currentValue) {
-                      final value = (currentValue ?? '').trim();
-                      if (value.isEmpty) return 'Required';
-                      final number = double.tryParse(value);
-                      if (number == null || number <= 0) return 'Must be > 0';
-                      return null;
-                    },
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TextFormField(
-                    controller: lineDraft.rejected,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    decoration: InputDecoration(
-                      labelText: 'Rejected (optional)',
-                      hintText: '0',
-                      prefixIcon: const Icon(
-                        Icons.cancel_outlined,
-                        color: Colors.redAccent,
-                      ),
-                      suffixText: item.stockUnit.isNotEmpty
-                          ? item.stockUnit
-                          : null,
-                    ),
-                    validator: (currentValue) {
-                      final value = (currentValue ?? '').trim();
-                      if (value.isEmpty) return null;
-                      final number = double.tryParse(value);
-                      if (number == null || number < 0) return 'Invalid';
-                      return null;
-                    },
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            // Row 2: Unit cost & line subtotal
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: IcueTextField(
-                    controller: lineDraft.cost,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    validator: (currentValue) {
-                      final value = (currentValue ?? '').trim();
-                      if (value.isEmpty) return null;
-                      final number = double.tryParse(value);
-                      if (number == null || number < 0) return 'Invalid';
-                      return null;
-                    },
-                    label: 'Unit cost (₹)',
-                    hintText:
-                        item.defaultPrice != null && item.defaultPrice! > 0
-                        ? item.defaultPrice!.toAmountText()
-                        : '0.00',
-                    icon: Icons.currency_rupee_rounded,
-                    helperText: item.stockUnit.isNotEmpty
-                        ? 'Per ${item.stockUnit}'
-                        : 'Per unit',
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: ListenableBuilder(
-                    listenable: Listenable.merge([
-                      lineDraft.quantity,
-                      lineDraft.cost,
-                    ]),
-                    builder: (context, _) {
-                      final accepted =
-                          double.tryParse(lineDraft.quantity.text.trim()) ?? 0;
-                      final unitCost =
-                          double.tryParse(lineDraft.cost.text.trim()) ?? 0;
-                      final hasCalculation = accepted > 0 && unitCost > 0;
-                      final subtotal = accepted * unitCost;
-
-                      return Container(
-                        height: 56,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: hasCalculation
-                              ? theme.colorScheme.primaryContainer.withValues(
-                                  alpha: 0.25,
-                                )
-                              : theme.colorScheme.surfaceContainerHighest
-                                    .withValues(alpha: 0.35),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: hasCalculation
-                                ? theme.colorScheme.primary.withValues(
-                                    alpha: 0.3,
-                                  )
-                                : theme.colorScheme.outlineVariant,
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              'Line Subtotal',
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: theme.colorScheme.outline,
-                                fontSize: 10,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              hasCalculation ? subtotal.toRupees() : '—',
-                              style: theme.textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: hasCalculation
-                                    ? theme.colorScheme.primary
-                                    : theme.colorScheme.outline,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-            if (item.tracking == Tracking.batch) ...[
-              const SizedBox(height: 10),
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest.withValues(
-                    alpha: 0.25,
-                  ),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: theme.colorScheme.outlineVariant.withValues(
-                      alpha: 0.6,
-                    ),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.qr_code_2_rounded,
-                          size: 16,
-                          color: theme.colorScheme.primary,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Batch Tracking',
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: theme.colorScheme.primary,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: IcueTextField(
-                            controller: lineDraft.batchNumber,
-                            validator: (value) => (value ?? '').trim().isEmpty
-                                ? 'Required'
-                                : null,
-                            label: 'Batch number',
-                            icon: Icons.tag_rounded,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: IcueDateField(
-                            controller: lineDraft.expiry,
-                            label: 'Expiry date',
-                            firstDate: DateTime.now(),
-                            lastDate: DateTime(2100),
-                            validator: (value) =>
-                                (value ?? '').compareTo(
-                                          DateTime.now().toApiDate(),
-                                        ) <
-                                        0 &&
-                                    (value ?? '').isNotEmpty
-                                ? 'Expired batches cannot be received'
-                                : null,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
+            ReceiptLineFields(lineDraft: lineDraft),
           ] else ...[
             IcueTextField(
               controller: lineDraft.quantity,
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
-              validator: (currentValue) {
-                final value = (currentValue ?? '').trim();
-                if (value.isEmpty) return 'Required';
-                final number = double.tryParse(value);
-                return number == null || number <= 0 ? 'Invalid' : null;
-              },
+              inputFormatters: quantityFormatters,
+              validator: validateQuantity,
               label: quantityLabel,
               icon: Icons.numbers_rounded,
               suffixText: item.stockUnit.isNotEmpty ? item.stockUnit : null,

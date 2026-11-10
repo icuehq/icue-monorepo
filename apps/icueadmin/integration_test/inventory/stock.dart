@@ -16,10 +16,10 @@ Future<void> stockSteps(WidgetTester tester) async {
     await open(tester, InventoryRoutes.inventoryReceive);
     await tapText(tester, 'Store');
     await tapText(tester, 'Central Main Store', index: 1);
-    await fill(tester, 'Reference number / Challan (optional)', reference);
+    await fill(tester, 'Reference (optional)', reference);
     await tapLabel(tester, 'Add item');
     await tapContaining(tester, item);
-    await fill(tester, 'Accepted', quantity);
+    await fill(tester, 'Quantity', quantity);
     if (batch != null) {
       await fill(tester, 'Batch number', batch);
       await pickDate(tester, 'Expiry date', expiryDays!);

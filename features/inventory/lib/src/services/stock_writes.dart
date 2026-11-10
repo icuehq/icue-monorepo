@@ -37,13 +37,7 @@ class StockWrites {
     'other',
   ];
 
-  static const _sources = [
-    'opening',
-    'adjustment',
-    'department_return',
-    'person_return',
-    'other',
-  ];
+  static const _sources = ['opening', 'return'];
 
   Future<Map<String, dynamic>> run(String name, Map<String, Object?> data) =>
       switch (name) {

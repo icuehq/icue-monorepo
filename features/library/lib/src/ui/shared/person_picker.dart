@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/shared/class_student_chooser.dart';
 
-/// Finds a student or staff member in the ERP (Node) by admission number, then reports the choice.
+/// Finds a student or staff member in the ERP (Node) by admission number or RFID (staff by ERP ID), then reports the choice.
 class PersonPicker extends StatefulWidget {
   const PersonPicker({
     required this.onChanged,
@@ -57,7 +57,9 @@ class _PersonPickerState extends State<PersonPicker> {
       final person = await libraryProvider.findPerson(_type, number);
       if (!mounted) return;
       if (person == null) {
-        final identifier = _type == 'student' ? 'admission number' : 'staff ID';
+        final identifier = _type == 'student'
+            ? 'admission number or RFID'
+            : 'staff ID';
         setState(() => _error = 'No $_label found with $identifier "$number"');
         _focusNode.requestFocus();
       } else {
@@ -108,7 +110,7 @@ class _PersonPickerState extends State<PersonPicker> {
                   items: const [
                     DropdownMenuItem(
                       value: 'number',
-                      child: Text('Admission no.'),
+                      child: Text('Admission no. / RFID'),
                     ),
                     DropdownMenuItem(value: 'class', child: Text('Class')),
                   ],
@@ -154,7 +156,7 @@ class _PersonPickerState extends State<PersonPicker> {
             onSubmitted: _find,
             decoration: InputDecoration(
               hintText: _type == 'student'
-                  ? 'Enter admission number'
+                  ? 'Enter admission number or scan RFID'
                   : 'Enter staff ID (ERP ID)',
               prefixIcon: const Icon(Icons.badge_outlined),
               suffixIcon: _loading

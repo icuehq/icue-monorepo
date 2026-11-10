@@ -33,6 +33,7 @@ class StudentData {
     this.dropPoint = '',
     this.pickArea = '',
     this.dropArea = '',
+    this.photoUrl = '',
     this.mode = const <RouteMode>[],
     this.routes = const <String>[],
     this.routeIds = const <String>[],
@@ -50,6 +51,7 @@ class StudentData {
     dropPoint: json['DropPoint'] as String? ?? '',
     pickArea: json['PickArea'] as String? ?? '',
     dropArea: json['DropArea'] as String? ?? '',
+    photoUrl: json['PhotoUrl'] as String? ?? '',
     mode: json['mode'] is List
         ? (json['mode'] as List)
               .map((x) => RouteMode.fromString(x.toString()))
@@ -74,6 +76,7 @@ class StudentData {
   final String dropPoint;
   final String pickArea;
   final String dropArea;
+  final String photoUrl;
   final List<RouteMode> mode;
   final List<String> routes;
   final List<String> routeIds;
@@ -90,6 +93,7 @@ class StudentData {
     'DropPoint': dropPoint,
     'PickArea': pickArea,
     'DropArea': dropArea,
+    'PhotoUrl': photoUrl,
     'mode': mode.map((x) => x.label).toList(),
     'routes': routes,
     'routeIds': routeIds,

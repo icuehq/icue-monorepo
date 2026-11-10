@@ -99,7 +99,9 @@ class IcueTableFilterOption {
   final String label;
 }
 
-/// A single-choice filter shown as a compact chip. [value] null = "All".
+/// A single-choice filter shown as a compact chip. [value] null = "All",
+/// unless [allowAll] is false: then a value is always required, the menu
+/// offers no "All" and clearing filters leaves it alone.
 @immutable
 class IcueTableFilter {
   const IcueTableFilter({
@@ -108,6 +110,7 @@ class IcueTableFilter {
     required this.options,
     required this.value,
     required this.onChanged,
+    this.allowAll = true,
   });
 
   final String id;
@@ -115,12 +118,16 @@ class IcueTableFilter {
   final List<IcueTableFilterOption> options;
   final String? value;
   final ValueChanged<String?> onChanged;
+  final bool allowAll;
+
+  /// Narrows the rows, so "Clear filters" resets it.
+  bool get isActive => allowAll && value != null;
 
   String get valueLabel {
     for (final option in options) {
       if (option.id == value) return option.label;
     }
-    return 'All';
+    return allowAll ? 'All' : 'Select';
   }
 }
 

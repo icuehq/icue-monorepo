@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/stock/balance/widgets/stock_balance_card.dart';
 
-/// Stock balances as a table on wide screens, cards on phones.
+/// Phone stock balances as cards; wide screens use `StockBalanceTable`.
 class StockBalanceList extends StatelessWidget {
   const StockBalanceList({
     required this.scroll,
@@ -19,48 +18,22 @@ class StockBalanceList extends StatelessWidget {
   final void Function(InventoryBalance balance) onOpen;
 
   @override
-  Widget build(BuildContext context) => IcueAdaptiveList<InventoryBalance>(
+  Widget build(BuildContext context) => ListView.builder(
     controller: scroll,
-    items: rows,
-    onTap: onOpen,
-    columns: [
-      IcueAdaptiveColumn.text(
-        'Item',
-        (balance) => stockProvider.itemName(balance.itemId),
-        flex: 3,
-      ),
-      IcueAdaptiveColumn.text(
-        'Code',
-        (balance) => stockProvider.items[balance.itemId]?.code ?? '—',
-      ),
-      IcueAdaptiveColumn.text(
-        'Available',
-        (balance) =>
-            '${balance.available.toQuantityText()} ${stockProvider.items[balance.itemId]?.stockUnit ?? ''}',
-      ),
-      IcueAdaptiveColumn.text(
-        'Damaged',
-        (balance) => balance.damaged.toQuantityText(),
-      ),
-      IcueAdaptiveColumn.text(
-        'Expired',
-        (balance) => balance.expired.toQuantityText(),
-      ),
-      IcueAdaptiveColumn.text('Value', (balance) => balance.value.toRupees()),
-      IcueAdaptiveColumn(
-        label: '',
-        cell: (context, balance) => balance.isBelowReorderLevel
-            ? Text(
-                'Low stock',
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              )
-            : const SizedBox.shrink(),
-      ),
-    ],
-    cardBuilder: (context, balance) {
+    physics: const AlwaysScrollableScrollPhysics(),
+    padding: const EdgeInsets.only(top: 4, bottom: 88),
+    itemCount: rows.length + (stockProvider.hasMoreBalances ? 1 : 0),
+    itemBuilder: (context, index) {
+      if (index == rows.length) {
+        return const Padding(
+          padding: EdgeInsets.all(16),
+          child: Center(child: CircularProgressIndicator()),
+        );
+      }
+      final balance = rows[index];
       final item = stockProvider.items[balance.itemId];
       return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
         child: StockBalanceCard(
           balance: balance,
           itemName: stockProvider.itemName(balance.itemId),
@@ -71,11 +44,5 @@ class StockBalanceList extends StatelessWidget {
         ),
       );
     },
-    footer: stockProvider.hasMoreBalances
-        ? const Padding(
-            padding: EdgeInsets.all(16),
-            child: Center(child: CircularProgressIndicator()),
-          )
-        : null,
   );
 }

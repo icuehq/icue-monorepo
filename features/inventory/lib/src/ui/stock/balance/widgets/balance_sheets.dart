@@ -3,54 +3,12 @@ import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/stock/shared/stock_ui.dart';
+import 'package:inventory/src/ui/stock/shared/stock_validators.dart';
 import 'package:provider/provider.dart';
 
-/// Actions on one balance: history, adjust, report damaged/expired/lost.
-class BalanceActions extends StatelessWidget {
-  const BalanceActions({required this.balance, super.key});
-
-  final InventoryBalance balance;
-
-  @override
-  Widget build(BuildContext context) {
-    final operate = context.read<InventoryProvider>().access.can(
-      'inventory.stock.operate',
-    );
-    final name = context.read<StockProvider>().itemName(balance.itemId);
-    final navigator = Navigator.of(context);
-    Future<void> open(Widget Function() form) async {
-      navigator.pop();
-      await showFormPage(navigator.context, form);
-    }
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(name, style: Theme.of(context).textTheme.titleMedium),
-        ListTile(
-          leading: const Icon(Icons.history_rounded),
-          title: const Text('Movement history'),
-          onTap: () => open(() => _History(balance)),
-        ),
-        if (operate) ...[
-          ListTile(
-            leading: const Icon(Icons.tune_rounded),
-            title: const Text('Adjust quantity'),
-            onTap: () => open(() => _Adjust(balance)),
-          ),
-          ListTile(
-            leading: const Icon(Icons.report_problem_outlined),
-            title: const Text('Report damaged / expired / lost'),
-            onTap: () => open(() => _Report(balance)),
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-class _History extends StatelessWidget {
-  const _History(this.balance);
+/// Movement ledger of one balance.
+class MovementHistory extends StatelessWidget {
+  const MovementHistory(this.balance, {super.key});
 
   final InventoryBalance balance;
 
@@ -59,45 +17,45 @@ class _History extends StatelessWidget {
     future: context.read<StockProvider>().movements(balance),
     builder: (context, snapshot) {
       if (!snapshot.hasData) {
-        return const SizedBox(
-          height: 160,
+        return const Padding(
+          padding: EdgeInsets.all(24),
           child: Center(child: CircularProgressIndicator()),
         );
       }
       final rows = snapshot.data!;
-      return SizedBox(
-        height: 420,
-        child: rows.isEmpty
-            ? const Center(child: Text('No movements'))
-            : ListView(
-                children: [
-                  for (final movement in rows)
-                    ListTile(
-                      dense: true,
-                      title: Text(
-                        '${humanizeStatus(movement.type)} · ${movement.bucket}',
-                      ),
-                      subtitle: Text(
-                        '${movement.transactionDate.toDisplayDay()} · ${movement.referenceType}',
-                      ),
-                      trailing: Text(
-                        '${movement.quantity > 0 ? '+' : ''}${movement.quantity.toQuantityText()}',
-                        style: TextStyle(
-                          color: movement.quantity < 0
-                              ? Colors.red
-                              : Colors.green,
-                        ),
+      return rows.isEmpty
+          ? const Padding(
+              padding: EdgeInsets.all(24),
+              child: Center(child: Text('No movements yet')),
+            )
+          : Column(
+              children: [
+                for (final movement in rows)
+                  ListTile(
+                    dense: true,
+                    title: Text(
+                      '${humanizeStatus(movement.type)} · ${movement.bucket}',
+                    ),
+                    subtitle: Text(
+                      '${movement.transactionDate.toDisplayDay()} · ${movement.referenceType}',
+                    ),
+                    trailing: Text(
+                      '${movement.quantity > 0 ? '+' : ''}${movement.quantity.toQuantityText()}',
+                      style: TextStyle(
+                        color: movement.quantity < 0
+                            ? Colors.red
+                            : Colors.green,
                       ),
                     ),
-                ],
-              ),
-      );
+                  ),
+              ],
+            );
     },
   );
 }
 
 abstract class _BalanceForm extends StatefulWidget {
-  const _BalanceForm(this.balance);
+  const _BalanceForm(this.balance, {super.key});
 
   final InventoryBalance balance;
 }
@@ -137,86 +95,101 @@ mixin _Submit<T extends _BalanceForm> on State<T> {
   }
 }
 
-class _Adjust extends _BalanceForm {
-  const _Adjust(super.b);
+class AdjustStockForm extends _BalanceForm {
+  const AdjustStockForm(super.balance, {super.key});
 
   @override
-  State<_Adjust> createState() => _AdjustState();
+  State<AdjustStockForm> createState() => _AdjustState();
 }
 
-class _AdjustState extends State<_Adjust> with _Submit {
-  var _reason = 'count_correction';
-  static const _reasons = {
-    'count_correction': 'Physical count correction',
-    'data_entry': 'Data entry correction',
-    'missing': 'Missing stock',
-    'excess': 'Excess stock',
-    'other': 'Other (describe)',
-  };
+class _AdjustState extends State<AdjustStockForm> with _Submit {
+  var _add = true;
 
   @override
-  Widget build(BuildContext context) => Form(
-    key: form,
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      spacing: 16,
-      children: [
-        Text(
-          'Currently ${widget.balance.available.toQuantityText()} available',
-        ),
-        IcueTextField(
-          controller: quantity,
-          keyboardType: const TextInputType.numberWithOptions(
-            decimal: true,
-            signed: true,
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final available = widget.balance.available;
+    return Form(
+      key: form,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: 16,
+        children: [
+          Text.rich(
+            TextSpan(
+              text: 'In stock now: ',
+              children: [
+                TextSpan(
+                  text: available.toQuantityText(),
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ],
+            ),
+            style: theme.textTheme.bodyLarge,
           ),
-          validator: (value) {
-            final number = double.tryParse((value ?? '').trim());
-            return number == null || number == 0
-                ? 'Enter a non-zero number'
-                : null;
-          },
-          label: 'Change (+ adds, − removes)',
-        ),
-        IcueDropdown<String>(
-          value: _reason,
-          items: [
-            for (final mapEntry in _reasons.entries)
-              DropdownMenuItem(
-                value: mapEntry.key,
-                child: Text(mapEntry.value, overflow: TextOverflow.ellipsis),
+          SegmentedButton<bool>(
+            showSelectedIcon: false,
+            segments: const [
+              ButtonSegment(
+                value: true,
+                icon: Icon(Icons.add_rounded),
+                label: Text('Add stock'),
               ),
-          ],
-          onChanged: (value) => setState(() => _reason = value!),
-          label: 'Reason',
-        ),
-        IcueTextField(
-          controller: note,
-          validator: (value) => _reason == 'other' ? requiredText(value) : null,
-          label: 'Note',
-        ),
-        const SizedBox(height: 12),
-        IcueButton(
-          label: 'Apply adjustment',
-          onPressed: () => send('inventory-adjustment-create', {
-            'delta': double.parse(quantity.text.trim()),
-            'reason': _reason,
-            'remarks': note.text.trim(),
-          }),
-        ),
-      ],
-    ),
-  );
+              ButtonSegment(
+                value: false,
+                icon: Icon(Icons.remove_rounded),
+                label: Text('Remove stock'),
+              ),
+            ],
+            selected: {_add},
+            onSelectionChanged: (value) => setState(() {
+              _add = value.first;
+              form.currentState?.validate();
+            }),
+          ),
+          IcueTextField(
+            controller: quantity,
+            autofocus: true,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: quantityFormatters,
+            validator: (value) {
+              final error = validateQuantity(value);
+              if (error != null) return error;
+              if (!_add && double.parse(value!.trim()) > available) {
+                return 'Only ${available.toQuantityText()} in stock';
+              }
+              return null;
+            },
+            label: _add ? 'Quantity to add' : 'Quantity to remove',
+          ),
+          IcueTextField(
+            controller: note,
+            label: 'Note (optional)',
+            maxLength: 500,
+          ),
+          IcueButton(
+            label: _add ? 'Add stock' : 'Remove stock',
+            onPressed: () => send('inventory-adjustment-create', {
+              'delta': (_add ? 1 : -1) * double.parse(quantity.text.trim()),
+              'reason': 'count_correction',
+              'remarks': note.text.trim(),
+            }),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-class _Report extends _BalanceForm {
-  const _Report(super.b);
+class ReportStockForm extends _BalanceForm {
+  const ReportStockForm(super.balance, {super.key});
 
   @override
-  State<_Report> createState() => _ReportState();
+  State<ReportStockForm> createState() => _ReportState();
 }
 
-class _ReportState extends State<_Report> with _Submit {
+class _ReportState extends State<ReportStockForm> with _Submit {
   var _reason = 'damaged';
 
   @override
