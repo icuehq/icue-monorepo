@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:icue_ui/icue_ui.dart';
 import 'package:school_library/school_library.dart';
 
 /// Card showing the selected borrower and their current borrowing standing at the desk.
@@ -23,163 +22,230 @@ class IssueMemberCard extends StatelessWidget {
     final colorScheme = theme.colorScheme;
     final isBlocked = member?.blocked ?? false;
     final activeLoansCount = member?.activeLoans ?? 0;
+    final accent = isBlocked ? colorScheme.error : colorScheme.primary;
 
     return Card(
       elevation: 0,
       margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      color: colorScheme.surface,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         side: BorderSide(
           color: isBlocked
               ? colorScheme.error
-              : colorScheme.outlineVariant.withValues(alpha: 0.5),
+              : colorScheme.outlineVariant.withValues(alpha: 0.6),
         ),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 8, 16),
+            child: Row(
               children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: isBlocked
-                        ? colorScheme.errorContainer
-                        : colorScheme.primaryContainer,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    person.isStudent
-                        ? Icons.school_rounded
-                        : Icons.badge_outlined,
-                    color: isBlocked
-                        ? colorScheme.onErrorContainer
-                        : colorScheme.onPrimaryContainer,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 12),
+                _BorrowerPhoto(person: person, accent: accent),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
+                      Text(
+                        person.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
                         children: [
-                          Flexible(
-                            child: Text(
-                              person.name,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                          _InfoPill(
+                            label: person.isStudent ? 'Student' : 'Staff',
+                            background: colorScheme.secondaryContainer,
+                            foreground: colorScheme.onSecondaryContainer,
+                            bold: true,
                           ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: colorScheme.secondaryContainer,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              person.isStudent ? 'Student' : 'Staff',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: colorScheme.onSecondaryContainer,
-                              ),
-                            ),
+                          _InfoPill(
+                            icon: Icons.badge_outlined,
+                            label: 'ID ${person.personErpId}',
+                            background: colorScheme.surfaceContainerHighest,
+                            foreground: colorScheme.onSurfaceVariant,
                           ),
                         ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        [
-                          'ID: ${person.personErpId}',
-                          if (person.detail.isNotEmpty) person.detail,
-                        ].join(' · '),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
+                      if (person.detail.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          person.detail,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),
                 if (onChange != null)
-                  IcueButton(
-                    label: 'Change',
+                  IconButton(
+                    tooltip: 'Change borrower',
                     onPressed: disabled ? null : onChange,
-                    variant: IcueButtonVariant.ghost,
-                    leadingIcon: Icons.swap_horiz_rounded,
+                    icon: const Icon(Icons.swap_horiz_rounded),
+                    color: colorScheme.primary,
                   ),
               ],
             ),
-            const Divider(height: 20),
-            Row(
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            color: isBlocked
+                ? colorScheme.errorContainer
+                : colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
+            child: Row(
               children: [
                 Icon(
-                  Icons.auto_stories_rounded,
-                  size: 16,
-                  color: activeLoansCount > 0
+                  isBlocked ? Icons.block_rounded : Icons.auto_stories_rounded,
+                  size: 18,
+                  color: isBlocked
+                      ? colorScheme.onErrorContainer
+                      : activeLoansCount > 0
                       ? colorScheme.primary
                       : colorScheme.onSurfaceVariant,
                 ),
-                const SizedBox(width: 6),
-                Text(
-                  activeLoansCount == 1
-                      ? '1 book currently on loan'
-                      : '$activeLoansCount books currently on loan',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontWeight: activeLoansCount > 0
-                        ? FontWeight.w600
-                        : FontWeight.normal,
-                    color: activeLoansCount > 0
-                        ? colorScheme.primary
-                        : colorScheme.onSurfaceVariant,
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    activeLoansCount == 1
+                        ? '1 book currently on loan'
+                        : '$activeLoansCount books currently on loan',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: activeLoansCount > 0
+                          ? FontWeight.w600
+                          : FontWeight.normal,
+                      color: isBlocked
+                          ? colorScheme.onErrorContainer
+                          : colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
-                if (isBlocked) ...[
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: colorScheme.errorContainer,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.warning_amber_rounded,
-                          size: 14,
-                          color: colorScheme.onErrorContainer,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Blocked',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: colorScheme.onErrorContainer,
-                          ),
-                        ),
-                      ],
+                if (isBlocked)
+                  Text(
+                    'Blocked',
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.onErrorContainer,
                     ),
                   ),
-                ],
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The ERP photo, or the borrower's initials when there is none or it fails to load.
+class _BorrowerPhoto extends StatelessWidget {
+  const _BorrowerPhoto({required this.person, required this.accent});
+
+  final LibraryPerson person;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final initials = person.name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((word) => word.isNotEmpty)
+        .take(2)
+        .map((word) => word[0].toUpperCase())
+        .join();
+    final fallback = ColoredBox(
+      color: colorScheme.primaryContainer,
+      child: Center(
+        child: initials.isEmpty
+            ? Icon(
+                person.isStudent ? Icons.school_rounded : Icons.badge_outlined,
+                color: colorScheme.onPrimaryContainer,
+              )
+            : Text(
+                initials,
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onPrimaryContainer,
+                ),
+              ),
+      ),
+    );
+
+    return Container(
+      width: 100,
+      height: 100,
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: accent, width: 2),
+      ),
+      child: ClipOval(
+        child: person.photoUrl.isEmpty
+            ? fallback
+            : Image.network(
+                person.photoUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => fallback,
+                loadingBuilder: (_, child, progress) =>
+                    progress == null ? child : fallback,
+              ),
+      ),
+    );
+  }
+}
+
+class _InfoPill extends StatelessWidget {
+  const _InfoPill({
+    required this.label,
+    required this.background,
+    required this.foreground,
+    this.icon,
+    this.bold = false,
+  });
+
+  final String label;
+  final Color background;
+  final Color foreground;
+  final IconData? icon;
+  final bool bold;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 14, color: foreground),
+            const SizedBox(width: 4),
           ],
-        ),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
+              color: foreground,
+            ),
+          ),
+        ],
       ),
     );
   }

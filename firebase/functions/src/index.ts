@@ -12,7 +12,6 @@ import { type AnyCallableDef, callable, queryCallable, routes } from './shared/c
 initializeApp();
 
 export { syncItemSearch } from './inventory/search';
-export { noticeFines, noticeIncidents, noticeLoans } from './library/notices';
 export { syncCatalogueSearch } from './library/search';
 export { outboxSend } from './shared/outbox';
 export { dailyInventory } from './inventory/daily';

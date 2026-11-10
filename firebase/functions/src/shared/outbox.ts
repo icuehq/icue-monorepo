@@ -129,40 +129,44 @@ export async function deliver(
     return;
   }
 
-  const messages: TokenMessage[] = [];
-  const tokenRefs: FirebaseFirestore.DocumentReference[] = [];
   const recipients = await resolveRecipients(db, schoolId, outboxEvent.to);
-  const notifiedRefs: FirebaseFirestore.DocumentReference[] = [];
-  for (const uid of recipients) {
-    const notificationRef = db.doc(`schools/${schoolId}/notifications/${key}__${uid}`);
-    try {
-      await notificationRef.create({
-        uid,
-        category: outboxEvent.category,
-        title: outboxEvent.title,
-        body: outboxEvent.body,
-        data: outboxEvent.data ?? {},
-        read: false,
-        pushed: false,
-        createdAt: serverTimestamp(),
-      });
-    } catch (error) {
-      if ((error as { code?: number }).code !== 6) throw error;
-      // Created by an earlier attempt: skip only when its push already went out.
-      if ((await notificationRef.get()).data()?.pushed === true) continue;
-    }
-    notifiedRefs.push(notificationRef);
-    const device = await db.doc(`devices/${uid}`).get();
-    if (device.data()?.mute?.[outboxEvent.category] === true) continue; // not get('mute.x'): categories contain dots
-    for (const snapshot of (await db.collection(`devices/${uid}/tokens`).get()).docs) {
-      messages.push({
-        token: snapshot.get('token') as string,
-        notification: { title: outboxEvent.title, body: outboxEvent.body },
-        data: outboxEvent.data,
-      });
-      tokenRefs.push(snapshot.ref);
-    }
-  }
+  // Recipients run in parallel: same reads/writes, far less billed instance time than one at a time.
+  const perRecipient = await Promise.all(
+    recipients.map(async (uid) => {
+      const notificationRef = db.doc(`schools/${schoolId}/notifications/${key}__${uid}`);
+      try {
+        await notificationRef.create({
+          uid,
+          category: outboxEvent.category,
+          title: outboxEvent.title,
+          body: outboxEvent.body,
+          data: outboxEvent.data ?? {},
+          read: false,
+          pushed: false,
+          createdAt: serverTimestamp(),
+        });
+      } catch (error) {
+        if ((error as { code?: number }).code !== 6) throw error;
+        // Created by an earlier attempt: skip only when its push already went out.
+        if ((await notificationRef.get()).data()?.pushed === true) return null;
+      }
+      const [device, tokens] = await Promise.all([
+        db.doc(`devices/${uid}`).get(),
+        db.collection(`devices/${uid}/tokens`).get(),
+      ]);
+      // not get('mute.x'): categories contain dots
+      const muted = device.data()?.mute?.[outboxEvent.category] === true;
+      return { notificationRef, tokens: muted ? [] : tokens.docs };
+    }),
+  );
+  const notifiedRefs = perRecipient.flatMap((entry) => (entry ? [entry.notificationRef] : []));
+  const tokenSnapshots = perRecipient.flatMap((entry) => entry?.tokens ?? []);
+  const tokenRefs = tokenSnapshots.map((snapshot) => snapshot.ref);
+  const messages: TokenMessage[] = tokenSnapshots.map((snapshot) => ({
+    token: snapshot.get('token') as string,
+    notification: { title: outboxEvent.title, body: outboxEvent.body },
+    data: outboxEvent.data,
+  }));
 
   let sent = 0;
   for (let i = 0; i < messages.length; i += 500) {

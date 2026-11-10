@@ -6,6 +6,7 @@ class LibraryPerson {
     required this.name,
     this.classId,
     this.detail = '',
+    this.photoUrl = '',
   });
 
   final String memberType;
@@ -15,6 +16,9 @@ class LibraryPerson {
 
   /// Class, section and admission number for the search result list; empty for teachers.
   final String detail;
+
+  /// ERP photo of a student; empty when there is none.
+  final String photoUrl;
 
   bool get isStudent => memberType == 'student';
 

@@ -56,9 +56,10 @@ class LibraryPeopleService {
     personErpId: student.id,
     name: student.name,
     classId: student.classId == 0 ? null : student.classId,
+    photoUrl: student.photoUrl,
     detail: [
       if (memberType == 'student' && student.standard.isNotEmpty)
-        'Class ${student.standard}${student.section.isEmpty ? '' : ' ${student.section}'}',
+        '${student.standard.toLowerCase().startsWith('class') ? '' : 'Class '}${student.standard}${student.section.isEmpty ? '' : ' ${student.section}'}',
       if (student.admissionNumber.isNotEmpty) 'Adm. ${student.admissionNumber}',
     ].join(' · '),
   );

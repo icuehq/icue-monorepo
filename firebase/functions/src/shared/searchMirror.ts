@@ -137,15 +137,24 @@ export async function searchPage(
   };
 }
 
-/** Trigger that mirrors every write of `schools/{schoolId}/<collection>/{id}` into the search database. */
+/** Whether a write leaves the mirrored projection unchanged (so the search database need not be touched). */
+export const sameProjection = (
+  project: (data: DocumentData) => DocumentData,
+  before: DocumentData | undefined,
+  after: DocumentData | undefined,
+) => !!before && !!after && JSON.stringify(project(before)) === JSON.stringify(project(after));
+
+/** Trigger that mirrors writes of `schools/{schoolId}/<collection>/{id}` that change the projection. */
 export const syncTrigger = (collection: string, project: (data: DocumentData) => DocumentData) =>
-  onDocumentWritten(`schools/{schoolId}/${collection}/{id}`, (event) =>
-    applyChange(
+  onDocumentWritten(`schools/{schoolId}/${collection}/{id}`, async (event) => {
+    const after = event.data?.after.data();
+    if (sameProjection(project, event.data?.before.data(), after)) return;
+    await applyChange(
       collection,
       project,
       event.params.schoolId,
       event.params.id,
-      event.data?.after.data(),
+      after,
       event.data?.after.updateTime,
-    ),
-  );
+    );
+  });
