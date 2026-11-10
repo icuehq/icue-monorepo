@@ -1,5 +1,5 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/procurement/shared/procurement_ui.dart';
 import 'package:provider/provider.dart';
@@ -268,7 +268,7 @@ class InvoiceSheet extends StatelessWidget {
 
           // Actions
           if (canOperate && !i.isCancelled) ...[
-            AppButton(
+            IcueButton(
               label: 'Update Payment Status',
               onPressed: () => _ask(
                 context,
@@ -290,7 +290,7 @@ class InvoiceSheet extends StatelessWidget {
             if (i.isUnpaid) ...[
               const SizedBox(height: 8),
               Align(
-                child: AppButton(
+                child: IcueButton(
                   label: 'Cancel Invoice',
                   onPressed: () => _ask(
                     context,
@@ -305,7 +305,7 @@ class InvoiceSheet extends StatelessWidget {
                       done: 'Invoice cancelled',
                     ),
                   ),
-                  variant: AppButtonVariant.destructive,
+                  variant: IcueButtonVariant.destructive,
                   leadingIcon: Icons.cancel_outlined,
                 ),
               ),

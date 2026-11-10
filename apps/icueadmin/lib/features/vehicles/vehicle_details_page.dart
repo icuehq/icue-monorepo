@@ -1,6 +1,6 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:icueadmin/analytics/app_events.dart';
 import 'package:icueadmin/routing/app_routes.dart';
 import 'package:provider/provider.dart';
@@ -21,12 +21,12 @@ class VehicleDetailsPage extends StatelessWidget {
           'Are you sure you want to remove vehicle ${vehicle.number} from the fleet?',
         ),
         actions: [
-          AppButton(
+          IcueButton(
             label: 'Cancel',
             onPressed: () => Navigator.of(ctx).pop(),
-            variant: AppButtonVariant.ghost,
+            variant: IcueButtonVariant.ghost,
           ),
-          AppButton(
+          IcueButton(
             label: 'Delete',
             onPressed: () async {
               Navigator.of(ctx).pop();
@@ -54,7 +54,7 @@ class VehicleDetailsPage extends StatelessWidget {
                 }
               }
             },
-            variant: AppButtonVariant.destructive,
+            variant: IcueButtonVariant.destructive,
           ),
         ],
       ),
@@ -315,18 +315,18 @@ class VehicleDetailsPage extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: AppButton(
+                  child: IcueButton(
                     label: 'Edit Vehicle',
                     onPressed: () {
                       context.push(AppRoutes.addVehicle, extra: vehicle);
                     },
-                    variant: AppButtonVariant.outline,
+                    variant: IcueButtonVariant.outline,
                     leadingIcon: Icons.edit_rounded,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: AppButton(
+                  child: IcueButton(
                     label: 'Documents',
                     onPressed: () {
                       context.push(AppRoutes.vehicleDocs, extra: vehicle);

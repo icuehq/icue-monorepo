@@ -1,7 +1,6 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/assets/shared/asset_ui.dart';
 
@@ -116,7 +115,7 @@ class _AssetActionDialogState extends State<AssetActionDialog> {
               _type,
               (value) => setState(() => _type = value!),
             ),
-            AppTextField(
+            IcueTextField(
               controller: _erpId,
               keyboardType: TextInputType.number,
               validator: (value) => int.tryParse((value ?? '').trim()) == null
@@ -150,7 +149,7 @@ class _AssetActionDialogState extends State<AssetActionDialog> {
               (value) => setState(() => _condition = value!),
             ),
           if (_a != AssetAction.condition && _a != AssetAction.retire)
-            AppTextField(controller: _location, label: 'Location'),
+            IcueTextField(controller: _location, label: 'Location'),
           if (_a == AssetAction.condition)
             labelled(
               'Mark as',
@@ -168,13 +167,13 @@ class _AssetActionDialogState extends State<AssetActionDialog> {
           if (_a == AssetAction.giveBack ||
               _a == AssetAction.condition ||
               _a == AssetAction.retire)
-            AppTextField(
+            IcueTextField(
               controller: _text,
               validator: _a == AssetAction.retire ? requiredText : null,
               label: _a == AssetAction.retire ? 'Reason *' : 'Remarks',
             ),
           const SizedBox(height: 16),
-          AppButton(
+          IcueButton(
             label: _busy ? 'Saving…' : _a.title,
             onPressed: _busy ? null : _save,
           ),

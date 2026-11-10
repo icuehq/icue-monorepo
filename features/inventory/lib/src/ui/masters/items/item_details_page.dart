@@ -1,7 +1,6 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -145,7 +144,7 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
             ),
         ],
       ),
-      body: CenteredBody(
+      body: IcueCenteredBody(
         maxWidth: 900,
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -310,7 +309,7 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
             ),
 
             // Classification & Units Section
-            FormSectionCard(
+            IcueFormSectionCard(
               title: 'Classification & units',
               icon: Icons.category_outlined,
               children: [
@@ -348,7 +347,7 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
             ),
 
             // Stock & Pricing Controls
-            FormSectionCard(
+            IcueFormSectionCard(
               title: 'Stock & pricing parameters',
               icon: Icons.tune_outlined,
               children: [
@@ -377,7 +376,7 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
 
             // Description Section (if available)
             if (item.description != null && item.description!.trim().isNotEmpty)
-              FormSectionCard(
+              IcueFormSectionCard(
                 title: 'Description & specifications',
                 icon: Icons.notes_outlined,
                 children: [
@@ -394,10 +393,10 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
             const SizedBox(height: 8),
 
             // Action Buttons
-            AppButton(
+            IcueButton(
               label: 'View stock levels in stores',
               onPressed: () => context.push(InventoryRoutes.inventoryStock),
-              variant: AppButtonVariant.outline,
+              variant: IcueButtonVariant.outline,
               leadingIcon: Icons.stacked_bar_chart_outlined,
             ),
             const SizedBox(height: 24),

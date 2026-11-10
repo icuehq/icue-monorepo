@@ -1,8 +1,8 @@
 import 'package:attendance/attendance.dart';
 import 'package:auth/auth.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:icueadmin/analytics/app_events.dart';
 import 'package:icueadmin/features/attendance/widgets/attendance_photos_section.dart';
 import 'package:icueadmin/features/attendance/widgets/attendance_student_tile.dart';
@@ -43,12 +43,12 @@ class _AttendanceConfirmationPageState extends State<AttendanceConfirmationPage>
           'Are you sure you want to mark ${student.name} as $newStatus?',
         ),
         actions: [
-          AppButton(
+          IcueButton(
             label: 'Cancel',
             onPressed: () => Navigator.of(context).pop(false),
-            variant: AppButtonVariant.ghost,
+            variant: IcueButtonVariant.ghost,
           ),
-          AppButton(
+          IcueButton(
             label: 'Confirm',
             onPressed: () => Navigator.of(context).pop(true),
           ),
@@ -88,12 +88,12 @@ class _AttendanceConfirmationPageState extends State<AttendanceConfirmationPage>
           'Are you sure you want to submit this attendance record? Once submitted, it cannot be edited.',
         ),
         actions: [
-          AppButton(
+          IcueButton(
             label: 'Cancel',
             onPressed: () => Navigator.of(context).pop(false),
-            variant: AppButtonVariant.ghost,
+            variant: IcueButtonVariant.ghost,
           ),
-          AppButton(
+          IcueButton(
             label: 'Submit',
             onPressed: () => Navigator.of(context).pop(true),
           ),
@@ -150,7 +150,7 @@ class _AttendanceConfirmationPageState extends State<AttendanceConfirmationPage>
               const SizedBox(height: 16),
               const Text('No active attendance record found.'),
               const SizedBox(height: 16),
-              AppButton(
+              IcueButton(
                 label: 'Return to Dashboard',
                 onPressed: () => context.go(AppRoutes.dashboard),
               ),
@@ -180,7 +180,7 @@ class _AttendanceConfirmationPageState extends State<AttendanceConfirmationPage>
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: AppButton(
+          child: IcueButton(
             label: 'Submit Attendance',
             onPressed: attendanceProvider.isLoading ? null : _handleSubmit,
             leadingIcon: Icons.send_rounded,

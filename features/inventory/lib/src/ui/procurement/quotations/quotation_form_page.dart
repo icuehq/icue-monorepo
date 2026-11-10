@@ -1,7 +1,6 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/procurement/shared/order_widgets.dart';
 import 'package:inventory/src/ui/procurement/shared/procurement_ui.dart';
@@ -142,7 +141,7 @@ class _QuotationFormPageState extends State<QuotationFormPage> {
           widget.existing?.number ?? 'Quotation · ${widget.request.number}',
         ),
       ),
-      body: CenteredBody(
+      body: IcueCenteredBody(
         maxWidth: 900,
         child: Form(
           key: _form,
@@ -178,7 +177,7 @@ class _QuotationFormPageState extends State<QuotationFormPage> {
                         ],
                       ),
                       const SizedBox(height: 16),
-                      AppDropdown<String>(
+                      IcueDropdown<String>(
                         value: _vendor,
                         items: [
                           for (final vendor in vendors)
@@ -193,7 +192,7 @@ class _QuotationFormPageState extends State<QuotationFormPage> {
                         icon: Icons.storefront_outlined,
                       ),
                       const SizedBox(height: 12),
-                      AppTextField(
+                      IcueTextField(
                         controller: _ref,
                         label: "Vendor's quotation no. / reference",
                         hintText: 'e.g. QT-2024-8849',
@@ -246,7 +245,7 @@ class _QuotationFormPageState extends State<QuotationFormPage> {
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: AppTextField(
+                            child: IcueTextField(
                               controller: _days,
                               keyboardType: TextInputType.number,
                               inputFormatters: [
@@ -261,7 +260,7 @@ class _QuotationFormPageState extends State<QuotationFormPage> {
                         ],
                       ),
                       const SizedBox(height: 12),
-                      AppTextField(
+                      IcueTextField(
                         controller: _remarks,
                         label: 'Remarks / Notes',
                         icon: Icons.notes_rounded,
@@ -347,17 +346,17 @@ class _QuotationFormPageState extends State<QuotationFormPage> {
               const SizedBox(height: 24),
 
               // Actions
-              AppButton(
+              IcueButton(
                 label: _busy ? 'Saving…' : 'Record Quotation',
                 onPressed: _busy ? null : () => _save(finalize: true),
                 leadingIcon: Icons.check_circle_outline,
                 isLoading: _busy,
               ),
               const SizedBox(height: 10),
-              AppButton(
+              IcueButton(
                 label: 'Save Draft Quotation',
                 onPressed: _busy ? null : () => _save(finalize: false),
-                variant: AppButtonVariant.outline,
+                variant: IcueButtonVariant.outline,
               ),
             ],
           ),

@@ -1,6 +1,5 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 
 class TrackingBadge extends StatelessWidget {
@@ -174,7 +173,7 @@ class _CategoryCardState extends State<CategoryCard> {
                             ),
                             if (!category.active) ...[
                               const SizedBox(width: 8),
-                              const InactiveBadge(),
+                              const IcueInactiveBadge(),
                             ],
                           ],
                         ),
@@ -283,10 +282,10 @@ class _CategoryCardState extends State<CategoryCard> {
                       ),
                       child: Align(
                         alignment: Alignment.centerLeft,
-                        child: AppButton(
+                        child: IcueButton(
                           label: 'Add subcategory',
                           onPressed: () => widget.onAddSubcategory(category),
-                          variant: AppButtonVariant.ghost,
+                          variant: IcueButtonVariant.ghost,
                           leadingIcon: Icons.add_rounded,
                         ),
                       ),
@@ -347,7 +346,7 @@ class _SubcategoryRow extends StatelessWidget {
                     ),
                     if (!category.active) ...[
                       const SizedBox(width: 8),
-                      const InactiveBadge(),
+                      const IcueInactiveBadge(),
                     ],
                   ],
                 ),

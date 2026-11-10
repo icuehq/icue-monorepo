@@ -1,8 +1,7 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icue_firebase/icue_firebase.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/stock/issues/widgets/issuance_card.dart';
 import 'package:inventory/src/ui/stock/issues/widgets/issue_request_widgets.dart';
@@ -193,12 +192,12 @@ class _IssueRequestPageState extends State<IssueRequestPage> {
             ),
           ),
           actions: [
-            AppButton(
+            IcueButton(
               label: 'Cancel',
               onPressed: () => Navigator.pop(context),
-              variant: AppButtonVariant.ghost,
+              variant: IcueButtonVariant.ghost,
             ),
-            AppButton(
+            IcueButton(
               label: action,
               onPressed: () {
                 if (reason.text.trim().isEmpty) {
@@ -206,7 +205,7 @@ class _IssueRequestPageState extends State<IssueRequestPage> {
                 }
                 Navigator.pop(context, reason.text.trim());
               },
-              variant: AppButtonVariant.destructive,
+              variant: IcueButtonVariant.destructive,
             ),
           ],
         ),
@@ -290,12 +289,12 @@ class _IssueRequestPageState extends State<IssueRequestPage> {
         title: const Text('Confirm receipt'),
         content: Text('Confirm the recipient received ${issue.number}?'),
         actions: [
-          AppButton(
+          IcueButton(
             label: 'Cancel',
             onPressed: () => Navigator.pop(context, false),
-            variant: AppButtonVariant.ghost,
+            variant: IcueButtonVariant.ghost,
           ),
-          AppButton(
+          IcueButton(
             label: 'Confirm',
             onPressed: () => Navigator.pop(context, true),
           ),
@@ -323,12 +322,12 @@ class _IssueRequestPageState extends State<IssueRequestPage> {
     if (request.isPending && access.can('inventory.issue.approve')) {
       return _ActionBar(
         children: [
-          AppButton(
+          IcueButton(
             label: 'Reject',
             onPressed: _busy ? null : () => _reject(request),
-            variant: AppButtonVariant.destructive,
+            variant: IcueButtonVariant.destructive,
           ),
-          AppButton(
+          IcueButton(
             label: 'Approve',
             onPressed: _busy ? null : () => _approve(request),
           ),
@@ -338,7 +337,7 @@ class _IssueRequestPageState extends State<IssueRequestPage> {
     if (request.isIssuable && access.can('inventory.stock.operate')) {
       return _ActionBar(
         children: [
-          AppButton(
+          IcueButton(
             label: 'Issue stock',
             onPressed: _busy ? null : () => _issue(request),
             leadingIcon: Icons.outbox_rounded,
@@ -368,13 +367,13 @@ class _IssueRequestPageState extends State<IssueRequestPage> {
             children: [
               Text(_loadError ?? 'Request not found'),
               const SizedBox(height: 12),
-              AppButton(
+              IcueButton(
                 label: 'Try again',
                 onPressed: () {
                   setState(() => _loading = true);
                   _load();
                 },
-                variant: AppButtonVariant.ghost,
+                variant: IcueButtonVariant.ghost,
               ),
             ],
           ),
@@ -445,22 +444,22 @@ class _IssueRequestPageState extends State<IssueRequestPage> {
           if (request != null &&
               request.isPending &&
               request.createdBy == stockProvider.uid)
-            AppButton(
+            IcueButton(
               label: 'Cancel request',
               onPressed: _busy ? null : () => _end(request, cancel: true),
-              variant: AppButtonVariant.ghost,
+              variant: IcueButtonVariant.ghost,
             ),
           if (request != null &&
               request.isIssuable &&
               access.can('inventory.stock.operate'))
-            AppButton(
+            IcueButton(
               label: 'Close request',
               onPressed: _busy ? null : () => _end(request, cancel: false),
-              variant: AppButtonVariant.ghost,
+              variant: IcueButtonVariant.ghost,
             ),
         ],
       ),
-      body: CenteredBody(maxWidth: 900, child: body),
+      body: IcueCenteredBody(maxWidth: 900, child: body),
       bottomNavigationBar: request == null ? null : _actionBar(request, access),
     );
   }

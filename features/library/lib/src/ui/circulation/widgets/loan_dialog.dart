@@ -1,6 +1,5 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/fines/widgets/fine_dialog.dart';
@@ -158,14 +157,14 @@ class _LoanDialogState extends State<LoanDialog> {
           ),
         ),
         const SizedBox(height: 16),
-        AppTextField(controller: _remarks, label: 'Return remarks (optional)'),
+        IcueTextField(controller: _remarks, label: 'Return remarks (optional)'),
         const SizedBox(height: 16),
         if (_busy)
           const Padding(
             padding: EdgeInsets.only(bottom: 8),
             child: LinearProgressIndicator(),
           ),
-        AppButton(
+        IcueButton(
           label: 'Return book',
           onPressed: _busy ? null : () => _return('good'),
           leadingIcon: Icons.assignment_returned_rounded,
@@ -174,33 +173,33 @@ class _LoanDialogState extends State<LoanDialog> {
         Row(
           children: [
             Expanded(
-              child: AppButton(
+              child: IcueButton(
                 label: 'Damaged',
                 onPressed: _busy ? null : () => _return('damaged'),
-                variant: AppButtonVariant.outline,
+                variant: IcueButtonVariant.outline,
                 leadingIcon: Icons.heart_broken_outlined,
               ),
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: AppButton(
+              child: IcueButton(
                 label: 'Renew',
                 onPressed: _busy || !loan.canRenew
                     ? null
                     : () => _run(
                         (libraryProvider) => libraryProvider.renewLoan(loan.id),
                       ),
-                variant: AppButtonVariant.outline,
+                variant: IcueButtonVariant.outline,
                 leadingIcon: Icons.autorenew_rounded,
               ),
             ),
           ],
         ),
         const SizedBox(height: 4),
-        AppButton(
+        IcueButton(
           label: 'Mark as lost',
           onPressed: _busy ? null : _markLost,
-          variant: AppButtonVariant.destructive,
+          variant: IcueButtonVariant.destructive,
           leadingIcon: Icons.report_gmailerrorred_rounded,
         ),
       ],
@@ -241,12 +240,12 @@ class _LoanDialogState extends State<LoanDialog> {
               'Mark ${widget.loan.barcode} as lost for ${widget.loan.memberLabel}?',
             ),
             const SizedBox(height: 12),
-            AppTextField(
+            IcueTextField(
               controller: reasonController,
               label: 'Reason for loss',
             ),
             const SizedBox(height: 8),
-            AppTextField(
+            IcueTextField(
               controller: chargeController,
               keyboardType: TextInputType.number,
               label: 'Replacement charge (₹)',
@@ -255,12 +254,12 @@ class _LoanDialogState extends State<LoanDialog> {
           ],
         ),
         actions: [
-          AppButton(
+          IcueButton(
             label: 'Cancel',
             onPressed: () => Navigator.of(context).pop(false),
-            variant: AppButtonVariant.ghost,
+            variant: IcueButtonVariant.ghost,
           ),
-          AppButton(
+          IcueButton(
             label: 'Confirm lost',
             onPressed: () => Navigator.of(context).pop(true),
           ),

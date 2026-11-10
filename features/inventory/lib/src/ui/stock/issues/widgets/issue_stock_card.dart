@@ -1,6 +1,5 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/shared/widgets/person_search_field.dart';
 import 'package:inventory/src/ui/stock/issues/widgets/issue_request_widgets.dart';
@@ -75,7 +74,7 @@ class IssueStockCard extends StatelessWidget {
             if (remainingToIssue(line) > 0)
               Padding(
                 padding: const EdgeInsets.only(bottom: 10),
-                child: AppTextField(
+                child: IcueTextField(
                   controller: quantityControllers[index],
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,

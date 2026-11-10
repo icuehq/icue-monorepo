@@ -1,5 +1,5 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:routes/routes.dart';
 
@@ -298,7 +298,7 @@ class _ChangeRouteModalState extends State<ChangeRouteModal> {
             ],
             const SizedBox(height: 16),
           ],
-          AppButton(
+          IcueButton(
             label: 'Update Route Assignment',
             onPressed: provider.isLoading ? null : _submitChange,
             isLoading: provider.isLoading,

@@ -1,6 +1,5 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/circulation/widgets/issue_books_card.dart';
@@ -20,13 +19,14 @@ class IssueBooksPage extends StatefulWidget {
 }
 
 class _IssueBooksPageState extends State<IssueBooksPage> {
-  late LibraryCopy? _pending = widget.copy;
-  LibraryBook? _pendingBook;
+  /// Scanned copies waiting for the Issue Book(s) button, in scan order.
+  final List<IssueScanRecord> _queue = [];
+
   LibraryPerson? _person;
   LibraryMember? _member;
   bool _busy = false;
 
-  /// Scanned books in this session, newest first.
+  /// Issue attempts in this session, newest first.
   final List<IssueScanRecord> _records = [];
 
   @override
@@ -34,14 +34,7 @@ class _IssueBooksPageState extends State<IssueBooksPage> {
     super.initState();
     final copy = widget.copy;
     if (copy != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
-        final book = await context.read<LibraryProvider>().book(
-          copy.catalogueId,
-        );
-        if (mounted) {
-          setState(() => _pendingBook = book);
-        }
-      });
+      WidgetsBinding.instance.addPostFrameCallback((_) => _enqueue(copy));
     }
   }
 
@@ -70,19 +63,16 @@ class _IssueBooksPageState extends State<IssueBooksPage> {
     }
   }
 
-  /// Issues the book scanned before the page opened, once the user confirms.
-  Future<void> _issuePending() async {
-    final scanned = _pending;
-    if (scanned == null || _busy) return;
-    setState(() => _pending = null);
-    await _issue(scanned.barcode);
+  void _notify(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
-  Future<void> _issue(String rawCode) async {
+  /// Looks the barcode up and queues it; nothing is issued until the button.
+  Future<void> _scan(String rawCode) async {
     final code = rawCode.trim();
-    if (code.isEmpty) return;
-    final person = _person;
-    if (person == null || _busy) return;
+    if (code.isEmpty || _person == null || _busy) return;
 
     final libraryProvider = context.read<LibraryProvider>();
     setState(() => _busy = true);
@@ -90,58 +80,88 @@ class _IssueBooksPageState extends State<IssueBooksPage> {
       final copy = await libraryProvider.findCopy(code);
       if (!mounted) return;
       if (copy == null) {
+        _notify('No copy found with barcode "$code"');
+        return;
+      }
+      await _enqueue(copy);
+    } finally {
+      if (mounted) {
+        setState(() => _busy = false);
+      }
+    }
+  }
+
+  Future<void> _enqueue(LibraryCopy copy) async {
+    final alreadyScanned =
+        _queue.any((record) => record.copy?.id == copy.id) ||
+        _records.any((record) => record.success && record.copy?.id == copy.id);
+    if (alreadyScanned) {
+      _notify('Book "${copy.barcode}" is already scanned');
+      return;
+    }
+    final book = await context.read<LibraryProvider>().book(copy.catalogueId);
+    if (!mounted) return;
+    setState(() {
+      _queue.add(
+        IssueScanRecord(
+          barcode: copy.barcode,
+          success: false,
+          isPending: true,
+          message: '',
+          timestamp: DateTime.now(),
+          title: book?.title ?? copy.barcode,
+          authors: book?.authors.join(', '),
+          copy: copy,
+        ),
+      );
+    });
+  }
+
+  /// Issues every queued copy to the selected borrower.
+  Future<void> _issueQueued() async {
+    final person = _person;
+    if (person == null || _busy || _queue.isEmpty) return;
+
+    final libraryProvider = context.read<LibraryProvider>();
+    final queued = List.of(_queue);
+    setState(() => _busy = true);
+    try {
+      for (final item in queued) {
+        final success = await libraryProvider.issueLoan({
+          'person': person.toPayload(),
+          'barcode': item.copy!.id,
+        });
+        if (!mounted) return;
+        final member = _member;
         setState(() {
+          _queue.remove(item);
           _records.insert(
             0,
             IssueScanRecord(
-              barcode: code,
-              success: false,
-              message: 'No copy found with barcode "$code"',
+              barcode: item.barcode,
+              success: success,
+              message: success
+                  ? 'Issued successfully'
+                  : libraryProvider.errorMessage ?? 'Issue failed',
               timestamp: DateTime.now(),
+              title: item.title,
+              authors: item.authors,
+              copy: item.copy,
             ),
           );
+          if (success && member != null) {
+            _member = LibraryMember(
+              id: member.id,
+              memberType: member.memberType,
+              personErpId: member.personErpId,
+              name: member.name,
+              classId: member.classId,
+              activeLoans: member.activeLoans + 1,
+              blocked: member.blocked,
+            );
+          }
         });
-        return;
       }
-
-      final book = await libraryProvider.book(copy.catalogueId);
-      if (!mounted) return;
-
-      final success = await libraryProvider.issueLoan({
-        'person': person.toPayload(),
-        'barcode': copy.id,
-      });
-      if (!mounted) return;
-
-      final message = success
-          ? 'Issued successfully'
-          : libraryProvider.errorMessage ?? 'Issue failed';
-
-      setState(() {
-        _records.insert(
-          0,
-          IssueScanRecord(
-            barcode: copy.barcode,
-            success: success,
-            message: message,
-            timestamp: DateTime.now(),
-            title: book?.title ?? copy.barcode,
-            authors: book?.authors.join(', '),
-            copy: copy,
-          ),
-        );
-        if (success && _member != null) {
-          _member = LibraryMember(
-            id: _member!.id,
-            memberType: _member!.memberType,
-            personErpId: _member!.personErpId,
-            name: _member!.name,
-            classId: _member!.classId,
-            activeLoans: _member!.activeLoans + 1,
-            blocked: _member!.blocked,
-          );
-        }
-      });
     } finally {
       if (mounted) {
         setState(() => _busy = false);
@@ -264,23 +284,6 @@ class _IssueBooksPageState extends State<IssueBooksPage> {
   Widget build(BuildContext context) {
     final person = _person;
     final isWide = context.isWide;
-    final pending = _pending;
-
-    final IssueScanRecord? pendingRecord;
-    if (pending != null) {
-      pendingRecord = IssueScanRecord(
-        barcode: pending.barcode,
-        success: false,
-        isPending: true,
-        message: 'Select a borrower, then tap Issue book',
-        timestamp: DateTime.now(),
-        title: _pendingBook?.title ?? pending.barcode,
-        authors: _pendingBook?.authors.join(', '),
-        copy: pending,
-      );
-    } else {
-      pendingRecord = null;
-    }
 
     return Scaffold(
       appBar: AppBar(
@@ -290,17 +293,17 @@ class _IssueBooksPageState extends State<IssueBooksPage> {
             Padding(
               padding: const EdgeInsets.only(right: 16),
               child: Center(
-                child: AppButton(
+                child: IcueButton(
                   label: 'Finish',
                   onPressed: _busy ? null : () => Navigator.of(context).pop(),
-                  variant: AppButtonVariant.ghost,
+                  variant: IcueButtonVariant.ghost,
                   leadingIcon: Icons.done_all_rounded,
                 ),
               ),
             ),
         ],
       ),
-      body: CenteredBody(
+      body: IcueCenteredBody(
         child: SafeArea(
           child: SingleChildScrollView(
             padding: EdgeInsets.symmetric(
@@ -317,14 +320,14 @@ class _IssueBooksPageState extends State<IssueBooksPage> {
                         flex: 7,
                         child: IssueBooksCard(
                           person: person,
-                          pendingRecord: pendingRecord,
+                          queue: _queue,
                           records: _records,
                           successfulCount: _successfulCount,
                           busy: _busy,
-                          onScan: _issue,
-                          onRemovePending: () =>
-                              setState(() => _pending = null),
-                          onIssuePending: _issuePending,
+                          onScan: _scan,
+                          onRemoveQueued: (record) =>
+                              setState(() => _queue.remove(record)),
+                          onIssue: _issueQueued,
                           onDone: () => Navigator.of(context).pop(),
                         ),
                       ),
@@ -337,13 +340,14 @@ class _IssueBooksPageState extends State<IssueBooksPage> {
                       const SizedBox(height: 16),
                       IssueBooksCard(
                         person: person,
-                        pendingRecord: pendingRecord,
+                        queue: _queue,
                         records: _records,
                         successfulCount: _successfulCount,
                         busy: _busy,
-                        onScan: _issue,
-                        onRemovePending: () => setState(() => _pending = null),
-                        onIssuePending: _issuePending,
+                        onScan: _scan,
+                        onRemoveQueued: (record) =>
+                            setState(() => _queue.remove(record)),
+                        onIssue: _issueQueued,
                         onDone: () => Navigator.of(context).pop(),
                       ),
                     ],

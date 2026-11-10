@@ -1,5 +1,5 @@
-import 'package:admin_ui/admin_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:school_library/school_library.dart';
 
 /// A bordered card with an icon + title header, shared by the book details sections.

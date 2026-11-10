@@ -1,8 +1,8 @@
 import 'package:attendance/attendance.dart';
 import 'package:auth/auth.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:icueadmin/features/attendance/widgets/attendance_mode_sheet.dart';
 import 'package:icueadmin/routing/app_routes.dart';
 import 'package:provider/provider.dart';
@@ -90,7 +90,7 @@ class _SectionsPageState extends State<SectionsPage> {
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: AppButton(
+          child: IcueButton(
             label: 'Start Attendance',
             onPressed: _selectedSection == null || _isChecking
                 ? null

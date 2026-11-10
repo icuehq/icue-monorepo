@@ -1,6 +1,6 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:expenses/expenses.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 
 enum FuelModeAction { fuelStation, selfFilling }
 
@@ -47,10 +47,10 @@ class FuelModeDialog extends StatelessWidget {
         ],
       ),
       actions: [
-        AppButton(
+        IcueButton(
           label: 'Cancel',
           onPressed: () => Navigator.of(context).pop(),
-          variant: AppButtonVariant.ghost,
+          variant: IcueButtonVariant.ghost,
         ),
       ],
     );

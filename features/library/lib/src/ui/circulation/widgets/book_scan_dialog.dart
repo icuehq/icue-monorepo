@@ -1,6 +1,5 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:school_library/school_library.dart';
 
 /// Details of a scanned copy with the one action that applies: Issue Book, or Return Book when it is on loan.
@@ -210,7 +209,7 @@ class BookScanDialog extends StatelessWidget {
         ],
         const SizedBox(height: 20),
         if (onLoan)
-          AppButton(
+          IcueButton(
             autofocus: true,
             isFullWidth: true,
             label: 'Return Book',
@@ -218,7 +217,7 @@ class BookScanDialog extends StatelessWidget {
             onPressed: () => Navigator.of(context).pop(true),
           )
         else if (canIssue)
-          AppButton(
+          IcueButton(
             autofocus: true,
             isFullWidth: true,
             label: 'Issue Book',

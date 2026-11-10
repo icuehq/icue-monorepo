@@ -1,6 +1,5 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -91,19 +90,19 @@ class _CategoryFormPageState extends State<CategoryFormPage> {
 
     return Scaffold(
       appBar: AppBar(title: Text(title)),
-      body: CenteredBody(
-        maxWidth: Breakpoints.formMaxWidth,
+      body: IcueCenteredBody(
+        maxWidth: IcueBreakpoints.formMaxWidth,
         child: Form(
           key: _form,
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             children: [
-              FormSectionCard(
+              IcueFormSectionCard(
                 title: 'Category Details',
                 icon: Icons.category_outlined,
                 children: [
-                  AppTextField(
+                  IcueTextField(
                     controller: _name,
                     textInputAction: TextInputAction.next,
                     textCapitalization: TextCapitalization.words,
@@ -117,7 +116,7 @@ class _CategoryFormPageState extends State<CategoryFormPage> {
                     hintText: 'e.g. Science Lab Equipment',
                     icon: Icons.label_outline,
                   ),
-                  AppTextField(
+                  IcueTextField(
                     controller: _code,
                     enabled: !editing,
                     textCapitalization: TextCapitalization.characters,
@@ -143,7 +142,7 @@ class _CategoryFormPageState extends State<CategoryFormPage> {
                     icon: Icons.qr_code_2_outlined,
                     helperText: editing ? null : 'Unique code (e.g. BKD, CLN)',
                   ),
-                  AppDropdown<String?>(
+                  IcueDropdown<String?>(
                     value: _parentId,
                     items: [
                       const DropdownMenuItem(child: Text('None (top level)')),
@@ -164,7 +163,7 @@ class _CategoryFormPageState extends State<CategoryFormPage> {
                     label: 'Parent category',
                     icon: Icons.account_tree_outlined,
                   ),
-                  AppDropdown<Tracking>(
+                  IcueDropdown<Tracking>(
                     value: _tracking,
                     items: [
                       for (final tracking in Tracking.values)
@@ -181,7 +180,7 @@ class _CategoryFormPageState extends State<CategoryFormPage> {
                     label: 'Suggested tracking *',
                     icon: Icons.track_changes_outlined,
                   ),
-                  AppTextField(
+                  IcueTextField(
                     controller: _description,
                     maxLines: 3,
                     minLines: 1,
@@ -196,7 +195,7 @@ class _CategoryFormPageState extends State<CategoryFormPage> {
               SizedBox(
                 width: double.infinity,
                 height: 48,
-                child: AppButton(
+                child: IcueButton(
                   label: _busy
                       ? 'Saving…'
                       : (editing ? 'Save Changes' : 'Create Category'),

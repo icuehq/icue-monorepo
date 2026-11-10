@@ -1,5 +1,5 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:school_library/school_library.dart';
 
 /// Card showing the selected borrower and their current borrowing standing at the desk.
@@ -110,10 +110,10 @@ class IssueMemberCard extends StatelessWidget {
                   ),
                 ),
                 if (onChange != null)
-                  AppButton(
+                  IcueButton(
                     label: 'Change',
                     onPressed: disabled ? null : onChange,
-                    variant: AppButtonVariant.ghost,
+                    variant: IcueButtonVariant.ghost,
                     leadingIcon: Icons.swap_horiz_rounded,
                   ),
               ],

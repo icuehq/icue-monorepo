@@ -1,5 +1,5 @@
-import 'package:admin_ui/admin_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -48,7 +48,7 @@ class _InventoryReportPageState extends State<InventoryReportPage> {
           inventory.stores.where((store) => store.id == id).firstOrNull?.name ??
           '${id ?? ''}',
     );
-    return ReportScreen(
+    return IcueReportScreen(
       title: _def.title,
       header: [for (final column in _def.cols) column.label],
       rows: [
@@ -65,7 +65,7 @@ class _InventoryReportPageState extends State<InventoryReportPage> {
       footerNote: insights.rows.length >= InsightsService.reportLimit
           ? 'Showing the latest ${InsightsService.reportLimit} rows; narrow the date range.'
           : null,
-      filters: ReportFilterBar(
+      filters: IcueReportFilterBar(
         showDateRange: _def.hasDates,
         range: _range,
         onRangeChanged: (range) {

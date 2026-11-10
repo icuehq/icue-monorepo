@@ -1,6 +1,5 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/circulation/widgets/issue_scan_item_card.dart';
 
@@ -8,25 +7,25 @@ import 'package:school_library/src/ui/circulation/widgets/issue_scan_item_card.d
 class IssueBooksCard extends StatelessWidget {
   const IssueBooksCard({
     required this.person,
-    required this.pendingRecord,
+    required this.queue,
     required this.records,
     required this.successfulCount,
     required this.busy,
     required this.onScan,
-    required this.onRemovePending,
-    required this.onIssuePending,
+    required this.onRemoveQueued,
+    required this.onIssue,
     required this.onDone,
     super.key,
   });
 
   final LibraryPerson? person;
-  final IssueScanRecord? pendingRecord;
+  final List<IssueScanRecord> queue;
   final List<IssueScanRecord> records;
   final int successfulCount;
   final bool busy;
   final ValueChanged<String> onScan;
-  final VoidCallback onRemovePending;
-  final VoidCallback onIssuePending;
+  final ValueChanged<IssueScanRecord> onRemoveQueued;
+  final VoidCallback onIssue;
   final VoidCallback onDone;
 
   @override
@@ -105,16 +104,14 @@ class IssueBooksCard extends StatelessWidget {
               ],
             ),
             const Divider(height: 24),
-            // A book scanned before the page opened is already chosen.
-            if (pendingRecord == null)
-              ScanField(
-                autofocus: hasPerson,
-                hint: hasPerson
-                    ? 'Scan or type book barcode'
-                    : 'Select borrower first to scan',
-                onScan: onScan,
-                clearOnScan: true,
-              ),
+            IcueScanField(
+              autofocus: hasPerson,
+              hint: hasPerson
+                  ? 'Scan or type book barcode'
+                  : 'Select borrower first to scan',
+              onScan: onScan,
+              clearOnScan: true,
+            ),
             if (busy)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 8),
@@ -125,19 +122,13 @@ class IssueBooksCard extends StatelessWidget {
               )
             else
               const SizedBox(height: 12),
-            if (pendingRecord case final pending?)
-              IssueScanItemCard(record: pending, onRemove: onRemovePending),
-            if (pendingRecord != null && hasPerson)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: AppButton(
-                  label: 'Issue book',
-                  onPressed: busy ? null : onIssuePending,
-                  leadingIcon: Icons.menu_book_rounded,
-                ),
+            for (final record in queue)
+              IssueScanItemCard(
+                record: record,
+                onRemove: busy ? null : () => onRemoveQueued(record),
               ),
             for (final record in records) IssueScanItemCard(record: record),
-            if (pendingRecord == null && records.isEmpty)
+            if (queue.isEmpty && records.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 36),
                 child: Column(
@@ -180,10 +171,18 @@ class IssueBooksCard extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: AppButton(
-                    label: successfulCount > 0 ? 'Issue Book(s)' : 'Cancel',
-                    onPressed: busy ? null : onDone,
-                    leadingIcon: successfulCount > 0
+                  child: IcueButton(
+                    label: queue.isNotEmpty
+                        ? 'Issue Book(s)'
+                        : successfulCount > 0
+                        ? 'Done'
+                        : 'Cancel',
+                    onPressed: busy || (queue.isNotEmpty && !hasPerson)
+                        ? null
+                        : queue.isNotEmpty
+                        ? onIssue
+                        : onDone,
+                    leadingIcon: queue.isNotEmpty || successfulCount > 0
                         ? Icons.check_rounded
                         : Icons.arrow_back_rounded,
                   ),

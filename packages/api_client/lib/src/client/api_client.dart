@@ -106,7 +106,7 @@ class ApiClient {
   void Function()? onSessionExpired;
 
   /// When set and returning false, requests fail immediately with a
-  /// [NetworkException] (wire to `ConnectivityService.isOnline`).
+  /// [NetworkException] (wire to `IcueConnectivityService.isOnline`).
   bool Function()? isOnline;
 
   /// Receives unexpected API failures (5xx, 404, parse errors; not 4xx

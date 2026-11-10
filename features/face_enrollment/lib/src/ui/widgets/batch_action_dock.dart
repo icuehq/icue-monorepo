@@ -1,9 +1,9 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:face_enrollment/src/providers/student_provider.dart';
 import 'package:face_enrollment/src/ui/theme_context.dart';
 import 'package:face_enrollment/src/ui/widgets/batch_progress_dialog.dart';
 import 'package:face_enrollment/src/ui/widgets/glass_card.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 
 class BatchActionDock extends StatelessWidget {
   const BatchActionDock({required this.studentProvider, super.key});
@@ -75,8 +75,8 @@ class BatchActionDock extends StatelessWidget {
                 ],
               ),
             ),
-            AppButton(
-              size: AppButtonSize.small,
+            IcueButton(
+              size: IcueButtonSize.small,
               leadingIcon: Icons.bolt_rounded,
               label:
                   'Enroll (${pendingStudents.length}${studentProvider.hasMore ? '+' : ''})',

@@ -1,6 +1,5 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
@@ -36,7 +35,7 @@ class _IncidentDialogState extends State<IncidentDialog> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                AppDropdown<String>(
+                IcueDropdown<String>(
                   value: resolution,
                   items: const [
                     DropdownMenuItem(
@@ -67,7 +66,7 @@ class _IncidentDialogState extends State<IncidentDialog> {
                 ),
                 const SizedBox(height: 8),
                 if (resolution == 'repaired')
-                  AppTextField(
+                  IcueTextField(
                     controller: repairCostController,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
@@ -77,7 +76,7 @@ class _IncidentDialogState extends State<IncidentDialog> {
                   ),
                 if (widget.incident.personErpId != null) ...[
                   const SizedBox(height: 8),
-                  AppTextField(
+                  IcueTextField(
                     controller: chargeController,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
@@ -87,7 +86,7 @@ class _IncidentDialogState extends State<IncidentDialog> {
                   ),
                 ],
                 const SizedBox(height: 8),
-                AppTextField(
+                IcueTextField(
                   controller: remarksController,
                   label: 'Resolution remarks',
                 ),
@@ -95,12 +94,12 @@ class _IncidentDialogState extends State<IncidentDialog> {
             ),
           ),
           actions: [
-            AppButton(
+            IcueButton(
               label: 'Cancel',
               onPressed: () => Navigator.of(context).pop(false),
-              variant: AppButtonVariant.ghost,
+              variant: IcueButtonVariant.ghost,
             ),
-            AppButton(
+            IcueButton(
               label: 'Resolve',
               onPressed: () => Navigator.of(context).pop(true),
             ),
@@ -190,7 +189,7 @@ class _IncidentDialogState extends State<IncidentDialog> {
         ],
         if (incident.isOpen) ...[
           const SizedBox(height: 16),
-          AppButton(
+          IcueButton(
             label: 'Resolve incident',
             onPressed: _busy ? null : _resolve,
           ),

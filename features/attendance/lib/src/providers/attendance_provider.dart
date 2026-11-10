@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'package:attendance/src/models/create_attendance.dart';
 import 'package:attendance/src/models/create_attendance_response.dart';
 import 'package:attendance/src/services/attendance_service.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/foundation.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:injectable/injectable.dart';
 import 'package:local_storage/local_storage.dart';
 

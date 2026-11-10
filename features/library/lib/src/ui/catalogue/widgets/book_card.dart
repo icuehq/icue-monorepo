@@ -1,6 +1,6 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/reservations/widgets/reservation_dialog.dart';
 
@@ -186,26 +186,26 @@ class BookCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  AppButton(
+                  IcueButton(
                     label: 'Reserve',
                     onPressed: () =>
                         ReservationDialog.show(context, book: book),
-                    variant: AppButtonVariant.ghost,
+                    variant: IcueButtonVariant.ghost,
                     leadingIcon: Icons.bookmark_add_outlined,
                   ),
-                  AppButton(
+                  IcueButton(
                     label: 'Edit',
                     onPressed: () => context.push(
                       LibraryRoutes.libraryBookForm,
                       extra: book,
                     ),
-                    variant: AppButtonVariant.ghost,
+                    variant: IcueButtonVariant.ghost,
                     leadingIcon: Icons.edit_outlined,
                   ),
-                  AppButton(
+                  IcueButton(
                     label: 'Details',
                     onPressed: onTap,
-                    variant: AppButtonVariant.ghost,
+                    variant: IcueButtonVariant.ghost,
                     leadingIcon: Icons.arrow_forward_rounded,
                   ),
                 ],

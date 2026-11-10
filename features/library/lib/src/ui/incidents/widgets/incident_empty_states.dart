@@ -1,5 +1,5 @@
-import 'package:admin_ui/admin_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 
 class IncidentInitialEmptyState extends StatelessWidget {
   const IncidentInitialEmptyState({
@@ -14,7 +14,7 @@ class IncidentInitialEmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isOpen = status == 'open';
-    return EmptyState(
+    return IcueEmptyState(
       icon: Icons.report_problem_outlined,
       title: isOpen ? 'No open incidents' : 'No $status incidents',
       message: isOpen
@@ -38,7 +38,7 @@ class IncidentNoResultsState extends StatelessWidget {
   final VoidCallback onClear;
 
   @override
-  Widget build(BuildContext context) => EmptyState.noResults(
+  Widget build(BuildContext context) => IcueEmptyState.noResults(
     title: 'No incidents match "$searchQuery"',
     message: 'Try searching by another copy barcode, member name, or incident number.',
     onAction: onClear,

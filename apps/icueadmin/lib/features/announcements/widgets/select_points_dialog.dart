@@ -1,5 +1,5 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:routes/routes.dart';
 
 class SelectPointsResult {
@@ -57,7 +57,7 @@ class _SelectPointsDialogState extends State<SelectPointsDialog> {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ),
-          AppButton(
+          IcueButton(
             label: allSelected ? 'Deselect All' : 'Select All',
             onPressed: () {
               setState(() {
@@ -70,7 +70,7 @@ class _SelectPointsDialogState extends State<SelectPointsDialog> {
                 }
               });
             },
-            variant: AppButtonVariant.ghost,
+            variant: IcueButtonVariant.ghost,
           ),
         ],
       ),
@@ -136,12 +136,12 @@ class _SelectPointsDialogState extends State<SelectPointsDialog> {
         ),
       ),
       actions: [
-        AppButton(
+        IcueButton(
           label: 'Cancel',
           onPressed: () => Navigator.of(context).pop(),
-          variant: AppButtonVariant.ghost,
+          variant: IcueButtonVariant.ghost,
         ),
-        AppButton(
+        IcueButton(
           label: 'Done (${_selectedNames.length})',
           onPressed: () {
             final studentIds = <int>{};

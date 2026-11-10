@@ -1,6 +1,5 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -208,7 +207,7 @@ class _UnitDialogState extends State<UnitDialog> {
                   ],
                 ),
                 const SizedBox(height: 18),
-                AppTextField(
+                IcueTextField(
                   controller: _nameController,
                   autofocus: true,
                   textCapitalization: TextCapitalization.words,
@@ -239,15 +238,15 @@ class _UnitDialogState extends State<UnitDialog> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    AppButton(
+                    IcueButton(
                       label: 'Cancel',
                       onPressed: _isBusy
                           ? null
                           : () => Navigator.of(context).pop(false),
-                      variant: AppButtonVariant.ghost,
+                      variant: IcueButtonVariant.ghost,
                     ),
                     const SizedBox(width: 8),
-                    AppButton(
+                    IcueButton(
                       label: _isEditing ? 'Save changes' : 'Add unit',
                       onPressed: _isBusy ? null : _handleSave,
                       isLoading: _isBusy,

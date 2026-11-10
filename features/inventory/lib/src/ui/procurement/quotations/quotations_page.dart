@@ -1,9 +1,8 @@
 import 'dart:math';
 
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/procurement/quotations/widgets/quotation_comparison.dart';
 import 'package:inventory/src/ui/procurement/quotations/widgets/quotation_details.dart';
@@ -64,12 +63,12 @@ class _QuotationsPageState extends State<QuotationsPage> {
               ],
             ),
             actions: [
-              AppButton(
+              IcueButton(
                 label: 'Cancel',
                 onPressed: () => Navigator.pop(dialogContext),
-                variant: AppButtonVariant.ghost,
+                variant: IcueButtonVariant.ghost,
               ),
-              AppButton(
+              IcueButton(
                 label: 'Select Quotation',
                 onPressed: () {
                   if (reason.text.trim().isEmpty) {
@@ -187,7 +186,7 @@ class _QuotationsPageState extends State<QuotationsPage> {
         icon: const Icon(Icons.add_rounded),
         label: const Text('New Quotation'),
       ),
-      body: CenteredBody(
+      body: IcueCenteredBody(
         child: quotations.isEmpty
             ? Center(
                 child: procurementProvider.isLoading
@@ -399,23 +398,23 @@ class _QuotationsPageState extends State<QuotationsPage> {
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
                                 if (quotation.isDraft) ...[
-                                  AppButton(
+                                  IcueButton(
                                     label: 'Edit Draft',
                                     onPressed: () => _open(
                                       InventoryRoutes.inventoryQuotationForm,
                                       (purchaseRequest, quotation),
                                     ),
-                                    variant: AppButtonVariant.outline,
+                                    variant: IcueButtonVariant.outline,
                                     leadingIcon: Icons.edit_outlined,
                                   ),
                                   const SizedBox(width: 8),
-                                  AppButton(
+                                  IcueButton(
                                     label: 'Record Quotation',
                                     onPressed: () => _finalize(quotation),
                                     leadingIcon: Icons.check_circle_outline,
                                   ),
                                 ] else if (!quotation.selected)
-                                  AppButton(
+                                  IcueButton(
                                     label: 'Select this Quote',
                                     onPressed: () => _select(quotation),
                                     leadingIcon: Icons.check_circle_outline,
@@ -425,18 +424,18 @@ class _QuotationsPageState extends State<QuotationsPage> {
                                       quotation,
                                     )
                                     case final order?)
-                                  AppButton(
+                                  IcueButton(
                                     label: 'View ${order.number}',
                                     onPressed: () => _open(
                                       InventoryRoutes
                                           .inventoryPurchaseOrderDetail,
                                       order,
                                     ),
-                                    variant: AppButtonVariant.outline,
+                                    variant: IcueButtonVariant.outline,
                                     leadingIcon: Icons.receipt_long_outlined,
                                   )
                                 else
-                                  AppButton(
+                                  IcueButton(
                                     label: 'Create PO from Quote',
                                     onPressed: () => _open(
                                       InventoryRoutes

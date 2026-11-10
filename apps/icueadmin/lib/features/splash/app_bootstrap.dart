@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:api_client/api_client.dart';
 import 'package:auth/auth.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:icueadmin/app_firebase_options.dart';
 import 'package:icueadmin/di/injection.dart';
 import 'package:icueadmin/features/splash/splash_page.dart';
@@ -19,7 +19,7 @@ class AppBootstrap extends StatefulWidget {
   });
 
   final ApiEnvironment environment;
-  final Widget Function(ConnectivityService connectivity) builder;
+  final Widget Function(IcueConnectivityService connectivity) builder;
 
   /// Upper bound on the store update check so a slow network can't hold the
   /// splash; Play's immediate (blocking) updates take over the UI themselves.
@@ -30,13 +30,13 @@ class AppBootstrap extends StatefulWidget {
 }
 
 class _AppBootstrapState extends State<AppBootstrap> {
-  late Future<ConnectivityService> _init = _initialize();
+  late Future<IcueConnectivityService> _init = _initialize();
 
-  Future<ConnectivityService> _initialize() async {
+  Future<IcueConnectivityService> _initialize() async {
     await initFirebase(firebaseOptionsFor(widget.environment));
     await configureDependencies(widget.environment.name);
 
-    final connectivity = ConnectivityService();
+    final connectivity = IcueConnectivityService();
     await connectivity.init();
     getIt<ApiClient>().isOnline = () => connectivity.isOnline;
 
@@ -62,7 +62,7 @@ class _AppBootstrapState extends State<AppBootstrap> {
     await getIt<UserLocalStorage>().init();
     getIt<AuthProvider>();
 
-    await AppUpdateService.checkForUpdate().timeout(
+    await IcueAppUpdateService.checkForUpdate().timeout(
       AppBootstrap.updateCheckTimeout,
       onTimeout: () {},
     );
@@ -71,13 +71,13 @@ class _AppBootstrapState extends State<AppBootstrap> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<ConnectivityService>(
+    return FutureBuilder<IcueConnectivityService>(
       future: _init,
       builder: (context, snapshot) {
         if (snapshot.hasData) return widget.builder(snapshot.data!);
         return MaterialApp(
           debugShowCheckedModeBanner: false,
-          theme: AppTheme.forEnvironment(isProd: widget.environment.isProd),
+          theme: IcueTheme.forEnvironment(isProd: widget.environment.isProd),
           // Always show the splash, whatever URL the browser opened on
           // (e.g. /login), which this router-less app has no route for.
           onGenerateInitialRoutes: (_) => [

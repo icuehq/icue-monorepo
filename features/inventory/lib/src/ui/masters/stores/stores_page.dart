@@ -1,7 +1,6 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/masters/stores/widgets/store_card.dart';
 import 'package:provider/provider.dart';
@@ -84,7 +83,7 @@ class _StoresPageState extends State<StoresPage> {
               label: const Text('Add store'),
             )
           : null,
-      body: CenteredBody(
+      body: IcueCenteredBody(
         child: inventoryProvider.isLoading && allStores.isEmpty
             ? const Center(child: CircularProgressIndicator())
             : RefreshIndicator(
@@ -127,7 +126,7 @@ class _StoresPageState extends State<StoresPage> {
                               ),
                               if (canEdit) ...[
                                 const SizedBox(height: 20),
-                                AppButton(
+                                IcueButton(
                                   label: 'Create first store',
                                   onPressed: () => context.push(
                                     InventoryRoutes.inventoryStoreForm,
@@ -257,7 +256,7 @@ class _StoresPageState extends State<StoresPage> {
                                                 ),
                                           ),
                                           const SizedBox(height: 12),
-                                          AppButton(
+                                          IcueButton(
                                             label: 'Clear filters',
                                             onPressed: () {
                                               setState(() {
@@ -266,40 +265,40 @@ class _StoresPageState extends State<StoresPage> {
                                                 _selectedCampus = null;
                                               });
                                             },
-                                            variant: AppButtonVariant.ghost,
+                                            variant: IcueButtonVariant.ghost,
                                           ),
                                         ],
                                       ),
                                     ),
                                   )
-                                : AdaptiveList<InventoryStore>(
+                                : IcueAdaptiveList<InventoryStore>(
                                     items: filteredStores,
                                     columns: [
-                                      AdaptiveColumn(
+                                      IcueAdaptiveColumn(
                                         label: 'Store',
                                         flex: 2,
                                         cell: (context, store) => Row(
                                           children: [
                                             if (!store.active)
-                                              const InactiveBadge(),
+                                              const IcueInactiveBadge(),
                                             Flexible(child: Text(store.name)),
                                           ],
                                         ),
                                       ),
-                                      AdaptiveColumn.text(
+                                      IcueAdaptiveColumn.text(
                                         'Location',
                                         (store) => store.location ?? '—',
                                       ),
-                                      AdaptiveColumn.text(
+                                      IcueAdaptiveColumn.text(
                                         'Campus',
                                         (store) => 'Campus ${store.campusId}',
                                       ),
-                                      AdaptiveColumn.text(
+                                      IcueAdaptiveColumn.text(
                                         'Storekeepers',
                                         (store) =>
                                             '${store.storekeeperIds.length}',
                                       ),
-                                      AdaptiveColumn(
+                                      IcueAdaptiveColumn(
                                         label: '',
                                         width: 96,
                                         cell: (context, store) => canEdit

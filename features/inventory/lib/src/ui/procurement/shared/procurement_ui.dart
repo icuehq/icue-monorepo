@@ -1,6 +1,5 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -84,7 +83,7 @@ class _AskTextDialogState extends State<_AskTextDialog> {
   @override
   Widget build(BuildContext context) => AlertDialog(
     title: Text(widget.title),
-    content: AppTextField(
+    content: IcueTextField(
       controller: _controller,
       autofocus: true,
       keyboardType: widget.number
@@ -94,12 +93,12 @@ class _AskTextDialogState extends State<_AskTextDialog> {
       hintText: widget.hint,
     ),
     actions: [
-      AppButton(
+      IcueButton(
         label: 'Back',
         onPressed: () => Navigator.pop(context),
-        variant: AppButtonVariant.ghost,
+        variant: IcueButtonVariant.ghost,
       ),
-      AppButton(
+      IcueButton(
         label: 'Confirm',
         onPressed: () {
           final value = _controller.text.trim();

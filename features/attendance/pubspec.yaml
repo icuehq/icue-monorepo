@@ -9,10 +9,10 @@ environment:
 dependencies:
   api_client:
   auth:
-  core_ui:
   flutter:
     sdk: flutter
   icue_face_sdk:
+  icue_ui:
   image: ^4.8.0
   injectable: ^2.5.0
   local_storage:

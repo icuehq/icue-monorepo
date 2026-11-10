@@ -1,5 +1,5 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:icue_firebase/icue_firebase.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:injectable/injectable.dart';
 import 'package:school_library/src/models/library_loans.dart';
 import 'package:school_library/src/services/write_support.dart';

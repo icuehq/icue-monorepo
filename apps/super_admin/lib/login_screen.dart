@@ -1,5 +1,5 @@
 import 'package:auth/auth.dart';
-import 'package:core_ui/core_ui.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:face_enrollment/face_enrollment.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -77,7 +77,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               const SizedBox(height: 22),
 
                               // Username Input
-                              AppTextField(
+                              IcueTextField(
                                 controller: _usernameController,
                                 label: 'School Username',
                                 icon: Icons.account_circle_outlined,
@@ -96,7 +96,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               const SizedBox(height: 16),
 
                               // Password Input
-                              AppTextField(
+                              IcueTextField(
                                 controller: _passwordController,
                                 obscureText: true,
                                 label: 'Password',
@@ -118,7 +118,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 _buildErrorAlert(authProvider.errorMessage!),
 
                               // Submit Login Button
-                              AppButton(
+                              IcueButton(
                                 label: 'SIGN IN TO PORTAL',
                                 isLoading: authProvider.isLoading,
                                 onPressed: _handleLogin,

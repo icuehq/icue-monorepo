@@ -1,5 +1,5 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/stock/shared/item_picker.dart';
 
@@ -119,9 +119,9 @@ class LineEditor extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 14),
-            AppButton(
+            IcueButton(
               label: 'Add item',
-              variant: AppButtonVariant.secondary,
+              variant: IcueButtonVariant.secondary,
               leadingIcon: Icons.add_rounded,
               onPressed: () => _addItem(context),
             ),
@@ -144,10 +144,10 @@ class LineEditor extends StatelessWidget {
             },
           ),
         const SizedBox(height: 4),
-        AppButton(
+        IcueButton(
           label: 'Add another item',
           onPressed: () => _addItem(context),
-          variant: AppButtonVariant.outline,
+          variant: IcueButtonVariant.outline,
           leadingIcon: Icons.add_rounded,
         ),
       ],
@@ -318,7 +318,7 @@ class _LineCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: AppTextField(
+                  child: IcueTextField(
                     controller: lineDraft.cost,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
@@ -447,7 +447,7 @@ class _LineCard extends StatelessWidget {
                     Row(
                       children: [
                         Expanded(
-                          child: AppTextField(
+                          child: IcueTextField(
                             controller: lineDraft.batchNumber,
                             validator: (value) => (value ?? '').trim().isEmpty
                                 ? 'Required'
@@ -458,7 +458,7 @@ class _LineCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: AppDateField(
+                          child: IcueDateField(
                             controller: lineDraft.expiry,
                             label: 'Expiry date',
                             firstDate: DateTime.now(),
@@ -480,7 +480,7 @@ class _LineCard extends StatelessWidget {
               ),
             ],
           ] else ...[
-            AppTextField(
+            IcueTextField(
               controller: lineDraft.quantity,
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,

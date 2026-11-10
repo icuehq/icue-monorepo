@@ -1,6 +1,5 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
@@ -92,7 +91,10 @@ class _IncidentReportDialogState extends State<IncidentReportDialog> {
           style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: 12),
-        ScanField(hint: 'Scan or enter the copy barcode', onScan: _lookupCopy),
+        IcueScanField(
+          hint: 'Scan or enter the copy barcode',
+          onScan: _lookupCopy,
+        ),
         if (_copy != null) ...[
           const SizedBox(height: 4),
           Text(
@@ -114,7 +116,7 @@ class _IncidentReportDialogState extends State<IncidentReportDialog> {
         ),
         if (_kind == 'damaged') ...[
           const SizedBox(height: 12),
-          AppDropdown<String>(
+          IcueDropdown<String>(
             value: _severity,
             items: const [
               DropdownMenuItem(value: 'minor', child: Text('Minor')),
@@ -136,16 +138,16 @@ class _IncidentReportDialogState extends State<IncidentReportDialog> {
           ),
         ),
         const SizedBox(height: 8),
-        AppTextField(
+        IcueTextField(
           controller: _charge,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           label: 'Penalty / replacement charge (₹)',
           hintText: '0 if no fine',
         ),
         const SizedBox(height: 8),
-        AppTextField(controller: _description, label: 'Description / remarks'),
+        IcueTextField(controller: _description, label: 'Description / remarks'),
         const SizedBox(height: 16),
-        AppButton(label: 'Submit report', onPressed: _busy ? null : _submit),
+        IcueButton(label: 'Submit report', onPressed: _busy ? null : _submit),
       ],
     );
   }

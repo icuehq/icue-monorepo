@@ -1,6 +1,5 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/circulation/widgets/circulation_tabs.dart';
@@ -126,7 +125,7 @@ class _IncidentsPageState extends State<IncidentsPage> {
         icon: const Icon(Icons.report_problem_outlined),
         label: const Text('Report incident'),
       ),
-      body: CenteredBody(
+      body: IcueCenteredBody(
         child: Column(
           children: [
             Padding(
@@ -197,11 +196,11 @@ class _IncidentsPageState extends State<IncidentsPage> {
                   : RefreshIndicator(
                       onRefresh: () =>
                           libraryProvider.loadIncidents(status: _status),
-                      child: AdaptiveList<LibraryIncident>(
+                      child: IcueAdaptiveList<LibraryIncident>(
                         items: filteredIncidents,
                         onTap: _open,
                         columns: [
-                          AdaptiveColumn(
+                          IcueAdaptiveColumn(
                             label: 'Copy',
                             flex: 2,
                             cell: (context, incident) => Row(
@@ -222,7 +221,7 @@ class _IncidentsPageState extends State<IncidentsPage> {
                               ],
                             ),
                           ),
-                          AdaptiveColumn(
+                          IcueAdaptiveColumn(
                             label: 'Member',
                             flex: 3,
                             cell: (context, incident) {
@@ -254,11 +253,11 @@ class _IncidentsPageState extends State<IncidentsPage> {
                               );
                             },
                           ),
-                          AdaptiveColumn.text(
+                          IcueAdaptiveColumn.text(
                             'Incident #',
                             (incident) => incident.incidentNumber,
                           ),
-                          AdaptiveColumn(
+                          IcueAdaptiveColumn(
                             label: 'Type',
                             flex: 2,
                             cell: (context, incident) => Text(
@@ -266,11 +265,11 @@ class _IncidentsPageState extends State<IncidentsPage> {
                               '${incident.severity != null ? ' (${humanizeStatus(incident.severity!)})' : ''}',
                             ),
                           ),
-                          AdaptiveColumn.text(
+                          IcueAdaptiveColumn.text(
                             'Reported',
                             (incident) => incident.reportedDate.toDisplayDay(),
                           ),
-                          AdaptiveColumn(
+                          IcueAdaptiveColumn(
                             label: 'Charge',
                             cell: (context, incident) => Text(
                               incident.charge > 0
@@ -286,7 +285,7 @@ class _IncidentsPageState extends State<IncidentsPage> {
                               ),
                             ),
                           ),
-                          AdaptiveColumn(
+                          IcueAdaptiveColumn(
                             label: 'Status',
                             cell: (context, incident) =>
                                 _statusPill(context, incident),
@@ -302,14 +301,14 @@ class _IncidentsPageState extends State<IncidentsPage> {
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 8,
                                   ),
-                                  child: AppButton(
+                                  child: IcueButton(
                                     label: 'Load more',
                                     onPressed: libraryProvider.incidentsLoading
                                         ? null
                                         : () => libraryProvider.loadIncidents(
                                             more: true,
                                           ),
-                                    variant: AppButtonVariant.ghost,
+                                    variant: IcueButtonVariant.ghost,
                                   ),
                                 ),
                               )

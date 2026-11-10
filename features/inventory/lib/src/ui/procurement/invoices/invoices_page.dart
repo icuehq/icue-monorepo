@@ -1,6 +1,5 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/procurement/invoices/widgets/invoice_card.dart';
 import 'package:inventory/src/ui/procurement/invoices/widgets/invoice_sheet.dart';
@@ -98,7 +97,7 @@ class _InvoicesPageState extends State<InvoicesPage> {
           ),
         ],
       ),
-      body: CenteredBody(
+      body: IcueCenteredBody(
         child: Column(
           children: [
             // Search Bar
@@ -210,38 +209,38 @@ class _InvoicesPageState extends State<InvoicesPage> {
                           ),
                         ),
                       )
-                    : AdaptiveList<InventoryInvoice>(
+                    : IcueAdaptiveList<InventoryInvoice>(
                         items: shown,
                         onTap: _openInvoice,
                         columns: [
-                          AdaptiveColumn.text(
+                          IcueAdaptiveColumn.text(
                             'Invoice',
                             (invoice) => invoice.invoiceNumber,
                           ),
-                          AdaptiveColumn.text(
+                          IcueAdaptiveColumn.text(
                             'Vendor',
                             (invoice) => procurementProvider.vendorName(
                               invoice.vendorId,
                             ),
                             flex: 2,
                           ),
-                          AdaptiveColumn.text(
+                          IcueAdaptiveColumn.text(
                             'Order',
                             (invoice) => invoice.purchaseOrderNumber,
                           ),
-                          AdaptiveColumn.text(
+                          IcueAdaptiveColumn.text(
                             'Dated',
                             (invoice) => invoice.invoiceDate.toDisplayDay(),
                           ),
-                          AdaptiveColumn.text(
+                          IcueAdaptiveColumn.text(
                             'Total',
                             (invoice) => invoice.total.toRupees(),
                           ),
-                          AdaptiveColumn.text(
+                          IcueAdaptiveColumn.text(
                             'Outstanding',
                             (invoice) => invoice.outstanding.toRupees(),
                           ),
-                          AdaptiveColumn.text(
+                          IcueAdaptiveColumn.text(
                             'Payment',
                             (invoice) => humanizeStatus(invoice.paymentStatus),
                           ),

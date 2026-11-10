@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:api_client/api_client.dart';
 import 'package:auth/auth.dart';
-import 'package:core_ui/core_ui.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:face_enrollment/face_enrollment.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_face_sdk/icue_face_sdk.dart';
@@ -115,7 +115,7 @@ class _SuperAdminAppState extends State<SuperAdminApp> {
       child: MaterialApp.router(
         title: 'iCue Super Admin',
         debugShowCheckedModeBanner: false,
-        theme: AppTheme.forEnvironment(
+        theme: IcueTheme.forEnvironment(
           isProd: ApiEnvironment.fromEnvironment().isProd,
         ),
         routerConfig: _router,

@@ -1,6 +1,5 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
@@ -110,11 +109,11 @@ class _PolicyDialogState extends State<PolicyDialog> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          FormSectionCard(
+          IcueFormSectionCard(
             title: 'Applies to',
             icon: Icons.groups_outlined,
             children: [
-              AppDropdown<String>(
+              IcueDropdown<String>(
                 value: _libraryId,
                 items: [
                   for (final schoolLibrary in libraries)
@@ -127,7 +126,7 @@ class _PolicyDialogState extends State<PolicyDialog> {
                 validator: (value) => value == null ? 'Required' : null,
                 label: 'Library *',
               ),
-              AppDropdown<String>(
+              IcueDropdown<String>(
                 value: _type,
                 items: const [
                   DropdownMenuItem(value: 'student', child: Text('Students')),
@@ -141,14 +140,14 @@ class _PolicyDialogState extends State<PolicyDialog> {
                 validator: (value) => value == null ? 'Required' : null,
                 label: 'Members *',
               ),
-              AppTextField(
+              IcueTextField(
                 controller: _name,
                 validator: requiredText,
                 label: 'Policy name *',
               ),
             ],
           ),
-          FormSectionCard(
+          IcueFormSectionCard(
             title: 'Loan rules',
             icon: Icons.menu_book_rounded,
             children: [
@@ -162,7 +161,7 @@ class _PolicyDialogState extends State<PolicyDialog> {
                   ].indexed) ...[
                     if (index > 0) gap,
                     Expanded(
-                      child: AppTextField(
+                      child: IcueTextField(
                         controller: field.$1,
                         keyboardType: TextInputType.number,
                         validator: (value) => _whole(value, min: field.$3),
@@ -174,11 +173,11 @@ class _PolicyDialogState extends State<PolicyDialog> {
               ),
             ],
           ),
-          FormSectionCard(
+          IcueFormSectionCard(
             title: 'Overdue fine',
             icon: Icons.payments_outlined,
             children: [
-              AppDropdown<String>(
+              IcueDropdown<String>(
                 value: _fineType,
                 items: [
                   for (final mapEntry in fineTypes.entries)
@@ -195,7 +194,7 @@ class _PolicyDialogState extends State<PolicyDialog> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
-                      child: AppTextField(
+                      child: IcueTextField(
                         controller: _fine,
                         keyboardType: TextInputType.number,
                         validator: (value) =>
@@ -207,7 +206,7 @@ class _PolicyDialogState extends State<PolicyDialog> {
                     ),
                     gap,
                     Expanded(
-                      child: AppTextField(
+                      child: IcueTextField(
                         controller: _maxFine,
                         keyboardType: TextInputType.number,
                         validator: optionalNumber,
@@ -216,7 +215,7 @@ class _PolicyDialogState extends State<PolicyDialog> {
                     ),
                   ],
                 ),
-              AppTextField(
+              IcueTextField(
                 controller: _grace,
                 keyboardType: TextInputType.number,
                 validator: _whole,
@@ -225,7 +224,7 @@ class _PolicyDialogState extends State<PolicyDialog> {
             ],
           ),
           if (libraryProvider.categories.isNotEmpty)
-            FormSectionCard(
+            IcueFormSectionCard(
               title: 'Book categories',
               icon: Icons.category_outlined,
               children: [
@@ -253,7 +252,7 @@ class _PolicyDialogState extends State<PolicyDialog> {
                 ),
               ],
             ),
-          AppButton(
+          IcueButton(
             label: _busy ? 'Saving…' : 'Save policy',
             onPressed: _busy ? null : _save,
             leadingIcon: Icons.check_rounded,

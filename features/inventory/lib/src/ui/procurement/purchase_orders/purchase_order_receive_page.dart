@@ -1,7 +1,6 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/procurement/purchase_orders/widgets/purchase_order_receive_line_card.dart';
 import 'package:inventory/src/ui/procurement/shared/procurement_ui.dart';
@@ -115,7 +114,7 @@ class _PurchaseOrderReceivePageState extends State<PurchaseOrderReceivePage> {
 
     return Scaffold(
       appBar: AppBar(title: Text('Receive ${purchaseOrder.number}')),
-      body: CenteredBody(
+      body: IcueCenteredBody(
         maxWidth: 900,
         child: Form(
           key: _form,
@@ -243,7 +242,7 @@ class _PurchaseOrderReceivePageState extends State<PurchaseOrderReceivePage> {
                         onChanged: (value) => setState(() => _store = value),
                       ),
                       const SizedBox(height: 12),
-                      AppTextField(
+                      IcueTextField(
                         controller: _deliveryRef,
                         label: 'Delivery note / Challan no. (optional)',
                         icon: Icons.receipt_long_outlined,
@@ -287,10 +286,10 @@ class _PurchaseOrderReceivePageState extends State<PurchaseOrderReceivePage> {
                   ),
                   Row(
                     children: [
-                      AppButton(
+                      IcueButton(
                         label: 'Accept all due',
                         onPressed: _acceptAllDue,
-                        variant: AppButtonVariant.ghost,
+                        variant: IcueButtonVariant.ghost,
                         leadingIcon: Icons.done_all_rounded,
                       ),
                       const SizedBox(width: 4),
@@ -318,7 +317,7 @@ class _PurchaseOrderReceivePageState extends State<PurchaseOrderReceivePage> {
                 ),
 
               const SizedBox(height: 8),
-              AppTextField(
+              IcueTextField(
                 controller: _remarks,
                 maxLines: 2,
                 label: 'Overall inspection remarks (optional)',
@@ -326,7 +325,7 @@ class _PurchaseOrderReceivePageState extends State<PurchaseOrderReceivePage> {
               ),
               const SizedBox(height: 24),
 
-              AppButton(
+              IcueButton(
                 label: _busy
                     ? 'Saving…'
                     : acceptedCount > 0

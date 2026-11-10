@@ -1,9 +1,9 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/foundation.dart';
 import 'package:gatepass/src/models/create_gatepass_request.dart';
 import 'package:gatepass/src/models/gatepass_request.dart';
 import 'package:gatepass/src/models/gatepass_type.dart';
 import 'package:gatepass/src/services/gatepass_service.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:injectable/injectable.dart';
 
 @lazySingleton

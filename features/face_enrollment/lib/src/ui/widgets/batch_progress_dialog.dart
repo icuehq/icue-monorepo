@@ -1,8 +1,8 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:face_enrollment/src/providers/student_provider.dart';
 import 'package:face_enrollment/src/ui/theme_context.dart';
 import 'package:face_enrollment/src/ui/widgets/directory_dialogs.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 
 void showBatchProgressDialog(
   BuildContext context,
@@ -157,18 +157,18 @@ void showBatchProgressDialog(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         if (isProcessing)
-                          AppButton(
+                          IcueButton(
                             label: 'Cancel',
                             onPressed: batch.cancelRequested
                                 ? null
                                 : batch.requestCancel,
-                            variant: AppButtonVariant.destructive,
+                            variant: IcueButtonVariant.destructive,
                             leadingIcon: Icons.cancel_rounded,
                           )
                         else
                           SizedBox(
                             width: 100,
-                            child: AppButton(
+                            child: IcueButton(
                               label: 'Close',
                               onPressed: () {
                                 Navigator.pop(dialogContext);

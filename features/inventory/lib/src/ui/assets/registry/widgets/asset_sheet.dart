@@ -1,6 +1,5 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/assets/maintenance/widgets/maintenance_dialog.dart';
 import 'package:inventory/src/ui/assets/registry/widgets/asset_action_dialog.dart';
@@ -142,15 +141,15 @@ class _AssetSheetState extends State<AssetSheet> {
           spacing: 8,
           children: [
             for (final (label, form) in actions)
-              AppButton(
+              IcueButton(
                 label: label,
                 onPressed: () => _open(form),
-                variant: AppButtonVariant.outline,
+                variant: IcueButtonVariant.outline,
               ),
-            AppButton(
+            IcueButton(
               label: 'Label',
               onPressed: () => shareAssetLabel(asset),
-              variant: AppButtonVariant.outline,
+              variant: IcueButtonVariant.outline,
               leadingIcon: Icons.qr_code_2_rounded,
             ),
           ],

@@ -1,4 +1,4 @@
-import 'package:admin_ui/admin_ui.dart';
+import 'package:icue_ui/icue_ui.dart';
 
 /// Field validators of the add / edit book form; they mirror the limits of `library.catalogue.upsert`.
 abstract final class BookValidators {

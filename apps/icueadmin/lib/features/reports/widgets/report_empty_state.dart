@@ -1,5 +1,5 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 
 class ReportEmptyState extends StatelessWidget {
   const ReportEmptyState({
@@ -38,10 +38,10 @@ class ReportEmptyState extends StatelessWidget {
             ),
             if (onRetry != null) ...[
               const SizedBox(height: 16),
-              AppButton(
+              IcueButton(
                 label: 'Refresh',
                 onPressed: onRetry,
-                variant: AppButtonVariant.outline,
+                variant: IcueButtonVariant.outline,
                 leadingIcon: Icons.refresh,
               ),
             ],

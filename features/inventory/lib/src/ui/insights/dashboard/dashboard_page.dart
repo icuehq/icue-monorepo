@@ -1,7 +1,6 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -55,7 +54,7 @@ class _InventoryDashboardPageState extends State<InventoryDashboardPage> {
       for (final (key, label, permissions) in dashboardStats)
         if (permissions.any(inventoryProvider.access.can) &&
             insightsProvider.dashboard[key] != null)
-          StatTile(
+          IcueStatTile(
             label: label,
             value: insightsProvider.dashboard[key]!,
             route: _targets[key],
@@ -74,13 +73,13 @@ class _InventoryDashboardPageState extends State<InventoryDashboardPage> {
             ),
         ],
       ),
-      body: CenteredBody(
+      body: IcueCenteredBody(
         child: RefreshIndicator(
           onRefresh: _load,
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              AppDropdown<String?>(
+              IcueDropdown<String?>(
                 value: _storeId,
                 items: [
                   const DropdownMenuItem(child: Text('All stores')),
@@ -105,7 +104,7 @@ class _InventoryDashboardPageState extends State<InventoryDashboardPage> {
                   ),
                 )
               else
-                StatTileGrid(tiles: tiles),
+                IcueStatTileGrid(tiles: tiles),
             ],
           ),
         ),

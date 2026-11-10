@@ -1,5 +1,5 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 
 enum LibraryCategoryStatusFilter {
   all('All'),
@@ -86,7 +86,7 @@ class LibraryCategorySearchBar extends StatelessWidget {
           filterChips,
           ...[
             const SizedBox(width: 12),
-            AppButton(
+            IcueButton(
               label: 'Add Category',
               onPressed: onAddCategory,
               leadingIcon: Icons.add_rounded,
@@ -153,7 +153,7 @@ class LibraryCategoryEmptyState extends StatelessWidget {
               runSpacing: 12,
               alignment: WrapAlignment.center,
               children: [
-                AppButton(
+                IcueButton(
                   label: 'Add Category',
                   onPressed: onAdd,
                   leadingIcon: Icons.add_rounded,
@@ -201,10 +201,10 @@ class LibraryCategoryNoResultsState extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
-            AppButton(
+            IcueButton(
               label: 'Clear search & filters',
               onPressed: onClear,
-              variant: AppButtonVariant.outline,
+              variant: IcueButtonVariant.outline,
             ),
           ],
         ),

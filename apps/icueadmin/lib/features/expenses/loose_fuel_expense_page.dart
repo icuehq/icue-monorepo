@@ -1,7 +1,7 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:expenses/expenses.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:icueadmin/analytics/app_events.dart';
 import 'package:icueadmin/features/expenses/widgets/expense_bill_section.dart';
 import 'package:icueadmin/routing/app_routes.dart';
@@ -36,7 +36,7 @@ class _LooseFuelExpensePageState extends State<LooseFuelExpensePage> {
 
   DateTime _billDate = DateTime.now();
   String _status = 'UnBilled';
-  PickedFile? _billFile;
+  IcuePickedFile? _billFile;
 
   StorageItem get _storage => widget.args.storage;
 
@@ -207,7 +207,7 @@ class _LooseFuelExpensePageState extends State<LooseFuelExpensePage> {
               ),
             ),
             const SizedBox(height: 24),
-            AppButton(
+            IcueButton(
               label: 'Submit',
               onPressed: loading ? null : _submit,
               isLoading: loading,

@@ -1,5 +1,5 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/procurement/shared/order_widgets.dart';
 import 'package:provider/provider.dart';
@@ -66,7 +66,7 @@ class _RevisionDialogState extends State<_RevisionDialog> {
           mainAxisSize: MainAxisSize.min,
           spacing: 16,
           children: [
-            AppTextField(
+            IcueTextField(
               controller: _reason,
               label: 'Revision reason *',
               hintText: 'e.g. Price fluctuation / renegotiated terms',
@@ -77,7 +77,7 @@ class _RevisionDialogState extends State<_RevisionDialog> {
             for (final (index, orderLine) in widget.order.lineItems.indexed)
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
-                child: AppTextField(
+                child: IcueTextField(
                   controller: _prices[index],
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
@@ -90,12 +90,12 @@ class _RevisionDialogState extends State<_RevisionDialog> {
         ),
       ),
       actions: [
-        AppButton(
+        IcueButton(
           label: 'Cancel',
           onPressed: () => Navigator.pop(context),
-          variant: AppButtonVariant.ghost,
+          variant: IcueButtonVariant.ghost,
         ),
-        AppButton(label: 'Save Revision', onPressed: _save),
+        IcueButton(label: 'Save Revision', onPressed: _save),
       ],
     );
   }

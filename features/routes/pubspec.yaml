@@ -8,9 +8,9 @@ environment:
 
 dependencies:
   api_client:
-  core_ui:
   flutter:
     sdk: flutter
+  icue_ui:
   injectable: ^2.5.0
   local_storage:
 

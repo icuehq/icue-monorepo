@@ -1,6 +1,5 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/circulation/widgets/circulation_tabs.dart';
@@ -232,7 +231,7 @@ class _FinesPageState extends State<FinesPage> {
         ],
         bottom: CirculationTabBar(activeTab: CirculationTab.fines),
       ),
-      body: CenteredBody(
+      body: IcueCenteredBody(
         child: Column(
           children: [
             _summaryBar(context, allFines),
@@ -306,11 +305,11 @@ class _FinesPageState extends State<FinesPage> {
                   : RefreshIndicator(
                       onRefresh: () =>
                           libraryProvider.loadFines(status: _status),
-                      child: AdaptiveList<LibraryFine>(
+                      child: IcueAdaptiveList<LibraryFine>(
                         items: filteredFines,
                         onTap: _open,
                         columns: [
-                          AdaptiveColumn(
+                          IcueAdaptiveColumn(
                             label: 'Fine #',
                             flex: 2,
                             cell: (context, fine) => Text(
@@ -320,7 +319,7 @@ class _FinesPageState extends State<FinesPage> {
                               ),
                             ),
                           ),
-                          AdaptiveColumn(
+                          IcueAdaptiveColumn(
                             label: 'Member',
                             flex: 3,
                             cell: (context, fine) => Row(
@@ -343,21 +342,21 @@ class _FinesPageState extends State<FinesPage> {
                               ],
                             ),
                           ),
-                          AdaptiveColumn(
+                          IcueAdaptiveColumn(
                             label: 'Type',
                             flex: 2,
                             cell: (context, fine) =>
                                 _typePill(context, fine.type),
                           ),
-                          AdaptiveColumn.text(
+                          IcueAdaptiveColumn.text(
                             'Total',
                             (fine) => fine.amount.toRupees(),
                           ),
-                          AdaptiveColumn.text(
+                          IcueAdaptiveColumn.text(
                             'Paid',
                             (fine) => fine.paid.toRupees(),
                           ),
-                          AdaptiveColumn(
+                          IcueAdaptiveColumn(
                             label: 'Due',
                             cell: (context, fine) => Text(
                               fine.outstanding.toRupees(),
@@ -371,7 +370,7 @@ class _FinesPageState extends State<FinesPage> {
                               ),
                             ),
                           ),
-                          AdaptiveColumn(
+                          IcueAdaptiveColumn(
                             label: 'Status',
                             cell: (context, fine) => _statusPill(context, fine),
                           ),
@@ -384,14 +383,14 @@ class _FinesPageState extends State<FinesPage> {
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 8,
                                   ),
-                                  child: AppButton(
+                                  child: IcueButton(
                                     label: 'Load more',
                                     onPressed: libraryProvider.finesLoading
                                         ? null
                                         : () => libraryProvider.loadFines(
                                             more: true,
                                           ),
-                                    variant: AppButtonVariant.ghost,
+                                    variant: IcueButtonVariant.ghost,
                                   ),
                                 ),
                               )

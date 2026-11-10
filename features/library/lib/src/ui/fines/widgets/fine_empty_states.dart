@@ -1,5 +1,5 @@
-import 'package:admin_ui/admin_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 
 class FineInitialEmptyState extends StatelessWidget {
   const FineInitialEmptyState({required this.status, super.key});
@@ -9,7 +9,7 @@ class FineInitialEmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isAll = status == 'all';
-    return EmptyState(
+    return IcueEmptyState(
       icon: Icons.payments_outlined,
       title: isAll ? 'No fines on record' : 'No $status fines',
       message: isAll
@@ -30,7 +30,7 @@ class FineNoResultsState extends StatelessWidget {
   final VoidCallback onClear;
 
   @override
-  Widget build(BuildContext context) => EmptyState.noResults(
+  Widget build(BuildContext context) => IcueEmptyState.noResults(
     title: 'No fines match "$searchQuery"',
     message: 'Try searching by member name, fine number, or book barcode.',
     onAction: onClear,

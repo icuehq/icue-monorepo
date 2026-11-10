@@ -1,7 +1,6 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/insights/reports/widgets/library_report_filters.dart';
@@ -23,15 +22,6 @@ class _LibraryReportsPageState extends State<LibraryReportsPage> {
   late DateTimeRange _range = calculateRangeForPreset(_datePreset);
   String? _status;
   String? _libraryId;
-  final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = '';
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
   Future<void> _load() async {
     final library = context.read<LibraryProvider>();
     if (library.libraries.isEmpty) await library.loadMasters();
@@ -81,24 +71,26 @@ class _LibraryReportsPageState extends State<LibraryReportsPage> {
     _load();
   }
 
-  Future<void> _exportCsv(List<String> header, List<List<String>> rows) async {
-    final query = _searchQuery.toLowerCase().trim();
-    final matchingRows = rows
-        .where(
-          (row) =>
-              query.isEmpty ||
-              row.any((cell) => cell.toLowerCase().contains(query)),
-        )
-        .toList();
+  Future<void> _pickCustomRange() async {
+    final now = DateTime.now();
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(now.year - 5),
+      lastDate: DateTime(now.year + 2),
+      initialDateRange: _range,
+    );
+    if (picked != null) _onRangeChanged(picked);
+  }
 
-    final csv = toCsv(header, matchingRows);
+  Future<void> _exportCsv(List<String> header, List<List<String>> rows) async {
+    final csv = toCsv(header, rows);
     await Clipboard.setData(ClipboardData(text: csv));
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          'Copied ${matchingRows.length} ${matchingRows.length == 1 ? 'row' : 'rows'} to clipboard as CSV',
+          'Copied ${rows.length} ${rows.length == 1 ? 'row' : 'rows'} to clipboard as CSV',
         ),
         duration: const Duration(seconds: 3),
         behavior: SnackBarBehavior.floating,
@@ -124,15 +116,6 @@ class _LibraryReportsPageState extends State<LibraryReportsPage> {
         if (_def.cols[index].sum) index,
     };
 
-    final query = _searchQuery.toLowerCase().trim();
-    final filteredCount = query.isEmpty
-        ? rows.length
-        : rows
-              .where(
-                (row) => row.any((cell) => cell.toLowerCase().contains(query)),
-              )
-              .length;
-
     final footerNote =
         _def.kind == LibraryReportKind.loans &&
             library.reportRows.length >= LibraryService.reportLimit
@@ -145,14 +128,6 @@ class _LibraryReportsPageState extends State<LibraryReportsPage> {
       appBar: AppBar(
         title: const Text('Library Reports'),
         actions: [
-          AppButton(
-            label: 'Export CSV',
-            variant: AppButtonVariant.outline,
-            size: AppButtonSize.small,
-            leadingIcon: Icons.download_rounded,
-            onPressed: rows.isNotEmpty ? () => _exportCsv(header, rows) : null,
-          ),
-          const SizedBox(width: 8),
           IconButton(
             tooltip: 'Refresh report',
             icon: library.insightsLoading
@@ -173,61 +148,123 @@ class _LibraryReportsPageState extends State<LibraryReportsPage> {
               )
             : null,
       ),
-      body: CenteredBody(
+      body: IcueCenteredBody(
         maxWidth: double.infinity,
-        child: ListView(
-          padding: EdgeInsets.symmetric(
-            horizontal: horizontalPadding,
-            vertical: 20,
-          ),
-          children: [
-            LibraryReportFilters(
-              reports: libraryReports,
-              selectedReport: _def,
-              onReportChanged: _onReportChanged,
-              datePreset: _datePreset,
-              onDatePresetChanged: _onDatePresetChanged,
-              range: _range,
-              onRangeChanged: _onRangeChanged,
-              libraries: library.libraries,
-              selectedLibraryId: _libraryId,
-              onLibraryChanged: (libraryId) {
-                setState(() => _libraryId = libraryId);
-                _load();
-              },
-              statuses: _def.statuses,
-              selectedStatus: _status,
-              onStatusChanged: (status) {
-                setState(() => _status = status);
-                _load();
-              },
-              searchController: _searchController,
-              searchQuery: _searchQuery,
-              onSearchChanged: (query) => setState(() => _searchQuery = query),
-              onClearSearch: () {
-                _searchController.clear();
-                setState(() => _searchQuery = '');
-              },
-              rowCount: rows.length,
-              filteredRowCount: filteredCount,
-            ),
-            const SizedBox(height: 18),
-            LibraryReportKpis(kind: _def.kind, rows: library.reportRows),
-            const SizedBox(height: 18),
-            LibraryReportTable(
+        child: Builder(
+          builder: (context) {
+            final kpis = LibraryReportKpis(
+              kind: _def.kind,
+              rows: library.reportRows,
+            );
+            final table = LibraryReportTable(
               header: header,
               rows: rows,
               sumColumns: sumColumns,
-              searchQuery: _searchQuery,
+              filtersActive: _libraryId != null || _status != null,
+              filters: [
+                IcueTableFilter(
+                  id: 'report',
+                  label: 'Report',
+                  options: const [
+                    IcueTableFilterOption('dateRange', 'All Issues'),
+                    IcueTableFilterOption('student', 'Student'),
+                    IcueTableFilterOption('staff', 'Staff'),
+                    IcueTableFilterOption('monthly', 'Monthly'),
+                  ],
+                  value: _def.key,
+                  onChanged: (reportKey) {
+                    if (reportKey == null || reportKey == _def.key) return;
+                    _onReportChanged(
+                      libraryReports.firstWhere((def) => def.key == reportKey),
+                    );
+                  },
+                ),
+                IcueTableFilter(
+                  id: 'period',
+                  label: 'Period',
+                  options: [
+                    for (final preset in LibraryDatePreset.values)
+                      IcueTableFilterOption(
+                        preset.name,
+                        preset == LibraryDatePreset.custom
+                            ? '${_range.start.toNumericDate()} → ${_range.end.toNumericDate()}'
+                            : preset.label,
+                      ),
+                  ],
+                  value: _datePreset.name,
+                  onChanged: (name) {
+                    final preset = name == null
+                        ? LibraryDatePreset.currentMonth
+                        : LibraryDatePreset.values.byName(name);
+                    _onDatePresetChanged(preset);
+                    if (preset == LibraryDatePreset.custom) _pickCustomRange();
+                  },
+                ),
+                IcueTableFilter(
+                  id: 'library',
+                  label: 'Library',
+                  options: [
+                    for (final schoolLibrary in library.libraries)
+                      IcueTableFilterOption(
+                        schoolLibrary.id,
+                        schoolLibrary.name,
+                      ),
+                  ],
+                  value: _libraryId,
+                  onChanged: (libraryId) {
+                    setState(() => _libraryId = libraryId);
+                    _load();
+                  },
+                ),
+                if (_def.statuses.isNotEmpty)
+                  IcueTableFilter(
+                    id: 'status',
+                    label: 'Status',
+                    options: [
+                      for (final status in _def.statuses)
+                        IcueTableFilterOption(status, humanizeStatus(status)),
+                    ],
+                    value: _status,
+                    onChanged: (status) {
+                      setState(() => _status = status);
+                      _load();
+                    },
+                  ),
+              ],
+              onClearFilters: () {
+                setState(() {
+                  _libraryId = null;
+                  _status = null;
+                });
+                _load();
+              },
               isLoading: library.insightsLoading,
               errorMessage: library.errorMessage,
               footerNote: footerNote,
-              onClearSearch: () {
-                _searchController.clear();
-                setState(() => _searchQuery = '');
-              },
-            ),
-          ],
+              onExport: rows.isEmpty ? null : () => _exportCsv(header, rows),
+            );
+            final padding = EdgeInsets.symmetric(
+              horizontal: horizontalPadding,
+              vertical: 20,
+            );
+            // Wide: the table fills the screen and scrolls under its header.
+            return context.isWide
+                ? Padding(
+                    padding: padding,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        kpis,
+                        const SizedBox(height: 18),
+                        Expanded(child: table),
+                      ],
+                    ),
+                  )
+                : ListView(
+                    padding: padding,
+                    children: [kpis, const SizedBox(height: 18), table],
+                  );
+          },
         ),
       ),
     );

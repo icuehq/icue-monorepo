@@ -1,6 +1,6 @@
 import 'package:announcements/announcements.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 
 class AnnouncementCard extends StatelessWidget {
   const AnnouncementCard({super.key, required this.announcement});

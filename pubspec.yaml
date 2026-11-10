@@ -9,8 +9,7 @@ workspace:
   - apps/impl
   - apps/super_admin
   - packages/api_client
-  - packages/admin_ui
-  - packages/core_ui
+  - packages/icue_ui
   - packages/local_storage
   - packages/icue_face_sdk
   - packages/icue_firebase

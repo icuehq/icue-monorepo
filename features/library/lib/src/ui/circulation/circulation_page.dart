@@ -1,13 +1,13 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/circulation/widgets/circulation_empty_states.dart';
 import 'package:school_library/src/ui/circulation/widgets/circulation_tabs.dart';
 import 'package:school_library/src/ui/circulation/widgets/loan_card.dart';
 import 'package:school_library/src/ui/circulation/widgets/loan_dialog.dart';
+import 'package:school_library/src/ui/circulation/widgets/loans_table.dart';
 
 enum CirculationFilter { all, overdue, dueToday }
 
@@ -49,33 +49,6 @@ class _CirculationPageState extends State<CirculationPage> {
     final book = await context.read<LibraryProvider>().book(loan.catalogueId);
     if (!mounted) return;
     await LoanDialog.show(context, loan, book?.title ?? loan.barcode);
-  }
-
-  Widget _statusPill(BuildContext context, LibraryLoan loan, String today) {
-    final theme = Theme.of(context);
-    final daysLate = loan.overdueOn(today);
-    final isLate = daysLate > 0;
-    final color = isLate ? theme.colorScheme.error : theme.colorScheme.primary;
-    final background = isLate
-        ? theme.colorScheme.errorContainer.withValues(alpha: 0.4)
-        : theme.colorScheme.primaryContainer.withValues(alpha: 0.4);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Text(
-        isLate ? '$daysLate d late' : 'On time',
-        style: TextStyle(
-          color: color,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
   }
 
   Widget _filterBar(
@@ -180,15 +153,32 @@ class _CirculationPageState extends State<CirculationPage> {
       return true;
     }).toList();
 
+    final isWide = context.isWide;
+    final loadMore = libraryProvider.hasMoreLoans
+        ? Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: IcueButton(
+                label: 'Load more',
+                onPressed: libraryProvider.loansLoading
+                    ? null
+                    : () => libraryProvider.loadLoans(more: true),
+                variant: IcueButtonVariant.ghost,
+              ),
+            ),
+          )
+        : null;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Circulation'),
         actions: [
-          AppButton(
-            label: 'Issue',
-            onPressed: () => context.push(LibraryRoutes.libraryIssue),
-            leadingIcon: Icons.add_rounded,
-          ),
+          if (!isWide)
+            IcueButton(
+              label: 'Issue',
+              onPressed: () => context.push(LibraryRoutes.libraryIssue),
+              leadingIcon: Icons.add_rounded,
+            ),
           IconButton(
             tooltip: 'Refresh loans',
             icon: const Icon(Icons.refresh_rounded),
@@ -197,120 +187,61 @@ class _CirculationPageState extends State<CirculationPage> {
         ],
         bottom: CirculationTabBar(activeTab: CirculationTab.loans),
       ),
-      body: CenteredBody(
-        child: Column(
-          children: [
-            _filterBar(
-              context,
-              totalCount: allLoans.length,
-              overdueCount: overdueCount,
-              dueTodayCount: dueTodayCount,
-            ),
-            const SizedBox(height: 6),
-            Expanded(
-              child: libraryProvider.loansLoading && allLoans.isEmpty
-                  ? const Center(child: CircularProgressIndicator())
-                  : filteredLoans.isEmpty
-                  ? (allLoans.isEmpty
-                        ? const CirculationInitialEmptyState()
-                        : CirculationNoResultsState(
-                            searchQuery: _searchQuery,
-                            onClear: _clearSearch,
-                          ))
-                  : RefreshIndicator(
-                      onRefresh: () => libraryProvider.loadLoans(),
-                      child: AdaptiveList<LibraryLoan>(
-                        items: filteredLoans,
-                        onTap: _open,
-                        columns: [
-                          AdaptiveColumn(
-                            label: 'Copy',
-                            flex: 2,
-                            cell: (context, loan) => Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.qr_code_2_rounded,
-                                  size: 16,
-                                  color: Colors.grey,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  loan.barcode,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          AdaptiveColumn(
-                            label: 'Member',
-                            flex: 3,
-                            cell: (context, loan) => Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  loan.memberType == 'teacher'
-                                      ? Icons.person_outline_rounded
-                                      : Icons.school_outlined,
-                                  size: 16,
-                                  color: Colors.grey,
-                                ),
-                                const SizedBox(width: 6),
-                                Flexible(
-                                  child: Text(
-                                    loan.memberLabel,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          AdaptiveColumn.text('Loan #', (loan) => loan.number),
-                          AdaptiveColumn.text(
-                            'Issued',
-                            (loan) => loan.issuedDate.toDisplayDay(),
-                          ),
-                          AdaptiveColumn.text(
-                            'Due',
-                            (loan) => loan.dueDate.toDisplayDay(),
-                          ),
-                          AdaptiveColumn(
-                            label: 'Status',
-                            cell: (context, loan) =>
-                                _statusPill(context, loan, today),
-                          ),
-                        ],
-                        cardBuilder: (context, loan) => LoanCard(
-                          loan: loan,
-                          today: today,
-                          onTap: () => _open(loan),
-                        ),
-                        footer: libraryProvider.hasMoreLoans
-                            ? Center(
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 8,
-                                  ),
-                                  child: AppButton(
-                                    label: 'Load more',
-                                    onPressed: libraryProvider.loansLoading
-                                        ? null
-                                        : () => libraryProvider.loadLoans(
-                                            more: true,
-                                          ),
-                                    variant: AppButtonVariant.ghost,
-                                  ),
-                                ),
-                              )
-                            : null,
-                      ),
+      body: isWide
+          ? Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  Expanded(
+                    child: LoansTable(
+                      loans: allLoans,
+                      loading: libraryProvider.loansLoading && allLoans.isEmpty,
+                      today: today,
+                      onOpen: _open,
                     ),
+                  ),
+                  ?loadMore,
+                ],
+              ),
+            )
+          : Column(
+              children: [
+                _filterBar(
+                  context,
+                  totalCount: allLoans.length,
+                  overdueCount: overdueCount,
+                  dueTodayCount: dueTodayCount,
+                ),
+                const SizedBox(height: 6),
+                Expanded(
+                  child: libraryProvider.loansLoading && allLoans.isEmpty
+                      ? const Center(child: CircularProgressIndicator())
+                      : filteredLoans.isEmpty
+                      ? (allLoans.isEmpty
+                            ? const CirculationInitialEmptyState()
+                            : CirculationNoResultsState(
+                                searchQuery: _searchQuery,
+                                onClear: _clearSearch,
+                              ))
+                      : RefreshIndicator(
+                          onRefresh: () => libraryProvider.loadLoans(),
+                          child: IcueAdaptiveCardList(
+                            itemCount:
+                                filteredLoans.length +
+                                (loadMore == null ? 0 : 1),
+                            itemBuilder: (context, index) =>
+                                index == filteredLoans.length
+                                ? loadMore!
+                                : LoanCard(
+                                    loan: filteredLoans[index],
+                                    today: today,
+                                    onTap: () => _open(filteredLoans[index]),
+                                  ),
+                          ),
+                        ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
     );
   }
 }

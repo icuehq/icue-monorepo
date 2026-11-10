@@ -1,6 +1,6 @@
 import 'package:attendance/attendance.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 
 class AttendanceOngoingCard extends StatelessWidget {
   const AttendanceOngoingCard({
@@ -94,16 +94,16 @@ class AttendanceOngoingCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: AppButton(
+                child: IcueButton(
                   label: 'Discard',
                   onPressed: onDiscard,
-                  variant: AppButtonVariant.destructive,
+                  variant: IcueButtonVariant.destructive,
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 flex: 2,
-                child: AppButton(
+                child: IcueButton(
                   label: 'Resume Session',
                   onPressed: onResume,
                   leadingIcon: Icons.arrow_forward_rounded,

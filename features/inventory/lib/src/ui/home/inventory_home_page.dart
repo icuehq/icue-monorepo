@@ -1,6 +1,6 @@
-import 'package:admin_ui/admin_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/routing/inventory_destinations.dart';
 import 'package:provider/provider.dart';
@@ -74,7 +74,7 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
                   itemCount: visibleTiles.length,
                   itemBuilder: (context, index) {
                     final item = visibleTiles[index];
-                    return OptionGridCard(
+                    return IcueOptionGridCard(
                       title: item.label,
                       iconAsset: item.iconAsset,
                       iconSize: iconSize,

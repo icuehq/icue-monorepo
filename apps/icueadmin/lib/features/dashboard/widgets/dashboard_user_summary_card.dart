@@ -1,6 +1,6 @@
 import 'package:auth/auth.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 
 class DashboardUserSummaryCard extends StatelessWidget {
   const DashboardUserSummaryCard({
@@ -189,10 +189,10 @@ class DashboardUserSummaryCard extends StatelessWidget {
                       ),
                     ),
                     if (onChangeBranch != null)
-                      AppButton(
+                      IcueButton(
                         label: 'Switch Branch',
                         onPressed: onChangeBranch,
-                        variant: AppButtonVariant.ghost,
+                        variant: IcueButtonVariant.ghost,
                         leadingIcon: Icons.swap_horiz,
                       ),
                   ],

@@ -1,6 +1,5 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/catalogue/widgets/copy_labels.dart';
@@ -180,7 +179,7 @@ class _CopyDialogState extends State<CopyDialog> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                AppDropdown<String>(
+                IcueDropdown<String>(
                   value: selectedLibraryId,
                   items: [
                     for (final schoolLibrary in libraries)
@@ -197,7 +196,7 @@ class _CopyDialogState extends State<CopyDialog> {
                   label: 'Destination library',
                 ),
                 const SizedBox(height: 16),
-                AppTextField(
+                IcueTextField(
                   controller: shelf,
                   label: 'Shelf in new library (optional)',
                   hintText: 'e.g. Rack A',
@@ -206,12 +205,12 @@ class _CopyDialogState extends State<CopyDialog> {
             ),
           ),
           actions: [
-            AppButton(
+            IcueButton(
               label: 'Cancel',
               onPressed: () => Navigator.pop(dialogContext, false),
-              variant: AppButtonVariant.ghost,
+              variant: IcueButtonVariant.ghost,
             ),
-            AppButton(
+            IcueButton(
               label: 'Move copy',
               onPressed: () => Navigator.pop(dialogContext, true),
             ),
@@ -363,13 +362,13 @@ class _CopyDialogState extends State<CopyDialog> {
           ),
         ),
         const SizedBox(height: 12),
-        AppTextField(
+        IcueTextField(
           controller: _shelf,
           label: 'Shelf / location',
           hintText: 'e.g. Rack A, Shelf 3',
         ),
         const SizedBox(height: 14),
-        AppDropdown<String>(
+        IcueDropdown<String>(
           value: _status,
           items: [
             for (final status in _availableStatuses)
@@ -412,7 +411,7 @@ class _CopyDialogState extends State<CopyDialog> {
         ],
         if (_status != widget.copy.status) ...[
           const SizedBox(height: 14),
-          AppTextField(
+          IcueTextField(
             controller: _statusReason,
             label: _needsReason
                 ? 'Reason for status change *'
@@ -424,7 +423,7 @@ class _CopyDialogState extends State<CopyDialog> {
           ),
         ],
         const SizedBox(height: 14),
-        AppDropdown<String>(
+        IcueDropdown<String>(
           value: _condition,
           items: [
             for (final copyCondition in copyConditions)
@@ -439,7 +438,7 @@ class _CopyDialogState extends State<CopyDialog> {
           label: 'Condition',
         ),
         const SizedBox(height: 14),
-        AppTextField(
+        IcueTextField(
           controller: _remarks,
           label: 'Remarks (optional)',
           hintText: 'Notes regarding copy condition or history',
@@ -451,17 +450,17 @@ class _CopyDialogState extends State<CopyDialog> {
           runSpacing: 8,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            AppButton(
+            IcueButton(
               label: _busy ? 'Saving…' : 'Save changes',
               onPressed: _busy ? null : _save,
               leadingIcon: Icons.check_rounded,
               isLoading: _busy,
             ),
             if (copy.status == 'available' && _status == 'available')
-              AppButton(
+              IcueButton(
                 label: 'Move library',
                 onPressed: _busy ? null : _move,
-                variant: AppButtonVariant.outline,
+                variant: IcueButtonVariant.outline,
                 leadingIcon: Icons.swap_horiz_rounded,
               ),
           ],

@@ -8,11 +8,11 @@ environment:
 
 dependencies:
   api_client:
-  core_ui:
   dio: ^5.7.0
   flutter:
     sdk: flutter
   flutter_inappwebview: ^6.1.5
+  icue_ui:
   injectable: ^2.5.0
   intl: ^0.20.2
   socket_io_client: ^3.0.2

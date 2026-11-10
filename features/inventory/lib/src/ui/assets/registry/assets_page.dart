@@ -1,8 +1,7 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icue_firebase/icue_firebase.dart' show AssetStatus;
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/assets/registry/widgets/asset_sheet.dart';
 import 'package:inventory/src/ui/assets/shared/asset_ui.dart';
@@ -97,14 +96,14 @@ class _AssetsPageState extends State<AssetsPage> {
               },
             )
           : null,
-      body: CenteredBody(
+      body: IcueCenteredBody(
         child: Column(
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
               child: Column(
                 children: [
-                  ScanField(
+                  IcueScanField(
                     hint: 'Search or scan asset ID, tag, name or serial',
                     onChanged: (value) =>
                         setState(() => _search = value.trim()),
@@ -136,25 +135,25 @@ class _AssetsPageState extends State<AssetsPage> {
                           ? const CircularProgressIndicator()
                           : Text(assetsProvider.errorMessage ?? 'No assets'),
                     )
-                  : AdaptiveList<InventoryAsset>(
+                  : IcueAdaptiveList<InventoryAsset>(
                       items: shown,
                       onTap: _open,
                       columns: [
-                        AdaptiveColumn.text(
+                        IcueAdaptiveColumn.text(
                           'Asset',
                           (asset) => asset.name,
                           flex: 2,
                         ),
-                        AdaptiveColumn.text('ID', (asset) => asset.assetId),
-                        AdaptiveColumn.text(
+                        IcueAdaptiveColumn.text('ID', (asset) => asset.assetId),
+                        IcueAdaptiveColumn.text(
                           'Assigned to',
                           (asset) => asset.assignedTo?.label ?? '—',
                         ),
-                        AdaptiveColumn.text(
+                        IcueAdaptiveColumn.text(
                           'Location',
                           (asset) => asset.location ?? '—',
                         ),
-                        AdaptiveColumn(
+                        IcueAdaptiveColumn(
                           label: 'Status',
                           cell: (context, asset) => StatusChip(asset.status),
                         ),

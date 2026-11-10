@@ -1,6 +1,5 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/shared/widgets/person_search_field.dart';
 import 'package:provider/provider.dart';
@@ -81,19 +80,19 @@ class _StoreFormPageState extends State<StoreFormPage> {
     }
     return Scaffold(
       appBar: AppBar(title: Text(editing ? 'Edit store' : 'Add store')),
-      body: CenteredBody(
-        maxWidth: Breakpoints.formMaxWidth,
+      body: IcueCenteredBody(
+        maxWidth: IcueBreakpoints.formMaxWidth,
         child: Form(
           key: _form,
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             children: [
-              FormSectionCard(
+              IcueFormSectionCard(
                 title: 'Store Details',
                 icon: Icons.store_outlined,
                 children: [
-                  AppTextField(
+                  IcueTextField(
                     controller: _name,
                     textInputAction: TextInputAction.next,
                     validator: requiredText,
@@ -102,7 +101,7 @@ class _StoreFormPageState extends State<StoreFormPage> {
                     icon: Icons.badge_outlined,
                   ),
                   if (campuses.length > 1)
-                    AppDropdown<int>(
+                    IcueDropdown<int>(
                       value: _campus,
                       items: [
                         for (final value in campuses)
@@ -116,14 +115,14 @@ class _StoreFormPageState extends State<StoreFormPage> {
                       label: 'Campus *',
                       icon: Icons.school_outlined,
                     ),
-                  AppTextField(
+                  IcueTextField(
                     controller: _location,
                     textInputAction: TextInputAction.next,
                     label: 'Location',
                     hintText: 'Building, floor or room number',
                     icon: Icons.place_outlined,
                   ),
-                  AppTextField(
+                  IcueTextField(
                     controller: _description,
                     maxLines: 3,
                     minLines: 1,
@@ -134,7 +133,7 @@ class _StoreFormPageState extends State<StoreFormPage> {
                   ),
                 ],
               ),
-              FormSectionCard(
+              IcueFormSectionCard(
                 title: 'Store Keepers',
                 icon: Icons.people_outline,
                 children: [
@@ -171,7 +170,7 @@ class _StoreFormPageState extends State<StoreFormPage> {
               SizedBox(
                 width: double.infinity,
                 height: 48,
-                child: AppButton(
+                child: IcueButton(
                   label: _busy
                       ? 'Saving…'
                       : (editing ? 'Update store' : 'Save store'),

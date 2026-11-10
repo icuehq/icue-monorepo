@@ -1,6 +1,6 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:gatepass/gatepass.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:icueadmin/analytics/app_events.dart';
 import 'package:icueadmin/features/gatepass/widgets/gatepass_request_card.dart';
 import 'package:icueadmin/features/reports/widgets/report_empty_state.dart';
@@ -101,10 +101,10 @@ class _PendingGatePassPageState extends State<PendingGatePassPage> {
             child: Row(
               children: [
                 Expanded(
-                  child: AppButton(
+                  child: IcueButton(
                     label: 'Date: $dateDisplay',
                     onPressed: _pickDate,
-                    variant: AppButtonVariant.outline,
+                    variant: IcueButtonVariant.outline,
                     leadingIcon: Icons.calendar_today,
                   ),
                 ),

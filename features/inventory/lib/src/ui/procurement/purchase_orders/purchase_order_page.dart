@@ -1,7 +1,6 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/procurement/invoices/widgets/invoice_dialog.dart';
 import 'package:inventory/src/ui/procurement/purchase_orders/purchase_order_pdf.dart';
@@ -77,7 +76,7 @@ class PurchaseOrderPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(purchaseOrder.number)),
-      body: CenteredBody(
+      body: IcueCenteredBody(
         maxWidth: 900,
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
@@ -328,7 +327,7 @@ class PurchaseOrderPage extends StatelessWidget {
               const SizedBox(height: 20),
 
               if (canStockOperate && purchaseOrder.canReceive) ...[
-                AppButton(
+                IcueButton(
                   label: 'Receive Goods (GRN)',
                   onPressed: () {
                     final router = GoRouter.of(context);
@@ -344,7 +343,7 @@ class PurchaseOrderPage extends StatelessWidget {
               ],
 
               if (canOperate && purchaseOrder.isIssued) ...[
-                AppButton(
+                IcueButton(
                   label: 'Confirm Vendor Acknowledged',
                   onPressed: () => _act(
                     context,
@@ -361,7 +360,7 @@ class PurchaseOrderPage extends StatelessWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: AppButton(
+                      child: IcueButton(
                         label: 'Issue PO',
                         onPressed: () => _act(
                           context,
@@ -374,7 +373,7 @@ class PurchaseOrderPage extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: AppButton(
+                      child: IcueButton(
                         label: 'Edit',
                         onPressed: () async {
                           final navigator = Navigator.of(context);
@@ -389,7 +388,7 @@ class PurchaseOrderPage extends StatelessWidget {
                             extra: (request, null, purchaseOrder),
                           );
                         },
-                        variant: AppButtonVariant.outline,
+                        variant: IcueButtonVariant.outline,
                         leadingIcon: Icons.edit_outlined,
                       ),
                     ),
@@ -402,20 +401,20 @@ class PurchaseOrderPage extends StatelessWidget {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  AppButton(
+                  IcueButton(
                     label: 'Download / Share PDF',
                     onPressed: () => sharePurchaseOrderPdf(
                       purchaseOrder,
                       vendor: vendor,
                       itemName: procurementProvider.itemName,
                     ),
-                    variant: AppButtonVariant.outline,
+                    variant: IcueButtonVariant.outline,
                     leadingIcon: Icons.picture_as_pdf_rounded,
                   ),
                   if (canOperate &&
                       !purchaseOrder.isDraft &&
                       purchaseOrder.status != 'cancelled')
-                    AppButton(
+                    IcueButton(
                       label: 'Record Invoice',
                       onPressed: () async {
                         await InvoiceDialog.show(context, purchaseOrder);
@@ -425,18 +424,18 @@ class PurchaseOrderPage extends StatelessWidget {
                           purchaseOrderId: purchaseOrder.id,
                         );
                       },
-                      variant: AppButtonVariant.outline,
+                      variant: IcueButtonVariant.outline,
                       leadingIcon: Icons.receipt_long_outlined,
                     ),
                   if (canOperate && purchaseOrder.canRevise)
-                    AppButton(
+                    IcueButton(
                       label: 'Revise PO',
                       onPressed: () => _revise(context),
-                      variant: AppButtonVariant.outline,
+                      variant: IcueButtonVariant.outline,
                       leadingIcon: Icons.replay_rounded,
                     ),
                   if (canOperate && purchaseOrder.canClose)
-                    AppButton(
+                    IcueButton(
                       label: 'Close PO',
                       onPressed: () => _withReason(
                         context,
@@ -445,11 +444,11 @@ class PurchaseOrderPage extends StatelessWidget {
                         'Closed',
                         required: purchaseOrder.status != 'fully_received',
                       ),
-                      variant: AppButtonVariant.outline,
+                      variant: IcueButtonVariant.outline,
                       leadingIcon: Icons.done_all_rounded,
                     ),
                   if (canOperate && purchaseOrder.canCancel)
-                    AppButton(
+                    IcueButton(
                       label: 'Cancel PO',
                       onPressed: () => _withReason(
                         context,
@@ -457,7 +456,7 @@ class PurchaseOrderPage extends StatelessWidget {
                         'inventory-purchaseOrder-cancel',
                         'Cancelled',
                       ),
-                      variant: AppButtonVariant.destructive,
+                      variant: IcueButtonVariant.destructive,
                       leadingIcon: Icons.cancel_outlined,
                     ),
                 ],

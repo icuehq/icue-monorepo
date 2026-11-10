@@ -1,7 +1,7 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/circulation/widgets/book_scan_dialog.dart';
@@ -77,7 +77,7 @@ class _LibraryScanListenerState extends State<LibraryScanListener> {
             title: const Text('Invalid barcode'),
             content: Text('No book copy found for "$code".'),
             actions: [
-              AppButton(
+              IcueButton(
                 autofocus: true,
                 label: 'OK',
                 onPressed: () => Navigator.of(dialogContext).pop(),

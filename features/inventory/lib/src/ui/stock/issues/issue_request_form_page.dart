@@ -1,7 +1,6 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/src/ui/stock/shared/line_editor.dart';
 import 'package:inventory/src/ui/stock/shared/stock_ui.dart';
 
@@ -59,7 +58,7 @@ class _IssueRequestFormPageState extends State<IssueRequestFormPage> {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(title: const Text('New Issue Request')),
-      body: CenteredBody(
+      body: IcueCenteredBody(
         maxWidth: 900,
         child: Form(
           key: _form,
@@ -100,7 +99,7 @@ class _IssueRequestFormPageState extends State<IssueRequestFormPage> {
                         onChanged: (value) => setState(() => _store = value),
                       ),
                       const SizedBox(height: 12),
-                      AppTextField(
+                      IcueTextField(
                         controller: _purpose,
                         validator: requiredText,
                         label: 'Purpose',
@@ -108,7 +107,7 @@ class _IssueRequestFormPageState extends State<IssueRequestFormPage> {
                             'e.g. Science lab experiments, Staff training',
                       ),
                       const SizedBox(height: 12),
-                      AppTextField(
+                      IcueTextField(
                         controller: _destination,
                         label: 'Destination / Department (optional)',
                         hintText: 'e.g. Senior Chemistry Lab, Block B',
@@ -174,7 +173,7 @@ class _IssueRequestFormPageState extends State<IssueRequestFormPage> {
                 ),
               ),
               const SizedBox(height: 24),
-              AppButton(
+              IcueButton(
                 label: _busy ? 'Submitting…' : 'Submit Request',
                 onPressed: _busy ? null : _save,
                 leadingIcon: Icons.send_rounded,

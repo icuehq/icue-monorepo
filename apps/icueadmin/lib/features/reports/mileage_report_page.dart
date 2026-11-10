@@ -1,5 +1,5 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:icueadmin/features/reports/widgets/report_empty_state.dart';
 import 'package:provider/provider.dart';
 import 'package:reports/reports.dart';
@@ -66,7 +66,7 @@ class _MileageReportPageState extends State<MileageReportPage> {
             color: Theme.of(context).cardColor,
             child: Column(
               children: [
-                AppSearchableAutocomplete<Vehicle>(
+                IcueSearchableAutocomplete<Vehicle>(
                   label: 'Vehicle *',
                   hintText: 'Select vehicle to view mileage...',
                   optionsBuilder: (textEditingValue) {

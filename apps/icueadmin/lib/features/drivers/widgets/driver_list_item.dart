@@ -1,6 +1,6 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:drivers/drivers.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:icueadmin/features/drivers/widgets/driver_status_chip.dart';
 
 class DriverListItem extends StatelessWidget {

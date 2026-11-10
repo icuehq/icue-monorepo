@@ -1,5 +1,5 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:icueadmin/features/reports/widgets/report_empty_state.dart';
 import 'package:icueadmin/features/reports/widgets/speed_violation_card.dart';
 import 'package:provider/provider.dart';
@@ -71,7 +71,7 @@ class _OverSpeedReportPageState extends State<OverSpeedReportPage> {
             color: Theme.of(context).cardColor,
             child: Column(
               children: [
-                AppSearchableAutocomplete<Vehicle>(
+                IcueSearchableAutocomplete<Vehicle>(
                   label: 'Vehicle *',
                   hintText: 'Select vehicle to inspect speed violations...',
                   optionsBuilder: (textEditingValue) {

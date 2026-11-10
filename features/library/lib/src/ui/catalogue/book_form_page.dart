@@ -1,9 +1,8 @@
 import 'dart:async';
 
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/catalogue/mock_books.dart';
@@ -169,12 +168,12 @@ class _BookFormPageState extends State<BookFormPage> {
             'Your unsaved changes to this book will be lost.',
           ),
           actions: [
-            AppButton(
+            IcueButton(
               label: 'Keep editing',
               onPressed: () => Navigator.of(context).pop(false),
-              variant: AppButtonVariant.ghost,
+              variant: IcueButtonVariant.ghost,
             ),
-            AppButton(
+            IcueButton(
               label: 'Discard',
               onPressed: () => Navigator.of(context).pop(true),
             ),
@@ -344,7 +343,7 @@ class _BookFormPageState extends State<BookFormPage> {
             ),
           ],
         ),
-        body: CenteredBody(
+        body: IcueCenteredBody(
           child: Form(
             key: _form,
             onChanged: () {
@@ -387,7 +386,7 @@ class _BookFormPageState extends State<BookFormPage> {
                 SizedBox(
                   width: double.infinity,
                   height: 48,
-                  child: AppButton(
+                  child: IcueButton(
                     label: _busy
                         ? 'Saving…'
                         : (editing ? 'Update book' : 'Save book'),

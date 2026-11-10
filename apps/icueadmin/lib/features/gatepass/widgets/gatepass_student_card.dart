@@ -1,5 +1,5 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:routes/routes.dart';
 
 class GatePassStudentCard extends StatelessWidget {
@@ -40,7 +40,7 @@ class GatePassStudentCard extends StatelessWidget {
             style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
           ),
         ),
-        trailing: AppButton(label: 'Issue Pass', onPressed: onIssue),
+        trailing: IcueButton(label: 'Issue Pass', onPressed: onIssue),
       ),
     );
   }

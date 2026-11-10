@@ -1,5 +1,5 @@
-import 'package:admin_ui/admin_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -17,10 +17,10 @@ class ImportPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final access = context.read<InventoryProvider>().access;
     final insights = context.read<InsightsProvider>();
-    return CsvImportScreen(
+    return IcueCsvImportScreen(
       kinds: [
         for (final entry in importPermissions.entries)
-          ImportKind(
+          IcueImportKind(
             type: entry.key,
             columns: importColumns[entry.key]!,
             hint: _hints[entry.key]!,

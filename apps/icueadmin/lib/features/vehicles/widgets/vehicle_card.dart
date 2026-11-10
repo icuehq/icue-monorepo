@@ -1,5 +1,5 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:vehicles/vehicles.dart';
 
 class VehicleCard extends StatelessWidget {

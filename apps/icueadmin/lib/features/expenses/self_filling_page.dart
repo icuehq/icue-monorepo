@@ -1,7 +1,7 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:expenses/expenses.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:icueadmin/analytics/app_events.dart';
 import 'package:icueadmin/routing/app_routes.dart';
 import 'package:provider/provider.dart';
@@ -185,7 +185,7 @@ class _SelfFillingPageState extends State<SelfFillingPage> {
                       },
                     )
                   else
-                    AppButton(
+                    IcueButton(
                       label: 'Capture',
                       onPressed: () async {
                         final picked = await pickFile(context);
@@ -195,14 +195,14 @@ class _SelfFillingPageState extends State<SelfFillingPage> {
                           _gaugeFileBytes = picked.bytes;
                         });
                       },
-                      variant: AppButtonVariant.ghost,
+                      variant: IcueButtonVariant.ghost,
                       leadingIcon: Icons.camera_alt,
                     ),
                 ],
               ),
             ),
             const SizedBox(height: 24),
-            AppButton(
+            IcueButton(
               label: 'Confirm & Start Session',
               onPressed: provider.isLoading ? null : _submit,
               leadingIcon: Icons.play_arrow_rounded,

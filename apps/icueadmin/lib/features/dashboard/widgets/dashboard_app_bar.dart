@@ -1,7 +1,7 @@
 import 'package:api_client/api_client.dart';
 import 'package:auth/auth.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 
 class DashboardAppBar extends StatelessWidget implements PreferredSizeWidget {
   const DashboardAppBar({
@@ -61,10 +61,10 @@ class DashboardAppBar extends StatelessWidget implements PreferredSizeWidget {
       actions: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8.0),
-          child: AppButton(
+          child: IcueButton(
             label: 'Sign Out',
             onPressed: onLogout,
-            variant: AppButtonVariant.destructive,
+            variant: IcueButtonVariant.destructive,
             leadingIcon: Icons.logout,
           ),
         ),

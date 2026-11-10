@@ -1,6 +1,6 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:icue_ui/icue_ui.dart';
 
 class DriverPersonalInfoForm extends StatelessWidget {
   const DriverPersonalInfoForm({
@@ -40,7 +40,7 @@ class DriverPersonalInfoForm extends StatelessWidget {
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
-        AppTextField(
+        IcueTextField(
           controller: firstNameController,
           hintText: 'First Name *',
           textInputAction: TextInputAction.next,
@@ -55,7 +55,7 @@ class DriverPersonalInfoForm extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: AppTextField(
+              child: IcueTextField(
                 controller: middleNameController,
                 hintText: 'Middle Name',
                 textInputAction: TextInputAction.next,
@@ -63,7 +63,7 @@ class DriverPersonalInfoForm extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: AppTextField(
+              child: IcueTextField(
                 controller: lastNameController,
                 hintText: 'Last Name',
                 textInputAction: TextInputAction.next,
@@ -78,7 +78,7 @@ class DriverPersonalInfoForm extends StatelessWidget {
               child: InkWell(
                 onTap: onSelectDob,
                 child: IgnorePointer(
-                  child: AppTextField(
+                  child: IcueTextField(
                     controller: dobController,
                     hintText: 'Date of Birth',
                     icon: Icons.cake_outlined,
@@ -91,7 +91,7 @@ class DriverPersonalInfoForm extends StatelessWidget {
               child: InkWell(
                 onTap: onSelectDoj,
                 child: IgnorePointer(
-                  child: AppTextField(
+                  child: IcueTextField(
                     controller: dojController,
                     hintText: 'Date of Joining',
                     icon: Icons.event_outlined,
@@ -102,7 +102,7 @@ class DriverPersonalInfoForm extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
-        AppTextField(
+        IcueTextField(
           controller: mobileController,
           hintText: 'Mobile Number *',
           keyboardType: TextInputType.phone,
@@ -120,7 +120,7 @@ class DriverPersonalInfoForm extends StatelessWidget {
           },
         ),
         const SizedBox(height: 12),
-        AppTextField(
+        IcueTextField(
           controller: altMobileController,
           hintText: 'Alternate Mobile Number',
           keyboardType: TextInputType.phone,
@@ -129,7 +129,7 @@ class DriverPersonalInfoForm extends StatelessWidget {
           icon: Icons.phone_android_outlined,
         ),
         const SizedBox(height: 12),
-        AppTextField(
+        IcueTextField(
           controller: emailController,
           hintText: 'Email',
           keyboardType: TextInputType.emailAddress,
@@ -137,7 +137,7 @@ class DriverPersonalInfoForm extends StatelessWidget {
           icon: Icons.email_outlined,
         ),
         const SizedBox(height: 12),
-        AppTextField(
+        IcueTextField(
           controller: aadharController,
           hintText: 'Aadhar Number (12 digits)',
           keyboardType: TextInputType.number,

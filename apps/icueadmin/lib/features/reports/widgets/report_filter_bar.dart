@@ -1,5 +1,5 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 
 class ReportFilterBar extends StatelessWidget {
   const ReportFilterBar({
@@ -9,8 +9,8 @@ class ReportFilterBar extends StatelessWidget {
     super.key,
   });
 
-  final AppFilterResult currentFilter;
-  final ValueChanged<AppFilterResult> onFilterChanged;
+  final IcueFilterResult currentFilter;
+  final ValueChanged<IcueFilterResult> onFilterChanged;
   final Widget? trailing;
 
   @override
@@ -21,10 +21,10 @@ class ReportFilterBar extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: AppButton(
+            child: IcueButton(
               label: currentFilter.displayLabel,
               onPressed: () async {
-                final result = await AppDateFilterModal.show(
+                final result = await IcueDateFilterModal.show(
                   context,
                   initialMode: currentFilter.mode,
                   initialDate: currentFilter.date,
@@ -36,7 +36,7 @@ class ReportFilterBar extends StatelessWidget {
                   onFilterChanged(result);
                 }
               },
-              variant: AppButtonVariant.outline,
+              variant: IcueButtonVariant.outline,
               leadingIcon: Icons.date_range_rounded,
             ),
           ),

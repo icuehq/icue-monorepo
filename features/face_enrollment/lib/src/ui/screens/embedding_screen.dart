@@ -1,4 +1,3 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:face_enrollment/src/models/student.dart';
 import 'package:face_enrollment/src/providers/embedding_provider.dart';
 import 'package:face_enrollment/src/providers/student_provider.dart';
@@ -7,6 +6,7 @@ import 'package:face_enrollment/src/ui/widgets/ambient_background.dart';
 import 'package:face_enrollment/src/ui/widgets/biometric_scanner_view.dart';
 import 'package:face_enrollment/src/ui/widgets/student_header_card.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
@@ -163,7 +163,7 @@ class _EmbeddingScreenState extends State<EmbeddingScreen>
             actions: [
               SizedBox(
                 width: 90,
-                child: AppButton(
+                child: IcueButton(
                   label: 'DONE',
                   onPressed: () {
                     Navigator.pop(dialogContext);
@@ -400,27 +400,27 @@ class _EmbeddingScreenState extends State<EmbeddingScreen>
                 Row(
                   children: [
                     Expanded(
-                      child: AppButton(
+                      child: IcueButton(
                         label: 'Camera',
                         onPressed:
                             embeddingProvider.isScanning ||
                                 embeddingProvider.isDownloading
                             ? null
                             : () => _pickImage(ImageSource.camera),
-                        variant: AppButtonVariant.outline,
+                        variant: IcueButtonVariant.outline,
                         leadingIcon: Icons.camera_alt_outlined,
                       ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: AppButton(
+                      child: IcueButton(
                         label: 'Gallery',
                         onPressed:
                             embeddingProvider.isScanning ||
                                 embeddingProvider.isDownloading
                             ? null
                             : () => _pickImage(ImageSource.gallery),
-                        variant: AppButtonVariant.outline,
+                        variant: IcueButtonVariant.outline,
                         leadingIcon: Icons.photo_library_outlined,
                       ),
                     ),
@@ -451,7 +451,7 @@ class _EmbeddingScreenState extends State<EmbeddingScreen>
 
                 // Primary Action Button Flow
                 if (embeddingProvider.generatedEmbedding == null) ...[
-                  AppButton(
+                  IcueButton(
                     label: embeddingProvider.isScanning
                         ? 'EXTRACTING 192-D VECTOR...'
                         : 'GENERATE EMBEDDING',
@@ -465,7 +465,7 @@ class _EmbeddingScreenState extends State<EmbeddingScreen>
                     isFullWidth: true,
                   ),
                 ] else ...[
-                  AppButton(
+                  IcueButton(
                     label: 'UPLOAD EMBEDDING TO SERVER',
                     isLoading: studentProvider.isUploadingEmbedding,
                     onPressed: () => _handleUpload(studentProvider),
@@ -473,9 +473,9 @@ class _EmbeddingScreenState extends State<EmbeddingScreen>
                     isFullWidth: true,
                   ),
                   const SizedBox(height: 10),
-                  AppButton(
+                  IcueButton(
                     label: 'Re-generate Vector',
-                    variant: AppButtonVariant.outline,
+                    variant: IcueButtonVariant.outline,
                     leadingIcon: Icons.refresh_rounded,
                     onPressed:
                         embeddingProvider.isScanning ||

@@ -1,6 +1,5 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 
 class RequestLineDraft {
   RequestLineDraft(
@@ -70,7 +69,7 @@ class RequestLineCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: AppTextField(
+                child: IcueTextField(
                   controller: line.quantity,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
@@ -86,7 +85,7 @@ class RequestLineCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: AppTextField(
+                child: IcueTextField(
                   controller: line.price,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,

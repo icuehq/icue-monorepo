@@ -1,5 +1,5 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:icue_firebase/icue_firebase.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:injectable/injectable.dart';
 import 'package:inventory/src/models/inventory_insights.dart';
 import 'package:inventory/src/models/inventory_masters.dart';

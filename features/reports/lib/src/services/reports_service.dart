@@ -1,5 +1,5 @@
 import 'package:api_client/api_client.dart';
-import 'package:core_ui/core_ui.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:injectable/injectable.dart';
 import 'package:reports/src/models/alcohol_test_report.dart';
 import 'package:reports/src/models/arrival_time_report.dart';

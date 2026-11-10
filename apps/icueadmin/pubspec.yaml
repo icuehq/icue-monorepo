@@ -8,12 +8,10 @@ environment:
   sdk: ^3.13.1
 
 dependencies:
-  admin_ui:
   announcements:
   api_client:
   attendance:
   auth:
-  core_ui:
   cupertino_icons: ^1.0.8
   drivers:
   drop_boarding:
@@ -28,6 +26,7 @@ dependencies:
   go_router: ^18.1.1
   icue_face_sdk:
   icue_firebase:
+  icue_ui:
   injectable: ^2.5.0
   inventory:
   local_storage:

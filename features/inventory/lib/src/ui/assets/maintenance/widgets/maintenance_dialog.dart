@@ -1,7 +1,6 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/assets/shared/asset_ui.dart';
 
@@ -68,7 +67,7 @@ class _MaintenanceDialogState extends State<MaintenanceDialog> {
             style: Theme.of(context).textTheme.titleLarge,
           ),
           Text(widget.asset?.assetId ?? widget.job!.assetCode),
-          AppTextField(
+          IcueTextField(
             controller: _issue,
             maxLines: 3,
             validator: requiredText,
@@ -80,7 +79,7 @@ class _MaintenanceDialogState extends State<MaintenanceDialog> {
             _priority,
             (value) => setState(() => _priority = value!),
           ),
-          AppTextField(
+          IcueTextField(
             controller: _technician,
             label: 'Technician / service provider',
           ),
@@ -92,7 +91,7 @@ class _MaintenanceDialogState extends State<MaintenanceDialog> {
             last: now.add(const Duration(days: 1095)),
           ),
           const SizedBox(height: 16),
-          AppButton(
+          IcueButton(
             label: _busy ? 'Saving…' : 'Save',
             onPressed: _busy ? null : _save,
           ),

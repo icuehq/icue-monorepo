@@ -1,5 +1,5 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:icue_firebase/icue_firebase.dart';
+import 'package:icue_ui/icue_ui.dart';
 
 /// Client-side stock writes: Receive Stock (`inventory-receipt-confirm`), receiving goods against a purchase order (`inventory-purchaseOrder-receive`), issue request submit and approve/reject, issuing stock (`inventory-issue-create`) confirming an issue's receipt returns against an issue requesting, approving, cancelling, dispatching and receiving a transfer, stock adjustments and unavailable stock.
 ///

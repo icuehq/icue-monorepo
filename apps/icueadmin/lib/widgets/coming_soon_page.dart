@@ -1,6 +1,6 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:icueadmin/routing/app_routes.dart';
 
 /// Shown for routes the app does not know, such as a module the backend lists
@@ -25,7 +25,7 @@ class ComingSoonPage extends StatelessWidget {
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 24),
-              AppButton(
+              IcueButton(
                 label: 'Go To Home',
                 onPressed: () => context.go(AppRoutes.dashboard),
               ),

@@ -1,7 +1,7 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:expenses/expenses.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:icueadmin/routing/app_routes.dart';
 
 class ExpenseConfirmationPage extends StatelessWidget {
@@ -96,7 +96,7 @@ class ExpenseConfirmationPage extends StatelessWidget {
               Row(
                 children: [
                   Expanded(
-                    child: AppButton(
+                    child: IcueButton(
                       label: 'Add Another',
                       onPressed: () {
                         if (isSelfFilling) {
@@ -109,7 +109,7 @@ class ExpenseConfirmationPage extends StatelessWidget {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: AppButton(
+                    child: IcueButton(
                       label: isSelfFilling ? 'End Filling' : 'Dashboard',
                       onPressed: () {
                         if (isSelfFilling) {
@@ -121,7 +121,7 @@ class ExpenseConfirmationPage extends StatelessWidget {
                           context.go(AppRoutes.dashboard);
                         }
                       },
-                      variant: AppButtonVariant.outline,
+                      variant: IcueButtonVariant.outline,
                     ),
                   ),
                 ],

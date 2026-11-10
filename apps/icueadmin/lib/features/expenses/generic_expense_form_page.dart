@@ -1,7 +1,7 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:expenses/expenses.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:icueadmin/analytics/app_events.dart';
 import 'package:icueadmin/features/expenses/widgets/expense_bill_section.dart';
 import 'package:icueadmin/routing/app_routes.dart';
@@ -61,8 +61,8 @@ class _GenericExpenseFormPageState extends State<GenericExpenseFormPage> {
   String? _salaryMode;
   Detail? _category;
   Detail? _subCategory;
-  PickedFile? _billFile;
-  PickedFile? _odometerFile;
+  IcuePickedFile? _billFile;
+  IcuePickedFile? _odometerFile;
 
   String get _code => widget.args.expenseType.code;
   bool get _isFuel => _code == 'fuel';
@@ -300,13 +300,13 @@ class _GenericExpenseFormPageState extends State<GenericExpenseFormPage> {
     final name = _odometerFile?.name;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: AppButton(
+      child: IcueButton(
         label: name ?? 'Upload Odometer *',
         onPressed: () async {
           final picked = await pickFile(context);
           if (picked != null && mounted) setState(() => _odometerFile = picked);
         },
-        variant: AppButtonVariant.outline,
+        variant: IcueButtonVariant.outline,
         leadingIcon: Icons.camera_alt,
       ),
     );
@@ -465,7 +465,7 @@ class _GenericExpenseFormPageState extends State<GenericExpenseFormPage> {
               maxLines: 3,
             ),
             const SizedBox(height: 24),
-            AppButton(
+            IcueButton(
               label: 'Submit Expense Record',
               onPressed: provider.isLoading ? null : _submit,
               leadingIcon: Icons.check_circle_outline,

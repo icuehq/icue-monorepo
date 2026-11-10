@@ -1,8 +1,8 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:drivers/drivers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:icueadmin/features/drivers/widgets/driver_list_item.dart';
 import 'package:icueadmin/features/drivers/widgets/driver_search_bar.dart';
 import 'package:icueadmin/routing/app_routes.dart';
@@ -117,7 +117,7 @@ class _DriversPageState extends State<DriversPage> {
                 style: const TextStyle(fontSize: 14, color: Colors.grey),
               ),
               const SizedBox(height: 16),
-              AppButton(
+              IcueButton(
                 label: 'Retry',
                 onPressed: () => provider.fetchDrivers(),
                 leadingIcon: Icons.refresh_rounded,

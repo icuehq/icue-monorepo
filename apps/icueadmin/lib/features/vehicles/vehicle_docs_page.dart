@@ -1,6 +1,6 @@
 import 'package:api_client/api_client.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:icueadmin/features/vehicles/widgets/vehicle_doc_upload_dialog.dart';
 import 'package:provider/provider.dart';
 import 'package:vehicles/vehicles.dart';
@@ -120,12 +120,12 @@ class _VehicleDocsPageState extends State<VehicleDocsPage> {
           'Are you sure you want to delete the uploaded $docType document for ${widget.vehicle.number}?',
         ),
         actions: [
-          AppButton(
+          IcueButton(
             label: 'Cancel',
             onPressed: () => Navigator.of(ctx).pop(),
-            variant: AppButtonVariant.ghost,
+            variant: IcueButtonVariant.ghost,
           ),
-          AppButton(
+          IcueButton(
             label: 'Delete',
             onPressed: () async {
               Navigator.of(ctx).pop();
@@ -147,7 +147,7 @@ class _VehicleDocsPageState extends State<VehicleDocsPage> {
                 );
               }
             },
-            variant: AppButtonVariant.destructive,
+            variant: IcueButtonVariant.destructive,
           ),
         ],
       ),
@@ -220,7 +220,7 @@ class _VehicleDocsPageState extends State<VehicleDocsPage> {
               final expiry = _resolveExpiryDate(docType, doc);
               final docNum = _resolveDocNumber(docType, doc);
 
-              final itemData = DocumentItemData(
+              final itemData = IcueDocumentItemData(
                 docType: docType,
                 title: '$docType Document',
                 docNumber: docNum,
@@ -228,7 +228,7 @@ class _VehicleDocsPageState extends State<VehicleDocsPage> {
                 fileUrl: doc?.docUrl,
               );
 
-              return AppDocumentAccordion(
+              return IcueDocumentAccordion(
                 document: itemData,
                 isLoading: provider.isLoading,
                 onViewDocument: doc?.docUrl != null && doc!.docUrl.isNotEmpty

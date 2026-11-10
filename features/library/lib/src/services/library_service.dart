@@ -1,5 +1,5 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:icue_firebase/icue_firebase.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:injectable/injectable.dart';
 import 'package:school_library/src/models/library_copies.dart';
 import 'package:school_library/src/models/library_fines.dart';
@@ -154,13 +154,10 @@ class LibraryService {
         ..sort((left, right) => left.name.compareTo(right.name));
 
   /// A page of members of one type by ERP ID.
-  Future<PagedResult<LibraryMember>> members(
-    String memberType, {
+  Future<PagedResult<LibraryMember>> members({
     DocumentSnapshot<Map<String, dynamic>>? after,
   }) async => fetchPage(
-    (await schoolCollection('libraryMembers'))
-        .where('memberType', isEqualTo: memberType)
-        .orderBy('personErpId'),
+    (await schoolCollection('libraryMembers')).orderBy('personErpId'),
     (document) => LibraryMember.fromMap(document.id, document.data()!),
     after: after,
   );

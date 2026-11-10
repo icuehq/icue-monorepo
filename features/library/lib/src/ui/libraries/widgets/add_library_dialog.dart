@@ -1,7 +1,6 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
@@ -164,10 +163,10 @@ class _AddLibraryDialogState extends State<AddLibraryDialog> {
                 ),
               ),
               if (kDebugMode && !editing)
-                AppButton(
+                IcueButton(
                   label: 'Fill sample',
                   onPressed: _busy ? null : _fillSample,
-                  variant: AppButtonVariant.ghost,
+                  variant: IcueButtonVariant.ghost,
                   leadingIcon: Icons.auto_fix_high_rounded,
                 ),
             ],
@@ -214,7 +213,7 @@ class _AddLibraryDialogState extends State<AddLibraryDialog> {
             title: 'Library Details',
             icon: Icons.badge_outlined,
             children: [
-              AppTextField(
+              IcueTextField(
                 controller: _name,
                 textInputAction: TextInputAction.next,
                 validator: _validateName,
@@ -246,13 +245,13 @@ class _AddLibraryDialogState extends State<AddLibraryDialog> {
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              AppButton(
+              IcueButton(
                 label: 'Cancel',
                 onPressed: _busy ? null : () => Navigator.of(context).pop(),
-                variant: AppButtonVariant.outline,
+                variant: IcueButtonVariant.outline,
               ),
               const SizedBox(width: 12),
-              AppButton(
+              IcueButton(
                 label: _busy
                     ? 'Saving…'
                     : (editing ? 'Save changes' : 'Create library'),
@@ -268,7 +267,7 @@ class _AddLibraryDialogState extends State<AddLibraryDialog> {
   }
 
   Widget _buildCampusField(bool editing, List<int> campuses) {
-    return AppDropdown<int>(
+    return IcueDropdown<int>(
       value: _campus,
       items: [
         for (final value in campuses)
@@ -282,7 +281,7 @@ class _AddLibraryDialogState extends State<AddLibraryDialog> {
   }
 
   Widget _buildLocationField() {
-    return AppTextField(
+    return IcueTextField(
       controller: _location,
       textInputAction: TextInputAction.next,
       label: 'Location',
@@ -292,7 +291,7 @@ class _AddLibraryDialogState extends State<AddLibraryDialog> {
   }
 
   Widget _buildHoursField() {
-    return AppTextField(
+    return IcueTextField(
       controller: _hours,
       textInputAction: TextInputAction.next,
       label: 'Opening hours',

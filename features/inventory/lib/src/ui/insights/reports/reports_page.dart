@@ -1,6 +1,6 @@
-import 'package:admin_ui/admin_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 
 /// Report catalogue (FRS 10.23).
@@ -10,7 +10,7 @@ class InventoryReportsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Reports')),
-    body: CenteredBody(
+    body: IcueCenteredBody(
       maxWidth: 900,
       child: ListView(
         children: [

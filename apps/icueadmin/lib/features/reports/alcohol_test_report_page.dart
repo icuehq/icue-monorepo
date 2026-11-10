@@ -1,6 +1,6 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:drivers/drivers.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:icueadmin/features/reports/widgets/alcohol_report_card.dart';
 import 'package:icueadmin/features/reports/widgets/report_empty_state.dart';
 import 'package:icueadmin/features/reports/widgets/report_filter_bar.dart';
@@ -17,13 +17,13 @@ class AlcoholTestReportPage extends StatefulWidget {
 class _AlcoholTestReportPageState extends State<AlcoholTestReportPage> {
   int _page = 1;
   Driver? _selectedDriver;
-  late AppFilterResult _filterResult;
+  late IcueFilterResult _filterResult;
 
   @override
   void initState() {
     super.initState();
     final now = DateTime.now();
-    _filterResult = AppFilterResult.byMonth(
+    _filterResult = IcueFilterResult.byMonth(
       month: now.month.toString().padLeft(2, '0'),
       year: now.year.toString(),
     );
@@ -79,7 +79,7 @@ class _AlcoholTestReportPageState extends State<AlcoholTestReportPage> {
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: AppSearchableAutocomplete<Driver>(
+            child: IcueSearchableAutocomplete<Driver>(
               hintText: 'Filter by driver name or mobile...',
               optionsBuilder: (textEditingValue) {
                 final list = driverProvider.drivers;
@@ -126,7 +126,7 @@ class _AlcoholTestReportPageState extends State<AlcoholTestReportPage> {
                                     ),
                                     child: reportsProvider.isLoading
                                         ? const CircularProgressIndicator()
-                                        : AppButton(
+                                        : IcueButton(
                                             label: 'Load More',
                                             onPressed: _loadMore,
                                           ),

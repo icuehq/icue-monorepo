@@ -1,9 +1,9 @@
 import 'package:api_client/api_client.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:expenses/src/models/expense_category.dart';
 import 'package:expenses/src/models/expense_requests.dart';
 import 'package:expenses/src/models/expense_type.dart';
 import 'package:expenses/src/models/fuel_storage.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:injectable/injectable.dart';
 
 @lazySingleton

@@ -1,8 +1,7 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/procurement/vendors/vendor_actions.dart';
 import 'package:provider/provider.dart';
@@ -60,7 +59,7 @@ class VendorPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(vendor.name)),
-      body: CenteredBody(
+      body: IcueCenteredBody(
         maxWidth: 900,
         child: ListView(
           padding: const EdgeInsets.all(16),
@@ -127,10 +126,10 @@ class VendorPage extends StatelessWidget {
                   child: Row(
                     children: [
                       Expanded(
-                        child: AppButton(
+                        child: IcueButton(
                           label: vendor.active ? 'Deactivate' : 'Activate',
                           onPressed: () => toggleVendorActive(context, vendor),
-                          variant: AppButtonVariant.outline,
+                          variant: IcueButtonVariant.outline,
                           leadingIcon: vendor.active
                               ? Icons.block_rounded
                               : Icons.check_circle_outline_rounded,
@@ -138,7 +137,7 @@ class VendorPage extends StatelessWidget {
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: AppButton(
+                        child: IcueButton(
                           label: 'Edit',
                           onPressed: () => context.push(
                             '${InventoryRoutes.inventoryVendorForm}?id=${vendor.id}',

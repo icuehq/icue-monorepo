@@ -1,6 +1,5 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:school_library/school_library.dart';
 
 /// A card representing a top-level category and its nested subcategories.
@@ -108,7 +107,7 @@ class _LibraryCategoryCardState extends State<LibraryCategoryCard> {
                             ),
                             if (!category.active) ...[
                               const SizedBox(width: 8),
-                              const InactiveBadge(),
+                              const IcueInactiveBadge(),
                             ],
                           ],
                         ),
@@ -225,7 +224,7 @@ class _LibraryCategoryCardState extends State<LibraryCategoryCard> {
                                       ),
                                       if (!subs[i].active) ...[
                                         const SizedBox(width: 6),
-                                        const InactiveBadge(),
+                                        const IcueInactiveBadge(),
                                       ],
                                     ],
                                   ),
@@ -268,17 +267,17 @@ class _LibraryCategoryCardState extends State<LibraryCategoryCard> {
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             child: Row(
               children: [
-                AppButton(
+                IcueButton(
                   label: 'View books',
                   onPressed: () => widget.onViewBooks(category),
-                  variant: AppButtonVariant.ghost,
+                  variant: IcueButtonVariant.ghost,
                   leadingIcon: Icons.menu_book_outlined,
                 ),
                 const Spacer(),
-                AppButton(
+                IcueButton(
                   label: 'Add subcategory',
                   onPressed: () => widget.onAddSubcategory(category),
-                  variant: AppButtonVariant.ghost,
+                  variant: IcueButtonVariant.ghost,
                   leadingIcon: Icons.add_rounded,
                 ),
               ],

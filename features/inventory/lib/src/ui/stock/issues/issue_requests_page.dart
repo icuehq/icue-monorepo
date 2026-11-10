@@ -1,7 +1,6 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/stock/issues/widgets/issue_request_card.dart';
 import 'package:inventory/src/ui/stock/issues/widgets/issue_request_widgets.dart';
@@ -92,7 +91,7 @@ class _IssueRequestsPageState extends State<IssueRequestsPage> {
               label: const Text('New request'),
             )
           : null,
-      body: CenteredBody(
+      body: IcueCenteredBody(
         maxWidth: 900,
         child: Column(
           children: [
@@ -198,22 +197,22 @@ class _IssueRequestsPageState extends State<IssueRequestsPage> {
                                       ),
                                       const SizedBox(height: 18),
                                       if (stockProvider.errorMessage != null)
-                                        AppButton(
+                                        IcueButton(
                                           label: 'Try again',
                                           onPressed: _load,
-                                          variant: AppButtonVariant.outline,
+                                          variant: IcueButtonVariant.outline,
                                           leadingIcon: Icons.refresh,
                                         )
                                       else if (_status != null)
-                                        AppButton(
+                                        IcueButton(
                                           label: 'Show all requests',
                                           onPressed: () => _filter(null),
-                                          variant: AppButtonVariant.outline,
+                                          variant: IcueButtonVariant.outline,
                                           leadingIcon:
                                               Icons.filter_alt_off_outlined,
                                         )
                                       else if (canRequest)
-                                        AppButton(
+                                        IcueButton(
                                           label: 'New request',
                                           onPressed: _newRequest,
                                           leadingIcon: Icons.add,
@@ -223,29 +222,29 @@ class _IssueRequestsPageState extends State<IssueRequestsPage> {
                                 ),
                               ),
                       )
-                    : AdaptiveList<InventoryIssueRequest>(
+                    : IcueAdaptiveList<InventoryIssueRequest>(
                         items: stockProvider.requests,
                         onTap: _open,
                         columns: [
-                          AdaptiveColumn.text(
+                          IcueAdaptiveColumn.text(
                             'Request',
                             (request) => request.number,
                           ),
-                          AdaptiveColumn.text(
+                          IcueAdaptiveColumn.text(
                             'Purpose',
                             (request) => request.purpose,
                             flex: 3,
                           ),
-                          AdaptiveColumn.text(
+                          IcueAdaptiveColumn.text(
                             'Store',
                             (request) => storeName(request.storeId),
                           ),
-                          AdaptiveColumn.text(
+                          IcueAdaptiveColumn.text(
                             'Raised',
                             (request) =>
                                 request.createdAt?.toNumericDate() ?? '—',
                           ),
-                          AdaptiveColumn(
+                          IcueAdaptiveColumn(
                             label: 'Status',
                             cell: (context, request) =>
                                 IssueStatusPill(request.status),

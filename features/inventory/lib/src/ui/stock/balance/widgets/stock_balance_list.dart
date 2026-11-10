@@ -1,6 +1,5 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/stock/balance/widgets/stock_balance_card.dart';
 
@@ -20,35 +19,35 @@ class StockBalanceList extends StatelessWidget {
   final void Function(InventoryBalance balance) onOpen;
 
   @override
-  Widget build(BuildContext context) => AdaptiveList<InventoryBalance>(
+  Widget build(BuildContext context) => IcueAdaptiveList<InventoryBalance>(
     controller: scroll,
     items: rows,
     onTap: onOpen,
     columns: [
-      AdaptiveColumn.text(
+      IcueAdaptiveColumn.text(
         'Item',
         (balance) => stockProvider.itemName(balance.itemId),
         flex: 3,
       ),
-      AdaptiveColumn.text(
+      IcueAdaptiveColumn.text(
         'Code',
         (balance) => stockProvider.items[balance.itemId]?.code ?? '—',
       ),
-      AdaptiveColumn.text(
+      IcueAdaptiveColumn.text(
         'Available',
         (balance) =>
             '${balance.available.toQuantityText()} ${stockProvider.items[balance.itemId]?.stockUnit ?? ''}',
       ),
-      AdaptiveColumn.text(
+      IcueAdaptiveColumn.text(
         'Damaged',
         (balance) => balance.damaged.toQuantityText(),
       ),
-      AdaptiveColumn.text(
+      IcueAdaptiveColumn.text(
         'Expired',
         (balance) => balance.expired.toQuantityText(),
       ),
-      AdaptiveColumn.text('Value', (balance) => balance.value.toRupees()),
-      AdaptiveColumn(
+      IcueAdaptiveColumn.text('Value', (balance) => balance.value.toRupees()),
+      IcueAdaptiveColumn(
         label: '',
         cell: (context, balance) => balance.isBelowReorderLevel
             ? Text(

@@ -1,5 +1,5 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:icue_firebase/icue_firebase.dart';
+import 'package:icue_ui/icue_ui.dart';
 
 /// Client-side purchase request, quotation, purchase order (save, issue, revise, acknowledge, cancel, close) and invoice writes.
 ///

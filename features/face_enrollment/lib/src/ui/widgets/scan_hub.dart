@@ -1,10 +1,10 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:face_enrollment/src/models/student.dart';
 import 'package:face_enrollment/src/ui/theme_context.dart';
 import 'package:face_enrollment/src/ui/widgets/glass_card.dart';
 import 'package:face_enrollment/src/ui/widgets/identify_results.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_face_sdk/icue_face_sdk.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:image_picker/image_picker.dart';
 
 class ScanHub extends StatelessWidget {
@@ -245,23 +245,23 @@ class ScanHub extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: AppButton(
+                child: IcueButton(
                   label: 'Camera',
                   onPressed: isScanning
                       ? null
                       : () => onSinglePhoto(ImageSource.camera),
-                  variant: AppButtonVariant.outline,
+                  variant: IcueButtonVariant.outline,
                   leadingIcon: Icons.camera_alt_outlined,
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: AppButton(
+                child: IcueButton(
                   label: 'Gallery',
                   onPressed: isScanning
                       ? null
                       : () => onSinglePhoto(ImageSource.gallery),
-                  variant: AppButtonVariant.outline,
+                  variant: IcueButtonVariant.outline,
                   leadingIcon: Icons.photo_library_outlined,
                 ),
               ),

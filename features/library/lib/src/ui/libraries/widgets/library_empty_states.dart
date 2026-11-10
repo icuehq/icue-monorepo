@@ -1,12 +1,12 @@
-import 'package:admin_ui/admin_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 
 class LibraryInitialEmptyState extends StatelessWidget {
   const LibraryInitialEmptyState({required this.onAdd, super.key});
   final VoidCallback onAdd;
 
   @override
-  Widget build(BuildContext context) => EmptyState(
+  Widget build(BuildContext context) => IcueEmptyState(
     icon: Icons.local_library_outlined,
     title: 'No libraries configured',
     message: 'Set up physical or campus library branches to manage book circulation, copy inventories, and borrow policies.',
@@ -27,7 +27,7 @@ class LibraryNoResultsState extends StatelessWidget {
   final VoidCallback onClear;
 
   @override
-  Widget build(BuildContext context) => EmptyState.noResults(
+  Widget build(BuildContext context) => IcueEmptyState.noResults(
     title: searchQuery.isNotEmpty
         ? 'No libraries matching "$searchQuery"'
         : 'No libraries match the active filter',

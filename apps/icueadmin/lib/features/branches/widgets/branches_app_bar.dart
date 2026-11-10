@@ -1,5 +1,5 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 
 class BranchesAppBar extends StatelessWidget implements PreferredSizeWidget {
   const BranchesAppBar({required this.onLogout, super.key});
@@ -18,15 +18,15 @@ class BranchesAppBar extends StatelessWidget implements PreferredSizeWidget {
           'Are you sure you want to sign out of this session?',
         ),
         actions: [
-          AppButton(
+          IcueButton(
             label: 'Cancel',
             onPressed: () => Navigator.of(ctx).pop(false),
-            variant: AppButtonVariant.ghost,
+            variant: IcueButtonVariant.ghost,
           ),
-          AppButton(
+          IcueButton(
             label: 'Sign Out',
             onPressed: () => Navigator.of(ctx).pop(true),
-            variant: AppButtonVariant.destructive,
+            variant: IcueButtonVariant.destructive,
           ),
         ],
       ),
@@ -59,10 +59,10 @@ class BranchesAppBar extends StatelessWidget implements PreferredSizeWidget {
       actions: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8.0),
-          child: AppButton(
+          child: IcueButton(
             label: 'Sign Out',
             onPressed: () => _handleLogout(context),
-            variant: AppButtonVariant.destructive,
+            variant: IcueButtonVariant.destructive,
             leadingIcon: Icons.logout,
           ),
         ),

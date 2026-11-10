@@ -1,8 +1,8 @@
 // Library dashboard figures and loan reports. Display only; rules live in Firestore rules.
 
-import 'package:core_ui/core_ui.dart';
 import 'package:icue_firebase/icue_firebase.dart'
     show ReportColumn, readDay, readNumber, readString;
+import 'package:icue_ui/icue_ui.dart';
 
 /// Resolves IDs to display names for report cells.
 class LibraryNames {

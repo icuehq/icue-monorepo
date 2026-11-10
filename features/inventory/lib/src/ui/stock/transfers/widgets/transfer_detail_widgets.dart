@@ -1,6 +1,5 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/stock/transfers/transfer_rules.dart';
 
@@ -232,7 +231,7 @@ class TransferLinesCard extends StatelessWidget {
                 if (entering != null && line.dispatched - line.received > 0)
                   Padding(
                     padding: const EdgeInsets.only(top: 8),
-                    child: AppTextField(
+                    child: IcueTextField(
                       controller: entering[index],
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,

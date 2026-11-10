@@ -1,5 +1,5 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 
 class BranchesEmptyState extends StatelessWidget {
   const BranchesEmptyState({
@@ -65,14 +65,14 @@ class BranchesEmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             if (isFiltered)
-              AppButton(
+              IcueButton(
                 label: 'Clear Search',
                 onPressed: onAction,
-                variant: AppButtonVariant.outline,
+                variant: IcueButtonVariant.outline,
                 leadingIcon: Icons.clear_rounded,
               )
             else
-              AppButton(
+              IcueButton(
                 label: 'Retry',
                 onPressed: onAction,
                 leadingIcon: Icons.refresh_rounded,

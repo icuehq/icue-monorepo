@@ -1,5 +1,5 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:routes/routes.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/catalogue/widgets/class_filter_dropdown.dart';
@@ -232,7 +232,7 @@ class CatalogueFilterHeader extends StatelessWidget {
                   ),
                 ...[
                   const SizedBox(width: 8),
-                  AppButton(
+                  IcueButton(
                     label: 'Add Book',
                     onPressed: onAddBook,
                     leadingIcon: Icons.add_rounded,

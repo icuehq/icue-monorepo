@@ -51,11 +51,10 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   final _fines = _Paged<LibraryFine>();
   final _incidents = _Paged<LibraryIncident>();
 
-  /// Members of [memberType], one type at a time.
+  /// Every member who has borrowed or reserved; the page filters by kind.
   List<LibraryMember> get members => _members.items;
   bool get membersLoading => _members.loading;
   bool get hasMoreMembers => _members.hasMore;
-  String memberType = 'student';
 
   /// Active loans, earliest due first.
   List<LibraryLoan> get loans => _loans.items;
@@ -233,12 +232,11 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     }
   }
 
-  /// (Re)loads the first page of [type] members, or the next one when [more] is true.
-  Future<void> loadMembers({bool more = false, String? type}) {
-    if (!more) memberType = type ?? memberType;
+  /// (Re)loads the first page of members, or the next one when [more] is true.
+  Future<void> loadMembers({bool more = false}) {
     return _loadPage(
       _members,
-      (after) => _service.members(memberType, after: after),
+      (after) => _service.members(after: after),
       more: more,
     );
   }

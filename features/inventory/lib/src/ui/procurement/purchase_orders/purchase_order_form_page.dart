@@ -1,6 +1,5 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/procurement/shared/order_widgets.dart';
 import 'package:inventory/src/ui/procurement/shared/procurement_ui.dart';
@@ -202,7 +201,7 @@ class _PurchaseOrderFormPageState extends State<PurchaseOrderFormPage> {
       appBar: AppBar(
         title: Text(widget.existing?.number ?? 'PO · ${widget.request.number}'),
       ),
-      body: CenteredBody(
+      body: IcueCenteredBody(
         maxWidth: 900,
         child: Form(
           key: _form,
@@ -238,7 +237,7 @@ class _PurchaseOrderFormPageState extends State<PurchaseOrderFormPage> {
                         ],
                       ),
                       const SizedBox(height: 16),
-                      AppDropdown<String>(
+                      IcueDropdown<String>(
                         value: _vendor,
                         items: [
                           for (final vendor in vendors)
@@ -256,7 +255,7 @@ class _PurchaseOrderFormPageState extends State<PurchaseOrderFormPage> {
                       ),
                       if (!singleCampus) ...[
                         const SizedBox(height: 12),
-                        AppDropdown<int>(
+                        IcueDropdown<int>(
                           value: _campus,
                           items: [
                             for (final value in campuses)
@@ -313,7 +312,7 @@ class _PurchaseOrderFormPageState extends State<PurchaseOrderFormPage> {
                         first: DateTime.now(),
                       ),
                       const SizedBox(height: 12),
-                      AppTextField(
+                      IcueTextField(
                         controller: _terms,
                         maxLines: 2,
                         maxLength: 500,
@@ -322,7 +321,7 @@ class _PurchaseOrderFormPageState extends State<PurchaseOrderFormPage> {
                         icon: Icons.gavel_outlined,
                       ),
                       const SizedBox(height: 12),
-                      AppTextField(
+                      IcueTextField(
                         controller: _remarks,
                         maxLength: 500,
                         label: 'Remarks / Dispatch Notes',
@@ -409,17 +408,17 @@ class _PurchaseOrderFormPageState extends State<PurchaseOrderFormPage> {
               const SizedBox(height: 24),
 
               // Actions
-              AppButton(
+              IcueButton(
                 label: _busy ? 'Saving…' : 'Save and Issue PO',
                 onPressed: _busy ? null : () => _save(issue: true),
                 leadingIcon: Icons.send_rounded,
                 isLoading: _busy,
               ),
               const SizedBox(height: 10),
-              AppButton(
+              IcueButton(
                 label: 'Save Draft PO',
                 onPressed: _busy ? null : () => _save(issue: false),
-                variant: AppButtonVariant.outline,
+                variant: IcueButtonVariant.outline,
               ),
             ],
           ),

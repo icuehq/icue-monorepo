@@ -1,5 +1,5 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/shared/widgets/person_search_field.dart';
 
@@ -103,20 +103,20 @@ class IssuanceCard extends StatelessWidget {
               children: [
                 if (!issue.acknowledged)
                   Expanded(
-                    child: AppButton(
+                    child: IcueButton(
                       label: 'Confirm receipt',
                       onPressed: busy ? null : onConfirmReceipt,
-                      variant: AppButtonVariant.secondary,
+                      variant: IcueButtonVariant.secondary,
                     ),
                   ),
                 if (!issue.acknowledged && hasOutstanding)
                   const SizedBox(width: 8),
                 if (hasOutstanding)
                   Expanded(
-                    child: AppButton(
+                    child: IcueButton(
                       label: 'Return items',
                       onPressed: busy ? null : onReturn,
-                      variant: AppButtonVariant.outline,
+                      variant: IcueButtonVariant.outline,
                       leadingIcon: Icons.undo_rounded,
                     ),
                   ),

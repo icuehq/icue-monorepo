@@ -1,5 +1,5 @@
-import 'package:admin_ui/admin_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 
 Widget _metaPill(BuildContext context, IconData icon, String text) {
@@ -101,7 +101,7 @@ class StoreCard extends StatelessWidget {
                           ),
                           if (!store.active) ...[
                             const SizedBox(width: 8),
-                            const InactiveBadge(),
+                            const IcueInactiveBadge(),
                           ],
                         ],
                       ),

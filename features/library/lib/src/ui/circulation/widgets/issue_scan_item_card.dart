@@ -1,5 +1,5 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:school_library/school_library.dart';
 
 /// One copy scan attempt in the current session.
@@ -55,7 +55,7 @@ class IssueScanItemCard extends StatelessWidget {
       iconBackgroundColor = colorScheme.tertiaryContainer;
       iconColor = colorScheme.onTertiaryContainer;
       statusIcon = Icons.hourglass_top_rounded;
-      statusLabel = 'Awaiting Borrower';
+      statusLabel = 'Ready to issue';
       statusTextColor = colorScheme.onTertiaryContainer;
       statusBackgroundColor = colorScheme.tertiaryContainer;
     } else if (isSuccess) {

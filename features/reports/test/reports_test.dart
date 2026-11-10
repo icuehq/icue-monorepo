@@ -1,7 +1,7 @@
 import 'package:api_client/api_client.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:reports/reports.dart';
 
 class MockApiClient extends Fake implements ApiClient {
@@ -304,7 +304,7 @@ void main() {
         ],
       };
 
-      final filter = AppFilterResult.byMonth(month: '10', year: '2026');
+      final filter = IcueFilterResult.byMonth(month: '10', year: '2026');
       await provider.fetchCleaningReport(filter: filter);
 
       expect(mockApi.lastPath, '/v1.0/getVhCleanedReport');
@@ -327,7 +327,7 @@ void main() {
         ],
       };
 
-      final filter = AppFilterResult.byDate(DateTime(2026, 10, 30));
+      final filter = IcueFilterResult.byDate(DateTime(2026, 10, 30));
       await provider.fetchAlcoholTestReport(filter: filter);
 
       expect(mockApi.lastPath, '/v2.0/getPrsnAlcoholTestReport');
@@ -352,7 +352,7 @@ void main() {
         },
       };
 
-      final filter = AppFilterResult.byRange(
+      final filter = IcueFilterResult.byRange(
         DateTimeRange(start: DateTime(2026, 10), end: DateTime(2026, 10, 30)),
       );
       await provider.fetchArrivalTimeReport(filter: filter);

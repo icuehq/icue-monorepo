@@ -1,9 +1,9 @@
 import 'package:attendance/attendance.dart';
 import 'package:auth/auth.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icue_face_sdk/icue_face_sdk.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:icueadmin/routing/app_routes.dart';
 import 'package:provider/provider.dart';
 import 'package:routes/routes.dart';
@@ -286,7 +286,7 @@ class _SdkAttendancePageState extends State<SdkAttendancePage> {
                       style: const TextStyle(color: Colors.red),
                     ),
                     const SizedBox(height: 20),
-                    AppButton(label: 'Retry', onPressed: _initSdkAndFetch),
+                    IcueButton(label: 'Retry', onPressed: _initSdkAndFetch),
                   ],
                 ),
               ),
@@ -328,7 +328,7 @@ class _SdkAttendancePageState extends State<SdkAttendancePage> {
                       ),
                     ),
                     const SizedBox(height: 32),
-                    AppButton(
+                    IcueButton(
                       label: 'Open Camera Scanner',
                       onPressed: _cameraBusy
                           ? null

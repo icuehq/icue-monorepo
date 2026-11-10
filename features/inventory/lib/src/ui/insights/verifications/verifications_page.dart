@@ -1,7 +1,6 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/stock/shared/stock_ui.dart';
 import 'package:provider/provider.dart';
@@ -60,7 +59,7 @@ class _VerificationsPageState extends State<VerificationsPage> {
               },
             )
           : null,
-      body: CenteredBody(
+      body: IcueCenteredBody(
         maxWidth: 900,
         child: insightsProvider.verifications.isEmpty
             ? Center(
@@ -71,32 +70,32 @@ class _VerificationsPageState extends State<VerificationsPage> {
                             'No verification sessions',
                       ),
               )
-            : AdaptiveList<InventoryVerification>(
+            : IcueAdaptiveList<InventoryVerification>(
                 items: insightsProvider.verifications,
                 onTap: _open,
                 columns: [
-                  AdaptiveColumn.text(
+                  IcueAdaptiveColumn.text(
                     'Session',
                     (verification) => verification.number,
                   ),
-                  AdaptiveColumn.text(
+                  IcueAdaptiveColumn.text(
                     'Store',
                     (verification) => verification.storeName,
                     flex: 2,
                   ),
-                  AdaptiveColumn.text(
+                  IcueAdaptiveColumn.text(
                     'Date',
                     (verification) => verification.date.toDisplayDay(),
                   ),
-                  AdaptiveColumn.text(
+                  IcueAdaptiveColumn.text(
                     'Lines',
                     (verification) => '${verification.lineCount}',
                   ),
-                  AdaptiveColumn.text(
+                  IcueAdaptiveColumn.text(
                     'Differences',
                     (verification) => '${verification.differenceCount ?? '—'}',
                   ),
-                  AdaptiveColumn.text(
+                  IcueAdaptiveColumn.text(
                     'Status',
                     (verification) => humanizeStatus(verification.status),
                   ),
@@ -187,7 +186,7 @@ class _NewVerificationDialogState extends State<_NewVerificationDialog> {
           ],
         ),
         const SizedBox(height: 16),
-        AppButton(
+        IcueButton(
           label: 'Generate expected stock',
           onPressed: _busy ? null : _create,
         ),

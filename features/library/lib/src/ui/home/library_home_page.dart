@@ -1,6 +1,6 @@
-import 'package:admin_ui/admin_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/routing/library_destinations.dart';
@@ -73,7 +73,7 @@ class _LibraryHomePageState extends State<LibraryHomePage> {
                   itemCount: visibleTiles.length,
                   itemBuilder: (context, index) {
                     final item = visibleTiles[index];
-                    return OptionGridCard(
+                    return IcueOptionGridCard(
                       title: item.label,
                       iconAsset: item.iconAsset,
                       iconSize: iconSize,

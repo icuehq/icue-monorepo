@@ -1,6 +1,5 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/masters/categories/widgets/category_card.dart';
 
@@ -169,7 +168,7 @@ class CategorySearchBar extends StatelessWidget {
           filterChips,
           if (canEdit) ...[
             const SizedBox(width: 12),
-            AppButton(
+            IcueButton(
               label: 'New Category',
               onPressed: onAddCategory,
               leadingIcon: Icons.add_rounded,
@@ -239,14 +238,14 @@ class CategoryEmptyState extends StatelessWidget {
               runSpacing: 8,
               alignment: WrapAlignment.center,
               children: [
-                SeedDefaultsButton<InventoryProvider>(
+                IcueSeedDefaultsButton<InventoryProvider>(
                   label: 'Add default categories & units',
                   canSeed: (provider) =>
                       provider.access.can('inventory.settings'),
                   seed: (provider) => provider.seedDefaults(),
                 ),
                 if (canEdit)
-                  AppButton(
+                  IcueButton(
                     label: 'Add Category',
                     onPressed: onAdd,
                     leadingIcon: Icons.add_rounded,
@@ -301,10 +300,10 @@ class CategoryNoResultsState extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          AppButton(
+          IcueButton(
             label: 'Clear search & filters',
             onPressed: onClear,
-            variant: AppButtonVariant.ghost,
+            variant: IcueButtonVariant.ghost,
             leadingIcon: Icons.clear_rounded,
           ),
         ],

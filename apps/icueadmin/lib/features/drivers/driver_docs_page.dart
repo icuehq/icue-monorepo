@@ -1,7 +1,7 @@
 import 'package:api_client/api_client.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:drivers/drivers.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 
 class DriverDocsPage extends StatefulWidget {
@@ -139,12 +139,12 @@ class _DriverDocsPageState extends State<DriverDocsPage> {
           'Are you sure you want to delete the uploaded $docType file for ${widget.driver.fullName}?',
         ),
         actions: [
-          AppButton(
+          IcueButton(
             label: 'Cancel',
             onPressed: () => Navigator.of(ctx).pop(),
-            variant: AppButtonVariant.ghost,
+            variant: IcueButtonVariant.ghost,
           ),
-          AppButton(
+          IcueButton(
             label: 'Delete',
             onPressed: () async {
               Navigator.of(ctx).pop();
@@ -166,7 +166,7 @@ class _DriverDocsPageState extends State<DriverDocsPage> {
                 );
               }
             },
-            variant: AppButtonVariant.destructive,
+            variant: IcueButtonVariant.destructive,
           ),
         ],
       ),
@@ -202,7 +202,7 @@ class _DriverDocsPageState extends State<DriverDocsPage> {
                   ? widget.driver.licenceExpiryDate.toDateOrNull()
                   : null;
 
-              final itemData = DocumentItemData(
+              final itemData = IcueDocumentItemData(
                 docType: docType,
                 title: '$docType Document',
                 docNumber: isLicense ? widget.driver.licenceNumber : null,
@@ -210,7 +210,7 @@ class _DriverDocsPageState extends State<DriverDocsPage> {
                 fileUrl: doc?.frontPhotoImageUrl,
               );
 
-              return AppDocumentAccordion(
+              return IcueDocumentAccordion(
                 document: itemData,
                 isLoading: provider.isLoading,
                 onViewDocument: doc?.frontPhotoImageUrl != null

@@ -1,6 +1,6 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 
 /// Card listing Library operational issues requiring immediate attention.
 class OverviewAttentionCard extends StatelessWidget {

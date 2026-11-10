@@ -1,5 +1,5 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 
 /// Draft inputs for one PO line being received.
@@ -170,7 +170,7 @@ class PurchaseOrderReceiveLineCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 10),
-            AppTextField(
+            IcueTextField(
               controller: draft.condition,
               label: 'Condition / package state (optional)',
               icon: Icons.shield_outlined,
@@ -213,7 +213,7 @@ class PurchaseOrderReceiveLineCard extends StatelessWidget {
                     Row(
                       children: [
                         Expanded(
-                          child: AppTextField(
+                          child: IcueTextField(
                             controller: draft.batchNumber,
                             validator: (value) =>
                                 draft.acceptedValue > 0 &&
@@ -237,7 +237,7 @@ class PurchaseOrderReceiveLineCard extends StatelessWidget {
     );
   }
 
-  Widget _expiry(BuildContext context, ReceiveLineDraft draft) => AppDateField(
+  Widget _expiry(BuildContext context, ReceiveLineDraft draft) => IcueDateField(
     controller: draft.expiry,
     label: 'Expiry date *',
     firstDate: DateTime.now(),

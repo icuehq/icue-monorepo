@@ -1,7 +1,6 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/procurement/shared/order_widgets.dart';
 import 'package:inventory/src/ui/procurement/shared/procurement_ui.dart';
@@ -135,7 +134,7 @@ class _InvoiceDialogState extends State<InvoiceDialog> {
             ),
             const SizedBox(height: 16),
 
-            AppTextField(
+            IcueTextField(
               controller: _invoiceNumber,
               validator: requiredText,
               label: 'Vendor Invoice Number *',
@@ -170,7 +169,7 @@ class _InvoiceDialogState extends State<InvoiceDialog> {
             Row(
               children: [
                 Expanded(
-                  child: AppTextField(
+                  child: IcueTextField(
                     controller: _subtotal,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
@@ -184,7 +183,7 @@ class _InvoiceDialogState extends State<InvoiceDialog> {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: AppTextField(
+                  child: IcueTextField(
                     controller: _tax,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
@@ -195,7 +194,7 @@ class _InvoiceDialogState extends State<InvoiceDialog> {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: AppTextField(
+                  child: IcueTextField(
                     controller: _discount,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
@@ -237,7 +236,7 @@ class _InvoiceDialogState extends State<InvoiceDialog> {
             ],
             const SizedBox(height: 20),
 
-            AppButton(
+            IcueButton(
               label: _busy ? 'Recording…' : 'Record Invoice',
               onPressed: _busy ? null : _save,
               leadingIcon: Icons.save_rounded,

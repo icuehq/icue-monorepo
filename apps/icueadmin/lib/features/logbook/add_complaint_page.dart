@@ -1,7 +1,7 @@
 import 'package:auth/auth.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:icueadmin/analytics/app_events.dart';
 import 'package:logbook/logbook.dart';
 import 'package:provider/provider.dart';
@@ -22,7 +22,7 @@ class _AddComplaintPageState extends State<AddComplaintPage> {
   String _customCategory = '';
   final TextEditingController _descController = TextEditingController();
 
-  final List<PickedFile> _photos = [];
+  final List<IcuePickedFile> _photos = [];
 
   @override
   void initState() {
@@ -73,14 +73,14 @@ class _AddComplaintPageState extends State<AddComplaintPage> {
               ),
             ),
           if (_photos.length < limit)
-            AppButton(
+            IcueButton(
               label: 'Attach',
               onPressed: () async {
                 final picked = await pickFile(context);
                 if (picked == null || !mounted) return;
                 setState(() => _photos.add(picked));
               },
-              variant: AppButtonVariant.ghost,
+              variant: IcueButtonVariant.ghost,
               leadingIcon: Icons.attach_file,
             ),
         ],
@@ -150,7 +150,7 @@ class _AddComplaintPageState extends State<AddComplaintPage> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            AppSearchableAutocomplete<Vehicle>(
+            IcueSearchableAutocomplete<Vehicle>(
               label: 'Vehicle *',
               hintText: 'Search vehicle by number...',
               optionsBuilder: (textEditingValue) {
@@ -224,7 +224,7 @@ class _AddComplaintPageState extends State<AddComplaintPage> {
             const SizedBox(height: 16),
             _photosSection(),
             const SizedBox(height: 24),
-            AppButton(
+            IcueButton(
               label: 'Submit Complaint',
               onPressed: logBookProvider.isLoading ? null : _submit,
               leadingIcon: Icons.save_rounded,

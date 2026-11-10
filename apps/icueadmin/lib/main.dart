@@ -4,7 +4,6 @@ import 'package:announcements/announcements.dart';
 import 'package:api_client/api_client.dart';
 import 'package:attendance/attendance.dart';
 import 'package:auth/auth.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:drivers/drivers.dart';
 import 'package:drop_boarding/drop_boarding.dart';
 import 'package:expenses/expenses.dart';
@@ -13,6 +12,7 @@ import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:gatepass/gatepass.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icue_firebase/icue_firebase.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:icueadmin/analytics/app_events.dart';
 import 'package:icueadmin/di/injection.dart';
 import 'package:icueadmin/features/splash/app_bootstrap.dart';
@@ -48,7 +48,7 @@ class IcueAdminApp extends StatefulWidget {
   });
 
   final ApiEnvironment environment;
-  final ConnectivityService connectivity;
+  final IcueConnectivityService connectivity;
 
   @override
   State<IcueAdminApp> createState() => _IcueAdminAppState();
@@ -223,10 +223,10 @@ class _IcueAdminAppState extends State<IcueAdminApp> {
       child: MaterialApp.router(
         title: 'iCue Admin',
         debugShowCheckedModeBanner: false,
-        theme: AppTheme.forEnvironment(isProd: widget.environment.isProd),
+        theme: IcueTheme.forEnvironment(isProd: widget.environment.isProd),
         routerConfig: _router,
         builder: (context, child) =>
-            ConnectivityBanner(service: widget.connectivity, child: child!),
+            IcueConnectivityBanner(service: widget.connectivity, child: child!),
       ),
     );
   }

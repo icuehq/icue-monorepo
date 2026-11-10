@@ -1,6 +1,6 @@
 import 'package:attendance/attendance.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 
 class ResumeAttendanceDialog extends StatelessWidget {
   const ResumeAttendanceDialog({
@@ -24,12 +24,12 @@ class ResumeAttendanceDialog extends StatelessWidget {
         style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
       ),
       actions: [
-        AppButton(
+        IcueButton(
           label: 'Discard',
           onPressed: onDelete,
-          variant: AppButtonVariant.destructive,
+          variant: IcueButtonVariant.destructive,
         ),
-        AppButton(label: 'Resume', onPressed: onResume),
+        IcueButton(label: 'Resume', onPressed: onResume),
       ],
     );
   }

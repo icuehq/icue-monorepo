@@ -1,7 +1,7 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:drivers/drivers.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:icueadmin/analytics/app_events.dart';
 import 'package:icueadmin/features/vehicles/widgets/vehicle_basic_info_form.dart';
 import 'package:icueadmin/features/vehicles/widgets/vehicle_compliance_form.dart';
@@ -347,7 +347,7 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
                   onDriverSelected: (d) => setState(() => _selectedDriver = d),
                 ),
                 const SizedBox(height: 32),
-                AppButton(
+                IcueButton(
                   label: isEditing ? 'Update Vehicle' : 'Add Vehicle',
                   onPressed: vehicleProvider.isLoading ? null : _onSubmit,
                   isLoading: vehicleProvider.isLoading,

@@ -1,5 +1,5 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 
 /// Details collected for one vehicle document upload.
 class VehicleDocUpload {
@@ -13,7 +13,7 @@ class VehicleDocUpload {
   final String number;
   final String startDate;
   final String expiryDate;
-  final PickedFile file;
+  final IcuePickedFile file;
 }
 
 /// Collects number, dates and file for [docType] (all required, as before).
@@ -37,7 +37,7 @@ class _VehicleDocUploadDialogState extends State<VehicleDocUploadDialog> {
   final _number = TextEditingController();
   DateTime? _start;
   DateTime? _expiry;
-  PickedFile? _file;
+  IcuePickedFile? _file;
   String? _error;
 
   @override
@@ -104,7 +104,7 @@ class _VehicleDocUploadDialogState extends State<VehicleDocUploadDialog> {
               ),
             ),
             const SizedBox(height: 8),
-            AppButton(
+            IcueButton(
               label: _start == null
                   ? startLabel
                   : '$startLabel: ${_start!.toNumericDate()}',
@@ -112,9 +112,9 @@ class _VehicleDocUploadDialogState extends State<VehicleDocUploadDialog> {
                 final date = await _pickDate(_start, future: false);
                 if (date != null) setState(() => _start = date);
               },
-              variant: AppButtonVariant.outline,
+              variant: IcueButtonVariant.outline,
             ),
-            AppButton(
+            IcueButton(
               label: _expiry == null
                   ? 'Expiry date'
                   : 'Expiry date: ${_expiry!.toNumericDate()}',
@@ -122,9 +122,9 @@ class _VehicleDocUploadDialogState extends State<VehicleDocUploadDialog> {
                 final date = await _pickDate(_expiry, future: true);
                 if (date != null) setState(() => _expiry = date);
               },
-              variant: AppButtonVariant.outline,
+              variant: IcueButtonVariant.outline,
             ),
-            AppButton(
+            IcueButton(
               label: _file?.name ?? 'Choose document',
               onPressed: () async {
                 final picked = await pickFile(context, allowDocuments: true);
@@ -138,7 +138,7 @@ class _VehicleDocUploadDialogState extends State<VehicleDocUploadDialog> {
                   _error = null;
                 });
               },
-              variant: AppButtonVariant.outline,
+              variant: IcueButtonVariant.outline,
               leadingIcon: Icons.attach_file,
             ),
             if (_error != null)
@@ -150,12 +150,12 @@ class _VehicleDocUploadDialogState extends State<VehicleDocUploadDialog> {
         ),
       ),
       actions: [
-        AppButton(
+        IcueButton(
           label: 'Cancel',
           onPressed: () => Navigator.pop(context),
-          variant: AppButtonVariant.ghost,
+          variant: IcueButtonVariant.ghost,
         ),
-        AppButton(label: 'Upload', onPressed: _submit),
+        IcueButton(label: 'Upload', onPressed: _submit),
       ],
     );
   }

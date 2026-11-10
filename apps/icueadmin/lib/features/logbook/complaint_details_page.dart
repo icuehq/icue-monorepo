@@ -1,5 +1,5 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:icueadmin/analytics/app_events.dart';
 import 'package:icueadmin/features/logbook/widgets/complaint_status_badge.dart';
 import 'package:icueadmin/features/logbook/widgets/update_complaint_modal.dart';
@@ -78,7 +78,7 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: AppButton(
+          child: IcueButton(
             label: 'Update Status / Log Action',
             onPressed: () {
               UpdateComplaintModal.show(

@@ -1,6 +1,5 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/catalogue/mock_books.dart';
@@ -20,7 +19,7 @@ class LibraryCategoryDialog extends StatefulWidget {
     builder: (context) => Dialog(
       child: ConstrainedBox(
         constraints: BoxConstraints(
-          maxWidth: Breakpoints.formMaxWidth,
+          maxWidth: IcueBreakpoints.formMaxWidth,
           maxHeight: MediaQuery.sizeOf(context).height * 0.9,
         ),
         child: SingleChildScrollView(
@@ -242,7 +241,7 @@ class _LibraryCategoryDialogState extends State<LibraryCategoryDialog> {
                 ),
                 const SizedBox(height: 16),
 
-                AppTextField(
+                IcueTextField(
                   controller: _name,
                   textInputAction: TextInputAction.next,
                   validator: _validateName,
@@ -259,7 +258,7 @@ class _LibraryCategoryDialogState extends State<LibraryCategoryDialog> {
                 _buildParentField(tops),
                 const SizedBox(height: 14),
 
-                AppTextField(
+                IcueTextField(
                   controller: _description,
                   minLines: 2,
                   maxLines: 3,
@@ -277,21 +276,21 @@ class _LibraryCategoryDialogState extends State<LibraryCategoryDialog> {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               if (!editing) ...[
-                AppButton(
+                IcueButton(
                   label: 'Fill sample',
                   onPressed: _busy ? null : _prefillMock,
-                  variant: AppButtonVariant.ghost,
+                  variant: IcueButtonVariant.ghost,
                   leadingIcon: Icons.auto_fix_high_rounded,
                 ),
                 const Spacer(),
               ],
-              AppButton(
+              IcueButton(
                 label: 'Cancel',
                 onPressed: _busy ? null : () => Navigator.of(context).pop(),
-                variant: AppButtonVariant.outline,
+                variant: IcueButtonVariant.outline,
               ),
               const SizedBox(width: 12),
-              AppButton(
+              IcueButton(
                 label: _busy
                     ? 'Saving…'
                     : (editing ? 'Save changes' : 'Create category'),
@@ -321,7 +320,7 @@ class _LibraryCategoryDialogState extends State<LibraryCategoryDialog> {
   }
 
   Widget _buildParentField(List<LibraryCategory> tops) {
-    return AppDropdown<String?>(
+    return IcueDropdown<String?>(
       value: _parentId,
       items: [
         const DropdownMenuItem(child: Text('None (top level)')),

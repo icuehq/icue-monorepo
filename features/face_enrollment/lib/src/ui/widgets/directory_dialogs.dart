@@ -1,7 +1,7 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:face_enrollment/src/providers/student_provider.dart';
 import 'package:face_enrollment/src/ui/theme_context.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 
 void confirmLogout(BuildContext context, VoidCallback onConfirm) {
   showDialog<void>(
@@ -38,19 +38,19 @@ void confirmLogout(BuildContext context, VoidCallback onConfirm) {
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                AppButton(
+                IcueButton(
                   label: 'Cancel',
                   onPressed: () => Navigator.pop(context),
-                  variant: AppButtonVariant.ghost,
+                  variant: IcueButtonVariant.ghost,
                 ),
                 const SizedBox(width: 8),
-                AppButton(
+                IcueButton(
                   label: 'Logout',
                   onPressed: () {
                     Navigator.pop(context);
                     onConfirm();
                   },
-                  variant: AppButtonVariant.destructive,
+                  variant: IcueButtonVariant.destructive,
                 ),
               ],
             ),
@@ -201,7 +201,7 @@ void handleSyncEmbeddings(
                       if (!isProcessing)
                         SizedBox(
                           width: 100,
-                          child: AppButton(
+                          child: IcueButton(
                             label: 'Close',
                             onPressed: () {
                               Navigator.pop(dialogContext);

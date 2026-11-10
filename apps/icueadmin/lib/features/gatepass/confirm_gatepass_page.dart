@@ -1,7 +1,7 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:gatepass/gatepass.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:icueadmin/analytics/app_events.dart';
 import 'package:icueadmin/routing/app_routes.dart';
 import 'package:provider/provider.dart';
@@ -156,7 +156,7 @@ class _ConfirmGatePassPageState extends State<ConfirmGatePassPage> {
               SizedBox(
                 width: double.infinity,
                 height: 48,
-                child: AppButton(
+                child: IcueButton(
                   label: provider.isLoading ? 'Issuing...' : 'Issue Gate Pass',
                   onPressed: _selectedCategory == null || provider.isLoading
                       ? null
@@ -196,15 +196,15 @@ class _ConfirmGatePassPageState extends State<ConfirmGatePassPage> {
               Row(
                 children: [
                   Expanded(
-                    child: AppButton(
+                    child: IcueButton(
                       label: 'Issue Another',
                       onPressed: () => context.pop(),
-                      variant: AppButtonVariant.outline,
+                      variant: IcueButtonVariant.outline,
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: AppButton(
+                    child: IcueButton(
                       label: 'Go Home',
                       onPressed: () => context.go(AppRoutes.dashboard),
                     ),

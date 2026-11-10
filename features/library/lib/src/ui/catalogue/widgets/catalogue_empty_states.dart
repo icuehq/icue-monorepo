@@ -1,12 +1,12 @@
-import 'package:admin_ui/admin_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 
 class CatalogueInitialEmptyState extends StatelessWidget {
   const CatalogueInitialEmptyState({required this.onAdd, super.key});
   final VoidCallback onAdd;
 
   @override
-  Widget build(BuildContext context) => EmptyState(
+  Widget build(BuildContext context) => IcueEmptyState(
     icon: Icons.menu_book_rounded,
     title: 'Catalogue is empty',
     message: 'Start building your school library by cataloguing titles, authors, and classification details.',
@@ -27,7 +27,7 @@ class CatalogueNoResultsState extends StatelessWidget {
   final VoidCallback onClear;
 
   @override
-  Widget build(BuildContext context) => EmptyState.noResults(
+  Widget build(BuildContext context) => IcueEmptyState.noResults(
     title: 'No books found',
     message: searchQuery.isNotEmpty
         ? 'No titles match "$searchQuery". Try checking the spelling or removing filters.'

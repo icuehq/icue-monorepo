@@ -1,5 +1,5 @@
-import 'package:admin_ui/admin_ui.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/assets/maintenance/maintenance_page.dart';
 import 'package:inventory/src/ui/assets/registry/asset_form_page.dart';
@@ -49,7 +49,7 @@ import 'package:provider/provider.dart';
 /// Inventory screens as go_router routes, inside a shell that adds side navigation on wide screens.
 List<RouteBase> inventoryRoutes() => [
   ShellRoute(
-    builder: (context, state, child) => ModuleShell(
+    builder: (context, state, child) => IcueModuleShell(
       title: 'Inventory',
       homePath: InventoryRoutes.inventory,
       location: state.uri.path,

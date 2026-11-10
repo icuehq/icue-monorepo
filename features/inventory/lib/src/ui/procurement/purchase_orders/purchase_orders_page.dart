@@ -1,7 +1,6 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/procurement/purchase_orders/widgets/purchase_order_card.dart';
 import 'package:provider/provider.dart';
@@ -91,7 +90,7 @@ class _PurchaseOrdersPageState extends State<PurchaseOrdersPage> {
           ),
         ],
       ),
-      body: CenteredBody(
+      body: IcueCenteredBody(
         child: Column(
           children: [
             // Search Bar
@@ -213,30 +212,30 @@ class _PurchaseOrdersPageState extends State<PurchaseOrdersPage> {
                           ),
                         ),
                       )
-                    : AdaptiveList<InventoryPurchaseOrder>(
+                    : IcueAdaptiveList<InventoryPurchaseOrder>(
                         items: filteredOrders,
                         onTap: _openOrder,
                         columns: [
-                          AdaptiveColumn.text(
+                          IcueAdaptiveColumn.text(
                             'Order',
                             (order) =>
                                 order.number.isEmpty ? 'Draft' : order.number,
                           ),
-                          AdaptiveColumn.text(
+                          IcueAdaptiveColumn.text(
                             'Vendor',
                             (order) =>
                                 procurementProvider.vendorName(order.vendorId),
                             flex: 2,
                           ),
-                          AdaptiveColumn.text(
+                          IcueAdaptiveColumn.text(
                             'Status',
                             (order) => humanizeStatus(order.status),
                           ),
-                          AdaptiveColumn.text(
+                          IcueAdaptiveColumn.text(
                             'Due',
                             (order) => order.expectedDate.toDisplayDay(),
                           ),
-                          AdaptiveColumn.text(
+                          IcueAdaptiveColumn.text(
                             'Total',
                             (order) => order.total.toRupees(),
                           ),

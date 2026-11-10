@@ -1,7 +1,7 @@
 import 'package:auth/auth.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:icue_ui/icue_ui.dart';
 
 class RequestOtpForm extends StatefulWidget {
   const RequestOtpForm({
@@ -87,7 +87,7 @@ class _RequestOtpFormState extends State<RequestOtpForm> {
           ),
         ),
         const SizedBox(height: 24),
-        AppTextField(
+        IcueTextField(
           controller: widget.usernameController,
           keyboardType: TextInputType.phone,
           maxLength: 10,
@@ -102,9 +102,9 @@ class _RequestOtpFormState extends State<RequestOtpForm> {
           onFieldSubmitted: (_) => _handleSubmit(),
         ),
         const SizedBox(height: 20),
-        AppButton(
+        IcueButton(
           label: 'Generate OTP',
-          size: AppButtonSize.large,
+          size: IcueButtonSize.large,
           isFullWidth: true,
           isLoading: widget.isLoading,
           onPressed: widget.isLoading ? null : _handleSubmit,

@@ -1,6 +1,6 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:icue_ui/icue_ui.dart';
 
 class VehicleBasicInfoForm extends StatelessWidget {
   const VehicleBasicInfoForm({
@@ -46,7 +46,7 @@ class VehicleBasicInfoForm extends StatelessWidget {
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
-        AppTextField(
+        IcueTextField(
           controller: numberController,
           hintText: 'Vehicle Number * (e.g. AP28TV1234)',
           textInputAction: TextInputAction.next,
@@ -61,7 +61,7 @@ class VehicleBasicInfoForm extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: AppTextField(
+              child: IcueTextField(
                 controller: makeController,
                 hintText: 'Make * (e.g. Tata)',
                 textInputAction: TextInputAction.next,
@@ -71,7 +71,7 @@ class VehicleBasicInfoForm extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: AppTextField(
+              child: IcueTextField(
                 controller: modelController,
                 hintText: 'Model (e.g. Starbus)',
                 textInputAction: TextInputAction.next,
@@ -83,7 +83,7 @@ class VehicleBasicInfoForm extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: AppTextField(
+              child: IcueTextField(
                 controller: yearController,
                 hintText: 'Year * (e.g. 2022)',
                 keyboardType: TextInputType.number,
@@ -95,7 +95,7 @@ class VehicleBasicInfoForm extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: AppTextField(
+              child: IcueTextField(
                 controller: capacityController,
                 hintText: 'Seating Capacity *',
                 keyboardType: TextInputType.number,
@@ -109,7 +109,7 @@ class VehicleBasicInfoForm extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
-        AppTextField(controller: dashCamController, hintText: 'Dash Cam Id'),
+        IcueTextField(controller: dashCamController, hintText: 'Dash Cam Id'),
         const SizedBox(height: 12),
         Row(
           children: [
@@ -138,7 +138,7 @@ class VehicleBasicInfoForm extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: AppTextField(
+              child: IcueTextField(
                 controller: colourController,
                 hintText: 'Colour',
                 textInputAction: TextInputAction.next,
@@ -150,7 +150,7 @@ class VehicleBasicInfoForm extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: AppTextField(
+              child: IcueTextField(
                 controller: chassisController,
                 hintText: 'Chassis Number',
                 textInputAction: TextInputAction.next,
@@ -158,7 +158,7 @@ class VehicleBasicInfoForm extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: AppTextField(
+              child: IcueTextField(
                 controller: engineController,
                 hintText: 'Engine Number',
                 textInputAction: TextInputAction.next,

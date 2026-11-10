@@ -1,6 +1,6 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:gatepass/gatepass.dart';
+import 'package:icue_ui/icue_ui.dart';
 
 class GatePassRequestCard extends StatelessWidget {
   const GatePassRequestCard({
@@ -125,15 +125,15 @@ class GatePassRequestCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: AppButton(
+                child: IcueButton(
                   label: 'Reject',
                   onPressed: onReject,
-                  variant: AppButtonVariant.destructive,
+                  variant: IcueButtonVariant.destructive,
                   leadingIcon: Icons.close,
                 ),
               ),
               Expanded(
-                child: AppButton(
+                child: IcueButton(
                   label: 'Approve',
                   onPressed: onApprove,
                   leadingIcon: Icons.check,

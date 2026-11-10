@@ -20,7 +20,7 @@ Structure and plumbing are migrated well. **Business flows are not**: anything t
 ## Critical (feature does not work)
 
 ### C1. File/photo picking is faked everywhere — FIXED (not device-tested)
-Fixed with `pickFile` in `core_ui` (camera/gallery/document, quality 30), wired into all 8 sites; driver docs upload front/back/profile, vehicle docs collect number and dates first; iOS photo-library description and Android `CAMERA` added. `package_info_plus` was lowered to ^9 to resolve a `win32` conflict with `file_picker`.
+Fixed with `pickFile` in `icue_ui` (camera/gallery/document, quality 30), wired into all 8 sites; driver docs upload front/back/profile, vehicle docs collect number and dates first; iOS photo-library description and Android `CAMERA` added. `package_info_plus` was lowered to ^9 to resolve a `win32` conflict with `file_picker`.
 `image_picker` and `file_picker` are not a dependency anywhere in the new workspace (old: `FilePickerUtils` + `FileUploadWidget`, used in 14 screens). The new buttons set hard-coded names and junk bytes:
 
 | Screen | Evidence |
@@ -33,7 +33,7 @@ Fixed with `pickFile` in `core_ui` (camera/gallery/document, quality 30), wired 
 | Vehicle documents | `vehicle_docs_page.dart:196` only shows a snackbar |
 
 Result: users cannot upload driver or vehicle documents at all. Expenses, alcohol tests and complaints either submit corrupt files or no real evidence. The service and provider upload code exists, but nothing feeds it.
-Fix: add a picker to `core_ui` or `admin_ui` (port `FileUploadWidget`) and wire the 8 call sites. Then restore `NSPhotoLibraryUsageDescription` (iOS) and the `CAMERA` permission (Android), both of which the old app declared.
+Fix: add a picker to `icue_ui` (port `FileUploadWidget`) and wire the 8 call sites. Then restore `NSPhotoLibraryUsageDescription` (iOS) and the `CAMERA` permission (Android), both of which the old app declared.
 
 ### C2. Expense submit contract changed — MOSTLY FIXED (not device-tested)
 Fixed: battery, tyres, maintenance, salary and fuel-station now send the old keys (including `FixedDate`, tyre `Type`, category/sub-category ids and names, salary `Mode`/`Name`, fuel `KM`/`FuelFilled`, odometer photo, fuel-price update). Dates now go as `MM/dd/yyyy` (the form was sending `dd/MM/yyyy`). Bill is required when status is not UnBilled. Service tests assert the keys.

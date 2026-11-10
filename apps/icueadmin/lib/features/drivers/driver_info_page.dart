@@ -1,7 +1,7 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:drivers/drivers.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:icueadmin/analytics/app_events.dart';
 import 'package:icueadmin/features/drivers/widgets/driver_detail_row.dart';
 import 'package:icueadmin/features/drivers/widgets/driver_status_chip.dart';
@@ -20,12 +20,12 @@ class DriverInfoPage extends StatelessWidget {
         title: const Text('Delete Driver'),
         content: Text('Are you sure you want to remove ${driver.fullName}?'),
         actions: [
-          AppButton(
+          IcueButton(
             label: 'Cancel',
             onPressed: () => Navigator.of(ctx).pop(),
-            variant: AppButtonVariant.ghost,
+            variant: IcueButtonVariant.ghost,
           ),
-          AppButton(
+          IcueButton(
             label: 'Delete',
             onPressed: () async {
               Navigator.of(ctx).pop();
@@ -53,7 +53,7 @@ class DriverInfoPage extends StatelessWidget {
                 }
               }
             },
-            variant: AppButtonVariant.destructive,
+            variant: IcueButtonVariant.destructive,
           ),
         ],
       ),
@@ -222,18 +222,18 @@ class DriverInfoPage extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: AppButton(
+                  child: IcueButton(
                     label: 'Edit Driver',
                     onPressed: () {
                       context.push(AppRoutes.addDriver, extra: driver);
                     },
-                    variant: AppButtonVariant.outline,
+                    variant: IcueButtonVariant.outline,
                     leadingIcon: Icons.edit_rounded,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: AppButton(
+                  child: IcueButton(
                     label: 'Documents',
                     onPressed: () {
                       context.push(AppRoutes.driverDocs, extra: driver);

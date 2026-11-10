@@ -1,11 +1,11 @@
-import 'package:admin_ui/admin_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
+import 'package:school_library/src/ui/policies/widgets/policies_table.dart';
 import 'package:school_library/src/ui/policies/widgets/policy_card.dart';
 import 'package:school_library/src/ui/policies/widgets/policy_dialog.dart';
 import 'package:school_library/src/ui/policies/widgets/policy_empty_states.dart';
-import 'package:school_library/src/ui/policies/widgets/policy_rule_pills.dart';
 import 'package:school_library/src/ui/routing/library_destinations.dart';
 import 'package:school_library/src/ui/routing/library_tab_bar.dart';
 
@@ -13,37 +13,25 @@ import 'package:school_library/src/ui/routing/library_tab_bar.dart';
 class PoliciesPage extends StatelessWidget {
   const PoliciesPage({super.key});
 
-  Widget _activeToggle(
+  Future<void> _toggle(
     BuildContext context,
     LibraryProvider libraryProvider,
     LibraryPolicy policy,
-  ) {
-    final theme = Theme.of(context);
-    return IconButton(
-      tooltip: policy.active ? 'Deactivate policy' : 'Activate policy',
-      icon: Icon(
-        policy.active ? Icons.toggle_on_rounded : Icons.toggle_off_rounded,
-        color: policy.active
-            ? theme.colorScheme.primary
-            : theme.colorScheme.onSurfaceVariant,
-        size: 28,
-      ),
-      onPressed: () async {
-        if (!await libraryProvider.setPolicyActive(
-              policy.id,
-              active: !policy.active,
-            ) &&
-            context.mounted) {
-          showMessage(context, libraryProvider.errorMessage ?? 'Failed');
-        }
-      },
-    );
+  ) async {
+    if (!await libraryProvider.setPolicyActive(
+          policy.id,
+          active: !policy.active,
+        ) &&
+        context.mounted) {
+      showMessage(context, libraryProvider.errorMessage ?? 'Failed');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final libraryProvider = context.watch<LibraryProvider>();
     final allPolicies = libraryProvider.policies;
+    final isWide = context.isWide;
 
     return Scaffold(
       appBar: AppBar(
@@ -60,98 +48,56 @@ class PoliciesPage extends StatelessWidget {
           activePath: LibraryRoutes.libraryPolicies,
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => PolicyDialog.show(context),
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('Policy'),
-      ),
-      body: CenteredBody(
-        child: libraryProvider.isLoading && allPolicies.isEmpty
-            ? const Center(child: CircularProgressIndicator())
-            : allPolicies.isEmpty
-            ? PolicyInitialEmptyState(
-                onAddDefault: () async {
-                  if (!await libraryProvider.seedDefaultPolicies() &&
-                      context.mounted) {
-                    showMessage(
-                      context,
-                      libraryProvider.errorMessage ?? 'Failed',
-                    );
-                  }
-                },
-              )
-            : RefreshIndicator(
-                onRefresh: () => libraryProvider.loadMasters(),
-                child: AdaptiveList<LibraryPolicy>(
-                  items: allPolicies,
-                  onTap: (policy) => PolicyDialog.show(context, policy: policy),
-                  columns: [
-                    AdaptiveColumn(
-                      label: 'Policy',
-                      flex: 2,
-                      cell: (context, policy) => Row(
-                        children: [
-                          if (!policy.active) ...[
-                            const InactiveBadge(),
-                            const SizedBox(width: 6),
-                          ],
-                          Flexible(
-                            child: Text(
-                              policy.name,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    AdaptiveColumn.text(
-                      'Library',
-                      (policy) =>
-                          libraryProvider.library(policy.libraryId)?.name ??
-                          policy.libraryId,
-                    ),
-                    AdaptiveColumn.text(
-                      'Applies to',
-                      libraryProvider.policyScope,
-                    ),
-                    AdaptiveColumn(
-                      label: 'Rules',
-                      flex: 3,
-                      cell: (context, policy) =>
-                          PolicyRulePills(policy: policy),
-                    ),
-                    AdaptiveColumn(
-                      label: 'Status',
-                      cell: (context, policy) =>
-                          _activeToggle(context, libraryProvider, policy),
-                    ),
-                  ],
-                  cardBuilder: (context, policy) => PolicyCard(
+      floatingActionButton: isWide
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: () => PolicyDialog.show(context),
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Policy'),
+            ),
+      body: libraryProvider.isLoading && allPolicies.isEmpty
+          ? const Center(child: CircularProgressIndicator())
+          : allPolicies.isEmpty
+          ? PolicyInitialEmptyState(
+              onAddDefault: () async {
+                if (!await libraryProvider.seedDefaultPolicies() &&
+                    context.mounted) {
+                  showMessage(
+                    context,
+                    libraryProvider.errorMessage ?? 'Failed',
+                  );
+                }
+              },
+            )
+          : isWide
+          ? Padding(
+              padding: const EdgeInsets.all(16),
+              child: PoliciesTable(
+                policies: allPolicies,
+                onToggleActive: (policy) =>
+                    _toggle(context, libraryProvider, policy),
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: () => libraryProvider.loadMasters(),
+              child: IcueAdaptiveCardList(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                itemCount: allPolicies.length,
+                itemBuilder: (context, index) {
+                  final policy = allPolicies[index];
+                  return PolicyCard(
                     policy: policy,
                     scope: libraryProvider.policyScope(policy),
                     libraryName:
                         libraryProvider.library(policy.libraryId)?.name ??
                         policy.libraryId,
                     onTap: () => PolicyDialog.show(context, policy: policy),
-                    onToggleActive: () async {
-                      if (!await libraryProvider.setPolicyActive(
-                            policy.id,
-                            active: !policy.active,
-                          ) &&
-                          context.mounted) {
-                        showMessage(
-                          context,
-                          libraryProvider.errorMessage ?? 'Failed',
-                        );
-                      }
-                    },
-                  ),
-                ),
+                    onToggleActive: () =>
+                        _toggle(context, libraryProvider, policy),
+                  );
+                },
               ),
-      ),
+            ),
     );
   }
 }

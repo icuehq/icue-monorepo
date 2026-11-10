@@ -1,5 +1,5 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:school_library/school_library.dart';
 
 class MemberCard extends StatelessWidget {
@@ -157,10 +157,10 @@ class MemberCard extends StatelessWidget {
                   highlight: member.activeLoans > 0,
                 ),
                 const Spacer(),
-                AppButton(
+                IcueButton(
                   label: member.blocked ? 'Unblock' : 'Block',
                   onPressed: onToggleBlock,
-                  variant: AppButtonVariant.destructive,
+                  variant: IcueButtonVariant.destructive,
                   leadingIcon: member.blocked
                       ? Icons.lock_open_rounded
                       : Icons.block_rounded,

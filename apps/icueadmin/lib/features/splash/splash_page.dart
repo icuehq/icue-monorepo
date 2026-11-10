@@ -1,6 +1,6 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 
 /// Shown while [AppBootstrap] runs startup tasks; swaps to a retry button if
 /// they fail.
@@ -33,7 +33,7 @@ class SplashPage extends StatelessWidget {
                 SelectableText('$error', textAlign: TextAlign.center),
               ],
               const SizedBox(height: 12),
-              AppButton(label: 'Retry', onPressed: onRetry),
+              IcueButton(label: 'Retry', onPressed: onRetry),
             ],
           ],
         ),

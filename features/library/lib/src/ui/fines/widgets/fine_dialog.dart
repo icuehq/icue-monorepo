@@ -1,6 +1,5 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
@@ -34,7 +33,7 @@ class _FineDialogState extends State<FineDialog> {
           children: [
             Text('Max waivable: ${widget.fine.outstanding.toRupees()}'),
             const SizedBox(height: 12),
-            AppTextField(
+            IcueTextField(
               controller: amountController,
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
@@ -42,19 +41,19 @@ class _FineDialogState extends State<FineDialog> {
               label: 'Amount to waive (₹)',
             ),
             const SizedBox(height: 8),
-            AppTextField(
+            IcueTextField(
               controller: reasonController,
               label: 'Reason for waiver',
             ),
           ],
         ),
         actions: [
-          AppButton(
+          IcueButton(
             label: 'Cancel',
             onPressed: () => Navigator.of(context).pop(false),
-            variant: AppButtonVariant.ghost,
+            variant: IcueButtonVariant.ghost,
           ),
-          AppButton(
+          IcueButton(
             label: 'Confirm waive',
             onPressed: () => Navigator.of(context).pop(true),
           ),
@@ -111,7 +110,7 @@ class _FineDialogState extends State<FineDialog> {
           children: [
             Text('Outstanding: ${widget.fine.outstanding.toRupees()}'),
             const SizedBox(height: 12),
-            AppTextField(
+            IcueTextField(
               controller: amountController,
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
@@ -119,7 +118,7 @@ class _FineDialogState extends State<FineDialog> {
               label: 'Paid amount (₹)',
             ),
             const SizedBox(height: 8),
-            AppTextField(
+            IcueTextField(
               controller: refController,
               label: 'Payment receipt / reference',
               hintText: 'e.g. REC-1234',
@@ -127,12 +126,12 @@ class _FineDialogState extends State<FineDialog> {
           ],
         ),
         actions: [
-          AppButton(
+          IcueButton(
             label: 'Cancel',
             onPressed: () => Navigator.of(context).pop(false),
-            variant: AppButtonVariant.ghost,
+            variant: IcueButtonVariant.ghost,
           ),
-          AppButton(
+          IcueButton(
             label: 'Record payment',
             onPressed: () => Navigator.of(context).pop(true),
           ),
@@ -241,15 +240,15 @@ class _FineDialogState extends State<FineDialog> {
           Row(
             children: [
               Expanded(
-                child: AppButton(
+                child: IcueButton(
                   label: 'Waive',
                   onPressed: _busy ? null : _waive,
-                  variant: AppButtonVariant.secondary,
+                  variant: IcueButtonVariant.secondary,
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: AppButton(
+                child: IcueButton(
                   label: 'Record payment',
                   onPressed: _busy ? null : _recordPayment,
                 ),

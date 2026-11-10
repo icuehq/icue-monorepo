@@ -1,7 +1,6 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/assets/shared/asset_ui.dart';
 import 'package:inventory/src/ui/stock/shared/item_picker.dart';
@@ -140,8 +139,8 @@ class _AssetFormPageState extends State<AssetFormPage> {
     ];
     return Scaffold(
       appBar: AppBar(title: const Text('Register asset')),
-      body: CenteredBody(
-        maxWidth: Breakpoints.formMaxWidth,
+      body: IcueCenteredBody(
+        maxWidth: IcueBreakpoints.formMaxWidth,
         child: Form(
           key: _form,
           child: ListView(
@@ -154,12 +153,12 @@ class _AssetFormPageState extends State<AssetFormPage> {
                 trailing: const Icon(Icons.search),
                 onTap: _pick,
               ),
-              AppTextField(controller: _name, label: 'Asset name'),
+              IcueTextField(controller: _name, label: 'Asset name'),
               StoreDropdown(
                 value: _store,
                 onChanged: (value) => setState(() => _store = value),
               ),
-              AppTextField(
+              IcueTextField(
                 controller: _quantity,
                 keyboardType: TextInputType.number,
                 validator: (value) {
@@ -171,16 +170,16 @@ class _AssetFormPageState extends State<AssetFormPage> {
                 label: 'Quantity',
                 helperText: 'Identical units registered together (up to 50)',
               ),
-              AppTextField(controller: _serial, label: 'Serial number'),
-              AppTextField(controller: _make, label: 'Manufacturer'),
-              AppTextField(controller: _model, label: 'Model'),
+              IcueTextField(controller: _serial, label: 'Serial number'),
+              IcueTextField(controller: _make, label: 'Manufacturer'),
+              IcueTextField(controller: _model, label: 'Model'),
               labelled(
                 'Condition',
                 AssetCondition.values,
                 _condition,
                 (value) => setState(() => _condition = value!),
               ),
-              AppTextField(
+              IcueTextField(
                 controller: _location,
                 label: 'Location (room, shelf)',
               ),
@@ -191,7 +190,7 @@ class _AssetFormPageState extends State<AssetFormPage> {
                 first: past,
                 last: now,
               ),
-              AppTextField(
+              IcueTextField(
                 controller: _price,
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
@@ -213,7 +212,7 @@ class _AssetFormPageState extends State<AssetFormPage> {
                 first: past,
                 last: now.add(const Duration(days: 3650)),
               ),
-              AppDropdown<String?>(
+              IcueDropdown<String?>(
                 key: ValueKey(_item?.id),
                 value: _poId,
                 items: [
@@ -229,7 +228,7 @@ class _AssetFormPageState extends State<AssetFormPage> {
                 helperText: 'Takes vendor and price from the order; limited to its accepted units',
               ),
               const SizedBox(height: 16),
-              AppButton(
+              IcueButton(
                 label: _busy ? 'Saving…' : 'Register',
                 onPressed: _busy ? null : _save,
               ),

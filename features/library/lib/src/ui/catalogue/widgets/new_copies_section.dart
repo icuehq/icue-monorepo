@@ -1,7 +1,6 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
@@ -112,12 +111,12 @@ class _NewCopiesSectionState extends State<NewCopiesSection> {
   Widget build(BuildContext context) {
     final copies = widget.copies;
     final libraries = widget.libraries;
-    return FormSectionCard(
+    return IcueFormSectionCard(
       title: 'Copies',
       icon: Icons.copy_rounded,
       children: [
         _row(context, [
-          AppTextField(
+          IcueTextField(
             controller: copies,
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -133,7 +132,7 @@ class _NewCopiesSectionState extends State<NewCopiesSection> {
             icon: Icons.copy_rounded,
             helperText: widget.allowNone ? '0 adds the title only' : null,
           ),
-          AppDropdown<String>(
+          IcueDropdown<String>(
             value: widget.libraryId,
             items: [
               for (final library in libraries)
@@ -175,7 +174,7 @@ class _NewCopiesSectionState extends State<NewCopiesSection> {
                 for (final (index, controller) in widget.barcodes.indexed)
                   Padding(
                     padding: EdgeInsets.only(top: index == 0 ? 0 : 14),
-                    child: AppTextField(
+                    child: IcueTextField(
                       key: ObjectKey(controller),
                       controller: controller,
                       textInputAction: index == widget.barcodes.length - 1

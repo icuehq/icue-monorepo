@@ -1,7 +1,6 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/catalogue/widgets/book_form_validators.dart';
 
@@ -56,11 +55,11 @@ class BookBasicSection extends StatelessWidget {
   final ValueChanged<String?> onCategoryChanged;
 
   @override
-  Widget build(BuildContext context) => FormSectionCard(
+  Widget build(BuildContext context) => IcueFormSectionCard(
     title: 'Basic information',
     icon: Icons.auto_stories_outlined,
     children: [
-      AppTextField(
+      IcueTextField(
         controller: title,
         maxLength: 200,
         textCapitalization: TextCapitalization.sentences,
@@ -70,7 +69,7 @@ class BookBasicSection extends StatelessWidget {
         hintText: 'e.g. To Kill a Mockingbird',
         icon: Icons.title_rounded,
       ),
-      AppTextField(
+      IcueTextField(
         controller: subtitle,
         maxLength: 200,
         textCapitalization: TextCapitalization.sentences,
@@ -80,7 +79,7 @@ class BookBasicSection extends StatelessWidget {
         icon: Icons.subtitles_outlined,
       ),
       _FieldRow([
-        AppTextField(
+        IcueTextField(
           controller: authors,
           textCapitalization: TextCapitalization.words,
           textInputAction: TextInputAction.next,
@@ -90,7 +89,7 @@ class BookBasicSection extends StatelessWidget {
           icon: Icons.people_outline_rounded,
           helperText: 'Comma-separated, up to 10',
         ),
-        AppDropdown<String>(
+        IcueDropdown<String>(
           value: categoryId,
           items: [
             for (final category in categories)
@@ -115,11 +114,11 @@ class BookIdentificationSection extends StatelessWidget {
   final TextEditingController shelf;
 
   @override
-  Widget build(BuildContext context) => FormSectionCard(
+  Widget build(BuildContext context) => IcueFormSectionCard(
     title: 'Location',
     icon: Icons.location_on_outlined,
     children: [
-      AppTextField(
+      IcueTextField(
         controller: shelf,
         textInputAction: TextInputAction.next,
         inputFormatters: [LengthLimitingTextInputFormatter(50)],
@@ -149,12 +148,12 @@ class BookPublicationSection extends StatelessWidget {
   final TextEditingController language;
 
   @override
-  Widget build(BuildContext context) => FormSectionCard(
+  Widget build(BuildContext context) => IcueFormSectionCard(
     title: 'Publication details',
     icon: Icons.menu_book_outlined,
     children: [
       _FieldRow([
-        AppTextField(
+        IcueTextField(
           controller: publisher,
           maxLength: 120,
           textCapitalization: TextCapitalization.words,
@@ -163,7 +162,7 @@ class BookPublicationSection extends StatelessWidget {
           hintText: 'e.g. Penguin Random House',
           icon: Icons.business_outlined,
         ),
-        AppTextField(
+        IcueTextField(
           controller: edition,
           maxLength: 50,
           textInputAction: TextInputAction.next,
@@ -173,7 +172,7 @@ class BookPublicationSection extends StatelessWidget {
         ),
       ]),
       _FieldRow([
-        AppTextField(
+        IcueTextField(
           controller: year,
           keyboardType: TextInputType.number,
           textInputAction: TextInputAction.next,
@@ -186,7 +185,7 @@ class BookPublicationSection extends StatelessWidget {
           hintText: 'YYYY',
           icon: Icons.calendar_today_outlined,
         ),
-        AppTextField(
+        IcueTextField(
           controller: pages,
           keyboardType: TextInputType.number,
           textInputAction: TextInputAction.next,
@@ -199,7 +198,7 @@ class BookPublicationSection extends StatelessWidget {
           hintText: 'e.g. 320',
           icon: Icons.format_list_numbered_rounded,
         ),
-        AppTextField(
+        IcueTextField(
           controller: language,
           maxLength: 50,
           textCapitalization: TextCapitalization.words,
@@ -224,11 +223,11 @@ class BookDescriptionSection extends StatelessWidget {
   final TextEditingController description;
 
   @override
-  Widget build(BuildContext context) => FormSectionCard(
+  Widget build(BuildContext context) => IcueFormSectionCard(
     title: 'Description & tags',
     icon: Icons.notes_rounded,
     children: [
-      AppTextField(
+      IcueTextField(
         controller: keywords,
         textInputAction: TextInputAction.next,
         validator: BookValidators.keywords,
@@ -237,7 +236,7 @@ class BookDescriptionSection extends StatelessWidget {
         icon: Icons.sell_outlined,
         helperText: 'Comma-separated keywords for catalogue search',
       ),
-      AppTextField(
+      IcueTextField(
         controller: description,
         minLines: 3,
         maxLines: 5,

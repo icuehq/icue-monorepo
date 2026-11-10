@@ -1,5 +1,5 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:icueadmin/features/reports/widgets/cleaning_report_card.dart';
 import 'package:icueadmin/features/reports/widgets/report_empty_state.dart';
 import 'package:icueadmin/features/reports/widgets/report_filter_bar.dart';
@@ -17,13 +17,13 @@ class CleaningReportPage extends StatefulWidget {
 class _CleaningReportPageState extends State<CleaningReportPage> {
   int _page = 1;
   Vehicle? _selectedVehicle;
-  late AppFilterResult _filterResult;
+  late IcueFilterResult _filterResult;
 
   @override
   void initState() {
     super.initState();
     final now = DateTime.now();
-    _filterResult = AppFilterResult.byMonth(
+    _filterResult = IcueFilterResult.byMonth(
       month: now.month.toString().padLeft(2, '0'),
       year: now.year.toString(),
     );
@@ -79,7 +79,7 @@ class _CleaningReportPageState extends State<CleaningReportPage> {
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: AppSearchableAutocomplete<Vehicle>(
+            child: IcueSearchableAutocomplete<Vehicle>(
               hintText: 'Filter by vehicle number...',
               optionsBuilder: (textEditingValue) {
                 final list = vehicleProvider.vehicles;
@@ -121,7 +121,7 @@ class _CleaningReportPageState extends State<CleaningReportPage> {
                                     ),
                                     child: reportsProvider.isLoading
                                         ? const CircularProgressIndicator()
-                                        : AppButton(
+                                        : IcueButton(
                                             label: 'Load More',
                                             onPressed: _loadMore,
                                           ),

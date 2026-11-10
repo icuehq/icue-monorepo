@@ -1,6 +1,5 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/shared/widgets/person_search_field.dart';
 
@@ -264,7 +263,7 @@ class IssueItems extends StatelessWidget {
             if (editing != null)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
-                child: AppTextField(
+                child: IcueTextField(
                   controller: editing[index],
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,

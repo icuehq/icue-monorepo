@@ -1,7 +1,6 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/stock/shared/stock_ui.dart';
 import 'package:provider/provider.dart';
@@ -91,15 +90,15 @@ class _UnavailableResolvePageState extends State<UnavailableResolvePage> {
             'This will permanently resolve ${item.quantity.toQuantityText()} units as ${choice.title}. This cannot be undone.',
           ),
           actions: [
-            AppButton(
+            IcueButton(
               label: 'Cancel',
               onPressed: () => Navigator.pop(dialogContext, false),
-              variant: AppButtonVariant.ghost,
+              variant: IcueButtonVariant.ghost,
             ),
-            AppButton(
+            IcueButton(
               label: 'Confirm',
               onPressed: () => Navigator.pop(dialogContext, true),
-              variant: AppButtonVariant.destructive,
+              variant: IcueButtonVariant.destructive,
             ),
           ],
         ),
@@ -165,7 +164,7 @@ class _UnavailableResolvePageState extends State<UnavailableResolvePage> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Resolve Stock')),
-      body: CenteredBody(
+      body: IcueCenteredBody(
         maxWidth: 900,
         child: ListView(
           padding: const EdgeInsets.all(16),
@@ -257,7 +256,7 @@ class _UnavailableResolvePageState extends State<UnavailableResolvePage> {
               ),
             ),
             const SizedBox(height: 12),
-            AppTextField(
+            IcueTextField(
               controller: _remarks,
               enabled: !_busy,
               maxLength: 500,
@@ -276,7 +275,7 @@ class _UnavailableResolvePageState extends State<UnavailableResolvePage> {
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-            child: AppButton(
+            child: IcueButton(
               label: selected?.title ?? 'Select an action',
               onPressed: selected == null || _busy
                   ? null

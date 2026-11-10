@@ -1,7 +1,7 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:drivers/drivers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:icue_ui/icue_ui.dart';
 
 class DriverLicenseInfoForm extends StatelessWidget {
   const DriverLicenseInfoForm({
@@ -53,7 +53,7 @@ class DriverLicenseInfoForm extends StatelessWidget {
           children: [
             Expanded(
               flex: 2,
-              child: AppTextField(
+              child: IcueTextField(
                 controller: licenseNumberController,
                 hintText: 'License Number',
                 maxLength: 20,
@@ -62,7 +62,7 @@ class DriverLicenseInfoForm extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: AppTextField(
+              child: IcueTextField(
                 controller: experienceController,
                 hintText: 'Exp (Yrs)',
                 keyboardType: TextInputType.number,
@@ -79,7 +79,7 @@ class DriverLicenseInfoForm extends StatelessWidget {
               child: InkWell(
                 onTap: onSelectIssueDate,
                 child: IgnorePointer(
-                  child: AppTextField(
+                  child: IcueTextField(
                     controller: licenseIssueDateController,
                     hintText: 'Issue Date',
                     icon: Icons.calendar_today_outlined,
@@ -92,7 +92,7 @@ class DriverLicenseInfoForm extends StatelessWidget {
               child: InkWell(
                 onTap: onSelectExpiryDate,
                 child: IgnorePointer(
-                  child: AppTextField(
+                  child: IcueTextField(
                     controller: licenseExpiryDateController,
                     hintText: 'Expiry Date',
                     icon: Icons.event_busy_outlined,
@@ -103,7 +103,7 @@ class DriverLicenseInfoForm extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
-        AppTextField(
+        IcueTextField(
           controller: addressLine1Controller,
           hintText: 'Address Line 1 *',
           keyboardType: TextInputType.streetAddress,
@@ -115,7 +115,7 @@ class DriverLicenseInfoForm extends StatelessWidget {
           },
         ),
         const SizedBox(height: 12),
-        AppTextField(
+        IcueTextField(
           controller: addressLine2Controller,
           hintText: 'Address Line 2',
           keyboardType: TextInputType.streetAddress,
@@ -124,7 +124,10 @@ class DriverLicenseInfoForm extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: AppTextField(controller: cityController, hintText: 'City'),
+              child: IcueTextField(
+                controller: cityController,
+                hintText: 'City',
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -150,7 +153,7 @@ class DriverLicenseInfoForm extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: AppTextField(
+              child: IcueTextField(
                 controller: pincodeController,
                 hintText: 'Pincode',
                 keyboardType: TextInputType.number,

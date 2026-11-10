@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:icueadmin/features/gatepass/widgets/gatepass_student_card.dart';
 import 'package:icueadmin/features/reports/widgets/report_empty_state.dart';
 import 'package:icueadmin/routing/app_routes.dart';
@@ -195,7 +195,7 @@ class _GenerateGatePassPageState extends State<GenerateGatePassPage> {
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             child: isLoading
                                 ? const CircularProgressIndicator()
-                                : AppButton(
+                                : IcueButton(
                                     label: 'Load More',
                                     onPressed: _loadMore,
                                   ),

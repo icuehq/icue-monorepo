@@ -1,8 +1,9 @@
-import 'package:admin_ui/admin_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
+import 'package:school_library/src/ui/libraries/widgets/library_categories_table.dart';
 import 'package:school_library/src/ui/libraries/widgets/library_category_card.dart';
 import 'package:school_library/src/ui/libraries/widgets/library_category_controls.dart';
 import 'package:school_library/src/ui/libraries/widgets/library_category_dialog.dart';
@@ -142,188 +143,104 @@ class _LibraryCategoriesPageState extends State<LibraryCategoriesPage> {
           activePath: LibraryRoutes.libraryCategories,
         ),
       ),
-      floatingActionButton: hasAnyCategories
+      floatingActionButton: hasAnyCategories && !context.isWide
           ? FloatingActionButton.extended(
               onPressed: () => LibraryCategoryDialog.show(context),
               icon: const Icon(Icons.add_rounded),
               label: const Text('Category'),
             )
           : null,
-      body: CenteredBody(
-        child: Builder(
-          builder: (context) {
-            final isWide = context.isWide;
-            final isTwoColumn = isWide;
-            final contentPadding = EdgeInsets.symmetric(
-              horizontal: isWide ? 24.0 : 16.0,
-              vertical: 16.0,
-            );
+      body: Builder(
+        builder: (context) {
+          final isWide = context.isWide;
+          final contentPadding = EdgeInsets.symmetric(
+            horizontal: isWide ? 24.0 : 16.0,
+            vertical: 16.0,
+          );
 
-            if (libraryProvider.isLoading && !hasAnyCategories) {
-              return const Center(child: CircularProgressIndicator());
-            }
+          if (libraryProvider.isLoading && !hasAnyCategories) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-            if (!hasAnyCategories) {
-              return LibraryCategoryEmptyState(
-                onAdd: () => LibraryCategoryDialog.show(context),
-              );
-            }
-
-            return RefreshIndicator(
-              onRefresh: () => libraryProvider.loadMasters(),
-              child: ListView(
-                padding: contentPadding,
-                children: [
-                  LibraryCategorySearchBar(
-                    searchController: _searchController,
-                    isWide: isWide,
-                    statusFilter: _statusFilter,
-                    onSearchChanged: (_) => setState(() {}),
-                    onFilterChanged: (filter) =>
-                        setState(() => _statusFilter = filter),
-                    onAddCategory: () => LibraryCategoryDialog.show(context),
-                  ),
-                  const SizedBox(height: 12),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Text(
-                      '${matchingGroups.length} ${matchingGroups.length == 1 ? 'category' : 'categories'} · $totalSubsCount ${totalSubsCount == 1 ? 'subcategory' : 'subcategories'}',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.outline,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  if (matchingGroups.isEmpty)
-                    LibraryCategoryNoResultsState(
-                      query: query,
-                      onClear: _clearFilters,
-                    )
-                  else if (isTwoColumn)
-                    _TwoColumnCategoryLayout(
-                      groups: matchingGroups,
-                      isSearching: isSearching,
-                      onViewBooks: (category) => context.push(
-                        '${LibraryRoutes.libraryCatalogue}?category=${category.id}',
-                      ),
-                      onEdit: (category) => LibraryCategoryDialog.show(
-                        context,
-                        category: category,
-                      ),
-                      onAddSubcategory: (category) =>
-                          LibraryCategoryDialog.show(
-                            context,
-                            parentId: category.id,
-                          ),
-                      onToggleActive: (category) =>
-                          _toggleActive(libraryProvider, category),
-                    )
-                  else
-                    Column(
-                      children: [
-                        for (final (top, subs) in matchingGroups)
-                          LibraryCategoryCard(
-                            key: ValueKey(top.id),
-                            category: top,
-                            subcategories: subs,
-                            initiallyExpanded: isSearching,
-                            onViewBooks: (category) => context.push(
-                              '${LibraryRoutes.libraryCatalogue}?category=${category.id}',
-                            ),
-                            onEdit: (category) => LibraryCategoryDialog.show(
-                              context,
-                              category: category,
-                            ),
-                            onAddSubcategory: (category) =>
-                                LibraryCategoryDialog.show(
-                                  context,
-                                  parentId: category.id,
-                                ),
-                            onToggleActive: (category) =>
-                                _toggleActive(libraryProvider, category),
-                          ),
-                      ],
-                    ),
-                ],
+          if (isWide) {
+            return Padding(
+              padding: const EdgeInsets.all(16),
+              child: LibraryCategoriesTable(
+                categories: libraryProvider.categories,
+                onToggleActive: (category) =>
+                    _toggleActive(libraryProvider, category),
               ),
             );
-          },
-        ),
+          }
+
+          if (!hasAnyCategories) {
+            return LibraryCategoryEmptyState(
+              onAdd: () => LibraryCategoryDialog.show(context),
+            );
+          }
+
+          return RefreshIndicator(
+            onRefresh: () => libraryProvider.loadMasters(),
+            child: ListView(
+              padding: contentPadding,
+              children: [
+                LibraryCategorySearchBar(
+                  searchController: _searchController,
+                  isWide: isWide,
+                  statusFilter: _statusFilter,
+                  onSearchChanged: (_) => setState(() {}),
+                  onFilterChanged: (filter) =>
+                      setState(() => _statusFilter = filter),
+                  onAddCategory: () => LibraryCategoryDialog.show(context),
+                ),
+                const SizedBox(height: 12),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Text(
+                    '${matchingGroups.length} ${matchingGroups.length == 1 ? 'category' : 'categories'} · $totalSubsCount ${totalSubsCount == 1 ? 'subcategory' : 'subcategories'}',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.outline,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                if (matchingGroups.isEmpty)
+                  LibraryCategoryNoResultsState(
+                    query: query,
+                    onClear: _clearFilters,
+                  )
+                else
+                  Column(
+                    children: [
+                      for (final (top, subs) in matchingGroups)
+                        LibraryCategoryCard(
+                          key: ValueKey(top.id),
+                          category: top,
+                          subcategories: subs,
+                          initiallyExpanded: isSearching,
+                          onViewBooks: (category) => context.push(
+                            '${LibraryRoutes.libraryCatalogue}?category=${category.id}',
+                          ),
+                          onEdit: (category) => LibraryCategoryDialog.show(
+                            context,
+                            category: category,
+                          ),
+                          onAddSubcategory: (category) =>
+                              LibraryCategoryDialog.show(
+                                context,
+                                parentId: category.id,
+                              ),
+                          onToggleActive: (category) =>
+                              _toggleActive(libraryProvider, category),
+                        ),
+                    ],
+                  ),
+              ],
+            ),
+          );
+        },
       ),
-    );
-  }
-}
-
-class _TwoColumnCategoryLayout extends StatelessWidget {
-  const _TwoColumnCategoryLayout({
-    required this.groups,
-    required this.isSearching,
-    required this.onViewBooks,
-    required this.onEdit,
-    required this.onAddSubcategory,
-    required this.onToggleActive,
-  });
-
-  final List<(LibraryCategory, List<LibraryCategory>)> groups;
-  final bool isSearching;
-  final ValueChanged<LibraryCategory> onViewBooks;
-  final ValueChanged<LibraryCategory> onEdit;
-  final ValueChanged<LibraryCategory> onAddSubcategory;
-  final ValueChanged<LibraryCategory> onToggleActive;
-
-  @override
-  Widget build(BuildContext context) {
-    final leftCol = <(LibraryCategory, List<LibraryCategory>)>[];
-    final rightCol = <(LibraryCategory, List<LibraryCategory>)>[];
-
-    for (var i = 0; i < groups.length; i++) {
-      if (i.isEven) {
-        leftCol.add(groups[i]);
-      } else {
-        rightCol.add(groups[i]);
-      }
-    }
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Column(
-            children: [
-              for (final (top, subs) in leftCol)
-                LibraryCategoryCard(
-                  key: ValueKey(top.id),
-                  category: top,
-                  subcategories: subs,
-                  initiallyExpanded: isSearching,
-                  onViewBooks: onViewBooks,
-                  onEdit: onEdit,
-                  onAddSubcategory: onAddSubcategory,
-                  onToggleActive: onToggleActive,
-                ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            children: [
-              for (final (top, subs) in rightCol)
-                LibraryCategoryCard(
-                  key: ValueKey(top.id),
-                  category: top,
-                  subcategories: subs,
-                  initiallyExpanded: isSearching,
-                  onViewBooks: onViewBooks,
-                  onEdit: onEdit,
-                  onAddSubcategory: onAddSubcategory,
-                  onToggleActive: onToggleActive,
-                ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }

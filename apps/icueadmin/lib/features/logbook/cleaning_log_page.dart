@@ -1,6 +1,6 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:icueadmin/analytics/app_events.dart';
 import 'package:logbook/logbook.dart';
 import 'package:provider/provider.dart';
@@ -83,13 +83,13 @@ class _CleaningLogPageState extends State<CleaningLogPage> {
             '${res.failedCount} vehicle(s) were already logged or could not be updated:\n${res.failedMessages.join("\n")}',
           ),
           actions: [
-            AppButton(
+            IcueButton(
               label: 'OK',
               onPressed: () {
                 Navigator.pop(ctx);
                 context.pop();
               },
-              variant: AppButtonVariant.ghost,
+              variant: IcueButtonVariant.ghost,
             ),
           ],
         ),
@@ -128,15 +128,15 @@ class _CleaningLogPageState extends State<CleaningLogPage> {
             children: [
               if (_currentStep > 0)
                 Expanded(
-                  child: AppButton(
+                  child: IcueButton(
                     label: 'Back to Vehicles',
                     onPressed: () => setState(() => _currentStep = 0),
-                    variant: AppButtonVariant.outline,
+                    variant: IcueButtonVariant.outline,
                   ),
                 ),
               if (_currentStep > 0) const SizedBox(width: 12),
               Expanded(
-                child: AppButton(
+                child: IcueButton(
                   label: _currentStep == 0
                       ? 'Next: Cleaning Checklist (${_selectedVehicleIds.length})'
                       : 'Submit Inspection',
@@ -180,7 +180,7 @@ class _CleaningLogPageState extends State<CleaningLogPage> {
                                 setState(() => _query = '');
                               },
                             ),
-                          AppButton(
+                          IcueButton(
                             label:
                                 _selectedVehicleIds.length == allVehicles.length
                                 ? 'Deselect All'
@@ -197,7 +197,7 @@ class _CleaningLogPageState extends State<CleaningLogPage> {
                                 }
                               });
                             },
-                            variant: AppButtonVariant.ghost,
+                            variant: IcueButtonVariant.ghost,
                           ),
                         ],
                       ),

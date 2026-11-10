@@ -1,7 +1,6 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart' show MaintenanceStatus;
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/assets/maintenance/widgets/maintenance_dialog.dart';
 import 'package:inventory/src/ui/assets/maintenance/widgets/maintenance_update_dialog.dart';
@@ -53,7 +52,7 @@ class _MaintenancePageState extends State<MaintenancePage> {
     final assetsProvider = context.watch<AssetsProvider>();
     return Scaffold(
       appBar: AppBar(title: const Text('Maintenance')),
-      body: CenteredBody(
+      body: IcueCenteredBody(
         child: Column(
           children: [
             Padding(
@@ -85,30 +84,30 @@ class _MaintenancePageState extends State<MaintenancePage> {
                                   'No maintenance requests',
                             ),
                     )
-                  : AdaptiveList<InventoryMaintenance>(
+                  : IcueAdaptiveList<InventoryMaintenance>(
                       items: assetsProvider.maintenance,
                       onTap: _open,
                       columns: [
-                        AdaptiveColumn.text('Request', (job) => job.number),
-                        AdaptiveColumn.text(
+                        IcueAdaptiveColumn.text('Request', (job) => job.number),
+                        IcueAdaptiveColumn.text(
                           'Asset',
                           (job) => job.assetName,
                           flex: 2,
                         ),
-                        AdaptiveColumn.text(
+                        IcueAdaptiveColumn.text(
                           'Issue',
                           (job) => job.issue,
                           flex: 3,
                         ),
-                        AdaptiveColumn.text(
+                        IcueAdaptiveColumn.text(
                           'Priority',
                           (job) => humanizeStatus(job.priority),
                         ),
-                        AdaptiveColumn.text(
+                        IcueAdaptiveColumn.text(
                           'Reported',
                           (job) => job.reportedDate.toDisplayDay(),
                         ),
-                        AdaptiveColumn(
+                        IcueAdaptiveColumn(
                           label: 'Status',
                           cell: (context, job) => StatusChip(job.status),
                         ),
@@ -195,11 +194,11 @@ class MaintenanceSheet extends StatelessWidget {
           Wrap(
             spacing: 8,
             children: [
-              AppButton(
+              IcueButton(
                 label: 'Edit',
                 onPressed: () =>
                     _go(context, () => MaintenanceDialog(job: maintenance)),
-                variant: AppButtonVariant.outline,
+                variant: IcueButtonVariant.outline,
               ),
               for (final value in const [
                 'assigned',
@@ -209,7 +208,7 @@ class MaintenanceSheet extends StatelessWidget {
                 'cancelled',
               ])
                 if (value != maintenance.status)
-                  AppButton(
+                  IcueButton(
                     label: humanizeStatus(value),
                     onPressed: () => _go(
                       context,
@@ -218,7 +217,7 @@ class MaintenanceSheet extends StatelessWidget {
                         status: value,
                       ),
                     ),
-                    variant: AppButtonVariant.outline,
+                    variant: IcueButtonVariant.outline,
                   ),
             ],
           ),

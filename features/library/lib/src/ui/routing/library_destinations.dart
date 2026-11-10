@@ -1,4 +1,4 @@
-import 'package:admin_ui/admin_ui.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:school_library/src/ui/routing/library_routes.dart';
 
 /// A Library screen, opened from a [LibraryGroup] tab.
@@ -77,20 +77,20 @@ final libraryGroups = [
 ];
 
 /// Side navigation on wide screens: Overview plus the same groups as the phone home grid.
-final libraryNavigation = <ModuleDestination>[
-  const ModuleDestination(
+final libraryNavigation = <IcueModuleDestination>[
+  const IcueModuleDestination(
     label: 'Overview',
     path: LibraryRoutes.library,
     iconAsset: 'assets/dashboard/library.png',
   ),
   for (final group in libraryGroups)
-    ModuleDestination(
+    IcueModuleDestination(
       label: group.label,
       path: group.path,
       iconAsset: group.iconAsset,
       tabs: [
         for (final tab in group.tabs)
-          ModuleTab(label: tab.label, path: tab.path),
+          IcueModuleTab(label: tab.label, path: tab.path),
       ],
     ),
 ];

@@ -1,7 +1,6 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:icue_ui/icue_ui.dart';
 
 /// Digits with at most [places] decimals, for quantities and amounts.
 List<TextInputFormatter> decimalOnly([int places = 2]) => [
@@ -81,7 +80,7 @@ class OrderLineCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: AppTextField(
+                child: IcueTextField(
                   controller: line.quantity,
                   keyboardType: _num,
                   inputFormatters: decimalOnly(3),
@@ -95,7 +94,7 @@ class OrderLineCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: AppTextField(
+                child: IcueTextField(
                   controller: line.price,
                   readOnly: line.priceLocked,
                   keyboardType: _num,
@@ -143,7 +142,7 @@ class OrderTotals extends StatelessWidget {
     );
     final total = sub - v(discount) + v(tax) + v(delivery);
     Widget field(TextEditingController controller, String label) => Expanded(
-      child: AppTextField(
+      child: IcueTextField(
         controller: controller,
         keyboardType: OrderLineCard._num,
         inputFormatters: decimalOnly(),
@@ -182,7 +181,7 @@ Widget dateField(
   DateTime? first,
 }) {
   final from = first ?? DateTime.now();
-  return AppDateField(
+  return IcueDateField(
     controller: controller,
     label: label,
     firstDate: from,

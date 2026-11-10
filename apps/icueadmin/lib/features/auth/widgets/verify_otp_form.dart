@@ -1,6 +1,6 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:icue_ui/icue_ui.dart';
 
 class VerifyOtpForm extends StatefulWidget {
   const VerifyOtpForm({
@@ -92,7 +92,7 @@ class _VerifyOtpFormState extends State<VerifyOtpForm> {
           style: const TextStyle(fontSize: 14, color: Color(0xFF4B5563)),
         ),
         const SizedBox(height: 20),
-        AppTextField(
+        IcueTextField(
           controller: widget.otpController,
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -104,17 +104,17 @@ class _VerifyOtpFormState extends State<VerifyOtpForm> {
           onFieldSubmitted: (_) => _handleVerify(),
         ),
         const SizedBox(height: 20),
-        AppButton(
+        IcueButton(
           label: 'Verify & Login',
-          size: AppButtonSize.large,
+          size: IcueButtonSize.large,
           isFullWidth: true,
           isLoading: widget.isLoading,
           onPressed: widget.isLoading ? null : _handleVerify,
         ),
         const SizedBox(height: 10),
-        AppButton(
+        IcueButton(
           label: 'Change Mobile Number',
-          variant: AppButtonVariant.ghost,
+          variant: IcueButtonVariant.ghost,
           leadingIcon: Icons.arrow_back,
           onPressed: widget.isLoading ? null : widget.onBack,
         ),

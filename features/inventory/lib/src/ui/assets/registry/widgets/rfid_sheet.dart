@@ -1,6 +1,5 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -49,17 +48,17 @@ class _RfidSheetState extends State<RfidSheet> {
       const SizedBox(height: 12),
       AbsorbPointer(
         absorbing: _busy,
-        child: ScanField(
+        child: IcueScanField(
           hint: 'Scan or type the tag, then Enter',
           autofocus: true,
           onScan: _save,
         ),
       ),
       if (widget.asset.rfidTag != null)
-        AppButton(
+        IcueButton(
           label: 'Remove tag',
           onPressed: _busy ? null : () => _save(null),
-          variant: AppButtonVariant.ghost,
+          variant: IcueButtonVariant.ghost,
         ),
     ],
   );

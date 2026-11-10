@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:auth/auth.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 
 class LogoutDialog extends StatelessWidget {
@@ -18,15 +18,15 @@ class LogoutDialog extends StatelessWidget {
         child: Text('Are you sure you want to logout?'),
       ),
       actions: [
-        AppButton(
+        IcueButton(
           label: 'No',
           onPressed: () {
             unawaited(HapticFeedback.vibrate());
             Navigator.of(context).pop();
           },
-          variant: AppButtonVariant.ghost,
+          variant: IcueButtonVariant.ghost,
         ),
-        AppButton(
+        IcueButton(
           label: 'Yes',
           onPressed: () async {
             unawaited(HapticFeedback.vibrate());

@@ -1,7 +1,6 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/assets/shared/asset_ui.dart';
 import 'package:inventory/src/ui/stock/shared/item_picker.dart';
@@ -77,7 +76,7 @@ class _MaintenanceUpdateDialogState extends State<MaintenanceUpdateDialog> {
                 value: store,
                 onChanged: (value) => set(() => store = value),
               ),
-              AppTextField(
+              IcueTextField(
                 controller: quantity,
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
@@ -87,12 +86,12 @@ class _MaintenanceUpdateDialogState extends State<MaintenanceUpdateDialog> {
             ],
           ),
           actions: [
-            AppButton(
+            IcueButton(
               label: 'Back',
               onPressed: () => Navigator.pop(context, false),
-              variant: AppButtonVariant.ghost,
+              variant: IcueButtonVariant.ghost,
             ),
-            AppButton(
+            IcueButton(
               label: 'Add',
               onPressed: () => Navigator.pop(context, true),
             ),
@@ -163,19 +162,19 @@ class _MaintenanceUpdateDialogState extends State<MaintenanceUpdateDialog> {
             style: Theme.of(context).textTheme.titleLarge,
           ),
           if (!_cancel) ...[
-            AppTextField(
+            IcueTextField(
               controller: _technician,
               validator: widget.status == 'assigned' ? requiredText : null,
               label: widget.status == 'assigned'
                   ? 'Technician / service provider *'
                   : 'Technician / service provider',
             ),
-            AppTextField(
+            IcueTextField(
               controller: _details,
               maxLines: 2,
               label: 'Repair details',
             ),
-            AppTextField(
+            IcueTextField(
               controller: _cost,
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
@@ -217,15 +216,15 @@ class _MaintenanceUpdateDialogState extends State<MaintenanceUpdateDialog> {
             if (context.read<InventoryProvider>().access.can(
               'inventory.stock.operate',
             ))
-              AppButton(
+              IcueButton(
                 label: 'Add part from store',
                 onPressed: _addPart,
-                variant: AppButtonVariant.ghost,
+                variant: IcueButtonVariant.ghost,
                 leadingIcon: Icons.add,
               ),
           ],
           const SizedBox(height: 16),
-          AppButton(
+          IcueButton(
             label: _busy ? 'Saving…' : humanizeStatus(widget.status),
             onPressed: _busy ? null : _save,
           ),

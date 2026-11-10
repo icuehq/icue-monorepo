@@ -1,7 +1,7 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:drivers/drivers.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:icueadmin/analytics/app_events.dart';
 import 'package:logbook/logbook.dart';
 import 'package:provider/provider.dart';
@@ -129,7 +129,7 @@ class _AlcoholTestFormPageState extends State<AlcoholTestFormPage> {
               ),
             ),
             const SizedBox(height: 16),
-            AppSearchableAutocomplete<Driver>(
+            IcueSearchableAutocomplete<Driver>(
               label: 'Driver *',
               hintText: 'Search driver by name or mobile...',
               optionsBuilder: (textEditingValue) {
@@ -236,7 +236,7 @@ class _AlcoholTestFormPageState extends State<AlcoholTestFormPage> {
                       },
                     )
                   else
-                    AppButton(
+                    IcueButton(
                       label: 'Capture',
                       onPressed: () async {
                         final picked = await pickFile(context);
@@ -246,14 +246,14 @@ class _AlcoholTestFormPageState extends State<AlcoholTestFormPage> {
                           _photoBytes = picked.bytes;
                         });
                       },
-                      variant: AppButtonVariant.ghost,
+                      variant: IcueButtonVariant.ghost,
                       leadingIcon: Icons.camera_alt,
                     ),
                 ],
               ),
             ),
             const SizedBox(height: 24),
-            AppButton(
+            IcueButton(
               label: 'Submit Alcohol Test Record',
               onPressed: logBookProvider.isLoading ? null : _submit,
               leadingIcon: Icons.verified_user_rounded,

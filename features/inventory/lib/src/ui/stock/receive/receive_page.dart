@@ -1,7 +1,6 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/src/ui/stock/shared/line_editor.dart';
 import 'package:inventory/src/ui/stock/shared/stock_ui.dart';
 
@@ -79,7 +78,7 @@ class _ReceivePageState extends State<ReceivePage> {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(title: const Text('Receive Stock')),
-      body: CenteredBody(
+      body: IcueCenteredBody(
         maxWidth: 900,
         child: Form(
           key: _form,
@@ -120,7 +119,7 @@ class _ReceivePageState extends State<ReceivePage> {
                         onChanged: (value) => setState(() => _store = value),
                       ),
                       const SizedBox(height: 12),
-                      AppDropdown<String>(
+                      IcueDropdown<String>(
                         value: _source,
                         items: [
                           for (final mapEntry in _sources.entries)
@@ -137,7 +136,7 @@ class _ReceivePageState extends State<ReceivePage> {
                         icon: Icons.source_outlined,
                       ),
                       const SizedBox(height: 12),
-                      AppTextField(
+                      IcueTextField(
                         controller: _reference,
                         label: 'Reference number / Challan (optional)',
                         hintText: 'e.g. DC-2024-001, OP-STOCK-2024',
@@ -212,7 +211,7 @@ class _ReceivePageState extends State<ReceivePage> {
               ),
               const SizedBox(height: 16),
 
-              AppTextField(
+              IcueTextField(
                 controller: _remarks,
                 label: 'Remarks / Notes (optional)',
                 hintText: 'e.g. Verified by physical count',
@@ -220,7 +219,7 @@ class _ReceivePageState extends State<ReceivePage> {
               ),
               const SizedBox(height: 24),
 
-              AppButton(
+              IcueButton(
                 label: _busy ? 'Receiving…' : 'Confirm Receiving',
                 onPressed: _busy ? null : _save,
                 leadingIcon: Icons.check_circle_outline_rounded,

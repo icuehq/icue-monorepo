@@ -1,7 +1,6 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/stock/shared/stock_ui.dart';
 import 'package:provider/provider.dart';
@@ -165,7 +164,7 @@ class _AdjustState extends State<_Adjust> with _Submit {
         Text(
           'Currently ${widget.balance.available.toQuantityText()} available',
         ),
-        AppTextField(
+        IcueTextField(
           controller: quantity,
           keyboardType: const TextInputType.numberWithOptions(
             decimal: true,
@@ -179,7 +178,7 @@ class _AdjustState extends State<_Adjust> with _Submit {
           },
           label: 'Change (+ adds, − removes)',
         ),
-        AppDropdown<String>(
+        IcueDropdown<String>(
           value: _reason,
           items: [
             for (final mapEntry in _reasons.entries)
@@ -191,13 +190,13 @@ class _AdjustState extends State<_Adjust> with _Submit {
           onChanged: (value) => setState(() => _reason = value!),
           label: 'Reason',
         ),
-        AppTextField(
+        IcueTextField(
           controller: note,
           validator: (value) => _reason == 'other' ? requiredText(value) : null,
           label: 'Note',
         ),
         const SizedBox(height: 12),
-        AppButton(
+        IcueButton(
           label: 'Apply adjustment',
           onPressed: () => send('inventory-adjustment-create', {
             'delta': double.parse(quantity.text.trim()),
@@ -227,7 +226,7 @@ class _ReportState extends State<_Report> with _Submit {
       mainAxisSize: MainAxisSize.min,
       spacing: 16,
       children: [
-        AppDropdown<String>(
+        IcueDropdown<String>(
           value: _reason,
           items: const [
             DropdownMenuItem(
@@ -249,7 +248,7 @@ class _ReportState extends State<_Report> with _Submit {
           onChanged: (value) => setState(() => _reason = value!),
           label: 'What happened',
         ),
-        AppTextField(
+        IcueTextField(
           controller: quantity,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           validator: (value) {
@@ -258,13 +257,13 @@ class _ReportState extends State<_Report> with _Submit {
           },
           label: 'Quantity (max ${widget.balance.available.toQuantityText()})',
         ),
-        AppTextField(
+        IcueTextField(
           controller: note,
           validator: requiredText,
           label: 'Details',
         ),
         const SizedBox(height: 12),
-        AppButton(
+        IcueButton(
           label: 'Report',
           onPressed: () => send('inventory-unavailable-report', {
             'quantity': double.parse(quantity.text.trim()),

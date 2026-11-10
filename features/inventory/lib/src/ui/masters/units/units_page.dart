@@ -1,6 +1,5 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/masters/units/widgets/unit_card.dart';
 import 'package:inventory/src/ui/masters/units/widgets/unit_dialog.dart';
@@ -71,7 +70,7 @@ class _UnitsPageState extends State<UnitsPage> {
               label: const Text('Add unit'),
             )
           : null,
-      body: CenteredBody(
+      body: IcueCenteredBody(
         maxWidth: 900,
         child: inventoryProvider.isLoading && allUnits.isEmpty
             ? const Center(child: CircularProgressIndicator())
@@ -273,16 +272,16 @@ class _EmptyUnitsView extends StatelessWidget {
                 spacing: 12,
                 runSpacing: 12,
                 children: [
-                  SeedDefaultsButton<InventoryProvider>(
+                  IcueSeedDefaultsButton<InventoryProvider>(
                     label: 'Add default units',
                     canSeed: (provider) =>
                         provider.access.can('inventory.settings'),
                     seed: (provider) => provider.seedDefaults(),
                   ),
-                  AppButton(
+                  IcueButton(
                     label: 'Add unit',
                     onPressed: onAddUnit,
-                    variant: AppButtonVariant.outline,
+                    variant: IcueButtonVariant.outline,
                     leadingIcon: Icons.add_rounded,
                   ),
                 ],
@@ -330,10 +329,10 @@ class _NoSearchResultsView extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            AppButton(
+            IcueButton(
               label: 'Clear search',
               onPressed: onClearSearch,
-              variant: AppButtonVariant.ghost,
+              variant: IcueButtonVariant.ghost,
             ),
           ],
         ),

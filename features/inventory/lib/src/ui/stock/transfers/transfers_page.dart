@@ -1,6 +1,6 @@
-import 'package:admin_ui/admin_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/stock/transfers/transfer_rules.dart';
 import 'package:inventory/src/ui/stock/transfers/widgets/transfer_card.dart';
@@ -87,7 +87,7 @@ class _TransfersPageState extends State<TransfersPage> {
               label: const Text('New Transfer'),
             )
           : null,
-      body: CenteredBody(
+      body: IcueCenteredBody(
         maxWidth: 900,
         child: Column(
           children: [

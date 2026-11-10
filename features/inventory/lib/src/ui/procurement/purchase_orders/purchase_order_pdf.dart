@@ -1,4 +1,4 @@
-import 'package:core_ui/core_ui.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';

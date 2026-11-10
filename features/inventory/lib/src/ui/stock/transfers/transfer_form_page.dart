@@ -1,7 +1,6 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/stock/shared/line_editor.dart';
 import 'package:inventory/src/ui/stock/shared/stock_ui.dart';
@@ -70,7 +69,7 @@ class _TransferFormPageState extends State<TransferFormPage> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('New Stock Transfer')),
-      body: CenteredBody(
+      body: IcueCenteredBody(
         maxWidth: 900,
         child: Form(
           key: _form,
@@ -202,7 +201,7 @@ class _TransferFormPageState extends State<TransferFormPage> {
               const SizedBox(height: 16),
 
               // Remarks
-              AppTextField(
+              IcueTextField(
                 controller: _remarks,
                 label: 'Remarks / Notes (optional)',
                 hintText: 'e.g. Relocating surplus stock for academic event',
@@ -210,7 +209,7 @@ class _TransferFormPageState extends State<TransferFormPage> {
               ),
               const SizedBox(height: 24),
 
-              AppButton(
+              IcueButton(
                 label: _busy ? 'Submitting…' : 'Request Transfer',
                 onPressed: _busy ? null : _save,
                 leadingIcon: Icons.arrow_forward_rounded,

@@ -1,7 +1,7 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:drivers/drivers.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:icueadmin/analytics/app_events.dart';
 import 'package:icueadmin/features/drivers/widgets/driver_license_info_form.dart';
 import 'package:icueadmin/features/drivers/widgets/driver_personal_info_form.dart';
@@ -304,7 +304,7 @@ class _AddDriverPageState extends State<AddDriverPage> {
                   ),
                 ),
                 const SizedBox(height: 32),
-                AppButton(
+                IcueButton(
                   label: isEditing ? 'Update Driver' : 'Add Driver',
                   onPressed: provider.isLoading ? null : _onSubmit,
                   isLoading: provider.isLoading,

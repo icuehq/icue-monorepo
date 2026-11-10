@@ -671,7 +671,7 @@ Open **Assets** from Inventory tiles.
 #### Barcode & Code Scanning
 
 - [ ] 1.5.6 **Item Code Scanning**:
-  - In `VerificationPage` counting view, focus the scan input field at the top (`ScanField`).
+  - In `VerificationPage` counting view, focus the scan input field at the top (`IcueScanField`).
   - Type item code `PEN-BLU-01` and press enter (simulating a barcode scan).
   - **Expect** the count for `PEN-BLU-01` increments by 1 with toast confirmation displaying item name and new count. **[EMU]**
 

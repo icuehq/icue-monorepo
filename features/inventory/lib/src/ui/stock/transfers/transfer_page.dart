@@ -1,7 +1,6 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/stock/shared/stock_ui.dart';
 import 'package:inventory/src/ui/stock/transfers/transfer_rules.dart';
@@ -80,12 +79,12 @@ class _StockTransferPageState extends State<StockTransferPage> {
           title: Text(title),
           content: Text(message),
           actions: [
-            AppButton(
+            IcueButton(
               label: 'Cancel',
               onPressed: () => Navigator.pop(context, false),
-              variant: AppButtonVariant.ghost,
+              variant: IcueButtonVariant.ghost,
             ),
-            AppButton(
+            IcueButton(
               label: action,
               onPressed: () => Navigator.pop(context, true),
             ),
@@ -158,19 +157,19 @@ class _StockTransferPageState extends State<StockTransferPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Cancel ${transfer.number}'),
-        content: AppTextField(
+        content: IcueTextField(
           controller: reason,
           autofocus: true,
           maxLength: 500,
           label: 'Reason',
         ),
         actions: [
-          AppButton(
+          IcueButton(
             label: 'Back',
             onPressed: () => Navigator.pop(context),
-            variant: AppButtonVariant.ghost,
+            variant: IcueButtonVariant.ghost,
           ),
-          AppButton(
+          IcueButton(
             label: 'Cancel transfer',
             onPressed: () => Navigator.pop(context, reason.text.trim()),
           ),
@@ -251,10 +250,10 @@ class _StockTransferPageState extends State<StockTransferPage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(stockProvider.errorMessage ?? 'Transfer not found'),
-                    AppButton(
+                    IcueButton(
                       label: 'Try again',
                       onPressed: _load,
-                      variant: AppButtonVariant.ghost,
+                      variant: IcueButtonVariant.ghost,
                     ),
                   ],
                 ),
@@ -283,14 +282,14 @@ class _StockTransferPageState extends State<StockTransferPage> {
         title: Text(transfer.number),
         actions: [
           if (canCancelTransfer(transfer, access))
-            AppButton(
+            IcueButton(
               label: 'Cancel transfer',
               onPressed: _busy ? null : () => _cancel(transfer),
-              variant: AppButtonVariant.ghost,
+              variant: IcueButtonVariant.ghost,
             ),
         ],
       ),
-      body: CenteredBody(
+      body: IcueCenteredBody(
         maxWidth: 900,
         child: RefreshIndicator(
           onRefresh: _load,
@@ -337,7 +336,7 @@ class _StockTransferPageState extends State<StockTransferPage> {
                   value: _closeTransfer,
                   onChanged: (value) => setState(() => _closeTransfer = value),
                 ),
-                AppTextField(
+                IcueTextField(
                   controller: _remarks,
                   maxLength: 500,
                   label: 'Receipt remarks (optional)',
@@ -353,7 +352,7 @@ class _StockTransferPageState extends State<StockTransferPage> {
               child: SafeArea(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-                  child: AppButton(
+                  child: IcueButton(
                     label: canApprove
                         ? 'Approve transfer'
                         : canDispatch

@@ -1,7 +1,7 @@
 import 'package:auth/auth.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:drop_boarding/drop_boarding.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:icueadmin/analytics/app_events.dart';
 import 'package:icueadmin/features/drop_boarding/widgets/boarding_vehicle_card.dart';
 import 'package:icueadmin/features/reports/widgets/report_empty_state.dart';
@@ -108,7 +108,7 @@ class _BoardingPageState extends State<BoardingPage> {
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: AppButton(
+          child: IcueButton(
             label: 'Mark as Left (${_selectedRouteIds.length})',
             onPressed: _selectedRouteIds.isEmpty || provider.isLoading
                 ? null

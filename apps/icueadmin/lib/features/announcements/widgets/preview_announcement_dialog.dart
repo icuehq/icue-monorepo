@@ -1,5 +1,5 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 
 class PreviewAnnouncementDialog extends StatelessWidget {
   const PreviewAnnouncementDialog({
@@ -104,14 +104,14 @@ class PreviewAnnouncementDialog extends StatelessWidget {
         ),
       ),
       actions: [
-        AppButton(
+        IcueButton(
           label: 'Cancel',
           onPressed: isSubmitting
               ? null
               : () => Navigator.of(context).pop(false),
-          variant: AppButtonVariant.ghost,
+          variant: IcueButtonVariant.ghost,
         ),
-        AppButton(
+        IcueButton(
           label: 'Send Broadcast',
           onPressed: isSubmitting ? null : onConfirm,
           isLoading: isSubmitting,

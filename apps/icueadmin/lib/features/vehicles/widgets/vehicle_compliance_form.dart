@@ -1,7 +1,7 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:drivers/drivers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:icue_ui/icue_ui.dart';
 
 class VehicleComplianceForm extends StatelessWidget {
   const VehicleComplianceForm({
@@ -61,7 +61,7 @@ class VehicleComplianceForm extends StatelessWidget {
               child: InkWell(
                 onTap: onSelectRegDate,
                 child: IgnorePointer(
-                  child: AppTextField(
+                  child: IcueTextField(
                     controller: dateOfRegController,
                     hintText: 'Date of Registration',
                     icon: Icons.event_note_outlined,
@@ -71,7 +71,7 @@ class VehicleComplianceForm extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: AppTextField(
+              child: IcueTextField(
                 controller: rtaOfcController,
                 hintText: 'RTA Office (e.g. Khairatabad)',
                 textInputAction: TextInputAction.next,
@@ -83,7 +83,7 @@ class VehicleComplianceForm extends StatelessWidget {
         InkWell(
           onTap: onSelectServiceDate,
           child: IgnorePointer(
-            child: AppTextField(
+            child: IcueTextField(
               controller: serviceDateController,
               hintText: 'Service Due Date',
               icon: Icons.event_note_outlined,
@@ -94,7 +94,7 @@ class VehicleComplianceForm extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: AppTextField(
+              child: IcueTextField(
                 controller: claimedMileageController,
                 hintText: 'Company Mileage (km/l)',
                 keyboardType: const TextInputType.numberWithOptions(
@@ -107,7 +107,7 @@ class VehicleComplianceForm extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: AppTextField(
+              child: IcueTextField(
                 controller: expectedMileageController,
                 hintText: 'Expected Mileage (km/l)',
                 keyboardType: const TextInputType.numberWithOptions(
@@ -121,7 +121,7 @@ class VehicleComplianceForm extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
-        AppSearchableAutocomplete<Driver>(
+        IcueSearchableAutocomplete<Driver>(
           label: 'Assigned Driver',
           hintText: 'Search driver by name or phone...',
           initialSelection: selectedDriver,
@@ -143,7 +143,7 @@ class VehicleComplianceForm extends StatelessWidget {
           style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
-        AppTextField(
+        IcueTextField(
           controller: fireExtNameController,
           hintText: 'Fire Extinguisher Identifier / Serial',
           textInputAction: TextInputAction.next,
@@ -155,7 +155,7 @@ class VehicleComplianceForm extends StatelessWidget {
               child: InkWell(
                 onTap: onSelectFireExtInstallDate,
                 child: IgnorePointer(
-                  child: AppTextField(
+                  child: IcueTextField(
                     controller: fireExtInstallDateController,
                     hintText: 'Install Date',
                     icon: Icons.calendar_today_outlined,
@@ -168,7 +168,7 @@ class VehicleComplianceForm extends StatelessWidget {
               child: InkWell(
                 onTap: onSelectFireExtExpiryDate,
                 child: IgnorePointer(
-                  child: AppTextField(
+                  child: IcueTextField(
                     controller: fireExtExpiryDateController,
                     hintText: 'Expiry Date',
                     icon: Icons.event_busy_outlined,
@@ -179,7 +179,7 @@ class VehicleComplianceForm extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
-        AppTextField(
+        IcueTextField(
           controller: firstAidDetailsController,
           hintText: 'First Aid Kit Items / Notes',
           textInputAction: TextInputAction.next,
@@ -188,7 +188,7 @@ class VehicleComplianceForm extends StatelessWidget {
         InkWell(
           onTap: onSelectFirstAidExpiryDate,
           child: IgnorePointer(
-            child: AppTextField(
+            child: IcueTextField(
               controller: firstAidExpiryDateController,
               hintText: 'First Aid Kit Expiry Date',
               icon: Icons.medical_services_outlined,

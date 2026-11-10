@@ -1,6 +1,5 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -99,12 +98,12 @@ class _VendorFormPageState extends State<VendorFormPage> {
           title: const Text('Discard changes?'),
           content: const Text('Your changes to this vendor are not saved.'),
           actions: [
-            AppButton(
+            IcueButton(
               label: 'Keep editing',
               onPressed: () => Navigator.pop(context, false),
-              variant: AppButtonVariant.ghost,
+              variant: IcueButtonVariant.ghost,
             ),
-            AppButton(
+            IcueButton(
               label: 'Discard',
               onPressed: () => Navigator.pop(context, true),
             ),
@@ -180,8 +179,8 @@ class _VendorFormPageState extends State<VendorFormPage> {
       },
       child: Scaffold(
         appBar: AppBar(title: Text(_editing ? 'Edit vendor' : 'New vendor')),
-        body: CenteredBody(
-          maxWidth: Breakpoints.formMaxWidth,
+        body: IcueCenteredBody(
+          maxWidth: IcueBreakpoints.formMaxWidth,
           child: Form(
             key: _form,
             onChanged: () {
@@ -190,7 +189,7 @@ class _VendorFormPageState extends State<VendorFormPage> {
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                AppTextField(
+                IcueTextField(
                   controller: _name,
                   maxLength: 120,
                   textCapitalization: TextCapitalization.words,
@@ -200,7 +199,7 @@ class _VendorFormPageState extends State<VendorFormPage> {
                   icon: Icons.business_rounded,
                 ),
                 section('Contact'),
-                AppTextField(
+                IcueTextField(
                   controller: _contact,
                   maxLength: 120,
                   textCapitalization: TextCapitalization.words,
@@ -209,7 +208,7 @@ class _VendorFormPageState extends State<VendorFormPage> {
                   icon: Icons.person_outline_rounded,
                 ),
                 const SizedBox(height: 4),
-                AppTextField(
+                IcueTextField(
                   controller: _phone,
                   keyboardType: TextInputType.phone,
                   validator: (value) => _optional(
@@ -223,7 +222,7 @@ class _VendorFormPageState extends State<VendorFormPage> {
                   icon: Icons.phone_outlined,
                 ),
                 const SizedBox(height: 12),
-                AppTextField(
+                IcueTextField(
                   controller: _email,
                   keyboardType: TextInputType.emailAddress,
                   validator: (value) => _optional(
@@ -237,7 +236,7 @@ class _VendorFormPageState extends State<VendorFormPage> {
                   icon: Icons.email_outlined,
                 ),
                 const SizedBox(height: 12),
-                AppTextField(
+                IcueTextField(
                   controller: _website,
                   keyboardType: TextInputType.url,
                   validator: _validateWebsite,
@@ -246,7 +245,7 @@ class _VendorFormPageState extends State<VendorFormPage> {
                   icon: Icons.language_rounded,
                 ),
                 const SizedBox(height: 12),
-                AppTextField(
+                IcueTextField(
                   controller: _address,
                   maxLines: 2,
                   maxLength: 500,
@@ -254,7 +253,7 @@ class _VendorFormPageState extends State<VendorFormPage> {
                   icon: Icons.location_on_outlined,
                 ),
                 section('Tax'),
-                AppTextField(
+                IcueTextField(
                   controller: _tax,
                   maxLength: 40,
                   textCapitalization: TextCapitalization.characters,
@@ -289,7 +288,7 @@ class _VendorFormPageState extends State<VendorFormPage> {
                     ],
                   ),
                 section('Notes'),
-                AppTextField(
+                IcueTextField(
                   controller: _remarks,
                   maxLines: 3,
                   maxLength: 500,
@@ -305,7 +304,7 @@ class _VendorFormPageState extends State<VendorFormPage> {
           child: SafeArea(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-              child: AppButton(
+              child: IcueButton(
                 label: _busy ? 'Saving…' : 'Save vendor',
                 onPressed: _busy ? null : _save,
                 leadingIcon: Icons.save_rounded,

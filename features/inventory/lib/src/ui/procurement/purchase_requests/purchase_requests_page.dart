@@ -1,7 +1,6 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/procurement/purchase_requests/purchase_request_rules.dart';
 import 'package:inventory/src/ui/procurement/purchase_requests/widgets/purchase_request_card.dart';
@@ -103,7 +102,7 @@ class _PurchaseRequestsPageState extends State<PurchaseRequestsPage> {
               label: const Text('New Request'),
             )
           : null,
-      body: CenteredBody(
+      body: IcueCenteredBody(
         child: Column(
           children: [
             // Search Bar
@@ -205,34 +204,34 @@ class _PurchaseRequestsPageState extends State<PurchaseRequestsPage> {
                           ),
                         ),
                       )
-                    : AdaptiveList<InventoryPurchaseRequest>(
+                    : IcueAdaptiveList<InventoryPurchaseRequest>(
                         items: filteredRequests,
                         onTap: _openRequest,
                         columns: [
-                          AdaptiveColumn.text(
+                          IcueAdaptiveColumn.text(
                             'Request',
                             (request) => request.number.isEmpty
                                 ? 'Draft'
                                 : request.number,
                           ),
-                          AdaptiveColumn.text(
+                          IcueAdaptiveColumn.text(
                             'Purpose',
                             (request) => request.purpose,
                             flex: 3,
                           ),
-                          AdaptiveColumn.text(
+                          IcueAdaptiveColumn.text(
                             'Priority',
                             (request) => humanizeStatus(request.priority),
                           ),
-                          AdaptiveColumn.text(
+                          IcueAdaptiveColumn.text(
                             'Needed by',
                             (request) => request.requiredDate.toDisplayDay(),
                           ),
-                          AdaptiveColumn.text(
+                          IcueAdaptiveColumn.text(
                             'Estimate',
                             (request) => request.total.toRupees(),
                           ),
-                          AdaptiveColumn.text(
+                          IcueAdaptiveColumn.text(
                             'Status',
                             (request) => humanizeStatus(request.status),
                           ),

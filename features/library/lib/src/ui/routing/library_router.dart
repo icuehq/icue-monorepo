@@ -1,5 +1,5 @@
-import 'package:admin_ui/admin_ui.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/catalogue/book_details_page.dart';
 import 'package:school_library/src/ui/catalogue/book_form_page.dart';
@@ -22,7 +22,7 @@ import 'package:school_library/src/ui/routing/library_destinations.dart';
 List<RouteBase> libraryRoutes() => [
   ShellRoute(
     builder: (context, state, child) {
-      final shell = ModuleShell(
+      final shell = IcueModuleShell(
         title: 'Library',
         homePath: LibraryRoutes.library,
         location: state.uri.path,

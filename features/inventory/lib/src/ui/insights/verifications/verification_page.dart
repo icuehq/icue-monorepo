@@ -1,7 +1,6 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart' show VerificationReason;
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -129,17 +128,17 @@ class _VerificationPageState extends State<VerificationPage> {
               ? 'Apply adjustments?'
               : 'Send back for recount',
         ),
-        content: AppTextField(
+        content: IcueTextField(
           controller: controller,
           label: decision == 'approve' ? 'Comment (optional)' : 'Reason',
         ),
         actions: [
-          AppButton(
+          IcueButton(
             label: 'Cancel',
             onPressed: () => Navigator.pop(context, false),
-            variant: AppButtonVariant.ghost,
+            variant: IcueButtonVariant.ghost,
           ),
-          AppButton(
+          IcueButton(
             label: 'Confirm',
             onPressed: () => Navigator.pop(context, true),
           ),
@@ -169,17 +168,17 @@ class _VerificationPageState extends State<VerificationPage> {
             children: [
               if (editable) ...[
                 Expanded(
-                  child: AppButton(
+                  child: IcueButton(
                     label: 'Save counts',
                     onPressed: _busy
                         ? null
                         : () => _save(insightsProvider.lineItems),
-                    variant: AppButtonVariant.outline,
+                    variant: IcueButtonVariant.outline,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: AppButton(
+                  child: IcueButton(
                     label: 'Submit',
                     onPressed: _busy
                         ? null
@@ -199,15 +198,15 @@ class _VerificationPageState extends State<VerificationPage> {
               if (_v.submitted &&
                   access.can('inventory.adjustment.approve')) ...[
                 Expanded(
-                  child: AppButton(
+                  child: IcueButton(
                     label: 'Send back',
                     onPressed: _busy ? null : () => _decide('reject'),
-                    variant: AppButtonVariant.outline,
+                    variant: IcueButtonVariant.outline,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: AppButton(
+                  child: IcueButton(
                     label: 'Approve & apply',
                     onPressed: _busy ? null : () => _decide('approve'),
                   ),
@@ -217,7 +216,7 @@ class _VerificationPageState extends State<VerificationPage> {
           ),
         ),
       ),
-      body: CenteredBody(
+      body: IcueCenteredBody(
         maxWidth: 900,
         child: insightsProvider.lineItems.isEmpty
             ? Center(
@@ -242,7 +241,7 @@ class _VerificationPageState extends State<VerificationPage> {
                   if (editable)
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: ScanField(
+                      child: IcueScanField(
                         hint: 'Scan item code to count',
                         clearOnScan: true,
                         onScan: (value) =>
@@ -309,7 +308,7 @@ class _VerificationPageState extends State<VerificationPage> {
           SizedBox(
             width: 90,
             child: editable
-                ? AppTextField(
+                ? IcueTextField(
                     controller: _counts[verificationLine.balanceId],
                     keyboardType: TextInputType.number,
                     onChanged: (_) => setState(() {}),

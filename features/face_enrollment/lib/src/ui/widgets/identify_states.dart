@@ -1,6 +1,6 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:face_enrollment/src/ui/theme_context.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 
 class PreparingState extends StatelessWidget {
   const PreparingState({
@@ -166,9 +166,9 @@ class EmptyRosterState extends StatelessWidget {
                 if (onBack != null)
                   SizedBox(
                     width: 130,
-                    child: AppButton(
+                    child: IcueButton(
                       label: 'Go Back',
-                      variant: AppButtonVariant.outline,
+                      variant: IcueButtonVariant.outline,
                       leadingIcon: Icons.arrow_back_rounded,
                       onPressed: onBack,
                       isFullWidth: true,
@@ -178,7 +178,7 @@ class EmptyRosterState extends StatelessWidget {
                 if (onSync != null)
                   SizedBox(
                     width: 150,
-                    child: AppButton(
+                    child: IcueButton(
                       label: 'Sync Cloud',
                       leadingIcon: Icons.sync_rounded,
                       onPressed: onSync,

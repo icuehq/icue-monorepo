@@ -1,8 +1,8 @@
 // Stock verification, dashboard and reports (Inv-7). Parse and display only; rules live in Cloud Functions.
 
-import 'package:core_ui/core_ui.dart';
 import 'package:icue_firebase/icue_firebase.dart'
     show ReportColumn, readDay, readNumber, readString;
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/src/models/inventory_insights.g.dart';
 
 export 'inventory_insights.g.dart';

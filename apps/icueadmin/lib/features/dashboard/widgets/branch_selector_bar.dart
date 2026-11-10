@@ -1,7 +1,7 @@
 import 'package:auth/auth.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:icueadmin/routing/app_routes.dart';
 import 'package:provider/provider.dart';
 
@@ -27,7 +27,7 @@ class BranchSelectorBar extends StatelessWidget {
               style: const TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
-          AppButton(
+          IcueButton(
             label: 'Change',
             onPressed: () {
               context.push(AppRoutes.branches);

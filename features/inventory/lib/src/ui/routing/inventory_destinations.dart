@@ -1,6 +1,6 @@
-import 'package:admin_ui/admin_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/src/ui/routing/inventory_routes.dart';
 
 /// An Inventory screen reachable from the home grid and the side navigation.
@@ -19,8 +19,8 @@ class InventoryEntry {
   final String iconAsset;
   final String group;
 
-  ModuleDestination get destination =>
-      ModuleDestination(label: label, path: path, icon: icon, group: group);
+  IcueModuleDestination get destination =>
+      IcueModuleDestination(label: label, path: path, icon: icon, group: group);
 }
 
 /// The Inventory screens [access] may open, in navigation order.

@@ -1,7 +1,6 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/procurement/purchase_requests/widgets/purchase_request_detail_widgets.dart';
 import 'package:inventory/src/ui/procurement/shared/procurement_ui.dart';
@@ -90,12 +89,12 @@ class _PurchaseRequestPageState extends State<PurchaseRequestPage> {
             ),
           ),
           actions: [
-            AppButton(
+            IcueButton(
               label: 'Cancel',
               onPressed: () => Navigator.pop(context),
-              variant: AppButtonVariant.ghost,
+              variant: IcueButtonVariant.ghost,
             ),
-            AppButton(
+            IcueButton(
               label: action,
               onPressed: () {
                 if (required && comment.text.trim().isEmpty) {
@@ -103,7 +102,7 @@ class _PurchaseRequestPageState extends State<PurchaseRequestPage> {
                 }
                 Navigator.pop(context, comment.text.trim());
               },
-              variant: AppButtonVariant.destructive,
+              variant: IcueButtonVariant.destructive,
             ),
           ],
         ),
@@ -160,7 +159,7 @@ class _PurchaseRequestPageState extends State<PurchaseRequestPage> {
     final List<Widget> buttons;
     if (request.isPending && access.can('inventory.purchaseRequest.approve')) {
       buttons = [
-        AppButton(
+        IcueButton(
           label: 'Reject',
           onPressed: _busy
               ? null
@@ -172,9 +171,9 @@ class _PurchaseRequestPageState extends State<PurchaseRequestPage> {
                   required: true,
                   destructive: true,
                 ),
-          variant: AppButtonVariant.destructive,
+          variant: IcueButtonVariant.destructive,
         ),
-        AppButton(
+        IcueButton(
           label: 'Return',
           onPressed: _busy
               ? null
@@ -185,9 +184,9 @@ class _PurchaseRequestPageState extends State<PurchaseRequestPage> {
                   'Returned for revision',
                   required: true,
                 ),
-          variant: AppButtonVariant.outline,
+          variant: IcueButtonVariant.outline,
         ),
-        AppButton(
+        IcueButton(
           label: 'Approve',
           onPressed: _busy
               ? null
@@ -202,7 +201,7 @@ class _PurchaseRequestPageState extends State<PurchaseRequestPage> {
       ];
     } else if (own && request.isEditable) {
       buttons = [
-        AppButton(
+        IcueButton(
           label: 'Edit',
           onPressed: _busy
               ? null
@@ -210,10 +209,10 @@ class _PurchaseRequestPageState extends State<PurchaseRequestPage> {
                   InventoryRoutes.inventoryPurchaseRequestForm,
                   request,
                 ),
-          variant: AppButtonVariant.outline,
+          variant: IcueButtonVariant.outline,
           leadingIcon: Icons.edit_outlined,
         ),
-        AppButton(
+        IcueButton(
           label: 'Submit',
           onPressed: _busy
               ? null
@@ -227,17 +226,17 @@ class _PurchaseRequestPageState extends State<PurchaseRequestPage> {
       ];
     } else if (request.isOrderable && access.can('inventory.procure.operate')) {
       buttons = [
-        AppButton(
+        IcueButton(
           label: 'Direct PO',
           onPressed: () => _open(InventoryRoutes.inventoryPurchaseOrderForm, (
             request,
             null,
             null,
           )),
-          variant: AppButtonVariant.outline,
+          variant: IcueButtonVariant.outline,
           leadingIcon: Icons.shopping_cart_checkout_rounded,
         ),
-        AppButton(
+        IcueButton(
           label: 'Quotations',
           onPressed: () => _open(InventoryRoutes.inventoryQuotations, request),
           leadingIcon: Icons.request_quote_outlined,
@@ -280,13 +279,13 @@ class _PurchaseRequestPageState extends State<PurchaseRequestPage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(_loadError ?? 'Request not found'),
-                    AppButton(
+                    IcueButton(
                       label: 'Try again',
                       onPressed: () {
                         setState(() => _loading = true);
                         _load();
                       },
-                      variant: AppButtonVariant.ghost,
+                      variant: IcueButtonVariant.ghost,
                     ),
                   ],
                 ),
@@ -309,7 +308,7 @@ class _PurchaseRequestPageState extends State<PurchaseRequestPage> {
             ),
         ],
       ),
-      body: CenteredBody(
+      body: IcueCenteredBody(
         maxWidth: 900,
         child: RefreshIndicator(
           onRefresh: _load,

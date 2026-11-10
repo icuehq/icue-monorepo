@@ -1,5 +1,5 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/foundation.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:injectable/injectable.dart';
 import 'package:reports/src/models/alcohol_test_report.dart';
 import 'package:reports/src/models/arrival_time_report.dart';
@@ -66,14 +66,14 @@ class ReportsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Converts core_ui [AppFilterResult] to backend report mode string.
-  String _mapReportMode(AppFilterResult filter) {
+  /// Converts icue_ui [IcueFilterResult] to backend report mode string.
+  String _mapReportMode(IcueFilterResult filter) {
     switch (filter.mode) {
-      case AppFilterMode.byMonth:
+      case IcueFilterMode.byMonth:
         return 'bymonth';
-      case AppFilterMode.byDate:
+      case IcueFilterMode.byDate:
         return 'bydate';
-      case AppFilterMode.byRange:
+      case IcueFilterMode.byRange:
         return 'byperiod';
     }
   }
@@ -157,7 +157,7 @@ class ReportsProvider extends ChangeNotifier {
 
   /// Loads paginated cleaning inspection reports.
   Future<void> fetchCleaningReport({
-    required AppFilterResult filter,
+    required IcueFilterResult filter,
     int page = 1,
     int? vehicleId,
     String? vehicleNo,
@@ -175,10 +175,10 @@ class ReportsProvider extends ChangeNotifier {
         reportMode: modeStr,
         month: filter.month,
         year: filter.year,
-        startDate: filter.mode == AppFilterMode.byDate
+        startDate: filter.mode == IcueFilterMode.byDate
             ? filter.date
             : filter.range?.start,
-        endDate: filter.mode == AppFilterMode.byRange
+        endDate: filter.mode == IcueFilterMode.byRange
             ? filter.range?.end
             : filter.date,
         page: page,
@@ -202,7 +202,7 @@ class ReportsProvider extends ChangeNotifier {
 
   /// Loads paginated breathalyzer alcohol reports.
   Future<void> fetchAlcoholTestReport({
-    required AppFilterResult filter,
+    required IcueFilterResult filter,
     int page = 1,
     int? personId,
   }) async {
@@ -219,10 +219,10 @@ class ReportsProvider extends ChangeNotifier {
         reportMode: modeStr,
         month: filter.month,
         year: filter.year,
-        startDate: filter.mode == AppFilterMode.byDate
+        startDate: filter.mode == IcueFilterMode.byDate
             ? filter.date
             : filter.range?.start,
-        endDate: filter.mode == AppFilterMode.byRange
+        endDate: filter.mode == IcueFilterMode.byRange
             ? filter.range?.end
             : filter.date,
         page: page,
@@ -245,7 +245,7 @@ class ReportsProvider extends ChangeNotifier {
 
   /// Loads paginated vehicle arrival time reports.
   Future<void> fetchArrivalTimeReport({
-    required AppFilterResult filter,
+    required IcueFilterResult filter,
     String mode = 'Pickup',
     int page = 1,
     String? vehicleNo,
@@ -264,10 +264,10 @@ class ReportsProvider extends ChangeNotifier {
         mode: mode,
         month: filter.month,
         year: filter.year,
-        startDate: filter.mode == AppFilterMode.byDate
+        startDate: filter.mode == IcueFilterMode.byDate
             ? filter.date
             : filter.range?.start,
-        endDate: filter.mode == AppFilterMode.byRange
+        endDate: filter.mode == IcueFilterMode.byRange
             ? filter.range?.end
             : filter.date,
         page: page,

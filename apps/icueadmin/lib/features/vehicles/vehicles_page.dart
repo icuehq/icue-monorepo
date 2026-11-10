@@ -1,7 +1,7 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:icueadmin/features/vehicles/widgets/vehicle_card.dart';
 import 'package:icueadmin/features/vehicles/widgets/vehicle_search_bar.dart';
 import 'package:icueadmin/routing/app_routes.dart';
@@ -118,7 +118,7 @@ class _VehiclesPageState extends State<VehiclesPage> {
                 style: const TextStyle(fontSize: 14, color: Colors.grey),
               ),
               const SizedBox(height: 16),
-              AppButton(
+              IcueButton(
                 label: 'Retry',
                 onPressed: () => provider.fetchVehiclesData(),
                 leadingIcon: Icons.refresh_rounded,

@@ -1,7 +1,6 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -92,19 +91,19 @@ class _ItemFormPageState extends State<ItemFormPage> {
     ];
     return Scaffold(
       appBar: AppBar(title: Text(editing ? 'Edit item' : 'Add item')),
-      body: CenteredBody(
-        maxWidth: Breakpoints.formMaxWidth,
+      body: IcueCenteredBody(
+        maxWidth: IcueBreakpoints.formMaxWidth,
         child: Form(
           key: _form,
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             children: [
-              FormSectionCard(
+              IcueFormSectionCard(
                 title: 'Basic information',
                 icon: Icons.inventory_2_outlined,
                 children: [
-                  AppTextField(
+                  IcueTextField(
                     controller: _code,
                     enabled: !editing,
                     textCapitalization: TextCapitalization.characters,
@@ -121,7 +120,7 @@ class _ItemFormPageState extends State<ItemFormPage> {
                         ? 'Unique identifier, e.g. PAP-A4-01'
                         : null,
                   ),
-                  AppTextField(
+                  IcueTextField(
                     controller: _name,
                     textCapitalization: TextCapitalization.words,
                     textInputAction: TextInputAction.next,
@@ -129,7 +128,7 @@ class _ItemFormPageState extends State<ItemFormPage> {
                     label: 'Item name *',
                     icon: Icons.label_outline,
                   ),
-                  AppDropdown<String>(
+                  IcueDropdown<String>(
                     value: _categoryId,
                     items: [
                       for (final category in tops)
@@ -151,7 +150,7 @@ class _ItemFormPageState extends State<ItemFormPage> {
                     icon: Icons.category_outlined,
                   ),
                   if (subs.isNotEmpty)
-                    AppDropdown<String?>(
+                    IcueDropdown<String?>(
                       key: ValueKey(_categoryId),
                       value: _subcategoryId,
                       items: [
@@ -166,7 +165,7 @@ class _ItemFormPageState extends State<ItemFormPage> {
                       label: 'Subcategory',
                       icon: Icons.subdirectory_arrow_right_outlined,
                     ),
-                  AppTextField(
+                  IcueTextField(
                     controller: _description,
                     minLines: 2,
                     maxLines: 4,
@@ -177,11 +176,11 @@ class _ItemFormPageState extends State<ItemFormPage> {
                   ),
                 ],
               ),
-              FormSectionCard(
+              IcueFormSectionCard(
                 title: 'Stock & tracking',
                 icon: Icons.tune_outlined,
                 children: [
-                  AppDropdown<String>(
+                  IcueDropdown<String>(
                     value: _stockUnit,
                     items: [
                       for (final unit in inventoryProvider.units)
@@ -195,7 +194,7 @@ class _ItemFormPageState extends State<ItemFormPage> {
                     label: 'Stock unit *',
                     icon: Icons.straighten_outlined,
                   ),
-                  AppDropdown<Tracking>(
+                  IcueDropdown<Tracking>(
                     key: ValueKey(_tracking),
                     value: _tracking,
                     items: [
@@ -211,11 +210,11 @@ class _ItemFormPageState extends State<ItemFormPage> {
                   ),
                 ],
               ),
-              FormSectionCard(
+              IcueFormSectionCard(
                 title: 'Reorder & pricing',
                 icon: Icons.payments_outlined,
                 children: [
-                  AppTextField(
+                  IcueTextField(
                     controller: _reorder,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
@@ -227,7 +226,7 @@ class _ItemFormPageState extends State<ItemFormPage> {
                     icon: Icons.refresh_outlined,
                     helperText: 'Alert threshold when available stock is low',
                   ),
-                  AppTextField(
+                  IcueTextField(
                     controller: _price,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
@@ -245,7 +244,7 @@ class _ItemFormPageState extends State<ItemFormPage> {
               SizedBox(
                 width: double.infinity,
                 height: 48,
-                child: AppButton(
+                child: IcueButton(
                   label: _busy
                       ? 'Saving…'
                       : (editing ? 'Update item' : 'Save item'),

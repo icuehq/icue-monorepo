@@ -8,10 +8,10 @@ environment:
 
 dependencies:
   api_client:
-  core_ui:
   dio: ^5.7.0
   flutter:
     sdk: flutter
+  icue_ui:
   injectable: ^2.5.0
 
 dev_dependencies:

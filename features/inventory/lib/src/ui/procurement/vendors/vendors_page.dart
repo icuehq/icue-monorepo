@@ -1,7 +1,6 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/procurement/vendors/vendor_actions.dart';
 import 'package:inventory/src/ui/procurement/vendors/widgets/vendor_card.dart';
@@ -131,24 +130,24 @@ class _VendorsPageState extends State<VendorsPage> {
             ),
             const SizedBox(height: 16),
             if (failure != null)
-              AppButton(
+              IcueButton(
                 label: 'Try again',
                 onPressed: _load,
-                variant: AppButtonVariant.outline,
+                variant: IcueButtonVariant.outline,
                 leadingIcon: Icons.refresh,
               )
             else if (filtering)
-              AppButton(
+              IcueButton(
                 label: 'Clear filters',
                 onPressed: () => setState(() {
                   _searchController.clear();
                   _selectedFilter = 'all';
                   _categoryId = null;
                 }),
-                variant: AppButtonVariant.outline,
+                variant: IcueButtonVariant.outline,
               )
             else if (canEdit)
-              AppButton(
+              IcueButton(
                 label: 'New vendor',
                 onPressed: () => _open(InventoryRoutes.inventoryVendorForm),
                 leadingIcon: Icons.add,
@@ -167,7 +166,7 @@ class _VendorsPageState extends State<VendorsPage> {
               label: const Text('New vendor'),
             )
           : null,
-      body: CenteredBody(
+      body: IcueCenteredBody(
         child: Column(
           children: [
             Padding(
@@ -255,42 +254,42 @@ class _VendorsPageState extends State<VendorsPage> {
                     ? const Center(child: CircularProgressIndicator())
                     : filteredVendors.isEmpty
                     ? empty()
-                    : AdaptiveList<InventoryVendor>(
+                    : IcueAdaptiveList<InventoryVendor>(
                         items: filteredVendors,
                         onTap: (vendor) => _open(
                           '${InventoryRoutes.inventoryVendorDetail}?id=${vendor.id}',
                         ),
                         columns: [
-                          AdaptiveColumn(
+                          IcueAdaptiveColumn(
                             label: 'Vendor',
                             flex: 2,
                             cell: (context, vendor) => Row(
                               children: [
-                                if (!vendor.active) const InactiveBadge(),
+                                if (!vendor.active) const IcueInactiveBadge(),
                                 Flexible(child: Text(vendor.name)),
                               ],
                             ),
                           ),
-                          AdaptiveColumn.text(
+                          IcueAdaptiveColumn.text(
                             'Contact',
                             (vendor) => vendor.contactPerson ?? '—',
                           ),
-                          AdaptiveColumn.text(
+                          IcueAdaptiveColumn.text(
                             'Phone',
                             (vendor) => vendor.phone ?? '—',
                           ),
-                          AdaptiveColumn.text(
+                          IcueAdaptiveColumn.text(
                             'Email',
                             (vendor) => vendor.email ?? '—',
                             flex: 2,
                           ),
-                          AdaptiveColumn.text(
+                          IcueAdaptiveColumn.text(
                             'Categories',
                             (vendor) =>
                                 vendor.categoryIds.map(categoryName).join(', '),
                             flex: 2,
                           ),
-                          AdaptiveColumn(
+                          IcueAdaptiveColumn(
                             label: '',
                             width: 96,
                             cell: (context, vendor) => canEdit

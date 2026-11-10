@@ -1,5 +1,5 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:logbook/logbook.dart';
 
 class UpdateComplaintModal extends StatefulWidget {
@@ -192,7 +192,7 @@ class _UpdateComplaintModalState extends State<UpdateComplaintModal> {
                         },
                       )
                     else
-                      AppButton(
+                      IcueButton(
                         label: 'Attach',
                         onPressed: () {
                           setState(() {
@@ -200,14 +200,14 @@ class _UpdateComplaintModalState extends State<UpdateComplaintModal> {
                             _photoBytes = [10, 20, 30];
                           });
                         },
-                        variant: AppButtonVariant.ghost,
+                        variant: IcueButtonVariant.ghost,
                         leadingIcon: Icons.attach_file,
                       ),
                   ],
                 ),
               ),
               const SizedBox(height: 20),
-              AppButton(
+              IcueButton(
                 label: 'Update Complaint Status',
                 onPressed: _isSubmitting ? null : _handleSave,
                 isLoading: _isSubmitting,

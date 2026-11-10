@@ -1,7 +1,6 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/shared/widgets/person_search_field.dart';
 import 'package:inventory/src/ui/stock/issues/widgets/issue_request_widgets.dart';
@@ -93,7 +92,7 @@ class _IssueReturnPageState extends State<IssueReturnPage> {
 
     return Scaffold(
       appBar: AppBar(title: Text('Return · ${issue.number}')),
-      body: CenteredBody(
+      body: IcueCenteredBody(
         maxWidth: 900,
         child: ListView(
           padding: const EdgeInsets.all(16),
@@ -130,7 +129,7 @@ class _IssueReturnPageState extends State<IssueReturnPage> {
                       Row(
                         children: [
                           Expanded(
-                            child: AppTextField(
+                            child: IcueTextField(
                               controller: _usable[index],
                               keyboardType: decimalKeyboard,
                               inputFormatters: numberInput,
@@ -148,7 +147,7 @@ class _IssueReturnPageState extends State<IssueReturnPage> {
                           ),
                           const SizedBox(width: 10),
                           Expanded(
-                            child: AppTextField(
+                            child: IcueTextField(
                               controller: _damaged[index],
                               keyboardType: decimalKeyboard,
                               inputFormatters: numberInput,
@@ -183,7 +182,7 @@ class _IssueReturnPageState extends State<IssueReturnPage> {
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-            child: AppButton(
+            child: IcueButton(
               label: _busy ? 'Recording…' : 'Record return',
               onPressed: _busy ? null : _save,
               leadingIcon: Icons.assignment_return_rounded,

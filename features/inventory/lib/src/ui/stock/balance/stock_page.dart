@@ -1,7 +1,6 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/stock/balance/widgets/balance_sheets.dart';
 import 'package:inventory/src/ui/stock/balance/widgets/stock_balance_list.dart';
@@ -127,7 +126,7 @@ class _StockPageState extends State<StockPage> {
               label: const Text('Receive stock'),
             )
           : null,
-      body: CenteredBody(
+      body: IcueCenteredBody(
         child: Column(
           children: [
             // Store Selector & Summary Bar
@@ -411,7 +410,7 @@ class _StockPageState extends State<StockPage> {
                                       ),
                                       const SizedBox(height: 18),
                                       if (_lowOnly || _query.isNotEmpty)
-                                        AppButton(
+                                        IcueButton(
                                           label: 'Reset filters',
                                           onPressed: () {
                                             _searchController.clear();
@@ -420,12 +419,12 @@ class _StockPageState extends State<StockPage> {
                                               _lowOnly = false;
                                             });
                                           },
-                                          variant: AppButtonVariant.outline,
+                                          variant: IcueButtonVariant.outline,
                                           leadingIcon:
                                               Icons.filter_alt_off_outlined,
                                         )
                                       else if (canOperate)
-                                        AppButton(
+                                        IcueButton(
                                           label: 'Receive stock',
                                           onPressed: () => _open(
                                             InventoryRoutes.inventoryReceive,

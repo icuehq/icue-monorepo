@@ -1,6 +1,5 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
 
@@ -32,7 +31,7 @@ Widget optionalDate(
   String label, {
   required DateTime first,
   required DateTime last,
-}) => AppDateField(
+}) => IcueDateField(
   controller: controller,
   label: label,
   firstDate: first,
@@ -40,13 +39,13 @@ Widget optionalDate(
   clearable: true,
 );
 
-AppDropdown<String> labelled(
+IcueDropdown<String> labelled(
   String label,
   List<String> values,
   String? value,
   ValueChanged<String?> onChanged, {
   String Function(String)? text,
-}) => AppDropdown<String>(
+}) => IcueDropdown<String>(
   value: value,
   items: [
     for (final value in values)

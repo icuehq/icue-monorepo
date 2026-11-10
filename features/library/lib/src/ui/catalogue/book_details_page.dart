@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:admin_ui/admin_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/catalogue/widgets/book_copies_section.dart';
@@ -80,7 +80,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
           ),
         ],
       ),
-      body: CenteredBody(
+      body: IcueCenteredBody(
         child: ListView(
           padding: EdgeInsets.symmetric(
             horizontal: isWide ? 24 : 16,

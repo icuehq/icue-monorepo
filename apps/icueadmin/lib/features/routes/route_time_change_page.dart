@@ -1,5 +1,5 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:icueadmin/analytics/app_events.dart';
 import 'package:icueadmin/features/routes/widgets/route_time_item.dart';
 import 'package:provider/provider.dart';
@@ -123,7 +123,7 @@ class _RouteTimeChangePageState extends State<RouteTimeChangePage> {
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: AppButton(
+          child: IcueButton(
             label: _selectedRouteIds.isEmpty
                 ? 'Select routes to update time'
                 : 'Update Time for ${_selectedRouteIds.length} routes',

@@ -1,6 +1,6 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:school_library/school_library.dart';
 
 /// Card showing the next books due for return on the Library overview.
@@ -72,10 +72,10 @@ class OverviewDueNextCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                AppButton(
+                IcueButton(
                   label: 'All loans',
                   onPressed: () => context.go(LibraryRoutes.libraryCirculation),
-                  variant: AppButtonVariant.ghost,
+                  variant: IcueButtonVariant.ghost,
                   leadingIcon: Icons.arrow_forward_rounded,
                 ),
               ],

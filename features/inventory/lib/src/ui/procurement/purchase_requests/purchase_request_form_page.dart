@@ -1,6 +1,5 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/procurement/purchase_requests/widgets/purchase_request_line_card.dart';
 import 'package:inventory/src/ui/procurement/shared/procurement_ui.dart';
@@ -126,7 +125,7 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
               : 'Edit ${widget.existing!.number}',
         ),
       ),
-      body: CenteredBody(
+      body: IcueCenteredBody(
         maxWidth: 900,
         child: Form(
           key: _form,
@@ -166,7 +165,7 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
                         children: [
                           if (!singleCampus) ...[
                             Expanded(
-                              child: AppDropdown<int>(
+                              child: IcueDropdown<int>(
                                 value: _campus,
                                 items: [
                                   for (final value in campuses)
@@ -187,7 +186,7 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
                             const SizedBox(width: 12),
                           ],
                           Expanded(
-                            child: AppDropdown<String>(
+                            child: IcueDropdown<String>(
                               value: _priority,
                               items: const [
                                 DropdownMenuItem(
@@ -250,7 +249,7 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
                         ],
                       ),
                       const SizedBox(height: 16),
-                      AppTextField(
+                      IcueTextField(
                         controller: _purpose,
                         validator: requiredText,
                         label: 'Purpose / Justification *',
@@ -259,7 +258,7 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
                         icon: Icons.edit_note_rounded,
                       ),
                       const SizedBox(height: 12),
-                      AppDateField(
+                      IcueDateField(
                         controller: _date,
                         label: 'Required by date *',
                         prefixIcon: const Icon(Icons.event_outlined),
@@ -271,7 +270,7 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
                         validator: requiredText,
                       ),
                       const SizedBox(height: 12),
-                      AppTextField(
+                      IcueTextField(
                         controller: _remarks,
                         label: 'Remarks / Special instructions (optional)',
                         icon: Icons.notes_rounded,
@@ -338,10 +337,10 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
                         ),
                         const SizedBox(height: 8),
                       ],
-                      AppButton(
+                      IcueButton(
                         label: 'Add Item to Request',
                         onPressed: _addItem,
-                        variant: AppButtonVariant.outline,
+                        variant: IcueButtonVariant.outline,
                         leadingIcon: Icons.add_rounded,
                       ),
                     ],
@@ -351,17 +350,17 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
               const SizedBox(height: 24),
 
               // Actions
-              AppButton(
+              IcueButton(
                 label: _busy ? 'Saving…' : 'Submit for Approval',
                 onPressed: _busy ? null : () => _save(submit: true),
                 leadingIcon: Icons.send_rounded,
                 isLoading: _busy,
               ),
               const SizedBox(height: 10),
-              AppButton(
+              IcueButton(
                 label: 'Save as Draft',
                 onPressed: _busy ? null : () => _save(submit: false),
-                variant: AppButtonVariant.outline,
+                variant: IcueButtonVariant.outline,
               ),
             ],
           ),

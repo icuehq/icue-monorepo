@@ -1,9 +1,8 @@
 import 'dart:async';
 
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/catalogue/widgets/copy_labels.dart';
@@ -103,9 +102,13 @@ class _AddCopiesFormState extends State<AddCopiesForm> {
             allowNone: false,
           ),
           const SizedBox(height: 14),
-          AppTextField(controller: _shelf, label: 'Shelf', icon: Icons.shelves),
+          IcueTextField(
+            controller: _shelf,
+            label: 'Shelf',
+            icon: Icons.shelves,
+          ),
           const SizedBox(height: 20),
-          AppButton(
+          IcueButton(
             label: _busy ? 'Saving…' : 'Add copies',
             onPressed: _busy ? null : _save,
             leadingIcon: Icons.add_rounded,

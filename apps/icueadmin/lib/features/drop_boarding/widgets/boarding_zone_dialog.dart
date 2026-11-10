@@ -1,6 +1,6 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:drop_boarding/drop_boarding.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 
 class BoardingZoneDialog extends StatefulWidget {
   const BoardingZoneDialog({required this.boardingTypes, super.key});
@@ -65,12 +65,12 @@ class _BoardingZoneDialogState extends State<BoardingZoneDialog> {
         ),
       ),
       actions: [
-        AppButton(
+        IcueButton(
           label: 'Cancel',
           onPressed: () => Navigator.of(context).pop(),
-          variant: AppButtonVariant.ghost,
+          variant: IcueButtonVariant.ghost,
         ),
-        AppButton(
+        IcueButton(
           label: 'Confirm',
           onPressed: _selectedZone == null
               ? null

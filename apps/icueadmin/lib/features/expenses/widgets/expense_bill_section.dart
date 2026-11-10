@@ -1,5 +1,5 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 
 class ExpenseBillSection extends StatelessWidget {
   const ExpenseBillSection({
@@ -156,10 +156,10 @@ class ExpenseBillSection extends StatelessWidget {
                   tooltip: 'Remove File',
                 )
               else
-                AppButton(
+                IcueButton(
                   label: 'Attach',
                   onPressed: onPickBillFile,
-                  variant: AppButtonVariant.ghost,
+                  variant: IcueButtonVariant.ghost,
                   leadingIcon: Icons.attach_file,
                 ),
             ],

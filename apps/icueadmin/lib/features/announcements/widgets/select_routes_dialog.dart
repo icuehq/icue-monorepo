@@ -1,5 +1,5 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:routes/routes.dart';
 
 class SelectRoutesDialog extends StatefulWidget {
@@ -47,7 +47,7 @@ class _SelectRoutesDialogState extends State<SelectRoutesDialog> {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ),
-          AppButton(
+          IcueButton(
             label: allSelected ? 'Deselect All' : 'Select All',
             onPressed: () {
               setState(() {
@@ -60,7 +60,7 @@ class _SelectRoutesDialogState extends State<SelectRoutesDialog> {
                 }
               });
             },
-            variant: AppButtonVariant.ghost,
+            variant: IcueButtonVariant.ghost,
           ),
         ],
       ),
@@ -126,12 +126,12 @@ class _SelectRoutesDialogState extends State<SelectRoutesDialog> {
         ),
       ),
       actions: [
-        AppButton(
+        IcueButton(
           label: 'Cancel',
           onPressed: () => Navigator.of(context).pop(),
-          variant: AppButtonVariant.ghost,
+          variant: IcueButtonVariant.ghost,
         ),
-        AppButton(
+        IcueButton(
           label: 'Done (${_selectedIds.length})',
           onPressed: () => Navigator.of(context).pop(_selectedIds),
         ),

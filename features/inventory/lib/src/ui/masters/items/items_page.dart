@@ -1,7 +1,6 @@
-import 'package:admin_ui/admin_ui.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/masters/items/widgets/item_card.dart';
 import 'package:provider/provider.dart';
@@ -82,7 +81,7 @@ class _ItemsPageState extends State<ItemsPage> {
               label: const Text('Add item'),
             )
           : null,
-      body: CenteredBody(
+      body: IcueCenteredBody(
         child: Column(
           children: [
             Padding(
@@ -249,7 +248,7 @@ class _ItemsPageState extends State<ItemsPage> {
                                       ),
                                       const SizedBox(height: 18),
                                       if (hasFilter)
-                                        AppButton(
+                                        IcueButton(
                                           label: 'Reset filters',
                                           onPressed: () {
                                             _search.clear();
@@ -258,12 +257,12 @@ class _ItemsPageState extends State<ItemsPage> {
                                               clearCategory: true,
                                             );
                                           },
-                                          variant: AppButtonVariant.outline,
+                                          variant: IcueButtonVariant.outline,
                                           leadingIcon:
                                               Icons.filter_alt_off_outlined,
                                         )
                                       else if (canEdit)
-                                        AppButton(
+                                        IcueButton(
                                           label: 'Add item',
                                           onPressed: () => context.push(
                                             InventoryRoutes.inventoryItemForm,
@@ -275,18 +274,18 @@ class _ItemsPageState extends State<ItemsPage> {
                                 ),
                               ),
                       )
-                    : AdaptiveList<InventoryItem>(
+                    : IcueAdaptiveList<InventoryItem>(
                         controller: _scroll,
                         items: inventoryProvider.items,
                         onTap: _open,
                         columns: [
-                          AdaptiveColumn.text('Code', (item) => item.code),
-                          AdaptiveColumn.text(
+                          IcueAdaptiveColumn.text('Code', (item) => item.code),
+                          IcueAdaptiveColumn.text(
                             'Name',
                             (item) => item.name,
                             flex: 3,
                           ),
-                          AdaptiveColumn.text(
+                          IcueAdaptiveColumn.text(
                             'Category',
                             (item) =>
                                 inventoryProvider
@@ -295,16 +294,19 @@ class _ItemsPageState extends State<ItemsPage> {
                                 '—',
                             flex: 2,
                           ),
-                          AdaptiveColumn.text('Unit', (item) => item.stockUnit),
-                          AdaptiveColumn.text(
+                          IcueAdaptiveColumn.text(
+                            'Unit',
+                            (item) => item.stockUnit,
+                          ),
+                          IcueAdaptiveColumn.text(
                             'Tracking',
                             (item) => item.tracking.label,
                           ),
-                          AdaptiveColumn(
+                          IcueAdaptiveColumn(
                             label: '',
                             cell: (context, item) => item.active
                                 ? const SizedBox.shrink()
-                                : const InactiveBadge(),
+                                : const IcueInactiveBadge(),
                           ),
                         ],
                         cardBuilder: (context, item) => Padding(

@@ -1,7 +1,7 @@
-import 'package:core_ui/core_ui.dart';
 import 'package:expenses/expenses.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:icueadmin/features/expenses/generic_expense_form_page.dart';
 import 'package:icueadmin/features/expenses/loose_fuel_expense_page.dart';
 import 'package:icueadmin/routing/app_routes.dart';
@@ -44,12 +44,12 @@ class _SelfFillingVehiclesPageState extends State<SelfFillingVehiclesPage> {
         title: const Text('End Filling'),
         content: const Text('Are you sure you want to end the fuel filling?'),
         actions: [
-          AppButton(
+          IcueButton(
             label: 'No',
             onPressed: () => Navigator.of(ctx).pop(),
-            variant: AppButtonVariant.ghost,
+            variant: IcueButtonVariant.ghost,
           ),
-          AppButton(
+          IcueButton(
             label: 'Yes',
             onPressed: () {
               Navigator.of(ctx).pop();
@@ -58,7 +58,7 @@ class _SelfFillingVehiclesPageState extends State<SelfFillingVehiclesPage> {
                 extra: widget.fuelType,
               );
             },
-            variant: AppButtonVariant.ghost,
+            variant: IcueButtonVariant.ghost,
           ),
         ],
       ),
@@ -131,7 +131,7 @@ class _SelfFillingVehiclesPageState extends State<SelfFillingVehiclesPage> {
             : SafeArea(
                 child: Padding(
                   padding: const EdgeInsets.all(12),
-                  child: AppButton(
+                  child: IcueButton(
                     label: 'End Filling',
                     onPressed: _confirmEndFilling,
                   ),

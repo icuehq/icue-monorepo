@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:auth/auth.dart';
-import 'package:core_ui/core_ui.dart';
 import 'package:face_enrollment/src/models/student.dart';
 import 'package:face_enrollment/src/providers/student_provider.dart';
 import 'package:face_enrollment/src/ui/face_enrollment_routes.dart';
@@ -14,6 +13,7 @@ import 'package:face_enrollment/src/ui/widgets/student_directory_header.dart';
 import 'package:face_enrollment/src/ui/widgets/student_filter_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 
 class StudentListScreen extends StatefulWidget {
@@ -144,7 +144,7 @@ class _StudentListScreenState extends State<StudentListScreen> {
               const SizedBox(height: 16),
               SizedBox(
                 width: 150,
-                child: AppButton(
+                child: IcueButton(
                   label: 'Try Again',
                   onPressed: () => studentProvider.resetAndFetch(),
                   isFullWidth: true,
@@ -227,9 +227,9 @@ class _StudentListScreenState extends State<StudentListScreen> {
                 const SizedBox(height: 16),
                 SizedBox(
                   width: 140,
-                  child: AppButton(
+                  child: IcueButton(
                     label: 'Clear Search',
-                    variant: AppButtonVariant.outline,
+                    variant: IcueButtonVariant.outline,
                     onPressed: () {
                       _searchController.clear();
                       studentProvider.updateSearchQuery('');
@@ -270,9 +270,9 @@ class _StudentListScreenState extends State<StudentListScreen> {
               const SizedBox(height: 16),
               SizedBox(
                 width: 140,
-                child: AppButton(
+                child: IcueButton(
                   label: 'Refresh',
-                  variant: AppButtonVariant.outline,
+                  variant: IcueButtonVariant.outline,
                   onPressed: () => studentProvider.resetAndFetch(),
                   isFullWidth: true,
                 ),
