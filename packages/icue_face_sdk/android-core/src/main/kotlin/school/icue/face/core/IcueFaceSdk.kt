@@ -17,6 +17,7 @@ import school.icue.face.core.model.IcueRecognitionResult
 import school.icue.face.core.model.IcueYuv420Frame
 import school.icue.face.core.model.RecognitionMode
 import school.icue.face.core.recognition.MobileFaceNetRecognizer
+import school.icue.face.core.recognition.TrackedIdentityCache
 import school.icue.face.core.utils.EmbeddingMath
 
 class IcueFaceSdk(
@@ -46,6 +47,17 @@ class IcueFaceSdk(
         threshold: Float = FaceSdkDefaults.DEFAULT_MATCH_THRESHOLD,
     ): List<IcueRecognitionResult> = operation {
         recognizeInternal(bitmap, prepareProfiles(profiles), mode, maxFaces, threshold)
+    }
+
+    /** Live multi-face recognition that reuses identities of faces still being tracked. */
+    internal suspend fun recognizeTracked(
+        bitmap: Bitmap,
+        profiles: List<IcueFaceProfile>,
+        maxFaces: Int,
+        threshold: Float,
+        cache: TrackedIdentityCache,
+    ): List<IcueRecognitionResult> = operation {
+        recognizeInternal(bitmap, prepareProfiles(profiles), RecognitionMode.MULTI, maxFaces, threshold, cache)
     }
 
     suspend fun detectFaces(bitmap: Bitmap): List<IcueBoundingBox> = operation {
@@ -154,6 +166,7 @@ class IcueFaceSdk(
         mode: RecognitionMode,
         maxFaces: Int,
         threshold: Float,
+        cache: TrackedIdentityCache? = null,
     ): List<IcueRecognitionResult> {
         validateRecognitionOptions(maxFaces, threshold)
         val allFaces = detector.detect(bitmap, requireLandmarks = true)
@@ -166,16 +179,8 @@ class IcueFaceSdk(
             throw FaceSdkException(code, "Expected exactly one face. Found ${allFaces.size}")
         }
 
+        cache?.startFrame(faces.mapNotNullTo(HashSet()) { it.trackingId })
         if (faces.isEmpty()) return emptyList()
-
-        val liveEmbeddings = faces.map { face ->
-            val faceBitmap = cropFace(bitmap, face)
-            try {
-                recognizer.extractEmbedding(faceBitmap)
-            } finally {
-                if (faceBitmap !== bitmap) faceBitmap.recycle()
-            }
-        }
 
         if (profiles.isEmpty()) {
             return faces.map { face ->
@@ -188,12 +193,37 @@ class IcueFaceSdk(
             }
         }
 
+        val faceResults = Array(faces.size) { fIdx ->
+            cache?.reusable(faces[fIdx].trackingId)?.let { identity ->
+                IcueRecognitionResult(
+                    personId = identity.personId,
+                    score = identity.score,
+                    matched = identity.matched,
+                    boundingBox = faces[fIdx].toBoundingBox(),
+                )
+            }
+        }
+        // A student a cached face already holds cannot also be matched to a fresh face.
+        val claimedPersonIds = faceResults.mapNotNullTo(HashSet()) { result ->
+            result?.personId?.takeIf { result.matched }
+        }
+
+        val freshFaceIndices = faces.indices.filter { faceResults[it] == null }
+        val liveEmbeddings = freshFaceIndices.associateWith { fIdx ->
+            val faceBitmap = cropFace(bitmap, faces[fIdx])
+            try {
+                recognizer.extractEmbedding(faceBitmap)
+            } finally {
+                if (faceBitmap !== bitmap) faceBitmap.recycle()
+            }
+        }
+
         data class CandidateMatch(val faceIdx: Int, val profileIdx: Int, val score: Float)
         val candidates = mutableListOf<CandidateMatch>()
 
-        for (fIdx in faces.indices) {
-            val liveEmb = liveEmbeddings[fIdx]
+        for ((fIdx, liveEmb) in liveEmbeddings) {
             for (pIdx in profiles.indices) {
+                if (profiles[pIdx].personId in claimedPersonIds) continue
                 val score = EmbeddingMath.dotProductOfNormalized(liveEmb, profiles[pIdx].embedding)
                 candidates.add(CandidateMatch(fIdx, pIdx, score))
             }
@@ -203,7 +233,6 @@ class IcueFaceSdk(
 
         val assignedFace = BooleanArray(faces.size)
         val assignedProfile = BooleanArray(profiles.size)
-        val faceResults = Array<IcueRecognitionResult?>(faces.size) { null }
 
         for (candidate in candidates) {
             if (assignedFace[candidate.faceIdx] || assignedProfile[candidate.profileIdx]) continue
@@ -220,11 +249,11 @@ class IcueFaceSdk(
             }
         }
 
-        for (fIdx in faces.indices) {
+        for ((fIdx, liveEmb) in liveEmbeddings) {
             if (faceResults[fIdx] == null) {
                 var bestScore = -1f
                 for (pIdx in profiles.indices) {
-                    val score = EmbeddingMath.dotProductOfNormalized(liveEmbeddings[fIdx], profiles[pIdx].embedding)
+                    val score = EmbeddingMath.dotProductOfNormalized(liveEmb, profiles[pIdx].embedding)
                     if (score > bestScore) bestScore = score
                 }
                 faceResults[fIdx] = IcueRecognitionResult(
@@ -232,6 +261,12 @@ class IcueFaceSdk(
                     score = bestScore,
                     matched = false,
                     boundingBox = faces[fIdx].toBoundingBox(),
+                )
+            }
+            faceResults[fIdx]?.let { result ->
+                cache?.store(
+                    faces[fIdx].trackingId,
+                    TrackedIdentityCache.Identity(result.personId, result.score, result.matched),
                 )
             }
         }

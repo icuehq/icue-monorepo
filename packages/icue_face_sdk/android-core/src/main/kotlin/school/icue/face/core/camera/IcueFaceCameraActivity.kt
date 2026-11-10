@@ -6,7 +6,9 @@ import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
+import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Matrix
 import android.graphics.Color
 import android.graphics.DashPathEffect
 import android.graphics.LinearGradient
@@ -31,11 +33,25 @@ import android.widget.SeekBar
 import androidx.activity.ComponentActivity
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import android.hardware.camera2.CameraCharacteristics
+import android.hardware.camera2.CaptureRequest
+import android.view.GestureDetector
+import android.view.MotionEvent
+import androidx.annotation.OptIn
+import androidx.camera.camera2.interop.Camera2CameraInfo
+import androidx.camera.camera2.interop.Camera2Interop
+import androidx.camera.camera2.interop.ExperimentalCamera2Interop
 import androidx.camera.core.Camera
+import androidx.camera.core.CameraInfo
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ExtendableBuilder
+import androidx.camera.core.FocusMeteringAction
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
+import androidx.camera.core.resolutionselector.AspectRatioStrategy
+import androidx.camera.core.resolutionselector.ResolutionSelector
+import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
@@ -55,11 +71,10 @@ import java.io.File
 import java.io.FileOutputStream
 import school.icue.face.core.FaceSdkErrorCode
 import school.icue.face.core.FaceSdkException
-import school.icue.face.core.image.YuvFrameConverter
 import school.icue.face.core.model.IcueBoundingBox
 import school.icue.face.core.model.IcueFaceProfile
-import school.icue.face.core.model.IcueYuv420Frame
 import school.icue.face.core.model.RecognitionMode
+import school.icue.face.core.recognition.TrackedIdentityCache
 
 class IcueFaceCameraActivity : ComponentActivity() {
     private val analysisExecutor = Executors.newSingleThreadExecutor()
@@ -88,6 +103,12 @@ class IcueFaceCameraActivity : ComponentActivity() {
     private var unrecognizedCount = 0
     private var photosCapturedCount = 0
     private var sessionStartTimeMs = 0L
+    // Replaced, not cleared, on every camera start: tracking IDs reset with the stream, and a
+    // frame still in flight keeps the old instance.
+    @Volatile
+    private var identityCache = TrackedIdentityCache()
+    private var analysisFrameCount = 0
+    private var analysisWindowStartMs = System.currentTimeMillis()
     private var frontCamera = true
     private val cameraPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -371,8 +392,18 @@ class IcueFaceCameraActivity : ComponentActivity() {
             }
         )
 
+        val tapToFocus = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
+            override fun onSingleTapUp(event: MotionEvent): Boolean {
+                val cam = camera ?: return true
+                val point = previewView.meteringPointFactory.createPoint(event.x, event.y)
+                cam.cameraControl.startFocusAndMetering(FocusMeteringAction.Builder(point).build())
+                return true
+            }
+        })
+
         previewView.setOnTouchListener { _, event ->
             scaleGestureDetector?.onTouchEvent(event)
+            tapToFocus.onTouchEvent(event)
             true
         }
 
@@ -654,36 +685,108 @@ class IcueFaceCameraActivity : ComponentActivity() {
         val COLOR_ACCENT_GREEN = 0xFF00E676.toInt()
         val COLOR_TEXT_PRIMARY = 0xFFF1F5F9.toInt()
         val COLOR_TEXT_SECONDARY = 0xFF94A3B8.toInt()
+        const val HIGH_RESOLUTION_MIN_HEAP_MEGABYTES = 384
+        const val ANALYSIS_RATE_WINDOW_FRAMES = 30
     }
 
     private fun startCamera() {
+        identityCache = TrackedIdentityCache()
         val providerFuture = ProcessCameraProvider.getInstance(this)
         providerFuture.addListener({
             try {
                 val provider = providerFuture.get()
-                val preview = Preview.Builder()
-                    .setTargetResolution(Size(1920, 1080))
-                    .build().also {
-                    it.surfaceProvider = previewView.surfaceProvider
-                }
-                val analysis = ImageAnalysis.Builder()
-                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                    .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888)
-                    .setTargetResolution(Size(1920, 1080))
-                    .build()
-                analysis.setAnalyzer(analysisExecutor, ::analyze)
                 val selector = if (frontCamera) {
                     CameraSelector.DEFAULT_FRONT_CAMERA
                 } else {
                     CameraSelector.DEFAULT_BACK_CAMERA
                 }
+                // Sensor-native 4:3: sharper and wider than a cropped 16:9 stream. Each frame is
+                // copied and converted to a full-size bitmap, so the size follows the app heap:
+                // an uncapped target let the Lava Smart 4 pick 2448x2448 and run out of memory.
+                // Preview and analysis share the aspect ratio, because the face overlay maps
+                // analysis frames onto the preview; CameraX keeps the preview at its own
+                // supported maximum.
+                val resolution = ResolutionSelector.Builder()
+                    .setAspectRatioStrategy(AspectRatioStrategy.RATIO_4_3_FALLBACK_AUTO_STRATEGY)
+                    .setResolutionStrategy(
+                        ResolutionStrategy(
+                            analysisTargetSize(),
+                            ResolutionStrategy.FALLBACK_RULE_CLOSEST_LOWER_THEN_HIGHER,
+                        ),
+                    )
+                    .build()
+                val cameraInfo = selector.filter(provider.availableCameraInfos).firstOrNull()
+                val preview = Preview.Builder()
+                    .setResolutionSelector(resolution)
+                    .also { it.requestHighQualityProcessing(cameraInfo) }
+                    .build().also {
+                    it.surfaceProvider = previewView.surfaceProvider
+                }
+                val analysis = ImageAnalysis.Builder()
+                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                    // CameraX converts and rotates in native code (libyuv); the SDK's per-pixel
+                    // Kotlin YUV path is too slow for live tracking on low-end phones.
+                    .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
+                    .setOutputImageRotationEnabled(true)
+                    .setResolutionSelector(resolution)
+                    .also { it.requestHighQualityProcessing(cameraInfo) }
+                    .build()
+                analysis.setAnalyzer(analysisExecutor, ::analyze)
                 provider.unbindAll()
                 camera = provider.bindToLifecycle(this, selector, preview, analysis)
+                android.util.Log.i(
+                    "IcueFaceCamera",
+                    "Streams: preview=${preview.resolutionInfo?.resolution} " +
+                        "analysis=${analysis.resolutionInfo?.resolution} " +
+                        "heap=${Runtime.getRuntime().maxMemory() / (1024 * 1024)}MB",
+                )
                 applyDefaultZoom()
             } catch (error: Throwable) {
                 fail("CAMERA_UNAVAILABLE", error.message ?: "Unable to open camera")
             }
         }, ContextCompat.getMainExecutor(this))
+    }
+
+    /**
+     * 1920x1440 gives distant faces in group attendance more pixels; 1440x1080 keeps budget
+     * phones inside their heap.
+     */
+    // ponytail: heap-size heuristic; profile per-frame allocation if a mid-range phone still runs out.
+    private fun analysisTargetSize(): Size {
+        val activityManager = getSystemService(ACTIVITY_SERVICE) as android.app.ActivityManager
+        val heapMegabytes = Runtime.getRuntime().maxMemory() / (1024 * 1024)
+        return if (!activityManager.isLowRamDevice && heapMegabytes >= HIGH_RESOLUTION_MIN_HEAP_MEGABYTES) {
+            Size(1920, 1440)
+        } else {
+            Size(1440, 1080)
+        }
+    }
+
+    /**
+     * Streams default to FAST noise reduction and sharpening, which is what makes third-party
+     * camera feeds look soft next to the stock camera app. Asks for HIGH_QUALITY where the
+     * camera supports it; budget sensors may drop a few frames per second as a result.
+     */
+    @OptIn(ExperimentalCamera2Interop::class)
+    private fun ExtendableBuilder<*>.requestHighQualityProcessing(cameraInfo: CameraInfo?) {
+        val info = cameraInfo?.let(Camera2CameraInfo::from) ?: return
+        val extender = Camera2Interop.Extender(this)
+        val noiseModes = info.getCameraCharacteristic(
+            CameraCharacteristics.NOISE_REDUCTION_AVAILABLE_NOISE_REDUCTION_MODES,
+        )
+        if (noiseModes?.contains(CaptureRequest.NOISE_REDUCTION_MODE_HIGH_QUALITY) == true) {
+            extender.setCaptureRequestOption(
+                CaptureRequest.NOISE_REDUCTION_MODE,
+                CaptureRequest.NOISE_REDUCTION_MODE_HIGH_QUALITY,
+            )
+        }
+        val edgeModes = info.getCameraCharacteristic(CameraCharacteristics.EDGE_AVAILABLE_EDGE_MODES)
+        if (edgeModes?.contains(CaptureRequest.EDGE_MODE_HIGH_QUALITY) == true) {
+            extender.setCaptureRequestOption(
+                CaptureRequest.EDGE_MODE,
+                CaptureRequest.EDGE_MODE_HIGH_QUALITY,
+            )
+        }
     }
 
     private fun applyDefaultZoom() {
@@ -736,7 +839,7 @@ class IcueFaceCameraActivity : ComponentActivity() {
             return
         }
         val frame = try {
-            image.toIcueFrame(frontCamera)
+            image.toFrameBitmap(frontCamera)
         } catch (error: Throwable) {
             processing.set(false)
             image.close()
@@ -778,6 +881,7 @@ class IcueFaceCameraActivity : ComponentActivity() {
                         fail("PROCESSING_ERROR", error.message ?: "Face processing failed")
                     }
                 } finally {
+                    logAnalysisRate()
                     processing.set(false)
                 }
             }
@@ -788,12 +892,12 @@ class IcueFaceCameraActivity : ComponentActivity() {
 
     private suspend fun processCapture(
         activeSession: CameraSession.Capture,
-        frame: IcueYuv420Frame,
+        frame: Bitmap,
     ) {
         if (isFinishing || isDestroyed || completed || activeSession.sdk.isClosed) return
         if (!captureRequested) {
             try {
-                val faces = activeSession.sdk.detectFacesInYuv420(frame)
+                val faces = activeSession.sdk.detectFaces(frame)
                 if (isFinishing || isDestroyed || completed) return
                 showFaces(faces, frame)
             } catch (error: FaceSdkException) {
@@ -807,7 +911,7 @@ class IcueFaceCameraActivity : ComponentActivity() {
         }
         captureRequested = false
         try {
-            val embedding = activeSession.sdk.extractEmbeddingFromYuv420(frame)
+            val embedding = activeSession.sdk.extractEmbedding(frame)
             if (isFinishing || isDestroyed || completed) return
             capturedEmbedding = embedding.copyOf()
             completed = true
@@ -838,23 +942,23 @@ class IcueFaceCameraActivity : ComponentActivity() {
 
     private suspend fun processTracking(
         activeSession: CameraSession.Tracking,
-        frame: IcueYuv420Frame,
+        frame: Bitmap,
     ) {
         if (isFinishing || isDestroyed || completed || activeSession.sdk.isClosed) return
         try {
             val recognitions = if (activeSession.profiles.isEmpty()) {
                 emptyList()
             } else {
-                activeSession.sdk.recognizeYuv420(
-                    frame = frame,
+                activeSession.sdk.recognizeTracked(
+                    bitmap = frame,
                     profiles = activeSession.profiles,
-                    mode = RecognitionMode.MULTI,
                     maxFaces = activeSession.maxFaces,
                     threshold = activeSession.threshold,
+                    cache = identityCache,
                 )
             }
             val faces = if (activeSession.profiles.isEmpty()) {
-                activeSession.sdk.detectFacesInYuv420(frame)
+                activeSession.sdk.detectFaces(frame)
             } else {
                 recognitions.map { it.boundingBox }
             }
@@ -904,19 +1008,19 @@ class IcueFaceCameraActivity : ComponentActivity() {
 
     private suspend fun processLiveAttendance(
         activeSession: CameraSession.LiveAttendance,
-        frame: IcueYuv420Frame,
+        frame: Bitmap,
     ) {
         if (isFinishing || isDestroyed || completed || activeSession.sdk.isClosed) return
         try {
             val recognitions = if (activeSession.roster.isEmpty()) {
                 emptyList()
             } else {
-                activeSession.sdk.recognizeYuv420(
-                    frame = frame,
+                activeSession.sdk.recognizeTracked(
+                    bitmap = frame,
                     profiles = activeSession.roster,
-                    mode = RecognitionMode.MULTI,
                     maxFaces = activeSession.maxFaces,
                     threshold = activeSession.threshold,
+                    cache = identityCache,
                 )
             }
             if (isFinishing || isDestroyed || completed) return
@@ -985,12 +1089,12 @@ class IcueFaceCameraActivity : ComponentActivity() {
 
     private suspend fun processMultiPhotoAttendance(
         activeSession: CameraSession.MultiPhotoAttendance,
-        frame: IcueYuv420Frame,
+        frame: Bitmap,
     ) {
         if (isFinishing || isDestroyed || completed || activeSession.sdk.isClosed) return
         if (!captureRequested) {
             try {
-                val faces = activeSession.sdk.detectFacesInYuv420(frame)
+                val faces = activeSession.sdk.detectFaces(frame)
                 if (isFinishing || isDestroyed || completed) return
                 val (width, height) = frame.outputDimensions()
                 val totalRoster = activeSession.roster.size
@@ -1014,8 +1118,8 @@ class IcueFaceCameraActivity : ComponentActivity() {
             val recognitions = if (activeSession.roster.isEmpty()) {
                 emptyList()
             } else {
-                activeSession.sdk.recognizeYuv420(
-                    frame = frame,
+                activeSession.sdk.recognize(
+                    bitmap = frame,
                     profiles = activeSession.roster,
                     mode = RecognitionMode.MULTI,
                     maxFaces = activeSession.maxFaces,
@@ -1090,25 +1194,23 @@ class IcueFaceCameraActivity : ComponentActivity() {
         }
     }
 
-    private fun saveLowQualityJpeg(frame: IcueYuv420Frame): String? {
+    private fun saveLowQualityJpeg(frame: Bitmap): String? {
         return try {
-            val bitmap = YuvFrameConverter().yuv420ToBitmap(frame)
             val maxDim = 1024
-            val scaledBitmap = if (bitmap.width > maxDim || bitmap.height > maxDim) {
-                val scale = maxDim.toFloat() / maxOf(bitmap.width, bitmap.height)
-                val newWidth = (bitmap.width * scale).toInt()
-                val newHeight = (bitmap.height * scale).toInt()
-                android.graphics.Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true).also {
-                    if (it !== bitmap) bitmap.recycle()
-                }
+            val scaledBitmap = if (frame.width > maxDim || frame.height > maxDim) {
+                val scale = maxDim.toFloat() / maxOf(frame.width, frame.height)
+                val newWidth = (frame.width * scale).toInt()
+                val newHeight = (frame.height * scale).toInt()
+                Bitmap.createScaledBitmap(frame, newWidth, newHeight, true)
             } else {
-                bitmap
+                frame
             }
             val photoFile = File(cacheDir, "icue_attendance_${System.currentTimeMillis()}_${photosCapturedCount + 1}.jpg")
             FileOutputStream(photoFile).use { out ->
-                scaledBitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 65, out)
+                scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 65, out)
             }
-            if (!scaledBitmap.isRecycled) scaledBitmap.recycle()
+            // The frame itself is left to GC, like every analysis frame (see IcueFaceSdk).
+            if (scaledBitmap !== frame) scaledBitmap.recycle()
             photoFile.absolutePath
         } catch (_: Throwable) {
             null
@@ -1175,7 +1277,7 @@ class IcueFaceCameraActivity : ComponentActivity() {
         "trackingId" to trackingId,
     )
 
-    private fun showFaces(faces: List<IcueBoundingBox>, frame: IcueYuv420Frame) {
+    private fun showFaces(faces: List<IcueBoundingBox>, frame: Bitmap) {
         val (width, height) = frame.outputDimensions()
         runOnUiThread {
             overlay.update(faces, width, height)
@@ -1211,6 +1313,7 @@ class IcueFaceCameraActivity : ComponentActivity() {
     private fun fail(code: String, message: String) {
         if (completed || isFinishing) return
         completed = true
+        android.util.Log.e("IcueFaceCamera", "Closing camera: $code - $message")
         runOnUiThread {
             when (val activeSession = session) {
                 is CameraSession.Capture -> activeSession.callback.onError(code, message)
@@ -1233,30 +1336,43 @@ class IcueFaceCameraActivity : ComponentActivity() {
         }
     }
 
-    private fun ImageProxy.toIcueFrame(mirror: Boolean): IcueYuv420Frame {
-        require(planes.size == 3) { "Expected a YUV_420_888 frame" }
-        return IcueYuv420Frame(
-            yBytes = planes[0].buffer.copyRemaining(),
-            uBytes = planes[1].buffer.copyRemaining(),
-            vBytes = planes[2].buffer.copyRemaining(),
-            width = width,
-            height = height,
-            yRowStride = planes[0].rowStride,
-            uRowStride = planes[1].rowStride,
-            vRowStride = planes[2].rowStride,
-            uPixelStride = planes[1].pixelStride,
-            vPixelStride = planes[2].pixelStride,
-            rotationDegrees = imageInfo.rotationDegrees,
-            mirrorHorizontally = mirror,
+    /**
+     * CameraX has already converted the frame to upright RGBA in native code; this only copies
+     * it into a bitmap and mirrors front-camera frames so they match the mirrored preview (and
+     * the orientation enrollments were captured in).
+     */
+    private fun ImageProxy.toFrameBitmap(mirror: Boolean): Bitmap {
+        val upright = toBitmap()
+        if (!mirror) return upright
+        val mirrored = Bitmap.createBitmap(
+            upright,
+            0,
+            0,
+            upright.width,
+            upright.height,
+            Matrix().apply { postScale(-1f, 1f) },
+            false,
         )
+        if (mirrored !== upright) upright.recycle()
+        return mirrored
     }
 
-    private fun java.nio.ByteBuffer.copyRemaining(): ByteArray = duplicate().let { buffer ->
-        ByteArray(buffer.remaining()).also(buffer::get)
-    }
+    private fun Bitmap.outputDimensions(): Pair<Int, Int> = width to height
 
-    private fun IcueYuv420Frame.outputDimensions(): Pair<Int, Int> =
-        if (rotationDegrees == 90 || rotationDegrees == 270) height to width else width to height
+    private fun logAnalysisRate() {
+        analysisFrameCount++
+        val elapsedMs = System.currentTimeMillis() - analysisWindowStartMs
+        if (analysisFrameCount < ANALYSIS_RATE_WINDOW_FRAMES) return
+        android.util.Log.i(
+            "IcueFaceCamera",
+            "Tracking: %.1f fps (%d ms per frame)".format(
+                analysisFrameCount * 1000f / elapsedMs,
+                elapsedMs / analysisFrameCount,
+            ),
+        )
+        analysisFrameCount = 0
+        analysisWindowStartMs = System.currentTimeMillis()
+    }
 }
 
 private class CameraFlipIconView(context: Context) : View(context) {

@@ -129,7 +129,7 @@ class _EmbeddingScreenState extends State<EmbeddingScreen>
         await showDialog<void>(
           context: context,
           builder: (dialogContext) => AlertDialog(
-            backgroundColor: context.scheme.surface,
+            backgroundColor: dialogContext.scheme.surface,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
               side: const BorderSide(color: Color(0xFF10B981), width: 1.2),
@@ -145,7 +145,7 @@ class _EmbeddingScreenState extends State<EmbeddingScreen>
                 Text(
                   'Enrollment Complete',
                   style: TextStyle(
-                    color: context.scheme.onSurface,
+                    color: dialogContext.scheme.onSurface,
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
                   ),
@@ -155,7 +155,7 @@ class _EmbeddingScreenState extends State<EmbeddingScreen>
             content: Text(
               'Biometric embeddings for ${widget.student.name} were successfully stored in local cache & uploaded to server!',
               style: TextStyle(
-                color: context.scheme.onSurface.withValues(alpha: 0.7),
+                color: dialogContext.scheme.onSurface.withValues(alpha: 0.7),
                 fontSize: 13.5,
                 height: 1.4,
               ),
@@ -165,16 +165,14 @@ class _EmbeddingScreenState extends State<EmbeddingScreen>
                 width: 90,
                 child: IcueButton(
                   label: 'DONE',
-                  onPressed: () {
-                    Navigator.pop(dialogContext);
-                    Navigator.pop(context);
-                  },
+                  onPressed: () => Navigator.pop(dialogContext),
                   isFullWidth: true,
                 ),
               ),
             ],
           ),
         );
+        if (mounted) Navigator.pop(context);
       } else {
         final error =
             studentProvider.embeddingUploadError ?? 'Unknown error occurred';
