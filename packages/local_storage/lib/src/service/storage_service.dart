@@ -24,7 +24,17 @@ class StorageService {
     if (_openBoxes.containsKey(lower) && Hive.isBoxOpen(boxName)) {
       return _openBoxes[lower] as Box<T>;
     }
-    final box = await Hive.openBox<T>(boxName);
+    Box<T> box;
+    try {
+      box = await Hive.openBox<T>(boxName);
+    // ignore: avoid_catching_errors, Hive signals unreadable files with HiveError (an Error).
+    } on HiveError catch (e) {
+      // Stale file written by an older build (unknown typeId / corrupt):
+      // unreadable cache, so drop it and start empty instead of crashing.
+      debugPrint('Resetting unreadable box $boxName: $e');
+      await Hive.deleteBoxFromDisk(boxName);
+      box = await Hive.openBox<T>(boxName);
+    }
     _openBoxes[lower] = box;
     return box;
   }
@@ -124,8 +134,9 @@ class StorageService {
       await (box as dynamic).clear();
       return;
     }
-    final opened = await openBox<dynamic>(boxName);
-    await opened.clear();
+    // Not open: delete from disk. Opening would need every feature's adapter
+    // (unknown typeId crash) just to throw the contents away.
+    await Hive.deleteBoxFromDisk(boxName);
   }
 
   Future<void> clearAll() async {
