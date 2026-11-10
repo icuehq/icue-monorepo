@@ -755,7 +755,10 @@ class IcueFaceCameraActivity : ComponentActivity() {
                 try {
                     if (isFinishing || isDestroyed || completed) return@launch
                     val activeSession = session ?: return@launch
-                    if (activeSession.sdk.isClosed) return@launch
+                    if (activeSession.sdk.isClosed) {
+                        fail(FaceSdkErrorCode.CLOSED.name, "IcueFaceSdk was closed while the camera was open")
+                        return@launch
+                    }
                     when (activeSession) {
                         is CameraSession.Capture -> processCapture(activeSession, frame)
                         is CameraSession.Tracking -> processTracking(activeSession, frame)

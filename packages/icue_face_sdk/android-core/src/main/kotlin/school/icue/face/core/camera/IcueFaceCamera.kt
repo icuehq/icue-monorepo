@@ -7,6 +7,8 @@ import android.os.Looper
 import java.lang.ref.WeakReference
 import java.util.UUID
 import school.icue.face.core.FaceSdkDefaults
+import school.icue.face.core.FaceSdkErrorCode
+import school.icue.face.core.FaceSdkException
 import school.icue.face.core.IcueFaceSdk
 import school.icue.face.core.model.IcueFaceProfile
 
@@ -298,6 +300,13 @@ internal object CameraSessionRegistry {
     )
 
     private fun register(newSession: CameraSession): String = synchronized(lock) {
+        // A closed SDK cannot process frames: the camera would preview and never detect a face.
+        if (newSession.sdk.isClosed) {
+            throw FaceSdkException(
+                FaceSdkErrorCode.CLOSED,
+                "IcueFaceSdk is closed. Create a new IcueFaceSdk before opening the camera.",
+            )
+        }
         val activeActivity = activity.get()
         if (session != null && (activeActivity == null || activeActivity.isFinishing || activeActivity.isDestroyed)) {
             cancelTimeoutLocked()

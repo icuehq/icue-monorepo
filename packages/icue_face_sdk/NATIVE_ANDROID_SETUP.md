@@ -274,13 +274,18 @@ fun startCameraCapture() {
 ---
 
 ### 5. SDK Resource Cleanup
-Always close the SDK instance when the owning Activity/ViewModel is destroyed to release LiteRT tensor buffers and ML Kit detectors:
+Close the SDK instance only when the app is finished with face recognition, to release LiteRT tensor buffers and ML Kit detectors. `close()` is final: a closed instance cannot be reused.
+
+- Keep **one** `IcueFaceSdk` open across camera sessions. Do not close it in a camera callback (`onCaptured`, `onCompleted`, `onCancelled`) or after each scan.
+- After `close()`, create a new `IcueFaceSdk` before the next scan. Opening `IcueFaceCamera` with a closed instance throws `FaceSdkException` with code `CLOSED`; closing it while the camera is open ends the session with `onError("CLOSED", ...)`.
 
 ```kotlin
 override fun onDestroy() {
     super.onDestroy()
-    lifecycleScope.launch {
-        faceSdk.close()
+    // lifecycleScope is already cancelled here, so close on an independent scope.
+    if (isFinishing) {
+        val sdkToClose = faceSdk
+        CoroutineScope(Dispatchers.Default).launch { sdkToClose.close() }
     }
 }
 ```
