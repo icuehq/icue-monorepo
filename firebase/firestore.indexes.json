@@ -117,34 +117,6 @@
       ]
     },
     {
-      "collectionGroup": "inventoryTransfers",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "inventoryTransfers",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "toCampusId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
       "collectionGroup": "inventoryUnavailableStock",
       "queryScope": "COLLECTION",
       "fields": [

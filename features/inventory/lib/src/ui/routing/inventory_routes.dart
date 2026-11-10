@@ -45,16 +45,6 @@ class InventoryRoutes {
       '/layout.inventory/requests/return';
   static const String inventoryIssueReturnName = 'inventoryIssueReturn';
 
-  static const String inventoryTransfers = '/layout.inventory/transfers';
-  static const String inventoryTransfersName = 'inventoryTransfers';
-
-  static const String inventoryTransferDetail =
-      '/layout.inventory/transfers/detail';
-  static const String inventoryTransferDetailName = 'inventoryTransferDetail';
-
-  static const String inventoryTransferForm = '/layout.inventory/transfers/new';
-  static const String inventoryTransferFormName = 'inventoryTransferForm';
-
   static const String inventoryReports = '/layout.inventory/reports';
   static const String inventoryReportsName = 'inventoryReports';
 

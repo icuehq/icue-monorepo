@@ -4,14 +4,9 @@ import { runCallable, type CallableDef } from '../src/shared/callable';
 import { dayTimestamp } from '../src/shared/dates';
 import {
   adjustStock,
-  approveTransfer,
-  cancelTransfer,
-  dispatchTransfer,
-  receiveTransfer,
   reportUnavailable,
   resolveUnavailable,
   issueStock,
-  requestTransfer,
   receiveStock,
   seedIssueRequest,
   seedStore,
@@ -207,93 +202,6 @@ describe('inventory stock', () => {
         lineItems: [{ itemId: pen, quantity: 5 }],
       }),
     ).rejects.toMatchObject(fail('failed-precondition'));
-  });
-
-  it('a requested transfer can be cancelled, a dispatched one cannot', async () => {
-    await penIn(10);
-    const request = () =>
-      run(requestTransfer, {
-        fromStoreId: firstStore,
-        toStoreId: secondStore,
-        lineItems: [{ itemId: pen, quantity: 3 }],
-      });
-    const withdrawn = await request();
-    await run(cancelTransfer, { id: withdrawn.id, reason: 'Wrong store' });
-    expect((await get(`inventoryTransfers/${withdrawn.id}`))?.status).toBe('cancelled');
-    await expect(run(dispatchTransfer, { id: withdrawn.id })).rejects.toMatchObject(
-      fail('failed-precondition'),
-    );
-    const sent = await request();
-    await expect(run(dispatchTransfer, { id: sent.id })).rejects.toMatchObject(
-      fail('failed-precondition'),
-    ); // not approved yet
-    await expect(run(approveTransfer, { id: sent.id }, '1')).rejects.toMatchObject(
-      fail('permission-denied'),
-    );
-    await run(approveTransfer, { id: sent.id }, 'tapr');
-    await run(dispatchTransfer, { id: sent.id });
-    await expect(run(cancelTransfer, { id: sent.id, reason: 'too late' })).rejects.toMatchObject(
-      fail('failed-precondition'),
-    );
-  });
-
-  it('transfers: dispatch drops source, partial receipt, final records discrepancy', async () => {
-    await penIn(10);
-    const transfer = await run(requestTransfer, {
-      fromStoreId: firstStore,
-      toStoreId: secondStore,
-      lineItems: [{ itemId: pen, quantity: 6 }],
-    });
-    await run(approveTransfer, { id: transfer.id }, 'tapr');
-    await run(dispatchTransfer, { id: transfer.id });
-    expect((await balance(`${firstStore}__${pen}__-__-`)).quantityAvailable).toBe(4);
-    await expect(run(dispatchTransfer, { id: transfer.id })).rejects.toMatchObject(
-      fail('failed-precondition'),
-    );
-    await expect(
-      run(receiveTransfer, {
-        id: transfer.id,
-        lineItems: [{ index: 0, quantityReceived: 7 }],
-      }),
-    ).rejects.toMatchObject(fail('failed-precondition'));
-    await run(receiveTransfer, {
-      id: transfer.id,
-      lineItems: [{ index: 0, quantityReceived: 4 }],
-    });
-    expect((await get(`inventoryTransfers/${transfer.id}`))?.status).toBe('partially_received');
-    expect((await balance(`${secondStore}__${pen}__-__-`)).quantityAvailable).toBe(4);
-    await run(receiveTransfer, { id: transfer.id, final: true });
-    expect(await get(`inventoryTransfers/${transfer.id}`)).toMatchObject({
-      status: 'received',
-      lineItems: [{ quantityReceived: 4, discrepancy: 2 }],
-    });
-    // The shortfall is registered as a resolved write-off so stock and value reconcile.
-    const shortfall = await db()
-      .collection(`schools/${SCHOOL_ID}/inventoryUnavailableStock`)
-      .where('referenceId', '==', transfer.id)
-      .get();
-    expect(shortfall.docs[0].data()).toMatchObject({
-      quantity: 2,
-      reason: 'lost',
-      status: 'resolved',
-      resolution: 'write_off',
-    });
-    await expect(
-      run(requestTransfer, {
-        fromStoreId: firstStore,
-        toStoreId: firstStore,
-        lineItems: [{ itemId: pen, quantity: 1 }],
-      }),
-    ).rejects.toMatchObject(fail('failed-precondition'));
-    const big = await run(requestTransfer, {
-      fromStoreId: firstStore,
-      toStoreId: secondStore,
-      lineItems: [{ itemId: pen, quantity: 50 }],
-    });
-    await run(approveTransfer, { id: big.id }, 'tapr');
-    await expect(run(dispatchTransfer, { id: big.id })).rejects.toMatchObject(
-      fail('failed-precondition'),
-    );
   });
 
   it('adjustments: reasons, never below zero, immutable record with before/after', async () => {

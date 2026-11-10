@@ -215,21 +215,6 @@ final inventoryReports = <ReportDef>[
     ),
     ReportCol('Lines', (m, _) => '${(m['lineItems'] as List?)?.length ?? 0}'),
   ]),
-  ReportDef('transfers', 'Transfers', 'inventoryTransfers', [
-    _date('Date', 'createdAt'),
-    _textColumn('Transfer', 'number'),
-    ReportCol(
-      'From',
-      (data, reportNames) =>
-          reportNames.store((data['from'] as Map?)?['storeId']),
-    ),
-    ReportCol(
-      'To',
-      (data, reportNames) =>
-          reportNames.store((data['to'] as Map?)?['storeId']),
-    ),
-    _textColumn('Status', 'status'),
-  ]),
   ReportDef(
     'assets',
     'Asset register',

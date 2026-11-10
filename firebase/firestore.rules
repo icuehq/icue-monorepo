@@ -104,7 +104,7 @@ service cloud.firestore {
       allow write: if inSchool(schoolId) && can(schoolId, 'inventory.items.manage');
       allow read: if inSchool(schoolId) && (can(schoolId, 'inventory.items.view') || can(schoolId, 'inventory.issue.request') || can(schoolId, 'inventory.purchaseRequest.request'));
     }
-    // Stores are readable school-wide so a transfer can name a destination on another campus.
+    // Stores are readable school-wide.
     match /schools/{schoolId}/inventoryStores/{id} {
       allow read: if inSchool(schoolId)
         && (can(schoolId, 'inventory.stock.view') || can(schoolId, 'inventory.settings') || can(schoolId, 'inventory.issue.request'));
@@ -177,58 +177,6 @@ service cloud.firestore {
       allow read: if inSchool(schoolId) && (resource.data.createdBy == request.auth.uid
         || ((can(schoolId, 'inventory.stock.view') || can(schoolId, 'inventory.issue.approve')) && onCampus(schoolId, resource.data.campusId)));
     }
-    // Requesting, approving, cancelling, dispatching and receiving a transfer are client writes.
-    match /schools/{schoolId}/inventoryTransfers/{id} {
-      allow create: if inSchool(schoolId) && can(schoolId, 'inventory.stock.operate')
-        && onCampus(schoolId, request.resource.data.campusId)
-        && request.resource.data.createdBy == request.auth.uid
-        && request.resource.data.status == 'requested';
-    }
-    // Approving a transfer moves a requested one to approved, by an approver on the source campus.
-    match /schools/{schoolId}/inventoryTransfers/{id} {
-      allow update: if inSchool(schoolId) && can(schoolId, 'inventory.adjustment.approve')
-        && onCampus(schoolId, resource.data.campusId)
-        && resource.data.status == 'requested'
-        && request.resource.data.status == 'approved'
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'approval', 'updatedAt'])
-        && request.resource.data.approval.performedBy == request.auth.uid;
-    }
-    // A requested or approved transfer can be withdrawn by a stock operator on the source campus, with a reason.
-    match /schools/{schoolId}/inventoryTransfers/{id} {
-      allow update: if inSchool(schoolId) && can(schoolId, 'inventory.stock.operate')
-        && onCampus(schoolId, resource.data.campusId)
-        && resource.data.status in ['requested', 'approved']
-        && request.resource.data.status == 'cancelled'
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'cancelReason', 'cancelledBy', 'updatedAt'])
-        && request.resource.data.cancelledBy == request.auth.uid
-        && request.resource.data.cancelReason.size() > 0;
-    }
-    // Dispatching sends an approved transfer out, by a stock operator on the source campus.
-    match /schools/{schoolId}/inventoryTransfers/{id} {
-      allow update: if inSchool(schoolId) && can(schoolId, 'inventory.stock.operate')
-        && onCampus(schoolId, resource.data.campusId)
-        && resource.data.status == 'approved'
-        && request.resource.data.status == 'dispatched'
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lineItems', 'status', 'dispatch', 'updatedAt'])
-        && request.resource.data.dispatch.performedBy == request.auth.uid;
-    }
-    // Receiving records what arrived, by a stock operator on the destination campus.
-    match /schools/{schoolId}/inventoryTransfers/{id} {
-      allow update: if inSchool(schoolId) && can(schoolId, 'inventory.stock.operate')
-        && onCampus(schoolId, resource.data.toCampusId)
-        && resource.data.status in ['dispatched', 'partially_received']
-        && request.resource.data.status in ['partially_received', 'received']
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lineItems', 'status', 'receipt', 'receipts', 'updatedAt'])
-        && request.resource.data.receipt.performedBy == request.auth.uid;
-    }
-    // A transfer shortfall is registered against the source store by the receiving campus.
-    match /schools/{schoolId}/inventoryUnavailableStock/{id} {
-      allow create: if inSchool(schoolId) && can(schoolId, 'inventory.stock.operate')
-        && request.resource.data.createdBy == request.auth.uid
-        && request.resource.data.referenceType == 'transfer'
-        && request.resource.data.status == 'resolved'
-        && onCampus(schoolId, get(/databases/$(db)/documents/schools/$(schoolId)/inventoryTransfers/$(request.resource.data.referenceId)).data.toCampusId);
-    }
     // Resolving an unavailable-stock entry: restore, repair or write off, by a stock operator on its campus.
     match /schools/{schoolId}/inventoryUnavailableStock/{id} {
       allow update: if inSchool(schoolId) && can(schoolId, 'inventory.stock.operate')
@@ -236,11 +184,6 @@ service cloud.firestore {
         && resource.data.status in ['open', 'in_repair']
         && request.resource.data.status in ['in_repair', 'resolved']
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'resolution', 'resolutionNote', 'resolvedAt', 'resolvedBy', 'updatedAt']);
-    }
-    // Either end of a transfer may read it.
-    match /schools/{schoolId}/inventoryTransfers/{id} {
-      allow read: if inSchool(schoolId) && can(schoolId, 'inventory.stock.view')
-        && (onCampus(schoolId, resource.data.campusId) || onCampus(schoolId, resource.data.toCampusId));
     }
 
     // Procurement (Inv-3). Vendors are school-wide; requesters see their own requests,
@@ -303,7 +246,7 @@ service cloud.firestore {
     match /schools/{schoolId}/{coll}/{id} {
       allow read: if inSchool(schoolId) && can(schoolId, 'inventory.reports.view') && onCampus(schoolId, resource.data.campusId)
         && coll in ['inventoryBalances', 'inventoryMovements', 'inventoryReceipts', 'inventoryIssues', 'inventoryReturns', 'inventoryAdjustments', 'inventoryUnavailableStock',
-          'inventoryIssueRequests', 'inventoryTransfers', 'inventoryPurchaseRequests', 'inventoryQuotations', 'inventoryPurchaseOrders', 'inventoryInvoices',
+          'inventoryIssueRequests', 'inventoryPurchaseRequests', 'inventoryQuotations', 'inventoryPurchaseOrders', 'inventoryInvoices',
           'inventoryAssets', 'inventoryAssetAssignments', 'inventoryMaintenanceJobs', 'inventoryVerifications'];
     }
     match /schools/{schoolId}/inventoryVendors/{id} {

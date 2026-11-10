@@ -37,9 +37,6 @@ import 'package:inventory/src/ui/stock/issues/issue_request_page.dart';
 import 'package:inventory/src/ui/stock/issues/issue_requests_page.dart';
 import 'package:inventory/src/ui/stock/issues/issue_return_page.dart';
 import 'package:inventory/src/ui/stock/receive/receive_page.dart';
-import 'package:inventory/src/ui/stock/transfers/transfer_form_page.dart';
-import 'package:inventory/src/ui/stock/transfers/transfer_page.dart';
-import 'package:inventory/src/ui/stock/transfers/transfers_page.dart';
 import 'package:inventory/src/ui/stock/unavailable/unavailable_page.dart';
 import 'package:inventory/src/ui/stock/unavailable/unavailable_resolve_page.dart';
 import 'package:provider/provider.dart';
@@ -268,22 +265,6 @@ final _inventoryPages = <RouteBase>[
     path: InventoryRoutes.inventoryInvoices,
     name: InventoryRoutes.inventoryInvoicesName,
     builder: (context, state) => const InvoicesPage(),
-  ),
-  GoRoute(
-    path: InventoryRoutes.inventoryTransfers,
-    name: InventoryRoutes.inventoryTransfersName,
-    builder: (context, state) => const TransfersPage(),
-  ),
-  GoRoute(
-    path: InventoryRoutes.inventoryTransferForm,
-    name: InventoryRoutes.inventoryTransferFormName,
-    builder: (context, state) => const TransferFormPage(),
-  ),
-  GoRoute(
-    path: InventoryRoutes.inventoryTransferDetail,
-    name: InventoryRoutes.inventoryTransferDetailName,
-    builder: (context, state) =>
-        StockTransferPage(transferId: state.uri.queryParameters['id'] ?? ''),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryUnavailable,

@@ -66,13 +66,6 @@ List<InventoryEntry> inventoryEntries(ModuleAccess access) => [
     ),
   if (access.can('inventory.stock.view'))
     const InventoryEntry(
-      label: 'Transfers',
-      path: InventoryRoutes.inventoryTransfers,
-      iconAsset: 'assets/dashboard/inventory-stock.png',
-      group: 'Stock',
-    ),
-  if (access.can('inventory.stock.view'))
-    const InventoryEntry(
       label: 'Damaged / expired',
       path: InventoryRoutes.inventoryUnavailable,
       iconAsset: 'assets/dashboard/inventory-stock-verification.png',

@@ -36,23 +36,12 @@ void main() {
     expect(request('pending').lineItems.single.approved, isNull);
   });
 
-  test('issue line outstanding and transfer in-transit state', () {
+  test('issue line outstanding', () {
     final issueLine = IssueLine.fromMap({
       'quantity': 6,
       'quantityReturned': 4,
       'balanceId': 'b',
     });
     expect(issueLine.outstanding, 2);
-    final transfer = InventoryTransfer.fromMap('t', {
-      'status': 'partially_received',
-      'from': {'storeId': 'a', 'campusId': 1},
-      'to': {'storeId': 'b', 'campusId': 2},
-      'requested': [
-        {'itemId': 'i', 'quantity': 6},
-      ],
-    });
-    expect(transfer.inTransit, isTrue);
-    expect(transfer.toCampusId, 2);
-    expect(transfer.requested.single.quantity, 6);
   });
 }

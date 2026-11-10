@@ -136,11 +136,10 @@ Common fields on every document: `campusId`, `createdAt`, `createdBy` (uid), `up
 | `inventoryItems/{id}/variants` | attrs `{size, color}`, sku, status | Uniforms etc. |
 | `inventoryStores` | code, name, campusId, location, storekeeperIds, status | Department/location is a field on the store or balance |
 | `inventoryBalances/{storeId__itemId__variantId__batchId}` | quantityAvailable, quantityReserved, quantityDamaged, quantityExpired, totalQuantityReceived, totalQuantityIssued, unitCost, value, batchNumber, manufacturingDate, expiryDate, isBelowReorderLevel | **The only stock balance.** One doc per store × item × variant × batch (`-` when not applicable). |
-| `inventoryMovements` | type (`receive`, `issue`, `return`, `transfer_out`, `transfer_in`, `adjust`, `expire`, `damage`, `writeoff`, `restore`), balanceId, itemId, storeId, quantity (signed), bucket, refType, refId, unitCost | Append-only ledger. Never updated. |
+| `inventoryMovements` | type (`receive`, `issue`, `return`, `adjust`, `expire`, `damage`, `writeoff`, `restore`), balanceId, itemId, storeId, quantity (signed), bucket, refType, refId, unitCost | Append-only ledger. Never updated. |
 | `inventoryIssueRequests` | lineItems `[{itemId, variantId, quantityRequested, quantityApproved, quantityIssued}]`, itemIds, requester, purpose, status, approval `{by, at, comment}` | FRS 10.8 |
 | `inventoryIssues` | requestId, lineItems `[{balanceId, quantity}]`, recipient `{type, personErpId}`, issuedBy, recipientAck | One per issuance (partials allowed) |
 | `inventoryReturns` | issueId, lineItems `[{balanceId, quantityUsable, quantityDamaged}]`, inspection | `quantityReturned ≤ issued − returned` |
-| `inventoryTransfers` | from `{campusId, storeId}`, to, `campusId` (source) + `toCampusId` for rules, `requested` `[{itemId, variantId, quantity}]`, lines (set at dispatch, one per batch) `[{balanceId, quantityDispatched, quantityReceived, discrepancy}]`, status `requested | dispatched | partially_received | received` | In-transit = dispatched − received on open transfers |
 | `inventoryAdjustments` | balanceId, before, delta, after, reason, evidence, verificationId, approval | Immutable after `completed` |
 | `inventoryUnavailableStock` | balanceId or assetId, quantity, reason, evidence, resolution, resolvedAt | FRS 10.12 register |
 | `inventoryPurchaseRequests` | lineItems `[{itemId, quantity, estimatedPrice, quantityOrdered}]`, itemIds, priority, requiredDate, status (FRS 10.13), approval | |
@@ -199,7 +198,7 @@ Names below are logical; they deploy as `<group>-<name>` (`session.sync` → `se
 | Session | `session.sync` |
 | Settings | `config.setRolePermissions`, `inventory.setSettings`, `library.setSettings` |
 | Inventory masters | `inventory.seedDefaults`, `inventory.item.search`. Categories, units, stores, items, variants and vendors are client Firestore writes (`firestore.rules`); the bulk importer reuses their server handlers internally. |
-| Stock | Receive Stock, issue request submit/decide, issuing stock, acknowledging an issue, returns, transfer requests, approvals, cancellations, dispatches, receipts, stock adjustments, and unavailable-stock reports and resolutions are client transactions (`StockWrites`). `inventory.adjustment.approve` |
+| Stock | Receive Stock, issue request submit/decide, issuing stock, acknowledging an issue, returns, stock adjustments, and unavailable-stock reports and resolutions are client transactions (`StockWrites`). `inventory.adjustment.approve` |
 | Procurement | Purchase requests, quotations, draft purchase orders (save, issue, revise, acknowledge, cancel, close, receive goods) and invoices are client Firestore writes (`ProcurementWrites`). |
 | Assets | `inventory.asset.register`, `inventory.asset.assign/return/transfer/setCondition/retire`, `inventory.maintenance.save/setStatus` |
 | Verification | `inventory.verification.create/count/submit/decide` (approve creates adjustments referencing the session; reject reopens counting) |
@@ -236,14 +235,13 @@ These are enforced in Functions transactions and covered by unit tests.
 
 **Inventory**
 
-- `quantityAvailable` never goes below 0. Issue, transfer-dispatch and negative adjustments check it in the same transaction that decrements it.
+- `quantityAvailable` never goes below 0. Issue and negative adjustments check it in the same transaction that decrements it.
 - Expired batches (`expiryDate < today`) cannot be issued even before the daily job moves them, so the check doesn't depend on the job having run.
 - Batch issue suggests FEFO (first-expiry-first-out); the user may override within non-expired batches.
 - Receiving against a PO: `quantityAccepted + quantityRejected ≤ quantityOrdered − (already accepted + rejected)` per line. Cancelled/closed POs reject receipts. PO becomes `fully_received` only when every line is accounted for.
 - Purchase quantities convert to `stockUnit` via `purchaseUnits.factor` at receipt time; balances are only ever in stock units.
 - Issue approval: one level; `quantityApproved ≤ available` at approval time, re-checked at issuance.
 - Returns: per issue line, `returned ≤ issued`. Usable → `quantityAvailable`; damaged → `quantityDamaged` + `inventoryUnavailableStock` entry.
-- Transfers: dispatch decrements source; receipt increments destination (a new balance doc if needed). Shortfall is stored as `discrepancy`, not silently lost.
 - Asset: `activeAssignmentId` set ⇒ cannot assign again. `retired`/`disposed` ⇒ cannot assign. Maintenance status drives asset status.
 - Masters with history (`inventoryMovements` exist, PO references) cannot be deleted; only deactivated. Deactivated categories/vendors/items are rejected for new transactions.
 

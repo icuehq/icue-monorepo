@@ -31,7 +31,7 @@ void main() {
       inventoryReports.map((reportDef) => reportDef.key).toSet().length,
       inventoryReports.length,
     );
-    expect(inventoryReports.length, 17);
+    expect(inventoryReports.length, 16);
     expect(
       inventoryReports.every((reportDef) => reportDef.cols.isNotEmpty),
       isTrue,

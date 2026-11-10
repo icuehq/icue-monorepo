@@ -14,7 +14,7 @@ class StockProvider extends ChangeNotifier {
   final StockService _service;
   final _writes = StockWrites();
 
-  /// Item names for every id seen in a list (balances, requests, transfers…).
+  /// Item names for every id seen in a list (balances, requests…).
   final Map<String, InventoryItem> items = {};
   String? errorMessage;
   bool isLoading = false;
@@ -25,7 +25,6 @@ class StockProvider extends ChangeNotifier {
   DocumentSnapshot<Map<String, dynamic>>? _cursor;
 
   List<InventoryIssueRequest> requests = [];
-  List<InventoryTransfer> transfers = [];
   List<InventoryUnavailable> unavailable = [];
   List<InventoryStore> allStores = [];
 
@@ -127,15 +126,6 @@ class StockProvider extends ChangeNotifier {
     InventoryIssueRequest issueRequest,
   ) async =>
       (await _load(() => _service.issuesOf(issueRequest), quiet: true)) ?? [];
-
-  Future<void> loadTransfers(ModuleAccess access) => _load(() async {
-    transfers = await _service.transfers(access);
-    await _names(
-      transfers.expand(
-        (transfer) => transfer.requested.map((line) => line.itemId),
-      ),
-    );
-  });
 
   Future<void> loadUnavailable(ModuleAccess access) => _load(() async {
     unavailable = await _service.unavailable(access);

@@ -231,60 +231,6 @@ Future<void> stockSteps(WidgetTester tester) async {
     await back(tester);
   });
 
-  await step(tester, '1.2.13-1.2.14 transfer request', () async {
-    await open(tester, InventoryRoutes.inventoryTransfers);
-    await waitFor(tester, find.textContaining(RegExp('All \\(\\d+\\)')));
-    if (await appears(tester, find.textContaining('TRF/'))) return;
-    await tapLabel(tester, 'New Transfer');
-    await tapText(tester, 'Source Store (From)');
-    await tapText(tester, 'Central Main Store', index: 1);
-    await tapText(tester, 'Destination Store (To)');
-    expect(
-      find.text('Central Main Store'),
-      findsOneWidget,
-    ); // 1.2.14: source is not offered as destination
-    await tapText(tester, 'Science Lab Store', index: 1);
-    await fill(
-      tester,
-      'Remarks / Notes (optional)',
-      'Transfer surplus stationery to science faculty',
-    );
-    await tapLabel(tester, 'Add item');
-    await tapContaining(tester, 'Ballpoint Pen');
-    await enter(tester, fieldStarting('Quantity'), '20');
-    await tapText(tester, 'Request Transfer');
-    await waitFor(tester, find.textContaining('TRF/'));
-  });
-
-  await step(tester, '1.2.15 approve and dispatch the transfer', () async {
-    await open(tester, InventoryRoutes.inventoryTransfers);
-    await tapContaining(tester, 'TRF/');
-    if (await appears(tester, find.text('Approve transfer'))) {
-      await tapText(tester, 'Approve transfer');
-      await tapText(tester, 'Approve');
-    }
-    if (await appears(tester, find.text('Dispatch transfer'))) {
-      await tapText(tester, 'Dispatch transfer');
-      await tapText(tester, 'Dispatch');
-    }
-    await open(tester, InventoryRoutes.inventoryTransfers);
-    await waitFor(tester, find.textContaining(RegExp('In Transit|Received')));
-  });
-
-  await step(tester, '1.2.16 partial receipt with a shortfall', () async {
-    await open(tester, InventoryRoutes.inventoryTransfers);
-    await tapContaining(tester, 'TRF/');
-    if (!await appears(tester, find.text('Confirm receipt'))) return;
-    await fill(tester, 'Receive now', '25');
-    await tapText(tester, 'Confirm receipt');
-    await waitFor(tester, find.textContaining('Only 20'));
-    await fill(tester, 'Receive now', '15');
-    await tapContaining(tester, 'Close transfer after this receipt');
-    await tapText(tester, 'Confirm receipt');
-    await tapText(tester, 'Close transfer', index: 1);
-    await waitFor(tester, find.textContaining('Shortfall 5'));
-  });
-
   await step(tester, '1.2.17 stock adjustment', () async {
     await open(tester, InventoryRoutes.inventoryStock);
     await waitFor(tester, find.textContaining('PEN-BLU-01'));

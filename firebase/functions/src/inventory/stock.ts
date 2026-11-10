@@ -28,8 +28,6 @@ export type MoveType =
   | 'receive'
   | 'issue'
   | 'return'
-  | 'transfer_out'
-  | 'transfer_in'
   | 'adjust'
   | 'expire'
   | 'damage'
@@ -307,13 +305,13 @@ export class Stock {
     if (
       quantity < 0 &&
       bucket === 'available' &&
-      (movement.type === 'issue' || movement.type === 'transfer_out') &&
+      (movement.type === 'issue') &&
       this.expired(balance)
     ) {
       throw failed('Batch has expired and cannot be issued');
     }
     balance.data[field] += quantity;
-    if (movement.type === 'receive' || movement.type === 'transfer_in')
+    if (movement.type === 'receive')
       balance.data.totalQuantityReceived += quantity;
     if (movement.type === 'issue' || movement.type === 'return')
       balance.data.totalQuantityIssued -= quantity;
@@ -342,7 +340,7 @@ export class Stock {
   receive(
     balance: StockBalance,
     quantity: number,
-    type: 'receive' | 'transfer_in',
+    type: 'receive',
     referenceType: string,
     referenceId: string,
     unitCost: number,

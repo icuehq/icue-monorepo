@@ -1,7 +1,7 @@
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icue_ui/icue_ui.dart';
 
-/// Client-side stock writes: Receive Stock (`inventory-receipt-confirm`), receiving goods against a purchase order (`inventory-purchaseOrder-receive`), issue request submit and approve/reject, issuing stock (`inventory-issue-create`) confirming an issue's receipt returns against an issue requesting, approving, cancelling, dispatching and receiving a transfer, stock adjustments and unavailable stock.
+/// Client-side stock writes: Receive Stock (`inventory-receipt-confirm`), receiving goods against a purchase order (`inventory-purchaseOrder-receive`), issue request submit and approve/reject, issuing stock (`inventory-issue-create`) confirming an issue's receipt returns against an issue requesting, stock adjustments and unavailable stock.
 ///
 /// One Firestore transaction writes the receipt, its balances, the ledger rows
 /// and the GRN counter. Business checks live here and in `firestore.rules`
@@ -19,11 +19,6 @@ class StockWrites {
     'inventory-issue-create',
     'inventory-issue-acknowledge',
     'inventory-return-create',
-    'inventory-transfer-request',
-    'inventory-transfer-approve',
-    'inventory-transfer-cancel',
-    'inventory-transfer-dispatch',
-    'inventory-transfer-receive',
     'inventory-adjustment-create',
     'inventory-unavailable-report',
     'inventory-unavailable-resolve',
@@ -50,11 +45,6 @@ class StockWrites {
         'inventory-issue-create' => _issueStock(data),
         'inventory-issue-acknowledge' => _acknowledgeIssue(data),
         'inventory-return-create' => _createReturn(data),
-        'inventory-transfer-request' => _requestTransfer(data),
-        'inventory-transfer-approve' => _approveTransfer(data),
-        'inventory-transfer-cancel' => _cancelTransfer(data),
-        'inventory-transfer-dispatch' => _dispatchTransfer(data),
-        'inventory-transfer-receive' => _receiveTransfer(data),
         'inventory-adjustment-create' => _adjustStock(data),
         'inventory-unavailable-report' => _reportUnavailable(data),
         'inventory-unavailable-resolve' => _resolveUnavailable(data),
@@ -791,138 +781,6 @@ class StockWrites {
     return {'id': id};
   }
 
-  /// A store-to-store transfer request; approval, dispatch and receipt follow.
-  Future<Map<String, dynamic>> _requestTransfer(
-    Map<String, Object?> data,
-  ) async {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-    final financialYear = _financialYear;
-    final fromStoreId = data['fromStoreId']! as String;
-    final toStoreId = data['toStoreId']! as String;
-    if (fromStoreId == toStoreId) _fail('Source and destination must differ');
-    final lines = [
-      for (final line in (data['lineItems']! as List))
-        Map<String, dynamic>.from(line as Map),
-    ];
-    if (lines.isEmpty) _fail('Add at least one item');
-    final lineKeys = {
-      for (final line in lines)
-        '${line['itemId']}__${line['variantId'] ?? '-'}',
-    };
-    if (lineKeys.length != lines.length) {
-      _fail('Each item (and variant) may appear once');
-    }
-    if (lines.any((line) => ((line['quantity'] as num?) ?? 0) <= 0)) {
-      _fail('Each line needs a quantity');
-    }
-
-    final fromRef = await _doc('inventoryStores/$fromStoreId');
-    final toRef = await _doc('inventoryStores/$toStoreId');
-    final counterRef = await _doc('counters/TRF_$financialYear');
-    final transferRef = (await schoolCollection('inventoryTransfers')).doc();
-    final number = await FirebaseFirestore.instance.runTransaction((
-      transaction,
-    ) async {
-      final from = (await transaction.get(fromRef)).data();
-      if (from == null) _fail('Store not found');
-      if (from['status'] != 'active') _fail('Store is inactive');
-      final to = (await transaction.get(toRef)).data();
-      if (to == null) _fail('Destination store not found');
-      if (to['status'] != 'active') _fail('Destination store is inactive');
-      final next =
-          ((await transaction.get(counterRef)).data()?['next'] as num? ?? 0)
-              .toInt() +
-          1;
-      for (final line in lines) {
-        await _stockItem(
-          transaction,
-          line['itemId']! as String,
-          line['variantId'] as String?,
-        );
-      }
-      final transferNumber =
-          'TRF/$financialYear/${next.toString().padLeft(6, '0')}';
-      transaction.set(counterRef, {
-        'next': next,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-      transaction.set(transferRef, {
-        'number': transferNumber,
-        'from': {'campusId': from['campusId'], 'storeId': fromStoreId},
-        'to': {'campusId': to['campusId'], 'storeId': toStoreId},
-        'toCampusId': to['campusId'],
-        'remarks': _blankToNull(data['remarks']),
-        'requested': [
-          for (final line in lines)
-            {
-              'itemId': line['itemId'],
-              'variantId': line['variantId'],
-              'quantity': line['quantity'],
-            },
-        ],
-        'lineItems': <Object?>[],
-        'itemIds': [for (final line in lines) line['itemId']],
-        'status': 'requested',
-        'campusId': from['campusId'],
-        'transactionDate': dayTimestamp(todayIST()),
-        'financialYear': financialYear,
-        'createdAt': FieldValue.serverTimestamp(),
-        'createdBy': uid,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-      return transferNumber;
-    });
-    return {'id': transferRef.id, 'number': number};
-  }
-
-  /// Releases a requested transfer for dispatch.
-  Future<Map<String, dynamic>> _approveTransfer(
-    Map<String, Object?> data,
-  ) async {
-    final id = data['id']! as String;
-    final reference = await _doc('inventoryTransfers/$id');
-    await FirebaseFirestore.instance.runTransaction((transaction) async {
-      final status = (await transaction.get(reference)).data()?['status'];
-      if (status == null) _fail('Transfer not found');
-      if (status != 'requested') _fail('Transfer is $status');
-      transaction.update(reference, {
-        'status': 'approved',
-        'approval': {
-          'performedBy': FirebaseAuth.instance.currentUser!.uid,
-          'performedAt': FieldValue.serverTimestamp(),
-        },
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-    });
-    return {'id': id};
-  }
-
-  /// Withdraws a transfer before dispatch; nothing has moved yet.
-  Future<Map<String, dynamic>> _cancelTransfer(
-    Map<String, Object?> data,
-  ) async {
-    final id = data['id']! as String;
-    final reason = _blankToNull(data['reason']);
-    if (reason == null || reason.length > 500) {
-      _fail('A reason is required (500 characters at most)');
-    }
-    final reference = await _doc('inventoryTransfers/$id');
-    await FirebaseFirestore.instance.runTransaction((transaction) async {
-      final status = (await transaction.get(reference)).data()?['status'];
-      if (status == null) _fail('Transfer not found');
-      if (status != 'requested' && status != 'approved') {
-        _fail('Transfer is $status');
-      }
-      transaction.update(reference, {
-        'status': 'cancelled',
-        'cancelReason': reason,
-        'cancelledBy': FirebaseAuth.instance.currentUser!.uid,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-    });
-    return {'id': id};
-  }
-
   /// Takes back issued stock: usable units return to the balance they came from,
   /// damaged ones go to the damaged bucket and the unavailable-stock register.
   Future<Map<String, dynamic>> _createReturn(Map<String, Object?> data) async {
@@ -1229,121 +1087,6 @@ class StockWrites {
     });
   }
 
-  /// Sends an approved transfer out: stock leaves the source (first expiry first)
-  /// and stays in transit until the destination receives it.
-  Future<Map<String, dynamic>> _dispatchTransfer(
-    Map<String, Object?> data,
-  ) async {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-    final today = todayIST();
-    final financialYear = _financialYear;
-    final id = data['id']! as String;
-    final transferRef = await _doc('inventoryTransfers/$id');
-    final transfer = (await transferRef.get()).data();
-    if (transfer == null) _fail('Transfer not found');
-    final storeId = (transfer['from'] as Map)['storeId']! as String;
-    final campusId = (transfer['from'] as Map)['campusId'];
-    final requested = [
-      for (final line in (transfer['requested'] as List))
-        Map<String, dynamic>.from(line as Map),
-    ];
-    final candidateRefs = await _candidateBalances(
-      campusId,
-      storeId,
-      requested,
-    );
-    final storeRef = await _doc('inventoryStores/$storeId');
-    final movements = await schoolCollection('inventoryMovements');
-
-    await FirebaseFirestore.instance.runTransaction((transaction) async {
-      // All reads first.
-      final current = (await transaction.get(transferRef)).data();
-      if (current == null) _fail('Transfer not found');
-      if (current['status'] != 'approved') {
-        _fail('Transfer is ${current['status']}');
-      }
-      final store = (await transaction.get(storeRef)).data();
-      if (store == null) _fail('Store not found');
-      if (store['status'] != 'active') _fail('Store is inactive');
-      final plans = <_IssuePlan>[];
-      for (final line in requested) {
-        final itemId = line['itemId']! as String;
-        final variantId = line['variantId'] as String?;
-        final quantity = (line['quantity']! as num).toDouble();
-        final item = await _stockItem(
-          transaction,
-          itemId,
-          variantId,
-          inactiveOk: true,
-        );
-        plans.add(
-          _IssuePlan(
-            itemId: itemId,
-            variantId: variantId,
-            quantity: quantity,
-            requestLine: line,
-            reorderLevel: (item['reorderLevel'] as num?)?.toDouble(),
-            picks: await _allocateStock(
-              transaction,
-              candidateRefs['${itemId}__${variantId ?? '-'}']!,
-              quantity,
-              item['name'],
-            ),
-          ),
-        );
-      }
-
-      // Then writes.
-      var sequence = 0;
-      final dispatched = <Map<String, Object?>>[];
-      for (final plan in plans) {
-        for (final pick in plan.picks) {
-          final balance = pick.balance;
-          _takeStock(
-            transaction,
-            movements,
-            pick,
-            type: 'transfer_out',
-            referenceType: 'transfer',
-            referenceId: id,
-            reorderLevel: plan.reorderLevel,
-            sequence: sequence++,
-            ledger: {
-              'storeId': storeId,
-              'campusId': campusId,
-              'transactionDate': dayTimestamp(today),
-              'financialYear': financialYear,
-              'createdBy': uid,
-            },
-          );
-          dispatched.add({
-            'itemId': plan.itemId,
-            'variantId': plan.variantId,
-            'balanceId': balance.reference.id,
-            'batchNumber': balance.data['batchNumber'],
-            'manufacturingDate': balance.data['manufacturingDate'],
-            'expiryDate': balance.data['expiryDate'],
-            'unitCost': (balance.data['unitCost'] as num).toDouble(),
-            'quantityDispatched': pick.quantity,
-            'quantityReceived': 0,
-            'discrepancy': 0,
-          });
-        }
-      }
-      transaction.update(transferRef, {
-        'lineItems': dispatched,
-        'status': 'dispatched',
-        'dispatch': {
-          'performedBy': uid,
-          'date': dayTimestamp(today),
-          'performedAt': FieldValue.serverTimestamp(),
-        },
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-    });
-    return {'id': id};
-  }
-
   /// Adds [quantity] to a balance (created when missing) at weighted-average cost
   /// and appends the ledger row ([ledger] holds the shared fields).
   void _addStock(
@@ -1419,167 +1162,6 @@ class StockWrites {
       'createdAt': FieldValue.serverTimestamp(),
       ...ledger,
     });
-  }
-
-  /// The destination confirms what arrived. A partial receipt keeps the transfer
-  /// open; `final` closes it and registers any shortfall as lost stock.
-  Future<Map<String, dynamic>> _receiveTransfer(
-    Map<String, Object?> data,
-  ) async {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-    final today = todayIST();
-    final financialYear = _financialYear;
-    final id = data['id']! as String;
-    final close = data['final'] == true;
-    final remarks = _blankToNull(data['remarks']);
-    final lines = [
-      for (final line in (data['lineItems'] as List? ?? const []))
-        Map<String, dynamic>.from(line as Map),
-    ];
-    if (lines.isEmpty && !close) _fail('Enter the received quantities');
-    final transferRef = await _doc('inventoryTransfers/$id');
-    final movements = await schoolCollection('inventoryMovements');
-    final unavailable = await schoolCollection('inventoryUnavailableStock');
-
-    await FirebaseFirestore.instance.runTransaction((transaction) async {
-      // All reads first.
-      final transfer = (await transaction.get(transferRef)).data();
-      if (transfer == null) _fail('Transfer not found');
-      final status = transfer['status'];
-      if (status != 'dispatched' && status != 'partially_received') {
-        _fail('Transfer is $status');
-      }
-      final to = transfer['to'] as Map;
-      final from = transfer['from'] as Map;
-      final rows = [
-        for (final row in (transfer['lineItems'] as List))
-          Map<String, dynamic>.from(row as Map),
-      ];
-      final plans = <_TransferReceipt>[];
-      for (final line in lines) {
-        final index = line['index']! as int;
-        if (index < 0 || index >= rows.length) _fail('Unknown transfer line');
-        final row = rows[index];
-        final quantity = (line['quantityReceived']! as num).toDouble();
-        if (quantity <= 0) _fail('Each line needs a quantity');
-        if (quantity >
-            (row['quantityDispatched'] as num) -
-                (row['quantityReceived'] as num)) {
-          _fail('Received more than was dispatched');
-        }
-        final item = await _stockItem(
-          transaction,
-          row['itemId']! as String,
-          row['variantId'] as String?,
-          inactiveOk: true,
-        );
-        final batchNumber = row['batchNumber'] as String?;
-        final reference = await _doc(
-          'inventoryBalances/${[to['storeId'], row['itemId'], row['variantId'] ?? '-', batchNumber == null ? '-' : Uri.encodeComponent(batchNumber)].join('__')}',
-        );
-        plans.add(
-          _TransferReceipt(
-            row: row,
-            quantity: quantity,
-            reference: reference,
-            balance: (await transaction.get(reference)).data(),
-            reorderLevel: (item['reorderLevel'] as num?)?.toDouble(),
-          ),
-        );
-      }
-
-      // Then writes.
-      var sequence = 0;
-      for (final plan in plans) {
-        final row = plan.row;
-        _addStock(
-          transaction,
-          movements,
-          reference: plan.reference,
-          balance: plan.balance,
-          storeId: to['storeId']! as String,
-          campusId: to['campusId'],
-          itemId: row['itemId']! as String,
-          variantId: row['variantId'] as String?,
-          batchNumber: row['batchNumber'] as String?,
-          expiryDate: readDayOrNull(row['expiryDate']),
-          manufacturingDate: row['manufacturingDate'],
-          quantity: plan.quantity,
-          unitCost: (row['unitCost'] as num).toDouble(),
-          reorderLevel: plan.reorderLevel,
-          type: 'transfer_in',
-          referenceType: 'transfer',
-          referenceId: id,
-          sequence: sequence++,
-          ledger: {
-            'transactionDate': dayTimestamp(today),
-            'financialYear': financialYear,
-            'createdBy': uid,
-          },
-        );
-        row['quantityReceived'] =
-            (row['quantityReceived'] as num) + plan.quantity;
-      }
-      final complete = rows.every(
-        (row) =>
-            (row['quantityReceived'] as num) >=
-            (row['quantityDispatched'] as num),
-      );
-      final closed = complete || close;
-      if (closed) {
-        for (final row in rows) {
-          final shortfall =
-              (row['quantityDispatched'] as num) -
-              (row['quantityReceived'] as num);
-          row['discrepancy'] = shortfall;
-          if (shortfall <= 0) continue;
-          // The stock already left the source at dispatch; register the loss so stock and value reconcile.
-          transaction.set(unavailable.doc(), {
-            'balanceId': row['balanceId'],
-            'itemId': row['itemId'],
-            'variantId': row['variantId'],
-            'storeId': from['storeId'],
-            'batchNumber': row['batchNumber'],
-            'quantity': shortfall,
-            'bucket': null,
-            'reason': 'lost',
-            'remarks': 'Transfer ${transfer['number']} shortfall',
-            'evidence': null,
-            'referenceType': 'transfer',
-            'referenceId': id,
-            'status': 'resolved',
-            'resolution': 'write_off',
-            'resolvedAt': null,
-            'reportedBy': uid,
-            'campusId': from['campusId'],
-            'transactionDate': dayTimestamp(today),
-            'financialYear': financialYear,
-            'createdAt': FieldValue.serverTimestamp(),
-            'createdBy': uid,
-            'updatedAt': FieldValue.serverTimestamp(),
-          });
-        }
-      }
-      final receiptEntry = {
-        'performedBy': uid,
-        'date': dayTimestamp(today),
-        'remarks': remarks,
-      };
-      transaction.update(transferRef, {
-        'lineItems': rows,
-        'status': closed ? 'received' : 'partially_received',
-        'receipt': {
-          ...receiptEntry,
-          'performedAt': FieldValue.serverTimestamp(),
-        },
-        'receipts': [
-          ...((transfer['receipts'] as List?) ?? const []),
-          receiptEntry,
-        ],
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-    });
-    return {'id': id};
   }
 
   /// A manual correction of one balance's available quantity, with a reason.
@@ -2176,22 +1758,6 @@ class _ReturnPlan {
   final Map<String, dynamic> balance;
   final double usable;
   final double damaged;
-  final double? reorderLevel;
-}
-
-class _TransferReceipt {
-  _TransferReceipt({
-    required this.row,
-    required this.quantity,
-    required this.reference,
-    required this.balance,
-    required this.reorderLevel,
-  });
-
-  final Map<String, dynamic> row;
-  final double quantity;
-  final DocumentReference<Map<String, dynamic>> reference;
-  final Map<String, dynamic>? balance;
   final double? reorderLevel;
 }
 

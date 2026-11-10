@@ -394,14 +394,6 @@ models:
         recipientType: { type: string?, key: recipient.type, doc: "staff | student | department" }
         recipientId: { type: int?, key: recipient.personErpId }
         createdAt: timestamp?
-    TransferLine:
-      fields:
-        itemId: string
-        variantId: string?
-        batchNumber: string?
-        dispatched: { type: double, key: quantityDispatched }
-        received: { type: double, key: quantityReceived }
-        discrepancy: double
     InventoryUnavailable:
       id: id
       fields:
@@ -416,19 +408,3 @@ models:
         status: { type: string, doc: "open | in_repair | resolved" }
         resolution: string?
         createdAt: timestamp?
-    InventoryTransfer:
-      id: id
-      fields:
-        number: string
-        fromStoreId: { type: string, key: from.storeId }
-        toStoreId: { type: string, key: to.storeId }
-        fromCampusId: { type: int, key: from.campusId }
-        toCampusId: { type: int, key: to.campusId }
-        status: { type: string, doc: "requested | approved | dispatched | partially_received | received | cancelled" }
-        requested: { type: "List<({String itemId, String? variantId, double quantity})>", from: "[ for (final row in _rows(data['requested'])) ( itemId: row['itemId'] as String? ?? '', variantId: row['variantId'] as String?, quantity: readDouble(row['quantity']), ), ]" }
-        lineItems: list<TransferLine>
-        remarks: string?
-        dispatchedDate: { type: day?, key: dispatch.date }
-        receivedDate: { type: day?, key: receipt.date }
-        createdAt: timestamp?
-        createdBy: string

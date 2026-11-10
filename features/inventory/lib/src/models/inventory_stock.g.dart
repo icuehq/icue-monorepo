@@ -230,33 +230,6 @@ class InventoryIssue {
   final DateTime? createdAt;
 }
 
-class TransferLine {
-  const TransferLine({
-    required this.itemId,
-    this.variantId,
-    this.batchNumber,
-    required this.dispatched,
-    required this.received,
-    required this.discrepancy,
-  });
-
-  factory TransferLine.fromMap(Map<String, dynamic> data) => TransferLine(
-    itemId: data['itemId'] as String? ?? '',
-    variantId: data['variantId'] as String?,
-    batchNumber: data['batchNumber'] as String?,
-    dispatched: readDouble(data['quantityDispatched']),
-    received: readDouble(data['quantityReceived']),
-    discrepancy: readDouble(data['discrepancy']),
-  );
-
-  final String itemId;
-  final String? variantId;
-  final String? batchNumber;
-  final double dispatched;
-  final double received;
-  final double discrepancy;
-}
-
 class InventoryUnavailable {
   const InventoryUnavailable({
     required this.id,
@@ -305,70 +278,4 @@ class InventoryUnavailable {
   final String status;
   final String? resolution;
   final DateTime? createdAt;
-}
-
-class InventoryTransfer {
-  const InventoryTransfer({
-    required this.id,
-    required this.number,
-    required this.fromStoreId,
-    required this.toStoreId,
-    required this.fromCampusId,
-    required this.toCampusId,
-    required this.status,
-    required this.requested,
-    required this.lineItems,
-    this.remarks,
-    this.dispatchedDate,
-    this.receivedDate,
-    this.createdAt,
-    required this.createdBy,
-  });
-
-  factory InventoryTransfer.fromMap(String id, Map<String, dynamic> data) =>
-      InventoryTransfer(
-        id: id,
-        number: data['number'] as String? ?? '',
-        fromStoreId: (data['from'] as Map?)?['storeId'] as String? ?? '',
-        toStoreId: (data['to'] as Map?)?['storeId'] as String? ?? '',
-        fromCampusId: ((data['from'] as Map?)?['campusId'] as num? ?? 0)
-            .toInt(),
-        toCampusId: ((data['to'] as Map?)?['campusId'] as num? ?? 0).toInt(),
-        status: data['status'] as String? ?? '',
-        requested: [
-          for (final row in _rows(data['requested']))
-            (
-              itemId: row['itemId'] as String? ?? '',
-              variantId: row['variantId'] as String?,
-              quantity: readDouble(row['quantity']),
-            ),
-        ],
-        lineItems: [
-          for (final row in _rows(data['lineItems'])) TransferLine.fromMap(row),
-        ],
-        remarks: data['remarks'] as String?,
-        dispatchedDate: readDayOrNull((data['dispatch'] as Map?)?['date']),
-        receivedDate: readDayOrNull((data['receipt'] as Map?)?['date']),
-        createdAt: data['createdAt'] is Timestamp
-            ? (data['createdAt'] as Timestamp).toDate()
-            : null,
-        createdBy: data['createdBy'] as String? ?? '',
-      );
-
-  final String id;
-  final String number;
-  final String fromStoreId;
-  final String toStoreId;
-  final int fromCampusId;
-  final int toCampusId;
-
-  /// requested | approved | dispatched | partially_received | received | cancelled
-  final String status;
-  final List<({String itemId, String? variantId, double quantity})> requested;
-  final List<TransferLine> lineItems;
-  final String? remarks;
-  final String? dispatchedDate;
-  final String? receivedDate;
-  final DateTime? createdAt;
-  final String createdBy;
 }

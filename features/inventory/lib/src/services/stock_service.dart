@@ -82,15 +82,6 @@ class StockService {
     ];
   }
 
-  /// Transfers leaving or arriving on the user's campuses.
-  Future<List<InventoryTransfer>> transfers(ModuleAccess access) async =>
-      fetchCampusBothSides(
-        await schoolCollection('inventoryTransfers'),
-        access,
-        InventoryTransfer.fromMap,
-        (transfer) => transfer.createdAt,
-      );
-
   Future<List<InventoryUnavailable>> unavailable(ModuleAccess access) async {
     final query = access
         .restrictToCampuses(await schoolCollection('inventoryUnavailableStock'))

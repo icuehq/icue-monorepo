@@ -13,13 +13,6 @@ extension IssueLineMembers on IssueLine {
   double get outstanding => quantity - returned;
 }
 
-extension InventoryTransferMembers on InventoryTransfer {
-  /// Nothing has left the source store yet.
-  bool get preDispatch => status == 'requested' || status == 'approved';
-  bool get inTransit =>
-      status == 'dispatched' || status == 'partially_received';
-}
-
 extension InventoryUnavailableMembers on InventoryUnavailable {
   bool get isOpen => status != 'resolved';
 }
