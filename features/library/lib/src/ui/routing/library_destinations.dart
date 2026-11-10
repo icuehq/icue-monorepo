@@ -37,7 +37,7 @@ const librarySettingsTabs = [
 
 const _groups = <(String, String, List<LibraryEntry>)>[
   (
-    'Circulation',
+    'Issue Books',
     'assets/dashboard/library-circulation.png',
     [
       LibraryEntry(label: 'Loans', path: LibraryRoutes.libraryCirculation),
@@ -49,7 +49,7 @@ const _groups = <(String, String, List<LibraryEntry>)>[
     ],
   ),
   (
-    'Catalogue',
+    'Books Catalogue',
     'assets/dashboard/library-catalogue.png',
     [LibraryEntry(label: 'Books', path: LibraryRoutes.libraryCatalogue)],
   ),

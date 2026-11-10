@@ -12,7 +12,7 @@ class OverviewQuickActions extends StatelessWidget {
 
     final actions = <(String, IconData, String, bool)>[
       (
-        'Issue or return',
+        'Books Issue / Return',
         Icons.swap_horiz_rounded,
         LibraryRoutes.libraryCirculation,
         true,

@@ -126,7 +126,7 @@ final libraryReports = <LibraryReportDef>[
 
 /// Dashboard tiles (FRS 11.1): key and label.
 const libraryDashboardStats = <(String, String)>[
-  ('titles', 'Book titles'),
+  ('titles', 'Books'),
   ('copies', 'Physical copies'),
   ('available', 'Available copies'),
   ('issued', 'Issued copies'),

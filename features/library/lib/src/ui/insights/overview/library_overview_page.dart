@@ -4,8 +4,9 @@ import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/home/library_home_page.dart';
 import 'package:school_library/src/ui/insights/overview/widgets/overview_attention_card.dart';
+import 'package:school_library/src/ui/insights/overview/widgets/overview_collection_card.dart';
 import 'package:school_library/src/ui/insights/overview/widgets/overview_due_next_card.dart';
-import 'package:school_library/src/ui/insights/overview/widgets/overview_kpi_card.dart';
+import 'package:school_library/src/ui/insights/overview/widgets/overview_kpi_grid.dart';
 import 'package:school_library/src/ui/insights/overview/widgets/overview_quick_actions.dart';
 
 /// The Library landing page: the tile grid on phones, the [LibraryOverviewPage] on wide screens.
@@ -17,45 +18,10 @@ class LibraryLanding extends StatelessWidget {
       context.isWide ? const LibraryOverviewPage() : const LibraryHomePage();
 }
 
-const _sections = <(String, IconData, List<String>)>[
-  (
-    'Collection',
-    Icons.collections_bookmark_outlined,
-    ['titles', 'copies', 'available', 'lost', 'damaged'],
-  ),
-  ('Circulation', Icons.sync_alt_rounded, ['issued', 'pending', 'overdue']),
-  (
-    'Members and fines',
-    Icons.badge_outlined,
-    ['students', 'teachers', 'fines'],
-  ),
-];
-
-const _icons = <String, IconData>{
-  'titles': Icons.menu_book_outlined,
-  'copies': Icons.qr_code_2_rounded,
-  'available': Icons.check_circle_outline_rounded,
-  'lost': Icons.help_outline_rounded,
-  'damaged': Icons.report_problem_outlined,
-  'issued': Icons.swap_horiz_rounded,
-  'pending': Icons.assignment_return_outlined,
-  'overdue': Icons.schedule_rounded,
-  'students': Icons.school_outlined,
-  'teachers': Icons.person_outline_rounded,
-  'fines': Icons.payments_outlined,
-};
-
 const _targets = <String, String>{
-  'titles': LibraryRoutes.libraryCatalogue,
-  'copies': LibraryRoutes.libraryCatalogue,
-  'available': LibraryRoutes.libraryCatalogue,
   'lost': LibraryRoutes.libraryIncidents,
   'damaged': LibraryRoutes.libraryIncidents,
-  'issued': LibraryRoutes.libraryCirculation,
-  'pending': LibraryRoutes.libraryCirculation,
   'overdue': LibraryRoutes.libraryCirculation,
-  'students': LibraryRoutes.libraryMembers,
-  'teachers': LibraryRoutes.libraryMembers,
   'fines': LibraryRoutes.libraryFines,
 };
 
@@ -91,10 +57,43 @@ class _LibraryOverviewPageState extends State<LibraryOverviewPage> {
   @override
   Widget build(BuildContext context) {
     final libraryProvider = context.watch<LibraryProvider>();
-    final theme = Theme.of(context);
     final stats = libraryProvider.dashboard;
+    final wide = context.isWide;
 
-    bool allowed(String key) => stats[key] != null;
+    final filter = SizedBox(
+      width: wide ? 240 : double.infinity,
+      child: DropdownButtonFormField<String?>(
+        initialValue: _libraryId,
+        isExpanded: true,
+        decoration: const InputDecoration(
+          labelText: 'Library',
+          prefixIcon: Icon(Icons.local_library_outlined, size: 18),
+          isDense: true,
+        ),
+        items: [
+          const DropdownMenuItem(child: Text('All libraries')),
+          for (final schoolLibrary in libraryProvider.libraries.where(
+            (schoolLibrary) => schoolLibrary.active,
+          ))
+            DropdownMenuItem(
+              value: schoolLibrary.id,
+              child: Text(schoolLibrary.name, overflow: TextOverflow.ellipsis),
+            ),
+        ],
+        onChanged: (value) {
+          _libraryId = value;
+          _load();
+        },
+      ),
+    );
+
+    final attention = OverviewAttentionCard(
+      stats: stats,
+      allowed: (key) => stats[key] != null,
+      targets: _targets,
+    );
+    final collection = OverviewCollectionCard(stats: stats);
+    final dueNext = OverviewDueNextCard(libraryProvider: libraryProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -103,222 +102,64 @@ class _LibraryOverviewPageState extends State<LibraryOverviewPage> {
           IconButton(
             tooltip: 'Refresh',
             icon: const Icon(Icons.refresh_rounded),
-            onPressed: _load,
+            onPressed: libraryProvider.insightsLoading ? null : _load,
           ),
         ],
       ),
-      body: ListView(
-        padding: EdgeInsets.symmetric(
-          horizontal: context.isWide ? 24 : 16,
-          vertical: context.isWide ? 20 : 16,
-        ),
-        children: [
-          // Header Hero Banner
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final isCompact = constraints.maxWidth < 640;
-              final dropdown = SizedBox(
-                width: isCompact ? double.infinity : 240,
-                child: DropdownButtonFormField<String?>(
-                  initialValue: _libraryId,
-                  decoration: InputDecoration(
-                    labelText: 'Filter library',
-                    prefixIcon: const Icon(
-                      Icons.local_library_outlined,
-                      size: 18,
-                    ),
-                    isDense: true,
-                    filled: true,
-                    fillColor: theme.colorScheme.surfaceContainerLowest,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                  ),
-                  items: [
-                    const DropdownMenuItem(child: Text('All libraries')),
-                    for (final schoolLibrary in libraryProvider.libraries.where(
-                      (schoolLibrary) => schoolLibrary.active,
-                    ))
-                      DropdownMenuItem(
-                        value: schoolLibrary.id,
-                        child: Text(
-                          schoolLibrary.name,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                  ],
-                  onChanged: (value) {
-                    _libraryId = value;
-                    _load();
-                  },
-                ),
-              );
-
-              return Container(
-                padding: EdgeInsets.all(context.isWide ? 20 : 16),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surface,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: theme.colorScheme.outlineVariant.withValues(
-                      alpha: 0.5,
-                    ),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.025),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: isCompact
-                    ? Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Library overview',
-                            style: theme.textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: -0.5,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Real-time circulation metrics, collection analytics, and pending actions.',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          dropdown,
-                        ],
-                      )
-                    : Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Library overview',
-                                  style: theme.textTheme.headlineSmall
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.w700,
-                                        letterSpacing: -0.5,
-                                      ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Real-time circulation metrics, collection analytics, and pending actions.',
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 20),
-                          dropdown,
-                        ],
-                      ),
-              );
-            },
-          ),
-          const SizedBox(height: 20),
-
-          // Quick Actions Bar
-          const OverviewQuickActions(),
-
-          if (libraryProvider.insightsLoading && stats.isEmpty)
-            const Padding(
-              padding: EdgeInsets.all(56),
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else ...[
-            // KPI Metric Sections
-            for (final (title, icon, keys) in _sections)
-              if (keys.any(allowed)) ...[
-                const SizedBox(height: 24),
+      body: IcueCenteredBody(
+        child: ListView(
+          padding: EdgeInsets.all(wide ? 24 : 16),
+          children: [
+            if (wide)
+              Row(
+                children: [
+                  const Expanded(child: OverviewQuickActions()),
+                  const SizedBox(width: 16),
+                  filter,
+                ],
+              )
+            else ...[
+              filter,
+              const SizedBox(height: 12),
+              const OverviewQuickActions(),
+            ],
+            const SizedBox(height: 20),
+            if (libraryProvider.insightsLoading && stats.isEmpty)
+              const Padding(
+                padding: EdgeInsets.all(56),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else ...[
+              OverviewKpiGrid(stats: stats),
+              const SizedBox(height: 16),
+              if (wide)
                 Row(
-                  children: [
-                    Icon(
-                      icon,
-                      size: 18,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      title.toUpperCase(),
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.0,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    const spacing = 16.0;
-                    final columnCount = (constraints.maxWidth / 220)
-                        .floor()
-                        .clamp(1, 5);
-                    final cardWidth =
-                        (constraints.maxWidth - (columnCount - 1) * spacing) /
-                        columnCount;
-                    return Wrap(
-                      spacing: spacing,
-                      runSpacing: spacing,
-                      children: [
-                        for (final key in keys)
-                          if (allowed(key))
-                            OverviewKpiCard(
-                              statKey: key,
-                              value: stats[key]!,
-                              icon: _icons[key] ?? Icons.analytics_outlined,
-                              targetRoute: _targets[key],
-                              width: cardWidth,
-                            ),
-                      ],
-                    );
-                  },
-                ),
-              ],
-
-            const SizedBox(height: 28),
-
-            // Operational Cards: Attention & Due Next
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final attention = OverviewAttentionCard(
-                  stats: stats,
-                  allowed: allowed,
-                  targets: _targets,
-                );
-                final dueNext = OverviewDueNextCard(
-                  libraryProvider: libraryProvider,
-                );
-
-                if (constraints.maxWidth < 900) {
-                  return Column(
-                    children: [attention, const SizedBox(height: 16), dueNext],
-                  );
-                }
-                return Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(child: attention),
-                    const SizedBox(width: 20),
-                    Expanded(flex: 2, child: dueNext),
+                    Expanded(
+                      flex: 3,
+                      child: Column(
+                        children: [
+                          collection,
+                          const SizedBox(height: 16),
+                          dueNext,
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(flex: 2, child: attention),
                   ],
-                );
-              },
-            ),
+                )
+              else ...[
+                attention,
+                const SizedBox(height: 16),
+                collection,
+                const SizedBox(height: 16),
+                dueNext,
+              ],
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

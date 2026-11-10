@@ -171,7 +171,7 @@ class _CirculationPageState extends State<CirculationPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Circulation'),
+        title: const Text('Issue Books'),
         actions: [
           if (!isWide)
             IcueButton(
