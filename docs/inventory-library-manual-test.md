@@ -46,7 +46,7 @@ Launch config **icueadmin [Dev + Emulators · Android]** (or iOS). It signs in w
 
 ### 0.5 Scheduled jobs
 
-`dailyInventory`, `dailyLibrary` and `holdExpiry` do not run by themselves in the emulator. Steps tagged **[JOB]** can only be checked once triggered. Skip those steps for now and mark them blocked if a scheduled job runner is not invoked.
+`dailyInventory` and `dailyLibrary` do not run by themselves in the emulator. Steps tagged **[JOB]** can only be checked once triggered. Skip those steps for now and mark them blocked if a scheduled job runner is not invoked.
 
 ### 0.6 What to watch in the Emulator UI during the run
 
@@ -989,7 +989,6 @@ Setup: Copy `ACC-000001` is currently on loan to Student 501. No other copies of
   - **Expect**:
     - Copy status does NOT become available to general circulation; status transitions to `Reserved` (purple pill).
     - Student 502's reservation status changes from `Waiting` to `Ready`.
-    - Hold Expiry Date is automatically set to Today + 3 days.
     - Outbox records notification `library-rsv-ready__...` notifying Student 502.
 - [ ] 2.5.6 Negative: Issuing a Held Copy to Another Member:
   - In Circulation, choose student `503` (queue position 2). Enter held copy `ACC-000001` in issue field.
@@ -1000,9 +999,6 @@ Setup: Copy `ACC-000001` is currently on loan to Student 501. No other copies of
 - [ ] 2.5.8 **Reservation Cancellation**:
   - Open **Reservations** → tap Student 503's waiting reservation → tap **Cancel reservation**.
   - **Expect** Reservation status moves to `Cancelled`.
-- [ ] 2.5.9 **Hold Expiry Job [JOB]**:
-  - For a reservation in `Ready` status whose hold date has passed, execute `runHoldExpiry`.
-  - **Expect** Reservation status transitions to `Expired`; copy re-allocates to next member in queue or reverts to `Available`.
 
 ---
 

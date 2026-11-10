@@ -165,7 +165,7 @@ Common fields on every document: `campusId`, `createdAt`, `createdBy` (uid), `up
 | `libraryMembers/{personErpId}` | memberType `student | teacher`, personErpId, classId (students), category (policy key), libraryIds, start, end, status, activeLoans, blocked | Document ID is the ERP ID (unique across students and staff) → no duplicate members |
 | `libraryBorrowingPolicies` | libraryId, memberType, categoryIds, maxBooks, loanDays, maxRenewals, fineType, fineAmount, graceDays, maxFine, status | Several per library and person type; a book's category (else its parent, else the catch-all with empty `categoryIds`) picks one; a category belongs to one active policy. |
 | `libraryLoans` | personErpId, barcode, catalogueId, libraryId, issuedDate, dueDate, renewals[], policySnapshot, status `active | returned | lost`, returnedDate, condition, overdueDays | `policySnapshot` frozen at issue (FRS 11.8) |
-| `libraryReservations` | personErpId, catalogueId, libraryId, status (FRS 11.12), createdAt, heldBarcode, holdUntil, fulfilledLoanId | Queue position is computed (count of earlier `waiting`), not stored |
+| `libraryReservations` | personErpId, catalogueId, libraryId, status (FRS 11.12), createdAt, heldBarcode, fulfilledLoanId | Queue position is computed (count of earlier `waiting`), not stored |
 | `libraryFines/{loanId__type}` | personErpId, loanId, type, fineCalculation, amount, waived, outstanding, status, waivers[] | Deterministic ID → fines cannot duplicate |
 | `libraryIncidents` | kind `lost | damaged`, barcode, personErpId, severity, photos, charge, repairStatus, resolution | FRS 11.14 |
 | `libraryTransfers` | fromLibraryId, toLibraryId, lineItems `[{barcode, received, condition}]`, status `requested | approved | dispatched | partially_received | received` | |
@@ -202,7 +202,7 @@ Names below are logical; they deploy as `<group>-<name>` (`session.sync` → `se
 | Copies | `library.book.create` (creates copies keyed by barcode), `library.copy.update/move` |
 | Members | `library.member.upsert/setStatus` |
 | Circulation | Client transactions (`LoanWrites`): issue, return, renew, mark lost. Notices come from `notices.ts` triggers. |
-| Reservations | Client transactions (`LoanWrites`): reserve, cancel. Hold expiry stays a scheduled job. |
+| Reservations | Client transactions (`LoanWrites`): reserve, cancel. |
 | Fines | Client transactions (`LoanWrites`): waive, record payment (Finance reference only). |
 | Incidents | Client transactions (`LoanWrites`): report, resolve. |
 | Transfers | `library.transfer.request/approve/dispatch/receive` |
@@ -218,7 +218,6 @@ Names below are logical; they deploy as `<group>-<name>` (`session.sync` → `se
 | `importWorker` | Task queue (`onTaskDispatched`) | Process 400-row chunks of a committed import |
 | `dailyInventory` | `onSchedule` 06:00 Asia/Kolkata | Move expired batches to `quantityExpired`; near-expiry, warranty, maintenance-due and PO-overdue notifications |
 | `dailyLibrary` | `onSchedule` 07:00 Asia/Kolkata | Due-soon, overdue, membership-expiring notifications |
-| `holdExpiry` | `onSchedule` hourly | Expire reservations past `holdUntil`, pass copy to next in queue or release |
 
 Scheduled jobs are idempotent: notification keys are deterministic (§7.1), and expiry movements check current bucket values.
 

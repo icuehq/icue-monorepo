@@ -399,14 +399,13 @@ Functions (`firebase/functions/src/library/reservations.ts`, all `library.circul
 
 - [x] Reservation create, now `LoanWrites.reserve` (only when no shelf copy; eligible member; active policy allows reserve; category not restricted; one live reservation per title/member)
 - [x] Reservation cancel, now `LoanWrites.cancelReservation` (waiting or ready; held copy released to next in queue)
-- [x] `holdExpiry` scheduled job (hourly; expires holds past `holdUntil`, passes copy to next in queue or releases to available)
 - [x] Waiting list integrated into `createBook`, `loanReturn`, `loanRenew`, `copySetStatus` (copies freeing up serve the waiting queue)
 - [x] Tests: `test/reservations.test.ts` (emulator)
 
 Rules and indexes:
 
 - [x] `firestore.rules`: `libraryReservations` readable by circulation staff on the campus or the member / parent (`own()`)
-- [x] `firestore.indexes.json`: `libraryReservations` composite indexes (status + catalogueId + libraryId + createdAt, status + holdUntil, status + createdAt, personErpId + createdAt)
+- [x] `firestore.indexes.json`: `libraryReservations` composite indexes (status + catalogueId + libraryId + createdAt, status + createdAt, personErpId + createdAt)
 - [x] Rules test in `rules-tests/rules.test.js`
 
 Flutter:
@@ -578,7 +577,7 @@ Format: `date · phase · what changed from the architecture doc · why`.
 - 2026-11-08 · library client writes · `library-catalogue-upsert/setStatus`, `library-copy-update/move` and `library-member-setBlocked` callables replaced by client writes (`LibraryWrites`), stamped with `lastWrite` and audited by `onDocumentWritten` triggers; title uniqueness keys (`uniqueKeys/libraryTitle_*`) are client create-only
 - 2026-11-08 · borrowing policies · `library-policy-upsert/setStatus` callables replaced by client writes (`LibraryWrites`), stamped with `lastWrite`, audited by `auditLibraryPolicies`, rules fix library/person type/campus; the no-overlap check runs before the write (client transactions cannot query), so two simultaneous saves could overlap.
 - 2026-11-08 · circulation · `library-loan-issue/return/renew/markLost` callables replaced by client transactions (`LoanWrites`): loans are stamped `lastWrite` and audited by `auditLibraryLoans`; fines, incidents, copy/member/reservation changes and `LIS/LRT/FIN/INC` counters are plain writes guarded by `firestore.rules`; the member's notices (issued, returned, fine, lost/damaged, hold ready) come from triggers in `notices.ts`. Policy lookup, borrowing-limit count and the reservation queue run just before the transaction, so simultaneous desks could exceed a limit; numbers may skip. `test/circulation.ts` keeps callable mirrors only so other tests can build state.
-- 2026-11-08 · reservations · `library-reservation-create/cancel` callables replaced by client transactions (`LoanWrites.reserve/cancelReservation`), stamped `lastWrite` and audited by `auditLibraryReservations`; `RSV` counter and reservation create/cancel are guarded by `firestore.rules`. The duplicate-reservation, loan and shelf checks run just before the transaction. Hold expiry stays a scheduled job. `test/circulation.ts` mirrors both for tests.
+- 2026-11-08 · reservations · `library-reservation-create/cancel` callables replaced by client transactions (`LoanWrites.reserve/cancelReservation`), stamped `lastWrite` and audited by `auditLibraryReservations`; `RSV` counter and reservation create/cancel are guarded by `firestore.rules`. The duplicate-reservation, loan and shelf checks run just before the transaction. `test/circulation.ts` mirrors both for tests.
 - 2026-11-08 · fines · `library-fine-waive/setPayment` callables replaced by client transactions (`LoanWrites.waiveFine/recordFinePayment`), stamped `lastWrite` and audited by `auditLibraryFines`; rules allow only the amount, status and history fields to change. The member's fine block is lifted when no other fine of theirs is open (checked just before the transaction). `test/circulation.ts` mirrors both for tests.
 - 2026-11-08 · incidents · `library-incident-report/resolve` callables replaced by client transactions (`LoanWrites.reportIncident/resolveIncident`), stamped `lastWrite` and audited by `auditLibraryIncidents`; the member notice comes from `noticeIncidents` for every incident with a member. The open-incident check for a copy runs just before the transaction. `src/library/fines.ts` and `incidents.ts` are gone: no callable is left in them, and `test/circulation.ts` mirrors the fine, incident and circulation callables for tests.
 - 2026-11-06 · library categories · Library categories have no code: the document ID is automatic, a name must be unique under the same parent (checked in the app, ignoring case), the catalogue import takes `category` (the name) instead of `categoryCode` · codes added nothing the name does not give; categories are chosen from a list and never typed. Inventory categories keep their codes.
