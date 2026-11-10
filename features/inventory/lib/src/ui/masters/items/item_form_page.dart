@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:icue_ui/icue_ui.dart';
@@ -31,6 +32,7 @@ class _ItemFormPageState extends State<ItemFormPage> {
   late String? _subcategoryId = _existingItem?.subcategoryId;
   late String? _stockUnit = _existingItem?.stockUnit;
   late Tracking _tracking = _existingItem?.tracking ?? Tracking.quantity;
+  int _nextSample = 0;
   bool _busy = false;
 
   static String _num(double? v) =>
@@ -49,6 +51,38 @@ class _ItemFormPageState extends State<ItemFormPage> {
 
   String? _blank(TextEditingController controller) =>
       controller.text.trim().isEmpty ? null : controller.text.trim();
+
+  /// Fills the form with the next sample whose code is not loaded yet, using the
+  /// first active category and the first unit (debug builds, new items only).
+  void _fillSample() {
+    final provider = context.read<InventoryProvider>();
+    final category = provider.topCategories
+        .where((category) => category.active)
+        .firstOrNull;
+    final unit = provider.units.firstOrNull;
+    if (category == null || unit == null) {
+      showMessage(context, 'Add a category and a unit first');
+      return;
+    }
+    final taken = {for (final item in provider.items) item.code.toLowerCase()};
+    for (var tried = 0; tried < _sampleItems.length; tried++) {
+      final sample = _sampleItems[_nextSample++ % _sampleItems.length];
+      if (taken.contains(sample.code.toLowerCase())) continue;
+      setState(() {
+        _code.text = sample.code;
+        _name.text = sample.name;
+        _description.text = sample.description;
+        _reorder.text = '${sample.reorder}';
+        _price.text = '${sample.price}';
+        _categoryId = category.id;
+        _subcategoryId = null;
+        _stockUnit = unit.code;
+        _tracking = category.suggestedTracking;
+      });
+      return;
+    }
+    showMessage(context, 'All sample items already exist');
+  }
 
   Future<void> _save() async {
     if (!_form.currentState!.validate()) return;
@@ -89,170 +123,186 @@ class _ItemFormPageState extends State<ItemFormPage> {
             (category.active || category.id == _existingItem?.subcategoryId))
           category,
     ];
+    final basic = IcueFormSectionCard(
+      title: 'Basic information',
+      icon: Icons.inventory_2_outlined,
+      children: [
+        IcueTextField(
+          controller: _code,
+          enabled: !editing,
+          textCapitalization: TextCapitalization.characters,
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9._\-]')),
+          ],
+          textInputAction: TextInputAction.next,
+          validator: requiredText,
+          label: 'Item code / SKU *',
+          icon: Icons.qr_code_2_outlined,
+          helperText: !editing ? 'Unique identifier, e.g. PAP-A4-01' : null,
+        ),
+        IcueTextField(
+          controller: _name,
+          textCapitalization: TextCapitalization.words,
+          textInputAction: TextInputAction.next,
+          validator: requiredText,
+          label: 'Item name *',
+          icon: Icons.label_outline,
+        ),
+        IcueDropdown<String>(
+          value: _categoryId,
+          items: [
+            for (final category in tops)
+              DropdownMenuItem(value: category.id, child: Text(category.name)),
+          ],
+          validator: (value) => value == null ? 'Required' : null,
+          onChanged: (value) => setState(() {
+            _categoryId = value;
+            _subcategoryId = null;
+            final suggested = inventoryProvider
+                .category(value)
+                ?.suggestedTracking;
+            if (!editing && suggested != null) _tracking = suggested;
+          }),
+          label: 'Category *',
+          icon: Icons.category_outlined,
+        ),
+        if (subs.isNotEmpty)
+          IcueDropdown<String?>(
+            key: ValueKey(_categoryId),
+            value: _subcategoryId,
+            items: [
+              const DropdownMenuItem(child: Text('None')),
+              for (final category in subs)
+                DropdownMenuItem(
+                  value: category.id,
+                  child: Text(category.name),
+                ),
+            ],
+            onChanged: (value) => _subcategoryId = value,
+            label: 'Subcategory',
+            icon: Icons.subdirectory_arrow_right_outlined,
+          ),
+        IcueTextField(
+          controller: _description,
+          minLines: 2,
+          maxLines: 4,
+          textCapitalization: TextCapitalization.sentences,
+          keyboardType: TextInputType.multiline,
+          label: 'Description',
+          icon: Icons.notes_outlined,
+        ),
+      ],
+    );
+    final stock = IcueFormSectionCard(
+      title: 'Stock & tracking',
+      icon: Icons.tune_outlined,
+      children: [
+        IcueDropdown<String>(
+          value: _stockUnit,
+          items: [
+            for (final unit in inventoryProvider.units)
+              DropdownMenuItem(value: unit.code, child: Text(unit.name)),
+          ],
+          validator: (value) => value == null ? 'Required' : null,
+          onChanged: (value) => setState(() => _stockUnit = value),
+          label: 'Stock unit *',
+          icon: Icons.straighten_outlined,
+        ),
+        IcueDropdown<Tracking>(
+          key: ValueKey(_tracking),
+          value: _tracking,
+          items: [
+            for (final tracking in Tracking.values)
+              DropdownMenuItem(value: tracking, child: Text(tracking.label)),
+          ],
+          onChanged: (tracking) => _tracking = tracking ?? _tracking,
+          label: 'Tracking method *',
+          icon: Icons.track_changes_outlined,
+        ),
+      ],
+    );
+    final reorder = IcueFormSectionCard(
+      title: 'Reorder & pricing',
+      icon: Icons.payments_outlined,
+      children: [
+        IcueTextField(
+          controller: _reorder,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: [decimalInputFormatter],
+          textInputAction: TextInputAction.next,
+          validator: optionalNumber,
+          label: 'Reorder level',
+          icon: Icons.refresh_outlined,
+          helperText: 'Alert threshold when available stock is low',
+        ),
+        IcueTextField(
+          controller: _price,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: [decimalInputFormatter],
+          textInputAction: TextInputAction.done,
+          validator: optionalNumber,
+          label: 'Default purchase price',
+          icon: Icons.payments_outlined,
+          helperText: 'Estimated unit cost for purchase requests',
+        ),
+      ],
+    );
+    final actions = Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        if (kDebugMode && !editing) ...[
+          IcueButton(
+            label: 'Fill sample',
+            onPressed: _busy ? null : _fillSample,
+            variant: IcueButtonVariant.ghost,
+            leadingIcon: Icons.auto_fix_high_rounded,
+          ),
+          const Spacer(),
+        ],
+        IcueButton(
+          label: 'Cancel',
+          onPressed: _busy ? null : () => Navigator.of(context).pop(),
+          variant: IcueButtonVariant.outline,
+        ),
+        const SizedBox(width: 12),
+        IcueButton(
+          label: _busy ? 'Saving…' : (editing ? 'Update item' : 'Save item'),
+          onPressed: _busy ? null : _save,
+          leadingIcon: Icons.check_circle_outline,
+          isLoading: _busy,
+        ),
+      ],
+    );
+
     return Scaffold(
       appBar: AppBar(title: Text(editing ? 'Edit item' : 'Add item')),
       body: IcueCenteredBody(
-        maxWidth: IcueBreakpoints.formMaxWidth,
         child: Form(
           key: _form,
           child: ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: EdgeInsets.all(context.isWide ? 24 : 16),
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             children: [
-              IcueFormSectionCard(
-                title: 'Basic information',
-                icon: Icons.inventory_2_outlined,
-                children: [
-                  IcueTextField(
-                    controller: _code,
-                    enabled: !editing,
-                    textCapitalization: TextCapitalization.characters,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(
-                        RegExp(r'[A-Za-z0-9._\-]'),
-                      ),
-                    ],
-                    textInputAction: TextInputAction.next,
-                    validator: requiredText,
-                    label: 'Item code / SKU *',
-                    icon: Icons.qr_code_2_outlined,
-                    helperText: !editing
-                        ? 'Unique identifier, e.g. PAP-A4-01'
-                        : null,
-                  ),
-                  IcueTextField(
-                    controller: _name,
-                    textCapitalization: TextCapitalization.words,
-                    textInputAction: TextInputAction.next,
-                    validator: requiredText,
-                    label: 'Item name *',
-                    icon: Icons.label_outline,
-                  ),
-                  IcueDropdown<String>(
-                    value: _categoryId,
-                    items: [
-                      for (final category in tops)
-                        DropdownMenuItem(
-                          value: category.id,
-                          child: Text(category.name),
-                        ),
-                    ],
-                    validator: (value) => value == null ? 'Required' : null,
-                    onChanged: (value) => setState(() {
-                      _categoryId = value;
-                      _subcategoryId = null;
-                      final suggested = inventoryProvider
-                          .category(value)
-                          ?.suggestedTracking;
-                      if (!editing && suggested != null) _tracking = suggested;
-                    }),
-                    label: 'Category *',
-                    icon: Icons.category_outlined,
-                  ),
-                  if (subs.isNotEmpty)
-                    IcueDropdown<String?>(
-                      key: ValueKey(_categoryId),
-                      value: _subcategoryId,
-                      items: [
-                        const DropdownMenuItem(child: Text('None')),
-                        for (final category in subs)
-                          DropdownMenuItem(
-                            value: category.id,
-                            child: Text(category.name),
-                          ),
-                      ],
-                      onChanged: (value) => _subcategoryId = value,
-                      label: 'Subcategory',
-                      icon: Icons.subdirectory_arrow_right_outlined,
+              // Two columns from the wide breakpoint, one stacked column below it.
+              if (context.isWide)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(flex: 3, child: basic),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      flex: 2,
+                      child: Column(children: [stock, reorder]),
                     ),
-                  IcueTextField(
-                    controller: _description,
-                    minLines: 2,
-                    maxLines: 4,
-                    textCapitalization: TextCapitalization.sentences,
-                    keyboardType: TextInputType.multiline,
-                    label: 'Description',
-                    icon: Icons.notes_outlined,
-                  ),
-                ],
-              ),
-              IcueFormSectionCard(
-                title: 'Stock & tracking',
-                icon: Icons.tune_outlined,
-                children: [
-                  IcueDropdown<String>(
-                    value: _stockUnit,
-                    items: [
-                      for (final unit in inventoryProvider.units)
-                        DropdownMenuItem(
-                          value: unit.code,
-                          child: Text(unit.name),
-                        ),
-                    ],
-                    validator: (value) => value == null ? 'Required' : null,
-                    onChanged: (value) => setState(() => _stockUnit = value),
-                    label: 'Stock unit *',
-                    icon: Icons.straighten_outlined,
-                  ),
-                  IcueDropdown<Tracking>(
-                    key: ValueKey(_tracking),
-                    value: _tracking,
-                    items: [
-                      for (final tracking in Tracking.values)
-                        DropdownMenuItem(
-                          value: tracking,
-                          child: Text(tracking.label),
-                        ),
-                    ],
-                    onChanged: (tracking) => _tracking = tracking ?? _tracking,
-                    label: 'Tracking method *',
-                    icon: Icons.track_changes_outlined,
-                  ),
-                ],
-              ),
-              IcueFormSectionCard(
-                title: 'Reorder & pricing',
-                icon: Icons.payments_outlined,
-                children: [
-                  IcueTextField(
-                    controller: _reorder,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    inputFormatters: [decimalInputFormatter],
-                    textInputAction: TextInputAction.next,
-                    validator: optionalNumber,
-                    label: 'Reorder level',
-                    icon: Icons.refresh_outlined,
-                    helperText: 'Alert threshold when available stock is low',
-                  ),
-                  IcueTextField(
-                    controller: _price,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    inputFormatters: [decimalInputFormatter],
-                    textInputAction: TextInputAction.done,
-                    validator: optionalNumber,
-                    label: 'Default purchase price',
-                    icon: Icons.payments_outlined,
-                    helperText: 'Estimated unit cost for purchase requests',
-                  ),
-                ],
-              ),
+                  ],
+                )
+              else ...[
+                basic,
+                stock,
+                reorder,
+              ],
               const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: IcueButton(
-                  label: _busy
-                      ? 'Saving…'
-                      : (editing ? 'Update item' : 'Save item'),
-                  onPressed: _busy ? null : _save,
-                  leadingIcon: Icons.check_circle_outline,
-                  isLoading: _busy,
-                ),
-              ),
+              actions,
               const SizedBox(height: 24),
             ],
           ),
@@ -261,3 +311,42 @@ class _ItemFormPageState extends State<ItemFormPage> {
     );
   }
 }
+
+const _sampleItems =
+    <({String code, String name, String description, int reorder, int price})>[
+      (
+        code: 'PAP-A4-01',
+        name: 'A4 Copier Paper (500 sheets)',
+        description: '75 GSM white copier paper ream.',
+        reorder: 20,
+        price: 260,
+      ),
+      (
+        code: 'PEN-BLU-01',
+        name: 'Blue Ball Pen',
+        description: '0.7 mm ball point pen.',
+        reorder: 100,
+        price: 8,
+      ),
+      (
+        code: 'MRK-WHT-01',
+        name: 'Whiteboard Marker',
+        description: 'Assorted colours, bullet tip.',
+        reorder: 50,
+        price: 25,
+      ),
+      (
+        code: 'CLN-FLR-01',
+        name: 'Floor Cleaner (5 L)',
+        description: 'Disinfectant floor cleaning liquid.',
+        reorder: 10,
+        price: 350,
+      ),
+      (
+        code: 'BSK-BAL-01',
+        name: 'Basketball (Size 7)',
+        description: 'Rubber outdoor basketball.',
+        reorder: 5,
+        price: 900,
+      ),
+    ];

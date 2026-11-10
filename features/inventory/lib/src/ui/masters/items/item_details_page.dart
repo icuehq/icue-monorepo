@@ -126,6 +126,89 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
     final reorder = item.reorderLevel;
     final price = item.defaultPrice;
 
+    final classification = IcueFormSectionCard(
+      title: 'Classification & units',
+      icon: Icons.category_outlined,
+      children: [
+        _infoRow(
+          context,
+          icon: Icons.folder_outlined,
+          label: 'Category',
+          value: category?.name ?? '—',
+          helper: subcategory != null ? 'Sub: ${subcategory.name}' : null,
+        ),
+        _infoRow(
+          context,
+          icon: Icons.straighten_outlined,
+          label: 'Stock unit',
+          value: item.stockUnit,
+          helper: 'Base unit used for physical inventory and balances',
+        ),
+        _infoRow(
+          context,
+          icon: Icons.track_changes_outlined,
+          label: 'Tracking method',
+          value: item.tracking.label,
+          helper: switch (item.tracking) {
+            Tracking.quantity =>
+              'Tracked in bulk quantities without serialization',
+            Tracking.batch => 'Tracked with batch numbers and expiration dates',
+            Tracking.asset => 'Tracked as individual serialized capital assets',
+          },
+        ),
+      ],
+    );
+    final stockSection = IcueFormSectionCard(
+      title: 'Stock & pricing parameters',
+      icon: Icons.tune_outlined,
+      children: [
+        _infoRow(
+          context,
+          icon: Icons.refresh_outlined,
+          label: 'Reorder alert level',
+          value: reorder != null
+              ? '${reorder % 1 == 0 ? reorder.toInt() : reorder} ${item.stockUnit}'
+              : 'Not configured',
+          helper: reorder != null
+              ? 'Triggers restock alert when available stock is low'
+              : 'Configure in edit item to enable low-stock alerts',
+        ),
+        _infoRow(
+          context,
+          icon: Icons.payments_outlined,
+          label: 'Default purchase price',
+          value: price != null
+              ? '${price.toRupees()} / ${item.stockUnit}'
+              : 'Not configured',
+          helper: 'Estimated unit cost auto-filled on purchase requisitions',
+        ),
+      ],
+    );
+    final hasDescription =
+        item.description != null && item.description!.trim().isNotEmpty;
+    final description = hasDescription
+        ? IcueFormSectionCard(
+            title: 'Description & specifications',
+            icon: Icons.notes_outlined,
+            children: [
+              Text(
+                item.description!.trim(),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  height: 1.5,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+            ],
+          )
+        : null;
+    final wide = context.isWide;
+    final stockButton = IcueButton(
+      label: 'View stock levels in stores',
+      onPressed: () => context.push(InventoryRoutes.inventoryStock),
+      variant: IcueButtonVariant.outline,
+      leadingIcon: Icons.stacked_bar_chart_outlined,
+    );
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Item details'),
@@ -145,9 +228,8 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
         ],
       ),
       body: IcueCenteredBody(
-        maxWidth: 900,
         child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: EdgeInsets.all(wide ? 24 : 16),
           children: [
             // Hero Header Card
             Card(
@@ -308,97 +390,29 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
               ),
             ),
 
-            // Classification & Units Section
-            IcueFormSectionCard(
-              title: 'Classification & units',
-              icon: Icons.category_outlined,
-              children: [
-                _infoRow(
-                  context,
-                  icon: Icons.folder_outlined,
-                  label: 'Category',
-                  value: category?.name ?? '—',
-                  helper: subcategory != null
-                      ? 'Sub: ${subcategory.name}'
-                      : null,
-                ),
-                _infoRow(
-                  context,
-                  icon: Icons.straighten_outlined,
-                  label: 'Stock unit',
-                  value: item.stockUnit,
-                  helper: 'Base unit used for physical inventory and balances',
-                ),
-                _infoRow(
-                  context,
-                  icon: Icons.track_changes_outlined,
-                  label: 'Tracking method',
-                  value: item.tracking.label,
-                  helper: switch (item.tracking) {
-                    Tracking.quantity =>
-                      'Tracked in bulk quantities without serialization',
-                    Tracking.batch =>
-                      'Tracked with batch numbers and expiration dates',
-                    Tracking.asset =>
-                      'Tracked as individual serialized capital assets',
-                  },
-                ),
-              ],
-            ),
-
-            // Stock & Pricing Controls
-            IcueFormSectionCard(
-              title: 'Stock & pricing parameters',
-              icon: Icons.tune_outlined,
-              children: [
-                _infoRow(
-                  context,
-                  icon: Icons.refresh_outlined,
-                  label: 'Reorder alert level',
-                  value: reorder != null
-                      ? '${reorder % 1 == 0 ? reorder.toInt() : reorder} ${item.stockUnit}'
-                      : 'Not configured',
-                  helper: reorder != null
-                      ? 'Triggers restock alert when available stock is low'
-                      : 'Configure in edit item to enable low-stock alerts',
-                ),
-                _infoRow(
-                  context,
-                  icon: Icons.payments_outlined,
-                  label: 'Default purchase price',
-                  value: price != null
-                      ? '${price.toRupees()} / ${item.stockUnit}'
-                      : 'Not configured',
-                  helper: 'Estimated unit cost auto-filled on purchase requisitions',
-                ),
-              ],
-            ),
-
-            // Description Section (if available)
-            if (item.description != null && item.description!.trim().isNotEmpty)
-              IcueFormSectionCard(
-                title: 'Description & specifications',
-                icon: Icons.notes_outlined,
+            // Two columns from the wide breakpoint, stacked below it.
+            if (wide)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    item.description!.trim(),
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      height: 1.5,
-                      color: theme.colorScheme.onSurface,
-                    ),
-                  ),
+                  Expanded(child: classification),
+                  const SizedBox(width: 16),
+                  Expanded(child: stockSection),
                 ],
-              ),
+              )
+            else ...[
+              classification,
+              stockSection,
+            ],
+            ?description,
 
             const SizedBox(height: 8),
 
             // Action Buttons
-            IcueButton(
-              label: 'View stock levels in stores',
-              onPressed: () => context.push(InventoryRoutes.inventoryStock),
-              variant: IcueButtonVariant.outline,
-              leadingIcon: Icons.stacked_bar_chart_outlined,
-            ),
+            if (wide)
+              Align(alignment: Alignment.centerLeft, child: stockButton)
+            else
+              stockButton,
             const SizedBox(height: 24),
           ],
         ),

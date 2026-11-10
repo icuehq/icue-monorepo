@@ -62,7 +62,7 @@ dependencies {
     implementation("androidx.camera:camera-view:1.6.1")
 
     // 4. ML Kit Face Detection
-    implementation("com.google.android.gms:play-services-mlkit-face-detection:17.1.0")
+    implementation("com.google.mlkit:face-detection:16.1.7")
 
     // 5. LiteRT / TensorFlow Lite Runtime (Model Inference Engine)
     implementation("com.google.ai.edge.litert:litert-api:2.1.6")
@@ -117,7 +117,7 @@ dependencies {
     implementation 'androidx.camera:camera-lifecycle:1.6.1'
     implementation 'androidx.camera:camera-view:1.6.1'
 
-    implementation 'com.google.android.gms:play-services-mlkit-face-detection:17.1.0'
+    implementation 'com.google.mlkit:face-detection:16.1.7'
 
     implementation 'com.google.ai.edge.litert:litert-api:2.1.6'
     implementation 'com.google.ai.edge.litert:litert:2.1.6'
