@@ -313,7 +313,9 @@ class _CopyDialogState extends State<CopyDialog> {
             IconButton.filledTonal(
               tooltip: 'Print barcode label',
               icon: const Icon(Icons.print_outlined),
-              onPressed: () => shareCopyLabels(widget.title, [copy]),
+              onPressed: () => shareCopyLabels(widget.title, [
+                (barcode: copy.barcode, shelf: copy.shelf),
+              ]),
             ),
           ],
         ),

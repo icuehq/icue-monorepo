@@ -3,6 +3,7 @@ import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
+import 'package:school_library/src/ui/catalogue/mock_books.dart';
 
 class LibraryCategoryDialog extends StatefulWidget {
   const LibraryCategoryDialog({super.key, this.category, this.parentId});
@@ -50,6 +51,27 @@ class _LibraryCategoryDialogState extends State<LibraryCategoryDialog> {
     _name.dispose();
     _description.dispose();
     super.dispose();
+  }
+
+  int _mockIndex = 0;
+
+  /// Fills the next sample category not already under the chosen parent (client-side only).
+  void _prefillMock() {
+    final taken = {
+      for (final category in context.read<LibraryProvider>().categories)
+        if (category.parentId == _parentId) category.name.trim().toLowerCase(),
+    };
+    for (var step = 0; step < mockCategories.length; step++) {
+      final (name, description) =
+          mockCategories[(_mockIndex + step) % mockCategories.length];
+      if (taken.contains(name.toLowerCase())) continue;
+      _mockIndex += step + 1;
+      setState(() {
+        _name.text = name;
+        _description.text = description;
+      });
+      return;
+    }
   }
 
   Future<void> _save() async {
@@ -254,6 +276,15 @@ class _LibraryCategoryDialogState extends State<LibraryCategoryDialog> {
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
+              if (!editing) ...[
+                AppButton(
+                  label: 'Fill sample',
+                  onPressed: _busy ? null : _prefillMock,
+                  variant: AppButtonVariant.ghost,
+                  leadingIcon: Icons.auto_fix_high_rounded,
+                ),
+                const Spacer(),
+              ],
               AppButton(
                 label: 'Cancel',
                 onPressed: _busy ? null : () => Navigator.of(context).pop(),

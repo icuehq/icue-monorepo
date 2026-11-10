@@ -113,180 +113,218 @@ class _LibraryOverviewPageState extends State<LibraryOverviewPage> {
           ),
         ],
       ),
-      body: CenteredBody(
-        child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-          children: [
-            // Header Hero Banner
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surface,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: theme.colorScheme.outlineVariant.withValues(
-                    alpha: 0.5,
-                  ),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.025),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Library overview',
-                          style: theme.textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Real-time circulation metrics, collection analytics, and pending actions.',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
+      body: ListView(
+        padding: EdgeInsets.symmetric(
+          horizontal: context.isWide ? 24 : 16,
+          vertical: context.isWide ? 20 : 16,
+        ),
+        children: [
+          // Header Hero Banner
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isCompact = constraints.maxWidth < 640;
+              final dropdown = SizedBox(
+                width: isCompact ? double.infinity : 240,
+                child: DropdownButtonFormField<String?>(
+                  initialValue: _libraryId,
+                  decoration: InputDecoration(
+                    labelText: 'Filter library',
+                    prefixIcon: const Icon(
+                      Icons.local_library_outlined,
+                      size: 18,
+                    ),
+                    isDense: true,
+                    filled: true,
+                    fillColor: theme.colorScheme.surfaceContainerLowest,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
                     ),
                   ),
-                  const SizedBox(width: 20),
-                  SizedBox(
-                    width: 240,
-                    child: DropdownButtonFormField<String?>(
-                      initialValue: _libraryId,
-                      decoration: InputDecoration(
-                        labelText: 'Filter library',
-                        prefixIcon: const Icon(
-                          Icons.local_library_outlined,
-                          size: 18,
-                        ),
-                        isDense: true,
-                        filled: true,
-                        fillColor: theme.colorScheme.surfaceContainerLowest,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
+                  items: [
+                    const DropdownMenuItem(child: Text('All libraries')),
+                    for (final schoolLibrary in libraryProvider.libraries.where(
+                      (schoolLibrary) => schoolLibrary.active,
+                    ))
+                      DropdownMenuItem(
+                        value: schoolLibrary.id,
+                        child: Text(
+                          schoolLibrary.name,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      items: [
-                        const DropdownMenuItem(child: Text('All libraries')),
-                        for (final schoolLibrary
-                            in libraryProvider.libraries.where(
-                              (schoolLibrary) => schoolLibrary.active,
-                            ))
-                          DropdownMenuItem(
-                            value: schoolLibrary.id,
-                            child: Text(
-                              schoolLibrary.name,
-                              overflow: TextOverflow.ellipsis,
+                  ],
+                  onChanged: (value) {
+                    _libraryId = value;
+                    _load();
+                  },
+                ),
+              );
+
+              return Container(
+                padding: EdgeInsets.all(context.isWide ? 20 : 16),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: theme.colorScheme.outlineVariant.withValues(
+                      alpha: 0.5,
+                    ),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.025),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: isCompact
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Library overview',
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: -0.5,
                             ),
                           ),
-                      ],
-                      onChanged: (value) {
-                        _libraryId = value;
-                        _load();
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Quick Actions Bar
-            const OverviewQuickActions(),
-
-            if (libraryProvider.insightsLoading && stats.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(56),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else ...[
-              // KPI Metric Sections
-              for (final (title, icon, keys) in _sections)
-                if (keys.any(allowed)) ...[
-                  const SizedBox(height: 24),
-                  Row(
-                    children: [
-                      Icon(
-                        icon,
-                        size: 18,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        title.toUpperCase(),
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1.0,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 16,
-                    runSpacing: 16,
-                    children: [
-                      for (final key in keys)
-                        if (allowed(key))
-                          OverviewKpiCard(
-                            statKey: key,
-                            value: stats[key]!,
-                            icon: _icons[key] ?? Icons.analytics_outlined,
-                            targetRoute: _targets[key],
+                          const SizedBox(height: 4),
+                          Text(
+                            'Real-time circulation metrics, collection analytics, and pending actions.',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
                           ),
-                    ],
-                  ),
-                ],
+                          const SizedBox(height: 16),
+                          dropdown,
+                        ],
+                      )
+                    : Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Library overview',
+                                  style: theme.textTheme.headlineSmall
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: -0.5,
+                                      ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Real-time circulation metrics, collection analytics, and pending actions.',
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 20),
+                          dropdown,
+                        ],
+                      ),
+              );
+            },
+          ),
+          const SizedBox(height: 20),
 
-              const SizedBox(height: 28),
+          // Quick Actions Bar
+          const OverviewQuickActions(),
 
-              // Operational Cards: Attention & Due Next
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final attention = OverviewAttentionCard(
-                    stats: stats,
-                    allowed: allowed,
-                    targets: _targets,
-                  );
-                  final dueNext = OverviewDueNextCard(
-                    libraryProvider: libraryProvider,
-                  );
-
-                  if (constraints.maxWidth < 900) {
-                    return Column(
+          if (libraryProvider.insightsLoading && stats.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(56),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else ...[
+            // KPI Metric Sections
+            for (final (title, icon, keys) in _sections)
+              if (keys.any(allowed)) ...[
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Icon(
+                      icon,
+                      size: 18,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      title.toUpperCase(),
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    const spacing = 16.0;
+                    final columnCount = (constraints.maxWidth / 220)
+                        .floor()
+                        .clamp(1, 5);
+                    final cardWidth =
+                        (constraints.maxWidth - (columnCount - 1) * spacing) /
+                        columnCount;
+                    return Wrap(
+                      spacing: spacing,
+                      runSpacing: spacing,
                       children: [
-                        attention,
-                        const SizedBox(height: 16),
-                        dueNext,
+                        for (final key in keys)
+                          if (allowed(key))
+                            OverviewKpiCard(
+                              statKey: key,
+                              value: stats[key]!,
+                              icon: _icons[key] ?? Icons.analytics_outlined,
+                              targetRoute: _targets[key],
+                              width: cardWidth,
+                            ),
                       ],
                     );
-                  }
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(child: attention),
-                      const SizedBox(width: 20),
-                      Expanded(flex: 2, child: dueNext),
-                    ],
+                  },
+                ),
+              ],
+
+            const SizedBox(height: 28),
+
+            // Operational Cards: Attention & Due Next
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final attention = OverviewAttentionCard(
+                  stats: stats,
+                  allowed: allowed,
+                  targets: _targets,
+                );
+                final dueNext = OverviewDueNextCard(
+                  libraryProvider: libraryProvider,
+                );
+
+                if (constraints.maxWidth < 900) {
+                  return Column(
+                    children: [attention, const SizedBox(height: 16), dueNext],
                   );
-                },
-              ),
-            ],
+                }
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: attention),
+                    const SizedBox(width: 20),
+                    Expanded(flex: 2, child: dueNext),
+                  ],
+                );
+              },
+            ),
           ],
-        ),
+        ],
       ),
     );
   }

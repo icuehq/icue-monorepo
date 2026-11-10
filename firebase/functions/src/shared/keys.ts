@@ -11,9 +11,22 @@ export function financialYearOf(date: Date): string {
 }
 
 /**
- * The next [count] sequential numbers `TYPE/2026-27/000123` from `counters/{TYPE_fy}`.
- * Known limit: one call per type per transaction (a second call reads the same counter).
+ * The next [count] running numbers (1, 2, …) of `counters/{key}`.
+ * Known limit: one call per key per transaction (a second call reads the same counter).
  */
+export async function nextSequence(
+  context: CallableContext,
+  key: string,
+  count: number,
+): Promise<number[]> {
+  const ref = context.doc(`counters/${key}`);
+  const snapshot = await context.transaction.get(ref);
+  const first = ((snapshot.data()?.next as number | undefined) ?? 0) + 1;
+  context.set(ref, { next: first + count - 1, updatedAt: serverTimestamp() });
+  return Array.from({ length: count }, (_, offset) => first + offset);
+}
+
+/** The next [count] sequential numbers `TYPE/2026-27/000123` from `counters/{TYPE_fy}`. */
 export async function nextNumbers(
   context: CallableContext,
   type: string,
@@ -21,14 +34,8 @@ export async function nextNumbers(
   date = new Date(),
 ): Promise<string[]> {
   const financialYear = financialYearOf(date);
-  const ref = context.doc(`counters/${type}_${financialYear}`);
-  const snapshot = await context.transaction.get(ref);
-  const first = ((snapshot.data()?.next as number | undefined) ?? 0) + 1;
-  context.set(ref, { next: first + count - 1, updatedAt: serverTimestamp() });
-  return Array.from(
-    { length: count },
-    (_, offset) => `${type}/${financialYear}/${String(first + offset).padStart(6, '0')}`,
-  );
+  const numbers = await nextSequence(context, `${type}_${financialYear}`, count);
+  return numbers.map((number) => `${type}/${financialYear}/${String(number).padStart(6, '0')}`);
 }
 
 /** Next sequential number `TYPE/2026-27/000123`. */

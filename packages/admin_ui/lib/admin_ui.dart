@@ -10,3 +10,7 @@ export 'src/option_grid_card.dart';
 export 'src/report_screen.dart';
 export 'src/scan_field.dart';
 export 'src/stat_tile_grid.dart';
+export 'src/table/admin_table.dart';
+export 'src/table/client_table.dart';
+export 'src/table/table_models.dart';
+export 'src/table/table_pagination.dart';

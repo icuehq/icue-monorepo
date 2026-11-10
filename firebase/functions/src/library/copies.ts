@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type { CallableContext } from '../shared/callable';
 import { dayTimestamp, isoDate, todayIST } from '../shared/dates';
 import { serverTimestamp } from '../shared/firestore';
-import { nextNumber } from '../shared/keys';
+import { nextNumber, nextSequence } from '../shared/keys';
 import { defineCallable, failed, id, missing, optionalText, usable } from '../shared/masters';
 import { holdDays, hold, nextWaiting, release } from './reservations';
 
@@ -13,6 +13,9 @@ const CONDITIONS = ['good', 'fair', 'poor'] as const;
 /** Statuses a librarian may set by hand; issued / reserved / in_transit belong to circulation and transfers. */
 const MANUAL = ['available', 'under_maintenance', 'damaged', 'lost', 'withdrawn'] as const;
 const TERMINAL = ['lost', 'withdrawn'];
+
+/** Barcodes the system issues; scanned ones may not use this shape, so they never take a future number. */
+const GENERATED = /^LB\d{6,}$/i;
 
 async function loadCopy(context: CallableContext, barcode: string) {
   const ref = context.doc(`libraryCopies/${barcode}`);
@@ -40,7 +43,7 @@ export const copies = {
       remarks: optionalText,
       shelf: text.nullish(),
       condition: z.enum(CONDITIONS).default('good'),
-      /** Barcode of each copy, in order; it becomes the copy's document ID. */
+      /** Scanned barcode of each copy, in order; it becomes the copy's document ID. Omitted: the system issues `LB000123` codes. */
       barcodes: z
         .array(
           z
@@ -48,14 +51,17 @@ export const copies = {
             .trim()
             .min(1)
             .max(64)
-            .regex(/^[^/]+$/, 'Barcode cannot contain /'),
+            .regex(/^[^/]+$/, 'Barcode cannot contain /')
+            .refine((code) => !GENERATED.test(code), 'LB barcodes are issued by the system'),
         )
         .min(1)
-        .max(100),
+        .max(100)
+        .optional(),
     }),
     handler: async (context, i) => {
-      if (i.barcodes.length !== i.quantity) throw failed('Enter one barcode per copy');
-      if (new Set(i.barcodes.map((code) => code.toLowerCase())).size !== i.quantity)
+      if (i.barcodes && i.barcodes.length !== i.quantity)
+        throw failed('Enter one barcode per copy');
+      if (i.barcodes && new Set(i.barcodes.map((code) => code.toLowerCase())).size !== i.quantity)
         throw failed('Barcodes must be different for every copy');
       const library = usable(
         await context.transaction.get(context.doc(`libraries/${i.libraryId}`)),
@@ -72,7 +78,11 @@ export const copies = {
       const date = dayTimestamp(i.date ?? todayIST());
       const book = context.newDoc('libraryBooks');
       const number = await nextNumber(context, 'ACQ');
-      const ids = i.barcodes;
+      const ids =
+        i.barcodes ??
+        (await nextSequence(context, 'libraryCopy', i.quantity)).map(
+          (sequence) => `LB${String(sequence).padStart(6, '0')}`,
+        );
       for (const barcode of ids) {
         const ref = context.doc(`libraryCopies/${barcode}`);
         if ((await context.transaction.get(ref)).exists)

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
+import 'package:school_library/src/ui/catalogue/widgets/add_copies_form.dart';
 import 'package:school_library/src/ui/catalogue/widgets/copy_card.dart';
 import 'package:school_library/src/ui/catalogue/widgets/copy_dialog.dart';
+import 'package:school_library/src/ui/catalogue/widgets/copy_labels.dart';
 
 /// Physical copies of a title (FRS 11.1 "view physical copies"), .
 class BookCopiesSection extends StatefulWidget {
@@ -95,6 +97,24 @@ class _BookCopiesSectionState extends State<BookCopiesSection> {
                     ),
                   ),
                 ],
+                const Spacer(),
+                if (copies != null && copies.isNotEmpty)
+                  IconButton(
+                    tooltip: 'Print barcode labels',
+                    icon: const Icon(Icons.print_outlined),
+                    onPressed: () => shareCopyLabels(widget.book.title, [
+                      for (final copy in copies)
+                        (barcode: copy.barcode, shelf: copy.shelf),
+                    ]),
+                  ),
+                IconButton(
+                  tooltip: 'Add copies',
+                  icon: const Icon(Icons.add_rounded),
+                  onPressed: () async {
+                    await AddCopiesForm.show(context, widget.book);
+                    await _load();
+                  },
+                ),
               ],
             ),
             const SizedBox(height: 12),

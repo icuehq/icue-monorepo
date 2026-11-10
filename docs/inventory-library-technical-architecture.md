@@ -367,7 +367,7 @@ Types: inventory categories, items, opening stock, stores, assets, vendors; libr
 
 - Lists on screen: CSV/XLSX generated client-side from the rows already loaded (current page or "all" up to 5000 rows).
 - Reports: Flutter pages through the report query (same rules as the list), resolves person names via Node per page, and writes CSV/XLSX (`excel`) or PDF (`pdf`). A progress indicator keeps the UI responsive. Ceiling: very large exports (100k+ rows) are slow in the browser; move to a Function once names are not needed or Node is callable server-side.
-- Purchase orders and labels: PDF generated in Flutter (`pdf` + `printing` packages) from the PO / copy docs.
+- Purchase orders and labels: PDF generated in Flutter (`pdf` + `printing` packages) from the PO / copy docs. Book copy labels are Code 128 on thermal roll labels, one per page.
 
 ---
 

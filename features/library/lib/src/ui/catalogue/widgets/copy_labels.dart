@@ -1,62 +1,58 @@
+import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
-import 'package:school_library/school_library.dart';
 
-/// One label per copy: QR code of the barcode (FRS 11.5); opens the print / share sheet.
-Future<void> shareCopyLabels(String title, List<LibraryCopy> copies) {
+/// Thermal roll label, one per page. Change here if the school's roll differs.
+const labelFormat = PdfPageFormat(
+  50 * PdfPageFormat.mm,
+  25 * PdfPageFormat.mm,
+  marginAll: 2 * PdfPageFormat.mm,
+);
+
+/// A copy's barcode and shelf, as printed on its label.
+typedef CopyLabel = ({String barcode, String? shelf});
+
+/// One Code 128 label per copy (FRS 11.5); opens the print / share sheet.
+Future<void> shareCopyLabels(String title, List<CopyLabel> labels) {
   final doc = pw.Document();
-  doc.addPage(
-    pw.MultiPage(
-      build: (_) => [
-        pw.Wrap(
-          spacing: 12,
-          runSpacing: 12,
+  for (final label in labels) {
+    doc.addPage(
+      pw.Page(
+        pageFormat: labelFormat,
+        build: (_) => pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.stretch,
           children: [
-            for (final copy in copies)
-              pw.Container(
-                width: 170,
-                padding: const pw.EdgeInsets.all(6),
-                decoration: pw.BoxDecoration(border: pw.Border.all()),
-                child: pw.Row(
-                  children: [
-                    pw.BarcodeWidget(
-                      barcode: pw.Barcode.qrCode(),
-                      data: copy.barcode,
-                      width: 56,
-                      height: 56,
-                    ),
-                    pw.SizedBox(width: 8),
-                    pw.Expanded(
-                      child: pw.Column(
-                        crossAxisAlignment: pw.CrossAxisAlignment.start,
-                        children: [
-                          pw.Text(
-                            title,
-                            maxLines: 2,
-                            style: const pw.TextStyle(fontSize: 8),
-                          ),
-                          pw.Text(
-                            copy.barcode,
-                            style: const pw.TextStyle(
-                              fontSize: 10,
-                              fontWeight: pw.FontWeight.bold,
-                            ),
-                          ),
-                          if (copy.shelf != null)
-                            pw.Text(
-                              copy.shelf!,
-                              style: const pw.TextStyle(fontSize: 8),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
+            pw.Text(
+              title,
+              maxLines: 1,
+              overflow: pw.TextOverflow.clip,
+              style: const pw.TextStyle(fontSize: 6),
+            ),
+            pw.SizedBox(height: 1),
+            pw.Expanded(
+              child: pw.BarcodeWidget(
+                barcode: pw.Barcode.code128(),
+                data: label.barcode,
+                textStyle: const pw.TextStyle(
+                  fontSize: 7,
+                  fontWeight: pw.FontWeight.bold,
                 ),
+              ),
+            ),
+            if (label.shelf != null)
+              pw.Text(
+                label.shelf!,
+                maxLines: 1,
+                style: const pw.TextStyle(fontSize: 5),
               ),
           ],
         ),
-      ],
-    ),
+      ),
+    );
+  }
+  return Printing.layoutPdf(
+    name: 'book-labels',
+    format: labelFormat,
+    onLayout: (_) => doc.save(),
   );
-  return Printing.layoutPdf(name: 'book-labels', onLayout: (_) => doc.save());
 }

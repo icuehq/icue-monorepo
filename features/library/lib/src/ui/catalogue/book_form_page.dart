@@ -6,8 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
+import 'package:school_library/src/ui/catalogue/mock_books.dart';
 import 'package:school_library/src/ui/catalogue/widgets/book_class_section.dart';
 import 'package:school_library/src/ui/catalogue/widgets/book_form_sections.dart';
+import 'package:school_library/src/ui/catalogue/widgets/copy_labels.dart';
 import 'package:school_library/src/ui/catalogue/widgets/new_copies_section.dart';
 
 class BookFormPage extends StatefulWidget {
@@ -24,6 +26,7 @@ class _BookFormPageState extends State<BookFormPage> {
   final _copiesRequestId = newRequestId();
   final _copies = TextEditingController(text: '1');
   final _barcodes = <TextEditingController>[];
+  bool _generateBarcodes = true;
   String? _libraryId;
   late final LibraryBook? _existingBook = widget.book;
   late final _title = TextEditingController(text: _existingBook?.title);
@@ -117,6 +120,46 @@ class _BookFormPageState extends State<BookFormPage> {
     super.dispose();
   }
 
+  int _mockIndex = 0;
+
+  /// Fills the form with the next sample book (client-side only, nothing is saved).
+  void _prefillMock() {
+    final mock = mockBooks[_mockIndex++ % mockBooks.length];
+    final provider = context.read<LibraryProvider>();
+    final hint = mock.categoryHint.toLowerCase();
+    final category = provider.categories.where(
+      (category) =>
+          category.active && category.name.toLowerCase().contains(hint),
+    );
+    setState(() {
+      _title.text = mock.title;
+      _subtitle.text = mock.subtitle ?? '';
+      _authors.text = mock.authors;
+      _publisher.text = mock.publisher;
+      _edition.text = '1st';
+      _year.text = '${mock.year}';
+      _language.text = mock.language;
+      _pages.text = '${mock.pages}';
+      _shelf.text = 'A-${_mockIndex.toString().padLeft(2, '0')}';
+      _keywords.text = [
+        mock.categoryHint.toLowerCase(),
+        ...mock.title.toLowerCase().split(' ').where((word) => word.length > 3),
+      ].join(', ');
+      _description.text = mock.description;
+      _categoryId = category.firstOrNull?.id;
+      _classIds
+        ..clear()
+        ..addAll([
+          for (final standard in provider.standards)
+            if (mock.classNumbers.any(
+              (number) => RegExp('\\b$number\\b').hasMatch(standard.name),
+            ))
+              standard.id,
+        ]);
+      _dirty = true;
+    });
+  }
+
   Future<bool> _confirmDiscard() async =>
       await showDialog<bool>(
         context: context,
@@ -147,7 +190,10 @@ class _BookFormPageState extends State<BookFormPage> {
     return {
       'libraryId': _libraryId,
       'quantity': quantity,
-      'barcodes': [for (final controller in _barcodes) controller.text.trim()],
+      if (!_generateBarcodes)
+        'barcodes': [
+          for (final controller in _barcodes) controller.text.trim(),
+        ],
       'shelf': blankToNull(_shelf),
     };
   }
@@ -155,13 +201,15 @@ class _BookFormPageState extends State<BookFormPage> {
   Future<void> _save() async {
     if (!_form.currentState!.validate() || _duplicate) return;
     setState(() => _busy = true);
+    final libraryProvider = context.read<LibraryProvider>();
+    final title = _title.text.trim();
     final saved = await submitAndClose<LibraryProvider>(
       context,
-      () => context.read<LibraryProvider>().saveBook(
+      () => libraryProvider.saveBook(
         {
           // Stable per form, so a retry after the copies failed edits the title it already made.
           'id': _existingBook?.id ?? _copiesRequestId,
-          'title': _title.text.trim(),
+          'title': title,
           'subtitle': blankToNull(_subtitle),
           'authors': splitList(_authors.text),
           'publisher': blankToNull(_publisher),
@@ -179,6 +227,15 @@ class _BookFormPageState extends State<BookFormPage> {
         copiesRequestId: _copiesRequestId,
       ),
     );
+    final created = libraryProvider.createdBarcodes;
+    if (saved && created.isNotEmpty) {
+      final shelf = blankToNull(_shelf);
+      unawaited(
+        shareCopyLabels(title, [
+          for (final barcode in created) (barcode: barcode, shelf: shelf),
+        ]),
+      );
+    }
     if (saved && mounted) {
       _dirty = false;
     } else if (mounted) {
@@ -247,6 +304,9 @@ class _BookFormPageState extends State<BookFormPage> {
           libraries: libraries,
           libraryId: _libraryId,
           onLibraryChanged: (value) => setState(() => _libraryId = value),
+          generate: _generateBarcodes,
+          onGenerateChanged: (value) =>
+              setState(() => _generateBarcodes = value),
         ),
       BookDescriptionSection(keywords: _keywords, description: _description),
     ];
@@ -262,6 +322,12 @@ class _BookFormPageState extends State<BookFormPage> {
         appBar: AppBar(
           title: Text(editing ? 'Edit book' : 'Add book'),
           actions: [
+            if (!editing)
+              IconButton(
+                tooltip: 'Fill sample data',
+                icon: const Icon(Icons.auto_fix_high_rounded),
+                onPressed: _busy ? null : _prefillMock,
+              ),
             IconButton(
               tooltip: editing ? 'Update book' : 'Save book',
               icon: _busy

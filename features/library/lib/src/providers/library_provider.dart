@@ -334,19 +334,36 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     reload: loadMasters,
   );
 
-  /// Saves a book; for a new one, [copies] (`libraryId`, `quantity`, `shelf`) also creates its copies.
+  /// Barcodes of the copies the last [saveBook] / [addCopies] created, for printing their labels.
+  List<String> createdBarcodes = const [];
+
+  /// Saves a book; for a new one, [copies] (`libraryId`, `quantity`, `shelf`, optional `barcodes`) also creates its copies.
   Future<bool> saveBook(
     Map<String, Object?> data, {
     Map<String, Object?>? copies,
     String? copiesRequestId,
   }) => _write(() async {
+    createdBarcodes = const [];
     final id = await _writes.saveBook(data);
     if (copies != null) {
-      await _service.createBook({
+      createdBarcodes = await _service.createBook({
         'catalogueId': id,
         ...copies,
       }, requestId: copiesRequestId);
     }
+  }, reload: loadBooks);
+
+  /// Adds [copies] (as for [saveBook]) to an existing title.
+  Future<bool> addCopies(
+    String catalogueId,
+    Map<String, Object?> copies, {
+    required String requestId,
+  }) => _write(() async {
+    createdBarcodes = const [];
+    createdBarcodes = await _service.createBook({
+      'catalogueId': catalogueId,
+      ...copies,
+    }, requestId: requestId);
   }, reload: loadBooks);
 
   Future<String?> findTitleId(Map<String, Object?> data) =>

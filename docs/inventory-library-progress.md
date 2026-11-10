@@ -346,7 +346,7 @@ Rules and indexes:
 Flutter:
 
 - [x] `features/library`: `lib_copies.dart` models (`LibCopy`, `LibBook`), `LibraryService` / `LibraryProvider` extended (copies of a title, find by accession / barcode / RFID, books, writes), model test
-- [x] `icueadmin` screens under `features/library/` (copies section on the book page with add-copies sheet and label printing, copy sheet with edit / move / status; the standalone Copies & books page was removed (copies live on the book page)); labels are QR codes of the accession number via `pdf` + `printing`
+- [x] `icueadmin` screens under `features/library/` (copies section on the book page with add-copies sheet and label printing, copy sheet with edit / move / status; the standalone Copies & books page was removed (copies live on the book page)); labels are Code 128 barcodes on a 50×25 mm thermal label (`labelFormat` in `copy_labels.dart`) via `pdf` + `printing`, printable per copy, for all copies of a title, and right after copies are added
 - [x] `melos run lint` passes (library, icueadmin); functions and rules tests pass
 
 ### Lib-3
@@ -554,7 +554,8 @@ Format: `date · phase · what changed from the architecture doc · why`.
 - 2026-11-01 · Inv-8 · Offline is for verification counts only (direct `lineItems` updates, saved on the device with a "syncs when online" message); submit and every other callable still need a connection. `inventory-verification-count` stays for online use. Web persistent cache was not enabled.
 - 2026-11-01 · Inv-8 · Scanning resolves item code (counting) and asset ID / RFID tag (asset list); items have no separate barcode field, and library copies wait for Lib-2. Fixed RFID gate readers and RFID inventory-by-reader are not built (tags are read as keyboard input). Camera scanning is untested on a device (no native build run).
 - 2026-11-01 · Inv-8 · Export is unchanged from Inv-7 (report CSV / PDF); list-level CSV/XLSX export and downloadable import templates are not built (the import page copies the header row).
-- 2026-11-08 · Lib-2 · A copy's document ID is its barcode (required when adding books, no generated accession number or `counters/ACC`) · uniqueness is structural and one identifier is enough for labels, scanning and loans.
+- 2026-11-08 · Lib-2 · A copy's document ID is its barcode · uniqueness is structural and one identifier is enough for labels, scanning and loans.
+- 2026-11-10 · Lib-2 · Barcodes are issued by the system by default: `library-book-create` without `barcodes` assigns `LB000001`… from `counters/libraryCopy` (per school, no financial year); a toggle still accepts scanned barcodes for pre-labelled books, which may not use the `LB` + digits shape · schools without labelled books need nothing to scan, and generated and scanned codes never collide. Copies can be added to an existing title from its page.
 - 2026-11-01 · Lib-2 · Book types are purchase, donation and opening stock; transfer arrives with Lib-7 · transfers create no book record. Book attachments are not stored (no uploads) and a new book starts from a book's page, not from the Copies page.
 - 2026-11-01 · Lib-2 · `library-copy-setStatus` is not in the architecture's callable list; damage, loss and withdrawal can be set by hand here, while incidents and fines arrive with Lib-6 · FRS 11.5 needs these statuses now.
 - 2026-11-01 · Lib-2 · Copy issue and transfer history are not shown on the copy sheet · loans arrive with Lib-4, transfers with Lib-7; changes are in `auditLogs`.

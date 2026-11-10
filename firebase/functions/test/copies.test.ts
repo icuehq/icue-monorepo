@@ -89,6 +89,22 @@ describe('library copies and books', () => {
     await expect(buy({ quantity: 1, barcodes: ['9780001'] })).rejects.toThrow();
   });
 
+  it('createBook issues LB running barcodes when none are scanned', async () => {
+    const first = await buy({ quantity: 2, barcodes: undefined });
+    expect(first.barcodes).toEqual(['LB000001', 'LB000002']);
+    const next = await buy({ quantity: 1, barcodes: undefined });
+    expect(next.barcodes).toEqual(['LB000003']);
+    expect((await get('libraryCopies/LB000003'))?.barcode).toBe('LB000003');
+    await buy({ quantity: 1 });
+    expect((await buy({ quantity: 1, barcodes: undefined })).barcodes).toEqual(['LB000004']);
+  });
+
+  it('createBook rejects scanned barcodes in the system LB shape', async () => {
+    await expect(buy({ quantity: 1, barcodes: ['LB000123'] })).rejects.toThrow();
+    await expect(buy({ quantity: 1, barcodes: ['lb1234567'] })).rejects.toThrow();
+    await buy({ quantity: 1, barcodes: ['LB12'] });
+  });
+
   it('createBook rules: campus scope, active title and library', async () => {
     await expect(buy({})).resolves.toBeTruthy();
     await db()

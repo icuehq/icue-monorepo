@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
-/// Add-book fields for the copies created with a new title: how many, and in which library.
+/// Fields for new copies of a title: how many, in which library, and their barcodes.
 class NewCopiesSection extends StatefulWidget {
   const NewCopiesSection({
     required this.copies,
@@ -13,6 +13,9 @@ class NewCopiesSection extends StatefulWidget {
     required this.libraries,
     required this.libraryId,
     required this.onLibraryChanged,
+    required this.generate,
+    required this.onGenerateChanged,
+    this.allowNone = true,
     super.key,
   });
 
@@ -23,6 +26,13 @@ class NewCopiesSection extends StatefulWidget {
   final List<SchoolLibrary> libraries;
   final String? libraryId;
   final ValueChanged<String?> onLibraryChanged;
+
+  /// The system issues the barcodes; off, the librarian scans existing ones.
+  final bool generate;
+  final ValueChanged<bool> onGenerateChanged;
+
+  /// Whether 0 copies is valid (a new title may have none yet).
+  final bool allowNone;
 
   @override
   State<NewCopiesSection> createState() => _NewCopiesSectionState();
@@ -75,6 +85,9 @@ class _NewCopiesSectionState extends State<NewCopiesSection> {
   String? _unique(String? value, int index) {
     final code = value?.trim().toLowerCase() ?? '';
     if (code.isEmpty) return 'Scan or enter the barcode';
+    if (RegExp(r'^lb\d{6,}$').hasMatch(code)) {
+      return 'LB barcodes are issued by the system';
+    }
     if (_taken.contains(value!.trim())) return 'This barcode already exists';
     final repeated = [
       for (final (other, controller) in widget.barcodes.indexed)
@@ -110,14 +123,15 @@ class _NewCopiesSectionState extends State<NewCopiesSection> {
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             validator: (value) {
               final number = int.tryParse(value?.trim() ?? '');
-              return number == null || number > 100
-                  ? 'Enter 0 to 100 copies'
+              final minimum = widget.allowNone ? 0 : 1;
+              return number == null || number < minimum || number > 100
+                  ? 'Enter $minimum to 100 copies'
                   : null;
             },
             label: 'Number of copies *',
             hintText: 'e.g. 1',
             icon: Icons.copy_rounded,
-            helperText: '0 adds the title only',
+            helperText: widget.allowNone ? '0 adds the title only' : null,
           ),
           AppDropdown<String>(
             value: widget.libraryId,
@@ -135,7 +149,19 @@ class _NewCopiesSectionState extends State<NewCopiesSection> {
             helperText: libraries.isEmpty ? 'No active library found' : null,
           ),
         ]),
-        if (widget.barcodes.isNotEmpty) ...[
+        if (widget.barcodes.isNotEmpty)
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            value: widget.generate,
+            onChanged: widget.onGenerateChanged,
+            title: const Text('Generate barcodes'),
+            subtitle: Text(
+              widget.generate
+                  ? 'LB… barcodes are assigned on save and their labels open for printing.'
+                  : 'Scan the barcodes already on the books.',
+            ),
+          ),
+        if (widget.barcodes.isNotEmpty && !widget.generate) ...[
           Text(
             'Scan the barcode of each copy; it moves to the next field automatically.',
             style: Theme.of(context).textTheme.bodySmall,

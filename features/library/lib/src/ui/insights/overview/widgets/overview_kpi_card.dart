@@ -10,6 +10,7 @@ class OverviewKpiCard extends StatelessWidget {
     required this.value,
     required this.icon,
     this.targetRoute,
+    this.width,
     super.key,
   });
 
@@ -17,6 +18,7 @@ class OverviewKpiCard extends StatelessWidget {
   final num value;
   final IconData icon;
   final String? targetRoute;
+  final double? width;
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +32,7 @@ class OverviewKpiCard extends StatelessWidget {
         : theme.colorScheme.primary;
 
     return SizedBox(
-      width: 220,
+      width: width,
       child: Container(
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
