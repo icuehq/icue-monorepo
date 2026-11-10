@@ -6,7 +6,7 @@ import 'package:inventory/src/models/inventory_masters.dart';
 import 'package:inventory/src/services/insights_service.dart';
 import 'package:inventory/src/services/stock_service.dart';
 
-/// Verification sessions, dashboard and reports. Needs `InventoryProvider.loadMasters()` first (access, stores).
+/// Dashboard and reports. Needs `InventoryProvider.loadMasters()` first (access, stores).
 @lazySingleton
 class InsightsProvider extends ChangeNotifier {
   InsightsProvider(this._service, this._stock);
@@ -14,8 +14,6 @@ class InsightsProvider extends ChangeNotifier {
   final InsightsService _service;
   final StockService _stock;
 
-  List<InventoryVerification> verifications = [];
-  List<VerificationLine> lineItems = [];
   Map<String, num?> dashboard = {};
   List<ReportRow> rows = [];
   final Map<String, InventoryItem> items = {};
@@ -46,23 +44,6 @@ class InsightsProvider extends ChangeNotifier {
     if (need.isNotEmpty) items.addAll(await _stock.itemsByIds(need));
   }
 
-  Future<void> loadVerifications(ModuleAccess access) =>
-      _load(() async => verifications = await _service.verifications(access));
-
-  Future<void> loadLines(InventoryVerification verification) => _load(() async {
-    lineItems = await _service.lineItems(verification);
-    await _names(lineItems.map((verificationLine) => verificationLine.itemId));
-  });
-
-  Future<InventoryVerification?> verification(String id) async {
-    try {
-      return await _service.verification(id);
-    } catch (error) {
-      errorMessage = callableErrorMessage(error);
-      return null;
-    }
-  }
-
   Future<void> loadDashboard(ModuleAccess access, {InventoryStore? store}) =>
       _load(
         () async => dashboard = await _service.dashboard(access, store: store),
@@ -91,21 +72,6 @@ class InsightsProvider extends ChangeNotifier {
       );
     }
   });
-
-  /// Saves counts directly to Firestore; false with [errorMessage] set on failure, false without it when only queued offline.
-  Future<bool> saveCounts(
-    InventoryVerification verification,
-    List<(VerificationLine, num, String?)> counts,
-  ) async {
-    errorMessage = null;
-    try {
-      return await _service.saveCounts(verification, counts);
-    } catch (error) {
-      errorMessage = callableErrorMessage(error);
-      notifyListeners();
-      return false;
-    }
-  }
 
   /// Runs a callable; returns its result or null with [errorMessage] set.
   Future<Map<String, dynamic>?> act(

@@ -487,20 +487,6 @@
       ]
     },
     {
-      "collectionGroup": "inventoryVerifications",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
       "collectionGroup": "inventoryIssueRequests",
       "queryScope": "COLLECTION",
       "fields": [

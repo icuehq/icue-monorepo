@@ -15,7 +15,7 @@ This document decides *how* the FRS is built. Functional behaviour stays defined
 | D1 | Node issues a **Firebase custom token** after its own login; Flutter calls `signInWithCustomToken`. No second login. |
 | D2 | Tenant = Node `organizationId` (school). Campus = `branchId`. `zoneId` = campus group (used only to resolve a user's campuses). |
 | D3 | Roles come from Node. A Firestore permission map (role → permissions) per school makes the §12 matrix configurable. |
-| D4 | **All writes go through callable Cloud Functions** (Admin SDK, transactions). Security Rules are read-only for clients, with two exceptions: offline verification counts (§8) and the code-keyed masters (inventory categories, units, stores, items, variants, vendors; library libraries and categories) and inventory purchase requests, quotations and invoices (`ProcurementWrites`): plain client CRUD guarded only by the managing permission, no validation, audit log, `requestId`, approver notification or campus check in rules; `counters` is client-writable for any user holding a permission (PR/QT numbering). |
+| D4 | **All writes go through callable Cloud Functions** (Admin SDK, transactions). Security Rules are read-only for clients, with one exception: the code-keyed masters (inventory categories, units, stores, items, variants, vendors; library libraries and categories) and inventory purchase requests, quotations and invoices (`ProcurementWrites`): plain client CRUD guarded only by the managing permission, no validation, audit log, `requestId`, approver notification or campus check in rules; `counters` is client-writable for any user holding a permission (PR/QT numbering). |
 | D5 | Every transaction is an **append-only movement/event** plus a **balance/status** update in the same Firestore transaction. |
 | D6 | Every mutating callable takes a client-generated `requestId`; replays return the first result (idempotency). |
 | D7 | ERP records (students, staff, departments, roles, academic years) are fetched from **Node APIs by the client** and stored in Firestore **as IDs only**. Functions never call Node. |
@@ -140,7 +140,7 @@ Common fields on every document: `campusId`, `createdAt`, `createdBy` (uid), `up
 | `inventoryIssueRequests` | lineItems `[{itemId, variantId, quantityRequested, quantityApproved, quantityIssued}]`, itemIds, requester, purpose, status, approval `{by, at, comment}` | FRS 10.8 |
 | `inventoryIssues` | requestId, lineItems `[{balanceId, quantity}]`, recipient `{type, personErpId}`, issuedBy, recipientAck | One per issuance (partials allowed) |
 | `inventoryReturns` | issueId, lineItems `[{balanceId, quantityUsable, quantityDamaged}]`, inspection | `quantityReturned ≤ issued − returned` |
-| `inventoryAdjustments` | balanceId, before, delta, after, reason, evidence, verificationId, approval | Immutable after `completed` |
+| `inventoryAdjustments` | balanceId, before, delta, after, reason, evidence, approval | Immutable after `completed` |
 | `inventoryUnavailableStock` | balanceId or assetId, quantity, reason, evidence, resolution, resolvedAt | FRS 10.12 register |
 | `inventoryPurchaseRequests` | lineItems `[{itemId, quantity, estimatedPrice, quantityOrdered}]`, itemIds, priority, requiredDate, status (FRS 10.13), approval | |
 | `inventoryVendors` | code, name, contacts, tax, categories, documents, status | Searchable via the `search` mirror (§10) |
@@ -152,8 +152,6 @@ Common fields on every document: `campusId`, `createdAt`, `createdBy` (uid), `up
 | `inventoryAssets` | assetId, itemId, serialNumber, make, model, purchaseOrderId, vendorId, purchaseDate, price, warranty `{start, end}`, condition, campusId, storeId, location, status (FRS 10.19), activeAssignmentId, rfidTag, imagePath | One doc per physical object |
 | `inventoryAssetAssignments` | assetId, assignee `{type: staff | student | department, personErpId}`, assignedAt, expectedReturn, conditionOut, ack, returnedAt, conditionIn | Top-level so parents/teachers can query their own |
 | `inventoryMaintenanceJobs` | assetId, issue, priority, technician, cost, partsUsed `[{itemId, quantity}]`, status (FRS 10.20), nextServiceDate | Parts used create `issue` movements |
-| `inventoryVerifications` | storeId, scope, status `draft | counting | submitted | approved | applied` | |
-| `inventoryVerifications/{id}/lines` | balanceId, expected, counted, diff, reason, countedBy | Written by `inventory.verification.count` (client-writable offline counting arrives with Inv-8) |
 
 ### 4.3 Library
 
@@ -171,7 +169,6 @@ Common fields on every document: `campusId`, `createdAt`, `createdBy` (uid), `up
 | `libraryFines/{loanId__type}` | personErpId, loanId, type, fineCalculation, amount, waived, outstanding, status, waivers[] | Deterministic ID → fines cannot duplicate |
 | `libraryIncidents` | kind `lost | damaged`, barcode, personErpId, severity, photos, charge, repairStatus, resolution | FRS 11.14 |
 | `libraryTransfers` | fromLibraryId, toLibraryId, lineItems `[{barcode, received, condition}]`, status `requested | approved | dispatched | partially_received | received` | |
-| `libraryVerifications` (+`lineItems`) | libraryId, scope, expected copy IDs, scanned, missing, unexpected, status | Same pattern as inventory |
 
 Parents and teachers read `libraryLoans`, `libraryFines`, `libraryReservations`, `inventoryAssetAssignments` where `memberErpId`/`assignee.personErpId` matches their claim, so those docs carry a flat `personErpId` field for rule and index use.
 
@@ -201,7 +198,6 @@ Names below are logical; they deploy as `<group>-<name>` (`session.sync` → `se
 | Stock | Receive Stock, issue request submit/decide, issuing stock, acknowledging an issue, returns, stock adjustments, and unavailable-stock reports and resolutions are client transactions (`StockWrites`). `inventory.adjustment.approve` |
 | Procurement | Purchase requests, quotations, draft purchase orders (save, issue, revise, acknowledge, cancel, close, receive goods) and invoices are client Firestore writes (`ProcurementWrites`). |
 | Assets | `inventory.asset.register`, `inventory.asset.assign/return/transfer/setCondition/retire`, `inventory.maintenance.save/setStatus` |
-| Verification | `inventory.verification.create/count/submit/decide` (approve creates adjustments referencing the session; reject reopens counting) |
 | Library masters | `library.catalogue.search`. Borrowing policies, libraries and categories are client Firestore writes. |
 | Copies | `library.book.create` (creates copies keyed by barcode), `library.copy.update/move` |
 | Members | `library.member.upsert/setStatus` |
@@ -210,7 +206,6 @@ Names below are logical; they deploy as `<group>-<name>` (`session.sync` → `se
 | Fines | Client transactions (`LoanWrites`): waive, record payment (Finance reference only). |
 | Incidents | Client transactions (`LoanWrites`): report, resolve. |
 | Transfers | `library.transfer.request/approve/dispatch/receive` |
-| Verification | `library.verification.create/submit/approve` |
 | Files | `files.getUploadPath` (returns an authorised Storage path) |
 | Import/Export | `import.validate`, `import.commit` |
 
@@ -323,13 +318,6 @@ service cloud.firestore {
       allow read: if inSchool(schoolId) && (own() || (staff(schoolId)
                                                && onCampus(schoolId, resource.data.campusId)));
     }
-    match /schools/{schoolId}/inventoryVerifications/{vid}/lines/{id} {
-      allow read: if inSchool(schoolId) && can(schoolId, 'inventory.stock.operate');
-      allow create, update: if inSchool(schoolId) && can(schoolId, 'inventory.stock.operate')
-        && get(/databases/$(db)/documents/schools/$(schoolId)/inventoryVerifications/$(vid)).data.status == 'counting'
-        && request.resource.data.keys().hasOnly(['ref', 'counted', 'reason', 'countedBy', 'countedAt'])
-        && request.resource.data.countedBy == request.auth.uid;
-    }
     match /devices/{uid}/tokens/{id} {
       allow read, write: if signedIn() && request.auth.uid == uid;
     }
@@ -388,7 +376,6 @@ Types: inventory categories, items, opening stock, stores, assets, vendors; libr
 - RFID: `rfidTag` fields on copies and assets; tag assignment screen. Fixed/gate readers that push events integrate later via an HTTP Function authenticated with a per-school key (FRS Phase 8). Not required for any basic operation.
 - Offline:
   - Mobile: Firestore persistence on (default) → previously loaded records readable offline. Web: enable persistent cache.
-  - Verification counts and scans are written directly to `…Verifications/{id}/lines`; Firestore queues them offline and syncs later (only client-write path besides device tokens).
   - All callables (issue, return, approvals) require a connection; the UI shows "needs connection" and nothing is queued.
 
 ---
@@ -408,8 +395,8 @@ firebase/
     src/
       index.ts             # exports
       shared/              # callable wrapper, auth/access, counters, uniqueKeys, audit, outbox, years
-      inventory/           # one file per area: masters, stock, procurement, assets, verification, jobs
-      library/             # masters, copies, members, circulation, reservations, fines, transfers, verification, jobs
+      inventory/           # one file per area: masters, stock, procurement, assets, jobs
+      library/             # masters, copies, members, circulation, reservations, fines, transfers, jobs
       io/                  # import, export
     test/                  # vitest: pure business logic + emulator tests for transactions
   rules-tests/             # @firebase/rules-unit-testing against the emulator
@@ -463,6 +450,6 @@ Inventory first (it drives most shared pieces), Library second, following FRS §
 | --- | --- |
 | 0 | `firebase/` scaffold, emulators, Node `firebaseToken` endpoint, Flutter exchange, `session.sync`, `userAccess`, permission map, callable wrapper (idempotency, audit, counters, uniqueKeys), token dual-write, outbox sender, rules test harness |
 | Inv 1–8 | Per FRS §28 |
-| Lib 1–8 | Per FRS §29 (reuses Phase 0 and the import/export/verification patterns from Inventory) |
+| Lib 1–8 | Per FRS §29 (reuses Phase 0 and the import/export patterns from Inventory) |
 
 Each phase ships: Functions + rules + rules tests + Function unit tests + Dart models/services + icueadmin screens.

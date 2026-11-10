@@ -4,7 +4,6 @@ import { assets, maintenance } from './inventory/assets';
 import { importRun } from './inventory/import';
 import { masters } from './inventory/masters';
 import { itemSearch } from './inventory/search';
-import { verification } from './inventory/verification';
 import { copies as libraryCopies } from './library/copies';
 import { catalogueSearch } from './library/search';
 import { sync, token } from './session';
@@ -32,7 +31,6 @@ export {
 const mutations: AnyCallableDef[] = [
   assets,
   maintenance,
-  verification,
   { seedDefaults: masters.seedDefaults },
   libraryCopies,
 ].flatMap((group) => Object.values(group) as AnyCallableDef[]);

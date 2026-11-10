@@ -1,20 +1,8 @@
-// Stock verification, dashboard and reports (Inv-7). Parse and display only; rules live in Cloud Functions.
+// Dashboard and reports (Inv-7). Parse and display only; rules live in Cloud Functions.
 
 import 'package:icue_firebase/icue_firebase.dart'
     show ReportColumn, readDay, readNumber, readString;
 import 'package:icue_ui/icue_ui.dart';
-import 'package:inventory/src/models/inventory_insights.g.dart';
-
-export 'inventory_insights.g.dart';
-
-extension InventoryVerificationMembers on InventoryVerification {
-  bool get counting => status == 'counting';
-  bool get submitted => status == 'submitted';
-}
-
-extension VerificationLineMembers on VerificationLine {
-  num? get difference => counted == null ? null : counted! - expected;
-}
 
 /// Resolves IDs to display names for report cells.
 class ReportNames {
@@ -275,14 +263,6 @@ final inventoryReports = <ReportDef>[
       'cancelled',
     ],
   ),
-  ReportDef('verifications', 'Stock verification', 'inventoryVerifications', [
-    _date('Date', 'createdAt'),
-    _textColumn('Session', 'number'),
-    _textColumn('Store', 'storeName'),
-    _textColumn('Status', 'status'),
-    _quantityColumn('Lines', 'lineCount', sum: true),
-    _quantityColumn('Differences', 'differenceCount', sum: true),
-  ]),
 ];
 
 /// Dashboard tiles (FRS 10.1): key, label, permissions that can read the underlying records.

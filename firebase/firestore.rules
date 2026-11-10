@@ -1,7 +1,7 @@
 rules_version = '2';
 
 // Clients read; all writes go through Cloud Functions (Admin SDK bypasses rules).
-// Exceptions: own device tokens/mute, Receive Stock (receipts, ledger rows, balances), issue request submit/approve, verification count lines (offline counting, Inv-8), the master collections, and purchase requests/quotations/invoices.
+// Exceptions: own device tokens/mute, Receive Stock (receipts, ledger rows, balances), issue request submit/approve, the master collections, and purchase requests/quotations/invoices.
 service cloud.firestore {
   match /databases/{db}/documents {
     function signedIn() { return request.auth != null; }
@@ -225,29 +225,12 @@ service cloud.firestore {
       allow read: if inSchool(schoolId) && ((can(schoolId, 'inventory.assets.view') && onCampus(schoolId, resource.data.campusId)) || own());
     }
 
-    // Verification sessions (Inv-7): stock users on the campus; counting is also a direct line update so it queues offline.
-    match /schools/{schoolId}/inventoryVerifications/{id} {
-      allow read: if inSchool(schoolId) && can(schoolId, 'inventory.stock.view') && onCampus(schoolId, resource.data.campusId);
-    }
-    match /schools/{schoolId}/inventoryVerifications/{id}/lineItems/{l} {
-      allow read: if inSchool(schoolId) && can(schoolId, 'inventory.stock.view') && onCampus(schoolId, resource.data.campusId);
-      // Count only: the same fields `inventory-verification-count` writes, while the session is still `counting`.
-      allow update: if inSchool(schoolId) && can(schoolId, 'inventory.stock.operate') && onCampus(schoolId, resource.data.campusId)
-        && get(/databases/$(db)/documents/schools/$(schoolId)/inventoryVerifications/$(id)).data.status == 'counting'
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['counted', 'difference', 'reason', 'note', 'countedBy', 'countedAt'])
-        && request.resource.data.counted is number && request.resource.data.counted >= 0
-        && request.resource.data['difference'] == request.resource.data.counted - resource.data.expected
-        && request.resource.data.countedBy == request.auth.uid
-        && (request.resource.data.reason == null
-            || request.resource.data.reason in ['count_correction', 'missing', 'excess', 'other']);
-    }
-
     // Reports and the dashboard (Inv-7): report viewers read the campus's records in every report collection.
     match /schools/{schoolId}/{coll}/{id} {
       allow read: if inSchool(schoolId) && can(schoolId, 'inventory.reports.view') && onCampus(schoolId, resource.data.campusId)
         && coll in ['inventoryBalances', 'inventoryMovements', 'inventoryReceipts', 'inventoryIssues', 'inventoryReturns', 'inventoryAdjustments', 'inventoryUnavailableStock',
           'inventoryIssueRequests', 'inventoryPurchaseRequests', 'inventoryQuotations', 'inventoryPurchaseOrders', 'inventoryInvoices',
-          'inventoryAssets', 'inventoryAssetAssignments', 'inventoryMaintenanceJobs', 'inventoryVerifications'];
+          'inventoryAssets', 'inventoryAssetAssignments', 'inventoryMaintenanceJobs'];
     }
     match /schools/{schoolId}/inventoryVendors/{id} {
       allow read: if inSchool(schoolId) && can(schoolId, 'inventory.reports.view');

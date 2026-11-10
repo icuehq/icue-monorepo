@@ -19,7 +19,6 @@ abstract final class Collections {
   static const inventoryStores = 'inventoryStores';
   static const inventoryUnits = 'inventoryUnits';
   static const inventoryVendors = 'inventoryVendors';
-  static const inventoryVerifications = 'inventoryVerifications';
   static const libraryBooks = 'libraryBooks';
   static const libraryCatalogue = 'libraryCatalogue';
   static const libraryCopies = 'libraryCopies';
@@ -107,15 +106,6 @@ abstract final class MaintenanceStatus {
     completed,
     cancelled,
   ];
-}
-
-/// Why a counted quantity differs from the expected one.
-abstract final class VerificationReason {
-  static const missing = 'missing';
-  static const excess = 'excess';
-  static const countCorrection = 'count_correction';
-  static const other = 'other';
-  static const values = [missing, excess, countCorrection, other];
 }
 
 /// Lifecycle of a loan.

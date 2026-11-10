@@ -8,8 +8,6 @@ import 'package:inventory/src/ui/insights/import/import_page.dart';
 import 'package:inventory/src/ui/insights/overview/inventory_overview_page.dart';
 import 'package:inventory/src/ui/insights/reports/report_page.dart';
 import 'package:inventory/src/ui/insights/reports/reports_page.dart';
-import 'package:inventory/src/ui/insights/verifications/verification_page.dart';
-import 'package:inventory/src/ui/insights/verifications/verifications_page.dart';
 import 'package:inventory/src/ui/masters/categories/categories_page.dart';
 import 'package:inventory/src/ui/masters/items/item_details_page.dart';
 import 'package:inventory/src/ui/masters/items/item_form_page.dart';
@@ -249,17 +247,6 @@ final _inventoryPages = <RouteBase>[
     path: InventoryRoutes.inventoryImport,
     name: InventoryRoutes.inventoryImportName,
     builder: (context, state) => const ImportPage(),
-  ),
-  GoRoute(
-    path: InventoryRoutes.inventoryVerifications,
-    name: InventoryRoutes.inventoryVerificationsName,
-    builder: (context, state) => const VerificationsPage(),
-  ),
-  GoRoute(
-    path: InventoryRoutes.inventoryVerification,
-    name: InventoryRoutes.inventoryVerificationName,
-    builder: (context, state) =>
-        VerificationPage(verification: state.extra! as InventoryVerification),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryInvoices,

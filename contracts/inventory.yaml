@@ -23,7 +23,6 @@ collections:
   - inventoryStores
   - inventoryUnits
   - inventoryVendors
-  - inventoryVerifications
 
 enums:
   PurchaseRequestStatus:
@@ -42,9 +41,6 @@ enums:
   MaintenanceStatus:
     doc: Lifecycle of a maintenance job.
     values: [open, assigned, in_progress, waiting_for_parts, completed, cancelled]
-  VerificationReason:
-    doc: Why a counted quantity differs from the expected one.
-    values: [missing, excess, count_correction, other]
 
 constants:
   editablePurchaseRequestStatuses:
@@ -129,31 +125,6 @@ models:
         completedDate: day?
         nextServiceDate: day?
         parts: { type: List<PartUsed>, from: "[ for (final value in data['partsUsed'] is List ? data['partsUsed'] as List : []) PartUsed( itemId: (value as Map)['itemId'] as String? ?? '', quantity: readDouble(value['quantity']), ), ]" }
-  inventory_insights:
-    InventoryVerification:
-      doc: "One verification session (`inventoryVerifications`)."
-      id: id
-      fields:
-        number: string
-        storeId: string
-        storeName: string
-        status: { type: string, default: counting }
-        date: { type: day, key: verifiedDate }
-        campusId: int
-        lineCount: int
-        differenceCount: int?
-        remarks: string?
-        approvalComment: { type: string?, key: approval.comment }
-    VerificationLine:
-      doc: "One counted balance of a session (`inventoryVerifications/{id}/lineItems`)."
-      fields:
-        balanceId: string
-        itemId: string
-        batchNumber: string?
-        reason: string?
-        remarks: string?
-        expected: num
-        counted: num?
   inventory_masters:
     InventoryCategory:
       id: id

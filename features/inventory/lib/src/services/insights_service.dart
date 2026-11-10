@@ -4,7 +4,7 @@ import 'package:injectable/injectable.dart';
 import 'package:inventory/src/models/inventory_insights.dart';
 import 'package:inventory/src/models/inventory_masters.dart';
 
-/// Verification sessions, dashboard counts and report rows (Inv-7): reads from Firestore, writes are callables.
+/// Dashboard counts and report rows (Inv-7): reads from Firestore.
 @lazySingleton
 class InsightsService {
   /// Rules need the campus filter on every list (`all` users need none); null when the user has no campus.
@@ -15,75 +15,6 @@ class InsightsService {
   }) => campusId != null
       ? query.where('campusId', isEqualTo: campusId)
       : access.restrictToCampuses(query);
-
-  Future<List<InventoryVerification>> verifications(ModuleAccess access) async {
-    final query = _scoped(
-      await schoolCollection('inventoryVerifications'),
-      access,
-    );
-    if (query == null) return [];
-    final snapshot = await query
-        .orderBy('createdAt', descending: true)
-        .limit(50)
-        .get();
-    return [
-      for (final document in snapshot.docs)
-        InventoryVerification.fromMap(document.id, document.data()),
-    ];
-  }
-
-  Future<InventoryVerification?> verification(String id) async {
-    final document = await (await schoolCollection('inventoryVerifications'))
-        .doc(id)
-        .get();
-    final data = document.data();
-    return data == null
-        ? null
-        : InventoryVerification.fromMap(document.id, data);
-  }
-
-  Future<List<VerificationLine>> lineItems(
-    InventoryVerification verification,
-  ) async {
-    final snapshot = await (await schoolCollection('inventoryVerifications'))
-        .doc(verification.id)
-        .collection('lineItems')
-        .where('campusId', isEqualTo: verification.campusId)
-        .get();
-    return [
-      for (final document in snapshot.docs)
-        VerificationLine.fromMap(document.data()),
-    ];
-  }
-
-  /// Writes counts straight to the lines (rules check them), so Firestore queues them while offline.
-  /// Returns false when the server has not confirmed within a few seconds (the write stays queued).
-  Future<bool> saveCounts(
-    InventoryVerification verification,
-    List<(VerificationLine, num, String?)> counts,
-  ) async {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-    final lineItems = (await schoolCollection('inventoryVerifications'))
-        .doc(verification.id)
-        .collection('lineItems');
-    final batch = FirebaseFirestore.instance.batch();
-    for (final (l, counted, reason) in counts) {
-      final difference = counted - l.expected;
-      batch.update(lineItems.doc(l.balanceId), {
-        'counted': counted,
-        'difference': difference,
-        'reason': difference == 0 ? null : reason,
-        'countedBy': uid,
-        'countedAt': FieldValue.serverTimestamp(),
-      });
-    }
-    var synced = true;
-    await batch.commit().timeout(
-      const Duration(seconds: 4),
-      onTimeout: () => synced = false,
-    );
-    return synced;
-  }
 
   /// Dashboard figures for the campuses (or the one [storeId]'s campus) the user may see.
   /// A figure the user's permissions cannot read is null.

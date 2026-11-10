@@ -623,47 +623,22 @@ describe('assets and maintenance (Inv-6)', () => {
   });
 });
 
-describe('verification and reports (Inv-7)', () => {
+describe('reports (Inv-7)', () => {
   beforeEach(() =>
     env.withSecurityRulesDisabled(async (context) => {
       const firestore = context.firestore();
       const access = (permissions, campusIds = [31]) => ({ permissions, campusIds, hasAllCampuses: false });
       await setDoc(doc(firestore, 'schools/12/userAccess/count'), access(['inventory.stock.view', 'inventory.stock.operate']));
-      await setDoc(doc(firestore, 'schools/12/inventoryVerifications/v2'), { campusId: 31, status: 'submitted' });
-      await setDoc(doc(firestore, 'schools/12/inventoryVerifications/v2/lineItems/l1'), { campusId: 31, expected: 3 });
       await setDoc(doc(firestore, 'schools/12/userAccess/stock'), access(['inventory.stock.view']));
       await setDoc(doc(firestore, 'schools/12/userAccess/rep'), access(['inventory.reports.view']));
       await setDoc(doc(firestore, 'schools/12/userAccess/far'), access(['inventory.stock.view', 'inventory.reports.view'], [99]));
-      await setDoc(doc(firestore, 'schools/12/inventoryVerifications/v1'), { campusId: 31, status: 'counting' });
-      await setDoc(doc(firestore, 'schools/12/inventoryVerifications/v1/lineItems/l1'), { campusId: 31, expected: 3 });
       await setDoc(doc(firestore, 'schools/12/inventoryPurchaseOrders/po1'), { campusId: 31, deliveryCampusId: 31 });
       await setDoc(doc(firestore, 'schools/12/inventoryVendors/ven1'), { name: 'Acme' });
     }),
   );
 
-  it('stock viewers on the campus read sessions and lines; stock viewers cannot count', async () => {
-    for (const path of ['inventoryVerifications/v1', 'inventoryVerifications/v1/lineItems/l1']) {
-      await assertSucceeds(getDoc(doc(db('stock'), `schools/12/${path}`)));
-      await assertFails(getDoc(doc(db('far'), `schools/12/${path}`)));
-    }
-    await assertFails(updateDoc(doc(db('stock'), 'schools/12/inventoryVerifications/v1/lineItems/l1'), { counted: 3, difference: 0, countedBy: 'stock' }));
-  });
-
-  it('operators count lines of a counting session (offline-queued writes), nothing else', async () => {
-    const line = (uid, v = 'v1') => doc(db(uid), `schools/12/inventoryVerifications/${v}/lineItems/l1`);
-    const count = { counted: 5, difference: 2, reason: 'excess', countedBy: 'count' };
-    await assertSucceeds(updateDoc(line('count'), count));
-    await assertFails(updateDoc(line('count'), { ...count, difference: 1 })); // difference must match expected
-    await assertFails(updateDoc(line('count'), { ...count, countedBy: 'stock' }));
-    await assertFails(updateDoc(line('count'), { ...count, expected: 99 })); // snapshot is not editable
-    await assertFails(updateDoc(line('count'), { ...count, reason: 'because' }));
-    await assertFails(updateDoc(line('count', 'v2'), count)); // session no longer counting
-    await assertFails(updateDoc(line('far'), count));
-  });
-
   it('report viewers read the campus records of every report collection and the vendors', async () => {
     await assertSucceeds(getDoc(doc(db('rep'), 'schools/12/inventoryPurchaseOrders/po1')));
-    await assertSucceeds(getDoc(doc(db('rep'), 'schools/12/inventoryVerifications/v1')));
     await assertSucceeds(getDoc(doc(db('rep'), 'schools/12/inventoryVendors/ven1')));
     await assertFails(getDoc(doc(db('far'), 'schools/12/inventoryPurchaseOrders/po1')));
     await assertFails(getDoc(doc(db('stock'), 'schools/12/inventoryPurchaseOrders/po1')));

@@ -190,61 +190,128 @@ class ReportStockForm extends _BalanceForm {
 }
 
 class _ReportState extends State<ReportStockForm> with _Submit {
+  static const _reasons = {
+    'damaged': (
+      'Damaged',
+      'Broken or unusable. Moved out of available stock.',
+      'e.g. Water damage in storage',
+    ),
+    'expired': (
+      'Expired',
+      'Past its expiry date. Moved out of available stock.',
+      'e.g. Expired on 31 Oct, found during checking',
+    ),
+    'lost': (
+      'Lost',
+      'Cannot be found. Written off from stock.',
+      'e.g. Missing after the store audit',
+    ),
+  };
+
   var _reason = 'damaged';
 
   @override
-  Widget build(BuildContext context) => Form(
-    key: form,
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      spacing: 16,
-      children: [
-        IcueDropdown<String>(
-          value: _reason,
-          items: const [
-            DropdownMenuItem(
-              value: 'damaged',
-              child: Text('Damaged', overflow: TextOverflow.ellipsis),
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final available = widget.balance.available;
+    final unit =
+        context.read<StockProvider>().items[widget.balance.itemId]?.stockUnit ??
+        '';
+    final current = _reasons[_reason]!;
+    // Only stock whose batch expiry date has passed can be reported expired.
+    final expiry = widget.balance.expiryDate;
+    final canExpire = expiry != null && expiry.compareTo(todayIST()) < 0;
+    return Form(
+      key: form,
+      autovalidateMode: AutovalidateMode.onUserInteraction,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: 16,
+        children: [
+          Text.rich(
+            TextSpan(
+              text: 'In stock now: ',
+              children: [
+                TextSpan(
+                  text: available.toQuantityText(),
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ],
             ),
-            DropdownMenuItem(
-              value: 'expired',
-              child: Text('Expired', overflow: TextOverflow.ellipsis),
+            style: theme.textTheme.bodyLarge,
+          ),
+          SegmentedButton<String>(
+            showSelectedIcon: false,
+            segments: [
+              for (final entry in _reasons.entries)
+                if (entry.key != 'expired' || expiry != null)
+                  ButtonSegment(
+                    value: entry.key,
+                    label: Text(entry.value.$1),
+                    enabled: entry.key != 'expired' || canExpire,
+                  ),
+            ],
+            selected: {_reason},
+            onSelectionChanged: (value) =>
+                setState(() => _reason = value.first),
+          ),
+          Text(
+            current.$2,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
             ),
-            DropdownMenuItem(
-              value: 'lost',
-              child: Text(
-                'Lost (written off)',
-                overflow: TextOverflow.ellipsis,
+          ),
+          if (expiry != null && !canExpire)
+            Text(
+              'Expired is unavailable: this batch expires on '
+              '${expiry.toDisplayDay()}.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.tertiary,
               ),
             ),
-          ],
-          onChanged: (value) => setState(() => _reason = value!),
-          label: 'What happened',
-        ),
-        IcueTextField(
-          controller: quantity,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          validator: (value) {
-            final number = double.tryParse((value ?? '').trim());
-            return number == null || number <= 0 ? 'Enter a quantity' : null;
-          },
-          label: 'Quantity (max ${widget.balance.available.toQuantityText()})',
-        ),
-        IcueTextField(
-          controller: note,
-          validator: requiredText,
-          label: 'Details',
-        ),
-        const SizedBox(height: 12),
-        IcueButton(
-          label: 'Report',
-          onPressed: () => send('inventory-unavailable-report', {
-            'quantity': double.parse(quantity.text.trim()),
-            'reason': _reason,
-            'remarks': note.text.trim(),
-          }),
-        ),
-      ],
-    ),
-  );
+          IcueTextField(
+            controller: quantity,
+            autofocus: true,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: quantityFormatters,
+            validator: (value) {
+              final error = validateQuantity(value);
+              if (error != null) return error;
+              if (double.parse(value!.trim()) > available) {
+                return 'Only ${available.toQuantityText()} in stock';
+              }
+              return null;
+            },
+            label: 'Quantity',
+            helperText: 'Up to ${available.toQuantityText()}',
+            suffixText: unit.isEmpty ? null : unit,
+          ),
+          IcueTextField(
+            controller: note,
+            maxLength: 500,
+            maxLines: 3,
+            minLines: 2,
+            textCapitalization: TextCapitalization.sentences,
+            validator: (value) {
+              final text = (value ?? '').trim();
+              if (text.isEmpty) return 'Add a short explanation';
+              if (text.length < 5) return 'Add a little more detail';
+              return null;
+            },
+            label: 'What happened?',
+            hintText: current.$3,
+          ),
+          IcueButton(
+            label: 'Report ${current.$1.toLowerCase()} stock',
+            onPressed: () => send('inventory-unavailable-report', {
+              'quantity': double.parse(quantity.text.trim()),
+              'reason': _reason,
+              'remarks': note.text.trim(),
+            }),
+          ),
+        ],
+      ),
+    );
+  }
 }

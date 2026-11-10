@@ -21,7 +21,6 @@ export const Collections = {
   inventoryStores: 'inventoryStores',
   inventoryUnits: 'inventoryUnits',
   inventoryVendors: 'inventoryVendors',
-  inventoryVerifications: 'inventoryVerifications',
   libraryBooks: 'libraryBooks',
   libraryCatalogue: 'libraryCatalogue',
   libraryCopies: 'libraryCopies',
@@ -85,15 +84,6 @@ export const MaintenanceStatus = {
   cancelled: 'cancelled',
 } as const;
 export type MaintenanceStatus = (typeof MaintenanceStatus)[keyof typeof MaintenanceStatus];
-
-/** Why a counted quantity differs from the expected one. */
-export const VerificationReason = {
-  missing: 'missing',
-  excess: 'excess',
-  countCorrection: 'count_correction',
-  other: 'other',
-} as const;
-export type VerificationReason = (typeof VerificationReason)[keyof typeof VerificationReason];
 
 /** Lifecycle of a loan. */
 export const LoanStatus = {

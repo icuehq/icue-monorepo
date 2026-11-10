@@ -58,7 +58,7 @@ Launch config **icueadmin [Dev + Emulators · Android]** (or iOS). It signs in w
 
 ## Part 1 – Inventory
 
-Open **Inventory** from the dashboard. The Inventory hub shows 15 option grid tiles: Dashboard, Stock verification, Import, Reports, Items, Categories, Units, Stock, Issue requests, Purchase requests, Purchase orders, Vendor invoices, Assets, Vendors, Stores.
+Open **Inventory** from the dashboard. The Inventory hub shows 14 option grid tiles: Dashboard, Import, Reports, Items, Categories, Units, Stock, Issue requests, Purchase requests, Purchase orders, Vendor invoices, Assets, Vendors, Stores.
 
 ### 1.1 Masters (Inv-1)
 
@@ -632,48 +632,9 @@ Open **Assets** from Inventory tiles.
 
 ---
 
-### 1.5 Verification, Scanning & Import (Inv-7, Inv-8)
-
-#### Stock Verification & Reconciliation (Inv-7)
-
-- [ ] 1.5.1 **Create Stock Verification Session**:
-  - Open **Stock verification** from Inventory tiles.
-  - Tap FAB **+ New**:
-    - Store: Select `Central Main Store`.
-    - Categories: Leave empty (whole store) or select `Stationery`.
-    - Tap **Generate expected stock**.
-  - **Expect** Verification session created (`STK/<financialYear>/<seq>`) with status `Counting`. Book balances are snapshotted (`PEN-BLU-01`, `MILK-PAST-01`, etc.).
-- [ ] 1.5.2 **Physical Counting & Line Entry**:
-  - Tap the verification session to open `VerificationPage`.
-  - For `PEN-BLU-01`: Enter Counted: `56` (1 unit variance vs book balance `57`).
-  - For `MILK-PAST-01`: Enter Counted matching current book balance.
-  - Tap **Save counts**. **Expect** confirmation "Counts saved".
-- [ ] 1.5.3 **Submit Verification**:
-  - Tap **Submit** button at bottom.
-  - **Expect** Session status moves to `Submitted`; pending review by inventory approver (`inventory.adjustment.approve`).
-- [ ] 1.5.4 **Approver Review & Recount Workflow**:
-  - Open session as Approver (`inventory.adjustment.approve`).
-  - Tap **Send back**:
-    - Reason: `Please recount stationery shelf B-3 for missing pen`.
-    - Tap Confirm.
-  - **Expect** Session status reverts to `Counting` for recount.
-- [ ] 1.5.5 **Recount & Final Approval**:
-  - In counting view, verify count and tap **Submit** again.
-  - As Approver, tap **Approve**:
-    - Dialog prompts: *"Apply adjustments?"*
-    - Enter optional comment: `Variance approved after physical recount`.
-    - Tap Confirm.
-  - **Expect**:
-    - Session status transitions to `Approved`.
-    - Automatic stock adjustment movement is logged in `Central Main Store` ledger.
-    - Available balance for `PEN-BLU-01` updates to the counted balance `56`.
+### 1.5 Scanning & Import (Inv-8)
 
 #### Barcode & Code Scanning
-
-- [ ] 1.5.6 **Item Code Scanning**:
-  - In `VerificationPage` counting view, focus the scan input field at the top (`IcueScanField`).
-  - Type item code `PEN-BLU-01` and press enter (simulating a barcode scan).
-  - **Expect** the count for `PEN-BLU-01` increments by 1 with toast confirmation displaying item name and new count. **[EMU]**
 
 #### Data Import (Inv-8)
 
@@ -742,7 +703,6 @@ Open **Assets** from Inventory tiles.
     14. **Asset register**: serialized assets with asset IDs, serials, locations, and conditions.
     15. **Asset assignment**: staff custody history with assigned/returned dates and closed status.
     16. **Maintenance**: maintenance tickets with numbers, asset codes, statuses, and repair costs.
-    17. **Stock verification**: audit sessions with stores, line counts, and differences.
 - [ ] 1.6.3 **Report Export (CSV & PDF)**:
   - On **Stock valuation** and **Stock movement** reports:
     - Tap **Copy CSV** → **Expect** formatted CSV copied to clipboard.
@@ -760,7 +720,7 @@ Edit permissions in `schools/<schoolId>/userAccess/<uid>` via Emulator UI (or si
   - **Expect**: Only Issue requests, Purchase requests, and Assets tiles are visible. Stores, Stock management, Vendors, Quotations, Invoices, and Reports are hidden.
 - [ ] 1.7.2 **Role: `storekeeper`**:
   - Set permissions: `inventory.items.view`, `inventory.stock.view`, `inventory.stock.operate`, `inventory.issue.request`, `inventory.purchaseRequest.request`, `inventory.assets.manage`, `inventory.assets.view`.
-  - **Expect**: Full operational access to Stock (Receive, Issue, Transfers, Damaged/Expired, Verification). Vendor management, Quotation selection, PO creation, and Invoices are hidden.
+  - **Expect**: Full operational access to Stock (Receive, Issue, Transfers, Damaged/Expired). Vendor management, Quotation selection, PO creation, and Invoices are hidden.
 - [ ] 1.7.3 **Role: `procurement`**:
   - Set permissions: `inventory.items.view`, `inventory.stock.view`, `inventory.purchaseRequest.request`, `inventory.procure.operate`, `inventory.vendors.manage`, `inventory.assets.view`.
   - **Expect**: Full access to Vendors, Purchase requests, Quotations, POs, and Invoices. Prohibited from executing physical store receipts, stock issues, or manual balance adjustments.

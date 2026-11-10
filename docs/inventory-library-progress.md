@@ -59,7 +59,7 @@ feature package, icueadmin screens (files under 500 lines), and DI registration.
 | Inv-4 | Quotations, comparison, purchase orders, PO PDF (10.15–10.16) | done, not deployed | – |
 | Inv-5 | Goods receiving/inspection, vendor invoices (10.17–10.18) | done, not deployed | – |
 | Inv-6 | Assets, assignment, maintenance (10.19–10.20) | done, not deployed | – |
-| Inv-7 | Stock verification, reports, notifications, dashboard (10.1, 10.21–10.23) | done, not deployed | – |
+| Inv-7 | Reports, notifications, dashboard (10.1, 10.21–10.23) | done, not deployed | – |
 | Inv-8 | Scanning, RFID, offline, import/export (§11, §14, §9) | done, not deployed | – |
 
 Inventory definition of done: FRS §31.
@@ -262,25 +262,23 @@ Flutter:
 
 ### Inv-7
 
-Collections: `inventoryVerifications` (+ `lineItems/{balanceId}`); `inventoryBalances.earliestExpiryDate` (expiry of usable stock, null when empty).
+Collections: `inventoryBalances.earliestExpiryDate` (expiry of usable stock, null when empty).
 
-Functions (`firebase/functions/src/inventory/verification.ts`, `daily.ts`):
+Functions (`firebase/functions/src/inventory/daily.ts`):
 
-- [x] `inventory-verification-create` (`inventory.stock.operate`; store + optional categories, expected = `quantityAvailable` snapshot, max 150 lines), `inventory-verification-count` (counts and reasons, repeatable while `counting`), `inventory-verification-submit` (all lines counted, every difference has a matching reason; no differences closes the session), `inventory-verification-decide` (new `inventory.adjustment.approve`: approve writes one `inventoryAdjustments` per difference with `verificationId` plus `adjust` movements, reject reopens counting)
 - [x] `dailyInventory` (06:00 IST, every school; `runDailyInventory` is the testable core): expired batches to `quantityExpired` with `expire` movements and an `inventoryUnavailableStock` entry, near-expiry digest per store (weekly), expired stock, overdue PO delivery (weekly), warranty ending (30 days), maintenance due (7 days)
 - [x] Out-of-stock event from `Stock.finish`; `earliestExpiryDate` maintained there; new permission `inventory.adjustment.approve` (admin, principal, inventory manager)
-- [x] Tests: `test/verification.test.ts` (emulator)
 
 Rules and indexes:
 
-- [x] `firestore.rules`: verifications and lines with `inventory.stock.view` on the campus; `inventory.reports.view` reads every report collection on the campus and vendors
-- [x] `firestore.indexes.json`: balances by campus (+ store) + `earliestExpiryDate`, PRs / POs / issue requests / unavailable / movements / verifications by campus + `createdAt`, assignments by campus + `assignedAt`, POs by status + `expectedDate` (daily job)
+- [x] `firestore.rules`: `inventory.reports.view` reads every report collection on the campus and vendors
+- [x] `firestore.indexes.json`: balances by campus (+ store) + `earliestExpiryDate`, PRs / POs / issue requests / unavailable / movements by campus + `createdAt`, assignments by campus + `assignedAt`, POs by status + `expectedDate` (daily job)
 - [x] Rules tests
 
 Flutter:
 
-- [x] `features/inventory`: `inv_insights.dart` (verification models, `toCsv`, the 17 `ReportDef`s, dashboard stat list), `InsightsService` / `InsightsProvider`, DI, model tests
-- [x] `icueadmin` screens under `features/inventory/insights/` (dashboard with store filter, report catalogue + report view with date range, status, search, totals, CSV copy and PDF, verification list/create and count/submit/approve page); routes `/layout.inventory/{dashboard,reports,reports/view,verifications,verifications/view}`; Dashboard, Stock verification and Reports tiles on the Inventory home
+- [x] `features/inventory`: `inv_insights.dart` (`toCsv`, the `ReportDef`s, dashboard stat list), `InsightsService` / `InsightsProvider`, DI, model tests
+- [x] `icueadmin` screens under `features/inventory/insights/` (dashboard with store filter, report catalogue + report view with date range, status, search, totals, CSV copy and PDF); routes `/layout.inventory/{dashboard,reports,reports/view}`; Dashboard and Reports tiles on the Inventory home
 - [x] `melos run lint` passes (inventory, icueadmin); functions and rules tests pass
 
 ### Inv-8
@@ -293,13 +291,12 @@ Functions (`firebase/functions/src/inventory/`):
 
 Rules:
 
-- [x] `firestore.rules`: operators with `inventory.stock.operate` update verification lines directly (count fields only, session `counting`, `diff` = counted − expected, `countedBy` = caller) so counts queue offline
 - [x] Rules tests
 
 Flutter:
 
 - [x] `features/inventory`: `parseCsv` + `importColumns`, `InvAsset.rfidTag`, `AssetsService.findByCode` (asset ID or RFID tag), `InsightsService.saveCounts` (direct line writes), model tests
-- [x] `icueadmin`: `widgets/scan_field.dart` (keyboard-wedge field + camera via `mobile_scanner`), scan-to-count in the verification page (offline save), scan/search on the asset list, RFID sheet, Import page (`/layout.inventory/import`, Import tile); `NSCameraUsageDescription` added
+- [x] `icueadmin`: `widgets/scan_field.dart` (keyboard-wedge field + camera via `mobile_scanner`), scan/search on the asset list, RFID sheet, Import page (`/layout.inventory/import`, Import tile); `NSCameraUsageDescription` added
 - [x] `melos run lint` passes (inventory, icueadmin); functions and rules tests pass
 
 ### Lib-1
@@ -545,13 +542,10 @@ Format: `date · phase · what changed from the architecture doc · why`.
 - 2026-11-01 · Inv-6 · Maintenance parts are drawn once per status update and never reversed; part cost is not added to the repair cost · keep the repair cost as the all-in figure.
 - 2026-11-01 · Inv-6 · QR label (asset ID) is built in the app with `pdf` + `printing`; barcode scanning, `rfidTag` and `imagePath` stay null until Inv-8. Warranty / next-service notifications arrive with Inv-7 (`dailyInventory`). The Assets tile reuses the stock artwork.
 - 2026-11-01 · Inv-6 · Teachers with `inventory.assets.view` see the whole campus register; a "my assets" view is not built (rules already let an assignee read their own assignments).
-- 2026-11-01 · Inv-7 · Counting is the callable `inventory-verification-count`, not client writes to `lineItems` · offline counting and scanning arrive with Inv-8; rules keep lines read-only. Asset verification is not built (stock balances only); sessions are capped at 150 lines (apply is one transaction), narrow by category.
-- 2026-11-01 · Inv-7 · Approval applies the counted-minus-expected difference, not "set to counted" · stock moved after the snapshot is kept; a difference that would take a balance below zero fails the approval and the store must be recounted. Approver may be the counter (no second person check).
 - 2026-11-01 · Inv-7 · Dashboard has store filter only (campus follows the store); category, date range and academic year filters are not built · balances carry no category and counts are live aggregation queries. Low / out-of-stock count balance lines (item × batch), not items; expiring is the next 30 days. "Pending approvals" = pending purchase requests + issue requests; "pending goods receipts" = orders issued / acknowledged with nothing received.
 - 2026-11-01 · Inv-7 · Reports are one generic screen over the campus-scoped collection: server filters are date range (`createdAt`; expiry uses the expiry date) and status, other filters (item, store, vendor, person, type) are the search box over the loaded rows (500 max) · avoids a composite index per filter. Export is CSV copied to the clipboard and PDF through the print dialog; no Excel file. Vendors and recipients show IDs where documents store no name. Item-wise stock is a per-balance view, not a date-pinned snapshot.
 - 2026-11-01 · Inv-7 · Notifications: "inventory manager" and "storekeeper" are everyone with `inventory.stock.operate` on the campus, "asset manager" `inventory.assets.manage`, "procurement officer" `inventory.procure.operate` · permissions, not role names. Near-expiry and overdue-PO reminders repeat weekly, warranty once per end date, service-due once per date. The 60-day token cleanup from §7.2 is not built.
 - 2026-11-01 · Inv-8 · Import is `inventory-import-run` over CSV rows pasted in the app, not `import.validate` / `import.commit` + `importWorker` + xlsx · no staged preview, import history or overwrite; existing codes are rejected per row. Types: categories, stores, items (by `categoryCode`), vendors; opening stock, assets and library types are not importable. Re-run safety comes from the per-row request ID.
-- 2026-11-01 · Inv-8 · Offline is for verification counts only (direct `lineItems` updates, saved on the device with a "syncs when online" message); submit and every other callable still need a connection. `inventory-verification-count` stays for online use. Web persistent cache was not enabled.
 - 2026-11-01 · Inv-8 · Scanning resolves item code (counting) and asset ID / RFID tag (asset list); items have no separate barcode field, and library copies wait for Lib-2. Fixed RFID gate readers and RFID inventory-by-reader are not built (tags are read as keyboard input). Camera scanning is untested on a device (no native build run).
 - 2026-11-01 · Inv-8 · Export is unchanged from Inv-7 (report CSV / PDF); list-level CSV/XLSX export and downloadable import templates are not built (the import page copies the header row).
 - 2026-11-08 · Lib-2 · A copy's document ID is its barcode · uniqueness is structural and one identifier is enough for labels, scanning and loans.

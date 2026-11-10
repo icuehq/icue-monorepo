@@ -51,14 +51,6 @@ class InventoryRoutes {
   static const String inventoryReport = '/layout.inventory/reports/view';
   static const String inventoryReportName = 'inventoryReport';
 
-  static const String inventoryVerifications =
-      '/layout.inventory/verifications';
-  static const String inventoryVerificationsName = 'inventoryVerifications';
-
-  static const String inventoryVerification =
-      '/layout.inventory/verifications/view';
-  static const String inventoryVerificationName = 'inventoryVerification';
-
   static const String inventoryUnavailable = '/layout.inventory/unavailable';
   static const String inventoryUnavailableName = 'inventoryUnavailable';
 

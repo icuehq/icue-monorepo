@@ -71,13 +71,6 @@ List<InventoryEntry> inventoryEntries(ModuleAccess access) => [
       iconAsset: 'assets/dashboard/inventory-stock-verification.png',
       group: 'Stock',
     ),
-  if (access.can('inventory.stock.view'))
-    const InventoryEntry(
-      label: 'Stock verification',
-      path: InventoryRoutes.inventoryVerifications,
-      iconAsset: 'assets/dashboard/inventory-stock-verification.png',
-      group: 'Stock',
-    ),
   if (access.can('inventory.stock.view') || access.can('inventory.settings'))
     const InventoryEntry(
       label: 'Stores',

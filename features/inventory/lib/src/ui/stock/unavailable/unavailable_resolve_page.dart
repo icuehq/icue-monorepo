@@ -130,7 +130,6 @@ class _UnavailableResolvePageState extends State<UnavailableResolvePage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final stockProvider = context.watch<StockProvider>();
     final item = stockProvider.unavailable
         .where((entry) => entry.id == widget.unavailableId)
@@ -162,126 +161,300 @@ class _UnavailableResolvePageState extends State<UnavailableResolvePage> {
         .where((choice) => choice.key == _selected)
         .firstOrNull;
 
+    final wide = MediaQuery.sizeOf(context).width >= IcueBreakpoints.wide;
+
+    final summary = _Summary(
+      item: item,
+      storeName: storeName,
+      name: stockProvider.itemName(item.itemId),
+    );
+    final options = _Options(
+      choices: choices,
+      selected: _selected,
+      enabled: !_busy,
+      onChanged: (value) => setState(() => _selected = value),
+    );
+    final note = IcueTextField(
+      controller: _remarks,
+      enabled: !_busy,
+      maxLength: 500,
+      maxLines: 3,
+      label: _selected == 'other'
+          ? 'Resolution note (required)'
+          : 'Resolution note (optional)',
+      hintText: 'e.g. Broken packaging replaced by supplier',
+      icon: Icons.edit_note_rounded,
+    );
+    final submit = IcueButton(
+      label: selected?.title ?? 'Select an action',
+      onPressed: selected == null || _busy
+          ? null
+          : () => _submit(selected, item),
+      leadingIcon: Icons.check_rounded,
+    );
+
     return Scaffold(
       appBar: AppBar(title: const Text('Resolve Stock')),
       body: IcueCenteredBody(
-        maxWidth: 900,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: theme.colorScheme.outlineVariant),
-              ),
-              child: Padding(
+        child: wide
+            ? SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 380,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          summary,
+                          const SizedBox(height: 16),
+                          note,
+                          const SizedBox(height: 8),
+                          submit,
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 24),
+                    Expanded(child: options),
+                  ],
+                ),
+              )
+            : ListView(
                 padding: const EdgeInsets.all(16),
+                children: [
+                  summary,
+                  const SizedBox(height: 20),
+                  options,
+                  const SizedBox(height: 12),
+                  note,
+                ],
+              ),
+      ),
+      bottomNavigationBar: wide
+          ? null
+          : Material(
+              elevation: 8,
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+                  child: submit,
+                ),
+              ),
+            ),
+    );
+  }
+}
+
+/// Entry details as labelled facts instead of one dense line.
+class _Summary extends StatelessWidget {
+  const _Summary({
+    required this.item,
+    required this.storeName,
+    required this.name,
+  });
+
+  final InventoryUnavailable item;
+  final String storeName;
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    Widget fact(String label, String value, {Color? color}) => SizedBox(
+      width: 150,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: theme.textTheme.titleSmall?.copyWith(
+              color: color,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: scheme.outlineVariant),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              name,
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 16,
+              runSpacing: 14,
+              children: [
+                fact(
+                  'Quantity',
+                  '${item.quantity.toQuantityText()} units',
+                  color: scheme.error,
+                ),
+                fact('Type', humanizeStatus(item.bucket ?? item.reason)),
+                fact('Status', humanizeStatus(item.status)),
+                fact('Store', storeName),
+                if (item.batchNumber != null) fact('Batch', item.batchNumber!),
+                if (item.createdAt != null)
+                  fact('Recorded', item.createdAt!.toNumericDate()),
+              ],
+            ),
+            if (item.remarks != null && item.remarks!.isNotEmpty) ...[
+              const Divider(height: 28),
+              Text(
+                'Remarks',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(item.remarks!, style: theme.textTheme.bodyMedium),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Resolution choices: one column on phones, two when the pane is wide enough.
+class _Options extends StatelessWidget {
+  const _Options({
+    required this.choices,
+    required this.selected,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final List<_Choice> choices;
+  final String? selected;
+  final bool enabled;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'What should happen to this stock?',
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 12),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            const gap = 12.0;
+            final columns = constraints.maxWidth >= 560 ? 2 : 1;
+            final width =
+                (constraints.maxWidth - gap * (columns - 1)) / columns;
+            return Wrap(
+              spacing: gap,
+              runSpacing: gap,
+              children: [
+                for (final choice in choices)
+                  SizedBox(
+                    width: width,
+                    child: _OptionTile(
+                      choice: choice,
+                      isSelected: selected == choice.key,
+                      onTap: enabled ? () => onChanged(choice.key) : null,
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _OptionTile extends StatelessWidget {
+  const _OptionTile({
+    required this.choice,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final _Choice choice;
+  final bool isSelected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final radius = BorderRadius.circular(12);
+    return Material(
+      color: isSelected
+          ? choice.color.withValues(alpha: 0.08)
+          : Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: radius,
+        side: BorderSide(
+          color: isSelected ? choice.color : theme.colorScheme.outlineVariant,
+          width: isSelected ? 2 : 1,
+        ),
+      ),
+      child: InkWell(
+        borderRadius: radius,
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: choice.color.withValues(alpha: 0.12),
+                child: Icon(choice.icon, color: choice.color, size: 22),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      stockProvider.itemName(item.itemId),
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
+                      choice.title,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Store: $storeName'
-                      '${item.batchNumber == null ? '' : ' · Batch ${item.batchNumber}'}',
+                      choice.subtitle,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '${item.quantity.toQuantityText()} units · '
-                      '${humanizeStatus(item.bucket ?? item.reason)} · '
-                      '${humanizeStatus(item.status)}'
-                      '${item.createdAt == null ? '' : ' · ${item.createdAt!.toNumericDate()}'}',
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: theme.colorScheme.error,
-                      ),
-                    ),
-                    if (item.remarks != null && item.remarks!.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Text(item.remarks!, style: theme.textTheme.bodySmall),
-                    ],
                   ],
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'What should happen to this stock?',
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 8),
-            RadioGroup<String>(
-              groupValue: _selected,
-              onChanged: (value) {
-                if (!_busy) setState(() => _selected = value);
-              },
-              child: Column(
-                children: [
-                  for (final choice in choices)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Card(
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          side: BorderSide(
-                            color: _selected == choice.key
-                                ? choice.color
-                                : theme.colorScheme.outlineVariant,
-                            width: _selected == choice.key ? 2 : 1,
-                          ),
-                        ),
-                        child: RadioListTile<String>(
-                          value: choice.key,
-                          secondary: Icon(choice.icon, color: choice.color),
-                          title: Text(
-                            choice.title,
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                          subtitle: Text(choice.subtitle),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            IcueTextField(
-              controller: _remarks,
-              enabled: !_busy,
-              maxLength: 500,
-              maxLines: 3,
-              label: _selected == 'other'
-                  ? 'Resolution note (required)'
-                  : 'Resolution note (optional)',
-              hintText: 'e.g. Broken packaging replaced by supplier',
-              icon: Icons.edit_note_rounded,
-            ),
-          ],
-        ),
-      ),
-      bottomNavigationBar: Material(
-        elevation: 8,
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-            child: IcueButton(
-              label: selected?.title ?? 'Select an action',
-              onPressed: selected == null || _busy
-                  ? null
-                  : () => _submit(selected, item),
-              leadingIcon: Icons.check_rounded,
-            ),
+              if (isSelected)
+                Icon(Icons.check_circle_rounded, color: choice.color),
+            ],
           ),
         ),
       ),
