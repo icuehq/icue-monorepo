@@ -104,6 +104,9 @@ class ModuleAccess {
 
   bool can(String permission) => permissions.contains(permission);
 
+  bool hasCampus(int campusId) =>
+      hasAllCampuses || campusIds.contains(campusId);
+
   /// Firestore rules need a campus filter on every list unless the user sees all campuses.
   /// Returns null when the user has no campus (the list would be empty).
   Query<Map<String, dynamic>>? restrictToCampuses(

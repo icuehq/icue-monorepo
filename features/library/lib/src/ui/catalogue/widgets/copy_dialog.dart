@@ -150,7 +150,7 @@ class _CopyDialogState extends State<CopyDialog> {
       for (final schoolLibrary in libraryProvider.libraries)
         if (schoolLibrary.active &&
             schoolLibrary.id != copy.libraryId &&
-            libraryProvider.access.campusIds.contains(schoolLibrary.campusId))
+            libraryProvider.access.hasCampus(schoolLibrary.campusId))
           schoolLibrary,
     ];
     if (libraries.isEmpty) {

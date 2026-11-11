@@ -225,9 +225,47 @@ class _IcueAdminAppState extends State<IcueAdminApp> {
         debugShowCheckedModeBanner: false,
         theme: IcueTheme.forEnvironment(isProd: widget.environment.isProd),
         routerConfig: _router,
-        builder: (context, child) =>
-            IcueConnectivityBanner(service: widget.connectivity, child: child!),
+        builder: (context, child) => _SelectableApp(
+          child: IcueConnectivityBanner(
+            service: widget.connectivity,
+            child: child!,
+          ),
+        ),
       ),
     );
   }
+}
+
+/// Makes all text selectable. `SelectionArea` needs an [Overlay] ancestor,
+/// which `MaterialApp.builder` does not provide, so it gets its own.
+class _SelectableApp extends StatefulWidget {
+  const _SelectableApp({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_SelectableApp> createState() => _SelectableAppState();
+}
+
+class _SelectableAppState extends State<_SelectableApp> {
+  late final OverlayEntry _entry = OverlayEntry(
+    builder: (context) => SelectionArea(child: widget.child),
+  );
+
+  @override
+  void didUpdateWidget(_SelectableApp oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _entry.markNeedsBuild();
+  }
+
+  @override
+  void dispose() {
+    _entry
+      ..remove()
+      ..dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Overlay(initialEntries: [_entry]);
 }

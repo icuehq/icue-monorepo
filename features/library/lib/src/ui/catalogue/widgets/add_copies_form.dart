@@ -76,7 +76,7 @@ class _AddCopiesFormState extends State<AddCopiesForm> {
     final libraries = [
       for (final schoolLibrary in libraryProvider.libraries)
         if (schoolLibrary.active &&
-            libraryProvider.access.campusIds.contains(schoolLibrary.campusId))
+            libraryProvider.access.hasCampus(schoolLibrary.campusId))
           schoolLibrary,
     ];
     _libraryId ??= libraries.firstOrNull?.id;

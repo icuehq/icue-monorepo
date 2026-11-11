@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:api_client/api_client.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
@@ -44,7 +44,7 @@ class _AddLibraryDialogState extends State<AddLibraryDialog> {
     super.dispose();
   }
 
-  /// Fills the form with the next sample whose name is not taken yet (debug builds, new libraries only).
+  /// Fills the form with the next sample whose name is not taken yet (non-prod builds, new libraries only).
   void _fillSample() {
     final taken = {
       for (final library in context.read<LibraryProvider>().libraries)
@@ -162,7 +162,8 @@ class _AddLibraryDialogState extends State<AddLibraryDialog> {
                   ],
                 ),
               ),
-              if (kDebugMode && !editing)
+              if (ApiEnvironment.fromEnvironment() != ApiEnvironment.prod &&
+                  !editing)
                 IcueButton(
                   label: 'Fill sample',
                   onPressed: _busy ? null : _fillSample,

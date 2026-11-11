@@ -7,6 +7,7 @@ environment:
   sdk: ^3.13.1
 
 dependencies:
+  api_client:
   archive: ^4.5.2
   flutter:
     sdk: flutter

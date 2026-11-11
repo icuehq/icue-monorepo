@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { assertFails, assertSucceeds, initializeTestEnvironment } from '@firebase/rules-unit-testing';
-import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, query, serverTimestamp, setDoc, updateDoc, where } from 'firebase/firestore';
+import { addDoc, collection, getAggregateFromServer, sum, deleteDoc, doc, getDoc, getDocs, query, serverTimestamp, setDoc, updateDoc, where } from 'firebase/firestore';
 import { getBytes, ref, uploadString } from 'firebase/storage';
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
 
@@ -328,6 +328,12 @@ describe('library (staff gate)', () => {
       await assertFails(getDoc(doc(db('parent-1', { ...parent, wardStudentIds: [999] }), path)));
       await assertFails(setDoc(doc(db('4'), path), { status: 'x' }));
     }
+  });
+
+  it('fines: the dashboard outstanding sum over the user\'s campuses is allowed', async () => {
+    const fines = collection(db('4'), 'schools/12/libraryFines');
+    await assertSucceeds(getDocs(query(fines, where('campusId', 'in', [31]), where('status', 'in', ['outstanding', 'partially_paid']))));
+    await assertSucceeds(getAggregateFromServer(query(fines, where('campusId', 'in', [31]), where('status', 'in', ['outstanding', 'partially_paid'])), { total: sum('outstanding') }));
   });
 
   it('a parent browses the catalogue only, reads their ward\'s membership, and writes nothing', async () => {

@@ -9,6 +9,8 @@
     "build": "tsc",
     "deploy:dev": "npm run build && firebase deploy --only functions --project dev",
     "deploy:prod": "npm run build && firebase deploy --only functions --project prod",
+    "deploy:rules:dev": "firebase deploy --only firestore --project dev",
+    "deploy:rules:prod": "firebase deploy --only firestore --project prod",
     "test:unit": "vitest run test/unit",
     "test": "firebase emulators:exec --only firestore --project demo-icue \"vitest run\"",
     "lint": "eslint .",
