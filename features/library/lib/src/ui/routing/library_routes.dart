@@ -2,43 +2,43 @@
 class LibraryRoutes {
   const LibraryRoutes._();
 
-  static const String library = '/layout.Library';
+  static const String library = '/library';
   static const String libraryName = 'library';
 
-  static const String libraryList = '/layout.Library/libraries';
-  static const String libraryListName = 'libraryList';
+  static const String libraryList = '/library/libraries';
+  static const String libraryListName = 'library.libraries';
 
-  static const String libraryCategories = '/layout.Library/categories';
-  static const String libraryCategoriesName = 'libraryCategories';
+  static const String libraryCategories = '/library/categories';
+  static const String libraryCategoriesName = 'library.categories';
 
-  static const String libraryCatalogue = '/layout.Library/catalogue';
-  static const String libraryCatalogueName = 'libraryCatalogue';
+  static const String libraryCatalogue = '/library/catalogue';
+  static const String libraryCatalogueName = 'library.catalogue';
 
-  static const String libraryBookForm = '/layout.Library/catalogue/form';
-  static const String libraryBookFormName = 'libraryBookForm';
+  static const String libraryBookForm = '/library/catalogue/form';
+  static const String libraryBookFormName = 'library.catalogue.form';
 
-  static const String libraryBookDetails = '/layout.Library/catalogue/details';
-  static const String libraryBookDetailsName = 'libraryBookDetails';
+  static const String libraryBookDetails = '/library/catalogue/details';
+  static const String libraryBookDetailsName = 'library.catalogue.details';
 
-  static const String libraryBookImport = '/layout.Library/catalogue/import';
-  static const String libraryBookImportName = 'libraryBookImport';
+  static const String libraryBookImport = '/library/catalogue/import';
+  static const String libraryBookImportName = 'library.catalogue.import';
 
-  static const String libraryMembers = '/layout.Library/members';
-  static const String libraryMembersName = 'libraryMembers';
+  static const String libraryMembers = '/library/members';
+  static const String libraryMembersName = 'library.members';
 
-  static const String libraryPolicies = '/layout.Library/policies';
-  static const String libraryPoliciesName = 'libraryPolicies';
+  static const String libraryPolicies = '/library/policies';
+  static const String libraryPoliciesName = 'library.policies';
 
-  static const String libraryCirculation = '/layout.Library/circulation';
-  static const String libraryCirculationName = 'libraryCirculation';
-  static const String libraryIssue = '/layout.Library/circulation/issue';
-  static const String libraryIssueName = 'libraryIssue';
+  static const String libraryCirculation = '/library/circulation';
+  static const String libraryCirculationName = 'library.circulation';
+  static const String libraryIssue = '/library/circulation/issue';
+  static const String libraryIssueName = 'library.circulation.issue';
 
-  static const String libraryFines = '/layout.Library/fines';
-  static const String libraryFinesName = 'libraryFines';
+  static const String libraryFines = '/library/fines';
+  static const String libraryFinesName = 'library.fines';
 
-  static const String libraryIncidents = '/layout.Library/incidents';
-  static const String libraryIncidentsName = 'libraryIncidents';
-  static const String libraryReports = '/layout.Library/reports';
-  static const String libraryReportsName = 'libraryReports';
+  static const String libraryIncidents = '/library/incidents';
+  static const String libraryIncidentsName = 'library.incidents';
+  static const String libraryReports = '/library/reports';
+  static const String libraryReportsName = 'library.reports';
 }

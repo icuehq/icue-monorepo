@@ -2,127 +2,122 @@
 class InventoryRoutes {
   const InventoryRoutes._();
 
-  static const String inventory = '/layout.inventory';
+  static const String inventory = '/inventory';
   static const String inventoryName = 'inventory';
 
-  static const String inventoryCategories = '/layout.inventory/categories';
-  static const String inventoryCategoriesName = 'inventoryCategories';
+  static const String inventoryCategories = '/inventory/categories';
+  static const String inventoryCategoriesName = 'inventory.categories';
 
-  static const String inventoryUnits = '/layout.inventory/units';
-  static const String inventoryUnitsName = 'inventoryUnits';
+  static const String inventoryUnits = '/inventory/units';
+  static const String inventoryUnitsName = 'inventory.units';
 
-  static const String inventoryStores = '/layout.inventory/stores';
-  static const String inventoryStoresName = 'inventoryStores';
+  static const String inventoryStores = '/inventory/stores';
+  static const String inventoryStoresName = 'inventory.stores';
 
-  static const String inventoryItems = '/layout.inventory/items';
-  static const String inventoryItemsName = 'inventoryItems';
+  static const String inventoryItems = '/inventory/items';
+  static const String inventoryItemsName = 'inventory.items';
 
-  static const String inventoryItemForm = '/layout.inventory/items/form';
-  static const String inventoryItemFormName = 'inventoryItemForm';
+  static const String inventoryItemForm = '/inventory/items/form';
+  static const String inventoryItemFormName = 'inventory.items.form';
 
-  static const String inventoryItemDetails = '/layout.inventory/items/details';
-  static const String inventoryItemDetailsName = 'inventoryItemDetails';
+  static const String inventoryItemDetails = '/inventory/items/details';
+  static const String inventoryItemDetailsName = 'inventory.items.details';
 
-  static const String inventoryStock = '/layout.inventory/stock';
-  static const String inventoryStockName = 'inventoryStock';
-  static const String inventoryStockDetails = '/layout.inventory/stock/details';
-  static const String inventoryStockDetailsName = 'inventoryStockDetails';
+  static const String inventoryStock = '/inventory/stock';
+  static const String inventoryStockName = 'inventory.stock';
+  static const String inventoryStockDetails = '/inventory/stock/details';
+  static const String inventoryStockDetailsName = 'inventory.stock.details';
 
-  static const String inventoryReceive = '/layout.inventory/stock/receive';
-  static const String inventoryReceiveName = 'inventoryReceive';
+  static const String inventoryReceive = '/inventory/stock/receive';
+  static const String inventoryReceiveName = 'inventory.stock.receive';
 
-  static const String inventoryMyRequests = '/layout.inventory/my-requests';
-  static const String inventoryMyRequestsName = 'inventoryMyRequests';
+  static const String inventoryMyRequests = '/inventory/my-requests';
+  static const String inventoryMyRequestsName = 'inventory.my-requests';
 
-  static const String inventoryRequests = '/layout.inventory/requests';
-  static const String inventoryRequestsName = 'inventoryRequests';
+  static const String inventoryRequests = '/inventory/requests';
+  static const String inventoryRequestsName = 'inventory.requests';
 
-  static const String inventoryRequestForm = '/layout.inventory/requests/new';
-  static const String inventoryRequestFormName = 'inventoryRequestForm';
+  static const String inventoryRequestForm = '/inventory/requests/new';
+  static const String inventoryRequestFormName = 'inventory.requests.new';
 
-  static const String inventoryRequestDetail =
-      '/layout.inventory/requests/detail';
-  static const String inventoryRequestDetailName = 'inventoryRequestDetail';
+  static const String inventoryRequestDetail = '/inventory/requests/detail';
+  static const String inventoryRequestDetailName = 'inventory.requests.detail';
 
-  static const String inventoryIssueReturn =
-      '/layout.inventory/requests/return';
-  static const String inventoryIssueReturnName = 'inventoryIssueReturn';
+  static const String inventoryIssueReturn = '/inventory/requests/return';
+  static const String inventoryIssueReturnName = 'inventory.requests.return';
 
-  static const String inventoryReports = '/layout.inventory/reports';
-  static const String inventoryReportsName = 'inventoryReports';
+  static const String inventoryReports = '/inventory/reports';
+  static const String inventoryReportsName = 'inventory.reports';
 
-  static const String inventoryReport = '/layout.inventory/reports/view';
-  static const String inventoryReportName = 'inventoryReport';
+  static const String inventoryReport = '/inventory/reports/view';
+  static const String inventoryReportName = 'inventory.reports.view';
 
-  static const String inventoryUnavailable = '/layout.inventory/unavailable';
-  static const String inventoryUnavailableName = 'inventoryUnavailable';
+  static const String inventoryUnavailable = '/inventory/unavailable';
+  static const String inventoryUnavailableName = 'inventory.unavailable';
 
   static const String inventoryUnavailableResolve =
-      '/layout.inventory/unavailable/resolve';
+      '/inventory/unavailable/resolve';
   static const String inventoryUnavailableResolveName =
-      'inventoryUnavailableResolve';
+      'inventory.unavailable.resolve';
 
-  static const String inventoryVendors = '/layout.inventory/vendors';
-  static const String inventoryVendorsName = 'inventoryVendors';
+  static const String inventoryVendors = '/inventory/vendors';
+  static const String inventoryVendorsName = 'inventory.vendors';
 
-  static const String inventoryVendorDetail =
-      '/layout.inventory/vendors/detail';
-  static const String inventoryVendorDetailName = 'inventoryVendorDetail';
+  static const String inventoryVendorDetail = '/inventory/vendors/detail';
+  static const String inventoryVendorDetailName = 'inventory.vendors.detail';
 
-  static const String inventoryVendorForm = '/layout.inventory/vendors/form';
-  static const String inventoryVendorFormName = 'inventoryVendorForm';
+  static const String inventoryVendorForm = '/inventory/vendors/form';
+  static const String inventoryVendorFormName = 'inventory.vendors.form';
 
   static const String inventoryPurchaseRequests =
-      '/layout.inventory/purchase-requests';
+      '/inventory/purchase-requests';
   static const String inventoryPurchaseRequestsName =
-      'inventoryPurchaseRequests';
+      'inventory.purchase-requests';
 
   static const String inventoryPurchaseRequestForm =
-      '/layout.inventory/purchase-requests/form';
+      '/inventory/purchase-requests/form';
   static const String inventoryPurchaseRequestFormName =
-      'inventoryPurchaseRequestForm';
+      'inventory.purchase-requests.form';
 
   static const String inventoryPurchaseRequestDetail =
-      '/layout.inventory/purchase-requests/detail';
+      '/inventory/purchase-requests/detail';
   static const String inventoryPurchaseRequestDetailName =
-      'inventoryPurchaseRequestDetail';
+      'inventory.purchase-requests.detail';
 
-  static const String inventoryQuotations = '/layout.inventory/quotations';
-  static const String inventoryQuotationsName = 'inventoryQuotations';
+  static const String inventoryQuotations = '/inventory/quotations';
+  static const String inventoryQuotationsName = 'inventory.quotations';
 
-  static const String inventoryQuotationForm =
-      '/layout.inventory/quotations/form';
-  static const String inventoryQuotationFormName = 'inventoryQuotationForm';
+  static const String inventoryQuotationForm = '/inventory/quotations/form';
+  static const String inventoryQuotationFormName = 'inventory.quotations.form';
 
-  static const String inventoryPurchaseOrders =
-      '/layout.inventory/purchase-orders';
-  static const String inventoryPurchaseOrdersName = 'inventoryPurchaseOrders';
+  static const String inventoryPurchaseOrders = '/inventory/purchase-orders';
+  static const String inventoryPurchaseOrdersName = 'inventory.purchase-orders';
 
   static const String inventoryPurchaseOrderDetail =
-      '/layout.inventory/purchase-orders/detail';
+      '/inventory/purchase-orders/detail';
   static const String inventoryPurchaseOrderDetailName =
-      'inventoryPurchaseOrderDetail';
+      'inventory.purchase-orders.detail';
 
   static const String inventoryPurchaseOrderForm =
-      '/layout.inventory/purchase-orders/form';
+      '/inventory/purchase-orders/form';
   static const String inventoryPurchaseOrderFormName =
-      'inventoryPurchaseOrderForm';
+      'inventory.purchase-orders.form';
 
-  static const String inventoryPoReceive =
-      '/layout.inventory/purchase-orders/receive';
-  static const String inventoryPoReceiveName = 'inventoryPoReceive';
+  static const String inventoryPoReceive = '/inventory/purchase-orders/receive';
+  static const String inventoryPoReceiveName =
+      'inventory.purchase-orders.receive';
 
-  static const String inventoryInvoices = '/layout.inventory/invoices';
-  static const String inventoryInvoicesName = 'inventoryInvoices';
+  static const String inventoryInvoices = '/inventory/invoices';
+  static const String inventoryInvoicesName = 'inventory.invoices';
 
-  static const String inventoryImport = '/layout.inventory/import';
-  static const String inventoryImportName = 'inventoryImport';
-  static const String inventoryAssets = '/layout.inventory/assets';
-  static const String inventoryAssetsName = 'inventoryAssets';
+  static const String inventoryImport = '/inventory/import';
+  static const String inventoryImportName = 'inventory.import';
+  static const String inventoryAssets = '/inventory/assets';
+  static const String inventoryAssetsName = 'inventory.assets';
 
-  static const String inventoryAssetForm = '/layout.inventory/assets/form';
-  static const String inventoryAssetFormName = 'inventoryAssetForm';
+  static const String inventoryAssetForm = '/inventory/assets/form';
+  static const String inventoryAssetFormName = 'inventory.assets.form';
 
-  static const String inventoryMaintenance = '/layout.inventory/maintenance';
-  static const String inventoryMaintenanceName = 'inventoryMaintenance';
+  static const String inventoryMaintenance = '/inventory/maintenance';
+  static const String inventoryMaintenanceName = 'inventory.maintenance';
 }

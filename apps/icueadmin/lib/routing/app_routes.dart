@@ -1,3 +1,6 @@
+/// Route paths are `/<module>[/<sub-page>]` in kebab-case; names are the path
+/// with `/` replaced by `.`. Backend `layout.*` ids are mapped to these paths
+/// in the dashboard, never used as paths.
 abstract final class AppRoutes {
   static const String dashboard = '/';
   static const String dashboardName = 'dashboard';
@@ -8,167 +11,158 @@ abstract final class AppRoutes {
   static const String branches = '/branches';
   static const String branchesName = 'branches';
 
-  static const String drivers = '/layout.drivers';
+  static const String drivers = '/drivers';
   static const String driversName = 'drivers';
 
-  static const String addDriver = '/layout.drivers/add-driver';
-  static const String addDriverName = 'addDriver';
+  static const String addDriver = '/drivers/add';
+  static const String addDriverName = 'drivers.add';
 
-  static const String driverInfo = '/layout.drivers/driver-info';
-  static const String driverInfoName = 'driverInfo';
+  static const String driverInfo = '/drivers/info';
+  static const String driverInfoName = 'drivers.info';
 
-  static const String driverDocs = '/layout.drivers/driver-docs';
-  static const String driverDocsName = 'driverDocs';
+  static const String driverDocs = '/drivers/docs';
+  static const String driverDocsName = 'drivers.docs';
 
-  static const String vehicles = '/layout.vehicles';
+  static const String vehicles = '/vehicles';
   static const String vehiclesName = 'vehicles';
 
-  static const String addVehicle = '/layout.vehicles/add-vehicle';
-  static const String addVehicleName = 'addVehicle';
+  static const String addVehicle = '/vehicles/add';
+  static const String addVehicleName = 'vehicles.add';
 
-  static const String vehicleDetails = '/layout.vehicles/vehicle-details';
-  static const String vehicleDetailsName = 'vehicleDetails';
+  static const String vehicleDetails = '/vehicles/details';
+  static const String vehicleDetailsName = 'vehicles.details';
 
-  static const String vehicleDocs = '/layout.vehicles/vehicle-docs';
-  static const String vehicleDocsName = 'vehicleDocs';
+  static const String vehicleDocs = '/vehicles/docs';
+  static const String vehicleDocsName = 'vehicles.docs';
 
-  static const String manageRoutes = '/layout.routes';
-  static const String manageRoutesName = 'manageRoutes';
+  static const String manageRoutes = '/routes';
+  static const String manageRoutesName = 'routes';
 
-  static const String studentRouteChange =
-      '/layout.routes/student-route-change';
-  static const String studentRouteChangeName = 'studentRouteChange';
+  static const String studentRouteChange = '/routes/student-change';
+  static const String studentRouteChangeName = 'routes.student-change';
 
-  static const String routeTimeChange = '/layout.routes/route-time-change';
-  static const String routeTimeChangeName = 'routeTimeChange';
+  static const String routeTimeChange = '/routes/time-change';
+  static const String routeTimeChangeName = 'routes.time-change';
 
-  static const String announcements =
-      '/layout.fleetannouncement/layout.annoucements';
-  static const String announcementsName = 'announcements';
+  static const String postAnnouncement = '/announcements';
+  static const String postAnnouncementName = 'announcements';
 
-  static const String postAnnouncement = '/layout.fleetannouncement';
-  static const String postAnnouncementName = 'postAnnouncement';
+  static const String announcements = '/announcements/history';
+  static const String announcementsName = 'announcements.history';
 
-  static const String repairsExpense = '/layout.repairsandexpenses';
-  static const String repairsExpenseName = 'repairsExpense';
+  static const String repairsExpense = '/repairs-expenses';
+  static const String repairsExpenseName = 'repairs-expenses';
 
-  static const String vehicleOptions = '/layout.repairsandexpenses/options';
-  static const String vehicleOptionsName = 'vehicleOptions';
+  static const String vehicleOptions = '/repairs-expenses/options';
+  static const String vehicleOptionsName = 'repairs-expenses.options';
 
-  static const String manageExpense = '/layout.fuelfilling';
-  static const String manageExpenseName = 'manageExpense';
+  static const String addExpense = '/repairs-expenses/add';
+  static const String addExpenseName = 'repairs-expenses.add';
 
-  static const String addExpense = '/layout.fuelfilling/add';
-  static const String addExpenseName = 'addExpense';
+  static const String manageExpense = '/fuel-filling';
+  static const String manageExpenseName = 'fuel-filling';
 
-  static const String selfFilling = '/layout.fuelfilling/self-filling';
-  static const String selfFillingName = 'selfFilling';
+  static const String selfFilling = '/fuel-filling/self-filling';
+  static const String selfFillingName = 'fuel-filling.self-filling';
 
   static const String selfFillingVehicles =
-      '/layout.fuelfilling/self-filling/vehicles';
-  static const String selfFillingVehiclesName = 'selfFillingVehicles';
+      '/fuel-filling/self-filling/vehicles';
+  static const String selfFillingVehiclesName =
+      'fuel-filling.self-filling.vehicles';
 
-  static const String looseFuel = '/layout.fuelfilling/loose-fuel';
-  static const String looseFuelName = 'looseFuel';
+  static const String looseFuel = '/fuel-filling/loose-fuel';
+  static const String looseFuelName = 'fuel-filling.loose-fuel';
 
-  static const String endFilling = '/layout.fuelfilling/end-filling';
-  static const String endFillingName = 'endFilling';
+  static const String endFilling = '/fuel-filling/end-filling';
+  static const String endFillingName = 'fuel-filling.end-filling';
 
-  static const String expenseConfirmation = '/layout.fuelfilling/confirmation';
-  static const String expenseConfirmationName = 'expenseConfirmation';
+  static const String expenseConfirmation = '/fuel-filling/confirmation';
+  static const String expenseConfirmationName = 'fuel-filling.confirmation';
 
-  static const String logBook = '/layout.logbook';
-  static const String logBookName = 'logBook';
+  static const String logBook = '/logbook';
+  static const String logBookName = 'logbook';
 
-  static const String complaintsDashboard =
-      '/layout.logbook/layout.complaintsdashboard';
-  static const String complaintsDashboardName = 'complaintsDashboard';
+  static const String complaintsDashboard = '/logbook/complaints-dashboard';
+  static const String complaintsDashboardName = 'logbook.complaints-dashboard';
 
-  static const String complaints = '/layout.logbook/layout.complaints';
-  static const String complaintsName = 'complaints';
+  static const String complaints = '/logbook/complaints';
+  static const String complaintsName = 'logbook.complaints';
 
-  static const String complaintDetails =
-      '/layout.logbook/layout.complaints/details';
-  static const String complaintDetailsName = 'complaintDetails';
+  static const String complaintDetails = '/logbook/complaints/details';
+  static const String complaintDetailsName = 'logbook.complaints.details';
 
-  static const String addComplaint =
-      '/layout.logbook/layout.complaints/add-complaint';
-  static const String addComplaintName = 'addComplaint';
+  static const String addComplaint = '/logbook/complaints/add';
+  static const String addComplaintName = 'logbook.complaints.add';
 
-  static const String cleaningLog = '/layout.logbook/layout.cleaninglog';
-  static const String cleaningLogName = 'cleaningLog';
+  static const String cleaningLog = '/logbook/cleaning-log';
+  static const String cleaningLogName = 'logbook.cleaning-log';
 
-  static const String alcoholTestForm = '/layout.logbook/layout.alcoholtest';
-  static const String alcoholTestFormName = 'alcoholTestForm';
+  static const String alcoholTestForm = '/logbook/alcohol-test';
+  static const String alcoholTestFormName = 'logbook.alcohol-test';
 
-  static const String reports = '/layout.reports';
+  static const String reports = '/reports';
   static const String reportsName = 'reports';
 
-  static const String arrivalTimeReport =
-      '/layout.reports/layout.vehiclearrival';
-  static const String arrivalTimeReportName = 'arrivalTimeReport';
+  static const String arrivalTimeReport = '/reports/vehicle-arrival';
+  static const String arrivalTimeReportName = 'reports.vehicle-arrival';
 
-  static const String cleaningReport = '/layout.reports/layout.vehiclecleaning';
-  static const String cleaningReportName = 'cleaningReport';
+  static const String cleaningReport = '/reports/vehicle-cleaning';
+  static const String cleaningReportName = 'reports.vehicle-cleaning';
 
-  static const String alcoholTestReport =
-      '/layout.reports/layout.alcoholtestreport';
-  static const String alcoholTestReportName = 'alcoholTestReport';
+  static const String alcoholTestReport = '/reports/alcohol-test';
+  static const String alcoholTestReportName = 'reports.alcohol-test';
 
-  static const String fuelReport = '/layout.reports/fuel';
-  static const String fuelReportName = 'fuelReport';
+  static const String fuelReport = '/reports/fuel';
+  static const String fuelReportName = 'reports.fuel';
 
-  static const String mileageReport = '/layout.reports/mileage';
-  static const String mileageReportName = 'mileageReport';
+  static const String mileageReport = '/reports/mileage';
+  static const String mileageReportName = 'reports.mileage';
 
-  static const String overSpeedReport = '/layout.reports/over-speed';
-  static const String overSpeedReportName = 'overSpeedReport';
+  static const String overSpeedReport = '/reports/over-speed';
+  static const String overSpeedReportName = 'reports.over-speed';
 
-  static const String gatePass = '/layout.gatepass';
-  static const String gatePassName = 'gatePass';
+  static const String gatePass = '/gate-pass';
+  static const String gatePassName = 'gate-pass';
 
-  static const String generateGatePass =
-      '/layout.gatepass/layout.generategatepass';
-  static const String generateGatePassName = 'generateGatePass';
+  static const String generateGatePass = '/gate-pass/generate';
+  static const String generateGatePassName = 'gate-pass.generate';
 
-  static const String confirmGatePass = '/layout.gatepass/confirm';
-  static const String confirmGatePassName = 'confirmGatePass';
+  static const String confirmGatePass = '/gate-pass/confirm';
+  static const String confirmGatePassName = 'gate-pass.confirm';
 
-  static const String pendingGatePass =
-      '/layout.gatepass/layout.approvegatepass';
-  static const String pendingGatePassName = 'pendingGatePass';
+  static const String pendingGatePass = '/gate-pass/pending';
+  static const String pendingGatePassName = 'gate-pass.pending';
 
-  static const String fleetStatus = '/layout.fleetdashboard';
-  static const String fleetStatusName = 'fleetStatus';
+  static const String fleetStatus = '/fleet-status';
+  static const String fleetStatusName = 'fleet-status';
 
-  static const String trackBus = '/layout.trackvehicle';
-  static const String trackBusName = 'trackBus';
+  static const String trackBus = '/track-vehicle';
+  static const String trackBusName = 'track-vehicle';
 
-  static const String trackingWebview = '/layout.trackvehicle/webview';
-  static const String trackingWebviewName = 'trackingWebview';
+  static const String trackingWebview = '/track-vehicle/webview';
+  static const String trackingWebviewName = 'track-vehicle.webview';
 
-  static const String dropBoarding = '/layout.dropboarding';
-  static const String dropBoardingName = 'dropBoarding';
+  static const String dropBoarding = '/drop-boarding';
+  static const String dropBoardingName = 'drop-boarding';
 
-  static const String dropVehicles = '/layout.dropboarding/drop-vehicles';
-  static const String dropVehiclesName = 'dropVehicles';
+  static const String dropVehicles = '/drop-boarding/drop-vehicles';
+  static const String dropVehiclesName = 'drop-boarding.drop-vehicles';
 
-  static const String boarding = '/layout.dropboarding/boarding';
-  static const String boardingName = 'boarding';
+  static const String boarding = '/drop-boarding/boarding';
+  static const String boardingName = 'drop-boarding.boarding';
 
-  static const String attendance = '/layout.attendance';
+  static const String attendance = '/attendance';
   static const String attendanceName = 'attendance';
 
-  static const String attendanceSections = '/layout.attendance/sections';
-  static const String attendanceSectionsName = 'attendanceSections';
+  static const String attendanceSections = '/attendance/sections';
+  static const String attendanceSectionsName = 'attendance.sections';
 
-  static const String createAttendance = '/layout.attendance/create';
-  static const String createAttendanceName = 'createAttendance';
+  static const String createAttendance = '/attendance/create';
+  static const String createAttendanceName = 'attendance.create';
 
-  static const String sdkAttendance = '/layout.attendance/sdk';
-  static const String sdkAttendanceName = 'sdkAttendance';
+  static const String sdkAttendance = '/attendance/sdk';
+  static const String sdkAttendanceName = 'attendance.sdk';
 
-  static const String attendanceConfirmation =
-      '/layout.attendance/confirmation';
-  static const String attendanceConfirmationName = 'attendanceConfirmation';
+  static const String attendanceConfirmation = '/attendance/confirmation';
+  static const String attendanceConfirmationName = 'attendance.confirmation';
 }

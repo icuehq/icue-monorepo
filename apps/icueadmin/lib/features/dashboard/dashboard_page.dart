@@ -7,8 +7,11 @@ import 'package:flutter/scheduler.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icueadmin/dialogs/logout_dialog.dart';
 import 'package:icueadmin/features/dashboard/widgets/branch_selector_bar.dart';
+import 'package:icueadmin/routing/app_routes.dart';
 import 'package:icueadmin/widgets/option_card_tile.dart';
+import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
+import 'package:school_library/school_library.dart';
 
 const Map<String, String> _iconsMap = {
   'layout.trackvehicle': 'assets/dashboard/track-bus.png',
@@ -26,6 +29,26 @@ const Map<String, String> _iconsMap = {
   'layout.attendance': 'assets/dashboard/attendance.png',
   'layout.inventory': 'assets/dashboard/inventory.png',
   'layout.Library': 'assets/dashboard/library.png',
+};
+
+/// Backend `routeState` id -> app route path. Unknown ids fall through to
+/// `ComingSoonPage` via the router's error builder.
+const Map<String, String> dashboardRoutePaths = {
+  'layout.trackvehicle': AppRoutes.trackBus,
+  'layout.fleetannouncement': AppRoutes.postAnnouncement,
+  'layout.routes': AppRoutes.manageRoutes,
+  'layout.fleetdashboard': AppRoutes.fleetStatus,
+  'layout.repairsandexpenses': AppRoutes.repairsExpense,
+  'layout.fuelfilling': AppRoutes.manageExpense,
+  'layout.reports': AppRoutes.reports,
+  'layout.drivers': AppRoutes.drivers,
+  'layout.vehicles': AppRoutes.vehicles,
+  'layout.logbook': AppRoutes.logBook,
+  'layout.dropboarding': AppRoutes.dropBoarding,
+  'layout.gatepass': AppRoutes.gatePass,
+  'layout.attendance': AppRoutes.attendance,
+  'layout.inventory': InventoryRoutes.inventory,
+  'layout.Library': LibraryRoutes.library,
 };
 
 class DashboardPage extends StatefulWidget {
@@ -131,7 +154,10 @@ class _DashboardPageState extends State<DashboardPage> {
                       title: item.displayName,
                       iconAsset: iconPath,
                       networkIconUrl: item.icon,
-                      onTap: () => context.push('/${item.routeState}'),
+                      onTap: () => context.push(
+                        dashboardRoutePaths[item.routeState] ??
+                            '/${item.routeState}',
+                      ),
                     );
                   },
                 ),
