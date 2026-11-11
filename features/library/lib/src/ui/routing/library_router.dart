@@ -3,6 +3,7 @@ import 'package:icue_ui/icue_ui.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/catalogue/book_details_page.dart';
 import 'package:school_library/src/ui/catalogue/book_form_page.dart';
+import 'package:school_library/src/ui/catalogue/book_import_page.dart';
 import 'package:school_library/src/ui/catalogue/catalogue_page.dart';
 import 'package:school_library/src/ui/circulation/circulation_page.dart';
 import 'package:school_library/src/ui/circulation/issue_books_page.dart';
@@ -61,6 +62,11 @@ final _libraryPages = <RouteBase>[
     name: LibraryRoutes.libraryBookFormName,
     builder: (context, state) =>
         BookFormPage(book: state.extra as LibraryBook?),
+  ),
+  GoRoute(
+    path: LibraryRoutes.libraryBookImport,
+    name: LibraryRoutes.libraryBookImportName,
+    builder: (context, state) => const BookImportPage(),
   ),
   GoRoute(
     path: LibraryRoutes.libraryMembers,

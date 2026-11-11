@@ -27,7 +27,7 @@ class StorageService {
     Box<T> box;
     try {
       box = await Hive.openBox<T>(boxName);
-    // ignore: avoid_catching_errors, Hive signals unreadable files with HiveError (an Error).
+      // ignore: avoid_catching_errors, Hive signals unreadable files with HiveError (an Error).
     } on HiveError catch (e) {
       // Stale file written by an older build (unknown typeId / corrupt):
       // unreadable cache, so drop it and start empty instead of crashing.

@@ -5,9 +5,8 @@ String toCsv(List<String> header, List<List<String>> rows) {
   return [header, ...rows].map((r) => r.map(cell).join(',')).join('\n');
 }
 
-/// Parses RFC 4180 CSV (quoted cells, `""` escapes, CRLF) into maps keyed by the header row.
-/// Blank lines are skipped; header names are trimmed.
-List<Map<String, String>> parseCsv(String text) {
+/// Parses RFC 4180 CSV (quoted cells, `""` escapes, CRLF) into rows of cells; blank lines are skipped.
+List<List<String>> parseCsvRows(String text) {
   final rows = <List<String>>[];
   var row = <String>[];
   final cell = StringBuffer();
@@ -45,6 +44,12 @@ List<Map<String, String>> parseCsv(String text) {
     }
   }
   endRow();
+  return rows;
+}
+
+/// [parseCsvRows] as maps keyed by the (trimmed) header row.
+List<Map<String, String>> parseCsv(String text) {
+  final rows = parseCsvRows(text);
   if (rows.isEmpty) return [];
   final header = [for (final h in rows.first) h.trim()];
   return [

@@ -148,6 +148,21 @@ class LibraryService {
   Future<LibraryCopy?> findCopy(String code) =>
       _one('libraryCopies', code.trim(), LibraryCopy.fromMap);
 
+  /// The [barcodes] that already belong to a copy, checked 20 at a time.
+  Future<Set<String>> existingBarcodes(List<String> barcodes) async {
+    final taken = <String>{};
+    for (var start = 0; start < barcodes.length; start += 20) {
+      final found = await Future.wait([
+        for (final barcode in barcodes.skip(start).take(20)) findCopy(barcode),
+      ]);
+      taken.addAll([
+        for (final copy in found)
+          if (copy != null) copy.barcode,
+      ]);
+    }
+    return taken;
+  }
+
   Future<List<LibraryPolicy>> policies() async =>
       (await _all('libraryBorrowingPolicies', LibraryPolicy.fromMap))
         ..sort((left, right) => left.name.compareTo(right.name));

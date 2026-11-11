@@ -64,13 +64,34 @@ Future<IcuePickedFile?> pickFile(
   return IcuePickedFile(name: image.name, bytes: await image.readAsBytes());
 }
 
-/// Downloads [csv] as [fileName] (browser download on web, save dialog elsewhere).
-/// Returns false when the user cancelled. The BOM makes Excel read UTF-8 (₹, names).
-Future<bool> saveCsvFile(String fileName, String csv) async {
+/// A CSV or Excel sheet chosen by the user, or null when cancelled.
+Future<IcuePickedFile?> pickSpreadsheet() async {
+  final file = await FilePicker.pickFile(
+    type: FileType.custom,
+    allowedExtensions: const ['csv', 'xlsx'],
+  );
+  if (file == null) return null;
+  return IcuePickedFile(name: file.name, bytes: await file.readAsBytes());
+}
+
+/// Downloads [bytes] as [fileName] (browser download on web, save dialog elsewhere).
+/// Returns false when the user cancelled.
+Future<bool> saveFileBytes(
+  String fileName,
+  List<int> bytes,
+  String mimeType,
+) async {
   final saved = await FilePicker.saveFile(
     fileName: fileName,
-    bytes: Uint8List.fromList([0xEF, 0xBB, 0xBF, ...utf8.encode(csv)]),
-    mimeType: 'text/csv',
+    bytes: Uint8List.fromList(bytes),
+    mimeType: mimeType,
   );
   return kIsWeb || saved != null;
 }
+
+/// Downloads [csv] as [fileName]. The BOM makes Excel read UTF-8 (₹, names).
+Future<bool> saveCsvFile(String fileName, String csv) => saveFileBytes(
+  fileName,
+  [0xEF, 0xBB, 0xBF, ...utf8.encode(csv)],
+  'text/csv',
+);

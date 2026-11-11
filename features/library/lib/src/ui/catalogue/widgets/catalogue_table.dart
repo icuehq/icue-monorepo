@@ -112,6 +112,11 @@ class CatalogueTable extends StatelessWidget {
           provider.bookClassId != null ||
           statusFilter != CatalogueStatusFilter.all,
       onClearFilters: onClearFilters,
+      secondaryAction: IcueTableAction(
+        label: 'Import',
+        icon: Icons.upload_file_rounded,
+        onPressed: () => context.pushNamed(LibraryRoutes.libraryBookImportName),
+      ),
       primaryAction: IcueTableAction(
         label: 'Book',
         icon: Icons.add_rounded,

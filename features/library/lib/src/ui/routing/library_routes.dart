@@ -20,6 +20,9 @@ class LibraryRoutes {
   static const String libraryBookDetails = '/layout.Library/catalogue/details';
   static const String libraryBookDetailsName = 'libraryBookDetails';
 
+  static const String libraryBookImport = '/layout.Library/catalogue/import';
+  static const String libraryBookImportName = 'libraryBookImport';
+
   static const String libraryMembers = '/layout.Library/members';
   static const String libraryMembersName = 'libraryMembers';
 

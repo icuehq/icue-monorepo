@@ -87,7 +87,18 @@ class _CataloguePageState extends State<CataloguePage> {
         libraryProvider.bookClassId != null;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Books Catalogue')),
+      appBar: AppBar(
+        title: const Text('Books Catalogue'),
+        actions: [
+          if (!isWide)
+            IconButton(
+              tooltip: 'Import books',
+              icon: const Icon(Icons.upload_file_rounded),
+              onPressed: () =>
+                  context.pushNamed(LibraryRoutes.libraryBookImportName),
+            ),
+        ],
+      ),
       floatingActionButton: !isWide
           ? FloatingActionButton.extended(
               onPressed: () =>

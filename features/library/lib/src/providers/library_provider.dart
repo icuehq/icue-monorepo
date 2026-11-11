@@ -347,6 +347,43 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     }, requestId: requestId);
   }, reload: loadBooks);
 
+  /// Imports one book of a checked sheet: the title (an existing one with the same details gets the
+  /// copies instead), then its copies in [copyBatches]. [requestId] names a new title and prefixes
+  /// each batch's request ID, so importing the same book again after a failure adds no duplicate.
+  /// The books list reloads with [loadBooks] afterwards.
+  Future<BookImportResult> importBook(
+    Map<String, Object?> book,
+    List<Map<String, Object?>> copyBatches,
+    String requestId,
+  ) async {
+    var created = false;
+    var added = 0;
+    try {
+      var id = await _writes.findTitleId(book);
+      if (id == null) {
+        id = await _writes.saveBook({'id': requestId, ...book});
+        created = true;
+      }
+      for (var index = 0; index < copyBatches.length; index++) {
+        await _service.createBook({
+          'catalogueId': id,
+          ...copyBatches[index],
+        }, requestId: '$requestId-$index');
+        added += copyBatches[index]['quantity']! as int;
+      }
+      return BookImportResult(created: created, copiesAdded: added);
+    } on Object catch (error) {
+      return BookImportResult(
+        created: created,
+        copiesAdded: added,
+        error: callableErrorMessage(error),
+      );
+    }
+  }
+
+  Future<Set<String>> existingBarcodes(List<String> barcodes) =>
+      _service.existingBarcodes(barcodes);
+
   Future<String?> findTitleId(Map<String, Object?> data) =>
       _writes.findTitleId(data);
 
@@ -574,4 +611,17 @@ class _Paged<T> {
   bool hasMore = false;
   DocumentSnapshot<Map<String, dynamic>>? cursor;
   int generation = 0;
+}
+
+/// What importing one book did: whether its title was new, how many copies were added, and why it stopped, if it did.
+class BookImportResult {
+  const BookImportResult({
+    required this.created,
+    required this.copiesAdded,
+    this.error,
+  });
+
+  final bool created;
+  final int copiesAdded;
+  final String? error;
 }
