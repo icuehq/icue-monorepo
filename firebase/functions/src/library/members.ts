@@ -63,15 +63,13 @@ export const personInput = z.object({
 export type Person = z.infer<typeof personInput>;
 
 /**
- * Creates the borrower record on first use, else refreshes it and adds [campusId] to the campuses it was
- * seen on; [loanDelta] adjusts the number of books on loan. Returns the record as it will be.
+ * Creates the borrower record on first use, else refreshes it; [loanDelta] adjusts the number of books on loan. Returns the record as it will be.
  */
 export function writeBorrower(
   context: CallableContext,
   ref: DocumentReference,
   existing: DocumentData | undefined,
   person: Person,
-  campusId: number,
   loanDelta: number,
 ): DocumentData {
   const shown = {
@@ -81,7 +79,6 @@ export function writeBorrower(
   if (existing) {
     context.update(ref, {
       ...shown,
-      campusIds: FieldValue.arrayUnion(campusId),
       activeLoans: FieldValue.increment(loanDelta),
       updatedAt: serverTimestamp(),
     });
@@ -91,7 +88,6 @@ export function writeBorrower(
     memberType: person.memberType,
     personErpId: person.personErpId,
     ...shown,
-    campusIds: [campusId],
     activeLoans: loanDelta,
     blocked: false,
   };

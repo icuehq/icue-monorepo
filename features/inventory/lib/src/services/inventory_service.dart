@@ -9,7 +9,7 @@ class InventoryService {
     String path,
     T Function(String id, Map<String, dynamic> data) parse,
   ) async {
-    final snapshot = await (await schoolCollection(path)).get();
+    final snapshot = await (await branchCollection(path)).get();
     return [
       for (final document in snapshot.docs) parse(document.id, document.data()),
     ];
@@ -17,7 +17,7 @@ class InventoryService {
 
   Future<ModuleAccess> access() async {
     final user = FirebaseAuth.instance.currentUser!;
-    final doc = await (await schoolCollection('userAccess'))
+    final doc = await (await branchCollection('userAccess'))
         .doc(user.uid)
         .get();
     return ModuleAccess.fromMap(doc.data() ?? {});
@@ -32,12 +32,9 @@ class InventoryService {
     (id, data) => InventoryUnit.fromMap(id, data),
   ))..sort((left, right) => left.code.compareTo(right.code));
 
-  /// Stores on the user's campuses (rules reject unfiltered lists).
-  Future<List<InventoryStore>> stores(ModuleAccess access) async {
-    final collection = await schoolCollection('inventoryStores');
-    final query = access.restrictToCampuses(collection);
-    if (query == null) return [];
-    final snapshot = await query.get();
+  /// Stores of the branch.
+  Future<List<InventoryStore>> stores() async {
+    final snapshot = await (await branchCollection('inventoryStores')).get();
     return [
       for (final document in snapshot.docs)
         InventoryStore.fromMap(document.id, document.data()),
@@ -49,7 +46,7 @@ class InventoryService {
     String? categoryId,
     DocumentSnapshot<Map<String, dynamic>>? after,
   }) async {
-    Query<Map<String, dynamic>> query = await schoolCollection(
+    Query<Map<String, dynamic>> query = await branchCollection(
       'inventoryItems',
     );
     if (categoryId != null) {
@@ -91,7 +88,7 @@ class InventoryService {
   }
 
   Future<InventoryItem?> item(String id) async {
-    final document = await (await schoolCollection('inventoryItems'))
+    final document = await (await branchCollection('inventoryItems'))
         .doc(id)
         .get();
     return document.exists
@@ -114,7 +111,7 @@ class InventoryService {
       setMasterActive('inventoryCategories', id, active: active);
 
   Future<void> saveUnit(String code, String name) async {
-    final collection = await schoolCollection('inventoryUnits');
+    final collection = await branchCollection('inventoryUnits');
     final exists =
         (await collection.doc(code.trim().toLowerCase()).get()).exists;
     await saveMasterDocument('inventoryUnits', {
@@ -143,7 +140,7 @@ class InventoryService {
   Future<void> saveStore(Map<String, Object?> data) async {
     final fields = {...data};
     final id = fields.remove('id') as String?;
-    final collection = await schoolCollection('inventoryStores');
+    final collection = await branchCollection('inventoryStores');
     final now = FieldValue.serverTimestamp();
     if (id != null) {
       await collection.doc(id).update({...fields, 'updatedAt': now});

@@ -10,7 +10,6 @@ void main() {
       'barcode': 'ACC-000001',
       'catalogueId': 'b1',
       'libraryId': 'lib1',
-      'campusId': 31,
       'status': 'open',
       'reportedDate': dayTimestamp('2026-11-01'),
       'personErpId': 101,

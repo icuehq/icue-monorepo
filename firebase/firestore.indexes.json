@@ -29,69 +29,9 @@
       ]
     },
     {
-      "collectionGroup": "inventoryReceipts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "inventoryIssues",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "inventoryReturns",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "inventoryAdjustments",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
       "collectionGroup": "inventoryIssueRequests",
       "queryScope": "COLLECTION",
       "fields": [
-        {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
         {
           "fieldPath": "status",
           "order": "ASCENDING"
@@ -121,10 +61,6 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "status",
           "order": "ASCENDING"
         },
@@ -138,10 +74,6 @@
       "collectionGroup": "inventoryBalances",
       "queryScope": "COLLECTION",
       "fields": [
-        {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
         {
           "fieldPath": "storeId",
           "order": "ASCENDING"
@@ -157,10 +89,6 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "balanceId",
           "order": "ASCENDING"
         },
@@ -175,10 +103,6 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "itemId",
           "order": "ASCENDING"
         },
@@ -192,10 +116,6 @@
       "collectionGroup": "inventoryPurchaseRequests",
       "queryScope": "COLLECTION",
       "fields": [
-        {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
         {
           "fieldPath": "status",
           "order": "ASCENDING"
@@ -225,10 +145,6 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "status",
           "order": "ASCENDING"
         },
@@ -242,42 +158,6 @@
       "collectionGroup": "inventoryInvoices",
       "queryScope": "COLLECTION",
       "fields": [
-        {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "inventoryPurchaseOrders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "deliveryCampusId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "inventoryInvoices",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
         {
           "fieldPath": "purchaseOrderId",
           "order": "ASCENDING"
@@ -293,10 +173,6 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "paymentStatus",
           "order": "ASCENDING"
         },
@@ -311,24 +187,6 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "inventoryAssets",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "status",
           "order": "ASCENDING"
         },
@@ -342,24 +200,6 @@
       "collectionGroup": "inventoryMaintenanceJobs",
       "queryScope": "COLLECTION",
       "fields": [
-        {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "inventoryMaintenanceJobs",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
         {
           "fieldPath": "status",
           "order": "ASCENDING"
@@ -417,114 +257,12 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "earliestExpiryDate",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "inventoryBalances",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "storeId",
           "order": "ASCENDING"
         },
         {
           "fieldPath": "earliestExpiryDate",
           "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "inventoryPurchaseRequests",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "inventoryPurchaseOrders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "inventoryAssetAssignments",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "assignedAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "inventoryIssueRequests",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "inventoryUnavailableStock",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "inventoryMovements",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
         }
       ]
     },
@@ -617,24 +355,6 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "libraryFines",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
           "fieldPath": "personErpId",
           "order": "ASCENDING"
         },
@@ -662,24 +382,6 @@
       "collectionGroup": "libraryIncidents",
       "queryScope": "COLLECTION",
       "fields": [
-        {
-          "fieldPath": "status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "libraryIncidents",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
         {
           "fieldPath": "status",
           "order": "ASCENDING"
@@ -723,28 +425,6 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "dueDate",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "libraryLoans",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "libraryId",
           "order": "ASCENDING"
         },
@@ -763,10 +443,6 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "status",
           "order": "ASCENDING"
         },
@@ -780,10 +456,6 @@
       "collectionGroup": "libraryLoans",
       "queryScope": "COLLECTION",
       "fields": [
-        {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
         {
           "fieldPath": "libraryId",
           "order": "ASCENDING"
@@ -802,24 +474,6 @@
       "collectionGroup": "libraryLoans",
       "queryScope": "COLLECTION",
       "fields": [
-        {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "issuedDate",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "libraryLoans",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
         {
           "fieldPath": "libraryId",
           "order": "ASCENDING"
@@ -835,24 +489,6 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "acquiredDate",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "libraryCopies",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "libraryId",
           "order": "ASCENDING"
         },
@@ -867,24 +503,6 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "libraryFines",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "libraryId",
           "order": "ASCENDING"
         },
@@ -898,10 +516,6 @@
       "collectionGroup": "libraryFines",
       "queryScope": "COLLECTION",
       "fields": [
-        {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
         {
           "fieldPath": "libraryId",
           "order": "ASCENDING"
@@ -920,10 +534,6 @@
       "collectionGroup": "libraryFines",
       "queryScope": "COLLECTION",
       "fields": [
-        {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
         {
           "fieldPath": "status",
           "order": "ASCENDING"
@@ -938,10 +548,6 @@
       "collectionGroup": "libraryFines",
       "queryScope": "COLLECTION",
       "fields": [
-        {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
         {
           "fieldPath": "libraryId",
           "order": "ASCENDING"
@@ -961,10 +567,6 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "type",
           "order": "ASCENDING"
         },
@@ -979,10 +581,6 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "libraryId",
           "order": "ASCENDING"
         },
@@ -1001,24 +599,6 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "date",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "libraryBooks",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "libraryId",
           "order": "ASCENDING"
         },
@@ -1032,10 +612,6 @@
       "collectionGroup": "libraryBooks",
       "queryScope": "COLLECTION",
       "fields": [
-        {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
         {
           "fieldPath": "type",
           "order": "ASCENDING"
@@ -1051,10 +627,6 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "libraryId",
           "order": "ASCENDING"
         },
@@ -1065,20 +637,6 @@
         {
           "fieldPath": "date",
           "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "libraryMembers",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "memberType",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "campusIds",
-          "arrayConfig": "CONTAINS"
         }
       ]
     },
@@ -1118,24 +676,6 @@
       "collectionGroup": "libraryLoans",
       "queryScope": "COLLECTION",
       "fields": [
-        {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "returnedDate",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "libraryLoans",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "campusId",
-          "order": "ASCENDING"
-        },
         {
           "fieldPath": "libraryId",
           "order": "ASCENDING"

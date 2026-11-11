@@ -25,14 +25,7 @@ const FIELD: Record<Bucket, string> = {
 };
 
 export type MoveType =
-  | 'receive'
-  | 'issue'
-  | 'return'
-  | 'adjust'
-  | 'expire'
-  | 'damage'
-  | 'writeoff'
-  | 'restore';
+  'receive' | 'issue' | 'return' | 'adjust' | 'expire' | 'damage' | 'writeoff' | 'restore';
 
 export interface StockBalance {
   id: string;
@@ -98,7 +91,6 @@ export class Stock {
       'Store',
       inactiveOk,
     );
-    this.context.requireCampus(store.campusId);
     return store;
   }
 
@@ -166,14 +158,11 @@ export class Stock {
       return this.track(bid, ref, snapshot.data()!, item);
     }
     if (!create) throw failed(`No stock of ${item.name} in this store`);
-    const store = (
-      await this.context.transaction.get(this.context.doc(`inventoryStores/${storeId}`))
-    ).data()!;
+    await this.context.transaction.get(this.context.doc(`inventoryStores/${storeId}`));
     return this.track(
       bid,
       ref,
       {
-        campusId: store.campusId,
         storeId,
         itemId: item.id,
         variantId: variantId ?? null,
@@ -305,14 +294,13 @@ export class Stock {
     if (
       quantity < 0 &&
       bucket === 'available' &&
-      (movement.type === 'issue') &&
+      movement.type === 'issue' &&
       this.expired(balance)
     ) {
       throw failed('Batch has expired and cannot be issued');
     }
     balance.data[field] += quantity;
-    if (movement.type === 'receive')
-      balance.data.totalQuantityReceived += quantity;
+    if (movement.type === 'receive') balance.data.totalQuantityReceived += quantity;
     if (movement.type === 'issue' || movement.type === 'return')
       balance.data.totalQuantityIssued -= quantity;
     this.moves.push({
@@ -321,7 +309,6 @@ export class Stock {
       itemId: balance.data.itemId,
       variantId: balance.data.variantId ?? null,
       storeId: balance.data.storeId,
-      campusId: balance.data.campusId,
       batchNumber: balance.data.batchNumber ?? null,
       quantity,
       bucket,
@@ -387,7 +374,7 @@ export class Stock {
       for (const alert of alerts) {
         if (!alert) continue;
         await enqueue(this.context, `inventory-${alert.slug}__${balance.id}__${this.date}`, {
-          to: { permission: 'inventory.stock.operate', campusId: balance.data.campusId },
+          to: { permission: 'inventory.stock.operate' },
           category: alert.category,
           title: alert.title,
           body: alert.body,
@@ -400,9 +387,8 @@ export class Stock {
   }
 
   /** Common header stamped on every stock document. */
-  header(storeCampus: number) {
+  header() {
     return {
-      campusId: storeCampus,
       transactionDate: dayTimestamp(this.date),
       financialYear: this.financialYear,
       createdAt: serverTimestamp(),
@@ -446,7 +432,7 @@ export function unavailableEntry(
     resolution: reference.resolution ?? null,
     resolvedAt: null,
     reportedBy: stock.context.uid,
-    ...stock.header(balance.data.campusId),
+    ...stock.header(),
   });
   return ref;
 }

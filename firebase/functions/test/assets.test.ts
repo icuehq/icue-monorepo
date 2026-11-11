@@ -14,16 +14,16 @@ import {
 } from './fixtures';
 import { clearFirestore, db } from './setup';
 
-const SCHOOL_ID = '12';
+const BRANCH = 'orgs/8/zones/147/branches/427';
 let requestSequence = 0;
 
 const run = (definition: CallableDef<any, any>, data: Record<string, unknown>, uid = 'asset') =>
   runCallable(
     definition,
-    { uid, token: { schoolId: 12, personType: 'staff' } },
+    { uid, token: { orgId: 8, zoneId: 147, branchId: 427, personType: 'staff' } },
     { requestId: `req-${String(++requestSequence).padStart(6, '0')}`, ...data },
   );
-const get = async (path: string) => (await db().doc(`schools/${SCHOOL_ID}/${path}`).get()).data();
+const get = async (path: string) => (await db().doc(`${BRANCH}/${path}`).get()).data();
 const day = (offset: number) =>
   new Date(Date.now() + 330 * 60_000 + offset * 86_400_000).toISOString().slice(0, 10);
 const code = (promise: Promise<unknown>) =>
@@ -38,24 +38,19 @@ describe('assets and maintenance', () => {
 
   beforeEach(async () => {
     await clearFirestore();
-    const permissionsList = (permissions: string[], campusIds = [31]) => ({
+    const permissionsList = (permissions: string[]) => ({
       permissions,
-      campusIds,
-      hasAllCampuses: false,
       personErpId: 5,
     });
     await db()
-      .doc(`schools/${SCHOOL_ID}/userAccess/1`)
+      .doc(`${BRANCH}/userAccess/1`)
       .set(permissionsList(['inventory.settings', 'inventory.items.manage']));
     await db()
-      .doc(`schools/${SCHOOL_ID}/userAccess/asset`)
+      .doc(`${BRANCH}/userAccess/asset`)
       .set(permissionsList(['inventory.assets.manage']));
     await db()
-      .doc(`schools/${SCHOOL_ID}/userAccess/both`)
+      .doc(`${BRANCH}/userAccess/both`)
       .set(permissionsList(['inventory.assets.manage', 'inventory.stock.operate']));
-    await db()
-      .doc(`schools/${SCHOOL_ID}/userAccess/far`)
-      .set(permissionsList(['inventory.assets.manage'], [99]));
     await run(masters.seedDefaults, {}, '1');
     const category = (
       await run(
@@ -71,25 +66,21 @@ describe('assets and maintenance', () => {
         '1',
       ).then((extra) => extra.id as string);
     [laptop, ink] = [await item('LAP', 'asset'), await item('INK', 'quantity')];
-    store = (await seedStore({ name: 'Main', campusId: 31 })).id;
+    store = (await seedStore({ name: 'Main' })).id;
     asset = (await run(a.register, { itemId: laptop, storeId: store, serialNumber: 'SN1' })).id;
   });
 
-  it("registers with a unique ID; only asset-tracked items, only on the caller's campus", async () => {
+  it("registers with a unique ID; only asset-tracked items", async () => {
     const assetDocument = (await get(`inventoryAssets/${asset}`))!;
     expect(assetDocument).toMatchObject({
       assetId: expect.stringMatching(/^AST\/\d{4}-\d{2}\/000001$/),
       name: 'LAP',
       status: 'available',
-      campusId: 31,
       condition: 'new',
     });
     expect((await run(a.register, { itemId: laptop, storeId: store })).number).toMatch(/000002$/);
     expect(await code(run(a.register, { itemId: ink, storeId: store }))).toBe(
       'failed-precondition',
-    );
-    expect(await code(run(a.register, { itemId: laptop, storeId: store }, 'far'))).toBe(
-      'permission-denied',
     );
     expect(
       await code(
@@ -105,7 +96,7 @@ describe('assets and maintenance', () => {
 
   it('registration against a PO is capped at the accepted units and takes vendor and price from the order', async () => {
     await db()
-      .doc(`schools/${SCHOOL_ID}/userAccess/proc`)
+      .doc(`${BRANCH}/userAccess/proc`)
       .set({
         permissions: [
           'inventory.procure.operate',
@@ -114,8 +105,6 @@ describe('assets and maintenance', () => {
           'inventory.stock.operate',
           'inventory.vendors.manage',
         ],
-        campusIds: [31],
-        hasAllCampuses: false,
       });
     const vendor = (await run(p.vendorUpsert, { code: 'V1', name: 'Acme' }, 'proc')).id;
     const purchaseRequest = await seedPurchaseRequest([
@@ -215,7 +204,7 @@ describe('assets and maintenance', () => {
     expect(await code(run(a.return, { id: asset, condition: 'good' }))).toBe('failed-precondition');
     expect(await code(assign())).toBe('failed-precondition'); // damaged assets are not assignable
     const types = (
-      await db().collection(`schools/${SCHOOL_ID}/inventoryAssets/${asset}/history`).get()
+      await db().collection(`${BRANCH}/inventoryAssets/${asset}/history`).get()
     ).docs.map((assetDocument) => assetDocument.data().type);
     expect(types.sort()).toEqual(['assigned', 'registered', 'returned', 'transferred']);
   });
@@ -319,8 +308,5 @@ describe('assets and maintenance', () => {
     const secondJob = await run(m.save, { assetId: asset, issue: 'cracked', priority: 'medium' });
     await run(m.setStatus, { id: secondJob.id, status: 'completed', cost: 1200 });
     expect((await get(`inventoryAssets/${asset}`))!.status).toBe('available');
-    expect(await code(run(m.save, { assetId: asset, issue: 'x', priority: 'low' }, 'far'))).toBe(
-      'permission-denied',
-    );
   });
 });

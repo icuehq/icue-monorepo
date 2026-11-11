@@ -35,7 +35,6 @@ async function loadAsset(context: CallableContext, assetId: string) {
   const ref = context.doc(`inventoryAssets/${assetId}`);
   const asset = (await context.transaction.get(ref)).data();
   if (!asset) throw missing('Asset');
-  context.requireCampus(asset.campusId);
   return { ref, asset };
 }
 
@@ -50,7 +49,6 @@ function hist(
   context.set(ref.collection('history').doc(), {
     type,
     ...detail,
-    campusId: asset.campusId,
     performedBy: context.uid,
     performedAt: serverTimestamp(),
   });
@@ -80,7 +78,6 @@ function openAssignment(
     assetId: assetDocId,
     assetCode: asset.assetId,
     assetName: asset.name,
-    campusId: asset.campusId,
     assignee: i.assignee,
     // A department ID is not a person's ERP ID, so it never matches a user's own-record rule.
     personErpId: i.assignee.type === 'department' ? null : i.assignee.personErpId,
@@ -149,12 +146,11 @@ export const assets = {
       );
       if (item.tracking !== 'asset')
         throw failed(`${item.name} is not tracked as an individual asset`);
-      const store = usable(
+      usable(
         await context.transaction.get(context.doc(`inventoryStores/${i.storeId}`)),
         'Store',
         false,
       );
-      context.requireCampus(store.campusId);
       if (i.quantity > 1 && i.serialNumber)
         throw failed('Serial numbers are per unit; register units with a serial one at a time');
       if (i.warrantyStart && i.warrantyEnd && i.warrantyEnd < i.warrantyStart)
@@ -166,8 +162,6 @@ export const assets = {
           await context.transaction.get(context.doc(`inventoryPurchaseOrders/${i.purchaseOrderId}`))
         ).data();
         if (!purchaseOrder) throw missing('Purchase order');
-        if (purchaseOrder.deliveryCampusId !== store.campusId)
-          throw failed("Store is not on the order's delivery campus");
         const line = (
           purchaseOrder.lineItems as {
             itemId: string;
@@ -215,7 +209,6 @@ export const assets = {
             end: dayTimestampOrNull(i.warrantyEnd),
           },
           condition: i.condition,
-          campusId: store.campusId,
           storeId: i.storeId,
           location: i.location ?? null,
           status: 'available',
@@ -464,7 +457,6 @@ export const maintenance = {
         const ref = context.doc(`inventoryMaintenanceJobs/${i.id}`);
         const maintenanceJob = (await context.transaction.get(ref)).data();
         if (!maintenanceJob) throw missing('Maintenance request');
-        context.requireCampus(maintenanceJob.campusId);
         if (maintenanceJob.assetId !== i.assetId) throw failed('Asset cannot change');
         if (!LIVE.includes(maintenanceJob.status))
           throw failed(`Request is ${maintenanceJob.status}`);
@@ -494,7 +486,6 @@ export const maintenance = {
         assetId: aRef.id,
         assetCode: asset.assetId,
         assetName: asset.name,
-        campusId: asset.campusId,
         reportedDate: dayTimestamp(reported),
         reportedBy: context.uid,
         reportedByErpId: context.access.personErpId ?? null,
@@ -547,7 +538,6 @@ export const maintenance = {
       const ref = context.doc(`inventoryMaintenanceJobs/${i.id}`);
       const maintenanceJob = (await context.transaction.get(ref)).data();
       if (!maintenanceJob) throw missing('Maintenance request');
-      context.requireCampus(maintenanceJob.campusId);
       if (!LIVE.includes(maintenanceJob.status))
         throw failed(`Request is ${maintenanceJob.status}`);
       const technician = i.technician ?? maintenanceJob.technician;

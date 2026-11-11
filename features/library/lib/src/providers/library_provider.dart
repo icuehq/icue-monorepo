@@ -121,7 +121,7 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   List<LibraryCategory> get topCategories =>
       categories.where((category) => category.parentId == null).toList();
 
-  /// Loads the user's campus scope and the small master lists.
+  /// Loads the user's permissions and the small master lists.
   Future<void> loadMasters() =>
       _busy((loading) => isLoading = loading, () async {
         access = await _service.access();
@@ -560,7 +560,7 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
       _busy((loading) => insightsLoading = loading, body);
 
   Future<void> loadDashboard({SchoolLibrary? library}) => _insights(
-    () async => dashboard = await _service.dashboard(access, library: library),
+    () async => dashboard = await _service.dashboard(library: library),
   );
 
   Future<void> loadReport(
@@ -571,7 +571,6 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     String? status,
   }) => _insights(() async {
     reportRows = await _service.report(
-      access,
       def,
       library: library,
       from: from,

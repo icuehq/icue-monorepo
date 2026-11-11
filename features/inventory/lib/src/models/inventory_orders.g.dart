@@ -118,8 +118,6 @@ class InventoryPurchaseOrder {
     required this.total,
     this.remarks,
     required this.purchaseRequestId,
-    required this.campusId,
-    required this.deliveryCampusId,
     this.quotationId,
     required this.purchaseOrderDate,
     required this.expectedDate,
@@ -150,8 +148,6 @@ class InventoryPurchaseOrder {
             (data['purchaseRequestIds'] as List).isNotEmpty)
         ? (data['purchaseRequestIds'] as List).first as String
         : '',
-    campusId: (data['campusId'] as num? ?? 0).toInt(),
-    deliveryCampusId: (data['deliveryCampusId'] as num? ?? 0).toInt(),
     quotationId: data['quotationId'] as String?,
     purchaseOrderDate: readDay(data['purchaseOrderDate']),
     expectedDate: readDay(data['expectedDate']),
@@ -172,8 +168,6 @@ class InventoryPurchaseOrder {
   final double total;
   final String? remarks;
   final String purchaseRequestId;
-  final int campusId;
-  final int deliveryCampusId;
   final String? quotationId;
   final String purchaseOrderDate;
   final String expectedDate;

@@ -248,9 +248,7 @@ class _BookFormPageState extends State<BookFormPage> {
     final editing = _existingBook != null;
     final libraries = [
       for (final schoolLibrary in libraryProvider.libraries)
-        if (schoolLibrary.active &&
-            libraryProvider.access.hasCampus(schoolLibrary.campusId))
-          schoolLibrary,
+        if (schoolLibrary.active) schoolLibrary,
     ];
     _libraryId ??= libraries.firstOrNull?.id;
     // Inactive categories stay selectable only when the book already uses one.

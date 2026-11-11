@@ -5,18 +5,10 @@ import 'package:inventory/src/models/inventory_assets.dart';
 /// Assets and maintenance (Inv-6): reads from Firestore, writes are callables (see `StockService.call`).
 @lazySingleton
 class AssetsService {
-  /// Rules need the campus filter on every list (`all` users need none); null when the user has no campus.
-  Query<Map<String, dynamic>>? _scoped(
-    Query<Map<String, dynamic>> query,
-    ModuleAccess access,
-  ) => access.restrictToCampuses(query);
-
-  Future<List<InventoryAsset>> assets(
-    ModuleAccess access, {
-    String? status,
-  }) async {
-    var query = _scoped(await schoolCollection('inventoryAssets'), access);
-    if (query == null) return [];
+  Future<List<InventoryAsset>> assets({String? status}) async {
+    Query<Map<String, dynamic>> query = await branchCollection(
+      'inventoryAssets',
+    );
     if (status != null) query = query.where('status', isEqualTo: status);
     final snapshot = await query
         .orderBy('createdAt', descending: true)
@@ -29,23 +21,21 @@ class AssetsService {
   }
 
   Future<InventoryAsset?> asset(String id) async {
-    final document = await (await schoolCollection('inventoryAssets'))
+    final document = await (await branchCollection('inventoryAssets'))
         .doc(id)
         .get();
     final data = document.data();
     return data == null ? null : InventoryAsset.fromMap(document.id, data);
   }
 
-  /// A scan: the asset whose ID or RFID tag equals [code] on the user's campuses, or null.
-  Future<InventoryAsset?> findByCode(ModuleAccess access, String code) async {
+  /// A scan: the asset whose ID or RFID tag equals [code] in this branch, or null.
+  Future<InventoryAsset?> findByCode(String code) async {
     for (final field in ['assetId', 'rfidTag']) {
-      final query = _scoped(
-        (await schoolCollection('inventoryAssets'))
-            .where(field, isEqualTo: code),
-        access,
-      );
-      final snapshot = await query?.limit(1).get();
-      if (snapshot != null && snapshot.docs.isNotEmpty) {
+      final snapshot = await (await branchCollection('inventoryAssets'))
+          .where(field, isEqualTo: code)
+          .limit(1)
+          .get();
+      if (snapshot.docs.isNotEmpty) {
         return InventoryAsset.fromMap(
           snapshot.docs.first.id,
           snapshot.docs.first.data(),
@@ -55,32 +45,21 @@ class AssetsService {
     return null;
   }
 
-  Future<List<InventoryAssignment>> assignments(
-    ModuleAccess access,
-    String assetId,
-  ) async {
-    final query = _scoped(
-      (await schoolCollection('inventoryAssetAssignments'))
-          .where('assetId', isEqualTo: assetId),
-      access,
-    );
-    if (query == null) return [];
-    final snapshot = await query.orderBy('assignedAt', descending: true).get();
+  Future<List<InventoryAssignment>> assignments(String assetId) async {
+    final snapshot = await (await branchCollection('inventoryAssetAssignments'))
+        .where('assetId', isEqualTo: assetId)
+        .orderBy('assignedAt', descending: true)
+        .get();
     return [
       for (final document in snapshot.docs)
         InventoryAssignment.fromMap(document.id, document.data()),
     ];
   }
 
-  Future<List<AssetEvent>> history(ModuleAccess access, String assetId) async {
-    final query = _scoped(
-      (await schoolCollection('inventoryAssets'))
-          .doc(assetId)
-          .collection('history'),
-      access,
-    );
-    if (query == null) return [];
-    final snapshot = await query
+  Future<List<AssetEvent>> history(String assetId) async {
+    final snapshot = await (await branchCollection('inventoryAssets'))
+        .doc(assetId)
+        .collection('history')
         .orderBy('performedAt', descending: true)
         .limit(100)
         .get();
@@ -89,16 +68,13 @@ class AssetsService {
     ];
   }
 
-  Future<List<InventoryMaintenance>> maintenance(
-    ModuleAccess access, {
+  Future<List<InventoryMaintenance>> maintenance({
     String? status,
     String? assetId,
   }) async {
-    var query = _scoped(
-      await schoolCollection('inventoryMaintenanceJobs'),
-      access,
+    Query<Map<String, dynamic>> query = await branchCollection(
+      'inventoryMaintenanceJobs',
     );
-    if (query == null) return [];
     if (status != null) query = query.where('status', isEqualTo: status);
     if (assetId != null) query = query.where('assetId', isEqualTo: assetId);
     final snapshot = await query

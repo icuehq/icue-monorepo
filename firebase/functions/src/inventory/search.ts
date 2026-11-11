@@ -11,18 +11,22 @@ export const projectItem = (data: DocumentData) =>
   Object.fromEntries(FIELDS.map((field) => [field, data[field] ?? null]));
 
 export const applyItemChange = (
-  schoolId: string,
+  branchPath: string,
   itemId: string,
   after: DocumentData | undefined,
   changedAt?: Timestamp,
   db?: Firestore,
-) => applyChange('inventoryItems', projectItem, schoolId, itemId, after, changedAt, db);
+) => applyChange('inventoryItems', projectItem, branchPath, itemId, after, changedAt, db);
 
 export const syncItemSearch = syncTrigger('inventoryItems', projectItem);
 
-export const searchItems = (schoolId: string, query: z.infer<typeof searchInput>, db?: Firestore) =>
+export const searchItems = (
+  branchPath: string,
+  query: z.infer<typeof searchInput>,
+  db?: Firestore,
+) =>
   searchPage(
-    schoolId,
+    branchPath,
     'inventoryItems',
     query,
     { textFields: ['name', 'code'], sortField: 'name' },

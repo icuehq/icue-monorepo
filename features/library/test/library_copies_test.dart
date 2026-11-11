@@ -6,7 +6,6 @@ void main() {
     final copy = LibraryCopy.fromMap('ACC-000001', {
       'catalogueId': 'b1',
       'libraryId': 'l1',
-      'campusId': 31,
       'price': 250,
       'status': 'available',
       'condition': 'good',

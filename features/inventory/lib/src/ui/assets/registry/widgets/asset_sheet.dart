@@ -23,10 +23,7 @@ class _AssetSheetState extends State<AssetSheet> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AssetsProvider>().loadDetail(
-        context.read<InventoryProvider>().access,
-        widget.asset.id,
-      );
+      context.read<AssetsProvider>().loadDetail(widget.asset.id);
     });
   }
 

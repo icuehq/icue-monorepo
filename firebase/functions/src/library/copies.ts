@@ -22,9 +22,8 @@ const GENERATED = /^LB\d{6,}$/i;
 async function loadCopy(context: CallableContext, barcode: string) {
   const ref = context.doc(`libraryCopies/${barcode}`);
   const snapshot = await context.transaction.get(ref);
-  if (!snapshot.exists) throw missing('libraryCopy');
+  if (!snapshot.exists) throw missing('Book copy');
   const copy = snapshot.data()!;
-  context.requireCampus(copy.campusId);
   return { ref, copy };
 }
 
@@ -83,8 +82,7 @@ export const copies = {
         context.doc(`libraries/${i.libraryId}`),
         context.doc(`libraryCatalogue/${i.catalogueId}`),
       );
-      const library = usable(librarySnapshot, 'Library', false);
-      context.requireCampus(library.campusId);
+      usable(librarySnapshot, 'Library', false);
       usable(titleSnapshot, 'Title', false);
 
       const date = dayTimestamp(i.date ?? todayIST());
@@ -110,7 +108,6 @@ export const copies = {
         context.set(refs[index], {
           catalogueId: i.catalogueId,
           libraryId: i.libraryId,
-          campusId: library.campusId,
           shelf: detail?.shelf ?? i.shelf ?? null,
           barcode,
           bookId: book.id,
@@ -129,7 +126,6 @@ export const copies = {
         number,
         catalogueId: i.catalogueId,
         libraryId: i.libraryId,
-        campusId: library.campusId,
         quantity: i.quantity,
         date,
         price: i.price,

@@ -10,7 +10,7 @@ class ProcurementService {
   String get uid => FirebaseAuth.instance.currentUser!.uid;
 
   Future<List<InventoryVendor>> vendors() async {
-    final snapshot = await (await schoolCollection('inventoryVendors'))
+    final snapshot = await (await branchCollection('inventoryVendors'))
         .orderBy('name')
         .get();
     return [
@@ -23,7 +23,7 @@ class ProcurementService {
   Future<void> saveVendor(Map<String, Object?> data) async {
     final fields = {...data};
     final id = fields.remove('id') as String?;
-    final collection = await schoolCollection('inventoryVendors');
+    final collection = await branchCollection('inventoryVendors');
     if (id != null) {
       await collection.doc(id).update({
         ...fields,
@@ -44,23 +44,17 @@ class ProcurementService {
   Future<void> setVendorActive(String id, {required bool active}) =>
       setMasterActive('inventoryVendors', id, active: active);
 
-  /// Approvers and procurement see the campus's requests; everyone else their own (rules need the campus filter).
+  /// Approvers and procurement see the branch's requests; everyone else their own.
   Future<List<InventoryPurchaseRequest>> requests(
     ModuleAccess access, {
     String? status,
   }) async {
-    final collection = await schoolCollection('inventoryPurchaseRequests');
+    final collection = await branchCollection('inventoryPurchaseRequests');
     final wide =
         access.can('inventory.purchaseRequest.approve') ||
         access.can('inventory.procure.operate');
     Query<Map<String, dynamic>> q = collection;
-    if (!wide) {
-      q = q.where('createdBy', isEqualTo: uid);
-    } else {
-      final scoped = access.restrictToCampuses(q);
-      if (scoped == null) return [];
-      q = scoped;
-    }
+    if (!wide) q = q.where('createdBy', isEqualTo: uid);
     if (status != null) q = q.where('status', isEqualTo: status);
     final snapshot = await q
         .orderBy('createdAt', descending: true)
@@ -74,7 +68,7 @@ class ProcurementService {
 
   /// Quotations of one request (equality query; sorted by the caller).
   Future<List<InventoryQuotation>> quotations(String purchaseRequestId) async {
-    final snapshot = await (await schoolCollection('inventoryQuotations'))
+    final snapshot = await (await branchCollection('inventoryQuotations'))
         .where('purchaseRequestId', isEqualTo: purchaseRequestId)
         .get();
     return [
@@ -83,22 +77,10 @@ class ProcurementService {
     ];
   }
 
-  /// Procurement sees orders of its campuses; receiving staff only those due at their campuses (rules need the matching filter).
-  Future<List<InventoryPurchaseOrder>> orders(
-    ModuleAccess access, {
-    String? status,
-  }) async {
-    if (!access.hasAllCampuses && access.campusIds.isEmpty) return [];
-    final buyer = access.can('inventory.procure.operate');
-    Query<Map<String, dynamic>> q = await schoolCollection(
+  Future<List<InventoryPurchaseOrder>> orders({String? status}) async {
+    Query<Map<String, dynamic>> q = await branchCollection(
       'inventoryPurchaseOrders',
     );
-    if (!access.hasAllCampuses) {
-      q = q.where(
-        buyer ? 'campusId' : 'deliveryCampusId',
-        whereIn: access.campusIds,
-      );
-    }
     if (status != null) q = q.where('status', isEqualTo: status);
     final snapshot = await q
         .orderBy('createdAt', descending: true)
@@ -111,7 +93,7 @@ class ProcurementService {
   }
 
   Future<InventoryPurchaseRequest?> request(String id) async {
-    final document = await (await schoolCollection('inventoryPurchaseRequests'))
+    final document = await (await branchCollection('inventoryPurchaseRequests'))
         .doc(id)
         .get();
     final data = document.data();
@@ -120,32 +102,24 @@ class ProcurementService {
         : InventoryPurchaseRequest.fromMap(document.id, data);
   }
 
-  /// Deliveries received against one order, newest first (rules need the campus filter).
-  Future<List<InventoryGoodsReceipt>> receipts(
-    ModuleAccess access,
-    String purchaseOrderId,
-  ) async {
-    final query = access.restrictToCampuses(
-      (await schoolCollection('inventoryReceipts'))
-          .where('purchaseOrderId', isEqualTo: purchaseOrderId),
-    );
-    if (query == null) return [];
-    final snapshot = await query.get();
+  /// Deliveries received against one order, newest first.
+  Future<List<InventoryGoodsReceipt>> receipts(String purchaseOrderId) async {
+    final snapshot = await (await branchCollection('inventoryReceipts'))
+        .where('purchaseOrderId', isEqualTo: purchaseOrderId)
+        .get();
     return [
       for (final document in snapshot.docs)
         InventoryGoodsReceipt.fromMap(document.id, document.data()),
     ]..sort((left, right) => right.number.compareTo(left.number));
   }
 
-  Future<List<InventoryInvoice>> invoices(
-    ModuleAccess access, {
+  Future<List<InventoryInvoice>> invoices({
     String? purchaseOrderId,
     String? status,
   }) async {
-    var query = access.restrictToCampuses(
-      await schoolCollection('inventoryInvoices'),
+    Query<Map<String, dynamic>> query = await branchCollection(
+      'inventoryInvoices',
     );
-    if (query == null) return [];
     if (purchaseOrderId != null) {
       query = query.where('purchaseOrderId', isEqualTo: purchaseOrderId);
     }

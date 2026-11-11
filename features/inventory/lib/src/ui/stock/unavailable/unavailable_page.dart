@@ -23,7 +23,7 @@ class _UnavailablePageState extends State<UnavailablePage> {
     final stockProvider = context.read<StockProvider>();
     await stockProvider.loadAllStores();
     if (mounted) {
-      await stockProvider.loadUnavailable(inventoryProvider.access);
+      await stockProvider.loadUnavailable();
     }
   }
 

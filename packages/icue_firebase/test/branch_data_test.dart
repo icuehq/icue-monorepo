@@ -2,19 +2,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 
 void main() {
-  test('ModuleAccess reads permissions and campuses and answers checks', () {
+  test('ModuleAccess reads permissions and answers checks', () {
     final access = ModuleAccess.fromMap({
       'permissions': ['inventory.settings'],
-      'campusIds': [31],
     });
     expect(access.can('inventory.settings'), isTrue);
     expect(access.can('inventory.items.manage'), isFalse);
-    expect(access.campusIds, [31]);
-    expect(access.hasAllCampuses, isFalse);
-    expect(
-      ModuleAccess.fromMap({'hasAllCampuses': true}).hasAllCampuses,
-      isTrue,
-    );
   });
 
   test('readers turn missing or wrongly typed values into safe defaults', () {

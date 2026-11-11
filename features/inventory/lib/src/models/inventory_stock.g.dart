@@ -121,7 +121,6 @@ class InventoryIssueRequest {
     required this.id,
     required this.number,
     required this.storeId,
-    required this.campusId,
     required this.purpose,
     this.destination,
     required this.status,
@@ -136,7 +135,6 @@ class InventoryIssueRequest {
         id: id,
         number: data['number'] as String? ?? '',
         storeId: data['storeId'] as String? ?? '',
-        campusId: (data['campusId'] as num? ?? 0).toInt(),
         purpose: data['purpose'] as String? ?? '',
         destination: data['destination'] as String?,
         status: data['status'] as String? ?? '',
@@ -153,7 +151,6 @@ class InventoryIssueRequest {
   final String id;
   final String number;
   final String storeId;
-  final int campusId;
   final String purpose;
   final String? destination;
 

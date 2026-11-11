@@ -12,18 +12,18 @@ import {
 } from './fixtures';
 import { clearFirestore, db } from './setup';
 
-const SCHOOL_ID = '12';
+const BRANCH = 'orgs/8/zones/147/branches/427';
 let requestSequence = 0;
 
 const run = (definition: CallableDef<any, any>, data: Record<string, unknown>, uid = '1') =>
   runCallable(
     definition,
-    { uid, token: { schoolId: 12, personType: 'staff' } },
+    { uid, token: { orgId: 8, zoneId: 147, branchId: 427, personType: 'staff' } },
     { requestId: `req-${String(++requestSequence).padStart(6, '0')}`, ...data },
   );
-const get = async (path: string) => (await db().doc(`schools/${SCHOOL_ID}/${path}`).get()).data();
+const get = async (path: string) => (await db().doc(`${BRANCH}/${path}`).get()).data();
 const set = (path: string, data: Record<string, unknown>) =>
-  db().doc(`schools/${SCHOOL_ID}/${path}`).update(data);
+  db().doc(`${BRANCH}/${path}`).update(data);
 
 describe('library circulation', () => {
   let mainLibrary: string, category: string, title: string, policy: string;
@@ -35,18 +35,14 @@ describe('library circulation', () => {
   beforeEach(async () => {
     await clearFirestore();
     await db()
-      .doc(`schools/${SCHOOL_ID}/userAccess/1`)
+      .doc(`${BRANCH}/userAccess/1`)
       .set({
         permissions: [],
-        campusIds: [31, 32],
-        hasAllCampuses: false,
       });
     await db()
-      .doc(`schools/${SCHOOL_ID}/userAccess/2`)
+      .doc(`${BRANCH}/userAccess/2`)
       .set({
         permissions: [],
-        campusIds: [99],
-        hasAllCampuses: false,
       });
     category = (await seedLibraryCategory({ name: 'General' })).id;
     title = (
@@ -56,7 +52,7 @@ describe('library circulation', () => {
         categoryId: category,
       })
     ).id;
-    mainLibrary = (await seedLibrary({ name: 'Main', campusId: 31 })).id;
+    mainLibrary = (await seedLibrary({ name: 'Main' })).id;
     await run(copies.createBook, {
       catalogueId: title,
       libraryId: mainLibrary,
@@ -83,7 +79,6 @@ describe('library circulation', () => {
       status: 'active',
       personErpId: 501,
       barcode: 'ACC-000001',
-      campusId: 31,
       policySnapshot: { policyId: policy, loanDays: 7, maxRenewals: 1 },
     });
     expect(await get('libraryCopies/ACC-000001')).toMatchObject({
@@ -127,7 +122,6 @@ describe('library circulation', () => {
       personErpId: 501,
       name: 'Asha Rao',
       classId: 4,
-      campusIds: [31],
       activeLoans: 1,
       blocked: false,
     });
@@ -140,8 +134,8 @@ describe('library circulation', () => {
       classId: 5,
       activeLoans: 2,
     });
-    expect((await db().collection(`schools/${SCHOOL_ID}/libraryMembers`).get()).size).toBe(1);
-    const loanDocs = await db().collection(`schools/${SCHOOL_ID}/libraryLoans`).get();
+    expect((await db().collection(`${BRANCH}/libraryMembers`).get()).size).toBe(1);
+    const loanDocs = await db().collection(`${BRANCH}/libraryLoans`).get();
     const firstLoan = loanDocs.docs.find((doc) => doc.data().barcode === 'ACC-000001')!.data();
     expect(firstLoan.memberName).toBe('Asha Rao');
     await expect(
@@ -152,7 +146,7 @@ describe('library circulation', () => {
     ).rejects.toMatchObject({ code: 'failed-precondition' }); // no teacher policy in this library
   });
 
-  it('issue rules: copy taken, limit, blocked member, no policy for the type or category, campus', async () => {
+  it('issue rules: copy taken, limit, blocked member, no policy for the type or category', async () => {
     await issue();
     await expect(issue()).rejects.toMatchObject({ code: 'failed-precondition' });
     await issue('ACC-000002');
@@ -171,9 +165,6 @@ describe('library circulation', () => {
     await set(`libraryBorrowingPolicies/${policy}`, { status: 'inactive' });
     await expect(issue('ACC-000003')).rejects.toMatchObject({ code: 'failed-precondition' });
     await set(`libraryBorrowingPolicies/${policy}`, { status: 'active' });
-    await expect(
-      run(loans.loanIssue, { person: person(501), barcode: 'ACC-000003' }, '2'),
-    ).rejects.toMatchObject({ code: 'permission-denied' });
     await set(`libraryBorrowingPolicies/${policy}`, { categoryIds: [], maxBooks: 3 });
     await expect(issue('ACC-000003')).resolves.toBeTruthy();
   });

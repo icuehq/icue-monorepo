@@ -10,20 +10,25 @@ import { memberTo } from './notify';
  * per event, so a redelivered trigger, or a callable that already queued the same notice, never sends it twice.
  */
 export interface Change {
-  schoolId: string;
+  branchPath: string;
   docId: string;
   before?: DocumentData;
   after?: DocumentData;
 }
 
-export async function noticeLoan({ schoolId, docId, before, after: loan }: Change): Promise<void> {
+export async function noticeLoan({
+  branchPath,
+  docId,
+  before,
+  after: loan,
+}: Change): Promise<void> {
   if (!loan) return;
   const to = memberTo(loan.memberType, loan.personErpId);
   if (!before) {
     const title = (
-      await getFirestore().doc(`schools/${schoolId}/libraryCatalogue/${loan.catalogueId}`).get()
+      await getFirestore().doc(`${branchPath}/libraryCatalogue/${loan.catalogueId}`).get()
     ).data()?.title;
-    await post(getFirestore(), schoolId, `library-issued__${docId}`, {
+    await post(getFirestore(), branchPath, `library-issued__${docId}`, {
       to,
       category: 'library.loan',
       title: 'Book issued',
@@ -31,7 +36,7 @@ export async function noticeLoan({ schoolId, docId, before, after: loan }: Chang
       data: { loanId: docId },
     });
   } else if (before.status === 'active' && loan.status === 'returned') {
-    await post(getFirestore(), schoolId, `library-returned__${docId}`, {
+    await post(getFirestore(), branchPath, `library-returned__${docId}`, {
       to,
       category: 'library.loan',
       title: 'Book returned',
@@ -42,13 +47,18 @@ export async function noticeLoan({ schoolId, docId, before, after: loan }: Chang
 }
 
 /** New overdue and lost-book fines of a loan; fines from incident resolutions never notified. */
-export async function noticeFine({ schoolId, docId, before, after: fine }: Change): Promise<void> {
+export async function noticeFine({
+  branchPath,
+  docId,
+  before,
+  after: fine,
+}: Change): Promise<void> {
   if (before || !fine?.loanId || fine.incidentId) return;
   const body =
     fine.type === 'lost'
       ? `${fine.barcode}: replacement charge of ${fine.amount}.`
       : `${fine.barcode}: overdue fine of ${fine.amount} for ${fine.fineCalculation?.overdueDays} day(s).`;
-  await post(getFirestore(), schoolId, `library-fine__${docId}`, {
+  await post(getFirestore(), branchPath, `library-fine__${docId}`, {
     to: memberTo(fine.memberType, fine.personErpId),
     category: 'library.fine',
     title: 'Fine recorded',
@@ -59,14 +69,14 @@ export async function noticeFine({ schoolId, docId, before, after: fine }: Chang
 
 /** New lost or damaged books: the member held responsible (if any) is told. */
 export async function noticeIncident({
-  schoolId,
+  branchPath,
   docId,
   before,
   after: incident,
 }: Change): Promise<void> {
   if (before || !incident?.personErpId) return;
   const lost = incident.type === 'lost';
-  await post(getFirestore(), schoolId, `library-incident__${docId}`, {
+  await post(getFirestore(), branchPath, `library-incident__${docId}`, {
     to: memberTo(incident.memberType, incident.personErpId),
     category: 'library.incident',
     title: lost ? 'Lost book recorded' : 'Damaged book recorded',

@@ -6,18 +6,20 @@ import {
 } from 'firebase-admin/firestore';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { z } from 'zod';
+import { branchPath, claimsBranch } from './branch';
+import { invalidInput, logged } from './errors';
 import { serverTimestamp } from './firestore';
 import type { Permission } from './permissions';
 
 export interface TokenClaims {
-  schoolId?: unknown;
+  orgId?: unknown;
+  zoneId?: unknown;
+  branchId?: unknown;
   personType?: unknown;
   [key: string]: unknown;
 }
 export interface UserAccess {
   permissions: string[];
-  campusIds: number[];
-  hasAllCampuses: boolean;
   personErpId?: number;
 }
 
@@ -28,24 +30,24 @@ export class CallableContext {
 
   constructor(
     readonly transaction: Transaction,
-    readonly schoolId: string,
+    readonly branchPath: string,
     readonly uid: string,
     readonly access: UserAccess,
   ) {}
 
-  /** `schools/{schoolId}/<path>` */
+  /** `<branch>/<path>` */
   doc(path: string): DocumentReference {
-    return getFirestore().doc(`schools/${this.schoolId}/${path}`);
+    return getFirestore().doc(`${this.branchPath}/${path}`);
   }
 
-  /** `schools/{schoolId}/<path>` collection, for queries. */
+  /** `<branch>/<path>` collection, for queries. */
   coll(path: string) {
-    return getFirestore().collection(`schools/${this.schoolId}/${path}`);
+    return getFirestore().collection(`${this.branchPath}/${path}`);
   }
 
-  /** Auto-ID doc in `schools/{schoolId}/<collection>`. */
+  /** Auto-ID doc in `<branch>/<collection>`. */
   newDoc(collection: string): DocumentReference {
-    return getFirestore().collection(`schools/${this.schoolId}/${collection}`).doc();
+    return getFirestore().collection(`${this.branchPath}/${collection}`).doc();
   }
 
   set(ref: DocumentReference, data: Record<string, unknown>): void {
@@ -58,12 +60,6 @@ export class CallableContext {
 
   delete(ref: DocumentReference): void {
     this.writes.push((transaction) => transaction.delete(ref));
-  }
-
-  requireCampus(campusId: number): void {
-    if (!this.access.hasAllCampuses && !this.access.campusIds.includes(campusId)) {
-      throw new HttpsError('permission-denied', 'Campus not allowed');
-    }
   }
 
   audit(entry: {
@@ -100,18 +96,20 @@ export interface CallableDef<S extends z.ZodType, R> {
 
 export type Auth = { uid: string; token: TokenClaims } | undefined;
 
-/** The signed-in, non-parent caller and their school; throws otherwise. */
-function signedInStaff(auth: Auth): { uid: string; schoolId: string } {
-  if (!auth) throw new HttpsError('unauthenticated', 'Sign in required');
+/** The signed-in, non-parent caller and the branch path their token was issued for; throws otherwise. */
+function signedInStaff(auth: Auth): { uid: string; branchPath: string } {
+  if (!auth) throw new HttpsError('unauthenticated', 'Please sign in to continue.');
   if (auth.token.personType === 'parent')
-    throw new HttpsError('permission-denied', 'Read-only user');
-  if (auth.token.schoolId == null) throw new HttpsError('permission-denied', 'No school');
-  return { uid: auth.uid, schoolId: String(auth.token.schoolId) };
+    throw new HttpsError(
+      'permission-denied',
+      'Your account can view information but cannot make changes.',
+    );
+  return { uid: auth.uid, branchPath: branchPath(claimsBranch(auth.token)) };
 }
 
 function requirePermission(permission: Permission | undefined, access: UserAccess): void {
   if (permission && !access.permissions?.includes(permission))
-    throw new HttpsError('permission-denied', 'Not allowed');
+    throw new HttpsError('permission-denied', 'You do not have permission to do this.');
 }
 
 /** Any callable definition, for lists of differently-typed callables. */
@@ -130,35 +128,52 @@ export async function runCallable<S extends z.ZodType, R>(
   auth: Auth,
   data: unknown,
 ): Promise<R> {
-  const { uid, schoolId } = signedInStaff(auth);
+  return logged(def.name, { uid: auth?.uid }, () => runCallableUnlogged(def, auth, data));
+}
+
+async function runCallableUnlogged<S extends z.ZodType, R>(
+  def: CallableDef<S, R>,
+  auth: Auth,
+  data: unknown,
+): Promise<R> {
+  const { uid, branchPath: branch } = signedInStaff(auth);
 
   const raw = (data ?? {}) as Record<string, unknown>;
   const requestId = requestIdSchema.safeParse(raw.requestId);
-  if (!requestId.success) throw new HttpsError('invalid-argument', 'requestId required');
+  if (!requestId.success)
+    throw new HttpsError(
+      'invalid-argument',
+      'This request could not be verified. Please refresh and try again.',
+    );
   const parsed = def.input.safeParse(raw);
-  if (!parsed.success) throw new HttpsError('invalid-argument', z.prettifyError(parsed.error));
+  if (!parsed.success) throw invalidInput(parsed.error);
   const input = parsed.data;
 
   const db = getFirestore();
   return db.runTransaction(async (transaction) => {
-    const reqRef = db.doc(`schools/${schoolId}/requests/${requestId.data}`);
-    const accessRef = db.doc(`schools/${schoolId}/userAccess/${uid}`);
+    const reqRef = db.doc(`${branch}/requests/${requestId.data}`);
+    const accessRef = db.doc(`${branch}/userAccess/${uid}`);
     const [reqSnap, accessSnap] = await transaction.getAll(reqRef, accessRef);
 
     if (reqSnap.exists) {
       const previous = reqSnap.data()!;
       if (previous.uid !== uid || previous.fn !== def.name) {
-        throw new HttpsError('already-exists', 'requestId already used');
+        throw new HttpsError(
+          'already-exists',
+          'This request was already used. Please refresh and try again.',
+        );
       }
       return previous.result as R;
     }
-    if (!accessSnap.exists) throw new HttpsError('failed-precondition', 'Session not synced');
+    if (!accessSnap.exists)
+      throw new HttpsError(
+        'failed-precondition',
+        'Your session is still being set up. Please sign in again.',
+      );
     const access = accessSnap.data() as UserAccess;
     requirePermission(def.permission, access);
 
-    const context = new CallableContext(transaction, schoolId, uid, access);
-    const campusId = (input as { campusId?: unknown })?.campusId;
-    if (typeof campusId === 'number') context.requireCampus(campusId);
+    const context = new CallableContext(transaction, branch, uid, access);
 
     const result = await def.handler(context, input);
     context.set(reqRef, {
@@ -182,7 +197,7 @@ export interface QueryDef<S extends z.ZodType, R> {
   name: string;
   permission?: Permission;
   input: S;
-  handler: (schoolId: string, input: z.infer<S>) => Promise<R>;
+  handler: (branchPath: string, input: z.infer<S>) => Promise<R>;
 }
 
 /** Read-only callable pipeline: auth → permission → validation. No transaction, no request record. */
@@ -191,15 +206,26 @@ export async function runQuery<S extends z.ZodType, R>(
   auth: Auth,
   data: unknown,
 ): Promise<R> {
-  const { uid, schoolId } = signedInStaff(auth);
-  const access = (
-    await getFirestore().doc(`schools/${schoolId}/userAccess/${uid}`).get()
-  ).data() as UserAccess | undefined;
-  if (!access) throw new HttpsError('failed-precondition', 'Session not synced');
+  return logged(def.name, { uid: auth?.uid }, () => runQueryUnlogged(def, auth, data));
+}
+
+async function runQueryUnlogged<S extends z.ZodType, R>(
+  def: QueryDef<S, R>,
+  auth: Auth,
+  data: unknown,
+): Promise<R> {
+  const { uid, branchPath: branch } = signedInStaff(auth);
+  const access = (await getFirestore().doc(`${branch}/userAccess/${uid}`).get()).data() as
+    UserAccess | undefined;
+  if (!access)
+    throw new HttpsError(
+      'failed-precondition',
+      'Your session is still being set up. Please sign in again.',
+    );
   requirePermission(def.permission, access);
   const parsed = def.input.safeParse(data ?? {});
-  if (!parsed.success) throw new HttpsError('invalid-argument', z.prettifyError(parsed.error));
-  return def.handler(schoolId, parsed.data);
+  if (!parsed.success) throw invalidInput(parsed.error);
+  return def.handler(branch, parsed.data);
 }
 
 export function queryCallable<S extends z.ZodType, R>(def: QueryDef<S, R>) {

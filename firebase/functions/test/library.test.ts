@@ -4,22 +4,20 @@ import { runQuery } from '../src/shared/callable';
 import { seedLibraryCategory, seedLibraryTitle } from './fixtures';
 import { clearFirestore, db } from './setup';
 
-const SCHOOL_ID = '12';
+const BRANCH = 'orgs/8/zones/147/branches/427';
 
-const get = async (path: string) => (await db().doc(`schools/${SCHOOL_ID}/${path}`).get()).data();
+const get = async (path: string) => (await db().doc(`${BRANCH}/${path}`).get()).data();
 const search = (data: Record<string, unknown>) =>
-  runQuery(catalogueSearch, { uid: '1', token: { schoolId: 12, personType: 'staff' } }, data);
+  runQuery(catalogueSearch, { uid: '1', token: { orgId: 8, zoneId: 147, branchId: 427, personType: 'staff' } }, data);
 
 describe('library masters', () => {
   let category: string;
   beforeEach(async () => {
     await clearFirestore();
     await db()
-      .doc(`schools/${SCHOOL_ID}/userAccess/1`)
+      .doc(`${BRANCH}/userAccess/1`)
       .set({
         permissions: [],
-        campusIds: [31],
-        hasAllCampuses: false,
       });
     category = (await seedLibraryCategory({ name: 'General' })).id;
   });
@@ -42,7 +40,7 @@ describe('library masters', () => {
       });
       for (const catalogueBook of [firstBook, secondBook])
         await applyCatalogueChange(
-          SCHOOL_ID,
+          BRANCH,
           catalogueBook.id,
           await get(`libraryCatalogue/${catalogueBook.id}`),
         );

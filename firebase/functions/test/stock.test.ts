@@ -13,20 +13,20 @@ import {
 } from './fixtures';
 import { clearFirestore, db } from './setup';
 
-const SCHOOL_ID = '12';
+const BRANCH = 'orgs/8/zones/147/branches/427';
 const ADMIN = ['inventory.settings', 'inventory.items.manage', 'inventory.stock.operate'];
 let requestSequence = 0;
 
 const run = (definition: CallableDef<any, any>, data: Record<string, unknown>, uid = '1') =>
   runCallable(
     definition,
-    { uid, token: { schoolId: 12, personType: 'staff' } },
+    { uid, token: { orgId: 8, zoneId: 147, branchId: 427, personType: 'staff' } },
     { requestId: `req-${String(++requestSequence).padStart(6, '0')}`, ...data },
   );
-const get = async (path: string) => (await db().doc(`schools/${SCHOOL_ID}/${path}`).get()).data();
+const get = async (path: string) => (await db().doc(`${BRANCH}/${path}`).get()).data();
 const balance = async (id: string) => (await get(`inventoryBalances/${id}`))!;
 const moves = async () =>
-  (await db().collection(`schools/${SCHOOL_ID}/inventoryMovements`).get()).docs.map((movement) =>
+  (await db().collection(`${BRANCH}/inventoryMovements`).get()).docs.map((movement) =>
     movement.data(),
   );
 const day = (offset: number) =>
@@ -51,23 +51,21 @@ describe('inventory stock', () => {
     await clearFirestore();
     const permissionsList = (permissions: string[]) => ({
       permissions,
-      campusIds: [31],
-      hasAllCampuses: false,
       personErpId: 5,
     });
-    await db().doc(`schools/${SCHOOL_ID}/userAccess/1`).set(permissionsList(ADMIN));
+    await db().doc(`${BRANCH}/userAccess/1`).set(permissionsList(ADMIN));
     await db()
-      .doc(`schools/${SCHOOL_ID}/userAccess/req`)
+      .doc(`${BRANCH}/userAccess/req`)
       .set(permissionsList(['inventory.issue.request']));
     await db()
-      .doc(`schools/${SCHOOL_ID}/userAccess/apr`)
+      .doc(`${BRANCH}/userAccess/apr`)
       .set(permissionsList(['inventory.issue.approve']));
     await db()
-      .doc(`schools/${SCHOOL_ID}/userAccess/tapr`)
+      .doc(`${BRANCH}/userAccess/tapr`)
       .set(permissionsList(['inventory.adjustment.approve', 'inventory.stock.operate']));
     await db()
-      .doc(`schools/${SCHOOL_ID}/userAccess/far`)
-      .set({ permissions: ADMIN, campusIds: [99], hasAllCampuses: false });
+      .doc(`${BRANCH}/userAccess/far`)
+      .set({ permissions: ADMIN });
     await run(masters.seedDefaults, {});
     const category = (
       await run(masters.categoryUpsert, {
@@ -87,8 +85,8 @@ describe('inventory stock', () => {
       }).then((result) => result.id as string);
     pen = await makeItem('PEN', { reorderLevel: 5 });
     med = await makeItem('MED', { tracking: 'batch' });
-    firstStore = (await seedStore({ name: 'Main', campusId: 31 })).id;
-    secondStore = (await seedStore({ name: 'Branch', campusId: 31 })).id;
+    firstStore = (await seedStore({ name: 'Main' })).id;
+    secondStore = (await seedStore({ name: 'Branch' })).id;
   });
 
   it('receives accepted stock only, with weighted cost, ledger rows and numbering', async () => {
@@ -118,7 +116,7 @@ describe('inventory stock', () => {
     });
     // Expired batches cannot be received, so the batch expires after receipt.
     await db()
-      .doc(`schools/${SCHOOL_ID}/inventoryBalances/${firstStore}__${med}__-__OLD`)
+      .doc(`${BRANCH}/inventoryBalances/${firstStore}__${med}__-__OLD`)
       .update({ expiryDate: dayTimestamp(day(-1)) });
     const id = await approved(8, med);
     const issue = await run(issueStock, {
@@ -180,7 +178,7 @@ describe('inventory stock', () => {
     });
     // low-stock event queued once
     expect(
-      (await db().collection(`schools/${SCHOOL_ID}/outbox`).get()).docs.some((outboxDocument) =>
+      (await db().collection(`${BRANCH}/outbox`).get()).docs.some((outboxDocument) =>
         outboxDocument.id.startsWith('inventory-low-stock__'),
       ),
     ).toBe(true);
@@ -299,7 +297,7 @@ describe('inventory stock', () => {
       lineItems: [{ itemId: med, quantityAccepted: 3, batchNumber: 'E1', expiryDate: day(10) }],
     });
     await db()
-      .doc(`schools/${SCHOOL_ID}/inventoryBalances/${firstStore}__${med}__-__E1`)
+      .doc(`${BRANCH}/inventoryBalances/${firstStore}__${med}__-__E1`)
       .update({ expiryDate: dayTimestamp(day(-2)) });
     const error = await run(reportUnavailable, {
       storeId: firstStore,

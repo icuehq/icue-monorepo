@@ -9,7 +9,6 @@ void main() {
       'personErpId': 501,
       'memberType': 'student',
       'libraryId': 'lib1',
-      'campusId': 31,
       'type': 'overdue',
       'amount': 25.0,
       'waived': 5.0,

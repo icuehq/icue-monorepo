@@ -21,9 +21,8 @@ class QuotationsPage extends StatefulWidget {
 class _QuotationsPageState extends State<QuotationsPage> {
   Future<void> _load() async {
     final procurementProvider = context.read<ProcurementProvider>();
-    final access = context.read<InventoryProvider>().access;
     await procurementProvider.loadQuotations(widget.request.id);
-    await procurementProvider.loadOrders(access);
+    await procurementProvider.loadOrders();
   }
 
   @override

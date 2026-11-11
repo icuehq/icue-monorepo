@@ -120,7 +120,7 @@ class PurchaseOrderPage extends StatelessWidget {
                           ],
                         ),
                         Text(
-                          '$vendor · Deliver to Campus ${purchaseOrder.deliveryCampusId}',
+                          vendor,
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
@@ -420,7 +420,6 @@ class PurchaseOrderPage extends StatelessWidget {
                         await InvoiceDialog.show(context, purchaseOrder);
                         if (!context.mounted) return;
                         await procurementProvider.loadInvoices(
-                          inventoryProvider.access,
                           purchaseOrderId: purchaseOrder.id,
                         );
                       },

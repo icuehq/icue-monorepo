@@ -106,7 +106,6 @@ class PurchaseSummary extends StatelessWidget {
             Icons.flag_outlined,
             '${humanizeStatus(request.priority)} priority',
           ),
-          row(Icons.apartment_outlined, 'Campus ${request.campusId}'),
           if (request.createdAt != null)
             row(
               Icons.schedule_outlined,

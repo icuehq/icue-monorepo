@@ -36,7 +36,7 @@ class LibraryWrites {
   Future<String?> findTitleId(Map<String, Object?> book) async {
     final authors = book['authors'] as List<Object?>?;
     if (authors == null || authors.isEmpty) return null;
-    final document = await (await schoolCollection('uniqueKeys'))
+    final document = await (await branchCollection('uniqueKeys'))
         .doc(_titleKeyId(_identityKey(book)))
         .get();
     return (document.data()?['documentPath'] as String?)?.split('/').last;
@@ -57,9 +57,9 @@ class LibraryWrites {
       writeFail('Enter 1 to 10 authors');
     }
     final key = _identityKey(fields);
-    final catalogue = await schoolCollection('libraryCatalogue');
+    final catalogue = await branchCollection('libraryCatalogue');
     final reference = catalogue.doc(id);
-    final keys = await schoolCollection('uniqueKeys');
+    final keys = await branchCollection('uniqueKeys');
     final classIds = {...(fields['classIds']! as List).cast<int>()}.toList()
       ..sort();
     await FirebaseFirestore.instance.runTransaction((transaction) async {
@@ -161,7 +161,6 @@ class LibraryWrites {
       if (library['status'] != 'active') writeFail('Library is inactive');
       transaction.update(reference, {
         'libraryId': libraryId,
-        'campusId': library['campusId'],
         'shelf': shelf,
         'updatedAt': FieldValue.serverTimestamp(),
         'lastWrite': writeStamp('libraryCopy.move'),
@@ -196,7 +195,7 @@ class LibraryWrites {
     List<String> categoryIds,
     String? selfId,
   ) async {
-    final others = await (await schoolCollection('libraryBorrowingPolicies'))
+    final others = await (await branchCollection('libraryBorrowingPolicies'))
         .where('libraryId', isEqualTo: libraryId)
         .where('memberType', isEqualTo: memberType)
         .where('status', isEqualTo: 'active')
@@ -235,7 +234,7 @@ class LibraryWrites {
       writeFail('A fine needs an amount');
     }
     if (categoryIds.length > 50) writeFail('Choose at most 50 categories');
-    final reference = (await schoolCollection('libraryBorrowingPolicies'))
+    final reference = (await branchCollection('libraryBorrowingPolicies'))
         .doc(id);
     final before = id == null ? null : (await reference.get()).data();
     if (id != null && before == null) {
@@ -266,7 +265,6 @@ class LibraryWrites {
     final policy = {
       'name': name,
       'libraryId': libraryId,
-      'campusId': library['campusId'],
       'memberType': memberType,
       'maxBooks': data['maxBooks'],
       'loanDays': data['loanDays'],

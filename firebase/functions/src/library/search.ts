@@ -36,22 +36,22 @@ export const projectCatalogue = (catalogueDocument: DocumentData) => ({
 });
 
 export const applyCatalogueChange = (
-  schoolId: string,
+  branchPath: string,
   catalogueId: string,
   after: DocumentData | undefined,
   changedAt?: Timestamp,
   db?: Firestore,
-) => applyChange(COLL, projectCatalogue, schoolId, catalogueId, after, changedAt, db);
+) => applyChange(COLL, projectCatalogue, branchPath, catalogueId, after, changedAt, db);
 
 export const syncCatalogueSearch = syncTrigger(COLL, projectCatalogue);
 
 export const searchCatalogue = (
-  schoolId: string,
+  branchPath: string,
   query: z.infer<typeof catalogueSearchInput>,
   db?: Firestore,
 ) =>
   searchPage(
-    schoolId,
+    branchPath,
     COLL,
     query,
     {

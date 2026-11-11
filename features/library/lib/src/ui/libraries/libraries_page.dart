@@ -19,7 +19,6 @@ class LibrariesPage extends StatefulWidget {
 
 class _LibrariesPageState extends State<LibrariesPage> {
   final _searchController = TextEditingController();
-  int? _selectedCampus;
   var _statusFilter = LibraryStatusFilter.all;
   String _searchQuery = '';
 
@@ -44,7 +43,6 @@ class _LibrariesPageState extends State<LibrariesPage> {
     setState(() {
       _searchController.clear();
       _searchQuery = '';
-      _selectedCampus = null;
       _statusFilter = LibraryStatusFilter.all;
     });
   }
@@ -72,13 +70,7 @@ class _LibrariesPageState extends State<LibrariesPage> {
     final allLibraries = libraryProvider.libraries;
     final isWide = context.isWide;
 
-    final campuses = {for (final lib in allLibraries) lib.campusId}.toList()
-      ..sort();
-
     final filteredLibraries = allLibraries.where((lib) {
-      if (_selectedCampus != null && lib.campusId != _selectedCampus) {
-        return false;
-      }
       final statusOk = switch (_statusFilter) {
         LibraryStatusFilter.all => true,
         LibraryStatusFilter.active => lib.active,
@@ -133,15 +125,11 @@ class _LibrariesPageState extends State<LibrariesPage> {
                       children: [
                         LibraryFilterHeader(
                           searchController: _searchController,
-                          selectedCampus: _selectedCampus,
                           statusFilter: _statusFilter,
-                          campuses: campuses,
                           isWide: isWide,
                           totalCount: filteredLibraries.length,
                           onSearchChanged: (value) =>
                               setState(() => _searchQuery = value.trim()),
-                          onCampusChanged: (campus) =>
-                              setState(() => _selectedCampus = campus),
                           onStatusChanged: (filter) =>
                               setState(() => _statusFilter = filter),
                           onAddLibrary: () => AddLibraryDialog.show(context),

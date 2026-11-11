@@ -12,7 +12,6 @@ class InventoryAsset {
     required this.assetId,
     required this.name,
     required this.itemId,
-    required this.campusId,
     required this.storeId,
     required this.status,
     required this.condition,
@@ -39,7 +38,6 @@ class InventoryAsset {
         assetId: data['assetId'] as String? ?? '',
         name: data['name'] as String? ?? '',
         itemId: data['itemId'] as String? ?? '',
-        campusId: (data['campusId'] as num? ?? 0).toInt(),
         storeId: data['storeId'] as String? ?? '',
         status: data['status'] as String? ?? 'available',
         condition: data['condition'] as String? ?? 'good',
@@ -66,7 +64,6 @@ class InventoryAsset {
   final String assetId;
   final String name;
   final String itemId;
-  final int campusId;
   final String storeId;
   final String status;
   final String condition;

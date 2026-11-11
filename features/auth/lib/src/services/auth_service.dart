@@ -142,9 +142,7 @@ class AuthService {
       data: <String, Object?>{
         'token': nodeToken,
         'uid': user.id.toString(),
-        'schoolId': user.organizationId,
-        'campusIds': <int>[if (branch != 0) branch],
-        'hasAllCampuses': false,
+        ..._branchClaims(user, branch),
         'roleIds': [for (final role in user.roles) role.id],
         'actionIds': [
           for (final action in actions) ...[
@@ -163,6 +161,16 @@ class AuthService {
     return null;
   }
 
+  /// The org → zone → branch the token is issued for. A corporate user is
+  /// scoped to the org, everyone else to their branch; the data lives under
+  /// the active [branch] only (a switch re-exchanges the token).
+  Map<String, Object?> _branchClaims(UserInfo user, int branch) => {
+    'orgId': user.organizationId,
+    'zoneId': user.zoneId,
+    'branchId': branch,
+    'scope': user.isCorporate ? 'org' : 'branch',
+  };
+
   /// Local runs against the emulators: claims built from the Node user and
   /// `getActionsByRole`, as the Node endpoint will (architecture §2). Replace
   /// with the real endpoint once it is live; wardStudentIds/parents are not
@@ -178,9 +186,7 @@ class AuthService {
     }
     final branch = userLocalStorage.getSelectedBranch()?.id ?? user.branchId;
     return emulatorCustomToken(user.id.toString(), <String, Object?>{
-      'schoolId': user.organizationId,
-      'campusIds': <int>[if (branch != 0) branch],
-      'hasAllCampuses': false,
+      ..._branchClaims(user, branch),
       'roleIds': [for (final r in user.roles) r.id],
       'actionIds': [
         for (final action in actions) ...[

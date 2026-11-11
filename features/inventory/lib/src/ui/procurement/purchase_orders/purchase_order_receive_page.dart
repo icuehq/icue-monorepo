@@ -238,7 +238,6 @@ class _PurchaseOrderReceivePageState extends State<PurchaseOrderReceivePage> {
                       const SizedBox(height: 12),
                       StoreDropdown(
                         value: _store,
-                        campusId: purchaseOrder.deliveryCampusId,
                         onChanged: (value) => setState(() => _store = value),
                       ),
                       const SizedBox(height: 12),

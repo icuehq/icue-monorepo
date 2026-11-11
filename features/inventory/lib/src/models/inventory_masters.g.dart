@@ -119,7 +119,6 @@ class InventoryStore {
   const InventoryStore({
     required this.id,
     required this.name,
-    required this.campusId,
     this.description,
     this.location,
     required this.storekeeperIds,
@@ -130,7 +129,6 @@ class InventoryStore {
       InventoryStore(
         id: id,
         name: data['name'] as String? ?? '',
-        campusId: (data['campusId'] as num? ?? 0).toInt(),
         description: data['description'] as String?,
         location: data['location'] as String?,
         storekeeperIds: [
@@ -142,7 +140,6 @@ class InventoryStore {
 
   final String id;
   final String name;
-  final int campusId;
   final String? description;
   final String? location;
   final List<int> storekeeperIds;

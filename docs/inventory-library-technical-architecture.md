@@ -13,9 +13,9 @@ This document decides *how* the FRS is built. Functional behaviour stays defined
 | # | Decision |
 | --- | --- |
 | D1 | Node issues a **Firebase custom token** after its own login; Flutter calls `signInWithCustomToken`. No second login. |
-| D2 | Tenant = Node `organizationId` (school). Campus = `branchId`. `zoneId` = campus group (used only to resolve a user's campuses). |
+| D2 | Tenant = the **branch**: every branch behaves like its own school, so all data lives under `orgs/{orgId}/zones/{zoneId}/branches/{branchId}` (Node `OrganizationId` → `ZoneId` → `BranchId`). The token is issued for one active branch; a zone or corporate user switches branch by exchanging the token again. There is no `campusId`. |
 | D3 | Roles come from Node. A Firestore permission map (role → permissions) per school makes the §12 matrix configurable. |
-| D4 | **All writes go through callable Cloud Functions** (Admin SDK, transactions). Security Rules are read-only for clients, with one exception: the code-keyed masters (inventory categories, units, stores, items, variants, vendors; library libraries and categories) and inventory purchase requests, quotations and invoices (`ProcurementWrites`): plain client CRUD guarded only by the managing permission, no validation, audit log, `requestId`, approver notification or campus check in rules; `counters` is client-writable for any user holding a permission (PR/QT numbering). |
+| D4 | **All writes go through callable Cloud Functions** (Admin SDK, transactions). Security Rules are read-only for clients, with one exception: the code-keyed masters (inventory categories, units, stores, items, variants, vendors; library libraries and categories) and inventory purchase requests, quotations and invoices (`ProcurementWrites`): plain client CRUD guarded only by the managing permission, no validation, audit log, `requestId`, approver notification or branch check beyond the path match in rules; `counters` is client-writable for any user holding a permission (PR/QT numbering). |
 | D5 | Every transaction is an **append-only movement/event** plus a **balance/status** update in the same Firestore transaction. |
 | D6 | Every mutating callable takes a client-generated `requestId`; replays return the first result (idempotency). |
 | D7 | ERP records (students, staff, departments, roles, academic years) are fetched from **Node APIs by the client** and stored in Firestore **as IDs only**. Functions never call Node. |
@@ -44,9 +44,10 @@ Flutter ──signInWithCustomToken──▶ Firebase Auth ──▶ ID token (c
 
 | Claim | Meaning | Example |
 | --- | --- | --- |
-| `schoolId` | School (`organizationId`) | `12` |
-| `campusIds` | Allowed campus IDs (`branchId`s; all branches of the zone for zone users) | `[31, 32]` |
-| `hasAllCampuses` | Consolidated school access (all campuses, present and future) | `true` |
+| `orgId` | Organization (`OrganizationId`) | `8` |
+| `zoneId` | Zone (`ZoneId`) | `147` |
+| `branchId` | The active branch the token is issued for (`BranchId`) | `427` |
+| `scope` | `branch`, `zone` or `org` (informational; rules match the path against the three IDs) | `"branch"` |
 | `roleIds` | Node role IDs | `[4, 9]` |
 | `personType` | Person type: `staff`, `teacher`, `parent` (students never sign in) | `"teacher"` |
 | `personErpId` | ERP person ID (staff ID for staff/teachers) | `884` |
@@ -56,7 +57,7 @@ Flutter ──signInWithCustomToken──▶ Firebase Auth ──▶ ID token (c
 
 - Flutter exchanges the token after every Node login and on app start when a Node session exists but Firebase has no user.
 - Node logout → Flutter also calls `FirebaseAuth.signOut()`.
-- Role/campus change in Node takes effect on next exchange. Node may call `revokeRefreshTokens(uid)` to force it immediately.
+- Role/branch change in Node takes effect on next exchange. Node may call `revokeRefreshTokens(uid)` to force it immediately.
 - Claims carry *identity*; *permissions* are resolved in Firestore (§3) so permission edits apply without re-issuing tokens.
 
 **Flutter placement:** `features/auth` gains the exchange step inside the existing login/restore flow; `packages/icue_firebase` gains `firebase_auth`, `cloud_firestore`, `cloud_functions`, `firebase_storage`.
@@ -81,30 +82,28 @@ Fixed permission keys (code), configurable role mapping (data):
 | `inventory.vendors.manage` | Admin, Inv. Mgr, Procurement |
 | `inventory.assets.manage` / `inventory.assets.view` | Admin, Inv. Mgr, Storekeeper / + Teacher, Principal |
 | `inventory.reports.view` | Admin, Principal, Inv. Mgr |
-| Library | No sub-permissions: the Library tile from Node is the only gate; any non-parent staff user of the school may do everything (rules and callables check `personType != parent`, campus scope still applies) |
+| Library | No sub-permissions: the Library tile from Node is the only gate; any non-parent staff user of the branch may do everything (rules and callables check `personType != parent`) |
 
 Own records (teacher's loans, parent's wardStudentIds) need no permission; they are matched by `personErpId` / `wardStudentIds`. Parents (`personType == parent`) are **read-only**: no callable accepts a parent caller, and rules grant them reads on own-ward records only.
 
 ### 3.2 Where permissions are stored
 
 - Permissions are not stored per school: Node's `getActionsByRole` Ids reach Functions as the `actionIds` token claim and map to permission keys in code (`ACTION_PERMISSIONS`); see `docs/inventory-library-node-actions.md`.
-- `schools/{schoolId}/userAccess/{uid}` — resolved `{ permissions: [...], campusIds: [...], all, roleIds, personType, personErpId, wardStudentIds, updatedAt }` (`roleIds` for recompute, `personErpId`/`wardStudentIds` for notification recipients). Written by the `session.sync` callable after every sign-in (permission changes in Node apply at the next token exchange).
+- `orgs/{orgId}/zones/{zoneId}/branches/{branchId}/userAccess/{uid}` — resolved `{ permissions: [...], scope, roleIds, personType, personErpId, wardStudentIds, updatedAt }` (`roleIds` for recompute, `personErpId`/`wardStudentIds` for notification recipients). Written by the `session.sync` callable after every sign-in (permission changes in Node apply at the next token exchange).
 
 Rules read one `userAccess` doc per request (`get()` is cached within a request). Functions read the same doc, so rules and Functions can never disagree.
 
 ### 3.3 Scope checks
 
-Every operational document carries `campusId`. A user may touch a document only if `all == true` or `campusId in campusIds`. Library documents also carry `libraryId`; librarian access to specific libraries is via `libraries/{id}.staffIds` (FRS 11.2 "assign librarians").
-
-Client list queries must include the same campus filter (`where campusId in campusIds`, ≤30 values), otherwise rules reject them.
+The branch is the scope: a document is reachable only through its path, and rules require the `orgId`, `zoneId` and `branchId` claims to equal the path's. There is no per-document campus field and no campus filter on queries. Library documents carry `libraryId`; librarian access to specific libraries is via `libraries/{id}.staffIds` (FRS 11.2 "assign librarians").
 
 ---
 
 ## 4. Firestore data model
 
-All module data lives under the school: `schools/{schoolId}/<collection>/{docId}`. Inventory collections are prefixed `inv`, Library `lib`, so the modules share nothing except `config`, `userAccess`, `counters`, `auditLogs`, `outbox`, `imports`, `requests`.
+All module data lives under the branch: `orgs/{orgId}/zones/{zoneId}/branches/{branchId}/<collection>/{docId}`. Inventory collections are prefixed `inv`, Library `lib`, so the modules share nothing except `config`, `userAccess`, `counters`, `auditLogs`, `outbox`, `imports`, `requests`.
 
-Common fields on every document: `campusId`, `createdAt`, `createdBy` (uid), `updatedAt`, `status`.
+Common fields on every document: `createdAt`, `createdBy` (uid), `updatedAt`, `status`.
 
 **ERP references are IDs only** (D7): `personErpId`, `classId`, `departmentId`. Screens resolve names through the existing Node APIs, batching the IDs of the visible page. Consequences, accepted:
 
@@ -134,7 +133,7 @@ Common fields on every document: `campusId`, `createdAt`, `createdBy` (uid), `up
 | `inventoryUnits` | code, name | Defaults seeded (FRS 10.4) |
 | `inventoryItems` | code, name, categoryId, subcategoryId, stockUnit, purchaseUnits `[{unit, factor}]`, tracking `quantity | batch | asset`, variantAttrs, minLevel, reorderLevel, defaultPrice, preferredVendorId, defaultLocation, imagePath | `categoryHistory` via audit log |
 | `inventoryItems/{id}/variants` | attrs `{size, color}`, sku, status | Uniforms etc. |
-| `inventoryStores` | code, name, campusId, location, storekeeperIds, status | Department/location is a field on the store or balance |
+| `inventoryStores` | code, name, location, storekeeperIds, status | Department/location is a field on the store or balance |
 | `inventoryBalances/{storeId__itemId__variantId__batchId}` | quantityAvailable, quantityReserved, quantityDamaged, quantityExpired, totalQuantityReceived, totalQuantityIssued, unitCost, value, batchNumber, manufacturingDate, expiryDate, isBelowReorderLevel | **The only stock balance.** One doc per store × item × variant × batch (`-` when not applicable). |
 | `inventoryMovements` | type (`receive`, `issue`, `return`, `adjust`, `expire`, `damage`, `writeoff`, `restore`), balanceId, itemId, storeId, quantity (signed), bucket, refType, refId, unitCost | Append-only ledger. Never updated. |
 | `inventoryIssueRequests` | lineItems `[{itemId, variantId, quantityRequested, quantityApproved, quantityIssued}]`, itemIds, requester, purpose, status, approval `{by, at, comment}` | FRS 10.8 |
@@ -145,11 +144,11 @@ Common fields on every document: `campusId`, `createdAt`, `createdBy` (uid), `up
 | `inventoryPurchaseRequests` | lineItems `[{itemId, quantity, estimatedPrice, quantityOrdered}]`, itemIds, priority, requiredDate, status (FRS 10.13), approval | |
 | `inventoryVendors` | code, name, contacts, tax, categories, documents, status | Searchable via the `search` mirror (§10) |
 | `inventoryQuotations` | vendorId, purchaseRequestId, lines (quantity, unitPrice in item stock unit), discount, tax, delivery, total, validUntil, selected, selectionReason | Comparison is a query by `purchaseRequestId` |
-| `inventoryPurchaseOrders` | vendorId, purchaseRequestIds, quotationId, deliveryCampusId, lineItems `[{itemId, variantId, quantityOrdered, quantityReceived, quantityAccepted, quantityRejected, unitPrice}]`, totals, terms, status (FRS 10.16), ack | |
+| `inventoryPurchaseOrders` | vendorId, purchaseRequestIds, quotationId, lineItems `[{itemId, variantId, quantityOrdered, quantityReceived, quantityAccepted, quantityRejected, unitPrice}]`, totals, terms, status (FRS 10.16), ack | |
 | `inventoryPurchaseOrders/{id}/revisions` | snapshot, changedBy, reason | Post-issue changes (FRS 10.16) |
 | `inventoryReceipts` (GRN) | source, purchaseOrderId, storeId, lineItems `[{itemId, variantId, quantityReceived, quantityAccepted, quantityRejected, condition, batchNumber, manufacturingDate, expiryDate, serials[]}]`, attachments, inspection | Covers FRS 10.7 and 10.17 |
 | `inventoryInvoices` | vendorId, invoiceNumber, purchaseOrderId, receiptIds, subtotal, tax, discount, total, paidAmount, paymentStatus, attachments | Record only; no payments (FRS 10.18) |
-| `inventoryAssets` | assetId, itemId, serialNumber, make, model, purchaseOrderId, vendorId, purchaseDate, price, warranty `{start, end}`, condition, campusId, storeId, location, status (FRS 10.19), activeAssignmentId, rfidTag, imagePath | One doc per physical object |
+| `inventoryAssets` | assetId, itemId, serialNumber, make, model, purchaseOrderId, vendorId, purchaseDate, price, warranty `{start, end}`, condition, storeId, location, status (FRS 10.19), activeAssignmentId, rfidTag, imagePath | One doc per physical object |
 | `inventoryAssetAssignments` | assetId, assignee `{type: staff | student | department, personErpId}`, assignedAt, expectedReturn, conditionOut, ack, returnedAt, conditionIn | Top-level so parents/teachers can query their own |
 | `inventoryMaintenanceJobs` | assetId, issue, priority, technician, cost, partsUsed `[{itemId, quantity}]`, status (FRS 10.20), nextServiceDate | Parts used create `issue` movements |
 
@@ -157,10 +156,10 @@ Common fields on every document: `campusId`, `createdAt`, `createdBy` (uid), `up
 
 | Collection | Key fields | Notes |
 | --- | --- | --- |
-| `libraries` | code, name, campusId, location, staffIds, contact, hours, status | |
+| `libraries` | code, name, location, staffIds, contact, hours, status | |
 | `libraryCategories` | code, name, parentId, status | Defaults seeded (FRS 11.3) |
 | `libraryCatalogue` | title, subtitle, authors[], isbn10, isbn13, publisher, edition, year, language, categoryId, classIds[], classificationNumber, keywords, coverPath, status, identityKey | School-wide; shared across libraries |
-| `libraryCopies` | catalogueId, libraryId, campusId, shelf, barcode, rfidTag, bookId, price, source, condition, status (FRS 11.5 + `in_transit`), activeLoanId, heldReservationId | One doc per physical book |
+| `libraryCopies` | catalogueId, libraryId, shelf, barcode, rfidTag, bookId, price, source, condition, status (FRS 11.5 + `in_transit`), activeLoanId, heldReservationId | One doc per physical book |
 | `libraryBooks` | type, catalogueId, quantity, libraryId, price, totalPrice, reference, barcodes | |
 | `libraryMembers/{personErpId}` | memberType `student | teacher`, personErpId, classId (students), category (policy key), libraryIds, start, end, status, activeLoans, blocked | Document ID is the ERP ID (unique across students and staff) → no duplicate members |
 | `libraryBorrowingPolicies` | libraryId, memberType, categoryIds, maxBooks, loanDays, maxRenewals, fineType, fineAmount, graceDays, maxFine, status | Several per library and person type; a book's category (else its parent, else the catch-all with empty `categoryIds`) picks one; a category belongs to one active policy. |
@@ -178,7 +177,7 @@ Parents and teachers read `libraryLoans`, `libraryFines`, `libraryReservations`,
 
 TypeScript, Node 22, `firebase-functions` v2, region `asia-south1`, input validation with `zod`. Every callable follows one wrapper:
 
-1. Require auth; load `userAccess`; check permission + campus scope.
+1. Require auth; load `userAccess`; check permission (the branch comes from the token).
 2. Validate input.
 3. Check `requests/{requestId}`; return stored result if present.
 4. Run one Firestore transaction: read state → enforce rules → write documents, movements, audit log, outbox entries, `requests/{requestId}`.
@@ -261,14 +260,14 @@ These are enforced in Functions transactions and covered by unit tests.
 
 ### 7.1 Outbox
 
-Business transactions write `outbox/{eventKey}` docs inside the same transaction, e.g. `lowstock__{balanceId}__{yyyy-mm-dd}`, `overdue__{loanId}__{yyyy-mm-dd}`, `pr_decided__{purchaseRequestId}`. Because the key is deterministic, an existing event is skipped (read in the transaction, not `create`, which would abort the business write) → no repeated messages (FRS 23). Delivery creates `notifications/{eventKey__uid}` once per recipient, so retries never double-send. `outboxSend` resolves recipients (by permission + campus, or member/requester), loads tokens and sends via `sendEach`.
+Business transactions write `outbox/{eventKey}` docs inside the same transaction, e.g. `lowstock__{balanceId}__{yyyy-mm-dd}`, `overdue__{loanId}__{yyyy-mm-dd}`, `pr_decided__{purchaseRequestId}`. Because the key is deterministic, an existing event is skipped (read in the transaction, not `create`, which would abort the business write) → no repeated messages (FRS 23). Delivery creates `notifications/{eventKey__uid}` once per recipient, so retries never double-send. `outboxSend` resolves recipients (by permission within the branch, or member/requester), loads tokens and sends via `sendEach`.
 
 Recipients:
 
-- **Role-based** (low stock → users with `inventory.stock.operate` on that campus): resolved from `userAccess`.
+- **Role-based** (low stock → users in the branch with `inventory.stock.operate`): resolved from `userAccess`.
 - **Person-based** (member, requester, assignee): resolved from `personErpId` / ward mapping.
 
-Each outbox doc also keeps a `notifications` copy per recipient (`schools/{schoolId}/notifications/{id}`) for an in-app inbox, readable by that user only.
+Each outbox doc also keeps a `notifications` copy per recipient (`<branch>/notifications/{id}`) for an in-app inbox, readable by that user only.
 
 ### 7.2 Token management (Node + Firebase)
 
@@ -297,25 +296,24 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{db}/documents {
     function signedIn() { return request.auth != null; }
-    function inSchool(schoolId) { return signedIn() && string(request.auth.token.schoolId) == schoolId; }
-    function access(schoolId) { return get(/databases/$(db)/documents/schools/$(schoolId)/userAccess/$(request.auth.uid)).data; }
-    function can(schoolId, p) { return p in access(schoolId).permissions; }
-    function onCampus(schoolId, c) { return access(schoolId).all == true || c in access(schoolId).campusIds; }
+    function inBranch(o, z, b) { return signedIn() && string(request.auth.token.orgId) == o
+        && string(request.auth.token.zoneId) == z && string(request.auth.token.branchId) == b; }
+    function access(o, z, b) { return get(/databases/$(db)/documents/orgs/$(o)/zones/$(z)/branches/$(b)/userAccess/$(request.auth.uid)).data; }
+    function can(o, z, b, p) { return p in access(o, z, b).permissions; }
     function own() { return resource.data.personErpId == request.auth.token.personErpId
                          || resource.data.personErpId in request.auth.token.get('wardStudentIds', []); }
 
-    match /schools/{schoolId}/{coll}/{id} {
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/{coll}/{id} {
       allow write: if false;                    // Functions (Admin SDK) only
     }
-    match /schools/{schoolId}/inventoryItems/{id} {
-      allow read: if inSchool(schoolId) && can(schoolId, 'inventory.items.view');
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryItems/{id} {
+      allow read: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.items.view');
     }
-    match /schools/{schoolId}/inventoryBalances/{id} {
-      allow read: if inSchool(schoolId) && can(schoolId, 'inventory.stock.view') && onCampus(schoolId, resource.data.campusId);
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryBalances/{id} {
+      allow read: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.stock.view');
     }
-    match /schools/{schoolId}/libraryLoans/{id} {
-      allow read: if inSchool(schoolId) && (own() || (staff(schoolId)
-                                               && onCampus(schoolId, resource.data.campusId)));
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/libraryLoans/{id} {
+      allow read: if inBranch(orgId, zoneId, branchId) && (own() || staff(orgId, zoneId, branchId));
     }
     match /devices/{uid}/tokens/{id} {
       allow read, write: if signedIn() && request.auth.uid == uid;
@@ -329,7 +327,7 @@ service cloud.firestore {
 
 ### 8.2 Storage
 
-Paths: `schools/{schoolId}/{module}/{collection}/{docId}/{file}`. Rules: `schoolId` claim match, module permission via `firestore.get` of `userAccess`, max 10 MB, content types image/*, application/pdf, spreadsheet types. Uploads are only allowed to a path that `files.getUploadPath` has registered in a pending-upload doc; the owning callable then links the file to its record. Until that callable exists (first phase with uploads), Storage writes are denied.
+Paths: `orgs/{orgId}/zones/{zoneId}/branches/{branchId}/{module}/{collection}/{docId}/{file}`. Rules: `orgId`/`zoneId`/`branchId` claim match, module permission via `firestore.get` of `userAccess`, max 10 MB, content types image/*, application/pdf, spreadsheet types. Uploads are only allowed to a path that `files.getUploadPath` has registered in a pending-upload doc; the owning callable then links the file to its record. Until that callable exists (first phase with uploads), Storage writes are denied.
 
 Ceiling: file read access is per-module, not per-record. Per-record checks would need signed URLs from a Function; add if a record-level leak matters.
 
@@ -340,7 +338,7 @@ Ceiling: file read access is per-module, not per-record. Per-record checks would
 **Import** (FRS 14)
 
 1. Client downloads the template (static `.xlsx`/`.csv` per type, generated in Flutter from column definitions shared with the Function).
-2. Upload to `schools/{schoolId}/imports/{importId}/source.xlsx`.
+2. Upload to `<branch>/imports/{importId}/source.xlsx`.
 3. `import.validate {importId, type, columnMap}`: parses (`exceljs` / `csv-parse`), applies the column map, validates each row (required fields, references, duplicates within file and against `uniqueKeys`), writes `imports/{id}/rows` with `ok|error|warning|duplicate` and returns the summary.
 4. Client previews rows/errors (paginated).
 5. `import.commit {importId, overwrite: false}`: enqueues `importWorker` tasks per 400 rows; each chunk is one transaction through the same code path as the single-record callable (so every rule above applies). `overwrite: true` requires `*.settings` permission.

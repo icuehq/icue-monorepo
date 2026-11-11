@@ -19,4 +19,4 @@ Map<String, Object?> writeStamp(String action, [String? reason]) => {
 Future<DocumentReference<Map<String, dynamic>>> schoolDocument(
   String collection,
   String id,
-) async => (await schoolCollection(collection)).doc(id);
+) async => (await branchCollection(collection)).doc(id);

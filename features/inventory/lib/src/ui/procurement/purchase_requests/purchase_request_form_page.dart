@@ -24,7 +24,6 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
   late final _remarks = TextEditingController(text: widget.existing?.remarks);
   late final _date = TextEditingController(text: widget.existing?.requiredDate);
   final _lines = <RequestLineDraft>[];
-  late int? _campus = widget.existing?.campusId;
   late String _priority = widget.existing?.priority ?? 'normal';
   var _busy = false;
 
@@ -70,7 +69,6 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
         'inventory-purchaseRequest-save',
         {
           'id': ?widget.existing?.id,
-          'campusId': _campus,
           'requiredDate': _date.text,
           'priority': _priority,
           'purpose': _purpose.text.trim(),
@@ -111,11 +109,6 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final access = context.read<InventoryProvider>().access;
-    final campuses = {...access.campusIds, ?_campus}.toList();
-    // A single campus needs no choice.
-    final singleCampus = campuses.length == 1;
-    if (singleCampus) _campus = campuses.first;
 
     return Scaffold(
       appBar: AppBar(
@@ -132,7 +125,7 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              // Campus & Priority Card
+              // Priority Card
               Card(
                 elevation: 0,
                 shape: RoundedRectangleBorder(
@@ -153,7 +146,7 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            'Campus & Urgency',
+                            'Urgency',
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.w600,
                             ),
@@ -163,28 +156,6 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
                       const SizedBox(height: 16),
                       Row(
                         children: [
-                          if (!singleCampus) ...[
-                            Expanded(
-                              child: IcueDropdown<int>(
-                                value: _campus,
-                                items: [
-                                  for (final value in campuses)
-                                    DropdownMenuItem(
-                                      value: value,
-                                      child: Text('Campus $value'),
-                                    ),
-                                ],
-                                onChanged: widget.existing == null
-                                    ? (value) => _campus = value
-                                    : null,
-                                validator: (value) =>
-                                    value == null ? 'Required' : null,
-                                label: 'Campus *',
-                                icon: Icons.school_outlined,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                          ],
                           Expanded(
                             child: IcueDropdown<String>(
                               value: _priority,

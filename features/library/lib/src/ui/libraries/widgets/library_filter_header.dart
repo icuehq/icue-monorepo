@@ -14,26 +14,20 @@ class LibraryFilterHeader extends StatelessWidget {
   const LibraryFilterHeader({
     super.key,
     required this.searchController,
-    required this.selectedCampus,
     required this.statusFilter,
-    required this.campuses,
     required this.isWide,
     required this.totalCount,
     required this.onSearchChanged,
-    required this.onCampusChanged,
     required this.onStatusChanged,
     required this.onAddLibrary,
     required this.onClearSearch,
   });
 
   final TextEditingController searchController;
-  final int? selectedCampus;
   final LibraryStatusFilter statusFilter;
-  final List<int> campuses;
   final bool isWide;
   final int totalCount;
   final ValueChanged<String> onSearchChanged;
-  final ValueChanged<int?> onCampusChanged;
   final ValueChanged<LibraryStatusFilter> onStatusChanged;
   final VoidCallback onAddLibrary;
   final VoidCallback onClearSearch;
@@ -68,37 +62,6 @@ class LibraryFilterHeader extends StatelessWidget {
         ),
       ),
     );
-
-    final campusChips = campuses.length > 1
-        ? SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(right: 6),
-                  child: FilterChip(
-                    label: const Text('All campuses'),
-                    selected: selectedCampus == null,
-                    onSelected: (_) => onCampusChanged(null),
-                    visualDensity: VisualDensity.compact,
-                    showCheckmark: false,
-                  ),
-                ),
-                for (final campus in campuses)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 6),
-                    child: FilterChip(
-                      label: Text('Campus $campus'),
-                      selected: selectedCampus == campus,
-                      onSelected: (_) => onCampusChanged(campus),
-                      visualDensity: VisualDensity.compact,
-                      showCheckmark: false,
-                    ),
-                  ),
-              ],
-            ),
-          )
-        : null;
 
     final statusChips = SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -145,7 +108,6 @@ class LibraryFilterHeader extends StatelessWidget {
             const SizedBox(height: 8),
             statusChips,
           ],
-          if (campusChips != null) ...[const SizedBox(height: 8), campusChips],
           const SizedBox(height: 8),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),

@@ -76,41 +76,35 @@ class ProcurementProvider extends ChangeNotifier {
     );
   });
 
-  Future<void> loadOrders(ModuleAccess access, {String? status}) =>
-      _load(() async {
-        orders = await _service.orders(access, status: status);
-        await _loadNames(
-          orders.expand(
-            (purchaseOrder) =>
-                purchaseOrder.lineItems.map((orderLine) => orderLine.itemId),
-          ),
-        );
-      });
-
-  Future<void> loadReceipts(ModuleAccess access, String purchaseOrderId) =>
-      _load(() async {
-        receipts = await _service.receipts(access, purchaseOrderId);
-        await _loadNames(
-          receipts.expand(
-            (goodsReceipt) => goodsReceipt.lineItems.map(
-              (goodsReceiptLine) => goodsReceiptLine.itemId,
-            ),
-          ),
-        );
-      });
-
-  Future<void> loadInvoices(
-    ModuleAccess access, {
-    String? purchaseOrderId,
-    String? status,
-  }) => _load(() async {
-    invoices = await _service.invoices(
-      access,
-      purchaseOrderId: purchaseOrderId,
-      status: status,
+  Future<void> loadOrders({String? status}) => _load(() async {
+    orders = await _service.orders(status: status);
+    await _loadNames(
+      orders.expand(
+        (purchaseOrder) =>
+            purchaseOrder.lineItems.map((orderLine) => orderLine.itemId),
+      ),
     );
-    await _loadNames(const []);
   });
+
+  Future<void> loadReceipts(String purchaseOrderId) => _load(() async {
+    receipts = await _service.receipts(purchaseOrderId);
+    await _loadNames(
+      receipts.expand(
+        (goodsReceipt) => goodsReceipt.lineItems.map(
+          (goodsReceiptLine) => goodsReceiptLine.itemId,
+        ),
+      ),
+    );
+  });
+
+  Future<void> loadInvoices({String? purchaseOrderId, String? status}) =>
+      _load(() async {
+        invoices = await _service.invoices(
+          purchaseOrderId: purchaseOrderId,
+          status: status,
+        );
+        await _loadNames(const []);
+      });
 
   Future<void> _load(Future<void> Function() body) async {
     isLoading = true;

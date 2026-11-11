@@ -25,10 +25,7 @@ class _MaintenancePageState extends State<MaintenancePage> {
     }
     if (!mounted) return;
     final assetsProvider = context.read<AssetsProvider>();
-    await assetsProvider.loadMaintenance(
-      inventoryProvider.access,
-      status: _status,
-    );
+    await assetsProvider.loadMaintenance(status: _status);
     await assetsProvider.loadItemNames(
       assetsProvider.maintenance.expand(
         (maintenance) => maintenance.parts.map((partUsed) => partUsed.itemId),

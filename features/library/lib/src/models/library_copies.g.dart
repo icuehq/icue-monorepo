@@ -9,7 +9,6 @@ class LibraryCopy {
     required this.id,
     required this.catalogueId,
     required this.libraryId,
-    required this.campusId,
     this.shelf,
     required this.barcode,
     required this.condition,
@@ -24,7 +23,6 @@ class LibraryCopy {
         id: id,
         catalogueId: data['catalogueId'] as String? ?? '',
         libraryId: data['libraryId'] as String? ?? '',
-        campusId: (data['campusId'] as num? ?? 0).toInt(),
         shelf: data['shelf'] as String?,
         barcode: data['barcode'] as String? ?? id,
         condition: data['condition'] as String? ?? '',
@@ -37,7 +35,6 @@ class LibraryCopy {
   final String id;
   final String catalogueId;
   final String libraryId;
-  final int campusId;
   final String? shelf;
   final String barcode;
   final String condition;

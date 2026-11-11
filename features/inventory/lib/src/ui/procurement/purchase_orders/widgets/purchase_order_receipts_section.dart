@@ -20,10 +20,7 @@ class _PurchaseOrderReceiptsSectionState
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ProcurementProvider>().loadReceipts(
-        context.read<InventoryProvider>().access,
-        widget.orderId,
-      );
+      context.read<ProcurementProvider>().loadReceipts(widget.orderId);
     });
   }
 

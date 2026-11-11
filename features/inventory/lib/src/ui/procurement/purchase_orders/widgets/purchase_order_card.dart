@@ -126,22 +126,9 @@ class PurchaseOrderCard extends StatelessWidget {
               ),
               const SizedBox(height: 8),
 
-              // Campus and Delivery Date
+              // Delivery Date
               Row(
                 children: [
-                  Icon(
-                    Icons.school_outlined,
-                    size: 14,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Campus ${order.deliveryCampusId}',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
                   Icon(
                     Icons.event_outlined,
                     size: 14,

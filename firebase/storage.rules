@@ -1,19 +1,21 @@
 rules_version = '2';
 
-// Paths: schools/{schoolId}/{module}/{collection}/{docId}/{file}.
-// Reads: same school + module view permission. Ceiling: per-module, not per-record (architecture §8.2).
+// Paths: orgs/{orgId}/zones/{zoneId}/branches/{branchId}/{module}/{collection}/{docId}/{file}.
+// Reads: same branch + module view permission. Ceiling: per-module, not per-record (architecture §8.2).
 // Writes: denied until `files-getUploadPath` registers pending uploads (first phase with uploads).
 service firebase.storage {
   match /b/{bucket}/o {
-    function canView(schoolId, module) {
+    function canView(orgId, zoneId, branchId, module) {
       let permission = module == 'inv' ? 'inventory.items.view' : '';
       return request.auth != null
-        && string(request.auth.token.schoolId) == schoolId
-        && (module == 'lib' ? request.auth.token.get('personType', '') != 'parent' : permission in firestore.get(/databases/(default)/documents/schools/$(schoolId)/userAccess/$(request.auth.uid)).data.permissions);
+        && string(request.auth.token.orgId) == orgId
+        && string(request.auth.token.zoneId) == zoneId
+        && string(request.auth.token.branchId) == branchId
+        && (module == 'lib' ? request.auth.token.get('personType', '') != 'parent' : permission in firestore.get(/databases/(default)/documents/orgs/$(orgId)/zones/$(zoneId)/branches/$(branchId)/userAccess/$(request.auth.uid)).data.permissions);
     }
 
-    match /schools/{schoolId}/{module}/{rest=**} {
-      allow read: if canView(schoolId, module);
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/{module}/{rest=**} {
+      allow read: if canView(orgId, zoneId, branchId, module);
       allow write: if false;
     }
   }

@@ -26,20 +26,10 @@ class _StoreDialogState extends State<StoreDialog> {
   );
   late final _location = TextEditingController(text: widget.store?.location);
   late final Set<int> _storekeeperIds = {...?widget.store?.storekeeperIds};
-  late int? _campus = widget.store?.campusId;
   int _nextSample = 0;
   bool _busy = false;
   bool _submitted = false;
   String? _errorMessage;
-
-  @override
-  void initState() {
-    super.initState();
-    final access = context.read<InventoryProvider>().access;
-    if (_campus == null && access.campusIds.length == 1) {
-      _campus = access.campusIds.first;
-    }
-  }
 
   @override
   void dispose() {
@@ -82,7 +72,6 @@ class _StoreDialogState extends State<StoreDialog> {
       () => provider.saveStore({
         if (store != null) 'id': store.id,
         'name': _name.text.trim(),
-        'campusId': _campus,
         'description': blankToNull(_description),
         'location': blankToNull(_location),
         'storekeeperIds': _storekeeperIds.toList(),
@@ -99,9 +88,7 @@ class _StoreDialogState extends State<StoreDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final access = context.read<InventoryProvider>().access;
     final editing = widget.store != null;
-    final campuses = {...access.campusIds, ?_campus}.toList();
 
     return Form(
       key: _form,
@@ -208,23 +195,6 @@ class _StoreDialogState extends State<StoreDialog> {
                 hintText: 'e.g. Central Science Lab Store',
                 icon: Icons.badge_outlined,
               ),
-              if (campuses.length > 1)
-                IcueDropdown<int>(
-                  value: _campus,
-                  items: [
-                    for (final value in campuses)
-                      DropdownMenuItem(
-                        value: value,
-                        child: Text('Campus $value'),
-                      ),
-                  ],
-                  onChanged: editing
-                      ? null
-                      : (value) => setState(() => _campus = value),
-                  validator: (value) => value == null ? 'Required' : null,
-                  label: 'Campus *',
-                  icon: Icons.school_outlined,
-                ),
               IcueTextField(
                 controller: _location,
                 textInputAction: TextInputAction.next,

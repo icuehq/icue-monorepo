@@ -12,18 +12,18 @@ import {
 } from './fixtures';
 import { clearFirestore, db } from './setup';
 
-const SCHOOL_ID = '12';
+const BRANCH = 'orgs/8/zones/147/branches/427';
 let requestSequence = 0;
 
 const run = (definition: CallableDef<any, any>, data: Record<string, unknown>, uid = '1') =>
   runCallable(
     definition,
-    { uid, token: { schoolId: 12, personType: 'staff' } },
+    { uid, token: { orgId: 8, zoneId: 147, branchId: 427, personType: 'staff' } },
     { requestId: `req-${String(++requestSequence).padStart(6, '0')}`, ...data },
   );
-const get = async (path: string) => (await db().doc(`schools/${SCHOOL_ID}/${path}`).get()).data();
+const get = async (path: string) => (await db().doc(`${BRANCH}/${path}`).get()).data();
 const set = (path: string, data: Record<string, unknown>) =>
-  db().doc(`schools/${SCHOOL_ID}/${path}`).update(data);
+  db().doc(`${BRANCH}/${path}`).update(data);
 
 describe('library fines and incidents', () => {
   let mainLibrary: string, category: string, title: string;
@@ -35,11 +35,9 @@ describe('library fines and incidents', () => {
   beforeEach(async () => {
     await clearFirestore();
     await db()
-      .doc(`schools/${SCHOOL_ID}/userAccess/1`)
+      .doc(`${BRANCH}/userAccess/1`)
       .set({
         permissions: [],
-        campusIds: [31, 32],
-        hasAllCampuses: false,
       });
     category = (await seedLibraryCategory({ name: 'General' })).id;
     title = (
@@ -49,7 +47,7 @@ describe('library fines and incidents', () => {
         categoryId: category,
       })
     ).id;
-    mainLibrary = (await seedLibrary({ name: 'Main', campusId: 31 })).id;
+    mainLibrary = (await seedLibrary({ name: 'Main' })).id;
     await run(copies.createBook, {
       catalogueId: title,
       libraryId: mainLibrary,
@@ -193,7 +191,7 @@ describe('library fines and incidents', () => {
 
     const incs = (
       await db()
-        .collection(`schools/${SCHOOL_ID}/libraryIncidents`)
+        .collection(`${BRANCH}/libraryIncidents`)
         .where('loanId', '==', issued.id)
         .get()
     ).docs;
@@ -214,7 +212,7 @@ describe('library fines and incidents', () => {
 
     const incs = (
       await db()
-        .collection(`schools/${SCHOOL_ID}/libraryIncidents`)
+        .collection(`${BRANCH}/libraryIncidents`)
         .where('loanId', '==', issued.id)
         .get()
     ).docs;
@@ -285,7 +283,7 @@ describe('library fines and incidents', () => {
     await run(loans.loanMarkLost, { id: issued.id });
     const lost = (
       await db()
-        .collection(`schools/${SCHOOL_ID}/libraryIncidents`)
+        .collection(`${BRANCH}/libraryIncidents`)
         .where('type', '==', 'lost')
         .get()
     ).docs[0];

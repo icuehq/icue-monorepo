@@ -21,20 +21,10 @@ class _AddLibraryDialogState extends State<AddLibraryDialog> {
   late final _name = TextEditingController(text: widget.library?.name);
   late final _location = TextEditingController(text: widget.library?.location);
   late final _hours = TextEditingController(text: widget.library?.hours);
-  late int? _campus = widget.library?.campusId;
   int _nextSample = 0;
   bool _busy = false;
   bool _submitted = false;
   String? _errorMessage;
-
-  @override
-  void initState() {
-    super.initState();
-    final access = context.read<LibraryProvider>().access;
-    if (_campus == null && access.campusIds.length == 1) {
-      _campus = access.campusIds.first;
-    }
-  }
 
   @override
   void dispose() {
@@ -90,7 +80,6 @@ class _AddLibraryDialogState extends State<AddLibraryDialog> {
       () => provider.saveLibrary({
         if (schoolLibrary != null) 'id': schoolLibrary.id,
         'name': _name.text.trim(),
-        'campusId': _campus,
         'location': blankToNull(_location),
         'hours': blankToNull(_hours),
       }),
@@ -106,12 +95,7 @@ class _AddLibraryDialogState extends State<AddLibraryDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final access = context.read<LibraryProvider>().access;
     final editing = widget.library != null;
-    final campuses = {...access.campusIds, ?_campus}.toList();
-
-    // With one campus there is nothing to choose.
-    final askCampus = campuses.length > 1;
 
     return Form(
       key: _form,
@@ -219,13 +203,9 @@ class _AddLibraryDialogState extends State<AddLibraryDialog> {
                 textInputAction: TextInputAction.next,
                 validator: _validateName,
                 label: 'Library name *',
-                hintText: 'e.g. Central Campus Library',
+                hintText: 'e.g. Central Library',
                 icon: Icons.business_outlined,
               ),
-              if (askCampus) ...[
-                const SizedBox(height: 14),
-                _buildCampusField(editing, campuses),
-              ],
             ],
           ),
           const SizedBox(height: 16),
@@ -264,20 +244,6 @@ class _AddLibraryDialogState extends State<AddLibraryDialog> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildCampusField(bool editing, List<int> campuses) {
-    return IcueDropdown<int>(
-      value: _campus,
-      items: [
-        for (final value in campuses)
-          DropdownMenuItem(value: value, child: Text('Campus $value')),
-      ],
-      onChanged: editing ? null : (value) => setState(() => _campus = value),
-      validator: (value) => value == null ? 'Campus is required' : null,
-      label: 'Campus *',
-      icon: Icons.school_outlined,
     );
   }
 

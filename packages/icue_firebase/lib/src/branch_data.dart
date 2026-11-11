@@ -2,20 +2,23 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-String? _schoolUid;
-Object? _schoolId;
+String? _branchUid;
+String? _branchPath;
 
-/// A collection of the school the signed-in user belongs to (`schools/{schoolId}/{path}`).
-/// The school never changes for a user, so the token is read once per sign-in.
-Future<CollectionReference<Map<String, dynamic>>> schoolCollection(
+/// A collection of the branch the signed-in user is working in
+/// (`orgs/{orgId}/zones/{zoneId}/branches/{branchId}/{path}`). The branch is the tenant. The token is
+/// issued for one active branch, so it is read once per sign-in (a branch switch signs in again).
+Future<CollectionReference<Map<String, dynamic>>> branchCollection(
   String path,
 ) async {
   final user = FirebaseAuth.instance.currentUser!;
-  if (_schoolUid != user.uid) {
-    _schoolId = (await user.getIdTokenResult()).claims?['schoolId'];
-    _schoolUid = user.uid;
+  if (_branchUid != user.uid) {
+    final claims = (await user.getIdTokenResult()).claims;
+    _branchPath =
+        'orgs/${claims?['orgId']}/zones/${claims?['zoneId']}/branches/${claims?['branchId']}';
+    _branchUid = user.uid;
   }
-  return FirebaseFirestore.instance.collection('schools/$_schoolId/$path');
+  return FirebaseFirestore.instance.collection('$_branchPath/$path');
 }
 
 /// Plain client CRUD for a master collection under the school ([path]).
@@ -31,7 +34,7 @@ Future<void> saveMasterDocument(
 }) async {
   final fields = {...data};
   final id = fields.remove('id') as String?;
-  final collection = await schoolCollection(path);
+  final collection = await branchCollection(path);
   if (id != null) {
     await collection.doc(id).update({
       ...fields,
@@ -66,7 +69,7 @@ Future<void> setMasterActive(
   String id, {
   required bool active,
 }) async {
-  await (await schoolCollection(path)).doc(id).update({
+  await (await branchCollection(path)).doc(id).update({
     'status': active ? 'active' : 'inactive',
     'updatedAt': FieldValue.serverTimestamp(),
   });
@@ -84,39 +87,16 @@ abstract interface class ErrorReporting {
   String? get errorMessage;
 }
 
-/// The signed-in user's resolved permissions and campuses (`userAccess/{userId}`), shared by every module.
+/// The signed-in user's resolved permissions in the active branch (`userAccess/{userId}`), shared by every module.
 class ModuleAccess {
-  const ModuleAccess({
-    this.permissions = const {},
-    this.campusIds = const [],
-    this.hasAllCampuses = false,
-  });
+  const ModuleAccess({this.permissions = const {}});
 
-  factory ModuleAccess.fromMap(Map<String, dynamic> data) => ModuleAccess(
-    permissions: readList<String>(data['permissions']).toSet(),
-    campusIds: [for (final id in readList<num>(data['campusIds'])) id.toInt()],
-    hasAllCampuses: data['hasAllCampuses'] == true,
-  );
+  factory ModuleAccess.fromMap(Map<String, dynamic> data) =>
+      ModuleAccess(permissions: readList<String>(data['permissions']).toSet());
 
   final Set<String> permissions;
-  final List<int> campusIds;
-  final bool hasAllCampuses;
 
   bool can(String permission) => permissions.contains(permission);
-
-  bool hasCampus(int campusId) =>
-      hasAllCampuses || campusIds.contains(campusId);
-
-  /// Firestore rules need a campus filter on every list unless the user sees all campuses.
-  /// Returns null when the user has no campus (the list would be empty).
-  Query<Map<String, dynamic>>? restrictToCampuses(
-    Query<Map<String, dynamic>> query, {
-    String field = 'campusId',
-  }) => hasAllCampuses
-      ? query
-      : campusIds.isEmpty
-      ? null
-      : query.where(field, whereIn: campusIds);
 }
 
 /// Readers for Firestore map values: a missing or wrongly typed value becomes a safe default.
@@ -165,35 +145,4 @@ class ReportColumn<Names> {
 
   /// Total shown under the table (cells must be numbers).
   final bool sum;
-}
-
-/// Newest [limit] documents leaving or arriving on the user's campuses (`campusId` / `toCampusId`),
-/// merged newest first. Rules need the campus filter on both sides, so the two lists are fetched apart.
-Future<List<T>> fetchCampusBothSides<T>(
-  Query<Map<String, dynamic>> base,
-  ModuleAccess access,
-  T Function(String id, Map<String, dynamic> data) parse,
-  DateTime? Function(T item) createdAt, {
-  int limit = 50,
-}) async {
-  final queries = [
-    access.restrictToCampuses(base),
-    if (!access.hasAllCampuses)
-      access.restrictToCampuses(base, field: 'toCampusId'),
-  ];
-  final byId = <String, T>{};
-  for (final query in queries.whereType<Query<Map<String, dynamic>>>()) {
-    final snapshot = await query
-        .orderBy('createdAt', descending: true)
-        .limit(limit)
-        .get();
-    for (final document in snapshot.docs) {
-      byId[document.id] = parse(document.id, document.data());
-    }
-  }
-  return byId.values.toList()..sort(
-    (first, second) => (createdAt(second) ?? DateTime(0)).compareTo(
-      createdAt(first) ?? DateTime(0),
-    ),
-  );
 }

@@ -8,7 +8,7 @@ typedef _Json = Map<String, dynamic>;
 typedef _Ref = DocumentReference<_Json>;
 
 /// Circulation without Cloud Functions: issue, return, renew and mark lost. `firestore.rules` checks who,
-/// the campus and the shape; business checks live here. Each loan write stamps `lastWrite` (audited by
+/// the shape; business checks live here. Each loan write stamps `lastWrite` (audited by
 /// `auditLibraryLoans`) and `firebase/functions/src/library/notices.ts` sends the member's notices.
 ///
 /// ponytail: queries (policy, borrowing limit) run just before the transaction, which
@@ -63,7 +63,7 @@ class LoanWrites {
     String categoryId,
   ) async {
     final policies =
-        (await (await schoolCollection('libraryBorrowingPolicies'))
+        (await (await branchCollection('libraryBorrowingPolicies'))
                 .where('libraryId', isEqualTo: libraryId)
                 .where('memberType', whereIn: [memberType, 'all'])
                 .where('status', isEqualTo: 'active')
@@ -126,7 +126,6 @@ class LoanWrites {
     'barcode': loan['barcode'],
     'catalogueId': loan['catalogueId'],
     'libraryId': loan['libraryId'],
-    'campusId': loan['campusId'],
     'type': type,
     'amount': amount,
     'waived': 0,
@@ -160,7 +159,6 @@ class LoanWrites {
     'barcode': barcode,
     'catalogueId': copy['catalogueId'],
     'libraryId': copy['libraryId'],
-    'campusId': copy['campusId'],
     'memberType': member?['memberType'],
     'personErpId': member?['personErpId'],
     'memberName': member?['name'],
@@ -238,7 +236,7 @@ class LoanWrites {
     }
     final policy = found.data;
     final maxBooks = (policy['maxBooks'] as num).toInt();
-    final underPolicy = await (await schoolCollection('libraryLoans'))
+    final underPolicy = await (await branchCollection('libraryLoans'))
         .where('personErpId', isEqualTo: personErpId)
         .where('status', isEqualTo: 'active')
         .where('policySnapshot.policyId', isEqualTo: found.id)
@@ -248,7 +246,7 @@ class LoanWrites {
       writeFail('Borrowing limit of $maxBooks reached');
     }
     final number = await _nextNumber('LIS');
-    final loanReference = (await schoolCollection('libraryLoans')).doc();
+    final loanReference = (await branchCollection('libraryLoans')).doc();
     final memberReference = await _memberReference(personErpId);
     await FirebaseFirestore.instance.runTransaction((transaction) async {
       final member = (await transaction.get(memberReference)).data();
@@ -267,7 +265,6 @@ class LoanWrites {
           'barcode': barcode,
           'catalogueId': copy['catalogueId'],
           'libraryId': copy['libraryId'],
-          'campusId': copy['campusId'],
           'issuedDate': dayTimestamp(today),
           'dueDate': dayTimestamp(
             _addDays(today, (policy['loanDays'] as num).toInt()),
@@ -296,7 +293,6 @@ class LoanWrites {
           'memberType': memberType,
           'personErpId': personErpId,
           ...shown,
-          'campusIds': [copy['campusId']],
           'activeLoans': 1,
           'blocked': false,
           'createdAt': FieldValue.serverTimestamp(),
@@ -306,7 +302,6 @@ class LoanWrites {
       } else {
         transaction.update(memberReference, {
           ...shown,
-          'campusIds': FieldValue.arrayUnion([copy['campusId']]),
           'activeLoans': FieldValue.increment(1),
           'updatedAt': FieldValue.serverTimestamp(),
         });
@@ -385,7 +380,7 @@ class LoanWrites {
             'updatedAt': FieldValue.serverTimestamp(),
           })
           ..set(
-            (await schoolCollection('libraryIncidents')).doc(),
+            (await branchCollection('libraryIncidents')).doc(),
             _newIncident(
               number: incidentNumber!,
               type: 'damaged',
@@ -471,7 +466,7 @@ class LoanWrites {
         }
       }
       transaction.set(
-        (await schoolCollection('libraryIncidents')).doc(),
+        (await branchCollection('libraryIncidents')).doc(),
         _newIncident(
           number: incidentNumber,
           type: 'lost',
@@ -571,7 +566,7 @@ class LoanWrites {
     final personErpId = (earlier['personErpId'] as num?)?.toInt();
     final otherOpen = personErpId == null
         ? <QueryDocumentSnapshot<_Json>>[]
-        : (await (await schoolCollection('libraryFines'))
+        : (await (await branchCollection('libraryFines'))
                   .where('personErpId', isEqualTo: personErpId)
                   .where('status', whereIn: ['outstanding', 'partially_paid'])
                   .limit(2)
@@ -688,7 +683,7 @@ class LoanWrites {
     }
     if (charge < 0) writeFail('Charge cannot be negative');
     final copyReference = await schoolDocument('libraryCopies', barcode);
-    final open = await (await schoolCollection('libraryIncidents'))
+    final open = await (await branchCollection('libraryIncidents'))
         .where('barcode', isEqualTo: barcode)
         .where('status', isEqualTo: 'open')
         .limit(1)
@@ -700,7 +695,7 @@ class LoanWrites {
     final incidentNumber = await _nextNumber('INC');
     final fined = personErpId != null && charge > 0;
     final fineNumber = fined ? await _nextNumber('FIN') : null;
-    final incidentReference = (await schoolCollection('libraryIncidents'))
+    final incidentReference = (await branchCollection('libraryIncidents'))
         .doc();
     await FirebaseFirestore.instance.runTransaction((transaction) async {
       final copy = (await transaction.get(copyReference)).data();

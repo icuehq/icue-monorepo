@@ -12,8 +12,7 @@ class StockService {
     InventoryStore store, {
     DocumentSnapshot<Map<String, dynamic>>? after,
   }) async => fetchPage(
-    (await schoolCollection('inventoryBalances'))
-        .where('campusId', isEqualTo: store.campusId)
+    (await branchCollection('inventoryBalances'))
         .where('storeId', isEqualTo: store.id)
         .orderBy('itemId'),
     (document) => InventoryBalance.fromMap(document.id, document.data()!),
@@ -21,12 +20,8 @@ class StockService {
     limit: 50,
   );
 
-  Future<List<InventoryMovement>> movements(
-    InventoryBalance balance,
-    int campusId,
-  ) async {
-    final snapshot = await (await schoolCollection('inventoryMovements'))
-        .where('campusId', isEqualTo: campusId)
+  Future<List<InventoryMovement>> movements(InventoryBalance balance) async {
+    final snapshot = await (await branchCollection('inventoryMovements'))
         .where('balanceId', isEqualTo: balance.id)
         .orderBy('createdAt', descending: true)
         .limit(100)
@@ -37,17 +32,13 @@ class StockService {
     ];
   }
 
-  /// [mine]: the signed-in user's own requests; otherwise the campus's (approvers, stock users).
-  Future<List<InventoryIssueRequest>> requests(
-    ModuleAccess access, {
+  /// [mine]: the signed-in user's own requests; otherwise the branch's (approvers, stock users).
+  Future<List<InventoryIssueRequest>> requests({
     required bool mine,
     String? status,
   }) async {
-    final base = await schoolCollection('inventoryIssueRequests');
-    var query = mine
-        ? base.where('createdBy', isEqualTo: uid)
-        : access.restrictToCampuses(base);
-    if (query == null) return [];
+    final base = await branchCollection('inventoryIssueRequests');
+    var query = mine ? base.where('createdBy', isEqualTo: uid) : base;
     if (status != null) query = query.where('status', isEqualTo: status);
     final snapshot = await query
         .orderBy('createdAt', descending: true)
@@ -60,7 +51,7 @@ class StockService {
   }
 
   Future<InventoryIssueRequest?> requestById(String id) async {
-    final document = await (await schoolCollection('inventoryIssueRequests'))
+    final document = await (await branchCollection('inventoryIssueRequests'))
         .doc(id)
         .get();
     final data = document.data();
@@ -70,8 +61,7 @@ class StockService {
   Future<List<InventoryIssue>> issuesOf(
     InventoryIssueRequest issueRequest,
   ) async {
-    final snapshot = await (await schoolCollection('inventoryIssues'))
-        .where('campusId', isEqualTo: issueRequest.campusId)
+    final snapshot = await (await branchCollection('inventoryIssues'))
         .where('issueRequestId', isEqualTo: issueRequest.id)
         .get();
     return [
@@ -80,12 +70,9 @@ class StockService {
     ];
   }
 
-  Future<List<InventoryUnavailable>> unavailable(ModuleAccess access) async {
-    final query = access
-        .restrictToCampuses(await schoolCollection('inventoryUnavailableStock'))
-        ?.where('status', whereIn: ['open', 'in_repair']);
-    if (query == null) return [];
-    final snapshot = await query
+  Future<List<InventoryUnavailable>> unavailable() async {
+    final snapshot = await (await branchCollection('inventoryUnavailableStock'))
+        .where('status', whereIn: ['open', 'in_repair'])
         .orderBy('createdAt', descending: true)
         .limit(100)
         .get();
@@ -95,9 +82,9 @@ class StockService {
     ];
   }
 
-  /// Every store in the school (transfer destinations may be on another campus).
+  /// Every store of the branch.
   Future<List<InventoryStore>> allStores() async {
-    final snapshot = await (await schoolCollection('inventoryStores')).get();
+    final snapshot = await (await branchCollection('inventoryStores')).get();
     return [
       for (final document in snapshot.docs)
         InventoryStore.fromMap(document.id, document.data()),
@@ -109,7 +96,7 @@ class StockService {
     final out = <String, InventoryItem>{};
     final list = ids.toSet().toList();
     for (var i = 0; i < list.length; i += 30) {
-      final snapshot = await (await schoolCollection('inventoryItems'))
+      final snapshot = await (await branchCollection('inventoryItems'))
           .where(FieldPath.documentId, whereIn: list.skip(i).take(30).toList())
           .get();
       for (final document in snapshot.docs) {

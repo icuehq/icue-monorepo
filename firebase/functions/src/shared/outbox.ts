@@ -2,13 +2,13 @@ import { type Firestore, getFirestore } from 'firebase-admin/firestore';
 import { getMessaging, type BatchResponse, type TokenMessage } from 'firebase-admin/messaging';
 import { logger } from 'firebase-functions/v2';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
+import { BRANCH_TRIGGER, branchPathOf } from './branch';
 import type { CallableContext } from './callable';
 import { serverTimestamp } from './firestore';
 
 export interface Recipients {
   uids?: string[];
   permission?: string;
-  campusId?: number; // with `permission`: only users who can access this campus
   personErpIds?: number[];
   wardStudentIds?: number[];
 }
@@ -38,13 +38,13 @@ export async function enqueue(
 /** Outbox post outside a business transaction (scheduled jobs): an existing key is left alone. */
 export async function post(
   db: Firestore,
-  schoolId: string,
+  branchPath: string,
   key: string,
   outboxEvent: OutboxEvent,
 ): Promise<void> {
   try {
     await db
-      .doc(`schools/${schoolId}/outbox/${key}`)
+      .doc(`${branchPath}/outbox/${key}`)
       .create({ ...outboxEvent, status: 'pending', createdAt: serverTimestamp() });
   } catch (err) {
     if ((err as { code?: number }).code !== 6) throw err; // 6 = ALREADY_EXISTS
@@ -59,24 +59,16 @@ const chunks = <T>(items: T[], size: number) =>
 
 export async function resolveRecipients(
   db: Firestore,
-  schoolId: string,
+  branchPath: string,
   recipients: Recipients,
 ): Promise<string[]> {
-  const access = db.collection(`schools/${schoolId}/userAccess`);
+  const access = db.collection(`${branchPath}/userAccess`);
   const uids = new Set(recipients.uids ?? []);
   if (recipients.permission) {
     const holders = await access
       .where('permissions', 'array-contains', recipients.permission)
       .get();
-    for (const holder of holders.docs) {
-      const userAccess = holder.data();
-      if (
-        recipients.campusId == null ||
-        userAccess.hasAllCampuses === true ||
-        (userAccess.campusIds as number[] | undefined)?.includes(recipients.campusId)
-      )
-        uids.add(holder.id);
-    }
+    for (const holder of holders.docs) uids.add(holder.id);
   }
   for (const part of chunks(recipients.personErpIds ?? [], IN_LIMIT)) {
     for (const snapshot of (await access.where('personErpId', 'in', part).get()).docs)
@@ -116,11 +108,11 @@ const sendFcm = async (messages: TokenMessage[]): Promise<BatchResponse> => {
 
 export async function deliver(
   db: Firestore,
-  schoolId: string,
+  branchPath: string,
   key: string,
   send: (tokenMessages: TokenMessage[]) => Promise<BatchResponse> = sendFcm,
 ): Promise<void> {
-  const outboxRef = db.doc(`schools/${schoolId}/outbox/${key}`);
+  const outboxRef = db.doc(`${branchPath}/outbox/${key}`);
   const outboxEvent = (await outboxRef.get()).data() as
     (OutboxEvent & { status: string; createdAt?: FirebaseFirestore.Timestamp }) | undefined;
   if (!outboxEvent || outboxEvent.status !== 'pending') return;
@@ -129,11 +121,11 @@ export async function deliver(
     return;
   }
 
-  const recipients = await resolveRecipients(db, schoolId, outboxEvent.to);
+  const recipients = await resolveRecipients(db, branchPath, outboxEvent.to);
   // Recipients run in parallel: same reads/writes, far less billed instance time than one at a time.
   const perRecipient = await Promise.all(
     recipients.map(async (uid) => {
-      const notificationRef = db.doc(`schools/${schoolId}/notifications/${key}__${uid}`);
+      const notificationRef = db.doc(`${branchPath}/notifications/${key}__${uid}`);
       try {
         await notificationRef.create({
           uid,
@@ -190,9 +182,9 @@ export async function deliver(
 }
 
 export const outboxSend = onDocumentCreated(
-  { document: 'schools/{schoolId}/outbox/{key}', retry: true },
+  { document: `${BRANCH_TRIGGER}/outbox/{key}`, retry: true },
   async (event) => {
-    await deliver(getFirestore(), event.params.schoolId, event.params.key);
-    logger.info('outbox delivered', { schoolId: event.params.schoolId, key: event.params.key });
+    await deliver(getFirestore(), branchPathOf(event.params), event.params.key);
+    logger.info('outbox delivered', { branch: branchPathOf(event.params), key: event.params.key });
   },
 );

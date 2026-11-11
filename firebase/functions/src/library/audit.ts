@@ -1,5 +1,6 @@
 import { type DocumentData, getFirestore } from 'firebase-admin/firestore';
 import { onDocumentWritten } from 'firebase-functions/v2/firestore';
+import { BRANCH_TRIGGER, branchPathOf } from '../shared/branch';
 import { serverTimestamp } from '../shared/firestore';
 import { type Change, noticeFine, noticeIncident, noticeLoan } from './notices';
 
@@ -22,20 +23,21 @@ function changedFields(before: DocumentData | undefined, after: DocumentData) {
  * One trigger per collection also runs its member [notice], so a write is billed one invocation, not two.
  */
 const auditClientWrites = (collection: string, notice?: (change: Change) => Promise<void>) =>
-  onDocumentWritten(`schools/{schoolId}/${collection}/{docId}`, async (event) => {
+  onDocumentWritten(`${BRANCH_TRIGGER}/${collection}/{docId}`, async (event) => {
     const before = event.data?.before.data();
     const after = event.data?.after.data();
-    const { schoolId, docId } = event.params;
+    const branchPath = branchPathOf(event.params);
+    const { docId } = event.params;
     await Promise.all([
-      audit(collection, event.id, schoolId, docId, before, after),
-      notice?.({ schoolId, docId, before, after }),
+      audit(collection, event.id, branchPath, docId, before, after),
+      notice?.({ branchPath, docId, before, after }),
     ]);
   });
 
 async function audit(
   collection: string,
   eventId: string,
-  schoolId: string,
+  branchPath: string,
   docId: string,
   before: DocumentData | undefined,
   after: DocumentData | undefined,
@@ -43,7 +45,7 @@ async function audit(
   const mark = after?.lastWrite;
   if (!after || !mark || before?.lastWrite?.at?.isEqual(mark.at)) return;
   await getFirestore()
-    .doc(`schools/${schoolId}/auditLogs/${eventId}`)
+    .doc(`${branchPath}/auditLogs/${eventId}`)
     .set({
       actor: mark.by,
       action: mark.action,

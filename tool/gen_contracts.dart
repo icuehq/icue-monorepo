@@ -217,7 +217,9 @@ String _dart(
 ) {
   final out = StringBuffer('// $_header\n\n');
   if (collections.isNotEmpty) {
-    out.writeln('/// Collections under `schools/{schoolId}/`.');
+    out.writeln(
+      '/// Collections under `orgs/{orgId}/zones/{zoneId}/branches/{branchId}/`.',
+    );
     out.writeln('abstract final class Collections {');
     for (final name in collections) {
       out.writeln("  static const $name = '$name';");
@@ -265,7 +267,9 @@ String _ts(
     out.writeln("import type { Timestamp } from 'firebase-admin/firestore';\n");
   }
   if (collections.isNotEmpty) {
-    out.writeln('/** Collections under `schools/{schoolId}/`. */');
+    out.writeln(
+      '/** Collections under `orgs/{orgId}/zones/{zoneId}/branches/{branchId}/`. */',
+    );
     out.writeln('export const Collections = {');
     for (final name in collections) {
       out.writeln("  $name: '$name',");

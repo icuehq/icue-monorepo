@@ -75,9 +75,7 @@ class _AddCopiesFormState extends State<AddCopiesForm> {
     final libraryProvider = context.watch<LibraryProvider>();
     final libraries = [
       for (final schoolLibrary in libraryProvider.libraries)
-        if (schoolLibrary.active &&
-            libraryProvider.access.hasCampus(schoolLibrary.campusId))
-          schoolLibrary,
+        if (schoolLibrary.active) schoolLibrary,
     ];
     _libraryId ??= libraries.firstOrNull?.id;
     return Form(

@@ -5,7 +5,7 @@ import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/procurement/purchase_orders/widgets/purchase_order_card.dart';
 import 'package:provider/provider.dart';
 
-/// Purchase orders (FRS 10.16) on the caller's campuses. Created from a request's quotations or the request sheet.
+/// Purchase orders (FRS 10.16) of the branch. Created from a request's quotations or the request sheet.
 class PurchaseOrdersPage extends StatefulWidget {
   const PurchaseOrdersPage({super.key});
 
@@ -29,7 +29,6 @@ class _PurchaseOrdersPageState extends State<PurchaseOrdersPage> {
       }
       if (mounted) {
         await procurementProvider.loadOrders(
-          inventoryProvider.access,
           status: _selectedStatus == 'all' ? null : _selectedStatus,
         );
       }

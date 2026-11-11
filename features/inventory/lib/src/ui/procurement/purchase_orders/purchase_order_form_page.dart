@@ -46,8 +46,6 @@ class _PurchaseOrderFormPageState extends State<PurchaseOrderFormPage> {
   final _lines = <OrderLineInput>[];
   late String? _vendor =
       widget.existing?.vendorId ?? widget.quotation?.vendorId;
-  late int _campus =
-      widget.existing?.deliveryCampusId ?? widget.request.campusId;
   var _busy = false;
 
   String? get _quotationId =>
@@ -164,7 +162,6 @@ class _PurchaseOrderFormPageState extends State<PurchaseOrderFormPage> {
           'purchaseRequestId': widget.request.id,
           'quotationId': ?_quotationId,
           'vendorId': _vendor,
-          'deliveryCampusId': _campus,
           'expectedDate': _expected.text,
           'terms': _terms.text.trim(),
           'remarks': _remarks.text.trim(),
@@ -188,11 +185,6 @@ class _PurchaseOrderFormPageState extends State<PurchaseOrderFormPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final access = context.read<InventoryProvider>().access;
-    final campuses = {...access.campusIds, _campus}.toList();
-    // A single campus needs no choice.
-    final singleCampus = campuses.length == 1;
-    if (singleCampus) _campus = campuses.first;
     final vendors = context.watch<ProcurementProvider>().vendors.where(
       (vendor) => vendor.active || vendor.id == _vendor,
     );
@@ -208,7 +200,7 @@ class _PurchaseOrderFormPageState extends State<PurchaseOrderFormPage> {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              // Vendor & Destination Campus Card
+              // Vendor Card
               Card(
                 elevation: 0,
                 shape: RoundedRectangleBorder(
@@ -229,7 +221,7 @@ class _PurchaseOrderFormPageState extends State<PurchaseOrderFormPage> {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            'Supplier & Campus',
+                            'Supplier',
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.w600,
                             ),
@@ -253,23 +245,6 @@ class _PurchaseOrderFormPageState extends State<PurchaseOrderFormPage> {
                         label: 'Supplier / Vendor *',
                         icon: Icons.storefront_outlined,
                       ),
-                      if (!singleCampus) ...[
-                        const SizedBox(height: 12),
-                        IcueDropdown<int>(
-                          value: _campus,
-                          items: [
-                            for (final value in campuses)
-                              DropdownMenuItem(
-                                value: value,
-                                child: Text('Campus $value'),
-                              ),
-                          ],
-                          onChanged: (value) =>
-                              setState(() => _campus = value ?? _campus),
-                          label: 'Delivery Campus *',
-                          icon: Icons.school_outlined,
-                        ),
-                      ],
                     ],
                   ),
                 ),

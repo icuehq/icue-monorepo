@@ -60,7 +60,7 @@ export async function saveMaster(
     });
     return { id: ref.id };
   }
-  if (!documentData.code) throw new HttpsError('invalid-argument', 'code required');
+  if (!documentData.code) throw new HttpsError('invalid-argument', 'Please enter a code.');
   let ref;
   if (documentData.idFromCode) {
     const docId = codeDocId(documentData.code);

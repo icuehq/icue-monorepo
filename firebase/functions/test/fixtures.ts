@@ -31,7 +31,7 @@ function assertUniqueLines(lineItems: { itemId: string; variantId?: string | nul
 }
 
 /** Documents the client writes directly (`firestore.rules`); the server only reads them, so tests seed them. */
-const SCHOOL = 'schools/12';
+const SCHOOL = 'orgs/8/zones/147/branches/427';
 const audit = {
   status: 'active',
   createdBy: '1',
@@ -41,7 +41,6 @@ const audit = {
 
 export async function seedStore(fields: {
   name: string;
-  campusId: number;
   storekeeperIds?: number[];
 }): Promise<{ id: string }> {
   const ref = db().collection(`${SCHOOL}/inventoryStores`).doc();
@@ -51,7 +50,6 @@ export async function seedStore(fields: {
 
 export async function seedLibrary(fields: {
   name: string;
-  campusId: number;
 }): Promise<{ id: string }> {
   const ref = db().collection(`${SCHOOL}/libraries`).doc();
   await ref.set({
@@ -66,7 +64,6 @@ export async function seedLibrary(fields: {
 /** A borrowing policy written straight to Firestore (policies are client-written; rules tests cover that path). */
 export async function seedLibraryPolicy(fields: {
   libraryId: string;
-  campusId?: number;
   memberType: string;
   name: string;
   maxBooks: number;
@@ -80,7 +77,6 @@ export async function seedLibraryPolicy(fields: {
 }): Promise<{ id: string }> {
   const ref = db().collection(`${SCHOOL}/libraryBorrowingPolicies`).doc();
   await ref.set({
-    campusId: 31,
     fineAmount: 0,
     graceDays: 0,
     maxFine: null,
@@ -147,12 +143,10 @@ export async function seedVariant(fields: {
 /** An approved purchase request, as the client's approval leaves it. */
 export async function seedPurchaseRequest(
   lines: { itemId: string; quantity: number; estimatedPrice?: number }[],
-  campusId = 31,
 ): Promise<string> {
   const ref = db().collection(`${SCHOOL}/inventoryPurchaseRequests`).doc();
   await ref.set({
     number: 'PR/TEST/000001',
-    campusId,
     status: 'approved',
     purpose: 'Term',
     priority: 'normal',
@@ -188,7 +182,6 @@ export async function seedQuotation(
     number: 'QT/TEST/000001',
     purchaseRequestId,
     vendorId,
-    campusId: 31,
     status: 'final',
     validUntil: dayTimestamp(options.validUntil),
     quotationDate: dayTimestamp(options.validUntil),
@@ -214,7 +207,7 @@ export async function seedPurchaseOrder(
   purchaseRequestId: string,
   vendorId: string,
   lines: { itemId: string; quantityOrdered: number; unitPrice: number }[],
-  options: { deliveryCampusId?: number; discount?: number; tax?: number } = {},
+  options: { discount?: number; tax?: number } = {},
 ): Promise<string> {
   const ref = db().collection(`${SCHOOL}/inventoryPurchaseOrders`).doc();
   const subtotal = lines.reduce((sum, line) => sum + line.quantityOrdered * line.unitPrice, 0);
@@ -224,8 +217,6 @@ export async function seedPurchaseOrder(
     purchaseRequestIds: [purchaseRequestId],
     vendorId,
     quotationId: null,
-    campusId: 31,
-    deliveryCampusId: options.deliveryCampusId ?? 31,
     purchaseOrderDate: dayTimestamp(todayIST()),
     expectedDate: dayTimestamp(todayIST()),
     terms: null,
@@ -321,7 +312,7 @@ export const receiveStock = defineCallable({
   }),
   handler: async (context, i) => {
     const stockData = new Stock(context, i);
-    const store = await stockData.store(i.storeId);
+    await stockData.store(i.storeId);
     const ref = context.newDoc('inventoryReceipts');
     const number = await stockData.num('GRN');
     const out = [];
@@ -362,7 +353,7 @@ export const receiveStock = defineCallable({
       itemIds: [...new Set(out.map((lineItem) => lineItem.itemId))],
       attachments: [],
       status: 'confirmed',
-      ...stockData.header(store.campusId),
+      ...stockData.header(),
     });
     context.audit({
       action: 'inventoryReceipt.create',
@@ -403,7 +394,6 @@ export async function seedIssueRequest(fields: {
     itemIds: [fields.itemId],
     status,
     approval: status === 'pending' ? null : { performedBy: 'apr', comment: null },
-    campusId: 31,
     transactionDate: dayTimestamp(new Date().toISOString().slice(0, 10)),
     createdAt: FieldValue.serverTimestamp(),
     createdBy: fields.createdBy,
@@ -432,7 +422,7 @@ export const issueStock = defineCallable({
     if (issueRequest.status !== 'approved' && issueRequest.status !== 'partially_issued')
       throw failed(`Request is ${issueRequest.status}`);
     const stockData = new Stock(context, i);
-    const store = await stockData.store(issueRequest.storeId, true);
+    await stockData.store(issueRequest.storeId, true);
     const reqLines = (issueRequest.lineItems as Row[]).map((lineItem) => ({ ...lineItem }));
     const ref = context.newDoc('inventoryIssues');
     const number = await stockData.num('ISS');
@@ -498,7 +488,7 @@ export const issueStock = defineCallable({
       lineItems: [...issued.values()],
       itemIds: [...new Set(i.lineItems.map((lineItem) => lineItem.itemId))],
       acknowledgement: null,
-      ...stockData.header(store.campusId),
+      ...stockData.header(),
     });
     context.update(reqRef, {
       lineItems: reqLines,
@@ -537,7 +527,7 @@ export const adjustStock = defineCallable({
     if ((i.reason === 'missing' && i.delta > 0) || (i.reason === 'excess' && i.delta < 0))
       throw failed('Reason does not match the direction');
     const stockData = new Stock(context, i);
-    const store = await stockData.store(i.storeId);
+    await stockData.store(i.storeId);
     const item = await stockData.item(i.itemId, i.variantId);
     const balance = await stockData.balance(
       i.storeId,
@@ -570,7 +560,7 @@ export const adjustStock = defineCallable({
       evidence: null,
       approval: null,
       status: 'completed',
-      ...stockData.header(store.campusId),
+      ...stockData.header(),
     });
     context.audit({
       action: 'inventoryAdjustment.create',
@@ -660,7 +650,6 @@ export const resolveUnavailable = defineCallable({
     const ref = context.doc(`inventoryUnavailableStock/${i.id}`);
     const unavailableStock = (await context.transaction.get(ref)).data();
     if (!unavailableStock) throw missing('Entry');
-    context.requireCampus(unavailableStock.campusId);
     const canRepair = unavailableStock.status === 'open' && unavailableStock.bucket === 'damaged';
     if (
       (unavailableStock.status !== 'open' && unavailableStock.status !== 'in_repair') ||

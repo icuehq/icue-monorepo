@@ -4,7 +4,7 @@ import { CallableContext } from '../shared/callable';
 import { todayIST, addDays, weekOf, dayTimestamp, timestampDay } from '../shared/dates';
 import { schoolCollection } from '../shared/firestore';
 import { enqueue, post } from '../shared/outbox';
-import { forEachSchool } from '../shared/scheduled';
+import { forEachBranch } from '../shared/scheduled';
 import { Stock, unavailableEntry } from './stock';
 
 /** Daily inventory job (architecture §5.2): expiry, and the FRS 10.22 date-driven notifications. */
@@ -14,16 +14,12 @@ const NEAR_DAYS = 30;
 /** Moves one expired balance's usable stock to `quantityExpired`; re-checked in the transaction, so reruns are no-ops. */
 async function expire(
   db: Firestore,
-  schoolId: string,
+  branchPath: string,
   balanceId: string,
   today: string,
 ): Promise<void> {
   await db.runTransaction(async (transaction) => {
-    const context = new CallableContext(transaction, schoolId, 'system', {
-      permissions: [],
-      campusIds: [],
-      hasAllCampuses: true,
-    });
+    const context = new CallableContext(transaction, branchPath, 'system', { permissions: [] });
     const snapshot = await transaction.get(context.doc(`inventoryBalances/${balanceId}`));
     const balance = snapshot.data();
     if (
@@ -55,7 +51,7 @@ async function expire(
       referenceId,
     });
     await enqueue(context, `inventory-stock-expired__${balanceId}__${today}`, {
-      to: { permission: 'inventory.stock.operate', campusId: balance.campusId },
+      to: { permission: 'inventory.stock.operate' },
       category: 'inventory.expiry',
       title: 'Stock expired',
       body: `${item.name}${balance.batchNumber ? ` (batch ${balance.batchNumber})` : ''}: ${quantity} moved to expired.`,
@@ -66,33 +62,32 @@ async function expire(
   });
 }
 
-export async function runDailyInventory(schoolId: string, today = todayIST()): Promise<void> {
+export async function runDailyInventory(branchPath: string, today = todayIST()): Promise<void> {
   const db = getFirestore();
-  const collection = (name: string) => schoolCollection(schoolId, name);
+  const collection = (name: string) => schoolCollection(branchPath, name);
 
   for (const snapshot of (
     await collection('inventoryBalances')
       .where('earliestExpiryDate', '<', dayTimestamp(today))
       .get()
   ).docs)
-    await expire(db, schoolId, snapshot.id, today);
+    await expire(db, branchPath, snapshot.id, today);
 
   const week = weekOf(today);
   const near = await collection('inventoryBalances')
     .where('earliestExpiryDate', '>=', dayTimestamp(today))
     .where('earliestExpiryDate', '<=', dayTimestamp(addDays(today, NEAR_DAYS)))
     .get();
-  const byStore = new Map<string, { campusId: number; batchCount: number }>();
+  const byStore = new Map<string, { batchCount: number }>();
   for (const snapshot of near.docs) {
     const entry = byStore.get(snapshot.data().storeId) ?? {
-      campusId: snapshot.data().campusId,
       batchCount: 0,
     };
     byStore.set(snapshot.data().storeId, { ...entry, batchCount: entry.batchCount + 1 });
   }
-  for (const [storeId, { campusId, batchCount: count }] of byStore) {
-    await post(db, schoolId, `inventory-near-expiry__${storeId}__${week}`, {
-      to: { permission: 'inventory.stock.operate', campusId },
+  for (const [storeId, { batchCount: count }] of byStore) {
+    await post(db, branchPath, `inventory-near-expiry__${storeId}__${week}`, {
+      to: { permission: 'inventory.stock.operate' },
       category: 'inventory.expiry',
       title: 'Stock nearing expiry',
       body: `${count} batch(es) expire within ${NEAR_DAYS} days.`,
@@ -106,8 +101,8 @@ export async function runDailyInventory(schoolId: string, today = todayIST()): P
     .get();
   for (const snapshot of overdue.docs) {
     const purchaseOrder = snapshot.data();
-    await post(db, schoolId, `inventory-purchase-order-overdue__${snapshot.id}__${week}`, {
-      to: { permission: 'inventory.procure.operate', campusId: purchaseOrder.deliveryCampusId },
+    await post(db, branchPath, `inventory-purchase-order-overdue__${snapshot.id}__${week}`, {
+      to: { permission: 'inventory.procure.operate' },
       category: 'inventory.purchaseOrder',
       title: 'Delivery overdue',
       body: `${purchaseOrder.number} was due ${timestampDay(purchaseOrder.expectedDate)}.`,
@@ -124,10 +119,10 @@ export async function runDailyInventory(schoolId: string, today = todayIST()): P
     const asset = snapshot.data();
     await post(
       db,
-      schoolId,
+      branchPath,
       `inventory-warranty-ending__${snapshot.id}__${timestampDay(asset.warranty.end)}`,
       {
-        to: { permission: 'inventory.assets.manage', campusId: asset.campusId },
+        to: { permission: 'inventory.assets.manage' },
         category: 'inventory.asset',
         title: 'Warranty ending',
         body: `${asset.assetId} ${asset.name}: warranty ends ${timestampDay(asset.warranty.end)}.`,
@@ -145,10 +140,10 @@ export async function runDailyInventory(schoolId: string, today = todayIST()): P
     const asset = snapshot.data();
     await post(
       db,
-      schoolId,
+      branchPath,
       `inventory-maintenance-due__${snapshot.id}__${timestampDay(asset.nextServiceDate)}`,
       {
-        to: { permission: 'inventory.assets.manage', campusId: asset.campusId },
+        to: { permission: 'inventory.assets.manage' },
         category: 'inventory.asset',
         title: 'Maintenance due',
         body: `${asset.assetId} ${asset.name}: service due ${timestampDay(asset.nextServiceDate)}.`,
@@ -162,6 +157,6 @@ export async function runDailyInventory(schoolId: string, today = todayIST()): P
 export const dailyInventory = onSchedule(
   { schedule: '0 6 * * *', timeZone: 'Asia/Kolkata', timeoutSeconds: 540 },
   async () => {
-    await forEachSchool(runDailyInventory);
+    await forEachBranch(runDailyInventory);
   },
 );

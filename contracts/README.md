@@ -21,7 +21,7 @@ hand-written `<file>.dart`, which also re-exports the generated file.
 ## Format
 
 ```yaml
-collections: [libraryLoans]            # names under schools/{schoolId}/
+collections: [libraryLoans]            # names under orgs/{orgId}/zones/{zoneId}/branches/{branchId}/
 
 enums:                                 # values are the exact stored strings
   LoanStatus: { doc: ..., values: [active, returned, lost] }

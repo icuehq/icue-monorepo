@@ -2,6 +2,8 @@ import 'dart:isolate';
 
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
+import 'package:icue_firebase/src/crashlytics_web_stub.dart'
+    if (dart.library.js_interop) 'package:icue_firebase/src/crashlytics_web.dart';
 
 /// App-agnostic wrapper around [FirebaseCrashlytics]. Apps never touch
 /// Crashlytics directly; use [CrashlyticsService.instance].
@@ -12,13 +14,26 @@ class CrashlyticsService {
 
   FirebaseCrashlytics get _c => FirebaseCrashlytics.instance;
 
-  /// Crashlytics has no web implementation; every call is a no-op there.
+  /// Web uses the Firebase JS SDK (preview): only uncaught and handled errors
+  /// are reported; user keys, logs and non-fatals from [recordError] are not.
   static const _supported = !kIsWeb;
 
   /// Hooks global error handlers. Call once, after Firebase is initialized.
   /// Collection is on in release builds only.
   Future<void> init() async {
-    if (!_supported) return;
+    if (kIsWeb) {
+      if (kDebugMode) return;
+      await initWebCrashlytics();
+      FlutterError.onError = (details) {
+        FlutterError.presentError(details);
+        recordWebError(details.exception, details.stack);
+      };
+      PlatformDispatcher.instance.onError = (error, stack) {
+        recordWebError(error, stack);
+        return true;
+      };
+      return;
+    }
     await _c.setCrashlyticsCollectionEnabled(!kDebugMode);
     FlutterError.onError = _c.recordFlutterFatalError;
     PlatformDispatcher.instance.onError = (error, stack) {
@@ -63,7 +78,10 @@ class CrashlyticsService {
     String? reason,
     List<Object> information = const [],
   }) {
-    if (!_supported) return;
+    if (kIsWeb) {
+      recordWebError(error, stack);
+      return;
+    }
     _c.recordError(error, stack, reason: reason, information: information);
   }
 

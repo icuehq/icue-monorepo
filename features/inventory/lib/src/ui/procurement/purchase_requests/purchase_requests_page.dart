@@ -6,7 +6,7 @@ import 'package:inventory/src/ui/procurement/purchase_requests/purchase_request_
 import 'package:inventory/src/ui/procurement/purchase_requests/widgets/purchase_request_card.dart';
 import 'package:provider/provider.dart';
 
-/// Purchase requests (FRS 10.13): own requests, or the campus's for approvers and procurement.
+/// Purchase requests (FRS 10.13): own requests, or the branch's for approvers and procurement.
 class PurchaseRequestsPage extends StatefulWidget {
   const PurchaseRequestsPage({super.key});
 
@@ -193,7 +193,7 @@ class _PurchaseRequestsPageState extends State<PurchaseRequestsPage> {
                               Text(
                                 failure ??
                                     (canRequest
-                                        ? 'Raise a requisition to procure materials or assets for your campus.'
+                                        ? 'Raise a requisition to procure materials or assets for your branch.'
                                         : 'Purchase requests will appear here once submitted.'),
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: theme.colorScheme.outline,

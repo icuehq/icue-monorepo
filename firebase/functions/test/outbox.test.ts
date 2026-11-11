@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { deliver, resolveRecipients } from '../src/shared/outbox';
 import { clearFirestore, db } from './setup';
 
-const SCHOOL_ID = '12';
+const BRANCH = 'orgs/8/zones/147/branches/427';
 
 async function user(
   uid: string,
@@ -12,11 +12,9 @@ async function user(
   mute?: Record<string, boolean>,
 ) {
   await db()
-    .doc(`schools/${SCHOOL_ID}/userAccess/${uid}`)
+    .doc(`${BRANCH}/userAccess/${uid}`)
     .set({
       permissions: [],
-      campusIds: [],
-      hasAllCampuses: false,
       personErpId: null,
       wardStudentIds: [],
       ...access,
@@ -44,11 +42,11 @@ function fakeSend(sent: TokenMessage[], dead = new Set<string>()) {
 describe('outbox', () => {
   beforeEach(async () => {
     await clearFirestore();
-    await user('1', { permissions: ['inventory.stock.operate'], campusIds: [31] }, ['t1']);
-    await user('2', { permissions: ['inventory.stock.operate'], campusIds: [32] }, ['t2']);
+    await user('1', { permissions: ['inventory.stock.operate'] }, ['t1']);
+    await user('2', { permissions: ['inventory.stock.operate'] }, ['t2']);
     await user(
       '3',
-      { permissions: ['inventory.stock.operate'], hasAllCampuses: true },
+      { permissions: ['inventory.stock.operate'] },
       ['t3', 'dead'],
       { 'inventory.lowStock': false },
     );
@@ -56,12 +54,8 @@ describe('outbox', () => {
     await user('parent-1', { personType: 'parent', wardStudentIds: [5521] }, ['t5']);
   });
 
-  it('resolves recipients by permission + campus, personErpId and wardStudentIds', async () => {
-    const result = (to: object) => resolveRecipients(db(), SCHOOL_ID, to).then((ids) => ids.sort());
-    expect(await result({ permission: 'inventory.stock.operate', campusId: 31 })).toEqual([
-      '1',
-      '3',
-    ]);
+  it('resolves recipients by permission, personErpId and wardStudentIds', async () => {
+    const result = (to: object) => resolveRecipients(db(), BRANCH, to).then((ids) => ids.sort());
     expect(await result({ permission: 'inventory.stock.operate' })).toEqual(['1', '2', '3']);
     expect(await result({ personErpIds: [884] })).toEqual(['4']);
     expect(await result({ wardStudentIds: [5521, 9] })).toEqual(['parent-1']);
@@ -69,9 +63,9 @@ describe('outbox', () => {
   });
 
   it('delivers once: inbox copy per recipient, push unless muted, dead tokens removed', async () => {
-    const ref = db().doc(`schools/${SCHOOL_ID}/outbox/low__b1`);
+    const ref = db().doc(`${BRANCH}/outbox/low__b1`);
     await ref.set({
-      to: { permission: 'inventory.stock.operate', campusId: 31, personErpIds: [884] },
+      to: { permission: 'inventory.stock.operate', personErpIds: [884] },
       category: 'inventory.lowStock',
       title: 'Low stock',
       body: 'Pens',
@@ -79,24 +73,24 @@ describe('outbox', () => {
       createdAt: new Date(),
     });
     const sent: TokenMessage[] = [];
-    await deliver(db(), SCHOOL_ID, 'low__b1', fakeSend(sent, new Set(['dead'])));
+    await deliver(db(), BRANCH, 'low__b1', fakeSend(sent, new Set(['dead'])));
 
-    expect(sent.map((outboxEvent) => outboxEvent.token).sort()).toEqual(['dead', 't1', 't3']); // 4 muted
-    expect((await db().collection(`schools/${SCHOOL_ID}/notifications`).get()).size).toBe(3);
+    expect(sent.map((outboxEvent) => outboxEvent.token).sort()).toEqual(['dead', 't1', 't2', 't3']); // 4 muted
+    expect((await db().collection(`${BRANCH}/notifications`).get()).size).toBe(4);
     expect((await db().doc('devices/3/tokens/dead').get()).exists).toBe(false);
-    expect((await ref.get()).data()).toMatchObject({ status: 'sent', recipients: 3, sent: 2 });
+    expect((await ref.get()).data()).toMatchObject({ status: 'sent', recipients: 4, sent: 3 });
 
     // A retry after a crash skips recipients already handled.
     await ref.update({ status: 'pending' });
     const again: TokenMessage[] = [];
-    await deliver(db(), SCHOOL_ID, 'low__b1', fakeSend(again));
+    await deliver(db(), BRANCH, 'low__b1', fakeSend(again));
     expect(again).toEqual([]);
   });
 
   it('never calls FCM when running in the emulator', async () => {
     process.env.FUNCTIONS_EMULATOR = 'true';
     try {
-      const ref = db().doc(`schools/${SCHOOL_ID}/outbox/emu`);
+      const ref = db().doc(`${BRANCH}/outbox/emu`);
       await ref.set({
         to: { uids: ['1'] },
         category: 'x',
@@ -105,7 +99,7 @@ describe('outbox', () => {
         status: 'pending',
         createdAt: new Date(),
       });
-      await deliver(db(), SCHOOL_ID, 'emu'); // default sender; real FCM would throw without credentials
+      await deliver(db(), BRANCH, 'emu'); // default sender; real FCM would throw without credentials
       expect((await ref.get()).get('status')).toBe('sent');
     } finally {
       delete process.env.FUNCTIONS_EMULATOR;
@@ -113,7 +107,7 @@ describe('outbox', () => {
   });
 
   it('expires stale events without sending', async () => {
-    const ref = db().doc(`schools/${SCHOOL_ID}/outbox/old`);
+    const ref = db().doc(`${BRANCH}/outbox/old`);
     await ref.set({
       to: { uids: ['1'] },
       category: 'x',
@@ -123,7 +117,7 @@ describe('outbox', () => {
       createdAt: new Date(Date.now() - 2 * 3600e3),
     });
     const sent: TokenMessage[] = [];
-    await deliver(db(), SCHOOL_ID, 'old', fakeSend(sent));
+    await deliver(db(), BRANCH, 'old', fakeSend(sent));
     expect(sent).toEqual([]);
     expect((await ref.get()).get('status')).toBe('expired');
   });

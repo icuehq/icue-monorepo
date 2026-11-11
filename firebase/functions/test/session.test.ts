@@ -2,10 +2,10 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { syncSession } from '../src/session';
 import { clearFirestore, db } from './setup';
 
-const SCHOOL_ID = '12';
+const BRANCH = 'orgs/8/zones/147/branches/427';
 const access = (uid: string) =>
   db()
-    .doc(`schools/${SCHOOL_ID}/userAccess/${uid}`)
+    .doc(`${BRANCH}/userAccess/${uid}`)
     .get()
     .then((snapshot) => snapshot.data());
 
@@ -14,17 +14,15 @@ describe('session', () => {
 
   it('syncs userAccess from claims, permissions from actionIds', async () => {
     const result = await syncSession(db(), '1', {
-      schoolId: 12,
+      orgId: 8, zoneId: 147, branchId: 427,
       roleIds: [4, 9],
       actionIds: [300, 312, 313],
-      campusIds: [31, 32],
       personType: 'teacher',
       personErpId: 884,
     });
     expect(result).toEqual({
       permissions: ['inventory.items.view', 'inventory.stock.view'],
-      campusIds: [31, 32],
-      hasAllCampuses: false,
+      scope: 'branch',
     });
     expect(await access('1')).toMatchObject({
       roleIds: [4, 9],
@@ -35,12 +33,12 @@ describe('session', () => {
   });
 
   it('gives no permissions without actionIds', async () => {
-    expect((await syncSession(db(), '1', { schoolId: 12, roleIds: [4] })).permissions).toEqual([]);
+    expect((await syncSession(db(), '1', { orgId: 8, zoneId: 147, branchId: 427, roleIds: [4] })).permissions).toEqual([]);
   });
 
   it('gives parents no permissions, keeps wardStudentIds', async () => {
     const result = await syncSession(db(), 'parent-1', {
-      schoolId: 12,
+      orgId: 8, zoneId: 147, branchId: 427,
       actionIds: [312],
       personType: 'parent',
       wardStudentIds: [5521],

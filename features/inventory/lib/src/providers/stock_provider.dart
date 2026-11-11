@@ -78,27 +78,15 @@ class StockProvider extends ChangeNotifier {
   }
 
   Future<List<InventoryMovement>> movements(InventoryBalance balance) async =>
-      (await _load(
-        () => _service.movements(balance, store!.campusId),
-        quiet: true,
-      )) ??
-      [];
+      (await _load(() => _service.movements(balance), quiet: true)) ?? [];
 
   var _requestsLoad = 0;
 
   /// Newer calls win, so quickly switching a status filter never shows an older answer.
-  Future<void> loadRequests(
-    ModuleAccess access, {
-    required bool mine,
-    String? status,
-  }) {
+  Future<void> loadRequests({required bool mine, String? status}) {
     final load = ++_requestsLoad;
     return _load(() async {
-      final loaded = await _service.requests(
-        access,
-        mine: mine,
-        status: status,
-      );
+      final loaded = await _service.requests(mine: mine, status: status);
       await _names(
         loaded.expand(
           (issueRequest) =>
@@ -135,8 +123,8 @@ class StockProvider extends ChangeNotifier {
   ) async =>
       (await _load(() => _service.issuesOf(issueRequest), quiet: true)) ?? [];
 
-  Future<void> loadUnavailable(ModuleAccess access) => _load(() async {
-    unavailable = await _service.unavailable(access);
+  Future<void> loadUnavailable() => _load(() async {
+    unavailable = await _service.unavailable();
     await _names(unavailable.map((unavailable) => unavailable.itemId));
   });
 

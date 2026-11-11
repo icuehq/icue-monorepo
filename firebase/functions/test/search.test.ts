@@ -5,9 +5,8 @@ import { runQuery } from '../src/shared/callable';
 import { matchesAll, searchDb } from '../src/shared/searchMirror';
 import { clearFirestore, db } from './setup';
 
-const SCHOOL_ID = '12';
-const mirror = (schoolId = SCHOOL_ID) =>
-  searchDb().collection(`schools/${schoolId}/inventoryItems`);
+const BRANCH = 'orgs/8/zones/147/branches/427';
+const mirror = (branch = BRANCH) => searchDb().collection(`${branch}/inventoryItems`);
 const timestampAt = (milliseconds: number) => Timestamp.fromMillis(milliseconds);
 const item = (name: string, code: string, categoryId = 'c1') => ({
   name,
@@ -18,9 +17,9 @@ const item = (name: string, code: string, categoryId = 'c1') => ({
   tracking: 'quantity',
   extra: 'x',
 });
-const staff = (uid = '1', schoolId: number | string = 12) => ({
+const staff = (uid = '1', branchId: number | string = 427) => ({
   uid,
-  token: { schoolId, personType: 'staff' },
+  token: { orgId: 8, zoneId: 147, branchId, personType: 'staff' },
 });
 const search = (
   data: Record<string, unknown>,
@@ -31,15 +30,15 @@ describe('item search mirror', () => {
   beforeEach(async () => {
     await clearFirestore();
     await db()
-      .doc(`schools/${SCHOOL_ID}/userAccess/1`)
-      .set({ permissions: ['inventory.items.view'], campusIds: [], hasAllCampuses: true });
+      .doc(`${BRANCH}/userAccess/1`)
+      .set({ permissions: ['inventory.items.view'] });
     await db()
-      .doc(`schools/${SCHOOL_ID}/userAccess/2`)
-      .set({ permissions: ['inventory.stock.view'], campusIds: [], hasAllCampuses: true });
+      .doc(`${BRANCH}/userAccess/2`)
+      .set({ permissions: ['inventory.stock.view'] });
   });
 
   it('mirrors only the projection, updates it, and deletes it', async () => {
-    await applyItemChange(SCHOOL_ID, 'i1', item('Blue Pen', 'PEN-01'), timestampAt(1));
+    await applyItemChange(BRANCH, 'i1', item('Blue Pen', 'PEN-01'), timestampAt(1));
     expect((await mirror().doc('i1').get()).data()).toEqual({
       name: 'Blue Pen',
       code: 'PEN-01',
@@ -49,15 +48,15 @@ describe('item search mirror', () => {
       tracking: 'quantity',
       srcUpdatedAt: timestampAt(1),
     });
-    await applyItemChange(SCHOOL_ID, 'i1', item('Blue Pen XL', 'PEN-01'), timestampAt(2));
+    await applyItemChange(BRANCH, 'i1', item('Blue Pen XL', 'PEN-01'), timestampAt(2));
     expect((await mirror().doc('i1').get()).data()?.name).toBe('Blue Pen XL');
-    await applyItemChange(SCHOOL_ID, 'i1', undefined);
+    await applyItemChange(BRANCH, 'i1', undefined);
     expect((await mirror().doc('i1').get()).exists).toBe(false);
   });
 
   it('ignores an older delivery', async () => {
-    await applyItemChange(SCHOOL_ID, 'i1', item('New name', 'A'), timestampAt(5));
-    await applyItemChange(SCHOOL_ID, 'i1', item('Old name', 'A'), timestampAt(3));
+    await applyItemChange(BRANCH, 'i1', item('New name', 'A'), timestampAt(5));
+    await applyItemChange(BRANCH, 'i1', item('Old name', 'A'), timestampAt(3));
     expect((await mirror().doc('i1').get()).data()?.name).toBe('New name');
   });
 
@@ -69,13 +68,13 @@ describe('item search mirror', () => {
 
   describe('callable', () => {
     beforeEach(async () => {
-      await applyItemChange(SCHOOL_ID, 'i1', item('Blue Pen', 'PEN-01'), timestampAt(1));
-      await applyItemChange(SCHOOL_ID, 'i2', item('Blue Marker', 'MRK-01', 'c2'), timestampAt(1));
-      await applyItemChange(SCHOOL_ID, 'i3', item('Black Pen', 'PEN-02'), timestampAt(1));
-      await applyItemChange('99', 'x1', item('Blue Other School', 'OS-1'), timestampAt(1));
+      await applyItemChange(BRANCH, 'i1', item('Blue Pen', 'PEN-01'), timestampAt(1));
+      await applyItemChange(BRANCH, 'i2', item('Blue Marker', 'MRK-01', 'c2'), timestampAt(1));
+      await applyItemChange(BRANCH, 'i3', item('Black Pen', 'PEN-02'), timestampAt(1));
+      await applyItemChange('orgs/8/zones/147/branches/428', 'x1', item('Blue Other School', 'OS-1'), timestampAt(1));
     });
 
-    it('finds items by word, only in the caller’s school, without internal fields', async () => {
+    it('finds items by word, only in the caller’s branch, without internal fields', async () => {
       const result = await search({ q: 'Blue' });
       expect(result.items.map((i) => i.id)).toEqual(['i2', 'i1']); // sorted by name
       expect(result.items[0]).not.toHaveProperty('srcUpdatedAt');
@@ -100,7 +99,7 @@ describe('item search mirror', () => {
     it('requires auth, a synced session and inv.items.view; rejects parents', async () => {
       await expect(search({ q: 'pen' }, null)).rejects.toMatchObject({ code: 'unauthenticated' });
       await expect(
-        search({ q: 'pen' }, { uid: 'parent-1', token: { schoolId: 12, personType: 'parent' } }),
+        search({ q: 'pen' }, { uid: 'parent-1', token: { orgId: 8, zoneId: 147, branchId: 427, personType: 'parent' } }),
       ).rejects.toMatchObject({ code: 'permission-denied' });
       await expect(search({ q: 'pen' }, staff('9'))).rejects.toMatchObject({
         code: 'failed-precondition',

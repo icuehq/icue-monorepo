@@ -21,7 +21,6 @@ class _PurchaseOrderInvoicesSectionState
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ProcurementProvider>().loadInvoices(
-        context.read<InventoryProvider>().access,
         purchaseOrderId: widget.orderId,
       );
     });

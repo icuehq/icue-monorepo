@@ -45,7 +45,7 @@ class PurchaseRequestCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header: PR number, Campus, Status & Priority
+              // Header: PR number, Status & Priority
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -58,23 +58,6 @@ class PurchaseRequestCard extends StatelessWidget {
                               : request.number,
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            'Campus ${request.campusId}',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
                           ),
                         ),
                       ],

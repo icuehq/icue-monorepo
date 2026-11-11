@@ -84,7 +84,6 @@ async function loadLoan(context: CallableContext, loanId: string) {
   const snapshot = await context.transaction.get(ref);
   if (!snapshot.exists) throw missing('libraryLoan');
   const loan = snapshot.data()!;
-  context.requireCampus(loan.campusId);
   if (loan.status !== LoanStatus.active) throw failed(`Loan is ${loan.status}`);
   return { ref, loan };
 }
@@ -112,7 +111,6 @@ export const loans = {
       // A person the Library has not seen before is created at the end of this issue.
       const member = memberSnapshot.data();
       const copy = copySnapshot.data()!;
-      context.requireCampus(copy.campusId);
 
       const ineligible = ineligibleReason(member);
       if (ineligible) throw failed(ineligible);
@@ -155,7 +153,6 @@ export const loans = {
         barcode: copySnapshot.id,
         catalogueId: copy.catalogueId,
         libraryId: copy.libraryId,
-        campusId: copy.campusId,
         issuedDate: dayTimestamp(today),
         dueDate: dayTimestamp(addDays(today, policy.loanDays)),
         remarks: i.remarks ?? null,
@@ -169,7 +166,7 @@ export const loans = {
         activeLoanId: loan.id,
         updatedAt: serverTimestamp(),
       });
-      writeBorrower(context, mRef, member, i.person, copy.campusId, 1);
+      writeBorrower(context, mRef, member, i.person, 1);
       await enqueue(context, `library-issued__${loan.id}`, {
         to: memberTo(i.person.memberType, i.person.personErpId),
         category: 'library.loan',
@@ -412,7 +409,6 @@ async function loadFine(context: CallableContext, fineId: string) {
   const snapshot = await context.transaction.get(ref);
   if (!snapshot.exists) throw missing('libraryFine');
   const fine = snapshot.data()!;
-  context.requireCampus(fine.campusId);
   return { ref, fine };
 }
 
@@ -549,7 +545,6 @@ export const fines = {
 export const copyFields = (source: DocumentData) => ({
   catalogueId: source.catalogueId,
   libraryId: source.libraryId,
-  campusId: source.campusId,
 });
 
 /** Block fields for a fine; a hand-set block keeps its own origin so paying fines never lifts it. */
@@ -664,7 +659,6 @@ async function loadIncident(context: CallableContext, incidentId: string) {
   const snapshot = await context.transaction.get(ref);
   if (!snapshot.exists) throw missing('libraryIncident');
   const incident = snapshot.data()!;
-  context.requireCampus(incident.campusId);
   return { ref, incident };
 }
 
@@ -690,7 +684,6 @@ export const incidents = {
       const cSnap = await context.transaction.get(cRef);
       if (!cSnap.exists) throw missing('libraryCopy');
       const copy = cSnap.data()!;
-      context.requireCampus(copy.campusId);
       if (copy.status === 'lost' || copy.status === 'withdrawn') {
         throw failed(`Copy is already ${copy.status}`);
       }

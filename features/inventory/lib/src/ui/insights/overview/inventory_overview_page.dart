@@ -17,7 +17,7 @@ class InventoryLanding extends StatelessWidget {
       : const InventoryHomePage();
 }
 
-/// Everything about Inventory at a glance (FRS 10.1): figures for the user's campuses, optionally one store.
+/// Everything about Inventory at a glance (FRS 10.1): figures for the branch, optionally one store.
 class InventoryOverviewPage extends StatefulWidget {
   const InventoryOverviewPage({super.key});
 
@@ -35,10 +35,7 @@ class _InventoryOverviewPageState extends State<InventoryOverviewPage> {
     final store = inventoryProvider.stores
         .where((currentStore) => currentStore.id == _storeId)
         .firstOrNull;
-    await context.read<InsightsProvider>().loadDashboard(
-      inventoryProvider.access,
-      store: store,
-    );
+    await context.read<InsightsProvider>().loadDashboard(store: store);
   }
 
   @override

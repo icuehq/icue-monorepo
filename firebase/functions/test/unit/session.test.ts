@@ -12,19 +12,20 @@ describe('createSessionToken', () => {
     const result = await createSessionToken(
       {
         uid: '884',
-        schoolId: 12,
-        campusIds: [31],
+        orgId: 8, zoneId: 147, branchId: 427,
         roleIds: [4],
         actionIds: [100, 101],
       },
       mockAuth,
     );
     expect(result.token).toContain('mock-token-884');
-    expect(result.token).toContain('"schoolId":12');
-    expect(result.token).toContain('"campusIds":[31]');
+    expect(result.token).toContain('"orgId":8');
+    expect(result.token).toContain('"zoneId":147');
+    expect(result.token).toContain('"branchId":427');
+    expect(result.token).toContain('"scope":"branch"');
   });
 
-  it('rejects missing uid or schoolId', async () => {
+  it('rejects missing uid or branch', async () => {
     await expect(createSessionToken({}, mockAuth)).rejects.toMatchObject({
       code: 'invalid-argument',
     });

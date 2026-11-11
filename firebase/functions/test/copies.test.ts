@@ -4,18 +4,18 @@ import { runCallable, type CallableDef } from '../src/shared/callable';
 import { seedLibrary, seedLibraryCategory, seedLibraryTitle } from './fixtures';
 import { clearFirestore, db } from './setup';
 
-const SCHOOL_ID = '12';
+const BRANCH = 'orgs/8/zones/147/branches/427';
 let requestSequence = 0;
 
 const run = (definition: CallableDef<any, any>, data: Record<string, unknown>, uid = '1') =>
   runCallable(
     definition,
-    { uid, token: { schoolId: 12, personType: 'staff' } },
+    { uid, token: { orgId: 8, zoneId: 147, branchId: 427, personType: 'staff' } },
     { requestId: `req-${String(++requestSequence).padStart(6, '0')}`, ...data },
   );
-const get = async (path: string) => (await db().doc(`schools/${SCHOOL_ID}/${path}`).get()).data();
+const get = async (path: string) => (await db().doc(`${BRANCH}/${path}`).get()).data();
 const count = async (collection: string) =>
-  (await db().collection(`schools/${SCHOOL_ID}/${collection}`).get()).size;
+  (await db().collection(`${BRANCH}/${collection}`).get()).size;
 
 describe('library copies and books', () => {
   let title: string, mainLibrary: string, secondLibrary: string;
@@ -39,11 +39,9 @@ describe('library copies and books', () => {
     await clearFirestore();
     barcodeSequence = 0;
     await db()
-      .doc(`schools/${SCHOOL_ID}/userAccess/1`)
+      .doc(`${BRANCH}/userAccess/1`)
       .set({
         permissions: [],
-        campusIds: [31, 32],
-        hasAllCampuses: false,
       });
     const category = (await seedLibraryCategory({ name: 'General' })).id;
     title = (
@@ -53,8 +51,8 @@ describe('library copies and books', () => {
         categoryId: category,
       })
     ).id;
-    mainLibrary = (await seedLibrary({ name: 'Main', campusId: 31 })).id;
-    secondLibrary = (await seedLibrary({ name: 'Junior', campusId: 32 })).id;
+    mainLibrary = (await seedLibrary({ name: 'Main' })).id;
+    secondLibrary = (await seedLibrary({ name: 'Junior' })).id;
   });
 
   it('createBook creates one copy per unit with one copy per barcode, stored under the barcode', async () => {
@@ -63,7 +61,6 @@ describe('library copies and books', () => {
     expect(await get('libraryCopies/ACC-000002')).toMatchObject({
       barcode: 'ACC-000002',
       status: 'available',
-      campusId: 31,
       price: 250,
       catalogueId: title,
     });
@@ -78,7 +75,7 @@ describe('library copies and books', () => {
     });
     expect(donation.barcodes).toEqual(['ACC-000004', 'ACC-000005']);
     expect(await count('libraryCopies')).toBe(5);
-    expect(await get('libraryCopies/ACC-000004')).toMatchObject({ campusId: 32, price: 0 });
+    expect(await get('libraryCopies/ACC-000004')).toMatchObject({ libraryId: secondLibrary, price: 0 });
   });
 
   it('createBook stores scanned barcodes and rejects wrong counts or repeats', async () => {
@@ -141,19 +138,12 @@ describe('library copies and books', () => {
     await buy({ quantity: 1, barcodes: ['LB12'] });
   });
 
-  it('createBook rules: campus scope, active title and library', async () => {
+  it('createBook rules: active title and library', async () => {
     await expect(buy({})).resolves.toBeTruthy();
-    await db()
-      .doc(`schools/${SCHOOL_ID}/userAccess/1`)
-      .update({ campusIds: [32] });
-    await expect(buy()).rejects.toMatchObject({ code: 'permission-denied' });
-    await db()
-      .doc(`schools/${SCHOOL_ID}/userAccess/1`)
-      .update({ campusIds: [31, 32] });
-    await db().doc(`schools/${SCHOOL_ID}/libraryCatalogue/${title}`).update({ status: 'inactive' });
+    await db().doc(`${BRANCH}/libraryCatalogue/${title}`).update({ status: 'inactive' });
     await expect(buy()).rejects.toMatchObject({ code: 'failed-precondition' });
-    await db().doc(`schools/${SCHOOL_ID}/libraryCatalogue/${title}`).update({ status: 'active' });
-    await db().doc(`schools/${SCHOOL_ID}/libraries/${mainLibrary}`).update({ status: 'inactive' });
+    await db().doc(`${BRANCH}/libraryCatalogue/${title}`).update({ status: 'active' });
+    await db().doc(`${BRANCH}/libraries/${mainLibrary}`).update({ status: 'inactive' });
     await expect(buy()).rejects.toMatchObject({ code: 'failed-precondition' });
     expect(await count('libraryCopies')).toBe(3); // only the one good purchase
   });
@@ -174,7 +164,7 @@ describe('library copies and books', () => {
     await expect(
       run(copies.copySetStatus, { id: 'ACC-000001', status: 'available' }),
     ).rejects.toMatchObject({ code: 'failed-precondition' });
-    await db().doc(`schools/${SCHOOL_ID}/libraryCopies/ACC-000002`).update({ status: 'issued' });
+    await db().doc(`${BRANCH}/libraryCopies/ACC-000002`).update({ status: 'issued' });
     await expect(
       run(copies.copySetStatus, { id: 'ACC-000002', status: 'lost', reason: 'x' }),
     ).rejects.toMatchObject({ code: 'failed-precondition' });

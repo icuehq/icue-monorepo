@@ -8,6 +8,7 @@ import {
 import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { HttpsError } from 'firebase-functions/v2/https';
 import { z } from 'zod';
+import { BRANCH_TRIGGER, branchPathOf } from './branch';
 
 /**
  * Text search lives in a second, Enterprise-edition database (`search`) that only Functions touch:
@@ -21,13 +22,13 @@ export const searchDb = () => getFirestore(SEARCH_DB);
 export async function applyChange(
   collection: string,
   project: (data: DocumentData) => DocumentData,
-  schoolId: string,
+  branchPath: string,
   documentId: string,
   after: DocumentData | undefined,
   changedAt: Timestamp = Timestamp.now(),
   db: Firestore = searchDb(),
 ): Promise<void> {
-  const ref = db.doc(`schools/${schoolId}/${collection}/${documentId}`);
+  const ref = db.doc(`${branchPath}/${collection}/${documentId}`);
   if (!after) {
     await ref.delete();
     return;
@@ -69,7 +70,7 @@ export interface SearchRow {
  * stands in; the real path is covered by the dev spike, not by tests.
  */
 export async function searchMirror(
-  schoolId: string,
+  branchPath: string,
   collection: string,
   query: z.infer<typeof searchInput>,
   options: {
@@ -83,7 +84,7 @@ export async function searchMirror(
   },
   db: Firestore = searchDb(),
 ): Promise<SearchRow[]> {
-  const path = `schools/${schoolId}/${collection}`;
+  const path = `${branchPath}/${collection}`;
   const categoryIds = options.categoryIds ?? (query.categoryId ? [query.categoryId] : undefined);
   if (process.env.FIRESTORE_EMULATOR_HOST) {
     const all = (await db.collection(path).get()).docs
@@ -120,7 +121,7 @@ export async function searchMirror(
 
 /** Validates the query, searches the mirror and returns one page of projected rows plus `hasMore`. */
 export async function searchPage(
-  schoolId: string,
+  branchPath: string,
   collection: string,
   query: z.infer<typeof searchInput>,
   options: Omit<Parameters<typeof searchMirror>[3], 'terms'>,
@@ -129,8 +130,8 @@ export async function searchPage(
 ) {
   // Punctuation is dropped so users cannot inject search-DSL operators (quotes, -, *, OR).
   const terms = words(query.q);
-  if (!terms.length) throw new HttpsError('invalid-argument', 'Enter a word to search for');
-  const rows = await searchMirror(schoolId, collection, query, { ...options, terms }, db);
+  if (!terms.length) throw new HttpsError('invalid-argument', 'Enter a word to search for.');
+  const rows = await searchMirror(branchPath, collection, query, { ...options, terms }, db);
   return {
     items: rows.slice(0, query.limit).map((row) => ({ id: row.id, ...project(row.data) })),
     hasMore: rows.length > query.limit,
@@ -144,15 +145,15 @@ export const sameProjection = (
   after: DocumentData | undefined,
 ) => !!before && !!after && JSON.stringify(project(before)) === JSON.stringify(project(after));
 
-/** Trigger that mirrors writes of `schools/{schoolId}/<collection>/{id}` that change the projection. */
+/** Trigger that mirrors writes of `${BRANCH_TRIGGER}/<collection>/{id}` that change the projection. */
 export const syncTrigger = (collection: string, project: (data: DocumentData) => DocumentData) =>
-  onDocumentWritten(`schools/{schoolId}/${collection}/{id}`, async (event) => {
+  onDocumentWritten(`${BRANCH_TRIGGER}/${collection}/{id}`, async (event) => {
     const after = event.data?.after.data();
     if (sameProjection(project, event.data?.before.data(), after)) return;
     await applyChange(
       collection,
       project,
-      event.params.schoolId,
+      branchPathOf(event.params),
       event.params.id,
       after,
       event.data?.after.updateTime,

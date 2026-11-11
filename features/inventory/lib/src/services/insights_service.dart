@@ -7,35 +7,18 @@ import 'package:inventory/src/models/inventory_masters.dart';
 /// Dashboard counts and report rows (Inv-7): reads from Firestore.
 @lazySingleton
 class InsightsService {
-  /// Rules need the campus filter on every list (`all` users need none); null when the user has no campus.
-  Query<Map<String, dynamic>>? _scoped(
-    Query<Map<String, dynamic>> query,
-    ModuleAccess access, {
-    int? campusId,
-  }) => campusId != null
-      ? query.where('campusId', isEqualTo: campusId)
-      : access.restrictToCampuses(query);
-
-  /// Dashboard figures for the campuses (or the one [storeId]'s campus) the user may see.
-  /// A figure the user's permissions cannot read is null.
-  Future<Map<String, num?>> dashboard(
-    ModuleAccess access, {
-    InventoryStore? store,
-  }) async {
+  /// Dashboard figures for the branch (or one [store]). A figure the user's permissions cannot read is null.
+  Future<Map<String, num?>> dashboard({InventoryStore? store}) async {
     final today = todayIST();
     final soon = dayTimestamp(
       DateTime.parse(today).add(const Duration(days: 30)).toApiDate(),
     );
-    Future<Query<Map<String, dynamic>>?> scope(
+    Future<Query<Map<String, dynamic>>> scope(
       String collection, {
       bool byStore = false,
     }) async {
-      final query = _scoped(
-        await schoolCollection(collection),
-        access,
-        campusId: store?.campusId,
-      );
-      return query == null || !byStore || store == null
+      final query = await branchCollection(collection);
+      return !byStore || store == null
           ? query
           : query.where('storeId', isEqualTo: store.id);
     }
@@ -48,7 +31,7 @@ class InsightsService {
     }) async {
       try {
         final query = await scope(collection, byStore: byStore);
-        return query == null ? 0 : (await f(query).count().get()).count;
+        return (await f(query).count().get()).count;
       } catch (_) {
         return null;
       }
@@ -57,9 +40,7 @@ class InsightsService {
     Future<num?> total(String field) async {
       try {
         final query = await scope('inventoryBalances', byStore: true);
-        return query == null
-            ? 0
-            : (await query.aggregate(sum(field)).get()).getSum(field);
+        return (await query.aggregate(sum(field)).get()).getSum(field);
       } catch (_) {
         return null;
       }
@@ -79,7 +60,7 @@ class InsightsService {
     );
     Future<num?> items() async {
       try {
-        return (await (await schoolCollection(
+        return (await (await branchCollection(
           'inventoryItems',
         )).where('status', isEqualTo: 'active').count().get()).count;
       } catch (_) {
@@ -136,20 +117,15 @@ class InsightsService {
     };
   }
 
-  /// Up to [reportLimit] rows of [def] for the user's campuses. Without a store/date index the
+  /// Up to [reportLimit] rows of [def] for the branch. Without a store/date index the
   /// ordering of balance reports is by the document (sorted in the provider).
   Future<List<ReportRow>> report(
-    ModuleAccess access,
     ReportDef def, {
     DateTime? from,
     DateTime? to,
     String? status,
   }) async {
-    final base = def.schoolWide
-        ? await schoolCollection(def.collection) as Query<Map<String, dynamic>>
-        : _scoped(await schoolCollection(def.collection), access);
-    if (base == null) return [];
-    var query = base;
+    Query<Map<String, dynamic>> query = await branchCollection(def.collection);
     for (final mapEntry in def.where.entries) {
       query = query.where(mapEntry.key, isEqualTo: mapEntry.value);
     }

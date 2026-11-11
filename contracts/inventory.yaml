@@ -1,6 +1,6 @@
 # Inventory contracts shared by Flutter and Cloud Functions.
 # Edit here, then run `melos run gen:contracts`. Never edit the generated files.
-# Format: collections (names under schools/{schoolId}/), enums (values are the
+# Format: collections (names under orgs/{orgId}/zones/{zoneId}/branches/{branchId}/), enums (values are the
 # exact stored strings), constants (checked subsets of an enum) and documents
 # (field name -> type: string|int|double|bool|timestamp|list<T>|map<T>|<Enum>|<Document>;
 # a trailing `?` allows null).
@@ -69,7 +69,6 @@ models:
         assetId: { type: string, doc: "Human asset ID (`AST/2026-27/000001`); also the barcode / QR value." }
         name: string
         itemId: string
-        campusId: int
         storeId: string
         status: { type: string, default: available }
         condition: { type: string, default: good }
@@ -164,7 +163,6 @@ models:
       id: id
       fields:
         name: string
-        campusId: int
         description: string?
         location: string?
         storekeeperIds: list<int>
@@ -214,8 +212,6 @@ models:
         total: double
         remarks: string?
         purchaseRequestId: { type: String, from: "(data['purchaseRequestIds'] is List && (data['purchaseRequestIds'] as List).isNotEmpty) ? (data['purchaseRequestIds'] as List).first as String : ''" }
-        campusId: int
-        deliveryCampusId: int
         quotationId: string?
         purchaseOrderDate: day
         expectedDate: day
@@ -253,7 +249,6 @@ models:
       id: id
       fields:
         number: string
-        campusId: int
         status: { type: string, default: draft }
         priority: { type: string, default: normal }
         purpose: string
@@ -340,7 +335,6 @@ models:
       fields:
         number: string
         storeId: string
-        campusId: int
         purpose: string
         destination: string?
         status: { type: string, doc: "pending | approved | rejected | partially_issued | issued | cancelled | closed" }

@@ -4,7 +4,7 @@ import 'package:icue_ui/icue_ui.dart';
 /// Client-side purchase request, quotation, purchase order (save, issue, revise, acknowledge, cancel, close) and invoice writes.
 ///
 /// Business checks live here, not in `firestore.rules`. There is no audit log,
-/// no approver notification, no campus check, and no re-validation of items,
+/// no approver notification, and no re-validation of items,
 /// variants or unit consistency.
 class ProcurementWrites {
   /// Action names `ProcurementProvider.act` routes here instead of to a callable.
@@ -77,7 +77,7 @@ class ProcurementWrites {
   Future<DocumentReference<Map<String, dynamic>>> _reference(
     String collection,
     String id,
-  ) async => (await schoolCollection(collection)).doc(id);
+  ) async => (await branchCollection(collection)).doc(id);
 
   Future<
     ({
@@ -185,13 +185,12 @@ class ProcurementWrites {
       return {'id': id, 'number': existing['number']};
     }
     final number = await _nextNumber('PR');
-    final collection = await schoolCollection('inventoryPurchaseRequests');
+    final collection = await branchCollection('inventoryPurchaseRequests');
     final reference = collection.doc();
-    final access = await (await schoolCollection('userAccess')).doc(_uid).get();
+    final access = await (await branchCollection('userAccess')).doc(_uid).get();
     await reference.set({
       ...fields,
       'number': number,
-      'campusId': data['campusId'],
       'requestedBy': access.data()?['personErpId'],
       'attachments': <Object?>[],
       'approval': null,
@@ -408,12 +407,11 @@ class ProcurementWrites {
       return {'id': id, 'number': existing['number']};
     }
     final number = await _nextNumber('QT');
-    final reference = (await schoolCollection('inventoryQuotations')).doc();
+    final reference = (await branchCollection('inventoryQuotations')).doc();
     await reference.set({
       ...fields,
       'number': number,
       'purchaseRequestId': requestId,
-      'campusId': request['campusId'],
       'selected': false,
       'selectionReason': null,
       'attachments': <Object?>[],
@@ -438,7 +436,7 @@ class ProcurementWrites {
     if (readDay(quotation['validUntil']).compareTo(_today) < 0) {
       _fail('Quotation has expired');
     }
-    final siblings = await (await schoolCollection('inventoryQuotations'))
+    final siblings = await (await branchCollection('inventoryQuotations'))
         .where('purchaseRequestId', isEqualTo: quotation['purchaseRequestId'])
         .get();
     final batch = FirebaseFirestore.instance.batch();
@@ -446,7 +444,7 @@ class ProcurementWrites {
       if (sibling.id == reference.id || sibling.data()['selected'] != true) {
         continue;
       }
-      final orders = await (await schoolCollection('inventoryPurchaseOrders'))
+      final orders = await (await branchCollection('inventoryPurchaseOrders'))
           .where('quotationId', isEqualTo: sibling.id)
           .get();
       if (orders.docs.any((order) => order.data()['status'] != 'cancelled')) {
@@ -552,7 +550,6 @@ class ProcurementWrites {
     final fields = {
       'vendorId': vendorId,
       'quotationId': quotationId,
-      'deliveryCampusId': data['deliveryCampusId'] ?? request['campusId'],
       'expectedDate': dayTimestamp(expectedDate),
       'terms': _blankToNull(data['terms']),
       'lineItems': storedLines,
@@ -581,12 +578,11 @@ class ProcurementWrites {
       return {'id': id, 'number': existing['number']};
     }
     final number = await _nextNumber('PO');
-    final reference = (await schoolCollection('inventoryPurchaseOrders')).doc();
+    final reference = (await branchCollection('inventoryPurchaseOrders')).doc();
     await reference.set({
       ...fields,
       'number': number,
       'purchaseRequestIds': [requestId],
-      'campusId': request['campusId'],
       'purchaseOrderDate': dayTimestamp(_today),
       'status': 'draft',
       'acknowledgement': null,
@@ -919,7 +915,7 @@ class ProcurementWrites {
       return {'id': id};
     }
     final invoiceNumber = (data['invoiceNumber']! as String).trim();
-    final duplicates = await (await schoolCollection('inventoryInvoices'))
+    final duplicates = await (await branchCollection('inventoryInvoices'))
         .where('vendorId', isEqualTo: order['vendorId'])
         .where('invoiceNumber', isEqualTo: invoiceNumber)
         .get();
@@ -928,14 +924,13 @@ class ProcurementWrites {
     )) {
       _fail('Invoice "$invoiceNumber" already exists for this vendor');
     }
-    final reference = (await schoolCollection('inventoryInvoices')).doc();
+    final reference = (await branchCollection('inventoryInvoices')).doc();
     await reference.set({
       ...fields,
       'vendorId': order['vendorId'],
       'purchaseOrderId': orderId,
       'purchaseOrderNumber': order['number'],
       'invoiceNumber': invoiceNumber,
-      'campusId': order['campusId'],
       'paymentStatus': 'unpaid',
       'paidAmount': 0,
       'payment': null,

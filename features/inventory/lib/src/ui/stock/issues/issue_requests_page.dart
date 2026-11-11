@@ -7,7 +7,7 @@ import 'package:inventory/src/ui/stock/issues/widgets/issue_requests_table.dart'
 import 'package:provider/provider.dart';
 
 /// Issue requests (FRS 10.8). [mine]: staff's own requests, where new ones are raised;
-/// otherwise the campus's requests for approvers and storekeepers.
+/// otherwise the branch's requests for approvers and storekeepers.
 class IssueRequestsPage extends StatefulWidget {
   const IssueRequestsPage({required this.mine, super.key});
 
@@ -28,7 +28,6 @@ class _IssueRequestsPageState extends State<IssueRequestsPage> {
     if (inventoryProvider.stores.isEmpty) await inventoryProvider.loadMasters();
     if (mounted) {
       await context.read<StockProvider>().loadRequests(
-        inventoryProvider.access,
         mine: widget.mine,
         status: _status,
       );
@@ -212,7 +211,7 @@ class _IssueRequestsPageState extends State<IssueRequestsPage> {
                                                       ? 'There are currently no requests with this status filter.'
                                                       : widget.mine
                                                       ? 'Submit an issue request to withdraw supplies or equipment from store stock.'
-                                                      : 'Requests raised by staff on your campus appear here.'),
+                                                      : 'Requests raised by staff in your branch appear here.'),
                                               textAlign: TextAlign.center,
                                               style: theme.textTheme.bodySmall
                                                   ?.copyWith(

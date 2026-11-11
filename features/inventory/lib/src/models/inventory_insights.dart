@@ -17,7 +17,7 @@ String _money(Object? value) =>
 
 typedef ReportCol = ReportColumn<ReportNames>;
 
-/// A report is one campus-scoped collection query plus columns (FRS 10.23). Date range and `statuses`
+/// A report is one collection query plus columns (FRS 10.23). Date range and `statuses`
 /// filter on the server; every other filter is the search box over the loaded rows.
 class ReportDef {
   const ReportDef(
@@ -31,7 +31,6 @@ class ReportDef {
     this.statuses = const [],
     this.fixedStatuses = const [],
     this.where = const {},
-    this.schoolWide = false,
   });
 
   final String key;
@@ -43,7 +42,6 @@ class ReportDef {
   /// Date field holds a calendar day (midnight India time) instead of an instant.
   final bool isDay;
   final bool hasDates;
-  final bool schoolWide;
 
   /// Status choices offered to the user / statuses always applied.
   final List<String> statuses;
@@ -154,18 +152,11 @@ final inventoryReports = <ReportDef>[
     ],
     fixedStatuses: ['partially_received', 'fully_received', 'closed'],
   ),
-  ReportDef(
-    'vendors',
-    'Vendors',
-    'inventoryVendors',
-    [
-      _textColumn('Code', 'code'),
-      _textColumn('Name', 'name'),
-      _textColumn('Status', 'status'),
-    ],
-    hasDates: false,
-    schoolWide: true,
-  ),
+  ReportDef('vendors', 'Vendors', 'inventoryVendors', [
+    _textColumn('Code', 'code'),
+    _textColumn('Name', 'name'),
+    _textColumn('Status', 'status'),
+  ], hasDates: false),
   ReportDef(
     'prs',
     'Purchase requests',

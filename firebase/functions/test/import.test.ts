@@ -6,17 +6,17 @@ import { runCallable, type CallableDef } from '../src/shared/callable';
 import { seedStore } from './fixtures';
 import { clearFirestore, db } from './setup';
 
-const SCHOOL_ID = '12';
+const BRANCH = 'orgs/8/zones/147/branches/427';
 let requestSequence = 0;
 
 const run = (definition: CallableDef<any, any>, data: Record<string, unknown>, uid = '1') =>
   runCallable(
     definition,
-    { uid, token: { schoolId: 12, personType: 'staff' } },
+    { uid, token: { orgId: 8, zoneId: 147, branchId: 427, personType: 'staff' } },
     { requestId: `req-${String(++requestSequence).padStart(6, '0')}`, ...data },
   );
 const imp = (type: string, rows: Record<string, string>[], uid = '1', importId = 'imp_000001') =>
-  runImport({ uid, token: { schoolId: 12, personType: 'staff' } }, { importId, type, rows });
+  runImport({ uid, token: { orgId: 8, zoneId: 147, branchId: 427, personType: 'staff' } }, { importId, type, rows });
 const code = (promise: Promise<unknown>) =>
   promise.then(
     () => 'ok',
@@ -28,12 +28,10 @@ describe('import and RFID', () => {
     await clearFirestore();
     const permissionsList = (permissions: string[]) => ({
       permissions,
-      campusIds: [31],
-      hasAllCampuses: false,
       personErpId: 5,
     });
     await db()
-      .doc(`schools/${SCHOOL_ID}/userAccess/1`)
+      .doc(`${BRANCH}/userAccess/1`)
       .set(
         permissionsList([
           'inventory.settings',
@@ -42,7 +40,7 @@ describe('import and RFID', () => {
         ]),
       );
     await db()
-      .doc(`schools/${SCHOOL_ID}/userAccess/none`)
+      .doc(`${BRANCH}/userAccess/none`)
       .set(permissionsList(['inventory.stock.view']));
     await run(masters.seedDefaults, {});
   });
@@ -67,7 +65,7 @@ describe('import and RFID', () => {
       'imp_000002',
     );
     expect(items.results.map((result) => result.ok)).toEqual([true, false]);
-    expect((await db().collection(`schools/${SCHOOL_ID}/inventoryItems`).get()).size).toBe(1);
+    expect((await db().collection(`${BRANCH}/inventoryItems`).get()).size).toBe(1);
     expect(await code(imp('vendors', [{ code: 'V', name: 'V' }], 'none', 'imp_000003'))).toBe(
       'permission-denied',
     );
@@ -86,7 +84,7 @@ describe('import and RFID', () => {
         tracking: 'asset',
       })
     ).id;
-    const store = (await seedStore({ name: 'Main', campusId: 31 })).id;
+    const store = (await seedStore({ name: 'Main' })).id;
     const [firstAsset, secondAsset] = [
       (await run(a.register, { itemId: item, storeId: store })).id,
       (await run(a.register, { itemId: item, storeId: store })).id,
@@ -99,7 +97,7 @@ describe('import and RFID', () => {
     await run(a.setRfid, { id: secondAsset, rfidTag: 'E200AA' }); // old tag was released
     await run(a.setRfid, { id: secondAsset, rfidTag: null });
     expect(
-      (await db().doc(`schools/${SCHOOL_ID}/inventoryAssets/${secondAsset}`).get()).data()!.rfidTag,
+      (await db().doc(`${BRANCH}/inventoryAssets/${secondAsset}`).get()).data()!.rfidTag,
     ).toBeNull();
   });
 });

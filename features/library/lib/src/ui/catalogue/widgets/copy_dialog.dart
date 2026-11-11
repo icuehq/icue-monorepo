@@ -148,9 +148,7 @@ class _CopyDialogState extends State<CopyDialog> {
     final copy = widget.copy;
     final libraries = [
       for (final schoolLibrary in libraryProvider.libraries)
-        if (schoolLibrary.active &&
-            schoolLibrary.id != copy.libraryId &&
-            libraryProvider.access.hasCampus(schoolLibrary.campusId))
+        if (schoolLibrary.active && schoolLibrary.id != copy.libraryId)
           schoolLibrary,
     ];
     if (libraries.isEmpty) {

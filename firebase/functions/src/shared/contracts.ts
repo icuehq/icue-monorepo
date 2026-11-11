@@ -2,7 +2,7 @@
 
 import type { Timestamp } from 'firebase-admin/firestore';
 
-/** Collections under `schools/{schoolId}/`. */
+/** Collections under `orgs/{orgId}/zones/{zoneId}/branches/{branchId}/`. */
 export const Collections = {
   inventoryAssetAssignments: 'inventoryAssetAssignments',
   inventoryAssets: 'inventoryAssets',
@@ -118,7 +118,6 @@ export interface LibraryLoan {
   barcode: string;
   catalogueId: string;
   libraryId: string;
-  campusId: number;
   issuedDate: Timestamp;
   dueDate: Timestamp;
   remarks?: string | null;

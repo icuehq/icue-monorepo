@@ -31,7 +31,6 @@ class _InvoicesPageState extends State<InvoicesPage> {
       }
       if (mounted) {
         await procurementProvider.loadInvoices(
-          inventoryProvider.access,
           status: _selectedStatus == 'overdue' || _selectedStatus == 'all'
               ? null
               : _selectedStatus,

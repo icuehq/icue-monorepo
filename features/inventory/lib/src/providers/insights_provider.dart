@@ -44,26 +44,17 @@ class InsightsProvider extends ChangeNotifier {
     if (need.isNotEmpty) items.addAll(await _stock.itemsByIds(need));
   }
 
-  Future<void> loadDashboard(ModuleAccess access, {InventoryStore? store}) =>
-      _load(
-        () async => dashboard = await _service.dashboard(access, store: store),
-      );
+  Future<void> loadDashboard({InventoryStore? store}) =>
+      _load(() async => dashboard = await _service.dashboard(store: store));
 
   /// Loads [def]; balance reports come back sorted by item name.
   Future<void> loadReport(
-    ModuleAccess access,
     ReportDef def, {
     DateTime? from,
     DateTime? to,
     String? status,
   }) => _load(() async {
-    rows = await _service.report(
-      access,
-      def,
-      from: from,
-      to: to,
-      status: status,
-    );
+    rows = await _service.report(def, from: from, to: to, status: status);
     await _names(rows.map((row) => row['itemId']));
     if (def.collection == 'inventoryBalances') {
       rows.sort(

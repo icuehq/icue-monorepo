@@ -18,9 +18,6 @@ class StoresTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final campusIds = {for (final store in stores) store.campusId}.toList()
-      ..sort();
-
     return IcueClientTable<InventoryStore>(
       title: 'Stores',
       items: stores,
@@ -40,7 +37,7 @@ class StoresTable extends StatelessWidget {
             )
           : null,
       emptyTitle: 'No stores yet',
-      emptyMessage: 'Create stores to organize and track physical inventory across campuses.',
+      emptyMessage: 'Create stores to organize and track physical inventory across the branch.',
       emptyAction: canEdit
           ? IcueTableAction(
               label: 'Add store',
@@ -49,15 +46,6 @@ class StoresTable extends StatelessWidget {
             )
           : null,
       filters: [
-        IcueClientFilter<InventoryStore>(
-          id: 'campus',
-          label: 'Campus',
-          options: [
-            for (final campusId in campusIds)
-              IcueTableFilterOption('$campusId', 'Campus $campusId'),
-          ],
-          matches: (store, optionId) => '${store.campusId}' == optionId,
-        ),
         IcueClientFilter<InventoryStore>(
           id: 'status',
           label: 'Status',
@@ -98,16 +86,6 @@ class StoresTable extends StatelessWidget {
           cellBuilder: (context, store) => IcueTableCellText(
             store.name,
             leading: store.active ? null : const IcueInactiveBadge(),
-          ),
-        ),
-        IcueTableColumn(
-          id: 'campus',
-          label: 'Campus',
-          sortable: true,
-          comparator: (store) => store.campusId,
-          cellBuilder: (context, store) => IcueTableCellText(
-            'Campus ${store.campusId}',
-            style: IcueTableStyle.of(context).secondary,
           ),
         ),
         IcueTableColumn(

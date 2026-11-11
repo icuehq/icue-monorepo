@@ -24,7 +24,6 @@ class _InventoryReportPageState extends State<InventoryReportPage> {
     if (inventory.stores.isEmpty) await inventory.loadMasters();
     if (!mounted) return;
     await context.read<InsightsProvider>().loadReport(
-      inventory.access,
       _def,
       from: _range?.start,
       to: _range?.end,

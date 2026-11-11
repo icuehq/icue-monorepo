@@ -38,24 +38,22 @@ class AssetsProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> loadAssets(ModuleAccess access, {String? status}) =>
-      _load(() async => assets = await _service.assets(access, status: status));
+  Future<void> loadAssets({String? status}) =>
+      _load(() async => assets = await _service.assets(status: status));
 
-  Future<void> loadMaintenance(ModuleAccess access, {String? status}) =>
-      _load(() async {
-        maintenance = await _service.maintenance(access, status: status);
-      });
+  Future<void> loadMaintenance({String? status}) => _load(() async {
+    maintenance = await _service.maintenance(status: status);
+  });
 
   /// Custody records and timeline of one asset.
-  Future<void> loadDetail(ModuleAccess access, String assetId) =>
-      _load(() async {
-        final masterLists = await Future.wait([
-          _service.assignments(access, assetId),
-          _service.history(access, assetId),
-        ]);
-        assignments = masterLists[0] as List<InventoryAssignment>;
-        history = masterLists[1] as List<AssetEvent>;
-      });
+  Future<void> loadDetail(String assetId) => _load(() async {
+    final masterLists = await Future.wait([
+      _service.assignments(assetId),
+      _service.history(assetId),
+    ]);
+    assignments = masterLists[0] as List<InventoryAssignment>;
+    history = masterLists[1] as List<AssetEvent>;
+  });
 
   Future<InventoryAsset?> asset(String id) async {
     try {
@@ -67,9 +65,9 @@ class AssetsProvider extends ChangeNotifier {
   }
 
   /// Resolves a scanned asset ID or RFID tag; null when unknown (or the read fails, with [errorMessage] set).
-  Future<InventoryAsset?> findByCode(ModuleAccess access, String code) async {
+  Future<InventoryAsset?> findByCode(String code) async {
     try {
-      return await _service.findByCode(access, code.trim());
+      return await _service.findByCode(code.trim());
     } catch (error) {
       errorMessage = callableErrorMessage(error);
       return null;

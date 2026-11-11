@@ -12,7 +12,6 @@ class LibraryIncident {
     required this.barcode,
     required this.catalogueId,
     required this.libraryId,
-    required this.campusId,
     required this.status,
     required this.reportedDate,
     this.memberType,
@@ -38,7 +37,6 @@ class LibraryIncident {
         barcode: data['barcode'] as String? ?? '',
         catalogueId: data['catalogueId'] as String? ?? '',
         libraryId: data['libraryId'] as String? ?? '',
-        campusId: (data['campusId'] as num? ?? 0).toInt(),
         status: data['status'] as String? ?? '',
         reportedDate: readDay(data['reportedDate']),
         memberType: data['memberType'] as String?,
@@ -66,7 +64,6 @@ class LibraryIncident {
   final String barcode;
   final String catalogueId;
   final String libraryId;
-  final int campusId;
   final String status;
   final String reportedDate;
   final String? memberType;

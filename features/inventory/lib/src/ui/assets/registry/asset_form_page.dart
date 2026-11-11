@@ -39,9 +39,7 @@ class _AssetFormPageState extends State<AssetFormPage> {
     super.initState();
     ensureMasters(context);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ProcurementProvider>().loadOrders(
-        context.read<InventoryProvider>().access,
-      );
+      context.read<ProcurementProvider>().loadOrders();
     });
   }
 

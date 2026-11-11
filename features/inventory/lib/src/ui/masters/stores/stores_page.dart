@@ -15,7 +15,6 @@ class StoresPage extends StatefulWidget {
 }
 
 class _StoresPageState extends State<StoresPage> {
-  int? _selectedCampus;
   String _searchQuery = '';
 
   @override
@@ -50,15 +49,12 @@ class _StoresPageState extends State<StoresPage> {
     final allStores = inventoryProvider.stores;
     final wide = context.isWide;
 
-    final campuses = {for (final store in allStores) store.campusId}.toList()
-      ..sort();
     final query = _searchQuery.toLowerCase();
     final filteredStores = [
       for (final store in allStores)
-        if ((_selectedCampus == null || store.campusId == _selectedCampus) &&
-            '${store.name} ${store.location ?? ''} ${store.description ?? ''}'
-                .toLowerCase()
-                .contains(query))
+        if ('${store.name} ${store.location ?? ''} ${store.description ?? ''}'
+            .toLowerCase()
+            .contains(query))
           store,
     ];
 
@@ -97,32 +93,6 @@ class _StoresPageState extends State<StoresPage> {
                           setState(() => _searchQuery = value.trim()),
                     ),
                   ),
-                  if (campuses.length > 1)
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Row(
-                        spacing: 8,
-                        children: [
-                          FilterChip(
-                            label: const Text('All Campuses'),
-                            selected: _selectedCampus == null,
-                            onSelected: (_) =>
-                                setState(() => _selectedCampus = null),
-                          ),
-                          for (final campusId in campuses)
-                            FilterChip(
-                              label: Text('Campus $campusId'),
-                              selected: _selectedCampus == campusId,
-                              onSelected: (selected) => setState(
-                                () => _selectedCampus = selected
-                                    ? campusId
-                                    : null,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
                   Expanded(
                     child: filteredStores.isEmpty
                         ? ListView(

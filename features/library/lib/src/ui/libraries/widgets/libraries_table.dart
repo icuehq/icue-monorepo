@@ -16,10 +16,6 @@ class LibrariesTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final campusIds = {
-      for (final library in libraries) library.campusId,
-    }.toList()..sort();
-
     return IcueClientTable<SchoolLibrary>(
       title: 'Libraries',
       items: libraries,
@@ -41,15 +37,6 @@ class LibrariesTable extends StatelessWidget {
         onPressed: () => AddLibraryDialog.show(context),
       ),
       filters: [
-        IcueClientFilter<SchoolLibrary>(
-          id: 'campus',
-          label: 'Campus',
-          options: [
-            for (final campusId in campusIds)
-              IcueTableFilterOption('$campusId', 'Campus $campusId'),
-          ],
-          matches: (library, optionId) => '${library.campusId}' == optionId,
-        ),
         IcueClientFilter<SchoolLibrary>(
           id: 'status',
           label: 'Status',
@@ -89,16 +76,6 @@ class LibrariesTable extends StatelessWidget {
           cellBuilder: (context, library) => IcueTableCellText(
             library.name,
             leading: library.active ? null : const IcueInactiveBadge(),
-          ),
-        ),
-        IcueTableColumn(
-          id: 'campus',
-          label: 'Campus',
-          sortable: true,
-          comparator: (library) => library.campusId,
-          cellBuilder: (context, library) => IcueTableCellText(
-            'Campus ${library.campusId}',
-            style: IcueTableStyle.of(context).secondary,
           ),
         ),
         IcueTableColumn(

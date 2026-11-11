@@ -30,7 +30,6 @@ class StoreDropdown extends StatelessWidget {
     required this.onChanged,
     this.label = 'Store',
     this.exclude,
-    this.campusId,
     this.prefixIcon,
     super.key,
   });
@@ -41,16 +40,10 @@ class StoreDropdown extends StatelessWidget {
   final String? exclude;
   final Widget? prefixIcon;
 
-  /// Only stores of this campus.
-  final int? campusId;
-
   @override
   Widget build(BuildContext context) {
     final stores = context.watch<InventoryProvider>().stores.where(
-      (store) =>
-          store.active &&
-          store.id != exclude &&
-          (campusId == null || store.campusId == campusId),
+      (store) => store.active && store.id != exclude,
     );
     return DropdownButtonFormField<String>(
       initialValue: value,

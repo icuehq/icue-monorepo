@@ -1,7 +1,9 @@
 import { getFirestore } from 'firebase-admin/firestore';
 import { HttpsError } from 'firebase-functions/v2/https';
 import { z } from 'zod';
+import { claimsBranchPath } from './branch';
 import { runCallable, type AnyCallableDef, type Auth } from './callable';
+import { invalidInput } from './errors';
 import { uniqueKeyId } from './keys';
 import { codeDocId } from './masters';
 
@@ -42,7 +44,7 @@ const CODE_ID_COLLECTIONS: Record<string, string> = {
 };
 
 async function lookupByCode(
-  schoolId: string,
+  branchPath: string,
   keyType: string,
   value: string,
   label: string,
@@ -51,7 +53,7 @@ async function lookupByCode(
   if (byName) {
     // These masters have no code: match the name, ignoring case.
     const wanted = (value ?? '').trim().toLowerCase();
-    const documents = await getFirestore().collection(`schools/${schoolId}/${byName}`).get();
+    const documents = await getFirestore().collection(`${branchPath}/${byName}`).get();
     const match = documents.docs.find(
       (document) => String(document.data().name).trim().toLowerCase() === wanted,
     );
@@ -65,21 +67,21 @@ async function lookupByCode(
     const docId = codeDocId(value ?? '');
     if (
       !docId ||
-      !(await getFirestore().doc(`schools/${schoolId}/${collection}/${docId}`).get()).exists
+      !(await getFirestore().doc(`${branchPath}/${collection}/${docId}`).get()).exists
     ) {
       throw new HttpsError('failed-precondition', `${label} "${value}" not found`);
     }
     return docId;
   }
   const key = await getFirestore()
-    .doc(`schools/${schoolId}/uniqueKeys/${uniqueKeyId(keyType, value ?? '')}`)
+    .doc(`${branchPath}/uniqueKeys/${uniqueKeyId(keyType, value ?? '')}`)
     .get();
   if (!key.exists) throw new HttpsError('failed-precondition', `${label} "${value}" not found`);
   return String(key.data()!.documentPath).split('/').pop()!;
 }
 
 export async function importRows(auth: Auth, data: unknown, types: Record<string, ImportType>) {
-  if (!auth) throw new HttpsError('unauthenticated', 'Sign in required');
+  if (!auth) throw new HttpsError('unauthenticated', 'Please sign in to continue.');
   const input = z.object({
     importId: z.string().regex(/^[A-Za-z0-9_]{6,40}$/),
     type: z.enum(Object.keys(types) as [string, ...string[]]),
@@ -89,11 +91,11 @@ export async function importRows(auth: Auth, data: unknown, types: Record<string
       .max(MAX_ROWS),
   });
   const parsed = input.safeParse(data);
-  if (!parsed.success) throw new HttpsError('invalid-argument', z.prettifyError(parsed.error));
+  if (!parsed.success) throw invalidInput(parsed.error);
   const { importId, type, rows } = parsed.data;
-  const schoolId = String(auth.token.schoolId);
+  const branchPath = claimsBranchPath(auth.token);
   const lookup: CodeLookup = (keyType, value, label) =>
-    lookupByCode(schoolId, keyType, value, label);
+    lookupByCode(branchPath, keyType, value, label);
   const results: { row: number; ok: boolean; error?: string }[] = [];
   for (const [index, row] of rows.entries()) {
     try {

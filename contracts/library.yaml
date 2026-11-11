@@ -28,7 +28,6 @@ documents:
       barcode: string
       catalogueId: string
       libraryId: string
-      campusId: int
       issuedDate: timestamp
       dueDate: timestamp
       remarks: string?
@@ -72,7 +71,6 @@ models:
       fields:
         catalogueId: string
         libraryId: string
-        campusId: int
         shelf: string?
         barcode: { type: string, default: "$id" }
         condition: string
@@ -102,7 +100,6 @@ models:
         personErpId: int
         memberName: string?
         libraryId: string
-        campusId: int
         type: string
         amount: double
         waived: double
@@ -127,7 +124,6 @@ models:
         barcode: string
         catalogueId: string
         libraryId: string
-        campusId: int
         status: string
         reportedDate: day
         memberType: string?
@@ -173,7 +169,6 @@ models:
       id: id
       fields:
         name: string
-        campusId: int
         location: string?
         hours: string?
         active: { type: bool, key: status, notEquals: inactive }

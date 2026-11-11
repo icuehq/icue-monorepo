@@ -43,10 +43,7 @@ class _InvoiceDialogState extends State<InvoiceDialog> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ProcurementProvider>().loadReceipts(
-        context.read<InventoryProvider>().access,
-        widget.order.id,
-      );
+      context.read<ProcurementProvider>().loadReceipts(widget.order.id);
     });
   }
 

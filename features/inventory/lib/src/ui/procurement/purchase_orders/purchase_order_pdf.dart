@@ -25,7 +25,6 @@ Future<void> sharePurchaseOrderPdf(
         pw.Text(
           'Date: ${purchaseOrder.purchaseOrderDate.toDisplayDay()}   Expected delivery: ${purchaseOrder.expectedDate.toDisplayDay()}',
         ),
-        pw.Text('Deliver to: Campus ${purchaseOrder.deliveryCampusId}'),
         if (purchaseOrder.revision > 0)
           pw.Text('Revision ${purchaseOrder.revision}'),
         pw.SizedBox(height: 12),

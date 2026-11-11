@@ -5,362 +5,348 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{db}/documents {
     function signedIn() { return request.auth != null; }
-    function inSchool(schoolId) { return signedIn() && string(request.auth.token.schoolId) == schoolId; }
-    function access(schoolId) { return get(/databases/$(db)/documents/schools/$(schoolId)/userAccess/$(request.auth.uid)).data; }
-    // Library has no sub-permissions: the Node tile gates the UI and any non-parent staff user of the school may operate.
-    function staff(schoolId) { return inSchool(schoolId) && request.auth.token.get('personType', '') != 'parent'; }
-    function can(schoolId, p) { return p in access(schoolId).permissions; }
+    // The branch is the tenant: the token is issued for one active branch (a zone or corporate user re-exchanges to switch) and its claims must match the path.
+    function inBranch(orgId, zoneId, branchId) {
+      return signedIn() && string(request.auth.token.orgId) == orgId
+        && string(request.auth.token.zoneId) == zoneId && string(request.auth.token.branchId) == branchId;
+    }
+    function access(orgId, zoneId, branchId) { return get(/databases/$(db)/documents/orgs/$(orgId)/zones/$(zoneId)/branches/$(branchId)/userAccess/$(request.auth.uid)).data; }
+    // Library has no sub-permissions: the Node tile gates the UI and any non-parent staff user of the branch may operate.
+    function staff(orgId, zoneId, branchId) { return inBranch(orgId, zoneId, branchId) && request.auth.token.get('personType', '') != 'parent'; }
+    function can(orgId, zoneId, branchId, p) { return p in access(orgId, zoneId, branchId).permissions; }
     function topLevelCategory(data) { return !('parentId' in data) || data.parentId == null; }
-    function onCampus(schoolId, c) { return access(schoolId).hasAllCampuses == true || c in access(schoolId).campusIds; }
     function own() {
       return resource.data.personErpId == request.auth.token.get('personErpId', null)
           || resource.data.personErpId in request.auth.token.get('wardStudentIds', []);
     }
 
-    // Default: no client writes anywhere under a school. Reads need an explicit rule below.
+    // Default: no client writes anywhere under a branch. Reads need an explicit rule below.
     // auditLogs, requests and outbox have no client access at all (uniqueKeys: only Library title keys, below).
-    match /schools/{schoolId}/{coll}/{id} {
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/{coll}/{id} {
       allow write: if false;
     }
 
-    match /schools/{schoolId}/userAccess/{uid} {
-      allow read: if inSchool(schoolId) && request.auth.uid == uid;
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/userAccess/{uid} {
+      allow read: if inBranch(orgId, zoneId, branchId) && request.auth.uid == uid;
     }
-    match /schools/{schoolId}/config/{doc} {
-      allow read: if inSchool(schoolId);
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/config/{doc} {
+      allow read: if inBranch(orgId, zoneId, branchId);
     }
-    match /schools/{schoolId}/notifications/{id} {
-      allow read: if inSchool(schoolId) && resource.data.uid == request.auth.uid;
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/notifications/{id} {
+      allow read: if inBranch(orgId, zoneId, branchId) && resource.data.uid == request.auth.uid;
     }
 
     // Inventory masters (Inv-1).
-    match /schools/{schoolId}/{coll}/{id} {
-      allow read: if inSchool(schoolId) && coll in ['inventoryCategories', 'inventoryUnits', 'inventoryItems']
-        && (can(schoolId, 'inventory.items.view') || can(schoolId, 'inventory.issue.request') || can(schoolId, 'inventory.purchaseRequest.request'));
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/{coll}/{id} {
+      allow read: if inBranch(orgId, zoneId, branchId) && coll in ['inventoryCategories', 'inventoryUnits', 'inventoryItems']
+        && (can(orgId, zoneId, branchId, 'inventory.items.view') || can(orgId, zoneId, branchId, 'inventory.issue.request') || can(orgId, zoneId, branchId, 'inventory.purchaseRequest.request'));
     }
     // Masters are plain client CRUD for the users who manage them (no field validation, no audit log).
     // Creates are keyed by the lowercased code, so an existing code cannot be recreated.
-    match /schools/{schoolId}/inventoryCategories/{id} {
-      allow write: if inSchool(schoolId) && can(schoolId, 'inventory.settings');
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryCategories/{id} {
+      allow write: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.settings');
     }
-    match /schools/{schoolId}/inventoryUnits/{id} {
-      allow write: if inSchool(schoolId) && can(schoolId, 'inventory.settings');
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryUnits/{id} {
+      allow write: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.settings');
     }
-    match /schools/{schoolId}/inventoryStores/{id} {
-      allow write: if inSchool(schoolId) && can(schoolId, 'inventory.settings');
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryStores/{id} {
+      allow write: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.settings');
     }
-    match /schools/{schoolId}/inventoryItems/{id} {
-      allow write: if inSchool(schoolId) && can(schoolId, 'inventory.items.manage');
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryItems/{id} {
+      allow write: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.items.manage');
     }
-    match /schools/{schoolId}/inventoryVendors/{id} {
-      allow write: if inSchool(schoolId) && can(schoolId, 'inventory.vendors.manage');
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryVendors/{id} {
+      allow write: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.vendors.manage');
     }
-    match /schools/{schoolId}/libraries/{id} {
-      allow write: if staff(schoolId);
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/libraries/{id} {
+      allow write: if staff(orgId, zoneId, branchId);
     }
-    match /schools/{schoolId}/libraryCategories/{id} {
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/libraryCategories/{id} {
       // Two levels only: a subcategory's parent must itself be a top-level category.
-      allow write: if staff(schoolId)
+      allow write: if staff(orgId, zoneId, branchId)
         && (request.method == 'delete' || topLevelCategory(request.resource.data)
-          || topLevelCategory(get(/databases/$(db)/documents/schools/$(schoolId)/libraryCategories/$(request.resource.data.parentId)).data));
+          || topLevelCategory(get(/databases/$(db)/documents/orgs/$(orgId)/zones/$(zoneId)/branches/$(branchId)/libraryCategories/$(request.resource.data.parentId)).data));
     }
 
     // Purchase requests, quotations and invoices: client writes for the roles that handle them.
-    match /schools/{schoolId}/inventoryPurchaseRequests/{id} {
-      allow write: if inSchool(schoolId)
-        && (can(schoolId, 'inventory.purchaseRequest.request') || can(schoolId, 'inventory.purchaseRequest.approve'));
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryPurchaseRequests/{id} {
+      allow write: if inBranch(orgId, zoneId, branchId)
+        && (can(orgId, zoneId, branchId, 'inventory.purchaseRequest.request') || can(orgId, zoneId, branchId, 'inventory.purchaseRequest.approve'));
       // Issuing, cancelling or closing a purchase order moves its quantity on the request.
-      allow update: if inSchool(schoolId) && can(schoolId, 'inventory.procure.operate');
+      allow update: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.procure.operate');
       // The last fully received order completes its request.
-      allow update: if inSchool(schoolId) && can(schoolId, 'inventory.stock.operate')
+      allow update: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.stock.operate')
         && request.resource.data.status == 'completed';
     }
-    match /schools/{schoolId}/inventoryQuotations/{id} {
-      allow write: if inSchool(schoolId) && can(schoolId, 'inventory.procure.operate');
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryQuotations/{id} {
+      allow write: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.procure.operate');
     }
-    match /schools/{schoolId}/inventoryInvoices/{id} {
-      allow write: if inSchool(schoolId) && can(schoolId, 'inventory.procure.operate');
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryInvoices/{id} {
+      allow write: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.procure.operate');
     }
     // Purchase orders: client writes until cancelled or closed; receiving stays a callable.
-    match /schools/{schoolId}/inventoryPurchaseOrders/{id} {
-      allow create: if inSchool(schoolId) && can(schoolId, 'inventory.procure.operate')
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryPurchaseOrders/{id} {
+      allow create: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.procure.operate')
         && request.resource.data.status == 'draft';
-      allow update: if inSchool(schoolId) && can(schoolId, 'inventory.procure.operate')
+      allow update: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.procure.operate')
         && !(resource.data.status in ['cancelled', 'closed']);
       // Receiving goods moves an order to (partially / fully) received.
-      allow update: if inSchool(schoolId) && can(schoolId, 'inventory.stock.operate')
-        && onCampus(schoolId, resource.data.deliveryCampusId)
+      allow update: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.stock.operate')
         && request.resource.data.status in ['partially_received', 'fully_received'];
     }
-    match /schools/{schoolId}/inventoryPurchaseOrders/{id}/revisions/{rev} {
-      allow create: if inSchool(schoolId) && can(schoolId, 'inventory.procure.operate');
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryPurchaseOrders/{id}/revisions/{rev} {
+      allow create: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.procure.operate');
     }
     // Sequence counters (PR/QT/PO numbers) are bumped by clients that hold any permission (parents hold none).
-    match /schools/{schoolId}/counters/{id} {
-      allow read, write: if inSchool(schoolId) && access(schoolId).permissions.size() > 0;
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/counters/{id} {
+      allow read, write: if inBranch(orgId, zoneId, branchId) && access(orgId, zoneId, branchId).permissions.size() > 0;
     }
 
-    match /schools/{schoolId}/inventoryItems/{itemId}/variants/{id} {
-      allow write: if inSchool(schoolId) && can(schoolId, 'inventory.items.manage');
-      allow read: if inSchool(schoolId) && (can(schoolId, 'inventory.items.view') || can(schoolId, 'inventory.issue.request') || can(schoolId, 'inventory.purchaseRequest.request'));
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryItems/{itemId}/variants/{id} {
+      allow write: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.items.manage');
+      allow read: if inBranch(orgId, zoneId, branchId) && (can(orgId, zoneId, branchId, 'inventory.items.view') || can(orgId, zoneId, branchId, 'inventory.issue.request') || can(orgId, zoneId, branchId, 'inventory.purchaseRequest.request'));
     }
-    // Stores are readable school-wide.
-    match /schools/{schoolId}/inventoryStores/{id} {
-      allow read: if inSchool(schoolId)
-        && (can(schoolId, 'inventory.stock.view') || can(schoolId, 'inventory.settings') || can(schoolId, 'inventory.issue.request'));
+    // Stores are readable branch-wide.
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryStores/{id} {
+      allow read: if inBranch(orgId, zoneId, branchId)
+        && (can(orgId, zoneId, branchId, 'inventory.stock.view') || can(orgId, zoneId, branchId, 'inventory.settings') || can(orgId, zoneId, branchId, 'inventory.issue.request'));
     }
 
-    // Stock (Inv-2): campus-scoped, written only by Functions.
-    match /schools/{schoolId}/{coll}/{id} {
-      allow read: if inSchool(schoolId)
+    // Stock (Inv-2): written only by Functions.
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/{coll}/{id} {
+      allow read: if inBranch(orgId, zoneId, branchId)
         && coll in ['inventoryBalances', 'inventoryMovements', 'inventoryReceipts', 'inventoryIssues', 'inventoryReturns', 'inventoryAdjustments', 'inventoryUnavailableStock']
-        && can(schoolId, 'inventory.stock.view') && onCampus(schoolId, resource.data.campusId);
+        && can(orgId, zoneId, branchId, 'inventory.stock.view');
     }
-    // Receive Stock, issuing stock and returns are client transactions: stock operators on the campus create receipts, issues, returns, unavailable-stock
+    // Receive Stock, issuing stock and returns are client transactions: stock operators create receipts, issues, returns, unavailable-stock
     // entries and ledger rows (never edit them) and create/update the store's balances.
-    match /schools/{schoolId}/{coll}/{id} {
-      allow create: if inSchool(schoolId) && coll in ['inventoryReceipts', 'inventoryIssues', 'inventoryReturns', 'inventoryAdjustments', 'inventoryUnavailableStock', 'inventoryMovements']
-        && can(schoolId, 'inventory.stock.operate') && onCampus(schoolId, request.resource.data.campusId)
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/{coll}/{id} {
+      allow create: if inBranch(orgId, zoneId, branchId) && coll in ['inventoryReceipts', 'inventoryIssues', 'inventoryReturns', 'inventoryAdjustments', 'inventoryUnavailableStock', 'inventoryMovements']
+        && can(orgId, zoneId, branchId, 'inventory.stock.operate')
         && request.resource.data.createdBy == request.auth.uid;
     }
     // A return only moves an issue's returned quantities.
-    match /schools/{schoolId}/inventoryIssues/{id} {
-      allow update: if inSchool(schoolId) && can(schoolId, 'inventory.stock.operate')
-        && onCampus(schoolId, resource.data.campusId)
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryIssues/{id} {
+      allow update: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.stock.operate')
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lineItems', 'updatedAt']);
     }
     // Acknowledging an issue only fills its empty acknowledgement.
-    match /schools/{schoolId}/inventoryIssues/{id} {
-      allow update: if inSchool(schoolId) && can(schoolId, 'inventory.stock.operate')
-        && onCampus(schoolId, resource.data.campusId)
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryIssues/{id} {
+      allow update: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.stock.operate')
         && resource.data.acknowledgement == null
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['acknowledgement', 'updatedAt'])
         && request.resource.data.acknowledgement.performedBy == request.auth.uid;
     }
-    match /schools/{schoolId}/inventoryBalances/{id} {
-      allow create, update: if inSchool(schoolId) && can(schoolId, 'inventory.stock.operate')
-        && onCampus(schoolId, request.resource.data.campusId);
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryBalances/{id} {
+      allow create, update: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.stock.operate')
+       ;
     }
     // Submitting, approving/rejecting and issuing against an issue request, and acknowledging an issue, are client writes.
-    match /schools/{schoolId}/inventoryIssueRequests/{id} {
-      allow create: if inSchool(schoolId) && can(schoolId, 'inventory.issue.request')
-        && onCampus(schoolId, request.resource.data.campusId)
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryIssueRequests/{id} {
+      allow create: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.issue.request')
         && request.resource.data.createdBy == request.auth.uid
         && request.resource.data.status == 'pending';
-      // Approve / reject: only while pending, by an approver on the campus, touching only the decision fields.
-      allow update: if inSchool(schoolId) && can(schoolId, 'inventory.issue.approve')
-        && onCampus(schoolId, resource.data.campusId)
+      // Approve / reject: only while pending, by an approver, touching only the decision fields.
+      allow update: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.issue.approve')
         && resource.data.status == 'pending'
         && request.resource.data.status in ['approved', 'rejected']
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'lineItems', 'approval', 'updatedAt'])
         && request.resource.data.approval.performedBy == request.auth.uid;
     }
     // Issuing stock only moves an approved request's issued quantities and status.
-    match /schools/{schoolId}/inventoryIssueRequests/{id} {
-      allow update: if inSchool(schoolId) && can(schoolId, 'inventory.stock.operate')
-        && onCampus(schoolId, resource.data.campusId)
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryIssueRequests/{id} {
+      allow update: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.stock.operate')
         && resource.data.status in ['approved', 'partially_issued']
         && request.resource.data.status in ['partially_issued', 'issued']
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'lineItems', 'updatedAt']);
     }
     // The requester may withdraw a pending request; a stock operator may close one still awaiting issue.
-    match /schools/{schoolId}/inventoryIssueRequests/{id} {
-      allow update: if inSchool(schoolId)
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryIssueRequests/{id} {
+      allow update: if inBranch(orgId, zoneId, branchId)
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'closure', 'updatedAt'])
         && request.resource.data.closure.performedBy == request.auth.uid
         && ((resource.data.createdBy == request.auth.uid && resource.data.status == 'pending' && request.resource.data.status == 'cancelled')
-          || (can(schoolId, 'inventory.stock.operate') && onCampus(schoolId, resource.data.campusId)
+          || (can(orgId, zoneId, branchId, 'inventory.stock.operate')
             && resource.data.status in ['approved', 'partially_issued'] && request.resource.data.status == 'closed'));
     }
-    // Requesters see their own requests; approvers and stock users see the campus's.
-    match /schools/{schoolId}/inventoryIssueRequests/{id} {
-      allow read: if inSchool(schoolId) && (resource.data.createdBy == request.auth.uid
-        || ((can(schoolId, 'inventory.stock.view') || can(schoolId, 'inventory.issue.approve')) && onCampus(schoolId, resource.data.campusId)));
+    // Requesters see their own requests; approvers and stock users see all of them.
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryIssueRequests/{id} {
+      allow read: if inBranch(orgId, zoneId, branchId) && (resource.data.createdBy == request.auth.uid
+        || ((can(orgId, zoneId, branchId, 'inventory.stock.view') || can(orgId, zoneId, branchId, 'inventory.issue.approve'))));
     }
-    // Resolving an unavailable-stock entry: restore, repair or write off, by a stock operator on its campus.
-    match /schools/{schoolId}/inventoryUnavailableStock/{id} {
-      allow update: if inSchool(schoolId) && can(schoolId, 'inventory.stock.operate')
-        && onCampus(schoolId, resource.data.campusId)
+    // Resolving an unavailable-stock entry: restore, repair or write off, by a stock operator.
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryUnavailableStock/{id} {
+      allow update: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.stock.operate')
         && resource.data.status in ['open', 'in_repair']
         && request.resource.data.status in ['in_repair', 'resolved']
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'resolution', 'resolutionNote', 'resolvedAt', 'resolvedBy', 'updatedAt']);
     }
 
-    // Procurement (Inv-3). Vendors are school-wide; requesters see their own requests,
-    // approvers and procurement the campus's.
-    match /schools/{schoolId}/inventoryVendors/{id} {
-      allow read: if inSchool(schoolId) && (can(schoolId, 'inventory.vendors.manage') || can(schoolId, 'inventory.procure.operate'));
+    // Procurement (Inv-3). Vendors are branch-wide; requesters see their own requests,
+    // approvers and procurement all of them.
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryVendors/{id} {
+      allow read: if inBranch(orgId, zoneId, branchId) && (can(orgId, zoneId, branchId, 'inventory.vendors.manage') || can(orgId, zoneId, branchId, 'inventory.procure.operate'));
     }
-    match /schools/{schoolId}/inventoryPurchaseRequests/{id} {
-      allow read: if inSchool(schoolId) && (resource.data.createdBy == request.auth.uid
-        || ((can(schoolId, 'inventory.purchaseRequest.approve') || can(schoolId, 'inventory.procure.operate')) && onCampus(schoolId, resource.data.campusId)));
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryPurchaseRequests/{id} {
+      allow read: if inBranch(orgId, zoneId, branchId) && (resource.data.createdBy == request.auth.uid
+        || ((can(orgId, zoneId, branchId, 'inventory.purchaseRequest.approve') || can(orgId, zoneId, branchId, 'inventory.procure.operate'))));
     }
 
-    // Quotations and purchase orders (Inv-4): procurement on the campus.
-    match /schools/{schoolId}/inventoryQuotations/{id} {
-      allow read: if inSchool(schoolId) && can(schoolId, 'inventory.procure.operate') && onCampus(schoolId, resource.data.campusId);
+    // Quotations and purchase orders (Inv-4): procurement.
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryQuotations/{id} {
+      allow read: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.procure.operate');
     }
-    // Receiving staff read orders due at their campus; invoices (Inv-5) follow procurement.
-    match /schools/{schoolId}/inventoryPurchaseOrders/{id} {
-      allow read: if inSchool(schoolId) && ((can(schoolId, 'inventory.procure.operate')
-        && (onCampus(schoolId, resource.data.campusId) || onCampus(schoolId, resource.data.deliveryCampusId)))
-        || (can(schoolId, 'inventory.stock.operate') && onCampus(schoolId, resource.data.deliveryCampusId)));
+    // Receiving staff read orders due ; invoices (Inv-5) follow procurement.
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryPurchaseOrders/{id} {
+      allow read: if inBranch(orgId, zoneId, branchId) && (can(orgId, zoneId, branchId, 'inventory.procure.operate') || can(orgId, zoneId, branchId, 'inventory.stock.operate'));
     }
-    match /schools/{schoolId}/inventoryInvoices/{id} {
-      allow read: if inSchool(schoolId) && can(schoolId, 'inventory.procure.operate') && onCampus(schoolId, resource.data.campusId);
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryInvoices/{id} {
+      allow read: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.procure.operate');
     }
-    match /schools/{schoolId}/inventoryPurchaseOrders/{id}/revisions/{rev} {
-      allow read: if inSchool(schoolId) && can(schoolId, 'inventory.procure.operate');
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryPurchaseOrders/{id}/revisions/{rev} {
+      allow read: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.procure.operate');
     }
 
     // Assets and maintenance (Inv-6). Assignees also read their own custody records.
-    match /schools/{schoolId}/{coll}/{id} {
-      allow read: if inSchool(schoolId) && coll in ['inventoryAssets', 'inventoryMaintenanceJobs']
-        && can(schoolId, 'inventory.assets.view') && onCampus(schoolId, resource.data.campusId);
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/{coll}/{id} {
+      allow read: if inBranch(orgId, zoneId, branchId) && coll in ['inventoryAssets', 'inventoryMaintenanceJobs']
+        && can(orgId, zoneId, branchId, 'inventory.assets.view');
     }
-    match /schools/{schoolId}/inventoryAssets/{id}/history/{h} {
-      allow read: if inSchool(schoolId) && can(schoolId, 'inventory.assets.view') && onCampus(schoolId, resource.data.campusId);
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryAssets/{id}/history/{h} {
+      allow read: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.assets.view');
     }
-    match /schools/{schoolId}/inventoryAssetAssignments/{id} {
-      allow read: if inSchool(schoolId) && ((can(schoolId, 'inventory.assets.view') && onCampus(schoolId, resource.data.campusId)) || own());
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryAssetAssignments/{id} {
+      allow read: if inBranch(orgId, zoneId, branchId) && ((can(orgId, zoneId, branchId, 'inventory.assets.view')) || own());
     }
 
-    // Reports and the dashboard (Inv-7): report viewers read the campus's records in every report collection.
-    match /schools/{schoolId}/{coll}/{id} {
-      allow read: if inSchool(schoolId) && can(schoolId, 'inventory.reports.view') && onCampus(schoolId, resource.data.campusId)
+    // Reports and the dashboard (Inv-7): report viewers read the records in every report collection.
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/{coll}/{id} {
+      allow read: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.reports.view')
         && coll in ['inventoryBalances', 'inventoryMovements', 'inventoryReceipts', 'inventoryIssues', 'inventoryReturns', 'inventoryAdjustments', 'inventoryUnavailableStock',
           'inventoryIssueRequests', 'inventoryPurchaseRequests', 'inventoryQuotations', 'inventoryPurchaseOrders', 'inventoryInvoices',
           'inventoryAssets', 'inventoryAssetAssignments', 'inventoryMaintenanceJobs'];
     }
-    match /schools/{schoolId}/inventoryVendors/{id} {
-      allow read: if inSchool(schoolId) && can(schoolId, 'inventory.reports.view');
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryVendors/{id} {
+      allow read: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.reports.view');
     }
 
-    // Library masters (Lib-1): catalogue is school-wide, readable by anyone who may browse it.
-    match /schools/{schoolId}/{coll}/{id} {
-      allow read: if staff(schoolId) && coll in ['libraries', 'libraryCategories', 'libraryCatalogue', 'libraryCopies'];
+    // Library masters (Lib-1): catalogue is branch-wide, readable by anyone who may browse it.
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/{coll}/{id} {
+      allow read: if staff(orgId, zoneId, branchId) && coll in ['libraries', 'libraryCategories', 'libraryCatalogue', 'libraryCopies'];
     }
     // Parents (Lib-8): browse the catalogue read-only; copies stay with staff.
-    match /schools/{schoolId}/{coll}/{id} {
-      allow read: if inSchool(schoolId) && coll in ['libraries', 'libraryCategories', 'libraryCatalogue']
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/{coll}/{id} {
+      allow read: if inBranch(orgId, zoneId, branchId) && coll in ['libraries', 'libraryCategories', 'libraryCatalogue']
         && request.auth.token.get('personType', '') == 'parent';
     }
-    // Client writes without a callable (Lib-9): rules check who, the action stamp and campus scope; fields and values are validated in the client (LibraryWrites). Each write stamps `lastWrite` (who, action, reason, server time);
+    // Client writes without a callable (Lib-9): rules check who, the action stamp; fields and values are validated in the client (LibraryWrites). Each write stamps `lastWrite` (who, action, reason, server time);
     // the audit triggers in functions/src/library/audit.ts turn that stamp into an audit log entry.
     function stamped() {
       let mark = request.resource.data.lastWrite;
       return mark.by == request.auth.uid && mark.at == request.time && mark.action is string;
     }
-    function libraryCampus(schoolId, libraryId) {
-      return get(/databases/$(db)/documents/schools/$(schoolId)/libraries/$(libraryId)).data;
+    function libraryOf(orgId, zoneId, branchId, libraryId) {
+      return get(/databases/$(db)/documents/orgs/$(orgId)/zones/$(zoneId)/branches/$(branchId)/libraries/$(libraryId)).data;
     }
     // Title keys: created before a title takes its identity, deleted when it changes. An existing key cannot be overwritten.
-    match /schools/{schoolId}/uniqueKeys/{key} {
-      allow get: if staff(schoolId) && key.matches('libraryTitle_.*');
-      allow create: if staff(schoolId) && key.matches('libraryTitle_.*') && request.resource.data.keyType == 'libraryTitle';
-      allow delete: if staff(schoolId) && key.matches('libraryTitle_.*');
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/uniqueKeys/{key} {
+      allow get: if staff(orgId, zoneId, branchId) && key.matches('libraryTitle_.*');
+      allow create: if staff(orgId, zoneId, branchId) && key.matches('libraryTitle_.*') && request.resource.data.keyType == 'libraryTitle';
+      allow delete: if staff(orgId, zoneId, branchId) && key.matches('libraryTitle_.*');
     }
-    match /schools/{schoolId}/libraryCatalogue/{id} {
-      allow create: if staff(schoolId) && stamped() && request.resource.data.createdBy == request.auth.uid
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/libraryCatalogue/{id} {
+      allow create: if staff(orgId, zoneId, branchId) && stamped() && request.resource.data.createdBy == request.auth.uid
         && request.resource.data.lastWrite.action == 'libraryCatalogue.create';
-      allow update: if staff(schoolId) && stamped()
+      allow update: if staff(orgId, zoneId, branchId) && stamped()
         && request.resource.data.lastWrite.action in ['libraryCatalogue.update', 'libraryCatalogue.status'];
     }
     // Copies: edit, or moving an available copy to another active library.
-    match /schools/{schoolId}/libraryCopies/{barcode} {
-      allow update: if staff(schoolId) && stamped() && onCampus(schoolId, resource.data.campusId) && (
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/libraryCopies/{barcode} {
+      allow update: if staff(orgId, zoneId, branchId) && stamped() && (
         request.resource.data.lastWrite.action == 'libraryCopy.update'
         || (resource.data.status == 'available' && request.resource.data.libraryId != resource.data.libraryId
-          && libraryCampus(schoolId, request.resource.data.libraryId).status == 'active'
-          && request.resource.data.campusId == libraryCampus(schoolId, request.resource.data.libraryId).campusId
-          && onCampus(schoolId, request.resource.data.campusId)
+          && libraryOf(orgId, zoneId, branchId, request.resource.data.libraryId).status == 'active'
           && request.resource.data.lastWrite.action == 'libraryCopy.move'));
     }
     // Circulation moves a copy between shelf, loan, damaged and lost (LoanWrites); nothing else changes.
-    match /schools/{schoolId}/libraryCopies/{barcode} {
-      allow update: if staff(schoolId) && onCampus(schoolId, resource.data.campusId)
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/libraryCopies/{barcode} {
+      allow update: if staff(orgId, zoneId, branchId)
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'activeLoanId', 'updatedAt'])
         && request.resource.data.status in ['available', 'issued', 'damaged', 'lost', 'withdrawn'];
     }
     // The borrower record is created on first issue; circulation only touches what the desk shows and the counters.
-    match /schools/{schoolId}/libraryMembers/{id} {
-      allow create: if staff(schoolId) && request.resource.data.createdBy == request.auth.uid
-        && request.resource.data.blocked == false && request.resource.data.activeLoans in [0, 1]
-        && (access(schoolId).hasAllCampuses == true || request.resource.data.campusIds.hasOnly(access(schoolId).campusIds));
-      allow update: if staff(schoolId)
-        && (access(schoolId).hasAllCampuses == true || request.resource.data.campusIds.hasAny(access(schoolId).campusIds))
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'classId', 'campusIds', 'activeLoans', 'blocked', 'blockedBy', 'updatedAt']);
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/libraryMembers/{id} {
+      allow create: if staff(orgId, zoneId, branchId) && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.blocked == false && request.resource.data.activeLoans in [0, 1];
+      allow update: if staff(orgId, zoneId, branchId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'classId', 'activeLoans', 'blocked', 'blockedBy', 'updatedAt']);
     }
     // Library numbers (LIS, LRT, FIN, INC); Library staff hold no permissions, so the counter rule below does not cover them.
-    match /schools/{schoolId}/counters/{id} {
-      allow read, write: if staff(schoolId) && id.matches('(LIS|LRT|FIN|INC|RSV)_.*');
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/counters/{id} {
+      allow read, write: if staff(orgId, zoneId, branchId) && id.matches('(LIS|LRT|FIN|INC|RSV)_.*');
     }
-    // Manual block / unblock of a member; the member needs every campus of theirs to be one of the caller's.
-    match /schools/{schoolId}/libraryMembers/{id} {
-      allow update: if staff(schoolId) && stamped()
-        && (access(schoolId).hasAllCampuses == true || resource.data.campusIds.hasOnly(access(schoolId).campusIds))
+    // Manual block / unblock of a member.
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/libraryMembers/{id} {
+      allow update: if staff(orgId, zoneId, branchId) && stamped()
         && request.resource.data.lastWrite.action == 'libraryMember.block';
     }
-    // Borrowing policies: library, person type and campus are fixed once created; the campus comes from the library.
-    match /schools/{schoolId}/libraryBorrowingPolicies/{id} {
-      allow create: if staff(schoolId) && stamped() && request.resource.data.createdBy == request.auth.uid
+    // Borrowing policies: library and person type are fixed once created.
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/libraryBorrowingPolicies/{id} {
+      allow create: if staff(orgId, zoneId, branchId) && stamped() && request.resource.data.createdBy == request.auth.uid
         && request.resource.data.lastWrite.action == 'libraryPolicy.create'
-        && onCampus(schoolId, request.resource.data.campusId)
-        && libraryCampus(schoolId, request.resource.data.libraryId).status == 'active'
-        && request.resource.data.campusId == libraryCampus(schoolId, request.resource.data.libraryId).campusId;
-      allow update: if staff(schoolId) && stamped() && onCampus(schoolId, resource.data.campusId)
+        && libraryOf(orgId, zoneId, branchId, request.resource.data.libraryId).status == 'active';
+      allow update: if staff(orgId, zoneId, branchId) && stamped()
         && request.resource.data.lastWrite.action in ['libraryPolicy.update', 'libraryPolicy.status']
         && request.resource.data.libraryId == resource.data.libraryId
-        && request.resource.data.memberType == resource.data.memberType
-        && request.resource.data.campusId == resource.data.campusId;
+        && request.resource.data.memberType == resource.data.memberType;
     }
-    // Book records (Lib-2): librarians, and report readers on the campus.
-    match /schools/{schoolId}/libraryBooks/{id} {
-      allow read: if staff(schoolId);
+    // Book records (Lib-2): librarians, and report readers.
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/libraryBooks/{id} {
+      allow read: if staff(orgId, zoneId, branchId);
     }
     // Members and borrowing policies (Lib-3); report readers see them for the dashboard.
-    match /schools/{schoolId}/{coll}/{id} {
-      allow read: if staff(schoolId) && coll in ['libraryMembers', 'libraryBorrowingPolicies'];
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/{coll}/{id} {
+      allow read: if staff(orgId, zoneId, branchId) && coll in ['libraryMembers', 'libraryBorrowingPolicies'];
     }
     // A parent reads their ward's membership (Lib-8).
-    match /schools/{schoolId}/libraryMembers/{id} {
-      allow read: if inSchool(schoolId) && resource.data.personErpId in request.auth.token.get('wardStudentIds', []);
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/libraryMembers/{id} {
+      allow read: if inBranch(orgId, zoneId, branchId) && resource.data.personErpId in request.auth.token.get('wardStudentIds', []);
     }
 
-    // Loans (Lib-4): staff on the campus, or the borrower / parent by ERP ID.
-    match /schools/{schoolId}/libraryLoans/{id} {
-      allow read: if inSchool(schoolId) && ((staff(schoolId) && onCampus(schoolId, resource.data.campusId)) || own());
+    // Loans (Lib-4): staff, or the borrower / parent by ERP ID.
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/libraryLoans/{id} {
+      allow read: if inBranch(orgId, zoneId, branchId) && ((staff(orgId, zoneId, branchId)) || own());
       // Circulation (client transactions in LoanWrites): issue, then return / renew / mark lost of an active loan.
-      allow create: if staff(schoolId) && stamped() && onCampus(schoolId, request.resource.data.campusId)
+      allow create: if staff(orgId, zoneId, branchId) && stamped()
         && request.resource.data.lastWrite.action == 'libraryLoan.issue'
         && request.resource.data.issuedBy == request.auth.uid && request.resource.data.status == 'active';
-      allow update: if staff(schoolId) && stamped() && onCampus(schoolId, resource.data.campusId) && resource.data.status == 'active'
+      allow update: if staff(orgId, zoneId, branchId) && stamped() && resource.data.status == 'active'
         && request.resource.data.lastWrite.action in ['libraryLoan.return', 'libraryLoan.renew', 'libraryLoan.markLost'];
     }
 
-    // Fines (Lib-6): staff on the campus, or the borrower / parent by ERP ID.
-    match /schools/{schoolId}/libraryFines/{id} {
+    // Fines (Lib-6): staff, or the borrower / parent by ERP ID.
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/libraryFines/{id} {
       // Raised by a return or a lost mark; waiving or paying settles it (LoanWrites). Amounts are validated in the client.
-      allow update: if staff(schoolId) && stamped() && onCampus(schoolId, resource.data.campusId)
+      allow update: if staff(orgId, zoneId, branchId) && stamped()
         && request.resource.data.lastWrite.action in ['libraryFine.waive', 'libraryFine.setPayment']
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
           ['waived', 'paid', 'outstanding', 'status', 'waivers', 'payments', 'updatedAt', 'lastWrite']);
-      allow create: if staff(schoolId) && onCampus(schoolId, request.resource.data.campusId)
+      allow create: if staff(orgId, zoneId, branchId)
         && request.resource.data.createdBy == request.auth.uid && request.resource.data.status == 'outstanding';
-      allow read: if inSchool(schoolId)
-        && ((staff(schoolId) && onCampus(schoolId, resource.data.campusId)) || own());
+      allow read: if inBranch(orgId, zoneId, branchId)
+        && ((staff(orgId, zoneId, branchId)) || own());
     }
 
-    // Incidents (Lib-6): staff on the campus, or the member / parent by ERP ID.
-    match /schools/{schoolId}/libraryIncidents/{id} {
-      allow create: if staff(schoolId) && onCampus(schoolId, request.resource.data.campusId)
+    // Incidents (Lib-6): staff, or the member / parent by ERP ID.
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/libraryIncidents/{id} {
+      allow create: if staff(orgId, zoneId, branchId)
         && request.resource.data.createdBy == request.auth.uid && request.resource.data.status == 'open';
-      allow update: if staff(schoolId) && stamped() && onCampus(schoolId, resource.data.campusId) && resource.data.status == 'open'
+      allow update: if staff(orgId, zoneId, branchId) && stamped() && resource.data.status == 'open'
         && request.resource.data.status == 'resolved' && request.resource.data.lastWrite.action == 'libraryIncident.resolve'
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
           ['status', 'resolution', 'resolutionRemarks', 'repairCost', 'charge', 'repairStatus', 'resolvedBy', 'resolvedAt', 'updatedAt', 'lastWrite']);
-      allow read: if inSchool(schoolId)
-        && ((staff(schoolId) && onCampus(schoolId, resource.data.campusId)) || own());
+      allow read: if inBranch(orgId, zoneId, branchId)
+        && ((staff(orgId, zoneId, branchId)) || own());
     }
 
     match /devices/{uid} {

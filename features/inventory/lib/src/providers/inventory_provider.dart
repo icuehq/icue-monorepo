@@ -47,7 +47,7 @@ class InventoryProvider extends ChangeNotifier implements ErrorReporting {
       final masterLists = await Future.wait([
         _service.categories(),
         _service.units(),
-        _service.stores(access),
+        _service.stores(),
       ]);
       categories = masterLists[0] as List<InventoryCategory>;
       units = masterLists[1] as List<InventoryUnit>;

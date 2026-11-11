@@ -63,7 +63,6 @@ class LibraryFine {
     required this.personErpId,
     this.memberName,
     required this.libraryId,
-    required this.campusId,
     required this.type,
     required this.amount,
     required this.waived,
@@ -88,7 +87,6 @@ class LibraryFine {
         personErpId: (data['personErpId'] as num? ?? 0).toInt(),
         memberName: data['memberName'] as String?,
         libraryId: data['libraryId'] as String? ?? '',
-        campusId: (data['campusId'] as num? ?? 0).toInt(),
         type: data['type'] as String? ?? '',
         amount: readDouble(data['amount']),
         waived: readDouble(data['waived']),
@@ -121,7 +119,6 @@ class LibraryFine {
   final int personErpId;
   final String? memberName;
   final String libraryId;
-  final int campusId;
   final String type;
   final double amount;
   final double waived;

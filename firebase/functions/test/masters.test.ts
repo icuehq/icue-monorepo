@@ -3,19 +3,19 @@ import { masters } from '../src/inventory/masters';
 import { runCallable, type CallableDef } from '../src/shared/callable';
 import { clearFirestore, db } from './setup';
 
-const SCHOOL_ID = '12';
+const BRANCH = 'orgs/8/zones/147/branches/427';
 const ALL = ['inventory.settings', 'inventory.items.manage'];
 let requestSequence = 0;
 
 const run = (definition: CallableDef<any, any>, data: Record<string, unknown>, uid = '1') =>
   runCallable(
     definition,
-    { uid, token: { schoolId: 12, personType: 'staff' } },
+    { uid, token: { orgId: 8, zoneId: 147, branchId: 427, personType: 'staff' } },
     { requestId: `req-${String(++requestSequence).padStart(6, '0')}`, ...data },
   );
-const get = async (path: string) => (await db().doc(`schools/${SCHOOL_ID}/${path}`).get()).data();
+const get = async (path: string) => (await db().doc(`${BRANCH}/${path}`).get()).data();
 const count = async (collection: string) =>
-  (await db().collection(`schools/${SCHOOL_ID}/${collection}`).get()).size;
+  (await db().collection(`${BRANCH}/${collection}`).get()).size;
 
 const item = { name: 'Blue Pen', code: 'PEN-01', stockUnit: 'pcs', tracking: 'quantity' };
 
@@ -24,11 +24,11 @@ describe('inventory masters', () => {
   beforeEach(async () => {
     await clearFirestore();
     await db()
-      .doc(`schools/${SCHOOL_ID}/userAccess/1`)
-      .set({ permissions: ALL, campusIds: [31], hasAllCampuses: false });
+      .doc(`${BRANCH}/userAccess/1`)
+      .set({ permissions: ALL });
     await db()
-      .doc(`schools/${SCHOOL_ID}/userAccess/2`)
-      .set({ permissions: ['inventory.items.view'], campusIds: [31], hasAllCampuses: false });
+      .doc(`${BRANCH}/userAccess/2`)
+      .set({ permissions: ['inventory.items.view'] });
     await run(masters.seedDefaults, {});
     category = (
       await run(masters.categoryUpsert, {
@@ -98,7 +98,7 @@ describe('inventory masters', () => {
       code: 'failed-precondition',
     });
     await db()
-      .doc(`schools/${SCHOOL_ID}/inventoryCategories/${category}`)
+      .doc(`${BRANCH}/inventoryCategories/${category}`)
       .update({ status: 'inactive' });
     await expect(newItem({ code: 'X2' })).rejects.toMatchObject({ code: 'failed-precondition' });
     // existing item may be edited while its category stays the same
@@ -114,7 +114,7 @@ describe('inventory masters', () => {
       categoryId: category,
       tracking: 'batch',
     });
-    await db().collection(`schools/${SCHOOL_ID}/inventoryMovements`).add({ itemId: id });
+    await db().collection(`${BRANCH}/inventoryMovements`).add({ itemId: id });
     await expect(
       run(masters.itemUpsert, {
         id,

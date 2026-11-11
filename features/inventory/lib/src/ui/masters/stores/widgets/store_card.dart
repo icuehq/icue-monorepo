@@ -167,11 +167,6 @@ class StoreCard extends StatelessWidget {
               runSpacing: 6,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                _metaPill(
-                  context,
-                  Icons.school_outlined,
-                  'Campus ${store.campusId}',
-                ),
                 if (store.location != null && store.location!.trim().isNotEmpty)
                   _metaPill(
                     context,

@@ -13,9 +13,9 @@ import {
 } from './fixtures';
 import { clearFirestore, db } from './setup';
 
-const SCHOOL_ID = '12';
+const BRANCH = 'orgs/8/zones/147/branches/427';
 let requestSequence = 0;
-const auth = (uid = '1') => ({ uid, token: { schoolId: 12, personType: 'staff' } });
+const auth = (uid = '1') => ({ uid, token: { orgId: 8, zoneId: 147, branchId: 427, personType: 'staff' } });
 
 const run = (definition: CallableDef<any, any>, data: Record<string, unknown>, uid = '1') =>
   runCallable(definition, auth(uid), {
@@ -23,7 +23,7 @@ const run = (definition: CallableDef<any, any>, data: Record<string, unknown>, u
     ...data,
   });
 const outbox = async (): Promise<{ id: string; [field: string]: any }[]> =>
-  (await db().collection(`schools/${SCHOOL_ID}/outbox`).get()).docs.map((outboxDocument) => ({
+  (await db().collection(`${BRANCH}/outbox`).get()).docs.map((outboxDocument) => ({
     id: outboxDocument.id,
     ...outboxDocument.data(),
   }));
@@ -36,11 +36,9 @@ describe('library notifications', () => {
   beforeEach(async () => {
     await clearFirestore();
     await db()
-      .doc(`schools/${SCHOOL_ID}/userAccess/1`)
+      .doc(`${BRANCH}/userAccess/1`)
       .set({
         permissions: [],
-        campusIds: [31],
-        hasAllCampuses: false,
       });
     const category = (await seedLibraryCategory({ name: 'General' })).id;
     title = (
@@ -50,7 +48,7 @@ describe('library notifications', () => {
         categoryId: category,
       })
     ).id;
-    mainLibrary = (await seedLibrary({ name: 'Main', campusId: 31 })).id;
+    mainLibrary = (await seedLibrary({ name: 'Main' })).id;
     await run(copies.createBook, {
       catalogueId: title,
       libraryId: mainLibrary,
@@ -78,7 +76,7 @@ describe('library notifications', () => {
       (await outbox()).find((outboxEvent) => outboxEvent.id === `library-issued__${issued.id}`),
     ).toMatchObject({ to: { wardStudentIds: [501] }, title: 'Book issued' });
     await db()
-      .doc(`schools/${SCHOOL_ID}/libraryLoans/${issued.id}`)
+      .doc(`${BRANCH}/libraryLoans/${issued.id}`)
       .update({ dueDate: dayTimestamp(day(-3)) });
     await run(loans.loanReturn, { id: issued.id, condition: 'damaged' });
     const ids = (await outbox()).map((outboxEvent) => outboxEvent.id);
@@ -101,25 +99,25 @@ describe('library notifications', () => {
       person: person(501),
       barcode: 'ACC-000001',
     }); // due in 7 days
-    await runDailyLibrary(SCHOOL_ID);
+    await runDailyLibrary(BRANCH);
     let ids = (await outbox()).map((outboxEvent) => outboxEvent.id);
     expect(ids).not.toContain(`library-due-soon__${first.id}`);
     expect(ids.some((id) => id.startsWith('library-member-expiring'))).toBe(false);
     await db()
-      .doc(`schools/${SCHOOL_ID}/libraryLoans/${first.id}`)
+      .doc(`${BRANCH}/libraryLoans/${first.id}`)
       .update({ dueDate: dayTimestamp(day(1)) });
-    await runDailyLibrary(SCHOOL_ID);
+    await runDailyLibrary(BRANCH);
     expect((await outbox()).map((outboxEvent) => outboxEvent.id)).toContain(
       `library-due-soon__${first.id}`,
     );
     await db()
-      .doc(`schools/${SCHOOL_ID}/libraryLoans/${first.id}`)
+      .doc(`${BRANCH}/libraryLoans/${first.id}`)
       .update({ dueDate: dayTimestamp(day(-1)) });
-    await runDailyLibrary(SCHOOL_ID);
+    await runDailyLibrary(BRANCH);
     ids = (await outbox()).map((outboxEvent) => outboxEvent.id);
     expect(ids).toContain(`library-overdue__${first.id}__${day(0)}`);
     const before = ids.length;
-    await runDailyLibrary(SCHOOL_ID);
+    await runDailyLibrary(BRANCH);
     expect((await outbox()).length).toBe(before);
   });
 });

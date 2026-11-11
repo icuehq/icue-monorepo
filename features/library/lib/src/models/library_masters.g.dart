@@ -6,7 +6,6 @@ class SchoolLibrary {
   const SchoolLibrary({
     required this.id,
     required this.name,
-    required this.campusId,
     this.location,
     this.hours,
     required this.active,
@@ -16,7 +15,6 @@ class SchoolLibrary {
       SchoolLibrary(
         id: id,
         name: data['name'] as String? ?? '',
-        campusId: (data['campusId'] as num? ?? 0).toInt(),
         location: data['location'] as String?,
         hours: data['hours'] as String?,
         active: data['status'] != 'inactive',
@@ -24,7 +22,6 @@ class SchoolLibrary {
 
   final String id;
   final String name;
-  final int campusId;
   final String? location;
   final String? hours;
   final bool active;

@@ -9,7 +9,7 @@ class LibraryInitialEmptyState extends StatelessWidget {
   Widget build(BuildContext context) => IcueEmptyState(
     icon: Icons.local_library_outlined,
     title: 'No libraries configured',
-    message: 'Set up physical or campus library branches to manage book circulation, copy inventories, and borrow policies.',
+    message: 'Set up the libraries of this branch to manage book circulation, copy inventories, and borrow policies.',
     actionLabel: 'Add Library',
     actionIcon: Icons.add_rounded,
     onAction: onAdd,

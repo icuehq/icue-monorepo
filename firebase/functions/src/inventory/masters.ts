@@ -175,7 +175,7 @@ export const masters = {
       });
       context.audit({
         action: 'inventory.seedDefaults',
-        documentPath: `schools/${context.schoolId}`,
+        documentPath: `${context.branchPath}`,
         after: { categories, units },
       });
       return { categories, units };

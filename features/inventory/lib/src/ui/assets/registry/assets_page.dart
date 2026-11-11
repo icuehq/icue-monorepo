@@ -7,7 +7,7 @@ import 'package:inventory/src/ui/assets/registry/widgets/asset_sheet.dart';
 import 'package:inventory/src/ui/assets/shared/asset_ui.dart';
 import 'package:provider/provider.dart';
 
-/// Asset register (FRS 10.19) on the caller's campuses.
+/// Asset register (FRS 10.19) of the branch.
 class AssetsPage extends StatefulWidget {
   const AssetsPage({super.key});
 
@@ -25,10 +25,7 @@ class _AssetsPageState extends State<AssetsPage> {
       await inventoryProvider.loadMasters();
     }
     if (mounted) {
-      await context.read<AssetsProvider>().loadAssets(
-        inventoryProvider.access,
-        status: _status,
-      );
+      await context.read<AssetsProvider>().loadAssets(status: _status);
     }
   }
 
@@ -41,10 +38,7 @@ class _AssetsPageState extends State<AssetsPage> {
   /// A scan opens the asset with that ID or RFID tag, even outside the loaded list.
   Future<void> _scanned(String code) async {
     final assetsProvider = context.read<AssetsProvider>();
-    final asset = await assetsProvider.findByCode(
-      context.read<InventoryProvider>().access,
-      code,
-    );
+    final asset = await assetsProvider.findByCode(code);
     if (!mounted) return;
     if (asset == null) {
       showMessage(context, assetsProvider.errorMessage ?? 'No asset "$code"');

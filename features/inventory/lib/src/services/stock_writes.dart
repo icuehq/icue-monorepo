@@ -5,7 +5,7 @@ import 'package:icue_ui/icue_ui.dart';
 ///
 /// One Firestore transaction writes the receipt, its balances, the ledger rows
 /// and the GRN counter. Business checks live here and in `firestore.rules`
-/// (campus + `inventory.stock.operate`). There is no audit log, no low-stock
+/// (`inventory.stock.operate`). There is no audit log, no low-stock
 /// notification and no retry idempotency.
 class StockWrites {
   /// Action names `StockProvider.act` routes here instead of to a callable.
@@ -65,7 +65,7 @@ class StockWrites {
   /// `collection/id[/sub/id]` under the school.
   Future<DocumentReference<Map<String, dynamic>>> _doc(String path) async {
     final segments = path.split('/');
-    return (await schoolCollection(segments.first))
+    return (await branchCollection(segments.first))
         .doc(segments.skip(1).join('/'));
   }
 
@@ -132,7 +132,6 @@ class StockWrites {
         if (approved > 0 &&
             approved >
                 await _available(
-                  current['campusId'] as int,
                   current['storeId'] as String,
                   line['itemId'] as String,
                   line['variantId'] as String?,
@@ -199,15 +198,13 @@ class StockWrites {
   /// Issuable (non-expired) stock of an item in a store. Issuance re-checks it, so an
   /// approver who may not read balances (`inventory.stock.view`) is not blocked here.
   Future<double> _available(
-    int campusId,
     String storeId,
     String itemId,
     String? variantId,
   ) async {
     final today = todayIST();
     try {
-      final snapshot = await (await schoolCollection('inventoryBalances'))
-          .where('campusId', isEqualTo: campusId)
+      final snapshot = await (await branchCollection('inventoryBalances'))
           .where('storeId', isEqualTo: storeId)
           .where('itemId', isEqualTo: itemId)
           .get();
@@ -259,7 +256,7 @@ class StockWrites {
 
     final storeRef = await _doc('inventoryStores/$storeId');
     final counterRef = await _doc('counters/ISR_$financialYear');
-    final requestRef = (await schoolCollection('inventoryIssueRequests')).doc();
+    final requestRef = (await branchCollection('inventoryIssueRequests')).doc();
     final number = await FirebaseFirestore.instance.runTransaction((
       transaction,
     ) async {
@@ -303,7 +300,6 @@ class StockWrites {
         'itemIds': [for (final line in lines) line['itemId']],
         'status': 'pending',
         'approval': null,
-        'campusId': store['campusId'],
         'transactionDate': dayTimestamp(todayIST()),
         'financialYear': financialYear,
         'createdAt': FieldValue.serverTimestamp(),
@@ -343,8 +339,8 @@ class StockWrites {
 
     final storeRef = await _doc('inventoryStores/$storeId');
     final counterRef = await _doc('counters/GRN_$financialYear');
-    final receiptRef = (await schoolCollection('inventoryReceipts')).doc();
-    final movements = await schoolCollection('inventoryMovements');
+    final receiptRef = (await branchCollection('inventoryReceipts')).doc();
+    final movements = await branchCollection('inventoryMovements');
 
     final number = await FirebaseFirestore.instance.runTransaction((
       transaction,
@@ -353,7 +349,6 @@ class StockWrites {
       final store = (await transaction.get(storeRef)).data();
       if (store == null) _fail('Store not found');
       if (store['status'] != 'active') _fail('Store is inactive');
-      final campusId = store['campusId'];
 
       final next =
           ((await transaction.get(counterRef)).data()?['next'] as num? ?? 0)
@@ -429,7 +424,6 @@ class StockWrites {
           reference: line.balanceRef,
           balance: line.balance,
           storeId: storeId,
-          campusId: campusId,
           itemId: line.itemId,
           variantId: line.variantId,
           batchNumber: line.batchNumber,
@@ -472,7 +466,6 @@ class StockWrites {
         'itemIds': {for (final line in prepared) line.itemId}.toList(),
         'attachments': <Object?>[],
         'status': 'confirmed',
-        'campusId': campusId,
         'transactionDate': dayTimestamp(today),
         'financialYear': financialYear,
         'createdAt': FieldValue.serverTimestamp(),
@@ -513,8 +506,8 @@ class StockWrites {
     );
     final storeRef = await _doc('inventoryStores/$storeId');
     final counterRef = await _doc('counters/GRN_$financialYear');
-    final receiptRef = (await schoolCollection('inventoryReceipts')).doc();
-    final movements = await schoolCollection('inventoryMovements');
+    final receiptRef = (await branchCollection('inventoryReceipts')).doc();
+    final movements = await branchCollection('inventoryMovements');
     // A query cannot run inside a transaction, so the request's other live orders are read first.
     final order = (await orderRef.get()).data();
     if (order == null) _fail('Purchase order not found');
@@ -522,7 +515,7 @@ class StockWrites {
     final requestRef = await _doc('inventoryPurchaseRequests/$requestId');
     const live = ['issued', 'acknowledged', 'partially_received'];
     final otherLiveOrders =
-        (await (await schoolCollection('inventoryPurchaseOrders'))
+        (await (await branchCollection('inventoryPurchaseOrders'))
                 .where('purchaseRequestIds', arrayContains: requestId)
                 .get())
             .docs
@@ -541,10 +534,6 @@ class StockWrites {
       final store = (await transaction.get(storeRef)).data();
       if (store == null) _fail('Store not found');
       if (store['status'] != 'active') _fail('Store is inactive');
-      final campusId = store['campusId'];
-      if (campusId != purchaseOrder['deliveryCampusId']) {
-        _fail("Store is not on the order's delivery campus");
-      }
       final next =
           ((await transaction.get(counterRef)).data()?['next'] as num? ?? 0)
               .toInt() +
@@ -652,7 +641,6 @@ class StockWrites {
             reference: line.balanceRef,
             balance: line.balance,
             storeId: storeId,
-            campusId: campusId,
             itemId: line.itemId,
             variantId: line.variantId,
             batchNumber: line.batchNumber,
@@ -730,7 +718,6 @@ class StockWrites {
           'performedAt': FieldValue.serverTimestamp(),
         },
         'status': 'confirmed',
-        'campusId': campusId,
         'transactionDate': dayTimestamp(today),
         'financialYear': financialYear,
         'createdAt': FieldValue.serverTimestamp(),
@@ -800,9 +787,9 @@ class StockWrites {
 
     final issueRef = await _doc('inventoryIssues/$issueId');
     final counterRef = await _doc('counters/RET_$financialYear');
-    final returnRef = (await schoolCollection('inventoryReturns')).doc();
-    final movements = await schoolCollection('inventoryMovements');
-    final unavailable = await schoolCollection('inventoryUnavailableStock');
+    final returnRef = (await branchCollection('inventoryReturns')).doc();
+    final movements = await branchCollection('inventoryMovements');
+    final unavailable = await branchCollection('inventoryUnavailableStock');
 
     final number = await FirebaseFirestore.instance.runTransaction((
       transaction,
@@ -811,7 +798,6 @@ class StockWrites {
       final issue = (await transaction.get(issueRef)).data();
       if (issue == null) _fail('Issue not found');
       final storeId = issue['storeId']! as String;
-      final campusId = issue['campusId'];
       final store = (await transaction.get(
         await _doc('inventoryStores/$storeId'),
       )).data();
@@ -901,7 +887,6 @@ class StockWrites {
             'itemId': balance['itemId'],
             'variantId': balance['variantId'],
             'storeId': storeId,
-            'campusId': campusId,
             'batchNumber': balance['batchNumber'],
             'quantity': quantity,
             'bucket': bucket,
@@ -933,7 +918,6 @@ class StockWrites {
             'resolution': null,
             'resolvedAt': null,
             'reportedBy': uid,
-            'campusId': campusId,
             'transactionDate': dayTimestamp(today),
             'financialYear': financialYear,
             'createdAt': FieldValue.serverTimestamp(),
@@ -966,7 +950,6 @@ class StockWrites {
           'performedBy': uid,
           'performedAt': FieldValue.serverTimestamp(),
         },
-        'campusId': campusId,
         'transactionDate': dayTimestamp(today),
         'financialYear': financialYear,
         'createdAt': FieldValue.serverTimestamp(),
@@ -985,18 +968,13 @@ class StockWrites {
   /// Queries cannot run inside a transaction: find each line's balances first,
   /// then re-read them in the transaction so the quantities are current.
   Future<Map<String, List<DocumentReference<Map<String, dynamic>>>>>
-  _candidateBalances(
-    Object? campusId,
-    String storeId,
-    List<Map<String, dynamic>> lines,
-  ) async {
-    final balances = await schoolCollection('inventoryBalances');
+  _candidateBalances(String storeId, List<Map<String, dynamic>> lines) async {
+    final balances = await branchCollection('inventoryBalances');
     return {
       for (final line in lines)
         '${line['itemId']}__${line['variantId'] ?? '-'}': [
           for (final document
               in (await balances
-                      .where('campusId', isEqualTo: campusId)
                       .where('storeId', isEqualTo: storeId)
                       .where('itemId', isEqualTo: line['itemId'])
                       .get())
@@ -1095,7 +1073,6 @@ class StockWrites {
     required DocumentReference<Map<String, dynamic>> reference,
     required Map<String, dynamic>? balance,
     required String storeId,
-    required Object? campusId,
     required String itemId,
     required String? variantId,
     required String? batchNumber,
@@ -1122,7 +1099,6 @@ class StockWrites {
     }
     final expiry = storedExpiry ?? expiryDate;
     transaction.set(reference, {
-      'campusId': campusId,
       'storeId': storeId,
       'itemId': itemId,
       'variantId': variantId,
@@ -1151,7 +1127,6 @@ class StockWrites {
       'itemId': itemId,
       'variantId': variantId,
       'storeId': storeId,
-      'campusId': campusId,
       'batchNumber': batchNumber,
       'quantity': quantity,
       'bucket': 'available',
@@ -1192,9 +1167,9 @@ class StockWrites {
       'inventoryBalances/${[storeId, itemId, variantId ?? '-', batchNumber == null ? '-' : Uri.encodeComponent(batchNumber)].join('__')}',
     );
     final counterRef = await _doc('counters/ADJ_$financialYear');
-    final adjustmentRef = (await schoolCollection('inventoryAdjustments'))
+    final adjustmentRef = (await branchCollection('inventoryAdjustments'))
         .doc();
-    final movements = await schoolCollection('inventoryMovements');
+    final movements = await branchCollection('inventoryMovements');
 
     final number = await FirebaseFirestore.instance.runTransaction((
       transaction,
@@ -1241,7 +1216,6 @@ class StockWrites {
         sequence: 0,
         ledger: {
           'storeId': storeId,
-          'campusId': store['campusId'],
           'transactionDate': dayTimestamp(today),
           'financialYear': financialYear,
           'createdBy': uid,
@@ -1262,7 +1236,6 @@ class StockWrites {
         'evidence': null,
         'approval': null,
         'status': 'completed',
-        'campusId': store['campusId'],
         'transactionDate': dayTimestamp(today),
         'financialYear': financialYear,
         'createdAt': FieldValue.serverTimestamp(),
@@ -1336,9 +1309,9 @@ class StockWrites {
     final balanceRef = await _doc(
       'inventoryBalances/${[storeId, itemId, variantId ?? '-', batchNumber == null ? '-' : Uri.encodeComponent(batchNumber)].join('__')}',
     );
-    final entryRef = (await schoolCollection('inventoryUnavailableStock'))
+    final entryRef = (await branchCollection('inventoryUnavailableStock'))
         .doc();
-    final movements = await schoolCollection('inventoryMovements');
+    final movements = await branchCollection('inventoryMovements');
 
     await FirebaseFirestore.instance.runTransaction((transaction) async {
       // All reads first.
@@ -1371,7 +1344,6 @@ class StockWrites {
       };
       final ledger = <String, Object?>{
         'storeId': storeId,
-        'campusId': store['campusId'],
         'transactionDate': dayTimestamp(today),
         'financialYear': financialYear,
         'createdBy': uid,
@@ -1466,7 +1438,7 @@ class StockWrites {
     if (remarks != null && remarks.length > 500) _fail('Note is too long');
 
     final entryRef = await _doc('inventoryUnavailableStock/$id');
-    final movements = await schoolCollection('inventoryMovements');
+    final movements = await branchCollection('inventoryMovements');
 
     await FirebaseFirestore.instance.runTransaction((transaction) async {
       // All reads first.
@@ -1525,7 +1497,6 @@ class StockWrites {
         });
         final ledger = <String, Object?>{
           'storeId': entry['storeId'],
-          'campusId': entry['campusId'],
           'transactionDate': dayTimestamp(today),
           'financialYear': financialYear,
           'createdBy': uid,
@@ -1599,13 +1570,12 @@ class StockWrites {
     final request = (await requestRef.get()).data();
     if (request == null) _fail('Issue request not found');
     final storeId = request['storeId']! as String;
-    final campusId = request['campusId'];
 
-    final candidateRefs = await _candidateBalances(campusId, storeId, lines);
+    final candidateRefs = await _candidateBalances(storeId, lines);
 
     final counterRef = await _doc('counters/ISS_$financialYear');
-    final issueRef = (await schoolCollection('inventoryIssues')).doc();
-    final movements = await schoolCollection('inventoryMovements');
+    final issueRef = (await branchCollection('inventoryIssues')).doc();
+    final movements = await branchCollection('inventoryMovements');
 
     final number = await FirebaseFirestore.instance.runTransaction((
       transaction,
@@ -1689,7 +1659,6 @@ class StockWrites {
             sequence: sequence++,
             ledger: {
               'storeId': storeId,
-              'campusId': campusId,
               'transactionDate': dayTimestamp(today),
               'financialYear': financialYear,
               'createdBy': uid,
@@ -1725,7 +1694,6 @@ class StockWrites {
         'lineItems': issuedRows,
         'itemIds': {for (final plan in plans) plan.itemId}.toList(),
         'acknowledgement': null,
-        'campusId': campusId,
         'transactionDate': dayTimestamp(today),
         'financialYear': financialYear,
         'createdAt': FieldValue.serverTimestamp(),
