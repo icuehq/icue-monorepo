@@ -93,6 +93,8 @@ class IcueFaceCameraActivity : ComponentActivity() {
     private var flashOverlay: View? = null
     private var sessionId: String? = null
     private var session: CameraSession? = null
+    // Labels show a student's name when the caller sent one, else the personId.
+    private var namesById: Map<String, String> = emptyMap()
     private var captureRequested = false
     private var completed = false
     private var capturedEmbedding: FloatArray? = null
@@ -130,6 +132,12 @@ class IcueFaceCameraActivity : ComponentActivity() {
             finish()
             return
         }
+        namesById = when (val activeSession = session) {
+            is CameraSession.Tracking -> activeSession.profiles
+            is CameraSession.LiveAttendance -> activeSession.roster
+            is CameraSession.MultiPhotoAttendance -> activeSession.roster
+            else -> emptyList()
+        }.mapNotNull { profile -> profile.name?.let { profile.personId to it } }.toMap()
         frontCamera = intent.getStringExtra(IcueFaceCamera.EXTRA_LENS) != IcueCameraLens.BACK.name
         CameraSessionRegistry.attach(this)
         buildContent()
@@ -988,7 +996,7 @@ class IcueFaceCameraActivity : ComponentActivity() {
                             unrecognizedLabel = activeSession.unrecognizedLabel
                         )
                     },
-                    recognitions.map { it.matched }
+                    recognitions.map { if (it.matched) FaceState.MATCHED else FaceState.UNKNOWN },
                 )
                 statusPill.text = when {
                     activeSession.profiles.isEmpty() -> "ATTENDANCE • TRACKING ${faces.size} STUDENT(S)"
@@ -1071,7 +1079,10 @@ class IcueFaceCameraActivity : ComponentActivity() {
                             unrecognizedLabel = activeSession.unrecognizedLabel
                         )
                     },
-                    recognitions.map { it.matched && it.personId != null }
+                    // Unmatched faces stay "scanning": the next frames may still recognize them.
+                    recognitions.map {
+                        if (it.matched && it.personId != null) FaceState.MATCHED else FaceState.SCANNING
+                    },
                 )
                 setAttendanceCount(totalRoster, presentCount)
             }
@@ -1173,7 +1184,9 @@ class IcueFaceCameraActivity : ComponentActivity() {
                             unrecognizedLabel = activeSession.unrecognizedLabel
                         )
                     },
-                    recognitions.map { it.matched && it.personId != null }
+                    recognitions.map {
+                        if (it.matched && it.personId != null) FaceState.MATCHED else FaceState.UNKNOWN
+                    },
                 )
                 statusPill.text = "MULTI-PHOTO • ${photosCapturedCount} PHOTO(S) • $presentCount/$totalRoster PRESENT"
                 statusPill.background = roundedPill(0xCC0B1422.toInt(), 0x6600E676.toInt())
@@ -1258,7 +1271,7 @@ class IcueFaceCameraActivity : ComponentActivity() {
         return if (matched) {
             val parts = mutableListOf<String>()
             if (showDetectedLabel && personId != null) {
-                parts.add(personId)
+                parts.add(namesById[personId] ?: personId)
             }
             if (showMatchingPercentage) {
                 parts.add("${(score * 100).toInt()}%")
@@ -1550,24 +1563,52 @@ private class FaceOverlayView(activity: Activity) : View(activity) {
         typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
     }
 
+    private val tintPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
+    private val badgePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
+    private val badgeRingPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.WHITE
+        style = Paint.Style.STROKE
+        strokeWidth = 2f * density
+    }
+    private val badgeIconPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.WHITE
+        style = Paint.Style.STROKE
+        strokeCap = Paint.Cap.ROUND
+        strokeJoin = Paint.Join.ROUND
+    }
+    private val trailPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
+    private val badgePath = Path()
+
     private var faces: List<IcueBoundingBox> = emptyList()
     private var labels: List<String?> = emptyList()
-    private var isMatchedList: List<Boolean> = emptyList()
+    private var states: List<FaceState> = emptyList()
     private var sourceWidth = 1
     private var sourceHeight = 1
+
+    // When each face entered its current state, keyed by trackingId (or index), for the badge pop-in.
+    private val stateSince = HashMap<Any, Pair<FaceState, Long>>()
 
     fun update(
         newFaces: List<IcueBoundingBox>,
         width: Int,
         height: Int,
         newLabels: List<String?> = emptyList(),
-        newMatchedList: List<Boolean> = emptyList(),
+        newStates: List<FaceState> = emptyList(),
     ) {
         faces = newFaces
         labels = newLabels
-        isMatchedList = newMatchedList
+        states = newStates
         sourceWidth = width.coerceAtLeast(1)
         sourceHeight = height.coerceAtLeast(1)
+        val now = System.currentTimeMillis()
+        val seen = HashSet<Any>()
+        newFaces.forEachIndexed { index, face ->
+            val key: Any = face.trackingId ?: index
+            seen += key
+            val state = newStates.getOrNull(index) ?: FaceState.SCANNING
+            if (stateSince[key]?.first != state) stateSince[key] = state to now
+        }
+        stateSince.keys.retainAll(seen)
         invalidate()
     }
 
@@ -1594,17 +1635,30 @@ private class FaceOverlayView(activity: Activity) : View(activity) {
                     offsetY + face.bottom * scale,
                 )
                 val label = labels.getOrNull(index)
-                val isMatched = isMatchedList.getOrNull(index) ?: (label != null && label != "UNREGISTERED STUDENT" && label.isNotBlank())
-                val mainColor = if (isMatched) 0xFF00E676.toInt() else 0xFF00E5FF.toInt()
+                val state = states.getOrNull(index) ?: FaceState.SCANNING
+                val mainColor = when (state) {
+                    FaceState.MATCHED -> COLOR_MATCHED
+                    FaceState.UNKNOWN -> COLOR_UNKNOWN
+                    FaceState.SCANNING -> COLOR_SCANNING
+                }
 
                 bracketPaint.color = mainColor
                 glowPaint.color = (mainColor and 0x00FFFFFF) or 0x33000000
                 scanLinePaint.color = mainColor
 
+                if (state != FaceState.SCANNING) {
+                    tintPaint.color = (mainColor and 0x00FFFFFF) or 0x1F000000
+                    val cornerRadius = 14f * density
+                    canvas.drawRoundRect(rect, cornerRadius, cornerRadius, tintPaint)
+                }
                 drawCyberBrackets(canvas, rect)
-                drawLaserScanLine(canvas, rect)
+                if (state == FaceState.SCANNING) drawLaserScanLine(canvas, rect)
                 label?.takeIf { it.isNotBlank() }?.let { text ->
                     drawCyberLabel(canvas, rect, text, mainColor)
+                }
+                if (state != FaceState.SCANNING) {
+                    val sinceMs = stateSince[face.trackingId ?: index]?.second ?: 0L
+                    drawStatusBadge(canvas, rect, state, mainColor, sinceMs)
                 }
             }
         }
@@ -1672,11 +1726,38 @@ private class FaceOverlayView(activity: Activity) : View(activity) {
             null,
             Shader.TileMode.CLAMP
         )
-        val trailPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            shader = gradientShader
-            style = Paint.Style.FILL
-        }
+        trailPaint.shader = gradientShader
         canvas.drawRect(rect.left + pad, scanY - trailHeight, rect.right - pad, scanY, trailPaint)
+    }
+
+    /** Circular ✓ (recognized) or ! (unrecognized) badge on the face's top-right corner, with an overshoot pop-in. */
+    private fun drawStatusBadge(canvas: Canvas, rect: RectF, state: FaceState, color: Int, sinceMs: Long) {
+        val progress = ((System.currentTimeMillis() - sinceMs) / BADGE_POP_MS.toFloat()).coerceIn(0f, 1f)
+        // Overshoot ease-out: grows past 1.0, then settles.
+        val remaining = progress - 1f
+        val pop = 1f + 2.2f * remaining * remaining * remaining + 1.2f * remaining * remaining
+        val radius = (minOf(rect.width(), rect.height()) * 0.11f).coerceIn(13f * density, 22f * density) * pop
+        if (radius <= 0f) return
+        val centerX = rect.right.coerceAtMost(width - radius - 4f * density)
+        val centerY = rect.top.coerceAtLeast(radius + 4f * density)
+
+        badgePaint.color = (color and 0x00FFFFFF) or 0x55000000
+        canvas.drawCircle(centerX, centerY, radius * 1.35f, badgePaint)
+        badgePaint.color = color
+        canvas.drawCircle(centerX, centerY, radius, badgePaint)
+        canvas.drawCircle(centerX, centerY, radius, badgeRingPaint)
+
+        badgeIconPaint.strokeWidth = radius * 0.22f
+        if (state == FaceState.MATCHED) {
+            badgePath.reset()
+            badgePath.moveTo(centerX - radius * 0.45f, centerY + radius * 0.02f)
+            badgePath.lineTo(centerX - radius * 0.12f, centerY + radius * 0.35f)
+            badgePath.lineTo(centerX + radius * 0.48f, centerY - radius * 0.32f)
+            canvas.drawPath(badgePath, badgeIconPaint)
+        } else {
+            canvas.drawLine(centerX, centerY - radius * 0.45f, centerX, centerY + radius * 0.12f, badgeIconPaint)
+            canvas.drawPoint(centerX, centerY + radius * 0.42f, badgeIconPaint)
+        }
     }
 
     private fun drawCyberLabel(canvas: Canvas, faceRect: RectF, label: String, strokeColor: Int) {
@@ -1713,4 +1794,13 @@ private class FaceOverlayView(activity: Activity) : View(activity) {
         }
         return label.substring(0, end) + ellipsis
     }
+
+    private companion object {
+        const val COLOR_MATCHED = 0xFF00E676.toInt()
+        const val COLOR_UNKNOWN = 0xFFFF2A54.toInt()
+        const val COLOR_SCANNING = 0xFF00E5FF.toInt()
+        const val BADGE_POP_MS = 320L
+    }
 }
+
+internal enum class FaceState { SCANNING, MATCHED, UNKNOWN }

@@ -94,7 +94,11 @@ class _SdkAttendancePageState extends State<SdkAttendancePage> {
           embedding.length == faceEmbeddingSize &&
           embedding.every((e) => e.isFinite)) {
         roster.add(
-          FaceProfile(personId: student.id.toString(), embedding: embedding),
+          FaceProfile(
+            personId: student.id.toString(),
+            embedding: embedding,
+            name: student.name,
+          ),
         );
       }
     }

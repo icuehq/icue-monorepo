@@ -609,7 +609,11 @@ class IcueFaceSdkPlugin :
                 ?: throw IllegalArgumentException("profiles[$index] must be a map")
             val personId = map["personId"] as? String
                 ?: throw IllegalArgumentException("profiles[$index].personId is required")
-            IcueFaceProfile(personId, map["embedding"].toFloatArray("profiles[$index].embedding"))
+            IcueFaceProfile(
+                personId = personId,
+                embedding = map["embedding"].toFloatArray("profiles[$index].embedding"),
+                name = (map["name"] as? String)?.takeIf { it.isNotBlank() },
+            )
         }
     }
 
@@ -620,7 +624,11 @@ class IcueFaceSdkPlugin :
                 ?: throw IllegalArgumentException("roster[$index] must be a map")
             val personId = map["personId"] as? String
                 ?: throw IllegalArgumentException("roster[$index].personId is required")
-            IcueFaceProfile(personId, map["embedding"].toFloatArray("roster[$index].embedding"))
+            IcueFaceProfile(
+                personId = personId,
+                embedding = map["embedding"].toFloatArray("roster[$index].embedding"),
+                name = (map["name"] as? String)?.takeIf { it.isNotBlank() },
+            )
         }
     }
 

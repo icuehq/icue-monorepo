@@ -82,6 +82,7 @@ class _IdentifyScreenState extends State<IdentifyScreen> {
               FaceProfile(
                 personId: student.id.toString(),
                 embedding: savedEmbedding.embedding,
+                name: student.name,
               ),
             );
           }
