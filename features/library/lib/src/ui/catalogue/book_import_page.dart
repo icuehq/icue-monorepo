@@ -5,7 +5,11 @@ import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/import/book_import.dart';
 import 'package:school_library/src/import/spreadsheet.dart';
-import 'package:school_library/src/ui/catalogue/widgets/book_import_rows.dart';
+import 'package:school_library/src/ui/catalogue/widgets/book_import_issues_card.dart';
+import 'package:school_library/src/ui/catalogue/widgets/book_import_preview_section.dart';
+import 'package:school_library/src/ui/catalogue/widgets/book_import_summary_cards.dart';
+import 'package:school_library/src/ui/catalogue/widgets/book_import_template_card.dart';
+import 'package:school_library/src/ui/catalogue/widgets/book_import_upload_card.dart';
 
 /// Adds many books (and their copies) from a filled-in CSV or Excel template.
 class BookImportPage extends StatefulWidget {
@@ -23,8 +27,8 @@ class _BookImportPageState extends State<BookImportPage> {
   bool _finished = false;
   final _results = <int, BookImportResult>{};
 
-  Future<void> _download(String label) async {
-    final saved = label == 'xlsx'
+  Future<void> _download(String format) async {
+    final saved = format == 'xlsx'
         ? await saveFileBytes(
             'books-import-template.xlsx',
             bookImportTemplateXlsx(),
@@ -40,6 +44,17 @@ class _BookImportPageState extends State<BookImportPage> {
   void _toast(String message) => ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
   );
+
+  void _reset() {
+    setState(() {
+      _fileName = null;
+      _problem = null;
+      _plan = null;
+      _importing = false;
+      _finished = false;
+      _results.clear();
+    });
+  }
 
   Future<void> _choose() async {
     final libraryProvider = context.read<LibraryProvider>();
@@ -88,14 +103,17 @@ class _BookImportPageState extends State<BookImportPage> {
 
   BookImportLookups _lookups(LibraryProvider libraryProvider) {
     final categoryIds = <String, String?>{};
-    void add(String name, String id) => categoryIds[name.toLowerCase()] =
-        categoryIds.containsKey(name.toLowerCase()) ? null : id;
+    void addCategory(String name, String id) =>
+        categoryIds[name.toLowerCase()] =
+            categoryIds.containsKey(name.toLowerCase()) ? null : id;
     for (final category in libraryProvider.categories.where(
       (category) => category.active,
     )) {
-      add(category.name, category.id);
+      addCategory(category.name, category.id);
       final parent = libraryProvider.category(category.parentId);
-      if (parent != null) add('${parent.name} > ${category.name}', category.id);
+      if (parent != null) {
+        addCategory('${parent.name} > ${category.name}', category.id);
+      }
     }
     return BookImportLookups(
       categoryIds: categoryIds,
@@ -142,66 +160,40 @@ class _BookImportPageState extends State<BookImportPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final plan = _plan;
     final failed = _results.values
         .where((result) => result.error != null)
         .length;
+    final isWide = context.isWide;
+
+    final templateCard = BookImportTemplateCard(onDownload: _download);
+    final uploadCard = BookImportUploadCard(
+      fileName: _fileName,
+      problem: _problem,
+      isImporting: _importing,
+      onChoose: _choose,
+    );
+
     return Scaffold(
       appBar: AppBar(title: const Text('Import books')),
       body: IcueCenteredBody(
+        maxWidth: double.infinity,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(isWide ? 24 : 16),
           children: [
-            IcueFormSectionCard(
-              title: '1. Get the template',
-              icon: Icons.download_rounded,
-              children: [
-                const Text(
-                  'Enter the data in our template only; files with other columns are refused. One row per physical copy, with its barcode. Copies of the same '
-                  'book (same title, first author, edition, publisher and year) are '
-                  'grouped automatically, and copies of a book already in the '
-                  'catalogue are added to it. The Instructions sheet of the Excel '
-                  'template explains each column; delete the example rows first.',
-                ),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 8,
-                  children: [
-                    IcueButton(
-                      label: 'Excel template (.xlsx)',
-                      leadingIcon: Icons.table_chart_outlined,
-                      variant: IcueButtonVariant.outline,
-                      onPressed: () => _download('xlsx'),
-                    ),
-                    IcueButton(
-                      label: 'CSV template (.csv)',
-                      leadingIcon: Icons.description_outlined,
-                      variant: IcueButtonVariant.outline,
-                      onPressed: () => _download('csv'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            IcueFormSectionCard(
-              title: '2. Upload the filled file',
-              icon: Icons.upload_file_rounded,
-              children: [
-                IcueButton(
-                  label: _fileName ?? 'Choose .xlsx or .csv file',
-                  leadingIcon: Icons.attach_file_rounded,
-                  variant: IcueButtonVariant.outline,
-                  onPressed: _importing ? null : _choose,
-                ),
-                if (_problem != null)
-                  Text(
-                    _problem!,
-                    style: TextStyle(color: theme.colorScheme.error),
-                  ),
-              ],
-            ),
+            if (isWide)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: templateCard),
+                  const SizedBox(width: 16),
+                  Expanded(child: uploadCard),
+                ],
+              )
+            else ...[
+              templateCard,
+              uploadCard,
+            ],
             if (plan != null &&
                 (plan.books.isNotEmpty || plan.issues.isNotEmpty)) ...[
               const SizedBox(height: 16),
@@ -209,42 +201,26 @@ class _BookImportPageState extends State<BookImportPage> {
                 title: '3. Review and import',
                 icon: Icons.fact_check_outlined,
                 children: [
-                  Text(
-                    _finished
-                        ? '$_copiesAdded copies added to ${_results.length - failed} books, '
-                              '$failed books stopped with an error'
-                        : plan.issues.isEmpty
-                        ? '${plan.books.length} books with ${plan.copyCount} copies are ready to import.'
-                        : '${plan.issues.length} rows have errors. Nothing is imported '
-                              'until the whole file is valid: fix them in the file and upload it again.',
-                    style: theme.textTheme.titleSmall,
+                  BookImportSummaryCards(
+                    plan: plan,
+                    resultsCount: _results.length,
+                    failedCount: failed,
+                    isFinished: _finished,
+                    isImporting: _importing,
                   ),
-                  if (!_finished && plan.issues.isEmpty)
-                    IcueButton(
-                      label:
-                          'Import ${plan.copyCount} copies of ${plan.books.length} books',
-                      leadingIcon: Icons.playlist_add_rounded,
-                      isLoading: _importing,
-                      onPressed: plan.books.isEmpty || _importing
-                          ? null
-                          : _import,
-                    ),
-                  if (_importing)
-                    LinearProgressIndicator(
-                      value: _results.length / plan.books.length,
-                    ),
-                  for (final issue in plan.issues)
-                    BookImportIssueTile(issue: issue),
-                  if (plan.issues.isEmpty && plan.books.isNotEmpty)
-                    SizedBox(
-                      height: 420,
-                      child: ListView.builder(
-                        itemCount: plan.books.length,
-                        itemBuilder: (context, index) => BookImportBookTile(
-                          book: plan.books[index],
-                          result: _results[plan.books[index].firstLine],
-                        ),
-                      ),
+                  const SizedBox(height: 16),
+                  if (plan.issues.isNotEmpty)
+                    BookImportIssuesCard(issues: plan.issues)
+                  else
+                    BookImportPreviewSection(
+                      plan: plan,
+                      results: _results,
+                      isImporting: _importing,
+                      isFinished: _finished,
+                      failedCount: failed,
+                      copiesAdded: _copiesAdded,
+                      onImport: _import,
+                      onReset: _reset,
                     ),
                 ],
               ),
