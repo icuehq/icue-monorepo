@@ -1,6 +1,7 @@
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:injectable/injectable.dart';
+import 'package:school_library/src/import/concurrent.dart';
 import 'package:school_library/src/models/library_copies.dart';
 import 'package:school_library/src/models/library_fines.dart';
 import 'package:school_library/src/models/library_incidents.dart';
@@ -148,18 +149,20 @@ class LibraryService {
   Future<LibraryCopy?> findCopy(String code) =>
       _one('libraryCopies', code.trim(), LibraryCopy.fromMap);
 
-  /// The [barcodes] that already belong to a copy, checked 20 at a time.
+  /// The [barcodes] that already belong to a copy (its document ID): 30 per query, 6 queries at a time.
   Future<Set<String>> existingBarcodes(List<String> barcodes) async {
     final taken = <String>{};
-    for (var start = 0; start < barcodes.length; start += 20) {
-      final found = await Future.wait([
-        for (final barcode in barcodes.skip(start).take(20)) findCopy(barcode),
-      ]);
-      taken.addAll([
-        for (final copy in found)
-          if (copy != null) copy.barcode,
-      ]);
-    }
+    final collection = await schoolCollection('libraryCopies');
+    final chunks = [
+      for (var start = 0; start < barcodes.length; start += 30)
+        barcodes.skip(start).take(30).toList(),
+    ];
+    await forEachConcurrently(chunks, 6, (chunk) async {
+      final found = await collection
+          .where(FieldPath.documentId, whereIn: chunk)
+          .get();
+      taken.addAll([for (final document in found.docs) document.id]);
+    });
     return taken;
   }
 

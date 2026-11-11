@@ -4,6 +4,7 @@ import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/import/book_import.dart';
+import 'package:school_library/src/import/concurrent.dart';
 import 'package:school_library/src/import/spreadsheet.dart';
 import 'package:school_library/src/ui/catalogue/widgets/book_import_issues_card.dart';
 import 'package:school_library/src/ui/catalogue/widgets/book_import_preview_section.dart';
@@ -137,15 +138,16 @@ class _BookImportPageState extends State<BookImportPage> {
       _importing = true;
       _results.clear();
     });
-    for (final book in _plan!.books) {
+    // Books are independent, so a few run at once; each one's copies go in order.
+    await forEachConcurrently(_plan!.books, 6, (book) async {
       final result = await libraryProvider.importBook(
         book.book,
         book.copyBatches,
         '$importId-${book.firstLine}',
       );
-      if (!mounted) return;
-      setState(() => _results[book.firstLine] = result);
-    }
+      if (mounted) setState(() => _results[book.firstLine] = result);
+    });
+    if (!mounted) return;
     await libraryProvider.loadBooks();
     if (mounted) {
       setState(() {

@@ -114,6 +114,9 @@ const bookImportColumns = [
   ),
 ];
 
+/// Most copies one `library-book-create` call takes.
+const bookImportCallLimit = 200;
+
 /// Most data rows (copies) one import takes.
 const bookImportMaxRows = 5000;
 
@@ -137,9 +140,6 @@ class BookImportCopy {
   final String condition;
   final double price;
   final String? date;
-
-  /// Copies that can be created by one `library-book-create` call.
-  String get batchKey => '$libraryId|$shelf|$condition|$price|$date';
 }
 
 /// A title and the copies the sheet lists for it (rows with the same title, first author,
@@ -160,27 +160,31 @@ class BookImportBook {
   final Map<String, Object?> book;
   final copies = <BookImportCopy>[];
 
-  /// The `library-book-create` inputs (without `catalogueId`): one per library, shelf, condition,
-  /// price and date, at most 100 copies each.
+  /// The `library-book-create` inputs (without `catalogueId`): one per library, at most
+  /// [bookImportCallLimit] copies each, with every copy's own shelf, condition, price and date.
   List<Map<String, Object?>> get copyBatches {
-    final groups = <String, List<BookImportCopy>>{};
+    final byLibrary = <String, List<BookImportCopy>>{};
     for (final copy in copies) {
-      groups.putIfAbsent(copy.batchKey, () => []).add(copy);
+      byLibrary.putIfAbsent(copy.libraryId, () => []).add(copy);
     }
     return [
-      for (final group in groups.values)
-        for (var start = 0; start < group.length; start += 100)
+      for (final group in byLibrary.values)
+        for (var start = 0; start < group.length; start += bookImportCallLimit)
           () {
-            final part = group.skip(start).take(100).toList();
-            final first = part.first;
+            final part = group.skip(start).take(bookImportCallLimit).toList();
             return <String, Object?>{
-              'libraryId': first.libraryId,
+              'libraryId': part.first.libraryId,
               'quantity': part.length,
               'barcodes': [for (final copy in part) copy.barcode],
-              'shelf': first.shelf,
-              'condition': first.condition,
-              'price': first.price,
-              'date': ?first.date,
+              'details': [
+                for (final copy in part)
+                  {
+                    'shelf': copy.shelf,
+                    'condition': copy.condition,
+                    'price': copy.price,
+                    'date': ?copy.date,
+                  },
+              ],
             };
           }(),
     ];

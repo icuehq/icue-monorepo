@@ -9,6 +9,9 @@ import { defineCallable, failed, id, missing, optionalText, usable } from '../sh
 const text = z.string().trim().min(1).max(120);
 const CONDITIONS = ['good', 'fair', 'poor'] as const;
 
+/** Most copies one call creates: 200 copy writes plus the record, counter and audit stay under Firestore's 500 writes per transaction. */
+const MAX_COPIES = 200;
+
 /** Statuses a librarian may set by hand; issued / in_transit belong to circulation and transfers. */
 const MANUAL = ['available', 'under_maintenance', 'damaged', 'lost', 'withdrawn'] as const;
 const TERMINAL = ['lost', 'withdrawn'];
@@ -35,7 +38,7 @@ export const copies = {
     input: z.object({
       catalogueId: id,
       libraryId: id,
-      quantity: z.number().int().min(1).max(100),
+      quantity: z.number().int().min(1).max(MAX_COPIES),
       date: isoDate.optional(),
       price: z.number().min(0).max(10_000_000).default(0),
       reference: text.nullish(),
@@ -54,7 +57,19 @@ export const copies = {
             .refine((code) => !GENERATED.test(code), 'LB barcodes are issued by the system'),
         )
         .min(1)
-        .max(100)
+        .max(MAX_COPIES)
+        .optional(),
+      /** Per-copy shelf, condition, price and acquisition date, in copy order; a missing value takes the one above. Lets one call carry a whole title's copies (bulk import). */
+      details: z
+        .array(
+          z.object({
+            shelf: text.nullish(),
+            condition: z.enum(CONDITIONS).optional(),
+            price: z.number().min(0).max(10_000_000).optional(),
+            date: isoDate.optional(),
+          }),
+        )
+        .max(MAX_COPIES)
         .optional(),
     }),
     handler: async (context, i) => {
@@ -62,40 +77,46 @@ export const copies = {
         throw failed('Enter one barcode per copy');
       if (i.barcodes && new Set(i.barcodes.map((code) => code.toLowerCase())).size !== i.quantity)
         throw failed('Barcodes must be different for every copy');
-      const library = usable(
-        await context.transaction.get(context.doc(`libraries/${i.libraryId}`)),
-        'Library',
-        false,
+      if (i.details && i.details.length !== i.quantity)
+        throw failed('Enter the details of every copy');
+      const [librarySnapshot, titleSnapshot] = await context.transaction.getAll(
+        context.doc(`libraries/${i.libraryId}`),
+        context.doc(`libraryCatalogue/${i.catalogueId}`),
       );
+      const library = usable(librarySnapshot, 'Library', false);
       context.requireCampus(library.campusId);
-      usable(
-        await context.transaction.get(context.doc(`libraryCatalogue/${i.catalogueId}`)),
-        'Title',
-        false,
-      );
+      usable(titleSnapshot, 'Title', false);
 
       const date = dayTimestamp(i.date ?? todayIST());
       const book = context.newDoc('libraryBooks');
-      const number = await nextNumber(context, 'ACQ');
       const ids =
         i.barcodes ??
         (await nextSequence(context, 'libraryCopy', i.quantity)).map(
           (sequence) => `LB${String(sequence).padStart(6, '0')}`,
         );
-      for (const barcode of ids) {
-        const ref = context.doc(`libraryCopies/${barcode}`);
-        if ((await context.transaction.get(ref)).exists)
-          throw new HttpsError('already-exists', `Barcode "${barcode}" already exists`);
-        context.set(ref, {
+      // One batched read instead of a round trip per copy; the counter is read last so its lock is held briefly.
+      const refs = ids.map((barcode) => context.doc(`libraryCopies/${barcode}`));
+      const existing = (await context.transaction.getAll(...refs)).find(
+        (snapshot) => snapshot.exists,
+      );
+      if (existing)
+        throw new HttpsError('already-exists', `Barcode "${existing.id}" already exists`);
+      const number = await nextNumber(context, 'ACQ');
+      let totalPrice = 0;
+      ids.forEach((barcode, index) => {
+        const detail = i.details?.[index];
+        const price = detail?.price ?? i.price;
+        totalPrice += price;
+        context.set(refs[index], {
           catalogueId: i.catalogueId,
           libraryId: i.libraryId,
           campusId: library.campusId,
-          shelf: i.shelf ?? null,
+          shelf: detail?.shelf ?? i.shelf ?? null,
           barcode,
           bookId: book.id,
-          acquiredDate: date,
-          price: i.price,
-          condition: i.condition,
+          acquiredDate: detail?.date ? dayTimestamp(detail.date) : date,
+          price,
+          condition: detail?.condition ?? i.condition,
           status: 'available',
           remarks: i.remarks ?? null,
           activeLoanId: null,
@@ -103,7 +124,7 @@ export const copies = {
           createdBy: context.uid,
           updatedAt: serverTimestamp(),
         });
-      }
+      });
       const after = {
         number,
         catalogueId: i.catalogueId,
@@ -112,6 +133,7 @@ export const copies = {
         quantity: i.quantity,
         date,
         price: i.price,
+        totalPrice,
         reference: i.reference ?? null,
         remarks: i.remarks ?? null,
         barcodes: ids,

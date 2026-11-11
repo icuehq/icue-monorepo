@@ -89,6 +89,42 @@ describe('library copies and books', () => {
     await expect(buy({ quantity: 1, barcodes: ['9780001'] })).rejects.toThrow();
   });
 
+  it('createBook takes per-copy shelf, condition, price and date over the call defaults', async () => {
+    const purchase = await buy({
+      quantity: 3,
+      shelf: 'A-1',
+      details: [
+        {},
+        { shelf: 'B-2', condition: 'poor', price: 100, date: '2024-03-31' },
+        { price: 0 },
+      ],
+    });
+    expect(await get('libraryCopies/ACC-000001')).toMatchObject({
+      shelf: 'A-1',
+      condition: 'good',
+      price: 250,
+    });
+    expect(await get('libraryCopies/ACC-000002')).toMatchObject({
+      shelf: 'B-2',
+      condition: 'poor',
+      price: 100,
+    });
+    expect(await get('libraryCopies/ACC-000003')).toMatchObject({ price: 0 });
+    expect(await get(`libraryBooks/${purchase.id}`)).toMatchObject({ totalPrice: 350 });
+    await expect(buy({ quantity: 2, details: [{}] })).rejects.toThrow();
+  });
+
+  it('createBook creates up to 200 copies in one call and refuses 201', async () => {
+    const barcodes = Array.from({ length: 200 }, (_, index) => `BULK-${index}`);
+    const purchase = await buy({ quantity: 200, barcodes });
+    expect(purchase.barcodes).toHaveLength(200);
+    expect(await count('libraryCopies')).toBe(200);
+    await expect(buy({ quantity: 201, barcodes: [...barcodes, 'BULK-200'] })).rejects.toThrow();
+    await expect(buy({ quantity: 1, barcodes: ['BULK-137'] })).rejects.toMatchObject({
+      code: 'already-exists',
+    });
+  });
+
   it('createBook issues LB running barcodes when none are scanned', async () => {
     const first = await buy({ quantity: 2, barcodes: undefined });
     expect(first.barcodes).toEqual(['LB000001', 'LB000002']);

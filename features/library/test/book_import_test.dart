@@ -89,13 +89,21 @@ void main() {
     expect(first.copies, hasLength(3));
     expect(first.book['authors'], ['Kalam', 'Tiwari']);
     final batches = first.copyBatches;
-    expect(batches, hasLength(2)); // (Central, B-1, 250, date) and (Junior)
+    expect(batches, hasLength(2)); // one call per library
     expect(batches.first['barcodes'], ['A1', 'A2']);
     expect(batches.first['quantity'], 2);
-    expect(batches.first['price'], 250.0);
-    expect(batches.first['date'], '2024-03-31');
+    final details = batches.first['details']! as List<Map<String, Object?>>;
+    expect(details.first, {
+      'shelf': 'B-1',
+      'condition': 'good',
+      'price': 250.0,
+      'date': '2024-03-31',
+    });
     expect(batches.last['libraryId'], 'l2');
-    expect(batches.last.containsKey('date'), isFalse);
+    final junior =
+        (batches.last['details']! as List<Map<String, Object?>>).single;
+    expect(junior.containsKey('date'), isFalse);
+    expect(junior['shelf'], isNull);
   });
 
   test(
@@ -137,6 +145,14 @@ void main() {
       expect(errors[7], contains('reserved'));
     },
   );
+
+  test('a call never carries more than 200 copies', () {
+    final plan = _plan([
+      for (var index = 0; index < 450; index++) _row({'barcode': 'B$index'}),
+    ]);
+    final batches = plan.books.single.copyBatches;
+    expect(batches.map((batch) => batch['quantity']), [200, 200, 50]);
+  });
 
   test('barcodes already in the system become issues', () {
     final plan = _plan([
