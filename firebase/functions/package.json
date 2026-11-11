@@ -7,6 +7,8 @@
   },
   "scripts": {
     "build": "tsc",
+    "deploy:dev": "npm run build && firebase deploy --only functions --project dev",
+    "deploy:prod": "npm run build && firebase deploy --only functions --project prod",
     "test:unit": "vitest run test/unit",
     "test": "firebase emulators:exec --only firestore --project demo-icue \"vitest run\"",
     "lint": "eslint .",
