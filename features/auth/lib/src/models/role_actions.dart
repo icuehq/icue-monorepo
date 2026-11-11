@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:hive/hive.dart';
+import 'package:hive_ce/hive.dart';
 
 List<RoleActions> roleActionsFromJson(String str) => List<RoleActions>.from(
   (json.decode(str) as List<dynamic>).map(

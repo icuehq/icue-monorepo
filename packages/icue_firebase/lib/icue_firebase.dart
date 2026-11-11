@@ -20,11 +20,11 @@ export 'package:firebase_storage/firebase_storage.dart'
 
 export 'src/analytics_service.dart';
 export 'src/backend.dart';
+export 'src/branch_data.dart';
 export 'src/contracts.g.dart';
 export 'src/crashlytics_service.dart';
 export 'src/emulator.dart' show emulatorCustomToken, emulatorHost, usesEmulator;
 export 'src/notification_service.dart' show NotificationService;
-export 'src/branch_data.dart';
 
 /// Single entry point for every app: pass its generated `DefaultFirebaseOptions`.
 /// Add new Firebase services here once.

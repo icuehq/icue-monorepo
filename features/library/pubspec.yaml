@@ -9,6 +9,7 @@ environment:
 dependencies:
   api_client:
   archive: ^4.5.2
+  auth:
   flutter:
     sdk: flutter
   go_router: ^18.1.1

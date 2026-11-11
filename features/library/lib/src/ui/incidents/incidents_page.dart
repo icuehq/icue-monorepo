@@ -18,7 +18,7 @@ class IncidentsPage extends StatefulWidget {
 
 class _IncidentsPageState extends State<IncidentsPage> {
   final _searchController = TextEditingController();
-  String _status = 'open';
+  String _status = 'all';
   String _searchQuery = '';
 
   @override

@@ -4,6 +4,7 @@ import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/routing/library_destinations.dart';
+import 'package:school_library/src/ui/widgets/librarian_logout_button.dart';
 
 class LibraryHomePage extends StatefulWidget {
   const LibraryHomePage({super.key});
@@ -27,7 +28,10 @@ class _LibraryHomePageState extends State<LibraryHomePage> {
     final visibleTiles = libraryGroups;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Library')),
+      appBar: AppBar(
+        title: const Text('Library'),
+        actions: const [LibrarianLogoutButton()],
+      ),
       body: libraryProvider.isLoading
           ? const Center(child: CircularProgressIndicator())
           : libraryProvider.errorMessage != null

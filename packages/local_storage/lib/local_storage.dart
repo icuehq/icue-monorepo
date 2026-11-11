@@ -1,6 +1,6 @@
 library;
 
-export 'package:hive/hive.dart' show Box;
+export 'package:hive_ce/hive.dart' show Box;
 
 export 'src/constants/storage_constants.dart';
 export 'src/di/local_storage_micro_module.dart';

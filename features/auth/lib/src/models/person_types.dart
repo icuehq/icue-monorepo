@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:hive/hive.dart';
+import 'package:hive_ce/hive.dart';
 
 PersonTypes personTypesFromJson(String str) =>
     PersonTypes.fromJson(json.decode(str) as Map<String, dynamic>);

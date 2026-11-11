@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:api_client/api_client.dart';
 import 'package:auth/auth.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hive/hive.dart';
+import 'package:hive_ce/hive.dart';
 import 'package:local_storage/local_storage.dart';
 
 void main() {

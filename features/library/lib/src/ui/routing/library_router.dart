@@ -1,5 +1,7 @@
+import 'package:auth/auth.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icue_ui/icue_ui.dart';
+import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/catalogue/book_details_page.dart';
 import 'package:school_library/src/ui/catalogue/book_form_page.dart';
@@ -17,6 +19,7 @@ import 'package:school_library/src/ui/libraries/library_categories_page.dart';
 import 'package:school_library/src/ui/members/members_page.dart';
 import 'package:school_library/src/ui/policies/policies_page.dart';
 import 'package:school_library/src/ui/routing/library_destinations.dart';
+import 'package:school_library/src/ui/widgets/librarian_logout_button.dart';
 
 /// Library screens as go_router routes, inside a shell that adds side navigation on wide screens.
 List<RouteBase> libraryRoutes() => [
@@ -25,7 +28,10 @@ List<RouteBase> libraryRoutes() => [
       final shell = IcueModuleShell(
         title: 'Library',
         homePath: LibraryRoutes.library,
+        // Librarians live in this module; there is no dashboard to go back to.
+        exitPath: context.read<AuthProvider>().isLibrarian ? null : '/',
         location: state.uri.path,
+        footer: const LibrarianLogoutButton(expanded: true),
         destinations: libraryNavigation,
         child: child,
       );

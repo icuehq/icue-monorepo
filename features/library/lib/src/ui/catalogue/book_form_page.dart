@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
@@ -202,6 +203,7 @@ class _BookFormPageState extends State<BookFormPage> {
     setState(() => _busy = true);
     final libraryProvider = context.read<LibraryProvider>();
     final title = _title.text.trim();
+    final router = GoRouter.of(context);
     final saved = await submitAndClose<LibraryProvider>(
       context,
       () => libraryProvider.saveBook(
@@ -235,8 +237,16 @@ class _BookFormPageState extends State<BookFormPage> {
         ]),
       );
     }
-    if (saved && mounted) {
+    if (saved) {
       _dirty = false;
+      // A new title opens its details; `_copiesRequestId` is the ID it was saved under.
+      if (_existingBook == null) {
+        unawaited(
+          router.push(
+            '${LibraryRoutes.libraryBookDetails}?id=$_copiesRequestId',
+          ),
+        );
+      }
     } else if (mounted) {
       setState(() => _busy = false);
     }

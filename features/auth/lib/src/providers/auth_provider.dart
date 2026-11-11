@@ -64,6 +64,11 @@ class AuthProvider extends ChangeNotifier {
         roleName == 'fleet_zonalsupervisor';
   }
 
+  /// Whether the signed-in user is a Librarian (lands in the library module).
+  bool get isLibrarian =>
+      user?.roles.any((role) => role.name.toLowerCase() == 'librarian') ??
+      false;
+
   /// Whether user must pick a branch before continuing to the main dashboard.
   bool get needsBranchSelection {
     return isAuthenticated &&

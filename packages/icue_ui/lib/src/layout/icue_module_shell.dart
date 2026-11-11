@@ -48,15 +48,19 @@ class IcueModuleShell extends StatelessWidget {
     this.icon,
     this.exitPath = '/',
     this.exitLabel = 'Dashboard',
+    this.footer,
     super.key,
   });
 
   final String title;
   final IconData? icon;
 
-  /// Where the back-to-dashboard entry goes.
-  final String exitPath;
+  /// Where the back-to-dashboard entry goes; null hides the entry.
+  final String? exitPath;
   final String exitLabel;
+
+  /// Optional entry pinned to the bottom of the side navigation.
+  final Widget? footer;
   final String homePath;
 
   /// Current route path, used to highlight the open entry.
@@ -177,47 +181,51 @@ class IcueModuleShell extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(10, 12, 10, 8),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Material(
-                        color: Colors.transparent,
-                        borderRadius: BorderRadius.circular(8),
-                        clipBehavior: Clip.antiAlias,
-                        child: InkWell(
-                          onTap: () => context.go(exitPath),
-                          hoverColor: theme.colorScheme.onSurface.withValues(
-                            alpha: 0.04,
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 8,
+                  if (exitPath case final exitPath?)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(10, 12, 10, 8),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Material(
+                          color: Colors.transparent,
+                          borderRadius: BorderRadius.circular(8),
+                          clipBehavior: Clip.antiAlias,
+                          child: InkWell(
+                            onTap: () => context.go(exitPath),
+                            hoverColor: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.04,
                             ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.arrow_back_rounded,
-                                  size: 16,
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  exitLabel,
-                                  style: theme.textTheme.labelMedium?.copyWith(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 8,
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.arrow_back_rounded,
+                                    size: 16,
                                     color: theme.colorScheme.onSurfaceVariant,
-                                    fontWeight: FontWeight.w600,
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    exitLabel,
+                                    style: theme.textTheme.labelMedium
+                                        ?.copyWith(
+                                          color: theme
+                                              .colorScheme
+                                              .onSurfaceVariant,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
                       ),
                     ),
-                  ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
                     child: Row(
@@ -277,6 +285,7 @@ class IcueModuleShell extends StatelessWidget {
                       children: entries,
                     ),
                   ),
+                  ?footer,
                 ],
               ),
             ),

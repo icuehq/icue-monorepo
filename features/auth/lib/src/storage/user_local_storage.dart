@@ -2,7 +2,7 @@ import 'package:auth/src/models/branches.dart';
 import 'package:auth/src/models/person_types.dart';
 import 'package:auth/src/models/role_actions.dart';
 import 'package:auth/src/models/user_info.dart';
-import 'package:hive/hive.dart';
+import 'package:hive_ce/hive.dart';
 import 'package:injectable/injectable.dart';
 import 'package:local_storage/local_storage.dart';
 

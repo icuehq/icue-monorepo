@@ -23,7 +23,13 @@ class CrashlyticsService {
   Future<void> init() async {
     if (kIsWeb) {
       if (kDebugMode) return;
-      await initWebCrashlytics();
+      // Preview JS SDK: a load failure must never block app startup.
+      try {
+        await initWebCrashlytics();
+      } on Object catch (error) {
+        debugPrint('Web Crashlytics unavailable: $error');
+        return;
+      }
       FlutterError.onError = (details) {
         FlutterError.presentError(details);
         recordWebError(details.exception, details.stack);

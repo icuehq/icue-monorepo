@@ -13,9 +13,20 @@ Future<CollectionReference<Map<String, dynamic>>> branchCollection(
 ) async {
   final user = FirebaseAuth.instance.currentUser!;
   if (_branchUid != user.uid) {
-    final claims = (await user.getIdTokenResult()).claims;
+    var claims = (await user.getIdTokenResult()).claims;
+    // Right after first sign-in the cached token may predate the claims; refresh it once.
+    if (claims?['branchId'] == null) {
+      claims = (await user.getIdTokenResult(true)).claims;
+    }
+    if (claims?['branchId'] == null) throw StateError('Branch claims missing');
+    // Web returns numeric claims as doubles (`8.0`), which would not match the `8` path in the rules.
+    String id(String key) {
+      final value = claims?[key];
+      return value is num ? value.toInt().toString() : '$value';
+    }
+
     _branchPath =
-        'orgs/${claims?['orgId']}/zones/${claims?['zoneId']}/branches/${claims?['branchId']}';
+        'orgs/${id('orgId')}/zones/${id('zoneId')}/branches/${id('branchId')}';
     _branchUid = user.uid;
   }
   return FirebaseFirestore.instance.collection('$_branchPath/$path');

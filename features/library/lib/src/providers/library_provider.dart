@@ -69,7 +69,7 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   List<LibraryIncident> get incidents => _incidents.items;
   bool get incidentsLoading => _incidents.loading;
   bool get hasMoreIncidents => _incidents.hasMore;
-  String incidentStatus = 'open';
+  String incidentStatus = 'all';
 
   /// The student (`student`) or staff member (`teacher`) with [identifier] (student admission number or RFID, staff ERP ID) in the ERP, or null.
   Future<LibraryPerson?> findPerson(String type, String identifier) =>

@@ -8,11 +8,20 @@
         ],
         "rewrites": [
             {
-                "source": "**",
+                "source": "**/!(*.@(js|mjs|css|png|jpg|jpeg|gif|webp|svg|woff|woff2|ttf|otf|json|wasm|part|map))",
                 "destination": "/index.html"
             }
         ],
         "headers": [
+            {
+                "source": "**",
+                "headers": [
+                    {
+                        "key": "Cross-Origin-Opener-Policy",
+                        "value": "same-origin-allow-popups"
+                    }
+                ]
+            },
             {
                 "source": "**/*.@(js|css|wasm|mjs)",
                 "headers": [

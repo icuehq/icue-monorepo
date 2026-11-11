@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:hive/hive.dart';
+import 'package:hive_ce/hive.dart';
 
 Branchs branchsFromJson(String str) =>
     Branchs.fromJson(json.decode(str) as Map<String, dynamic>);

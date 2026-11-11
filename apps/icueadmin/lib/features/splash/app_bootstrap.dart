@@ -78,18 +78,15 @@ class _AppBootstrapState extends State<AppBootstrap> {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           theme: IcueTheme.forEnvironment(isProd: widget.environment.isProd),
-          // Always show the splash, whatever URL the browser opened on
-          // (e.g. /login), which this router-less app has no route for.
-          onGenerateInitialRoutes: (_) => [
-            MaterialPageRoute<void>(
-              builder: (_) => SplashPage(
-                error: snapshot.error,
-                onRetry: () => setState(() {
-                  _init = _initialize();
-                }),
-              ),
-            ),
-          ],
+          // `home` (not onGenerateInitialRoutes) so the splash shows whatever
+          // URL the browser opened on (e.g. /login), which this router-less
+          // app has no route for; initial routes leave web builds blank.
+          home: SplashPage(
+            error: snapshot.error,
+            onRetry: () => setState(() {
+              _init = _initialize();
+            }),
+          ),
         );
       },
     );

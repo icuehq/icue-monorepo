@@ -7,6 +7,20 @@ import 'package:school_library/school_library.dart';
 
 void main() {
   group('handleAuthRedirect pure logic', () {
+    test('librarian is sent to the library from login and dashboard', () {
+      for (final from in [AppRoutes.login, AppRoutes.dashboard]) {
+        expect(
+          handleAuthRedirect(
+            isAuthenticated: true,
+            needsBranchSelection: false,
+            isLibrarian: true,
+            matchedLocation: from,
+          ),
+          LibraryRoutes.library,
+        );
+      }
+    });
+
     test('redirects unauthenticated to login', () {
       expect(
         handleAuthRedirect(

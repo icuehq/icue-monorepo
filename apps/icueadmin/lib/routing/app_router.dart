@@ -88,6 +88,7 @@ String? handleAuthRedirect({
   required bool isAuthenticated,
   required bool needsBranchSelection,
   required String matchedLocation,
+  bool isLibrarian = false,
 }) {
   final isLoginRoute = matchedLocation == AppRoutes.login;
   final isBranchesRoute = matchedLocation == AppRoutes.branches;
@@ -102,9 +103,10 @@ String? handleAuthRedirect({
     return isBranchesRoute ? null : AppRoutes.branches;
   }
 
-  // 3. Authenticated users should not stay on the login screen
-  if (isLoginRoute) {
-    return AppRoutes.dashboard;
+  // 3. Authenticated users should not stay on the login screen; librarians
+  // land in the library module instead of the dashboard.
+  if (isLoginRoute || (isLibrarian && matchedLocation == AppRoutes.dashboard)) {
+    return isLibrarian ? LibraryRoutes.library : AppRoutes.dashboard;
   }
 
   return null;
@@ -125,6 +127,7 @@ GoRouter createRouter({
     redirect: (context, state) => handleAuthRedirect(
       isAuthenticated: authProvider.isAuthenticated,
       needsBranchSelection: authProvider.needsBranchSelection,
+      isLibrarian: authProvider.isLibrarian,
       matchedLocation: state.matchedLocation,
     ),
     routes: [
