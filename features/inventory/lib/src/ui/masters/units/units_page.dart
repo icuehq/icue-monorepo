@@ -38,16 +38,7 @@ class _UnitsPageState extends State<UnitsPage> {
     ];
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Units of measurement'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            tooltip: 'Reload',
-            onPressed: inventoryProvider.loadMasters,
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Units of measurement')),
       floatingActionButton: canEdit && allUnits.isNotEmpty && !wide
           ? FloatingActionButton.extended(
               onPressed: () => UnitDialog.show(context),

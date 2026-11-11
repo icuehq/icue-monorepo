@@ -117,55 +117,49 @@ class IcueModuleShell extends StatelessWidget {
               onTap: () => context.go(destination.path),
               hoverColor: activeColor.withValues(alpha: 0.04),
               splashColor: activeColor.withValues(alpha: 0.08),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-                child: Row(
-                  children: [
-                    if (destination.iconAsset != null)
-                      Image.asset(
-                        destination.iconAsset!,
-                        width: 24,
-                        height: 24,
-                        fit: BoxFit.contain,
-                      )
-                    else
-                      Icon(
-                        destination.icon,
-                        size: 20,
-                        color: isSelected ? activeColor : inactiveIconColor,
+              child: Row(
+                children: [
+                  if (destination.iconAsset != null)
+                    Image.asset(
+                      destination.iconAsset!,
+                      width: 40,
+                      height: 40,
+                      fit: BoxFit.contain,
+                    )
+                  else
+                    Icon(
+                      destination.icon,
+                      size: 28,
+                      color: isSelected ? activeColor : inactiveIconColor,
+                    ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      destination.label,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: isSelected ? activeColor : inactiveColor,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.w500,
                       ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        destination.label,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: isSelected ? activeColor : inactiveColor,
-                          fontWeight: isSelected
-                              ? FontWeight.w600
-                              : FontWeight.w500,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (destination.badge != null) ...[
+                    const SizedBox(width: 8),
+                    destination.badge!,
+                  ],
+                  if (isSelected)
+                    Container(
+                      width: 4,
+                      height: 16,
+                      decoration: BoxDecoration(
+                        color: activeColor,
+                        borderRadius: BorderRadius.circular(2),
                       ),
                     ),
-                    if (destination.badge != null) ...[
-                      const SizedBox(width: 8),
-                      destination.badge!,
-                    ],
-                    if (isSelected)
-                      Container(
-                        width: 4,
-                        height: 16,
-                        decoration: BoxDecoration(
-                          color: activeColor,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                  ],
-                ),
+                ],
               ),
             ),
           ),

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
-import 'package:school_library/src/ui/circulation/widgets/circulation_tabs.dart';
 import 'package:school_library/src/ui/fines/widgets/fine_card.dart';
 import 'package:school_library/src/ui/fines/widgets/fine_dialog.dart';
 import 'package:school_library/src/ui/fines/widgets/fine_empty_states.dart';
@@ -18,7 +17,7 @@ class FinesPage extends StatefulWidget {
 
 class _FinesPageState extends State<FinesPage> {
   final _searchController = TextEditingController();
-  String _status = 'outstanding';
+  String _status = 'all';
   String _searchQuery = '';
 
   @override
@@ -221,17 +220,7 @@ class _FinesPageState extends State<FinesPage> {
     }).toList();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Circulation'),
-        actions: [
-          IconButton(
-            tooltip: 'Refresh fines',
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: () => libraryProvider.loadFines(status: _status),
-          ),
-        ],
-        bottom: CirculationTabBar(activeTab: CirculationTab.fines),
-      ),
+      appBar: AppBar(title: const Text('Fines')),
       body: context.isWide
           ? Column(
               children: [
@@ -282,6 +271,7 @@ class _FinesPageState extends State<FinesPage> {
                             scrollDirection: Axis.horizontal,
                             child: SegmentedButton<String>(
                               segments: const [
+                                ButtonSegment(value: 'all', label: Text('All')),
                                 ButtonSegment(
                                   value: 'outstanding',
                                   label: Text('Outstanding'),
@@ -298,7 +288,6 @@ class _FinesPageState extends State<FinesPage> {
                                   value: 'waived',
                                   label: Text('Waived'),
                                 ),
-                                ButtonSegment(value: 'all', label: Text('All')),
                               ],
                               selected: {_status},
                               onSelectionChanged: (values) =>

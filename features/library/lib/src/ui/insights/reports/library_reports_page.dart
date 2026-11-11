@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
@@ -75,7 +74,7 @@ class _LibraryReportsPageState extends State<LibraryReportsPage> {
     final now = DateTime.now();
     final picked = await showDateRangePicker(
       context: context,
-      firstDate: DateTime(now.year - 5),
+      firstDate: DateTime(2000),
       lastDate: DateTime(now.year + 2),
       initialDateRange: _range,
     );
@@ -84,13 +83,15 @@ class _LibraryReportsPageState extends State<LibraryReportsPage> {
 
   Future<void> _exportCsv(List<String> header, List<List<String>> rows) async {
     final csv = toCsv(header, rows);
-    await Clipboard.setData(ClipboardData(text: csv));
+    final saved = await saveCsvFile('${_def.key}-report.csv', csv);
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          'Copied ${rows.length} ${rows.length == 1 ? 'row' : 'rows'} to clipboard as CSV',
+          saved
+              ? 'Downloaded ${rows.length} ${rows.length == 1 ? 'row' : 'rows'} as CSV'
+              : 'Download cancelled',
         ),
         duration: const Duration(seconds: 3),
         behavior: SnackBarBehavior.floating,
@@ -127,20 +128,6 @@ class _LibraryReportsPageState extends State<LibraryReportsPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Library Reports'),
-        actions: [
-          IconButton(
-            tooltip: 'Refresh report',
-            icon: library.insightsLoading
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.refresh_rounded),
-            onPressed: library.insightsLoading ? null : _load,
-          ),
-          const SizedBox(width: 12),
-        ],
         bottom: library.insightsLoading
             ? const PreferredSize(
                 preferredSize: Size.fromHeight(3),
@@ -164,12 +151,13 @@ class _LibraryReportsPageState extends State<LibraryReportsPage> {
               filters: [
                 IcueTableFilter(
                   id: 'report',
+                  allowAll: false,
                   label: 'Report',
                   options: const [
-                    IcueTableFilterOption('dateRange', 'All Issues'),
-                    IcueTableFilterOption('student', 'Student'),
-                    IcueTableFilterOption('staff', 'Staff'),
-                    IcueTableFilterOption('monthly', 'Monthly'),
+                    IcueTableFilterOption('dateRange', 'All'),
+                    IcueTableFilterOption('student', 'By Student'),
+                    IcueTableFilterOption('staff', 'By Staff'),
+                    IcueTableFilterOption('monthly', 'By Month'),
                   ],
                   value: _def.key,
                   onChanged: (reportKey) {
@@ -181,15 +169,11 @@ class _LibraryReportsPageState extends State<LibraryReportsPage> {
                 ),
                 IcueTableFilter(
                   id: 'period',
+                  allowAll: false,
                   label: 'Period',
                   options: [
                     for (final preset in LibraryDatePreset.values)
-                      IcueTableFilterOption(
-                        preset.name,
-                        preset == LibraryDatePreset.custom
-                            ? '${_range.start.toNumericDate()} → ${_range.end.toNumericDate()}'
-                            : preset.label,
-                      ),
+                      IcueTableFilterOption(preset.name, preset.label),
                   ],
                   value: _datePreset.name,
                   onChanged: (name) {

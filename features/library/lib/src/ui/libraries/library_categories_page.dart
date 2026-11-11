@@ -131,13 +131,7 @@ class _LibraryCategoriesPageState extends State<LibraryCategoriesPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Book categories'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            tooltip: 'Reload',
-            onPressed: () => libraryProvider.loadMasters(),
-          ),
-        ],
+
         bottom: const LibraryTabBar(
           tabs: librarySettingsTabs,
           activePath: LibraryRoutes.libraryCategories,

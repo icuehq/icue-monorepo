@@ -119,16 +119,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
     final hasAnyCategories = inventoryProvider.categories.isNotEmpty;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Categories'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            tooltip: 'Reload',
-            onPressed: () => inventoryProvider.loadMasters(),
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Categories')),
       floatingActionButton: canEdit && hasAnyCategories && !context.isWide
           ? FloatingActionButton.extended(
               onPressed: () => CategoryDialog.show(context),

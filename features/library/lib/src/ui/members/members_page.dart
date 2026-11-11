@@ -130,16 +130,7 @@ class _MembersPageState extends State<MembersPage> {
     );
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Members'),
-        actions: [
-          IconButton(
-            tooltip: 'Refresh members',
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: () => libraryProvider.loadMembers(),
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Members')),
       body: isWide
           ? Padding(
               padding: const EdgeInsets.all(16),

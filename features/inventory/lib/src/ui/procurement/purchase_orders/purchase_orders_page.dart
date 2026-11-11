@@ -80,16 +80,7 @@ class _PurchaseOrdersPageState extends State<PurchaseOrdersPage> {
     }).toList();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Purchase Orders'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            tooltip: 'Refresh',
-            onPressed: _load,
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Purchase Orders')),
       body: IcueCenteredBody(
         child: Column(
           children: [

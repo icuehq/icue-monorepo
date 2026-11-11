@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -60,4 +62,15 @@ Future<IcuePickedFile?> pickFile(
   );
   if (image == null) return null;
   return IcuePickedFile(name: image.name, bytes: await image.readAsBytes());
+}
+
+/// Downloads [csv] as [fileName] (browser download on web, save dialog elsewhere).
+/// Returns false when the user cancelled. The BOM makes Excel read UTF-8 (₹, names).
+Future<bool> saveCsvFile(String fileName, String csv) async {
+  final saved = await FilePicker.saveFile(
+    fileName: fileName,
+    bytes: Uint8List.fromList([0xEF, 0xBB, 0xBF, ...utf8.encode(csv)]),
+    mimeType: 'text/csv',
+  );
+  return kIsWeb || saved != null;
 }

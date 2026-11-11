@@ -87,18 +87,7 @@ class _CataloguePageState extends State<CataloguePage> {
         libraryProvider.bookClassId != null;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Catalogue'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            tooltip: 'Reload catalogue',
-            onPressed: () => libraryProvider.loadBooks(
-              search: _searchController.text.trim(),
-            ),
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Books Catalogue')),
       floatingActionButton: !isWide
           ? FloatingActionButton.extended(
               onPressed: () =>

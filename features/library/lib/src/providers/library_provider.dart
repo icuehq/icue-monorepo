@@ -63,7 +63,7 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   List<LibraryFine> get fines => _fines.items;
   bool get finesLoading => _fines.loading;
   bool get hasMoreFines => _fines.hasMore;
-  String fineStatus = 'outstanding';
+  String fineStatus = 'all';
 
   /// Incidents by status: 'open', 'resolved', or 'all'.
   List<LibraryIncident> get incidents => _incidents.items;

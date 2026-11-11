@@ -168,16 +168,7 @@ class _QuotationsPageState extends State<QuotationsPage> {
         : 0.0;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Quotations · ${purchaseRequest.number}'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            tooltip: 'Refresh',
-            onPressed: _load,
-          ),
-        ],
-      ),
+      appBar: AppBar(title: Text('Quotations · ${purchaseRequest.number}')),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _open(InventoryRoutes.inventoryQuotationForm, (
           purchaseRequest,

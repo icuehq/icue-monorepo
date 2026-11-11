@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
-import 'package:school_library/src/ui/circulation/widgets/circulation_tabs.dart';
 import 'package:school_library/src/ui/incidents/widgets/incident_card.dart';
 import 'package:school_library/src/ui/incidents/widgets/incident_dialog.dart';
 import 'package:school_library/src/ui/incidents/widgets/incident_empty_states.dart';
@@ -110,17 +109,7 @@ class _IncidentsPageState extends State<IncidentsPage> {
     }).toList();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Circulation'),
-        actions: [
-          IconButton(
-            tooltip: 'Refresh incidents',
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: () => libraryProvider.loadIncidents(status: _status),
-          ),
-        ],
-        bottom: CirculationTabBar(activeTab: CirculationTab.incidents),
-      ),
+      appBar: AppBar(title: const Text('Lost & Damaged')),
       floatingActionButton: context.isWide
           ? null
           : FloatingActionButton.extended(

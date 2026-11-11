@@ -62,16 +62,7 @@ class _UnavailablePageState extends State<UnavailablePage> {
     }).toList();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Damaged / Expired Stock'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            tooltip: 'Refresh',
-            onPressed: _load,
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Damaged / Expired Stock')),
       body: context.isWide
           ? Padding(
               padding: const EdgeInsets.all(16),

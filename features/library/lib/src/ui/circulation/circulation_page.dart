@@ -4,7 +4,6 @@ import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/circulation/widgets/circulation_empty_states.dart';
-import 'package:school_library/src/ui/circulation/widgets/circulation_tabs.dart';
 import 'package:school_library/src/ui/circulation/widgets/loan_card.dart';
 import 'package:school_library/src/ui/circulation/widgets/loan_dialog.dart';
 import 'package:school_library/src/ui/circulation/widgets/loans_table.dart';
@@ -179,13 +178,7 @@ class _CirculationPageState extends State<CirculationPage> {
               onPressed: () => context.push(LibraryRoutes.libraryIssue),
               leadingIcon: Icons.add_rounded,
             ),
-          IconButton(
-            tooltip: 'Refresh loans',
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: () => libraryProvider.loadLoans(),
-          ),
         ],
-        bottom: CirculationTabBar(activeTab: CirculationTab.loans),
       ),
       body: isWide
           ? Padding(

@@ -22,7 +22,7 @@ class LoansTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IcueClientTable<LibraryLoan>(
-      title: 'Loans',
+      title: 'Issued Books',
       items: loans,
       rowKey: (loan) => loan.id,
       rowLabel: (loan) => loan.barcode,

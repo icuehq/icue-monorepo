@@ -99,13 +99,7 @@ class _LibrariesPageState extends State<LibrariesPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Libraries'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            tooltip: 'Reload',
-            onPressed: () => libraryProvider.loadMasters(),
-          ),
-        ],
+
         bottom: const LibraryTabBar(
           tabs: librarySettingsTabs,
           activePath: LibraryRoutes.libraryList,

@@ -88,16 +88,7 @@ class _InventoryOverviewPageState extends State<InventoryOverviewPage> {
     );
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Overview'),
-        actions: [
-          IconButton(
-            tooltip: 'Refresh',
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: insightsProvider.isLoading ? null : _load,
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Overview')),
       body: IcueCenteredBody(
         child: ListView(
           padding: EdgeInsets.all(wide ? 24 : 16),

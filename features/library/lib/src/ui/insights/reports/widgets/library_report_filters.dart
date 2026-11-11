@@ -3,6 +3,7 @@ import 'package:icue_ui/icue_ui.dart';
 
 /// Available date range presets for library reports.
 enum LibraryDatePreset {
+  all('All'),
   currentMonth('Current Month'),
   lastMonth('Last Month'),
   last6Months('Last 6 Months'),
@@ -20,6 +21,8 @@ DateTimeRange calculateRangeForPreset(
 }) {
   final today = DateTime.now().dateOnly;
   switch (preset) {
+    case LibraryDatePreset.all:
+      return DateTimeRange(start: DateTime(2000), end: today);
     case LibraryDatePreset.currentMonth:
       return DateTimeRange(
         start: DateTime(today.year, today.month),

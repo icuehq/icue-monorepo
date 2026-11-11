@@ -35,7 +35,7 @@ class CatalogueTable extends StatelessWidget {
     void addBook() => context.pushNamed(LibraryRoutes.libraryBookFormName);
 
     return IcueTable<LibraryBook>(
-      title: 'Catalogue',
+      title: 'Books Catalogue',
       rows: books,
       rowKey: (book) => book.id,
       rowLabel: (book) => book.title,

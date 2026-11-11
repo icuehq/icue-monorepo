@@ -36,13 +36,7 @@ class PoliciesPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Borrowing Policies'),
-        actions: [
-          IconButton(
-            tooltip: 'Refresh policies',
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: () => libraryProvider.loadMasters(),
-          ),
-        ],
+
         bottom: const LibraryTabBar(
           tabs: librarySettingsTabs,
           activePath: LibraryRoutes.libraryPolicies,

@@ -87,16 +87,7 @@ class _InvoicesPageState extends State<InvoicesPage> {
     }).toList();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Vendor Invoices'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            tooltip: 'Refresh',
-            onPressed: _load,
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Vendor Invoices')),
       body: IcueCenteredBody(
         child: Column(
           children: [

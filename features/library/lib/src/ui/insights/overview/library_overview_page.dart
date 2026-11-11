@@ -96,70 +96,59 @@ class _LibraryOverviewPageState extends State<LibraryOverviewPage> {
     final dueNext = OverviewDueNextCard(libraryProvider: libraryProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Overview'),
-        actions: [
-          IconButton(
-            tooltip: 'Refresh',
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: libraryProvider.insightsLoading ? null : _load,
-          ),
-        ],
-      ),
-      body: IcueCenteredBody(
-        child: ListView(
-          padding: EdgeInsets.all(wide ? 24 : 16),
-          children: [
+      appBar: AppBar(title: const Text('Overview')),
+      body: ListView(
+        padding: EdgeInsets.all(wide ? 24 : 16),
+        children: [
+          if (wide)
+            Row(
+              children: [
+                const Expanded(child: OverviewQuickActions()),
+                const SizedBox(width: 16),
+                filter,
+              ],
+            )
+          else ...[
+            filter,
+            const SizedBox(height: 12),
+            const OverviewQuickActions(),
+          ],
+          const SizedBox(height: 20),
+          if (libraryProvider.insightsLoading && stats.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(56),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else ...[
+            OverviewKpiGrid(stats: stats),
+            const SizedBox(height: 16),
             if (wide)
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Expanded(child: OverviewQuickActions()),
+                  Expanded(
+                    flex: 3,
+                    child: Column(
+                      children: [
+                        collection,
+                        const SizedBox(height: 16),
+                        dueNext,
+                      ],
+                    ),
+                  ),
                   const SizedBox(width: 16),
-                  filter,
+                  Expanded(flex: 2, child: attention),
                 ],
               )
             else ...[
-              filter,
-              const SizedBox(height: 12),
-              const OverviewQuickActions(),
-            ],
-            const SizedBox(height: 20),
-            if (libraryProvider.insightsLoading && stats.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(56),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else ...[
-              OverviewKpiGrid(stats: stats),
+              attention,
               const SizedBox(height: 16),
-              if (wide)
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      flex: 3,
-                      child: Column(
-                        children: [
-                          collection,
-                          const SizedBox(height: 16),
-                          dueNext,
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(flex: 2, child: attention),
-                  ],
-                )
-              else ...[
-                attention,
-                const SizedBox(height: 16),
-                collection,
-                const SizedBox(height: 16),
-                dueNext,
-              ],
+              collection,
+              const SizedBox(height: 16),
+              dueNext,
             ],
           ],
-        ),
+        ],
       ),
     );
   }

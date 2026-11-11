@@ -40,8 +40,21 @@ const _groups = <(String, String, List<LibraryEntry>)>[
     'Issue Books',
     'assets/dashboard/library-circulation.png',
     [
-      LibraryEntry(label: 'Loans', path: LibraryRoutes.libraryCirculation),
-      LibraryEntry(label: 'Fines', path: LibraryRoutes.libraryFines),
+      LibraryEntry(
+        label: 'Issued Books',
+        path: LibraryRoutes.libraryCirculation,
+      ),
+    ],
+  ),
+  (
+    'Fines',
+    'assets/dashboard/library-fines.png',
+    [LibraryEntry(label: 'Fines', path: LibraryRoutes.libraryFines)],
+  ),
+  (
+    'Lost & Damaged',
+    'assets/dashboard/library-incidents.png',
+    [
       LibraryEntry(
         label: 'Lost & Damaged',
         path: LibraryRoutes.libraryIncidents,
