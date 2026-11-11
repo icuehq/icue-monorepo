@@ -49,6 +49,7 @@ import androidx.camera.core.FocusMeteringAction
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
+import androidx.camera.core.UseCaseGroup
 import androidx.camera.core.resolutionselector.AspectRatioStrategy
 import androidx.camera.core.resolutionselector.ResolutionSelector
 import androidx.camera.core.resolutionselector.ResolutionStrategy
@@ -57,6 +58,7 @@ import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.doOnLayout
 import androidx.core.view.WindowInsetsControllerCompat
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
@@ -740,15 +742,30 @@ class IcueFaceCameraActivity : ComponentActivity() {
                     .also { it.requestHighQualityProcessing(cameraInfo) }
                     .build()
                 analysis.setAnalyzer(analysisExecutor, ::analyze)
-                provider.unbindAll()
-                camera = provider.bindToLifecycle(this, selector, preview, analysis)
-                android.util.Log.i(
-                    "IcueFaceCamera",
-                    "Streams: preview=${preview.resolutionInfo?.resolution} " +
-                        "analysis=${analysis.resolutionInfo?.resolution} " +
-                        "heap=${Runtime.getRuntime().maxMemory() / (1024 * 1024)}MB",
-                )
-                applyDefaultZoom()
+                // The overlay draws analysis-frame boxes over the preview, so both must show the
+                // same field of view. Sharing the preview's viewport gives every analysis frame a
+                // crop rect matching what is on screen (see toFrameBitmap). It exists only after layout.
+                previewView.doOnLayout {
+                    try {
+                        val group = UseCaseGroup.Builder()
+                            .addUseCase(preview)
+                            .addUseCase(analysis)
+                            .also { builder -> previewView.viewPort?.let(builder::setViewPort) }
+                            .build()
+                        provider.unbindAll()
+                        camera = provider.bindToLifecycle(this, selector, group)
+                        android.util.Log.i(
+                            "IcueFaceCamera",
+                            "Streams: preview=${preview.resolutionInfo?.resolution} " +
+                                "analysis=${analysis.resolutionInfo?.resolution} " +
+                                "crop=${analysis.resolutionInfo?.cropRect} " +
+                                "heap=${Runtime.getRuntime().maxMemory() / (1024 * 1024)}MB",
+                        )
+                        applyDefaultZoom()
+                    } catch (error: Throwable) {
+                        fail("CAMERA_UNAVAILABLE", error.message ?: "Unable to open camera")
+                    }
+                }
             } catch (error: Throwable) {
                 fail("CAMERA_UNAVAILABLE", error.message ?: "Unable to open camera")
             }
@@ -1356,18 +1373,24 @@ class IcueFaceCameraActivity : ComponentActivity() {
      */
     private fun ImageProxy.toFrameBitmap(mirror: Boolean): Bitmap {
         val upright = toBitmap()
-        if (!mirror) return upright
-        val mirrored = Bitmap.createBitmap(
+        // toBitmap() ignores the viewport crop rect; cut the frame down to what the preview shows.
+        val crop = cropRect.takeIf {
+            upright.width == width && upright.height == height &&
+                (it.width() != width || it.height() != height)
+        } ?: android.graphics.Rect(0, 0, upright.width, upright.height)
+        val isFullFrame = crop.width() == upright.width && crop.height() == upright.height
+        if (!mirror && isFullFrame) return upright
+        val output = Bitmap.createBitmap(
             upright,
-            0,
-            0,
-            upright.width,
-            upright.height,
-            Matrix().apply { postScale(-1f, 1f) },
+            crop.left,
+            crop.top,
+            crop.width(),
+            crop.height(),
+            if (mirror) Matrix().apply { postScale(-1f, 1f) } else null,
             false,
         )
-        if (mirrored !== upright) upright.recycle()
-        return mirrored
+        if (output !== upright) upright.recycle()
+        return output
     }
 
     private fun Bitmap.outputDimensions(): Pair<Int, Int> = width to height
