@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_firebase/icue_firebase.dart' show textSearchSupported;
 import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
@@ -89,37 +90,39 @@ class _CirculationPageState extends State<CirculationPage> {
               ),
             ),
           ),
-          const SizedBox(width: 12),
-          SizedBox(
-            width: 220,
-            child: TextField(
-              controller: _searchController,
-              textInputAction: TextInputAction.search,
-              decoration: InputDecoration(
-                hintText: 'Title, member or adm. no.',
-                prefixIcon: const Icon(Icons.search, size: 18),
-                isDense: true,
-                filled: true,
-                fillColor: theme.colorScheme.surfaceContainerHighest.withValues(
-                  alpha: 0.35,
+          if (textSearchSupported) ...[
+            const SizedBox(width: 12),
+            SizedBox(
+              width: 220,
+              child: TextField(
+                controller: _searchController,
+                textInputAction: TextInputAction.search,
+                decoration: InputDecoration(
+                  hintText: 'Title, member or adm. no.',
+                  prefixIcon: const Icon(Icons.search, size: 18),
+                  isDense: true,
+                  filled: true,
+                  fillColor: theme.colorScheme.surfaceContainerHighest.withValues(
+                    alpha: 0.35,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
+                  suffixIcon: libraryProvider.loanSearch.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, size: 16),
+                          onPressed: () {
+                            _searchController.clear();
+                            _search('');
+                          },
+                        )
+                      : null,
                 ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 8,
-                ),
-                suffixIcon: libraryProvider.loanSearch.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, size: 16),
-                        onPressed: () {
-                          _searchController.clear();
-                          _search('');
-                        },
-                      )
-                    : null,
+                onSubmitted: _search,
               ),
-              onSubmitted: _search,
             ),
-          ),
+          ],
         ],
       ),
     );

@@ -99,20 +99,6 @@
       ]
     },
     {
-      "collectionGroup": "inventoryMovements",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "itemId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
       "collectionGroup": "inventoryPurchaseRequests",
       "queryScope": "COLLECTION",
       "fields": [
@@ -132,6 +118,24 @@
       "fields": [
         {
           "fieldPath": "createdBy",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "inventoryPurchaseRequests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "createdBy",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
           "order": "ASCENDING"
         },
         {
@@ -211,39 +215,11 @@
       ]
     },
     {
-      "collectionGroup": "inventoryMaintenanceJobs",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "assetId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
       "collectionGroup": "inventoryAssetAssignments",
       "queryScope": "COLLECTION",
       "fields": [
         {
           "fieldPath": "assetId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "assignedAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "inventoryAssetAssignments",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "personErpId",
           "order": "ASCENDING"
         },
         {
@@ -341,77 +317,7 @@
       ]
     },
     {
-      "collectionGroup": "libraryLoans",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "personErpId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "issuedDate",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "libraryLoans",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "barcode",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "issuedDate",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
       "collectionGroup": "libraryFines",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "libraryFines",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "personErpId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "libraryFines",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "personErpId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "status",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "libraryIncidents",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -429,7 +335,7 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "personErpId",
+          "fieldPath": "status",
           "order": "ASCENDING"
         },
         {
@@ -512,52 +418,6 @@
         },
         {
           "fieldPath": "issuedDate",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "libraryCopies",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "libraryId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "acquiredDate",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "libraryFines",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "libraryId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "libraryFines",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "libraryId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
           "order": "DESCENDING"
         }
       ]
@@ -663,38 +523,6 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "reportedDate",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "libraryIncidents",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "libraryId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "type",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "reportedDate",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "libraryIncidents",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "type",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "createdAt",
           "order": "DESCENDING"
         }
@@ -728,52 +556,6 @@
         },
         {
           "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "libraryBooks",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "libraryId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "date",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "libraryBooks",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "type",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "date",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "libraryBooks",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "libraryId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "type",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "date",
           "order": "DESCENDING"
         }
       ]

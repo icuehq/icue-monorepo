@@ -25,6 +25,7 @@ export 'src/contracts.g.dart';
 export 'src/crashlytics_service.dart';
 export 'src/emulator.dart' show emulatorCustomToken, emulatorHost, usesEmulator;
 export 'src/firestore_pager.dart';
+export 'src/mirror_search.dart';
 export 'src/notification_service.dart' show NotificationService;
 
 /// Single entry point for every app: pass its generated `DefaultFirebaseOptions`.

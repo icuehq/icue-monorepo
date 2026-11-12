@@ -1,13 +1,9 @@
-import {
-  type DocumentData,
-  type DocumentReference,
-  type Timestamp,
-} from 'firebase-admin/firestore';
+import { type DocumentData, type DocumentReference } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import type { CallableContext } from '../shared/callable';
-import { dayTimestamp, dayTimestampOrNull, isoDate, timestampDay, todayIST } from '../shared/dates';
+import { dayTimestamp, timestampDay, todayIST } from '../shared/dates';
 import { serverTimestamp } from '../shared/firestore';
-import { financialYearOf, nextNumber } from '../shared/keys';
+import { financialYearOf } from '../shared/keys';
 import { failed, id, missing, usable } from '../shared/masters';
 import { enqueue } from '../shared/outbox';
 
@@ -35,17 +31,6 @@ export interface StockBalance {
   wasLow: boolean;
   wasOut: boolean;
 }
-export interface Batch {
-  batchNumber?: string | null;
-  manufacturingDate?: string | null;
-  expiryDate?: string | null;
-}
-/** A batch as stored: its dates are Timestamps. */
-export interface StoredBatch {
-  batchNumber: string | null;
-  manufacturingDate: Timestamp | null;
-  expiryDate: Timestamp | null;
-}
 
 export const positiveQuantity = z.number().positive().max(1_000_000);
 export const stockPerson = z.object({
@@ -53,19 +38,6 @@ export const stockPerson = z.object({
   personErpId: z.number().int(),
 });
 export const lineKey = { itemId: id, variantId: id.nullish() };
-/** Batch identity of a stock line (FRS 10.7). */
-export const batch = {
-  batchNumber: z.string().trim().min(1).max(40).nullish(),
-  manufacturingDate: isoDate.nullish(),
-  expiryDate: isoDate.nullish(),
-};
-
-export const balanceId = (
-  storeId: string,
-  itemId: string,
-  variantId?: string | null,
-  batchNumber?: string | null,
-) => [storeId, itemId, variantId || '-', encodeURIComponent(batchNumber || '-')].join('__');
 
 export class Stock {
   readonly date: string;
@@ -122,68 +94,6 @@ export class Stock {
     return this.items.get(itemId)!;
   }
 
-  /** Batch identity for a line: only batch-tracked items carry a batch. */
-  batchOf(item: DocumentData, batch: Batch, receiving = false): StoredBatch {
-    if (item.tracking !== 'batch')
-      return { batchNumber: null, manufacturingDate: null, expiryDate: null };
-    if (!batch.batchNumber) throw failed(`${item.name} needs a batch number`);
-    if (batch.manufacturingDate && batch.expiryDate && batch.expiryDate < batch.manufacturingDate)
-      throw failed('Expiry date is before manufacturing date');
-    if (receiving && batch.expiryDate && batch.expiryDate < todayIST())
-      throw failed('Expired batches cannot be received');
-    return {
-      batchNumber: batch.batchNumber,
-      manufacturingDate: dayTimestampOrNull(batch.manufacturingDate),
-      expiryDate: dayTimestampOrNull(batch.expiryDate),
-    };
-  }
-
-  /** The balance of store × item × variant × batch; created empty when [create], else `failed-precondition`. */
-  async balance(
-    storeId: string,
-    item: DocumentData,
-    variantId: string | null | undefined,
-    batch: StoredBatch,
-    create: boolean,
-  ): Promise<StockBalance> {
-    const bid = balanceId(storeId, item.id, variantId, batch.batchNumber);
-    const cached = this.bals.get(bid);
-    if (cached) return cached;
-    const ref = this.context.doc(`inventoryBalances/${bid}`);
-    const snapshot = await this.context.transaction.get(ref);
-    if (snapshot.exists) {
-      const have = snapshot.data()!.expiryDate;
-      if (batch.expiryDate && have && !batch.expiryDate.isEqual(have))
-        throw failed(`Batch ${batch.batchNumber} already exists with expiry ${timestampDay(have)}`);
-      return this.track(bid, ref, snapshot.data()!, item);
-    }
-    if (!create) throw failed(`No stock of ${item.name} in this store`);
-    await this.context.transaction.get(this.context.doc(`inventoryStores/${storeId}`));
-    return this.track(
-      bid,
-      ref,
-      {
-        storeId,
-        itemId: item.id,
-        variantId: variantId ?? null,
-        ...batch,
-        quantityAvailable: 0,
-        quantityReserved: 0,
-        quantityDamaged: 0,
-        quantityExpired: 0,
-        totalQuantityReceived: 0,
-        totalQuantityIssued: 0,
-        unitCost: 0,
-        value: 0,
-        isBelowReorderLevel: false,
-        earliestExpiryDate: null,
-        createdAt: serverTimestamp(),
-        createdBy: this.context.uid,
-      },
-      item,
-    );
-  }
-
   /** Existing balance by id (cached), for flows that reference a balance directly. */
   async existing(bid: string, item: DocumentData): Promise<StockBalance> {
     const cached = this.bals.get(bid);
@@ -192,11 +102,6 @@ export class Stock {
     const snapshot = await this.context.transaction.get(ref);
     if (!snapshot.exists) throw missing('Balance');
     return this.track(bid, ref, snapshot.data()!, item);
-  }
-
-  /** `PREFIX/2026-27/000123` for the transaction date. */
-  num(type: string): Promise<string> {
-    return nextNumber(this.context, type, new Date(`${this.date}T12:00:00+05:30`));
   }
 
   private track(
@@ -257,23 +162,6 @@ export class Stock {
     return out;
   }
 
-  /** Issuable stock of an item in a store (non-expired available). */
-  async available(storeId: string, itemId: string, variantId?: string | null): Promise<number> {
-    const snapshot = await this.context.transaction.get(
-      this.context
-        .coll('inventoryBalances')
-        .where('storeId', '==', storeId)
-        .where('itemId', '==', itemId),
-    );
-    return snapshot.docs
-      .filter(
-        (balance) =>
-          (balance.data().variantId ?? null) === (variantId ?? null) &&
-          !this.expired({ data: balance.data() }),
-      )
-      .reduce((total, balance) => total + (balance.data().quantityAvailable as number), 0);
-  }
-
   private expired(balance: { data: DocumentData }): boolean {
     return !!balance.data.expiryDate && timestampDay(balance.data.expiryDate) < todayIST();
   }
@@ -321,23 +209,6 @@ export class Stock {
       createdAt: serverTimestamp(),
       createdBy: this.context.uid,
     });
-  }
-
-  /** Stock-in with weighted-average cost. */
-  receive(
-    balance: StockBalance,
-    quantity: number,
-    type: 'receive',
-    referenceType: string,
-    referenceId: string,
-    unitCost: number,
-  ): void {
-    const have = balance.data.quantityAvailable;
-    balance.data.unitCost =
-      have + quantity > 0
-        ? (have * balance.data.unitCost + quantity * unitCost) / (have + quantity)
-        : unitCost;
-    this.move(balance, 'available', quantity, { type, referenceType, referenceId, unitCost });
   }
 
   /** Queues balances, ledger rows and low-stock events. Call once, last. */

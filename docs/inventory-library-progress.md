@@ -132,7 +132,7 @@ Functions (`firebase/functions/src/inventory/masters.ts`):
 - [x] `inventory-category-upsert`, `inventory-category-setStatus`, `inventory-unit-upsert`, `inventory-item-upsert`, `inventory-item-setStatus`, `inventory-variant-upsert`, `inventory-store-upsert`, `inventory-store-setStatus`
 - [x] `inventory-seedDefaults` (FRS default categories and units, idempotent)
 - [x] Unique codes via `uniqueKeys`; inactive category/subcategory rejected for new use; stock unit/tracking locked once `inventoryMovements` exist
-- [x] Item search: `syncItemSearch` trigger mirrors items into the `search` database, `inventory-item-search` callable (`inventory/search.ts`, `runQuery` in `shared/callable.ts`)
+- [x] Item search: `syncItemSearch` trigger mirrors items into the `search` database, queried by web clients through Pipelines (`searchMirror` in `icue_firebase`); the search callable is gone
 - [x] Tests: `test/masters.test.ts`, `test/search.test.ts` (emulator; text search itself is emulated by a whole-word scan)
 
 Rules and indexes:
@@ -308,7 +308,7 @@ Functions (`firebase/functions/src/library/`):
 - [x] `library-library-upsert`, `library-library-setStatus` (`library.settings`); `library-category-upsert`, `library-category-setStatus`, `library-catalogue-upsert`, `library-catalogue-setStatus` (`library.catalogue`)
 - [x] Libraries and library categories have no code (see the 2026-11-06 decisions); campus fixed after creation; one level of subcategories; inactive category rejected for new use
 - [x] Catalogue duplicate detection: `identityKey` = ISBN-13 (ISBN-10 converted) or normalized title + first author + edition + publisher + year, claimed in `uniqueKeys` and moved on edit; ISBN check digits validated; books without ISBN supported
-- [x] Catalogue search: `syncCatalogueSearch` mirrors into the `search` database, `library-catalogue-search` (whole-word title/subtitle/author/publisher/keywords, category filter; a query that is a valid ISBN is an exact lookup on `(default)`)
+- [x] Catalogue search: `syncCatalogueSearch` mirrors into the `search` database, queried by web clients through Pipelines (whole-word title/subtitle/author/publisher/keywords, category filter; a query that is a valid ISBN is an exact lookup on `(default)`)
 - [x] Shared master helpers moved to `shared/masters.ts` (used by inventory and library); `Ctx.delete` added
 - [x] Tests: `test/library.test.ts` (emulator; text search itself is emulated by a whole-word scan)
 
@@ -350,11 +350,10 @@ Flutter:
 
 Collections: `libraryMembers` (doc ID `<student|teacher>_<personErpId>`), `libraryBorrowingPolicies` (doc ID `<libraryId>_<student|teacher>`). Members are created on first use, not enrolled (see the 2026-11-06 decision).
 
-Functions (`firebase/functions/src/library/members.ts`):
+Server (members and policies are client writes; their logic lives in `LoanWrites`/`LibraryWrites`):
 
 - [x] Borrowing policies are client writes (`LibraryWrites.savePolicy/setPolicyActive`, was `library-policy-upsert/setStatus`; several per library and person type, each for chosen categories or the catch-all (no overlap among active ones); library campus scoped; fine needs an amount; categories must exist; inactive library only for existing policies)
-- [x] `library-member-setBlocked` (`library.circulation.operate`); the member record itself is written by issue and reserve (`writeBorrower`)
-- [x] Tests: `test/members.test.ts` (emulator)
+- [x] `library-member-setBlocked` (`library.circulation.operate`); the member record itself is written by issue (`LoanWrites`)
 
 Rules and indexes:
 
@@ -590,6 +589,9 @@ Format: `date · phase · what changed from the architecture doc · why`.
 - 2026-11-11 · branch tenancy · Data moved from `schools/{schoolId}` with a `campusId` on every document to `orgs/{orgId}/zones/{zoneId}/branches/{branchId}/...`: the branch is the tenant, `campusId`/`campusIds`/`hasAllCampuses` and every campus filter are gone, custom claims are `orgId`, `zoneId`, `branchId`, `scope`. A zone or corporate user works in one active branch and switches by exchanging the token again (zone-wide rollups and cross-branch transfers are not built). No data migration: dev data was wiped, indexes pruned of campus fields, Storage paths follow the same prefix. Node must send `ZoneId`, `BranchId`, `OrganizationId` (and `IsCorporate`) · each branch behaves as its own school
 
 - 2026-11-12 · Lib-8 · Analytics summary replaces the dashboard's live count queries · monthly figures are the sum of the daily documents (no monthly document); daily flows are not backfilled, they start at deploy; `overdue` rises only at the nightly rebuild (a loan turning overdue is no write) and falls on return/renew; a redelivered trigger or a 200-copy import on the one hot document may drift counters until the nightly recount. The dashboard still has no date-range view of the daily documents.
+- 2026-11-12 · Inv/Lib · Text search callables (`inventory-item-search`, `library-catalogue-search`, `library-loans-search`) removed; web clients query the `search` database with Firestore Pipelines, other platforms hide search · SDK supports web only · untested locally (emulator has no text search), verify `search.rules` and the three searches on dev.
+- 2026-11-12 · Lib · Removed the server copy of circulation (`src/library/members.ts`, `test/circulation.ts`, `loans.test.ts`, `fines.test.ts`): production circulation is `LoanWrites` (Dart), so those tests checked code that never runs. `LoanWrites` still needs Dart unit tests (fake Firestore).
+- 2026-11-12 · Inv/Lib · Indexes pruned to the queries the code runs (Library 47→34, Inventory −3, +1 purchase requests `createdBy+status+createdAt`); Inventory server copies of `StockWrites` removed from `test/fixtures.ts` and `stock.test.ts`, and `Stock` keeps only what maintenance parts and the expiry job use · re-add an index with the screen that needs it.
 
 ## Open items
 

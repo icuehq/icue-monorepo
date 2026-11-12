@@ -7,7 +7,7 @@ import { dayTimestamp } from '../src/shared/dates';
 import {
   issuePurchaseOrder,
   receivePurchaseOrderUnits,
-  receiveStock,
+  seedBalance,
   seedPurchaseOrder,
   seedPurchaseRequest,
   seedStore,
@@ -262,15 +262,7 @@ describe('assets and maintenance', () => {
     await set({ status: 'in_progress' });
     expect((await get(`inventoryAssets/${asset}`))!.status).toBe('under_repair');
 
-    await run(
-      receiveStock,
-      {
-        storeId: store,
-        source: 'opening',
-        lineItems: [{ itemId: ink, quantityAccepted: 10, unitCost: 4 }],
-      },
-      'both',
-    );
+    await seedBalance(store, ink, 10, 4);
     const parts = [{ itemId: ink, storeId: store, quantity: 2 }];
     expect(await code(set({ status: 'waiting_for_parts', parts }))).toBe('failed-precondition'); // no stock access
     await set({ status: 'waiting_for_parts', parts }, 'both');

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:icue_firebase/icue_firebase.dart' show textSearchSupported;
 import 'package:icue_ui/icue_ui.dart';
 import 'package:routes/routes.dart';
 import 'package:school_library/school_library.dart';
@@ -224,8 +225,10 @@ class CatalogueFilterHeader extends StatelessWidget {
           children: [
             Row(
               children: [
-                Expanded(flex: 3, child: searchField),
-                const SizedBox(width: 12),
+                if (textSearchSupported) ...[
+                  Expanded(flex: 3, child: searchField),
+                  const SizedBox(width: 12),
+                ],
                 Expanded(flex: 2, child: categoryDropdown),
                 const SizedBox(width: 12),
                 Expanded(flex: 2, child: classDropdown),
@@ -299,8 +302,10 @@ class CatalogueFilterHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          searchField,
-          const SizedBox(height: 8),
+          if (textSearchSupported) ...[
+            searchField,
+            const SizedBox(height: 8),
+          ],
           Row(
             children: [
               Expanded(child: categoryDropdown),

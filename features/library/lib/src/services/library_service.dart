@@ -82,7 +82,7 @@ class LibraryService {
     return query.orderBy('title');
   }
 
-  /// Whole-word search by title, author, publisher or keyword (Functions).
+  /// Whole-word search by title, author, publisher or keyword (`search` database, web only).
   Future<({List<LibraryBook> items, bool hasMore})> searchBooks(
     String query, {
     List<String>? categoryIds,
@@ -91,26 +91,21 @@ class LibraryService {
     int offset = 0,
     int limit = 25,
   }) async {
-    final result = await callFunction(
-      'library-catalogue-search',
-      data: {
-        'q': query,
-        'categoryIds': ?categoryIds,
-        'classId': ?classId,
-        'status': ?status,
-        'offset': offset,
-        'limit': limit,
-      },
-    ) as Map<Object?, Object?>;
+    final page = await searchMirror(
+      'libraryCatalogue',
+      query,
+      sortField: 'title',
+      categoryIds: categoryIds,
+      arrayHas: {'classIds': ?classId},
+      equals: {'status': ?status},
+      offset: offset,
+      limit: limit,
+    );
     return (
       items: [
-        for (final row in result['items']! as List<Object?>)
-          LibraryBook.fromMap(
-            (row! as Map)['id'] as String,
-            Map<String, dynamic>.from(row as Map),
-          ),
+        for (final row in page.rows) LibraryBook.fromMap(row.id, row.data),
       ],
-      hasMore: result['hasMore'] == true,
+      hasMore: page.hasMore,
     );
   }
 
@@ -225,28 +220,26 @@ class LibraryService {
   }
 
   /// Active loans whose book title, member name or admission number holds every word of [query],
-  /// earliest due first (Functions search, then the loans themselves from Firestore).
+  /// earliest due first (`search` database, web only, then the loans themselves from Firestore).
   Future<({List<LibraryLoan> items, bool hasMore})> searchLoans(
     String query, {
     int offset = 0,
     int limit = 25,
   }) async {
-    final result = await callFunction(
-      'library-loans-search',
-      data: {'q': query, 'offset': offset, 'limit': limit},
-    ) as Map<Object?, Object?>;
-    final ids = [
-      for (final row in result['items']! as List<Object?>)
-        (row! as Map)['id'] as String,
-    ];
+    final page = await searchMirror(
+      'libraryLoans',
+      query,
+      sortField: 'dueDate',
+      equals: {'status': 'active'},
+      offset: offset,
+      limit: limit,
+    );
+    final ids = [for (final row in page.rows) row.id];
     final found = {
       for (final document in await _byIds('libraryLoans', ids))
         document.id: LibraryLoan.fromMap(document.id, document.data()),
     };
-    return (
-      items: [for (final id in ids) ?found[id]],
-      hasMore: result['hasMore'] == true,
-    );
+    return (items: [for (final id in ids) ?found[id]], hasMore: page.hasMore);
   }
 
   /// The active loan of a copy, if it is out.

@@ -1,16 +1,7 @@
 import { type DocumentData, type Firestore, type Timestamp } from 'firebase-admin/firestore';
-import { z } from 'zod';
-import type { QueryDef } from '../shared/callable';
-import { applyChange, searchInput, searchPage, syncTrigger } from '../shared/searchMirror';
+import { applyChange, syncTrigger } from '../shared/searchMirror';
 
-/** A parent category's search includes its subcategories, so the caller sends the expanded ids. */
-const catalogueSearchInput = searchInput.omit({ categoryId: true }).extend({
-  categoryIds: z.array(z.string().min(1).max(100)).max(30).optional(),
-  classId: z.number().int().positive().optional(),
-  status: z.enum(['active', 'inactive']).optional(),
-});
-
-/** Catalogue search (FRS 11.4): same mirror pattern as inventory items (architecture §10). */
+/** Catalogue search mirror (FRS 11.4): same pattern as inventory items (architecture §10). */
 const COLL = 'libraryCatalogue';
 const ROW = [
   'title',
@@ -23,8 +14,7 @@ const ROW = [
   'classIds',
   'status',
 ] as const;
-/** Fields the text index covers (see `firebase/scripts/create-search-index.sh`). */
-const TEXT = ['title', 'subtitle', 'authorsText', 'publisher', 'keywordsText'];
+/** The text index covers title, subtitle, authorsText, publisher and keywordsText (`firebase/scripts/create-search-index.sh`). */
 
 const projectRow = (catalogueDocument: DocumentData) =>
   Object.fromEntries(ROW.map((field) => [field, catalogueDocument[field] ?? null]));
@@ -46,36 +36,7 @@ export const applyCatalogueChange = (
 
 export const syncCatalogueSearch = syncTrigger(COLL, projectCatalogue);
 
-export const searchCatalogue = (
-  branchPath: string,
-  query: z.infer<typeof catalogueSearchInput>,
-  db?: Firestore,
-) =>
-  searchPage(
-    branchPath,
-    COLL,
-    query,
-    {
-      textFields: TEXT,
-      sortField: 'title',
-      categoryIds: query.categoryIds,
-      classId: query.classId,
-      status: query.status,
-    },
-    projectRow,
-    db,
-  );
-
-export const catalogueSearch: QueryDef<
-  typeof catalogueSearchInput,
-  Awaited<ReturnType<typeof searchCatalogue>>
-> = {
-  name: 'library.catalogue.search',
-  input: catalogueSearchInput,
-  handler: searchCatalogue,
-};
-
-/** Issue Books search (active loans): whole words of the book title, member name or admission number. */
+/** Issue Books search mirror (loans): whole words of the book title, member name or admission number. */
 const LOANS = 'libraryLoans';
 const LOAN_TEXT = ['bookTitle', 'memberName', 'admissionNumber'];
 
@@ -93,29 +54,3 @@ export const applyLoanChange = (
 ) => applyChange(LOANS, projectLoan, branchPath, loanId, after, changedAt, db);
 
 export const syncLoanSearch = syncTrigger(LOANS, projectLoan);
-
-const loanSearchInput = searchInput.omit({ categoryId: true });
-
-/** Ids of matching active loans, earliest due first; the client reads the loans from `(default)`. */
-export const searchLoans = (
-  branchPath: string,
-  query: z.infer<typeof loanSearchInput>,
-  db?: Firestore,
-) =>
-  searchPage(
-    branchPath,
-    LOANS,
-    query,
-    { textFields: LOAN_TEXT, sortField: 'dueDate', status: 'active' },
-    () => ({}),
-    db,
-  );
-
-export const loanSearch: QueryDef<
-  typeof loanSearchInput,
-  Awaited<ReturnType<typeof searchLoans>>
-> = {
-  name: 'library.loans.search',
-  input: loanSearchInput,
-  handler: searchLoans,
-};

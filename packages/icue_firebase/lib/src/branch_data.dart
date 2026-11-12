@@ -24,12 +24,9 @@ Future<String> _resolveBranchPath(User user) async {
   return 'orgs/${id('orgId')}/zones/${id('zoneId')}/branches/${id('branchId')}';
 }
 
-/// A collection of the branch the signed-in user is working in
-/// (`orgs/{orgId}/zones/{zoneId}/branches/{branchId}/{path}`). The branch is the tenant. The token is
+/// The signed-in user's branch path (`orgs/{orgId}/zones/{zoneId}/branches/{branchId}`). The token is
 /// issued for one active branch, so it is read once per sign-in (a branch switch signs in again).
-Future<CollectionReference<Map<String, dynamic>>> branchCollection(
-  String path,
-) async {
+Future<String> branchPath() async {
   final user = FirebaseAuth.instance.currentUser!;
   if (_branchUid != user.uid) {
     final lookup = _resolving ??= _resolveBranchPath(user);
@@ -40,8 +37,13 @@ Future<CollectionReference<Map<String, dynamic>>> branchCollection(
       _resolving = null;
     }
   }
-  return FirebaseFirestore.instance.collection('$_branchPath/$path');
+  return _branchPath!;
 }
+
+/// A collection of the branch the signed-in user is working in (`{branchPath}/{path}`). The branch is the tenant.
+Future<CollectionReference<Map<String, dynamic>>> branchCollection(
+  String path,
+) async => FirebaseFirestore.instance.collection('${await branchPath()}/$path');
 
 /// Plain client CRUD for a master collection under the school ([path]).
 ///

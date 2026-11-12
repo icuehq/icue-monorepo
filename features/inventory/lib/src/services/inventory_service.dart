@@ -59,31 +59,26 @@ class InventoryService {
     );
   }
 
-  /// Whole-word text search (Functions, `search` database); rows carry the list fields only.
+  /// Whole-word text search (`search` database, web only); rows carry the list fields only.
   Future<({List<InventoryItem> items, bool hasMore})> searchItems(
     String query, {
     String? categoryId,
     int offset = 0,
     int limit = 25,
   }) async {
-    final result = await callFunction(
-      'inventory-item-search',
-      data: {
-        'q': query,
-        'categoryId': ?categoryId,
-        'offset': offset,
-        'limit': limit,
-      },
-    ) as Map<Object?, Object?>;
+    final page = await searchMirror(
+      'inventoryItems',
+      query,
+      sortField: 'name',
+      categoryIds: categoryId == null ? null : [categoryId],
+      offset: offset,
+      limit: limit,
+    );
     return (
       items: [
-        for (final row in result['items']! as List<Object?>)
-          InventoryItem.fromMap(
-            (row! as Map)['id'] as String,
-            Map<String, dynamic>.from(row as Map),
-          ),
+        for (final row in page.rows) InventoryItem.fromMap(row.id, row.data),
       ],
-      hasMore: result['hasMore'] == true,
+      hasMore: page.hasMore,
     );
   }
 

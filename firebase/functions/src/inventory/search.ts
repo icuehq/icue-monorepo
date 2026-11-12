@@ -1,9 +1,7 @@
 import { type DocumentData, type Firestore, type Timestamp } from 'firebase-admin/firestore';
-import type { z } from 'zod';
-import type { QueryDef } from '../shared/callable';
-import { applyChange, searchInput, searchPage, syncTrigger } from '../shared/searchMirror';
+import { applyChange, syncTrigger } from '../shared/searchMirror';
 
-/** Item search (architecture §10): `syncItemSearch` mirrors a small projection, `searchItems` queries it. */
+/** Item search (architecture §10): `syncItemSearch` mirrors a small projection that web clients query. */
 const FIELDS = ['code', 'name', 'categoryId', 'status', 'stockUnit', 'tracking'] as const;
 
 /** The list-row fields mirrored into the search database. */
@@ -19,24 +17,3 @@ export const applyItemChange = (
 ) => applyChange('inventoryItems', projectItem, branchPath, itemId, after, changedAt, db);
 
 export const syncItemSearch = syncTrigger('inventoryItems', projectItem);
-
-export const searchItems = (
-  branchPath: string,
-  query: z.infer<typeof searchInput>,
-  db?: Firestore,
-) =>
-  searchPage(
-    branchPath,
-    'inventoryItems',
-    query,
-    { textFields: ['name', 'code'], sortField: 'name' },
-    projectItem,
-    db,
-  );
-
-export const itemSearch: QueryDef<typeof searchInput, Awaited<ReturnType<typeof searchItems>>> = {
-  name: 'inventory.item.search',
-  permission: 'inventory.items.view',
-  input: searchInput,
-  handler: searchItems,
-};

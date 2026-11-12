@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_firebase/icue_firebase.dart' show textSearchSupported;
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
@@ -69,10 +70,12 @@ class _ItemsTableState extends State<ItemsTable> {
       onRetry: () => provider.loadItems(),
       searchHint: 'Search by item name or code...',
       initialSearch: provider.itemSearch,
-      onSearchChanged: (query) {
-        setState(() => _page = 0);
-        provider.loadItems(search: query);
-      },
+      onSearchChanged: textSearchSupported
+          ? (query) {
+              setState(() => _page = 0);
+              provider.loadItems(search: query);
+            }
+          : null,
       filters: [
         IcueTableFilter(
           id: 'category',

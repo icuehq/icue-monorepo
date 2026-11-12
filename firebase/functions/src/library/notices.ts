@@ -7,7 +7,7 @@ import { memberTo } from './notify';
  * Notices for circulation, which the client writes directly (`LoanWrites`): the member (a student's
  * parents, or the teacher) hears of an issue, a return, a fine, a lost or damaged book. They run inside
  * the collection's audit trigger (`audit.ts`), so each write costs one invocation. Outbox keys are fixed
- * per event, so a redelivered trigger, or a callable that already queued the same notice, never sends it twice.
+ * per event, so a redelivered trigger never sends a notice twice.
  */
 export interface Change {
   branchPath: string;

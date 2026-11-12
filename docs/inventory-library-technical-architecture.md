@@ -22,7 +22,7 @@ This document decides *how* the FRS is built. Functional behaviour stays defined
 | D8 | Notifications: Functions send FCM directly, through an outbox collection, to tokens stored in Firestore (registered alongside Node). |
 | D9 | Teachers use `icueadmin`. Parents use the parent app (same `icueadmin` Firebase project, moving into this monorepo) and get **read-only** access to their wardStudentIds' records. Students never sign in. |
 | D11 | Two Firebase projects: `icueadmin-dev` and `icueadmin` (prod), with dev/prod app flavors (§14). |
-| D12 | Text search runs on a second **Enterprise-edition** Firestore database `search`, mirrored from `(default)` by a trigger and queried only through a callable (§10). `(default)` stays Standard. |
+| D12 | Text search runs on a second **Enterprise-edition** Firestore database `search`, mirrored from `(default)` by a trigger and queried directly by web clients with Firestore Pipelines (§10). `(default)` stays Standard. |
 | D10 | Code lives in `firebase/` (rules, indexes, functions) and `features/inventory`, `features/library` (Dart models/services/providers/UI and routes; apps only mount `inventoryRoutes()` / `libraryRoutes()`). |
 
 ---
@@ -193,11 +193,11 @@ Names below are logical; they deploy as `<group>-<name>` (`session.sync` → `se
 | --- | --- |
 | Session | `session.sync` |
 | Settings | `config.setRolePermissions`, `inventory.setSettings`, `library.setSettings` |
-| Inventory masters | `inventory.seedDefaults`, `inventory.item.search`. Categories, units, stores, items, variants and vendors are client Firestore writes (`firestore.rules`); the bulk importer reuses their server handlers internally. |
+| Inventory masters | `inventory.seedDefaults`. Categories, units, stores, items, variants and vendors are client Firestore writes (`firestore.rules`); the bulk importer reuses their server handlers internally. |
 | Stock | Receive Stock, issue request submit/decide, issuing stock, acknowledging an issue, returns, stock adjustments, and unavailable-stock reports and resolutions are client transactions (`StockWrites`). `inventory.adjustment.approve` |
 | Procurement | Purchase requests, quotations, draft purchase orders (save, issue, revise, acknowledge, cancel, close, receive goods) and invoices are client Firestore writes (`ProcurementWrites`). |
 | Assets | `inventory.asset.register`, `inventory.asset.assign/return/transfer/setCondition/retire`, `inventory.maintenance.save/setStatus` |
-| Library masters | `library.catalogue.search`. Borrowing policies, libraries and categories are client Firestore writes. |
+| Library masters | Borrowing policies, libraries and categories are client Firestore writes. |
 | Copies | `library.book.create` (creates copies keyed by barcode), `library.copy.update/move` |
 | Members | `library.member.upsert/setStatus` |
 | Circulation | Client transactions (`LoanWrites`): issue, return, renew, mark lost. Notices come from `notices.ts` triggers. |
@@ -357,10 +357,10 @@ Types: inventory categories, items, opening stock, stores, assets, vendors; libr
 ## 10. Search, lists and dashboards
 
 - **Pagination:** cursor-based (`startAfterDocument`), 25–50 rows per page.
-- **Search:** Standard Firestore has no full-text search, so searchable collections are mirrored into the Enterprise database `search` (same paths, list-row fields only, `srcUpdatedAt` guards against out-of-order deliveries) by an `onDocumentWritten` trigger (`syncItemSearch`). A read-only callable (`inventory-item-search`) queries the mirror with the `search` pipeline stage, optional `where` filters (e.g. category), `sort`, `offset`/`limit`, and returns list rows; the school comes from the token. The `search` database allows no client access. Exact lookups (code, ISBN, barcode, asset ID, RFID tag) stay equality queries on `(default)`.
+- **Search:** Standard Firestore has no full-text search, so searchable collections are mirrored into the Enterprise database `search` (same paths, list-row fields only, `srcUpdatedAt` guards against out-of-order deliveries) by `onDocumentWritten` triggers (`syncItemSearch`, `syncCatalogueSearch`, `syncLoanSearch`). Clients query the mirror directly with the Firestore Pipelines `search` stage (`searchMirror` in `icue_firebase`: `documentMatches`, `where` filters, `sort`, `offset`/`limit`); `search.rules` lets a branch's staff read their own branch's mirror (inventory items need `inventory.items.view`) and nobody write. Exact lookups (code, ISBN, barcode, asset ID, RFID tag) stay equality queries on `(default)`.
+  - **Web only.** The Flutter Pipelines SDK supports web alone, so `textSearchSupported` (`kIsWeb` and no emulator) is false elsewhere and Inventory Items, Library Catalogue and Issue Books hide their search boxes; those lists still filter by category, class and status. The emulator has no text search either, so the real path needs a cloud project to verify.
   - Matching is whole-word, case-insensitive with stemming; **no prefix or type-ahead matching** (checked on a dev database, 2026-10-31). A mirror update is searchable in about 150 ms.
-  - Needs a text index per project (`firebase/scripts/create-search-index.sh`); Flutter has no Pipelines SDK, hence the callable. The emulator has no text search, so in the emulator the callable falls back to a whole-word scan of the mirror and only the real path needs a cloud project to verify.
-  - Library catalogue reuses the same trigger/callable pattern (`syncCatalogueSearch`, `library-catalogue-search`; text index on title, subtitle, authors, publisher, keywords); a query that is a valid ISBN is an exact lookup on `(default)` instead. Vendors will follow.
+  - Needs a text index per project (`firebase/scripts/create-search-index.sh`; catalogue: title, subtitle, authors, publisher, keywords). A catalogue query that is a valid ISBN is an exact lookup on `(default)` instead. Vendors will follow.
 - **Dashboards:** Firestore aggregation queries (`count()`, `sum()`) with the same filters as the lists — e.g. low stock = `count()` where `isBelowReorderLevel == true`; stock value = `sum('value')`. No pre-computed counters.
 - **Popular/inactive books:** computed client-side over the selected period's loans. Ceiling: fine for tens of thousands of loans per period; add monthly stat docs if it gets slow.
 - **Indexes:** `firebase/firestore.indexes.json`, one composite index per list filter/sort combination, added with each screen.
@@ -385,7 +385,7 @@ firebase/
   .firebaserc              # default: icueadmin-dev (alias dev); prod alias icueadmin
   firestore.rules
   firestore.indexes.json
-  search.rules             # deny-all rules of the `search` database
+  search.rules             # client read rules of the `search` database
   storage.rules
   functions/
     package.json, tsconfig.json

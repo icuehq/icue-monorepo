@@ -3,9 +3,7 @@ import './region';
 import { assets, maintenance } from './inventory/assets';
 import { importRun } from './inventory/import';
 import { masters } from './inventory/masters';
-import { itemSearch } from './inventory/search';
 import { copies as libraryCopies } from './library/copies';
-import { catalogueSearch, loanSearch } from './library/search';
 import { rebuild as statsRebuild } from './library/stats';
 import { sync, token } from './session';
 import { type AnyCallableDef, callable, queryCallable, routes } from './shared/callable';
@@ -41,9 +39,6 @@ export const { session, inventory, library } = routes([
   ['session.sync', sync],
   ['session.token', token],
   ...mutations.map((def) => [def.name, callable(def)] as [string, unknown]),
-  [itemSearch.name, queryCallable(itemSearch)],
-  [catalogueSearch.name, queryCallable(catalogueSearch)],
-  [loanSearch.name, queryCallable(loanSearch)],
   [statsRebuild.name, queryCallable(statsRebuild)],
   ['inventory.import.run', importRun],
 ]);
