@@ -81,7 +81,7 @@ export async function searchMirror(
     categoryIds?: string[];
     /** Keeps rows whose `classIds` array holds this class (library catalogue). */
     classId?: number;
-    /** Keeps rows with this `status` (library catalogue). */
+    /** Keeps rows with this `status` (library catalogue, loans). */
     status?: string;
   },
   db: Firestore = searchDb(),

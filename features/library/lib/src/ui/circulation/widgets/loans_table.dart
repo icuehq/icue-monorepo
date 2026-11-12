@@ -30,7 +30,7 @@ class LoansTable extends StatelessWidget {
       onRetry: pager.retry,
       pagination: IcueTablePagination.pager(pager),
       onRowTap: onOpen,
-      searchHint: 'Loan #, accession no. or admission no.',
+      searchHint: 'Book title, member name or admission no.',
       initialSearch: provider.loanSearch,
       searchDebounce: const Duration(milliseconds: 400),
       onSearchChanged: (query) {
@@ -131,7 +131,11 @@ class LoansTable extends StatelessWidget {
           label: 'Class',
           hideBelowWidth: 900,
           cellBuilder: (context, loan) => IcueTableCellText(
-            loan.memberClass ?? '-',
+            loan.memberClassId == null
+                ? '-'
+                : context.watch<LibraryProvider>().className(
+                    loan.memberClassId!,
+                  ),
             style: IcueTableStyle.of(context).secondary,
           ),
         ),

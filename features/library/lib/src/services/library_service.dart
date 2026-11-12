@@ -189,30 +189,14 @@ class LibraryService {
       _one('libraryMembers', '$personErpId', LibraryMember.fromMap);
 
   /// Active loans by due date, narrowed by the Issued Books filters; page it with `FirestorePager`.
-  ///
-  /// [search] is an exact loan number, accession number or admission number (as typed or in
-  /// capitals) and ignores the other filters, since it finds at most a few loans.
   Future<Query<Map<String, dynamic>>> activeLoansQuery({
     int? classId,
     String? section,
     LoanIssuedWindow? issued,
     LoanDueFilter? due,
-    String search = '',
   }) async {
     Query<Map<String, dynamic>> query = (await branchCollection('libraryLoans'))
         .where('status', isEqualTo: 'active');
-    if (search.isNotEmpty) {
-      final terms = {search, search.toUpperCase()}.toList();
-      return query
-          .where(
-            Filter.or(
-              Filter('number', whereIn: terms),
-              Filter('barcode', whereIn: terms),
-              Filter('admissionNumber', whereIn: terms),
-            ),
-          )
-          .orderBy('dueDate');
-    }
     if (classId != null) {
       query = query.where('memberClassId', isEqualTo: classId);
     }
@@ -238,6 +222,31 @@ class LibraryService {
       );
     }
     return query.orderBy('dueDate');
+  }
+
+  /// Active loans whose book title, member name or admission number holds every word of [query],
+  /// earliest due first (Functions search, then the loans themselves from Firestore).
+  Future<({List<LibraryLoan> items, bool hasMore})> searchLoans(
+    String query, {
+    int offset = 0,
+    int limit = 25,
+  }) async {
+    final result = await callFunction(
+      'library-loans-search',
+      data: {'q': query, 'offset': offset, 'limit': limit},
+    ) as Map<Object?, Object?>;
+    final ids = [
+      for (final row in result['items']! as List<Object?>)
+        (row! as Map)['id'] as String,
+    ];
+    final found = {
+      for (final document in await _byIds('libraryLoans', ids))
+        document.id: LibraryLoan.fromMap(document.id, document.data()),
+    };
+    return (
+      items: [for (final id in ids) ?found[id]],
+      hasMore: result['hasMore'] == true,
+    );
   }
 
   /// The active loan of a copy, if it is out.

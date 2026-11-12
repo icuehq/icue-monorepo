@@ -117,7 +117,6 @@ export interface LibraryLoan {
   personErpId: number;
   memberName?: string | null;
   memberClassId?: number | null;
-  memberClass?: string | null;
   memberSection?: string | null;
   admissionNumber?: string | null;
   bookTitle?: string | null;

@@ -1,5 +1,11 @@
+import { Timestamp } from 'firebase-admin/firestore';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { applyCatalogueChange, catalogueSearch } from '../src/library/search';
+import {
+  applyCatalogueChange,
+  applyLoanChange,
+  catalogueSearch,
+  loanSearch,
+} from '../src/library/search';
 import { runQuery } from '../src/shared/callable';
 import { seedLibraryCategory, seedLibraryTitle } from './fixtures';
 import { clearFirestore, db } from './setup';
@@ -63,6 +69,45 @@ describe('library masters', () => {
       ).toEqual([firstBook.id, secondBook.id].sort());
       expect((await search({ q: 'kalam', status: 'inactive' })).items).toEqual([]);
       await expect(search({ q: '- *' })).rejects.toMatchObject({ code: 'invalid-argument' });
+    });
+  });
+
+  describe('loan search', () => {
+    it('finds active loans by book title, member name or admission number, earliest due first', async () => {
+      const loan = (
+        bookTitle: string,
+        memberName: string,
+        admissionNumber: string | null,
+        due: number,
+        status = 'active',
+      ) => ({
+        bookTitle,
+        memberName,
+        admissionNumber,
+        status,
+        dueDate: Timestamp.fromMillis(due),
+        barcode: 'ACC1',
+        number: 'LIS1',
+      });
+      await applyLoanChange(BRANCH, 'late', loan('Wings of Fire', 'Ravi Kumar', 'ADM/24/7', 2_000));
+      await applyLoanChange(BRANCH, 'early', loan('Ignited Minds', 'Asha Rao', null, 1_000));
+      await applyLoanChange(
+        BRANCH,
+        'returned',
+        loan('Wings of Fire', 'Asha Rao', null, 500, 'returned'),
+      );
+      const ids = async (q: string) =>
+        (
+          await runQuery(
+            loanSearch,
+            { uid: '1', token: { orgId: 8, zoneId: 147, branchId: 427, personType: 'staff' } },
+            { q },
+          )
+        ).items.map((item) => item.id);
+      expect(await ids('wings')).toEqual(['late']);
+      expect(await ids('asha')).toEqual(['early']);
+      expect(await ids('ADM/24/7')).toEqual(['late']);
+      expect(await ids('LIS1')).toEqual([]);
     });
   });
 });

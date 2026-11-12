@@ -115,7 +115,9 @@ class MembersTable extends StatelessWidget {
           label: 'Class',
           hideBelowWidth: 800,
           cellBuilder: (context, member) => IcueTableCellText(
-            member.classId == null ? '—' : '${member.classId}',
+            member.classId == null
+                ? '—'
+                : context.watch<LibraryProvider>().className(member.classId!),
             style: IcueTableStyle.of(context).secondary,
           ),
         ),

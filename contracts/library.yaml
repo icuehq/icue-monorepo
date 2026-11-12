@@ -27,7 +27,6 @@ documents:
       personErpId: int
       memberName: string?
       memberClassId: int?
-      memberClass: string?
       memberSection: string?
       admissionNumber: string?
       bookTitle: string?
@@ -191,7 +190,6 @@ models:
         personErpId: int
         memberName: string?
         memberClassId: int?
-        memberClass: string?
         memberSection: string?
         admissionNumber: string?
         bookTitle: string?

@@ -67,7 +67,7 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   LoanIssuedWindow? loanIssued;
   LoanDueFilter? loanDue;
 
-  /// Exact loan, accession or admission number; overrides the other filters.
+  /// Words of a book title, member name or admission number; overrides the other filters.
   String loanSearch = '';
 
   bool get loansFiltered =>
@@ -241,13 +241,28 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
 
   /// Reloads Issued Books from its first page with the current filters.
   Future<void> loadLoans() async {
+    final query = loanSearch;
+    if (query.isNotEmpty) {
+      await loans.load(({
+        required after,
+        required offset,
+        required limit,
+      }) async {
+        final page = await _service.searchLoans(
+          query,
+          offset: offset,
+          limit: limit,
+        );
+        return PagedResult(page.items, null, hasMore: page.hasMore);
+      });
+      return;
+    }
     await loans.loadQuery(
       await _service.activeLoansQuery(
         classId: loanClassId,
         section: loanSection,
         issued: loanIssued,
         due: loanDue,
-        search: loanSearch,
       ),
       (document) => LibraryLoan.fromMap(document.id, document.data()!),
     );

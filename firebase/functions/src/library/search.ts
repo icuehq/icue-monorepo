@@ -74,3 +74,48 @@ export const catalogueSearch: QueryDef<
   input: catalogueSearchInput,
   handler: searchCatalogue,
 };
+
+/** Issue Books search (active loans): whole words of the book title, member name or admission number. */
+const LOANS = 'libraryLoans';
+const LOAN_TEXT = ['bookTitle', 'memberName', 'admissionNumber'];
+
+const LOAN_ROW = [...LOAN_TEXT, 'status', 'dueDate'];
+
+export const projectLoan = (loan: DocumentData) =>
+  Object.fromEntries(LOAN_ROW.map((field) => [field, loan[field] ?? null]));
+
+export const applyLoanChange = (
+  branchPath: string,
+  loanId: string,
+  after: DocumentData | undefined,
+  changedAt?: Timestamp,
+  db?: Firestore,
+) => applyChange(LOANS, projectLoan, branchPath, loanId, after, changedAt, db);
+
+export const syncLoanSearch = syncTrigger(LOANS, projectLoan);
+
+const loanSearchInput = searchInput.omit({ categoryId: true });
+
+/** Ids of matching active loans, earliest due first; the client reads the loans from `(default)`. */
+export const searchLoans = (
+  branchPath: string,
+  query: z.infer<typeof loanSearchInput>,
+  db?: Firestore,
+) =>
+  searchPage(
+    branchPath,
+    LOANS,
+    query,
+    { textFields: LOAN_TEXT, sortField: 'dueDate', status: 'active' },
+    () => ({}),
+    db,
+  );
+
+export const loanSearch: QueryDef<
+  typeof loanSearchInput,
+  Awaited<ReturnType<typeof searchLoans>>
+> = {
+  name: 'library.loans.search',
+  input: loanSearchInput,
+  handler: searchLoans,
+};

@@ -261,7 +261,6 @@ class LoanWrites {
           'personErpId': personErpId,
           'memberName': person['name'],
           'memberClassId': memberType == 'student' ? person['classId'] : null,
-          'memberClass': memberType == 'student' ? person['className'] : null,
           'memberSection': memberType == 'student' ? person['section'] : null,
           'admissionNumber': memberType == 'student'
               ? person['admissionNumber']

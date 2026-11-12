@@ -5,7 +5,7 @@ import { importRun } from './inventory/import';
 import { masters } from './inventory/masters';
 import { itemSearch } from './inventory/search';
 import { copies as libraryCopies } from './library/copies';
-import { catalogueSearch } from './library/search';
+import { catalogueSearch, loanSearch } from './library/search';
 import { rebuild as statsRebuild } from './library/stats';
 import { sync, token } from './session';
 import { type AnyCallableDef, callable, queryCallable, routes } from './shared/callable';
@@ -13,7 +13,7 @@ import { type AnyCallableDef, callable, queryCallable, routes } from './shared/c
 initializeApp();
 
 export { syncItemSearch } from './inventory/search';
-export { syncCatalogueSearch } from './library/search';
+export { syncCatalogueSearch, syncLoanSearch } from './library/search';
 export { outboxSend } from './shared/outbox';
 export { dailyInventory } from './inventory/daily';
 export { dailyLibrary } from './library/daily';
@@ -43,6 +43,7 @@ export const { session, inventory, library } = routes([
   ...mutations.map((def) => [def.name, callable(def)] as [string, unknown]),
   [itemSearch.name, queryCallable(itemSearch)],
   [catalogueSearch.name, queryCallable(catalogueSearch)],
+  [loanSearch.name, queryCallable(loanSearch)],
   [statsRebuild.name, queryCallable(statsRebuild)],
   ['inventory.import.run', importRun],
 ]);

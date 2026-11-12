@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
+import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
 class MemberCard extends StatelessWidget {
@@ -146,7 +147,7 @@ class MemberCard extends StatelessWidget {
                   _metaPill(
                     context,
                     Icons.class_outlined,
-                    'Class ${member.classId}',
+                    context.watch<LibraryProvider>().className(member.classId!),
                   ),
                   const SizedBox(width: 6),
                 ],

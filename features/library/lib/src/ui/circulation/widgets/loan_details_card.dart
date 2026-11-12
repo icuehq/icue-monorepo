@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
+import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
 /// Card displaying borrower details, loan schedule, and overdue alerts.
@@ -73,7 +74,7 @@ class LoanDetailsCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
         ],
-        _buildMemberCard(theme, colors),
+        _buildMemberCard(context, theme, colors),
         const SizedBox(height: 10),
         Container(
           padding: const EdgeInsets.all(12),
@@ -121,9 +122,14 @@ class LoanDetailsCard extends StatelessWidget {
     );
   }
 
-  Widget _buildMemberCard(ThemeData theme, ColorScheme colors) {
-    final classText = loan.memberClass != null && loan.memberClass!.isNotEmpty
-        ? 'Class ${loan.memberClass}${loan.memberSection != null && loan.memberSection!.isNotEmpty ? '-${loan.memberSection}' : ''}'
+  Widget _buildMemberCard(
+    BuildContext context,
+    ThemeData theme,
+    ColorScheme colors,
+  ) {
+    final classId = loan.memberClassId;
+    final classText = classId != null
+        ? '${context.watch<LibraryProvider>().className(classId)}${loan.memberSection != null && loan.memberSection!.isNotEmpty ? '-${loan.memberSection}' : ''}'
         : null;
     final admissionText =
         loan.admissionNumber != null && loan.admissionNumber!.isNotEmpty

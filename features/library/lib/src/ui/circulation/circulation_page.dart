@@ -96,7 +96,7 @@ class _CirculationPageState extends State<CirculationPage> {
               controller: _searchController,
               textInputAction: TextInputAction.search,
               decoration: InputDecoration(
-                hintText: 'Loan, accession or adm. no.',
+                hintText: 'Title, member or adm. no.',
                 prefixIcon: const Icon(Icons.search, size: 18),
                 isDense: true,
                 filled: true,

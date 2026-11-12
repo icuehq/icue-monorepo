@@ -56,7 +56,6 @@ class LibraryPeopleService {
     personErpId: student.id,
     name: student.name,
     classId: student.classId == 0 ? null : student.classId,
-    className: student.standard,
     section: student.section,
     admissionNumber: student.admissionNumber,
     photoUrl: student.photoUrl,
