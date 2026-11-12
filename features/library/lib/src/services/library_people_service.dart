@@ -33,13 +33,16 @@ class LibraryPeopleService {
   /// Classes with their sections, for picking a student from a class list.
   Future<List<Standards>> classes() => _routes.getStandards();
 
-  /// Every student of [classId] in [section], following Node's pages.
-  Future<List<StudentData>> studentsOf(int classId, String section) async {
+  /// Every student of [classId] in [sections], following Node's pages.
+  Future<List<StudentData>> studentsOf(
+    int classId,
+    List<String> sections,
+  ) async {
     final students = <StudentData>[];
     for (var page = 1; ; page++) {
       final result = await _routes.getStudents(
         classId: classId,
-        sections: [section],
+        sections: sections,
         pageNo: page,
       );
       students.addAll(result.data);

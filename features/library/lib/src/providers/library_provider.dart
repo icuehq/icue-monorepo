@@ -121,8 +121,8 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   Future<LibraryPerson?> findPerson(String type, String identifier) =>
       _people.findByIdentifier(type, identifier);
 
-  Future<List<StudentData>> studentsOf(int classId, String section) =>
-      _people.studentsOf(classId, section);
+  Future<List<StudentData>> studentsOf(int classId, List<String> sections) =>
+      _people.studentsOf(classId, sections);
 
   LibraryPerson studentPerson(StudentData student) =>
       _people.personFrom(student);

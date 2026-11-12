@@ -53,11 +53,15 @@ class _ClassStudentChooserState extends State<ClassStudentChooser> {
       _students = [];
       _filter = '';
     });
-    if (standard == null || section == null) return;
+    if (standard == null) return;
+    // No section yet: the whole class, across all its sections.
+    final sections = section == null
+        ? [for (final classSection in standard.sections) classSection.name]
+        : [section.name];
     _run(() async {
       final students = await context.read<LibraryProvider>().studentsOf(
         standard.id,
-        section.name,
+        sections,
       );
       if (mounted) setState(() => _students = students);
     });
@@ -130,8 +134,8 @@ class _ClassStudentChooserState extends State<ClassStudentChooser> {
           )
         else if (_error != null)
           Text(_error!, style: TextStyle(color: theme.colorScheme.error))
-        else if (_section != null && _students.isEmpty)
-          const Text('No students in this class and section')
+        else if (_class != null && _students.isEmpty)
+          const Text('No students in this class')
         else
           ConstrainedBox(
             constraints: const BoxConstraints(maxHeight: 320),
