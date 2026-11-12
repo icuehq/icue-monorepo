@@ -1,8 +1,8 @@
-import 'package:api_client/api_client.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
+import 'package:school_library/src/ui/catalogue/mock_books.dart';
 
 class AddLibraryDialog extends StatefulWidget {
   const AddLibraryDialog({super.key, this.library});
@@ -146,8 +146,7 @@ class _AddLibraryDialogState extends State<AddLibraryDialog> {
                   ],
                 ),
               ),
-              if (ApiEnvironment.fromEnvironment() != ApiEnvironment.prod &&
-                  !editing)
+              if (showSampleData && !editing)
                 IcueButton(
                   label: 'Fill sample',
                   onPressed: _busy ? null : _fillSample,

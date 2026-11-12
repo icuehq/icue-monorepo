@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:injectable/injectable.dart';
@@ -32,63 +34,101 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   @override
   String? errorMessage;
 
-  // Catalogue list (paged).
-  final List<LibraryBook> books = [];
-  bool booksLoading = false;
-  bool hasMoreBooks = false;
+  // Catalogue list: a Firestore query by title, or the search callable while [bookSearch] is set.
+  late final books = _pager<LibraryBook>();
   String bookSearch = '';
   String? bookCategoryId;
   int? bookClassId;
-  DocumentSnapshot<Map<String, dynamic>>? _cursor;
-  int _searchOffset = 0;
-  int _bookGeneration = 0;
 
-  // Paged lists; each is a `_Paged` holder behind the getters below.
-  final _members = _Paged<LibraryMember>();
-  final _loans = _Paged<LibraryLoan>();
-  final _fines = _Paged<LibraryFine>();
-  final _incidents = _Paged<LibraryIncident>();
+  /// `active`, `inactive`, or null for both.
+  String? bookStatus;
 
-  /// Every member who has borrowed; the page filters by kind.
-  List<LibraryMember> get members => _members.items;
-  bool get membersLoading => _members.loading;
-  bool get hasMoreMembers => _members.hasMore;
+  /// Everyone who has borrowed, by ERP ID, filtered in Firestore by the fields below.
+  late final members = _pager<LibraryMember>();
+  MemberKind memberKind = MemberKind.all;
 
-  /// Active loans, earliest due first.
-  List<LibraryLoan> get loans => _loans.items;
-  bool get loansLoading => _loans.loading;
-  bool get hasMoreLoans => _loans.hasMore;
+  /// True for blocked members, false for those who can borrow, null for both.
+  bool? memberBlocked;
 
-  /// Fines by status: 'outstanding', 'partially_paid', 'paid', 'waived', or 'all'.
-  List<LibraryFine> get fines => _fines.items;
-  bool get finesLoading => _fines.loading;
-  bool get hasMoreFines => _fines.hasMore;
-  String fineStatus = 'all';
+  /// Exact ERP ID; overrides the other filters.
+  String memberSearch = '';
 
-  /// Incidents by status: 'open', 'resolved', or 'all'.
-  List<LibraryIncident> get incidents => _incidents.items;
-  bool get incidentsLoading => _incidents.loading;
-  bool get hasMoreIncidents => _incidents.hasMore;
-  String incidentStatus = 'all';
+  bool get membersFiltered =>
+      memberSearch.isNotEmpty ||
+      memberKind != MemberKind.all ||
+      memberBlocked != null;
+
+  /// Issued Books: active loans, earliest due first, filtered in Firestore by the fields below.
+  late final loans = _pager<LibraryLoan>();
+  int? loanClassId;
+
+  /// Section name within [loanClassId].
+  String? loanSection;
+  LoanIssuedWindow? loanIssued;
+  LoanDueFilter? loanDue;
+
+  /// Exact loan, accession or admission number; overrides the other filters.
+  String loanSearch = '';
+
+  bool get loansFiltered =>
+      loanSearch.isNotEmpty ||
+      loanClassId != null ||
+      loanSection != null ||
+      loanIssued != null ||
+      loanDue != null;
+
+  /// The next active loans due, for the overview (ignores the Issued Books filters).
+  List<LibraryLoan> dueNext = [];
+  bool dueNextLoading = false;
+
+  /// Fines, newest first, filtered in Firestore by the fields below.
+  late final fines = _pager<LibraryFine>();
+
+  /// `outstanding`, `partially_paid`, `paid`, `waived`, or null for every status.
+  String? fineStatus;
+
+  /// `overdue`, `lost`, `damaged`, or null for every type.
+  String? fineType;
+
+  /// Exact fine or accession number; overrides the other filters.
+  String fineSearch = '';
+
+  bool get finesFiltered =>
+      fineSearch.isNotEmpty || fineStatus != null || fineType != null;
+
+  /// Amounts across every fine the filters match (not just the loaded page).
+  ({double outstanding, double paid, double waived})? fineTotals;
+  int _fineTotalsLoad = 0;
+
+  /// Lost and damaged incidents, newest first, filtered in Firestore by the fields below.
+  late final incidents = _pager<LibraryIncident>();
+
+  /// `open`, `resolved`, or null for both.
+  String? incidentStatus;
+
+  /// `lost`, `damaged`, or null for both.
+  String? incidentType;
+
+  /// Exact incident or accession number; overrides the other filters.
+  String incidentSearch = '';
+
+  bool get incidentsFiltered =>
+      incidentSearch.isNotEmpty ||
+      incidentStatus != null ||
+      incidentType != null;
 
   /// The student (`student`) or staff member (`teacher`) with [identifier] (student admission number or RFID, staff ERP ID) in the ERP, or null.
   Future<LibraryPerson?> findPerson(String type, String identifier) =>
       _people.findByIdentifier(type, identifier);
 
-  Future<List<Standards>> classes() => _people.classes();
-
   Future<List<StudentData>> studentsOf(int classId, String section) =>
       _people.studentsOf(classId, section);
 
   LibraryPerson studentPerson(StudentData student) =>
-      _people.personFrom('student', student);
+      _people.personFrom(student);
 
-  LibraryCategory? category(String? id) {
-    for (final category in categories) {
-      if (category.id == id) return category;
-    }
-    return null;
-  }
+  LibraryCategory? category(String? id) =>
+      categories.where((category) => category.id == id).firstOrNull;
 
   /// [id] and its subcategories, so filtering by a parent also finds books filed under a child.
   List<String>? categoryScope(String? id) => id == null
@@ -125,142 +165,197 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   Future<void> loadMasters() =>
       _busy((loading) => isLoading = loading, () async {
         access = await _service.access();
-        final masterLists = await Future.wait([
+        final (loadedLibraries, loadedCategories, loadedPolicies) = await (
           _service.libraries(),
           _service.categories(),
           _service.policies(),
-        ]);
-        libraries = masterLists[0] as List<SchoolLibrary>;
-        categories = masterLists[1] as List<LibraryCategory>;
-        policies = masterLists[2] as List<LibraryPolicy>;
+        ).wait;
+        libraries = loadedLibraries;
+        categories = loadedCategories;
+        policies = loadedPolicies;
       });
 
-  /// (Re)loads the first page, or the next one when [more] is true.
+  /// Applies the given filters and reloads the catalogue from its first page.
   Future<void> loadBooks({
-    bool more = false,
     String? search,
     String? categoryId,
     bool clearCategory = false,
     int? classId,
     bool clearClass = false,
+    String? status,
+    bool clearStatus = false,
   }) async {
-    if (more && (booksLoading || !hasMoreBooks)) return;
-    final generation = ++_bookGeneration;
-    if (!more) {
-      bookSearch = search ?? bookSearch;
-      bookCategoryId = clearCategory ? null : (categoryId ?? bookCategoryId);
-      bookClassId = clearClass ? null : (classId ?? bookClassId);
-      _cursor = null;
-      _searchOffset = 0;
-    }
-    booksLoading = true;
-    errorMessage = null;
-    notifyListeners();
-    try {
-      final query = bookSearch.trim();
-      if (query.isEmpty) {
-        final page = await _service.books(
-          categoryIds: categoryScope(bookCategoryId),
+    bookSearch = (search ?? bookSearch).trim();
+    bookCategoryId = clearCategory ? null : (categoryId ?? bookCategoryId);
+    bookClassId = clearClass ? null : (classId ?? bookClassId);
+    bookStatus = clearStatus ? null : (status ?? bookStatus);
+    final categoryIds = categoryScope(bookCategoryId);
+    final query = bookSearch;
+    if (query.isEmpty) {
+      await books.loadQuery(
+        await _service.booksQuery(
+          categoryIds: categoryIds,
           classId: bookClassId,
-          after: _cursor,
-        );
-        if (generation != _bookGeneration) return;
-        if (!more) books.clear();
-        books.addAll(page.items);
-        _cursor = page.cursor;
-        hasMoreBooks = page.hasMore;
-      } else {
+          status: bookStatus,
+        ),
+        (document) => LibraryBook.fromMap(document.id, document.data()!),
+      );
+    } else {
+      await books.load(({
+        required after,
+        required offset,
+        required limit,
+      }) async {
         final page = await _service.searchBooks(
           query,
-          categoryIds: categoryScope(bookCategoryId),
+          categoryIds: categoryIds,
           classId: bookClassId,
-          offset: _searchOffset,
+          status: bookStatus,
+          offset: offset,
+          limit: limit,
         );
-        if (generation != _bookGeneration) return;
-        if (!more) books.clear();
-        books.addAll(page.items);
-        _searchOffset += page.items.length;
-        hasMoreBooks = page.hasMore;
-      }
-    } catch (error) {
-      errorMessage = callableErrorMessage(error);
-    } finally {
-      if (generation == _bookGeneration) {
-        booksLoading = false;
-        notifyListeners();
-      }
+        return PagedResult(page.items, null, hasMore: page.hasMore);
+      });
     }
   }
 
-  /// Loads the first page of a paged list, or the next one when [more] is true; an older
-  /// response never overwrites a newer one.
-  Future<void> _loadPage<T>(
-    _Paged<T> paged,
-    Future<PagedResult<T>> Function(
-      DocumentSnapshot<Map<String, dynamic>>? after,
-    )
-    fetch, {
-    required bool more,
-  }) async {
-    if (more && (paged.loading || !paged.hasMore)) return;
-    final generation = ++paged.generation;
-    if (!more) paged.cursor = null;
-    paged.loading = true;
-    errorMessage = null;
+  /// Loads the first page of members for the current filters.
+  Future<void> loadMembers() async {
+    await members.loadQuery(
+      await _service.membersQuery(
+        memberType: memberKind.memberType,
+        blocked: memberBlocked,
+        search: memberSearch,
+      ),
+      (document) => LibraryMember.fromMap(document.id, document.data()!),
+    );
+  }
+
+  /// Clears every members filter and reloads.
+  Future<void> clearMemberFilters() {
+    memberKind = MemberKind.all;
+    memberBlocked = null;
+    memberSearch = '';
+    return loadMembers();
+  }
+
+  /// Reloads Issued Books from its first page with the current filters.
+  Future<void> loadLoans() async {
+    await loans.loadQuery(
+      await _service.activeLoansQuery(
+        classId: loanClassId,
+        section: loanSection,
+        issued: loanIssued,
+        due: loanDue,
+        search: loanSearch,
+      ),
+      (document) => LibraryLoan.fromMap(document.id, document.data()!),
+    );
+  }
+
+  /// Clears every Issued Books filter and reloads.
+  Future<void> clearLoanFilters() {
+    loanClassId = null;
+    loanSection = null;
+    loanIssued = null;
+    loanDue = null;
+    loanSearch = '';
+    return loadLoans();
+  }
+
+  /// Loads the first [count] active loans by due date into [dueNext].
+  Future<void> loadDueNext({int count = 8}) async {
+    dueNextLoading = true;
     notifyListeners();
     try {
-      final page = await fetch(paged.cursor);
-      if (generation != paged.generation) return;
-      if (!more) paged.items.clear();
-      paged.items.addAll(page.items);
-      paged.cursor = page.cursor;
-      paged.hasMore = page.hasMore;
+      final snapshot = await (await _service.activeLoansQuery())
+          .limit(count)
+          .get();
+      dueNext = [
+        for (final document in snapshot.docs)
+          LibraryLoan.fromMap(document.id, document.data()),
+      ];
     } catch (error) {
       errorMessage = callableErrorMessage(error);
     } finally {
-      if (generation == paged.generation) {
-        paged.loading = false;
-        notifyListeners();
-      }
+      dueNextLoading = false;
+      notifyListeners();
     }
   }
 
-  /// (Re)loads the first page of members, or the next one when [more] is true.
-  Future<void> loadMembers({bool more = false}) {
-    return _loadPage(
-      _members,
-      (after) => _service.members(after: after),
-      more: more,
+  /// A pager whose failures become [errorMessage] and whose changes rebuild listeners.
+  FirestorePager<T> _pager<T>() {
+    final pager = FirestorePager<T>();
+    pager.addListener(() {
+      final error = pager.error;
+      if (error != null) errorMessage = callableErrorMessage(error);
+      notifyListeners();
+    });
+    return pager;
+  }
+
+  /// Loads the first page of fines and their totals for the current filters.
+  Future<void> loadFines() async {
+    final query = await _service.finesQuery(
+      status: fineStatus,
+      type: fineType,
+      search: fineSearch,
+    );
+    unawaited(_loadFineTotals(query));
+    await fines.loadQuery(
+      query,
+      (document) => LibraryFine.fromMap(document.id, document.data()!),
     );
   }
 
-  /// (Re)loads the first page of active loans, or the next one when [more] is true.
-  Future<void> loadLoans({bool more = false}) => _loadPage(
-    _loans,
-    (after) => _service.loans('active', after: after),
-    more: more,
-  );
+  /// Clears every fines filter and reloads.
+  Future<void> clearFineFilters() {
+    fineStatus = null;
+    fineType = null;
+    fineSearch = '';
+    return loadFines();
+  }
 
-  /// (Re)loads the first page of fines, or the next one when [more] is true.
-  Future<void> loadFines({bool more = false, String? status}) {
-    if (!more) fineStatus = status ?? fineStatus;
-    return _loadPage(
-      _fines,
-      (after) => _service.fines(status: fineStatus, after: after),
-      more: more,
-    );
+  Future<void> _loadFineTotals(Query<Map<String, dynamic>> query) async {
+    final load = ++_fineTotalsLoad;
+    fineTotals = null;
+    notifyListeners();
+    try {
+      final snapshot = await query
+          .aggregate(sum('outstanding'), sum('paid'), sum('waived'))
+          .get();
+      if (load != _fineTotalsLoad) return;
+      fineTotals = (
+        outstanding: snapshot.getSum('outstanding') ?? 0,
+        paid: snapshot.getSum('paid') ?? 0,
+        waived: snapshot.getSum('waived') ?? 0,
+      );
+      notifyListeners();
+    } catch (_) {
+      // The list reports the same query's error; the totals just stay blank.
+    }
   }
 
   Future<LibraryFine?> fine(String id) => _service.fine(id);
 
-  /// (Re)loads the first page of incidents, or the next one when [more] is true.
-  Future<void> loadIncidents({bool more = false, String? status}) {
-    if (!more) incidentStatus = status ?? incidentStatus;
-    return _loadPage(
-      _incidents,
-      (after) => _service.incidents(status: incidentStatus, after: after),
-      more: more,
+  /// Loads the first page of incidents for the current filters.
+  Future<void> loadIncidents() async {
+    await incidents.loadQuery(
+      await _service.incidentsQuery(
+        status: incidentStatus,
+        type: incidentType,
+        search: incidentSearch,
+      ),
+      (document) => LibraryIncident.fromMap(document.id, document.data()!),
     );
+  }
+
+  /// Clears every incident filter and reloads.
+  Future<void> clearIncidentFilters() {
+    incidentStatus = null;
+    incidentType = null;
+    incidentSearch = '';
+    return loadIncidents();
   }
 
   Future<LibraryLoan?> activeLoanOf(String barcode) =>
@@ -271,31 +366,13 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
 
   Future<LibraryBook?> book(String id) => _service.book(id);
 
-  Future<({List<LibraryBook> items, bool hasMore})> searchBooks(
-    String query, {
-    List<String>? categoryIds,
-    int? classId,
-    int offset = 0,
-    int limit = 25,
-  }) => _service.searchBooks(
-    query,
-    categoryIds: categoryIds,
-    classId: classId,
-    offset: offset,
-    limit: limit,
-  );
-
   Future<List<LibraryCopy>> copiesOf(String catalogueId) =>
       _service.copiesOf(catalogueId);
 
   Future<LibraryCopy?> findCopy(String code) => _service.findCopy(code);
 
-  SchoolLibrary? library(String? id) {
-    for (final schoolLibrary in libraries) {
-      if (schoolLibrary.id == id) return schoolLibrary;
-    }
-    return null;
-  }
+  SchoolLibrary? library(String? id) =>
+      libraries.where((library) => library.id == id).firstOrNull;
 
   // Writes return true on success, else set [errorMessage].
 
@@ -340,7 +417,6 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     Map<String, Object?> copies, {
     required String requestId,
   }) => _write(() async {
-    createdBarcodes = const [];
     createdBarcodes = await _service.createBook({
       'catalogueId': catalogueId,
       ...copies,
@@ -435,64 +511,86 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     reload: loadMasters,
   );
 
-  Future<bool> issueLoan(Map<String, Object?> data) => _write(
+  Future<bool> issueLoan(
+    LibraryPerson person,
+    String barcode, {
+    String? remarks,
+  }) => _write(
     () => _loanWrites.issue(
-      person: data['person']! as Map<String, Object?>,
-      barcode: data['barcode']! as String,
-      remarks: data['remarks'] as String?,
+      person: person.toPayload(),
+      barcode: barcode,
+      remarks: remarks,
     ),
     reload: loadLoans,
   );
 
-  Future<bool> returnLoan(Map<String, Object?> data) => _write(
-    () => _loanWrites.returnLoan(
-      id: data['id']! as String,
-      condition: data['condition']! as String,
-      remarks: data['remarks'] as String?,
-    ),
+  Future<bool> returnLoan({
+    required String id,
+    required String condition,
+    String? remarks,
+  }) => _write(
+    () =>
+        _loanWrites.returnLoan(id: id, condition: condition, remarks: remarks),
     reload: loadLoans,
   );
 
   Future<bool> renewLoan(String id) =>
       _write(() => _loanWrites.renew(id), reload: loadLoans);
 
-  Future<bool> waiveFine(Map<String, Object?> data) => _write(
-    () => _loanWrites.waiveFine(
-      id: data['id']! as String,
-      amount: (data['amount']! as num).toDouble(),
-      reason: data['reason']! as String,
-    ),
+  Future<bool> waiveFine({
+    required String id,
+    required double amount,
+    required String reason,
+  }) => _write(
+    () => _loanWrites.waiveFine(id: id, amount: amount, reason: reason),
     reload: loadFines,
   );
 
-  Future<bool> setFinePayment(Map<String, Object?> data) => _write(
+  Future<bool> setFinePayment({
+    required String id,
+    required double amount,
+    String? reference,
+  }) => _write(
     () => _loanWrites.recordFinePayment(
-      id: data['id']! as String,
-      amount: (data['paidAmount']! as num).toDouble(),
-      reference: data['reference'] as String?,
+      id: id,
+      amount: amount,
+      reference: reference,
     ),
     reload: loadFines,
   );
 
-  Future<bool> reportIncident(Map<String, Object?> data) => _write(
+  Future<bool> reportIncident({
+    required String barcode,
+    required String type,
+    required String severity,
+    required double charge,
+    int? personErpId,
+    String? description,
+  }) => _write(
     () => _loanWrites.reportIncident(
-      barcode: data['barcode']! as String,
-      type: data['type']! as String,
-      personErpId: data['personErpId'] as int?,
-      severity: data['severity']! as String,
-      description: data['description'] as String?,
-      charge: (data['charge']! as num).toDouble(),
+      barcode: barcode,
+      type: type,
+      personErpId: personErpId,
+      severity: severity,
+      description: description,
+      charge: charge,
     ),
     reload: loadIncidents,
   );
 
-  Future<bool> resolveIncident(Map<String, Object?> data) => _write(
+  Future<bool> resolveIncident({
+    required String id,
+    required String resolution,
+    double? repairCost,
+    double? charge,
+    String? remarks,
+  }) => _write(
     () => _loanWrites.resolveIncident(
-      id: data['id']! as String,
-      resolution: data['resolution']! as String,
-      repairCost: data['repairCost'] as double?,
-      charge: data['charge'] as double?,
-      remarks: data['remarks'] as String?,
+      id: id,
+      resolution: resolution,
+      repairCost: repairCost,
+      charge: charge,
+      remarks: remarks,
     ),
     reload: loadIncidents,
   );
@@ -506,37 +604,39 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     reload: loadMembers,
   );
 
-  Future<bool> markLoanLost(Map<String, Object?> data) => _write(
-    () => _loanWrites.markLost(
-      id: data['id']! as String,
-      reason: data['reason'] as String?,
-      charge: data['charge'] as double?,
-    ),
+  Future<bool> markLoanLost({
+    required String id,
+    String? reason,
+    double? charge,
+  }) => _write(
+    () => _loanWrites.markLost(id: id, reason: reason, charge: charge),
     reload: loadLoans,
   );
 
   // Dashboard and reports (Lib-8).
-  Map<String, num?> dashboard = {};
+  /// Rows of the summary reports (monthly, student, staff).
   List<ReportRow> reportRows = [];
+
+  /// True when the summary report stopped at [LibraryService.loanLimit] loans.
+  bool reportCapped = false;
+
+  /// The loans report, newest first, paged in Firestore; [reportLoanCounts] are its KPIs.
+  late final reportLoans = _pager<ReportRow>();
+  LoanReportCounts? reportLoanCounts;
+  Query<Map<String, dynamic>>? _reportLoansQuery;
+  int _reportLoad = 0;
   final Map<String, LibraryBook> _titles = {};
   bool insightsLoading = false;
 
   String titleName(Object? id) => _titles[id]?.title ?? '$id';
 
-  String libraryName(Object? id) =>
-      libraries
-          .where((schoolLibrary) => schoolLibrary.id == id)
-          .firstOrNull
-          ?.name ??
-      '$id';
+  String libraryName(Object? id) => library('$id')?.name ?? '$id';
 
   /// Who and which books a policy covers, e.g. `Students · Fiction, Science`.
   String policyScope(LibraryPolicy policy) =>
       '${policy.appliesTo} · ${policy.categoryIds.isEmpty ? 'All other categories' : policy.categoryIds.map(categoryName).join(', ')}';
 
-  String categoryName(Object? id) =>
-      categories.where((category) => category.id == id).firstOrNull?.name ??
-      '$id';
+  String categoryName(Object? id) => category('$id')?.name ?? '$id';
 
   /// Runs [body] with [setLoading] flagged around it; a failure becomes [errorMessage].
   Future<void> _busy(
@@ -559,9 +659,9 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   Future<void> _insights(Future<void> Function() body) =>
       _busy((loading) => insightsLoading = loading, body);
 
-  Future<void> loadDashboard({SchoolLibrary? library}) => _insights(
-    () async => dashboard = await _service.dashboard(library: library),
-  );
+  /// Live overview figures; the caller listens for as long as it is on screen.
+  Stream<Map<String, num?>> watchDashboard({SchoolLibrary? library}) =>
+      _service.dashboard(library: library);
 
   Future<void> loadReport(
     LibraryReportDef def, {
@@ -569,22 +669,76 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     required DateTime to,
     SchoolLibrary? library,
     String? status,
-  }) => _insights(() async {
-    reportRows = await _service.report(
-      def,
-      library: library,
+  }) async {
+    if (def.kind != LibraryReportKind.loans) {
+      return _insights(() async {
+        final report = await _service.report(
+          def,
+          library: library,
+          from: from,
+          to: to,
+        );
+        reportRows = report.rows;
+        reportCapped = report.capped;
+      });
+    }
+    final load = ++_reportLoad;
+    reportLoanCounts = null;
+    unawaited(
+      _service
+          .reportLoanCounts(
+            from: from,
+            to: to,
+            library: library,
+            status: status,
+          )
+          .then((counts) {
+            if (load != _reportLoad) return;
+            reportLoanCounts = counts;
+            notifyListeners();
+          }, onError: (Object _) {}),
+    );
+    final query = _reportLoansQuery = await _service.reportLoansQuery(
       from: from,
       to: to,
+      library: library,
       status: status,
     );
+    await reportLoans.load(({
+      required after,
+      required offset,
+      required limit,
+    }) async {
+      final page = await fetchPage(
+        query,
+        (document) => document.data()!,
+        after: after,
+        limit: limit,
+      );
+      await _loadTitles(page.items);
+      return page;
+    }, count: () async => (await query.count().get()).count ?? 0);
+  }
+
+  /// Every loan of the current loans report (up to [LibraryService.loanLimit]), for CSV export.
+  Future<List<ReportRow>> exportReportLoans() async {
+    final snapshot = await _reportLoansQuery!
+        .limit(LibraryService.loanLimit)
+        .get();
+    final rows = [for (final document in snapshot.docs) document.data()];
+    await _loadTitles(rows);
+    return rows;
+  }
+
+  Future<void> _loadTitles(List<ReportRow> rows) async {
     final need = {
-      for (final row in reportRows)
+      for (final row in rows)
         if (row['catalogueId'] is String &&
             !_titles.containsKey(row['catalogueId']))
           row['catalogueId'] as String,
     };
     if (need.isNotEmpty) _titles.addAll(await _service.titlesByIds(need));
-  });
+  }
 
   Future<bool> _write(
     Future<void> Function() call, {
@@ -601,15 +755,6 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     await reload?.call();
     return true;
   }
-}
-
-/// One paged list: its items, cursor and the latest load generation.
-class _Paged<T> {
-  final items = <T>[];
-  bool loading = false;
-  bool hasMore = false;
-  DocumentSnapshot<Map<String, dynamic>>? cursor;
-  int generation = 0;
 }
 
 /// What importing one book did: whether its title was new, how many copies were added, and why it stopped, if it did.

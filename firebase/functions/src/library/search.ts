@@ -7,6 +7,7 @@ import { applyChange, searchInput, searchPage, syncTrigger } from '../shared/sea
 const catalogueSearchInput = searchInput.omit({ categoryId: true }).extend({
   categoryIds: z.array(z.string().min(1).max(100)).max(30).optional(),
   classId: z.number().int().positive().optional(),
+  status: z.enum(['active', 'inactive']).optional(),
 });
 
 /** Catalogue search (FRS 11.4): same mirror pattern as inventory items (architecture §10). */
@@ -59,6 +60,7 @@ export const searchCatalogue = (
       sortField: 'title',
       categoryIds: query.categoryIds,
       classId: query.classId,
+      status: query.status,
     },
     projectRow,
     db,

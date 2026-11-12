@@ -10,25 +10,12 @@ import {
 } from '../src/inventory/stock';
 import { dayTimestamp, isoDate, timestampDay, todayIST } from '../src/shared/dates';
 import { serverTimestamp } from '../src/shared/firestore';
-import {
-  defineCallable,
-  failed,
-  id,
-  missing,
-  money,
-  optionalText,
-  usable,
-} from '../src/shared/masters';
-import { enqueue } from '../src/shared/outbox';
+import { defineCallable, failed, id, missing, money, optionalText } from '../src/shared/masters';
 import { db } from './setup';
 
 const transactionFields = { date: isoDate.optional() };
 const lineItemKey = (lineItem: { itemId?: string; variantId?: string | null }) =>
   `${lineItem.itemId}__${lineItem.variantId ?? '-'}`;
-function assertUniqueLines(lineItems: { itemId: string; variantId?: string | null }[]) {
-  if (new Set(lineItems.map(lineItemKey)).size !== lineItems.length)
-    throw failed('Each item (and variant) may appear once');
-}
 
 /** Documents the client writes directly (`firestore.rules`); the server only reads them, so tests seed them. */
 const SCHOOL = 'orgs/8/zones/147/branches/427';
@@ -48,9 +35,7 @@ export async function seedStore(fields: {
   return { id: ref.id };
 }
 
-export async function seedLibrary(fields: {
-  name: string;
-}): Promise<{ id: string }> {
+export async function seedLibrary(fields: { name: string }): Promise<{ id: string }> {
   const ref = db().collection(`${SCHOOL}/libraries`).doc();
   await ref.set({
     location: null,

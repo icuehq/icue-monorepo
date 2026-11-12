@@ -1,3 +1,4 @@
+import 'package:icue_firebase/icue_firebase.dart' show FirestorePager;
 import 'package:flutter/material.dart';
 
 /// Row/header sizing preset, chosen from the display menu.
@@ -29,6 +30,12 @@ enum IcueTableStatus {
       : loading
       ? IcueTableStatus.loading
       : ready;
+
+  /// Failed wins; loading only while there are no rows to keep showing.
+  static IcueTableStatus pager(FirestorePager<Object?> pager) => of(
+    failed: pager.error != null,
+    loading: pager.loading && pager.items.isEmpty,
+  );
 }
 
 /// Current sort. `null` on the table means "unsorted / source order".
@@ -264,7 +271,7 @@ class IcueTableScope extends InheritedWidget {
 
   static IcueTableDensity densityOf(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<IcueTableScope>()?.density ??
-      IcueTableDensity.comfortable;
+      IcueTableDensity.spacious;
 
   @override
   bool updateShouldNotify(IcueTableScope oldWidget) =>

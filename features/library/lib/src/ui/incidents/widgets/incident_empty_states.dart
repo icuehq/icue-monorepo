@@ -39,8 +39,10 @@ class IncidentNoResultsState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => IcueEmptyState.noResults(
-    title: 'No incidents match "$searchQuery"',
-    message: 'Try searching by another copy barcode, member name, or incident number.',
+    title: searchQuery.isEmpty
+        ? 'No incidents match these filters'
+        : 'No incidents match "$searchQuery"',
+    message: 'Search by the exact incident number or accession number.',
     onAction: onClear,
   );
 }

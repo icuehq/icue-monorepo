@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:injectable/injectable.dart';
@@ -80,13 +82,12 @@ class LoanWrites {
       bool covers(QueryDocumentSnapshot<_Json> policy, String? category) =>
           category != null &&
           (policy['categoryIds'] as List).contains(category);
-      for (final policy in [
+      final policy = [
         ...own.where((policy) => covers(policy, categoryId)),
         ...own.where((policy) => covers(policy, parentId)),
         ...own.where((policy) => (policy['categoryIds'] as List).isEmpty),
-      ]) {
-        return (id: policy.id, data: policy.data());
-      }
+      ].firstOrNull;
+      if (policy != null) return (id: policy.id, data: policy.data());
     }
     return null;
   }
@@ -201,10 +202,7 @@ class LoanWrites {
 
   Map<String, Object?> _memberAfterLoan(_Json member, {required bool fined}) =>
       {
-        'activeLoans': ((member['activeLoans'] as num? ?? 0).toInt() - 1).clamp(
-          0,
-          1 << 30,
-        ),
+        'activeLoans': max(0, (member['activeLoans'] as num? ?? 0).toInt() - 1),
         if (fined) ..._fineBlock(member),
         'updatedAt': FieldValue.serverTimestamp(),
       };
@@ -262,6 +260,13 @@ class LoanWrites {
           'memberType': memberType,
           'personErpId': personErpId,
           'memberName': person['name'],
+          'memberClassId': memberType == 'student' ? person['classId'] : null,
+          'memberClass': memberType == 'student' ? person['className'] : null,
+          'memberSection': memberType == 'student' ? person['section'] : null,
+          'admissionNumber': memberType == 'student'
+              ? person['admissionNumber']
+              : null,
+          'bookTitle': title['title'],
           'barcode': barcode,
           'catalogueId': copy['catalogueId'],
           'libraryId': copy['libraryId'],
@@ -765,7 +770,7 @@ class LoanWrites {
     });
   }
 
-  /// Resolves an open incident. Repaired or dismissed copies go back to the shelf; written-off, replaced and paid-for lost copies are withdrawn. A higher [charge] fines the
+  /// Resolves an open incident. Repaired or dismissed copies go back to the shelf (a dismissed lost copy's fine is waived); written-off, replaced and paid-for lost copies are withdrawn. A higher [charge] fines the
   /// difference.
   Future<void> resolveIncident({
     required String id,
@@ -873,5 +878,35 @@ class LoanWrites {
         'lastWrite': writeStamp('libraryIncident.resolve', remarks),
       });
     });
+    if (resolution == 'dismissed' && earlier['type'] == 'lost') {
+      await _waiveLostFine(earlier['loanId'] as String?);
+    }
+  }
+
+  /// A lost copy that turned up was never lost: its replacement fine on loan [loanId] is waived in
+  /// full, which also lifts the member's fine block.
+  Future<void> _waiveLostFine(String? loanId) async {
+    if (loanId == null) return;
+    final fineId = '${loanId}__lost';
+    final fine = (await (await schoolDocument(
+      'libraryFines',
+      fineId,
+    )).get()).data();
+    final outstanding = (fine?['outstanding'] as num? ?? 0).toDouble();
+    if (outstanding <= 0) return;
+    const reason = 'Lost copy found: incident dismissed';
+    await _settleFine(
+      fineId,
+      'libraryFine.waive',
+      amount: outstanding,
+      waive: true,
+      over: 'Waived amount',
+      entry: {
+        'amount': outstanding,
+        'reason': reason,
+        'performedBy': _uid,
+        'performedAt': Timestamp.now(),
+      },
+    );
   }
 }

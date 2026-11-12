@@ -8,17 +8,19 @@ const BRANCH = 'orgs/8/zones/147/branches/427';
 
 const get = async (path: string) => (await db().doc(`${BRANCH}/${path}`).get()).data();
 const search = (data: Record<string, unknown>) =>
-  runQuery(catalogueSearch, { uid: '1', token: { orgId: 8, zoneId: 147, branchId: 427, personType: 'staff' } }, data);
+  runQuery(
+    catalogueSearch,
+    { uid: '1', token: { orgId: 8, zoneId: 147, branchId: 427, personType: 'staff' } },
+    data,
+  );
 
 describe('library masters', () => {
   let category: string;
   beforeEach(async () => {
     await clearFirestore();
-    await db()
-      .doc(`${BRANCH}/userAccess/1`)
-      .set({
-        permissions: [],
-      });
+    await db().doc(`${BRANCH}/userAccess/1`).set({
+      permissions: [],
+    });
     category = (await seedLibraryCategory({ name: 'General' })).id;
   });
 
@@ -56,6 +58,10 @@ describe('library masters', () => {
       expect((await search({ q: 'kalam', classId: 8 })).items.map((item) => item.id)).toEqual([
         firstBook.id,
       ]);
+      expect(
+        (await search({ q: 'kalam', status: 'active' })).items.map((item) => item.id).sort(),
+      ).toEqual([firstBook.id, secondBook.id].sort());
+      expect((await search({ q: 'kalam', status: 'inactive' })).items).toEqual([]);
       await expect(search({ q: '- *' })).rejects.toMatchObject({ code: 'invalid-argument' });
     });
   });

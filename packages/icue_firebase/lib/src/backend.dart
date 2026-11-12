@@ -32,33 +32,3 @@ Future<Object?> callFunction(
     }
   }
 }
-
-/// One page of a cursor-paginated query.
-class PagedResult<T> {
-  const PagedResult(this.items, this.cursor, {required this.hasMore});
-
-  final List<T> items;
-
-  /// Pass as `after` to [fetchPage] for the next page.
-  final DocumentSnapshot<Map<String, dynamic>>? cursor;
-  final bool hasMore;
-}
-
-/// Fetches [limit] docs of [query] after [after]; reads one extra to know
-/// whether another page exists.
-Future<PagedResult<T>> fetchPage<T>(
-  Query<Map<String, dynamic>> query,
-  T Function(DocumentSnapshot<Map<String, dynamic>> doc) fromDoc, {
-  DocumentSnapshot<Map<String, dynamic>>? after,
-  int limit = 25,
-}) async {
-  var q = query.limit(limit + 1);
-  if (after != null) q = q.startAfterDocument(after);
-  final docs = (await q.get()).docs;
-  final page = docs.take(limit).toList();
-  return PagedResult(
-    page.map(fromDoc).toList(),
-    page.isEmpty ? after : page.last,
-    hasMore: docs.length > limit,
-  );
-}

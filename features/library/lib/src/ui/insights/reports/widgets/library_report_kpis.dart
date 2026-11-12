@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:icue_firebase/icue_firebase.dart'
-    show Timestamp, dayTimestamp, readNumber;
+import 'package:icue_firebase/icue_firebase.dart' show readNumber;
 import 'package:icue_ui/icue_ui.dart';
 import 'package:school_library/school_library.dart';
 
@@ -24,58 +23,55 @@ class _KpiMetric {
 
 /// Executive KPI cards summarizing current library report data.
 class LibraryReportKpis extends StatelessWidget {
-  const LibraryReportKpis({required this.kind, required this.rows, super.key});
+  const LibraryReportKpis({
+    required this.kind,
+    required this.rows,
+    this.loanTotal,
+    this.loanCounts,
+    super.key,
+  });
 
   final LibraryReportKind kind;
+
+  /// Summary report rows (monthly, student, staff).
   final List<Map<String, dynamic>> rows;
 
+  /// Loans report figures over every matching loan; null while they load.
+  final int? loanTotal;
+  final LoanReportCounts? loanCounts;
+
   List<_KpiMetric> _metricsForLoans() {
-    final today = dayTimestamp(todayIST());
-    final total = rows.length;
-    var activeCount = 0;
-    var returnedCount = 0;
-    var overdueOrLostCount = 0;
-
-    for (final row in rows) {
-      final status = row['status'];
-      if (status == 'returned') {
-        returnedCount++;
-      } else if (status == 'active') {
-        activeCount++;
-        final dueDate = row['dueDate'];
-        if (dueDate is Timestamp && dueDate.compareTo(today) < 0) {
-          overdueOrLostCount++;
-        }
-      } else if (status == 'lost') {
-        overdueOrLostCount++;
-      }
-    }
-
-    final returnRate = total == 0 ? 0 : (returnedCount / total * 100).round();
+    final total = loanTotal;
+    final counts = loanCounts;
+    String figure(int? value) => value?.toString() ?? '…';
+    final returnRate = total == null || counts == null || total == 0
+        ? 0
+        : (counts.returned / total * 100).round();
+    final overdueOrLostCount = counts?.overdueOrLost ?? 0;
 
     return [
       _KpiMetric(
         label: 'Total Issues',
-        value: total.toString(),
+        value: figure(total),
         icon: Icons.auto_stories_outlined,
         badge: 'In selected period',
       ),
       _KpiMetric(
         label: 'Returned Books',
-        value: returnedCount.toString(),
+        value: figure(counts?.returned),
         icon: Icons.check_circle_outline_rounded,
         badge: '$returnRate% return rate',
         isSuccess: returnRate >= 70,
       ),
       _KpiMetric(
         label: 'Currently Active',
-        value: activeCount.toString(),
+        value: figure(counts?.active),
         icon: Icons.menu_book_rounded,
         badge: 'With borrowers',
       ),
       _KpiMetric(
         label: 'Overdue / Lost',
-        value: overdueOrLostCount.toString(),
+        value: figure(counts?.overdueOrLost),
         icon: Icons.warning_amber_rounded,
         badge: overdueOrLostCount > 0 ? 'Requires action' : 'None overdue',
         isAlert: overdueOrLostCount > 0,

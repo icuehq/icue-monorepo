@@ -16,9 +16,9 @@ class MembersPage extends StatefulWidget {
 }
 
 class _MembersPageState extends State<MembersPage> {
-  final _searchController = TextEditingController();
-  String _searchQuery = '';
-  MemberKind _kind = MemberKind.all;
+  late final _searchController = TextEditingController(
+    text: context.read<LibraryProvider>().memberSearch,
+  );
 
   @override
   void initState() {
@@ -34,11 +34,15 @@ class _MembersPageState extends State<MembersPage> {
     super.dispose();
   }
 
-  void _clearSearch() {
-    setState(() {
-      _searchController.clear();
-      _searchQuery = '';
-    });
+  void _search(String value) {
+    context.read<LibraryProvider>()
+      ..memberSearch = value.trim()
+      ..loadMembers();
+  }
+
+  void _clearFilters() {
+    _searchController.clear();
+    context.read<LibraryProvider>().clearMemberFilters();
   }
 
   Future<void> _toggleBlock(LibraryMember member) async {
@@ -88,45 +92,20 @@ class _MembersPageState extends State<MembersPage> {
   Widget build(BuildContext context) {
     final libraryProvider = context.watch<LibraryProvider>();
     final theme = Theme.of(context);
-    final allMembers = libraryProvider.members;
-
-    final filteredMembers = allMembers.where((member) {
-      if (!_kind.matches(member)) return false;
-      if (_searchQuery.isNotEmpty) {
-        final query = _searchQuery.toLowerCase();
-        final matchName = member.label.toLowerCase().contains(query);
-        final matchErpId = '${member.personErpId}'.contains(query);
-        final matchClass =
-            member.classId != null && '${member.classId}'.contains(query);
-        return matchName || matchErpId || matchClass;
-      }
-      return true;
-    }).toList();
+    final pager = libraryProvider.members;
 
     final isWide = context.isWide;
-    final loadMore = libraryProvider.hasMoreMembers
-        ? Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: IcueButton(
-                label: 'Load more',
-                onPressed: libraryProvider.membersLoading
-                    ? null
-                    : () => libraryProvider.loadMembers(more: true),
-                variant: IcueButtonVariant.ghost,
-              ),
-            ),
-          )
-        : null;
 
     final kindSelector = DropdownButton<MemberKind>(
-      value: _kind,
+      value: libraryProvider.memberKind,
       underline: const SizedBox.shrink(),
       items: [
         for (final kind in MemberKind.values)
           DropdownMenuItem(value: kind, child: Text(kind.label)),
       ],
-      onChanged: (kind) => setState(() => _kind = kind ?? MemberKind.all),
+      onChanged: (kind) => libraryProvider
+        ..memberKind = kind ?? MemberKind.all
+        ..loadMembers(),
     );
 
     return Scaffold(
@@ -134,20 +113,7 @@ class _MembersPageState extends State<MembersPage> {
       body: isWide
           ? Padding(
               padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: MembersTable(
-                      members: allMembers,
-                      loading:
-                          libraryProvider.membersLoading && allMembers.isEmpty,
-                      onToggleBlock: _toggleBlock,
-                    ),
-                  ),
-                  ?loadMore,
-                ],
-              ),
+              child: MembersTable(onToggleBlock: _toggleBlock),
             )
           : IcueCenteredBody(
               child: Column(
@@ -162,7 +128,7 @@ class _MembersPageState extends State<MembersPage> {
                           child: TextField(
                             controller: _searchController,
                             decoration: InputDecoration(
-                              hintText: 'Search member name, ID, class…',
+                              hintText: 'ERP ID',
                               prefixIcon: const Icon(Icons.search, size: 18),
                               isDense: true,
                               filled: true,
@@ -174,131 +140,45 @@ class _MembersPageState extends State<MembersPage> {
                                 horizontal: 10,
                                 vertical: 8,
                               ),
-                              suffixIcon: _searchQuery.isNotEmpty
+                              suffixIcon:
+                                  libraryProvider.memberSearch.isNotEmpty
                                   ? IconButton(
                                       icon: const Icon(Icons.clear, size: 16),
-                                      onPressed: _clearSearch,
+                                      onPressed: () {
+                                        _searchController.clear();
+                                        _search('');
+                                      },
                                     )
                                   : null,
                             ),
-                            onChanged: (value) =>
-                                setState(() => _searchQuery = value.trim()),
+                            keyboardType: TextInputType.number,
+                            textInputAction: TextInputAction.search,
+                            onSubmitted: _search,
                           ),
                         ),
                       ],
                     ),
                   ),
                   Expanded(
-                    child: libraryProvider.membersLoading && allMembers.isEmpty
+                    child: pager.loading && pager.items.isEmpty
                         ? const Center(child: CircularProgressIndicator())
-                        : filteredMembers.isEmpty
-                        ? (allMembers.isEmpty
-                              ? const MemberInitialEmptyState()
-                              : MemberNoResultsState(
-                                  searchQuery: _searchQuery,
-                                  onClear: _clearSearch,
-                                ))
+                        : pager.items.isEmpty
+                        ? (libraryProvider.membersFiltered
+                              ? MemberNoResultsState(
+                                  searchQuery: libraryProvider.memberSearch,
+                                  onClear: _clearFilters,
+                                )
+                              : const MemberInitialEmptyState())
                         : RefreshIndicator(
-                            onRefresh: () => libraryProvider.loadMembers(),
-                            child: IcueAdaptiveList<LibraryMember>(
-                              items: filteredMembers,
-                              columns: [
-                                IcueAdaptiveColumn(
-                                  label: 'Name',
-                                  flex: 3,
-                                  cell: (context, member) => Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        member.isStudent
-                                            ? Icons.school_outlined
-                                            : Icons.person_outline_rounded,
-                                        size: 16,
-                                        color: Colors.grey,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Flexible(
-                                        child: Text(
-                                          member.label,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                IcueAdaptiveColumn.text(
-                                  'ERP ID',
-                                  (member) => '${member.personErpId}',
-                                ),
-                                IcueAdaptiveColumn.text(
-                                  'Class',
-                                  (member) => member.classId == null
-                                      ? '—'
-                                      : '${member.classId}',
-                                ),
-                                IcueAdaptiveColumn(
-                                  label: 'On loan',
-                                  cell: (context, member) => Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 6,
-                                      vertical: 2,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: member.activeLoans > 0
-                                          ? theme.colorScheme.primaryContainer
-                                                .withValues(alpha: 0.5)
-                                          : theme
-                                                .colorScheme
-                                                .surfaceContainerHighest
-                                                .withValues(alpha: 0.5),
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: Text(
-                                      '${member.activeLoans} books',
-                                      style: theme.textTheme.labelSmall
-                                          ?.copyWith(
-                                            color: member.activeLoans > 0
-                                                ? theme.colorScheme.primary
-                                                : theme
-                                                      .colorScheme
-                                                      .onSurfaceVariant,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                    ),
-                                  ),
-                                ),
-                                IcueAdaptiveColumn(
-                                  label: 'Status',
-                                  cell: (context, member) =>
-                                      MemberStatusPill(member: member),
-                                ),
-                                IcueAdaptiveColumn(
-                                  label: '',
-                                  cell: (context, member) => IconButton(
-                                    tooltip: member.blocked
-                                        ? 'Unblock'
-                                        : 'Block',
-                                    icon: Icon(
-                                      member.blocked
-                                          ? Icons.lock_open_rounded
-                                          : Icons.block_rounded,
-                                      size: 18,
-                                      color: member.blocked
-                                          ? Colors.green.shade700
-                                          : theme.colorScheme.error,
-                                    ),
-                                    onPressed: () => _toggleBlock(member),
-                                  ),
-                                ),
-                              ],
-                              cardBuilder: (context, member) => MemberCard(
-                                member: member,
-                                onToggleBlock: () => _toggleBlock(member),
+                            onRefresh: libraryProvider.loadMembers,
+                            child: IcueAdaptiveCardList(
+                              itemCount: pager.items.length,
+                              footer: IcueLoadMoreFooter.of(pager),
+                              itemBuilder: (context, index) => MemberCard(
+                                member: pager.items[index],
+                                onToggleBlock: () =>
+                                    _toggleBlock(pager.items[index]),
                               ),
-                              footer: loadMore,
                             ),
                           ),
                   ),

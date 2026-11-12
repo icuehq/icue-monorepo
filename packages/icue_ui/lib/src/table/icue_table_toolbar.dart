@@ -20,7 +20,7 @@ class IcueTableToolbar extends StatefulWidget {
     this.filters = const [],
     this.primaryAction,
     this.secondaryAction,
-    this.density = IcueTableDensity.comfortable,
+    this.density = IcueTableDensity.spacious,
     this.onDensityChanged,
     this.hideableColumns = const [],
     this.hiddenColumnIds = const {},

@@ -1,35 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
+import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
-/// Wide-screen members as an [IcueClientTable]; search, sort and the status
-/// filter run over the members loaded so far.
+/// Wide-screen members as an [IcueTable]. Search and every filter are Firestore
+/// queries (the provider reloads); pages come from its pager.
 class MembersTable extends StatelessWidget {
-  const MembersTable({
-    required this.members,
-    required this.loading,
-    required this.onToggleBlock,
-    super.key,
-  });
+  const MembersTable({required this.onToggleBlock, super.key});
 
-  final List<LibraryMember> members;
-  final bool loading;
   final void Function(LibraryMember member) onToggleBlock;
 
   @override
   Widget build(BuildContext context) {
-    return IcueClientTable<LibraryMember>(
+    final provider = context.watch<LibraryProvider>();
+    final pager = provider.members;
+
+    return IcueTable<LibraryMember>(
       title: 'Members',
-      items: members,
+      rows: pager.items,
       rowKey: (member) => member.id,
       rowLabel: (member) => member.label,
-      status: IcueTableStatus.of(failed: false, loading: loading),
-      searchHint: 'Search member name, ID, class...',
-      searchText: (member) =>
-          '${member.label} ${member.personErpId} ${member.classId ?? ''}',
-      initialSort: const IcueTableSort('name'),
+      count: pager.total ?? pager.items.length,
+      status: IcueTableStatus.pager(pager),
+      onRetry: pager.retry,
+      pagination: IcueTablePagination.pager(pager),
+      searchHint: 'ERP ID',
+      initialSearch: provider.memberSearch,
+      searchDebounce: const Duration(milliseconds: 400),
+      onSearchChanged: (query) {
+        provider.memberSearch = query.trim();
+        provider.loadMembers();
+      },
       filters: [
-        IcueClientFilter<LibraryMember>(
+        IcueTableFilter(
           id: 'kind',
           label: 'Kind',
           options: [
@@ -37,19 +40,38 @@ class MembersTable extends StatelessWidget {
               if (kind != MemberKind.all)
                 IcueTableFilterOption(kind.name, kind.label),
           ],
-          matches: (member, option) =>
-              MemberKind.values.byName(option).matches(member),
+          value: provider.memberKind == MemberKind.all
+              ? null
+              : provider.memberKind.name,
+          onChanged: (value) {
+            provider
+              ..memberKind = value == null
+                  ? MemberKind.all
+                  : MemberKind.values.byName(value)
+              ..loadMembers();
+          },
         ),
-        IcueClientFilter<LibraryMember>(
+        IcueTableFilter(
           id: 'status',
           label: 'Status',
           options: const [
             IcueTableFilterOption('blocked', 'Blocked'),
             IcueTableFilterOption('canBorrow', 'Can borrow'),
           ],
-          matches: (member, option) => (option == 'blocked') == member.blocked,
+          value: switch (provider.memberBlocked) {
+            null => null,
+            true => 'blocked',
+            false => 'canBorrow',
+          },
+          onChanged: (value) {
+            provider
+              ..memberBlocked = value == null ? null : value == 'blocked'
+              ..loadMembers();
+          },
         ),
       ],
+      isFiltered: provider.membersFiltered,
+      onClearFilters: provider.clearMemberFilters,
       emptyTitle: 'No borrowers yet',
       emptyMessage:
           'Members are enrolled automatically when they first borrow '
@@ -69,8 +91,6 @@ class MembersTable extends StatelessWidget {
           label: 'Name',
           flex: 3,
           minWidth: 200,
-          sortable: true,
-          comparator: (member) => member.label.toLowerCase(),
           cellBuilder: (context, member) => IcueTableCellText(
             member.label,
             leading: Icon(
@@ -85,8 +105,6 @@ class MembersTable extends StatelessWidget {
         IcueTableColumn(
           id: 'erpId',
           label: 'ERP ID',
-          sortable: true,
-          comparator: (member) => member.personErpId,
           cellBuilder: (context, member) => IcueTableCellText(
             '${member.personErpId}',
             style: IcueTableStyle.of(context).numeric,
@@ -104,8 +122,6 @@ class MembersTable extends StatelessWidget {
         IcueTableColumn(
           id: 'onLoan',
           label: 'On loan',
-          sortable: true,
-          comparator: (member) => member.activeLoans,
           cellBuilder: (context, member) => IcueTableCellText(
             '${member.activeLoans} ${member.activeLoans == 1 ? 'book' : 'books'}',
             style: IcueTableStyle.of(context).numeric,
@@ -122,46 +138,17 @@ class MembersTable extends StatelessWidget {
   }
 }
 
-/// Who the members list shows. Staff are the library's `teacher` members.
-enum MemberKind {
-  all('All'),
-  student('Students'),
-  staff('Staff');
-
-  const MemberKind(this.label);
-  final String label;
-
-  bool matches(LibraryMember member) => switch (this) {
-    all => true,
-    student => member.isStudent,
-    staff => !member.isStudent,
-  };
-}
-
 class MemberStatusPill extends StatelessWidget {
   const MemberStatusPill({required this.member, super.key});
 
   final LibraryMember member;
 
   @override
-  Widget build(BuildContext context) {
-    final color = member.blocked
+  Widget build(BuildContext context) => IcueStatusPill(
+    label: member.blocked ? 'Blocked' : 'Can borrow',
+    color: member.blocked
         ? Theme.of(context).colorScheme.error
-        : Colors.green.shade700;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Text(
-        member.blocked ? 'Blocked' : 'Can borrow',
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          color: color,
-        ),
-      ),
-    );
-  }
+        : Colors.green.shade700,
+    compact: true,
+  );
 }

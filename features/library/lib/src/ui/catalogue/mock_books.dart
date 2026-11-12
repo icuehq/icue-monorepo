@@ -1,3 +1,8 @@
+import 'package:api_client/api_client.dart';
+
+/// Whether the "Fill sample" helpers show: never on the production environment.
+final showSampleData = ApiEnvironment.fromEnvironment() != ApiEnvironment.prod;
+
 /// Client-side sample books for prefilling the Add book form; never sent anywhere on its own.
 class MockBook {
   const MockBook(

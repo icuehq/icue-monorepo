@@ -13,7 +13,7 @@ class OverviewDueNextCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final today = todayIST();
-    final loans = libraryProvider.loans.take(8).toList();
+    final loans = libraryProvider.dueNext;
 
     return Container(
       decoration: BoxDecoration(
@@ -86,7 +86,7 @@ class OverviewDueNextCard extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 20),
                 child: Center(
                   child: Text(
-                    libraryProvider.loansLoading
+                    libraryProvider.dueNextLoading
                         ? 'Loading loans…'
                         : 'No active loans due',
                     style: theme.textTheme.bodyMedium?.copyWith(

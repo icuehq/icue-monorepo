@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
@@ -35,17 +36,21 @@ class LibraryOverviewPage extends StatefulWidget {
 
 class _LibraryOverviewPageState extends State<LibraryOverviewPage> {
   String? _libraryId;
+  Stream<Map<String, num?>>? _stats;
 
   Future<void> _load() async {
     final libraryProvider = context.read<LibraryProvider>();
     if (libraryProvider.libraries.isEmpty) await libraryProvider.loadMasters();
     if (!mounted) return;
-    await libraryProvider.loadDashboard(
-      library: libraryProvider.libraries
-          .where((schoolLibrary) => schoolLibrary.id == _libraryId)
-          .firstOrNull,
+    if (!mounted) return;
+    setState(
+      () => _stats = libraryProvider.watchDashboard(
+        library: libraryProvider.libraries
+            .where((schoolLibrary) => schoolLibrary.id == _libraryId)
+            .firstOrNull,
+      ),
     );
-    if (mounted) await libraryProvider.loadLoans();
+    await libraryProvider.loadDueNext();
   }
 
   @override
@@ -57,7 +62,6 @@ class _LibraryOverviewPageState extends State<LibraryOverviewPage> {
   @override
   Widget build(BuildContext context) {
     final libraryProvider = context.watch<LibraryProvider>();
-    final stats = libraryProvider.dashboard;
     final wide = context.isWide;
 
     final filter = SizedBox(
@@ -87,68 +91,76 @@ class _LibraryOverviewPageState extends State<LibraryOverviewPage> {
       ),
     );
 
-    final attention = OverviewAttentionCard(
-      stats: stats,
-      allowed: (key) => stats[key] != null,
-      targets: _targets,
-    );
-    final collection = OverviewCollectionCard(stats: stats);
-    final dueNext = OverviewDueNextCard(libraryProvider: libraryProvider);
-
     return Scaffold(
       appBar: AppBar(title: const Text('Overview')),
-      body: ListView(
-        padding: EdgeInsets.all(wide ? 24 : 16),
-        children: [
-          if (wide)
-            Row(
-              children: [
-                const Expanded(child: OverviewQuickActions()),
-                const SizedBox(width: 16),
+      body: StreamBuilder<Map<String, num?>>(
+        stream: _stats,
+        builder: (context, snapshot) {
+          final stats = snapshot.data ?? const <String, num?>{};
+          final error = snapshot.error ?? libraryProvider.errorMessage;
+          final attention = OverviewAttentionCard(
+            stats: stats,
+            targets: _targets,
+          );
+          final collection = OverviewCollectionCard(stats: stats);
+          final dueNext = OverviewDueNextCard(libraryProvider: libraryProvider);
+          return ListView(
+            padding: EdgeInsets.all(wide ? 24 : 16),
+            children: [
+              if (wide)
+                Row(
+                  children: [
+                    const Expanded(child: OverviewQuickActions()),
+                    const SizedBox(width: 16),
+                    filter,
+                  ],
+                )
+              else ...[
                 filter,
+                const SizedBox(height: 12),
+                const OverviewQuickActions(),
               ],
-            )
-          else ...[
-            filter,
-            const SizedBox(height: 12),
-            const OverviewQuickActions(),
-          ],
-          const SizedBox(height: 20),
-          if (libraryProvider.insightsLoading && stats.isEmpty)
-            const Padding(
-              padding: EdgeInsets.all(56),
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else ...[
-            OverviewKpiGrid(stats: stats),
-            const SizedBox(height: 16),
-            if (wide)
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: Column(
-                      children: [
-                        collection,
-                        const SizedBox(height: 16),
-                        dueNext,
-                      ],
+              if (error != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Text(
+                    callableErrorMessage(error),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(flex: 2, child: attention),
-                ],
-              )
-            else ...[
-              attention,
+                ),
+              const SizedBox(height: 20),
+              OverviewKpiGrid(stats: stats),
               const SizedBox(height: 16),
-              collection,
-              const SizedBox(height: 16),
-              dueNext,
+              if (wide)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: Column(
+                        children: [
+                          collection,
+                          const SizedBox(height: 16),
+                          dueNext,
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(flex: 2, child: attention),
+                  ],
+                )
+              else ...[
+                attention,
+                const SizedBox(height: 16),
+                collection,
+                const SizedBox(height: 16),
+                dueNext,
+              ],
             ],
-          ],
-        ],
+          );
+        },
       ),
     );
   }

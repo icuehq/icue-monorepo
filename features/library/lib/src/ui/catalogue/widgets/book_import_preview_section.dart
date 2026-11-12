@@ -339,85 +339,32 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
+    final scheme = Theme.of(context).colorScheme;
     final importResult = result;
-
     if (importResult == null) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: scheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.hourglass_empty_rounded,
-              size: 14,
-              color: scheme.outline,
-            ),
-            const SizedBox(width: 4),
-            Text(
-              'Ready',
-              style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
-            ),
-          ],
-        ),
+      return IcueStatusPill(
+        label: 'Ready',
+        color: scheme.onSurfaceVariant,
+        background: scheme.surfaceContainerHighest,
+        icon: Icons.hourglass_empty_rounded,
+        bordered: false,
       );
     }
-
     if (importResult.error != null) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: scheme.errorContainer,
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.error_outline_rounded, size: 14, color: scheme.error),
-            const SizedBox(width: 4),
-            Text(
-              'Failed',
-              style: TextStyle(
-                fontSize: 12,
-                color: scheme.error,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
+      return IcueStatusPill(
+        label: 'Failed',
+        color: scheme.error,
+        background: scheme.errorContainer,
+        icon: Icons.error_outline_rounded,
+        bordered: false,
       );
     }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.green.shade50,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.check_circle_rounded,
-            size: 14,
-            color: Colors.green.shade700,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            importResult.created ? 'New Book' : 'Added Copies',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.green.shade800,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
+    return IcueStatusPill(
+      label: importResult.created ? 'New Book' : 'Added Copies',
+      color: Colors.green.shade800,
+      background: Colors.green.shade50,
+      icon: Icons.check_circle_rounded,
+      bordered: false,
     );
   }
 }

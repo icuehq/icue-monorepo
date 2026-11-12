@@ -21,8 +21,6 @@ class CataloguePage extends StatefulWidget {
 
 class _CataloguePageState extends State<CataloguePage> {
   final _searchController = TextEditingController();
-  final _scrollController = ScrollController();
-  var _statusFilter = CatalogueStatusFilter.all;
 
   @override
   void initState() {
@@ -39,17 +37,11 @@ class _CataloguePageState extends State<CataloguePage> {
         clearCategory: widget.categoryId == null,
       );
     });
-    _scrollController.addListener(() {
-      if (_scrollController.position.extentAfter < 300) {
-        libraryProvider.loadBooks(more: true);
-      }
-    });
   }
 
   @override
   void dispose() {
     _searchController.dispose();
-    _scrollController.dispose();
     super.dispose();
   }
 
@@ -59,11 +51,11 @@ class _CataloguePageState extends State<CataloguePage> {
   void _clearFilters() {
     _searchController.clear();
     final libraryProvider = context.read<LibraryProvider>();
-    setState(() => _statusFilter = CatalogueStatusFilter.all);
     libraryProvider.loadBooks(
       search: '',
       clearCategory: true,
       clearClass: true,
+      clearStatus: true,
     );
   }
 
@@ -71,20 +63,18 @@ class _CataloguePageState extends State<CataloguePage> {
   Widget build(BuildContext context) {
     final libraryProvider = context.watch<LibraryProvider>();
     final isWide = context.isWide;
-    final allBooks = libraryProvider.books;
-
-    final filteredBooks = allBooks.where((book) {
-      return switch (_statusFilter) {
-        CatalogueStatusFilter.all => true,
-        CatalogueStatusFilter.active => book.active,
-        CatalogueStatusFilter.inactive => !book.active,
-      };
-    }).toList();
+    final books = libraryProvider.books.items;
+    final statusFilter = CatalogueStatusFilter.of(libraryProvider.bookStatus);
+    void setStatus(CatalogueStatusFilter filter) => libraryProvider.loadBooks(
+      status: filter.status,
+      clearStatus: filter.status == null,
+    );
 
     final isFiltered =
         libraryProvider.bookSearch.isNotEmpty ||
         libraryProvider.bookCategoryId != null ||
-        libraryProvider.bookClassId != null;
+        libraryProvider.bookClassId != null ||
+        libraryProvider.bookStatus != null;
 
     return Scaffold(
       appBar: AppBar(
@@ -111,11 +101,9 @@ class _CataloguePageState extends State<CataloguePage> {
           ? Padding(
               padding: const EdgeInsets.all(16),
               child: CatalogueTable(
-                books: filteredBooks,
-                scrollController: _scrollController,
-                statusFilter: _statusFilter,
-                onStatusChanged: (filter) =>
-                    setState(() => _statusFilter = filter),
+                books: books,
+                statusFilter: statusFilter,
+                onStatusChanged: setStatus,
                 onOpen: _open,
                 onClearFilters: _clearFilters,
               ),
@@ -127,10 +115,10 @@ class _CataloguePageState extends State<CataloguePage> {
                   selectedCategoryId: libraryProvider.bookCategoryId,
                   selectedClassId: libraryProvider.bookClassId,
                   standards: libraryProvider.standards,
-                  statusFilter: _statusFilter,
+                  statusFilter: statusFilter,
                   categories: libraryProvider.categories,
                   isWide: isWide,
-                  totalCount: filteredBooks.length,
+                  totalCount: libraryProvider.books.total ?? books.length,
                   onSearchSubmitted: (value) =>
                       libraryProvider.loadBooks(search: value.trim()),
                   onClearSearch: () {
@@ -145,8 +133,7 @@ class _CataloguePageState extends State<CataloguePage> {
                     classId: value,
                     clearClass: value == null,
                   ),
-                  onStatusChanged: (filter) =>
-                      setState(() => _statusFilter = filter),
+                  onStatusChanged: setStatus,
                   onAddBook: () =>
                       context.pushNamed(LibraryRoutes.libraryBookFormName),
                   onRefresh: () => libraryProvider.loadBooks(
@@ -155,10 +142,10 @@ class _CataloguePageState extends State<CataloguePage> {
                 ),
                 const Divider(height: 1),
                 Expanded(
-                  child: libraryProvider.booksLoading && allBooks.isEmpty
+                  child: libraryProvider.books.loading && books.isEmpty
                       ? const Center(child: CircularProgressIndicator())
-                      : filteredBooks.isEmpty
-                      ? (allBooks.isEmpty && !isFiltered
+                      : books.isEmpty
+                      ? (!isFiltered
                             ? CatalogueInitialEmptyState(
                                 onAdd: () => context.pushNamed(
                                   LibraryRoutes.libraryBookFormName,
@@ -173,22 +160,14 @@ class _CataloguePageState extends State<CataloguePage> {
                             search: _searchController.text.trim(),
                           ),
                           child: IcueAdaptiveCardList(
-                            controller: _scrollController,
                             padding: const EdgeInsets.all(12),
                             spacing: 8,
-                            itemCount:
-                                filteredBooks.length +
-                                (libraryProvider.hasMoreBooks ? 1 : 0),
+                            itemCount: books.length,
+                            footer: IcueLoadMoreFooter.of(
+                              libraryProvider.books,
+                            ),
                             itemBuilder: (context, index) {
-                              if (index == filteredBooks.length) {
-                                return const Padding(
-                                  padding: EdgeInsets.all(16),
-                                  child: Center(
-                                    child: CircularProgressIndicator(),
-                                  ),
-                                );
-                              }
-                              final book = filteredBooks[index];
+                              final book = books[index];
                               return BookCard(
                                 book: book,
                                 categoryName:

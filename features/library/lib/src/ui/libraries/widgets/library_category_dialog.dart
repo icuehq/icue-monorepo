@@ -275,7 +275,7 @@ class _LibraryCategoryDialogState extends State<LibraryCategoryDialog> {
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              if (!editing) ...[
+              if (!editing && showSampleData) ...[
                 IcueButton(
                   label: 'Fill sample',
                   onPressed: _busy ? null : _prefillMock,

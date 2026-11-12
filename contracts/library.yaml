@@ -7,6 +7,7 @@ collections:
   - libraryFines
   - libraryLoans
   - libraryMembers
+  - libraryStats
 
 enums:
   LoanStatus:
@@ -25,6 +26,11 @@ documents:
       memberType: MemberType
       personErpId: int
       memberName: string?
+      memberClassId: int?
+      memberClass: string?
+      memberSection: string?
+      admissionNumber: string?
+      bookTitle: string?
       barcode: string
       catalogueId: string
       libraryId: string
@@ -58,6 +64,41 @@ documents:
       fineAmount: double
       graceDays: int
       maxFine: double?
+
+  LibraryStatsTotals:
+    doc: "Current-state figures of a branch or one library, kept by the audit triggers and rebuilt nightly (libraryStats/overall). Overdue is exact only after the nightly rebuild plus later returns/renewals."
+    fields:
+      copies: int
+      available: int
+      issued: int
+      lost: int
+      damaged: int
+      activeLoans: int
+      overdue: int
+      outstandingFines: double
+      titles: int
+      students: int
+      teachers: int
+  LibraryDailyTotals:
+    doc: "What happened in a branch or one library on one India-time day (libraryStats/day_yyyy-MM-dd). A month is the sum of its days."
+    fields:
+      loansIssued: int
+      loansReturned: int
+      loansRenewed: int
+      loansLost: int
+      finesRaised: double
+      finesCollected: double
+      incidents: int
+  LibraryStats:
+    doc: "libraryStats/overall: branch figures, with per-library figures under libraries."
+    collection: libraryStats
+    fields:
+      libraries: map<LibraryStatsTotals>
+  LibraryDailyStats:
+    doc: "libraryStats/day_yyyy-MM-dd: the day's branch flows, with per-library flows under libraries."
+    collection: libraryStats
+    fields:
+      libraries: map<LibraryDailyTotals>
 
 # Dart view models, generated to <modelsDir>/<file>.g.dart. Field: type, or {type, key, default, notEquals, present, doc, from};
 # key is the Firestore key (dotted for nested), from is a raw Dart expression over data/id.
@@ -149,6 +190,11 @@ models:
         memberType: string
         personErpId: int
         memberName: string?
+        memberClassId: int?
+        memberClass: string?
+        memberSection: string?
+        admissionNumber: string?
+        bookTitle: string?
         barcode: string
         catalogueId: string
         libraryId: string

@@ -81,6 +81,8 @@ export async function searchMirror(
     categoryIds?: string[];
     /** Keeps rows whose `classIds` array holds this class (library catalogue). */
     classId?: number;
+    /** Keeps rows with this `status` (library catalogue). */
+    status?: string;
   },
   db: Firestore = searchDb(),
 ): Promise<SearchRow[]> {
@@ -92,7 +94,9 @@ export async function searchMirror(
         (doc) =>
           matchesAll(options.terms, doc.data(), options.textFields) &&
           (!categoryIds || categoryIds.includes(doc.data().categoryId)) &&
-          (options.classId === undefined || (doc.data().classIds ?? []).includes(options.classId)),
+          (options.classId === undefined ||
+            (doc.data().classIds ?? []).includes(options.classId)) &&
+          (options.status === undefined || doc.data().status === options.status),
       )
       .sort((left, right) =>
         String(left.data()[options.sortField]).localeCompare(
@@ -111,6 +115,8 @@ export async function searchMirror(
   if (categoryIds) pipeline = pipeline.where(field('categoryId').equalAny(categoryIds));
   if (options.classId !== undefined)
     pipeline = pipeline.where(field('classIds').arrayContains(options.classId));
+  if (options.status !== undefined)
+    pipeline = pipeline.where(field('status').equal(options.status));
   const result = await pipeline
     .sort(field(options.sortField).ascending())
     .offset(query.offset)

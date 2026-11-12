@@ -4,7 +4,6 @@ import 'package:injectable/injectable.dart';
 import 'package:school_library/src/import/concurrent.dart';
 import 'package:school_library/src/models/library_copies.dart';
 import 'package:school_library/src/models/library_fines.dart';
-import 'package:school_library/src/models/library_incidents.dart';
 import 'package:school_library/src/models/library_insights.dart';
 import 'package:school_library/src/models/library_loans.dart';
 import 'package:school_library/src/models/library_masters.dart';
@@ -33,24 +32,7 @@ class LibraryService {
     return document.exists ? parse(document.id, document.data()!) : null;
   }
 
-  /// A page of [collection], newest first, optionally filtered by [status] (`all` means none).
-  Future<PagedResult<T>> _statusPage<T>(
-    String collection,
-    T Function(String id, Map<String, dynamic> data) parse, {
-    String? status,
-    DocumentSnapshot<Map<String, dynamic>>? after,
-  }) async {
-    Query<Map<String, dynamic>> query = await branchCollection(collection);
-    if (status != null && status != 'all') {
-      query = query.where('status', isEqualTo: status);
-    }
-    return fetchPage(
-      query.orderBy('createdAt', descending: true),
-      (document) => parse(document.id, document.data()!),
-      after: after,
-    );
-  }
-
+  /// The signed-in user's module permissions.
   Future<ModuleAccess> access() async {
     final user = FirebaseAuth.instance.currentUser!;
     final doc = await (await branchCollection('userAccess'))
@@ -78,12 +60,12 @@ class LibraryService {
           name(left).toLowerCase().compareTo(name(right).toLowerCase()),
     );
 
-  /// A page of titles by title, optionally within [categoryIds] (a category and its subcategories)
-  /// and meant for class [classId] (Firestore query).
-  Future<PagedResult<LibraryBook>> books({
+  /// Titles ordered by title, optionally within [categoryIds] (a category and its subcategories),
+  /// meant for class [classId] and with [status] (`active`/`inactive`); page it with `FirestorePager`.
+  Future<Query<Map<String, dynamic>>> booksQuery({
     List<String>? categoryIds,
     int? classId,
-    DocumentSnapshot<Map<String, dynamic>>? after,
+    String? status,
   }) async {
     Query<Map<String, dynamic>> query = await branchCollection(
       'libraryCatalogue',
@@ -94,11 +76,10 @@ class LibraryService {
     if (classId != null) {
       query = query.where('classIds', arrayContains: classId);
     }
-    return fetchPage(
-      query.orderBy('title'),
-      (document) => LibraryBook.fromMap(document.id, document.data()!),
-      after: after,
-    );
+    if (status != null) {
+      query = query.where('status', isEqualTo: status);
+    }
+    return query.orderBy('title');
   }
 
   /// Whole-word search by title, author, publisher or keyword (Functions).
@@ -106,6 +87,7 @@ class LibraryService {
     String query, {
     List<String>? categoryIds,
     int? classId,
+    String? status,
     int offset = 0,
     int limit = 25,
   }) async {
@@ -115,6 +97,7 @@ class LibraryService {
         'q': query,
         'categoryIds': ?categoryIds,
         'classId': ?classId,
+        'status': ?status,
         'offset': offset,
         'limit': limit,
       },
@@ -149,51 +132,113 @@ class LibraryService {
   Future<LibraryCopy?> findCopy(String code) =>
       _one('libraryCopies', code.trim(), LibraryCopy.fromMap);
 
-  /// The [barcodes] that already belong to a copy (its document ID): 30 per query, 6 queries at a time.
-  Future<Set<String>> existingBarcodes(List<String> barcodes) async {
-    final taken = <String>{};
-    final collection = await branchCollection('libraryCopies');
+  /// Documents of [collection] with the given [ids], 30 per query (Firestore `whereIn`), 6 queries at a time.
+  Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>> _byIds(
+    String collection,
+    Iterable<String> ids,
+  ) async {
+    final reference = await branchCollection(collection);
+    final unique = ids.toSet().toList();
     final chunks = [
-      for (var start = 0; start < barcodes.length; start += 30)
-        barcodes.skip(start).take(30).toList(),
+      for (var start = 0; start < unique.length; start += 30)
+        unique.skip(start).take(30).toList(),
     ];
+    final found = <QueryDocumentSnapshot<Map<String, dynamic>>>[];
     await forEachConcurrently(chunks, 6, (chunk) async {
-      final found = await collection
-          .where(FieldPath.documentId, whereIn: chunk)
-          .get();
-      taken.addAll([for (final document in found.docs) document.id]);
+      found.addAll(
+        (await reference.where(FieldPath.documentId, whereIn: chunk).get())
+            .docs,
+      );
     });
-    return taken;
+    return found;
   }
 
-  Future<List<LibraryPolicy>> policies() async =>
-      (await _all('libraryBorrowingPolicies', LibraryPolicy.fromMap))
-        ..sort((left, right) => left.name.compareTo(right.name));
+  /// The [barcodes] that already belong to a copy (its document ID).
+  Future<Set<String>> existingBarcodes(List<String> barcodes) async => {
+    for (final document in await _byIds('libraryCopies', barcodes)) document.id,
+  };
 
-  /// A page of members of one type by ERP ID.
-  Future<PagedResult<LibraryMember>> members({
-    DocumentSnapshot<Map<String, dynamic>>? after,
-  }) async => fetchPage(
-    (await branchCollection('libraryMembers')).orderBy('personErpId'),
-    (document) => LibraryMember.fromMap(document.id, document.data()!),
-    after: after,
+  Future<List<LibraryPolicy>> policies() => _sortedByName(
+    'libraryBorrowingPolicies',
+    LibraryPolicy.fromMap,
+    (item) => item.name,
   );
+
+  /// Members by ERP ID. [memberType] is `student` or `teacher`; a [search] is an exact ERP ID and ignores the filters.
+  Future<Query<Map<String, dynamic>>> membersQuery({
+    String? memberType,
+    bool? blocked,
+    String search = '',
+  }) async {
+    Query<Map<String, dynamic>> query = await branchCollection(
+      'libraryMembers',
+    );
+    if (search.isNotEmpty) {
+      query = query.where('personErpId', isEqualTo: int.tryParse(search) ?? -1);
+    } else {
+      if (memberType != null) {
+        query = query.where('memberType', isEqualTo: memberType);
+      }
+      if (blocked != null) query = query.where('blocked', isEqualTo: blocked);
+    }
+    return query.orderBy('personErpId');
+  }
 
   /// One member by ERP ID (the member document ID).
   Future<LibraryMember?> member(int personErpId) =>
       _one('libraryMembers', '$personErpId', LibraryMember.fromMap);
 
-  /// A page of loans in [status], earliest due first.
-  Future<PagedResult<LibraryLoan>> loans(
-    String status, {
-    DocumentSnapshot<Map<String, dynamic>>? after,
-  }) async => fetchPage(
-    (await branchCollection('libraryLoans'))
-        .where('status', isEqualTo: status)
-        .orderBy('dueDate'),
-    (document) => LibraryLoan.fromMap(document.id, document.data()!),
-    after: after,
-  );
+  /// Active loans by due date, narrowed by the Issued Books filters; page it with `FirestorePager`.
+  ///
+  /// [search] is an exact loan number, accession number or admission number (as typed or in
+  /// capitals) and ignores the other filters, since it finds at most a few loans.
+  Future<Query<Map<String, dynamic>>> activeLoansQuery({
+    int? classId,
+    String? section,
+    LoanIssuedWindow? issued,
+    LoanDueFilter? due,
+    String search = '',
+  }) async {
+    Query<Map<String, dynamic>> query = (await branchCollection('libraryLoans'))
+        .where('status', isEqualTo: 'active');
+    if (search.isNotEmpty) {
+      final terms = {search, search.toUpperCase()}.toList();
+      return query
+          .where(
+            Filter.or(
+              Filter('number', whereIn: terms),
+              Filter('barcode', whereIn: terms),
+              Filter('admissionNumber', whereIn: terms),
+            ),
+          )
+          .orderBy('dueDate');
+    }
+    if (classId != null) {
+      query = query.where('memberClassId', isEqualTo: classId);
+    }
+    if (section != null) {
+      query = query.where('memberSection', isEqualTo: section);
+    }
+    final today = todayIST();
+    query = switch (due) {
+      LoanDueFilter.overdue => query.where(
+        'dueDate',
+        isLessThan: dayTimestamp(today),
+      ),
+      LoanDueFilter.dueToday => query.where(
+        'dueDate',
+        isEqualTo: dayTimestamp(today),
+      ),
+      null => query,
+    };
+    if (issued != null) {
+      query = query.where(
+        'issuedDate',
+        isGreaterThanOrEqualTo: dayTimestamp(issued.from(today)),
+      );
+    }
+    return query.orderBy('dueDate');
+  }
 
   /// The active loan of a copy, if it is out.
   Future<LibraryLoan?> activeLoanOf(String barcode) async {
@@ -210,33 +255,57 @@ class LibraryService {
           );
   }
 
-  /// A page of fines, optionally filtered by [status] ('outstanding', 'paid', 'waived').
-  Future<PagedResult<LibraryFine>> fines({
+  /// Fines, newest first. A [search] is an exact fine or accession number and ignores the filters.
+  Future<Query<Map<String, dynamic>>> finesQuery({
     String? status,
-    DocumentSnapshot<Map<String, dynamic>>? after,
-  }) => _statusPage(
-    'libraryFines',
-    LibraryFine.fromMap,
-    status: status,
-    after: after,
-  );
+    String? type,
+    String search = '',
+  }) async {
+    Query<Map<String, dynamic>> query = await branchCollection('libraryFines');
+    if (search.isNotEmpty) {
+      final terms = {search, search.toUpperCase()}.toList();
+      query = query.where(
+        Filter.or(
+          Filter('fineNumber', whereIn: terms),
+          Filter('barcode', whereIn: terms),
+        ),
+      );
+    } else {
+      if (status != null) query = query.where('status', isEqualTo: status);
+      if (type != null) query = query.where('type', isEqualTo: type);
+    }
+    return query.orderBy('createdAt', descending: true);
+  }
 
   /// A single fine by ID.
   Future<LibraryFine?> fine(String id) =>
       _one('libraryFines', id, LibraryFine.fromMap);
 
-  /// A page of lost/damaged incidents, optionally filtered by [status] ('open', 'resolved').
-  Future<PagedResult<LibraryIncident>> incidents({
+  /// Lost/damaged incidents, newest first. A [search] is an exact incident or accession number and ignores the filters.
+  Future<Query<Map<String, dynamic>>> incidentsQuery({
     String? status,
-    DocumentSnapshot<Map<String, dynamic>>? after,
-  }) => _statusPage(
-    'libraryIncidents',
-    LibraryIncident.fromMap,
-    status: status,
-    after: after,
-  );
+    String? type,
+    String search = '',
+  }) async {
+    Query<Map<String, dynamic>> query = await branchCollection(
+      'libraryIncidents',
+    );
+    if (search.isNotEmpty) {
+      final terms = {search, search.toUpperCase()}.toList();
+      query = query.where(
+        Filter.or(
+          Filter('incidentNumber', whereIn: terms),
+          Filter('barcode', whereIn: terms),
+        ),
+      );
+    } else {
+      if (status != null) query = query.where('status', isEqualTo: status);
+      if (type != null) query = query.where('type', isEqualTo: type);
+    }
+    return query.orderBy('createdAt', descending: true);
+  }
 
-  // --- writes: masters are plain client CRUD (`firestore.rules`); the rest are callables, same requestId on user retry --------------------
+  // --- writes: masters are plain client CRUD (`firestore.rules`); books and copy status are callables, same requestId on user retry ---
 
   Future<void> saveLibrary(Map<String, Object?> data) =>
       saveMasterDocument('libraries', data);
@@ -265,17 +334,11 @@ class LibraryService {
     ];
   }
 
-  Future<void> setCopyStatus(String id, String status, String? reason) => _call(
-    'library-copy-setStatus',
-    {'id': id, 'status': status, 'reason': ?reason},
-  );
-
-  Future<void> _call(
-    String name,
-    Map<String, Object?> data, [
-    String? requestId,
-  ]) async {
-    await callFunction(name, data: data, requestId: requestId);
+  Future<void> setCopyStatus(String id, String status, String? reason) async {
+    await callFunction(
+      'library-copy-setStatus',
+      data: {'id': id, 'status': status, 'reason': ?reason},
+    );
   }
 
   // ---- Dashboard and reports (Lib-8) ----
@@ -287,169 +350,155 @@ class LibraryService {
   }) =>
       library == null ? query : query.where('libraryId', isEqualTo: library.id);
 
-  /// Dashboard figures for the branch (or one [library]). A figure the user cannot read is null.
-  Future<Map<String, num?>> dashboard({SchoolLibrary? library}) async {
-    final today = todayIST();
-    Future<num?> count(
-      String collection,
-      Query<Map<String, dynamic>> Function(Query<Map<String, dynamic>> query)
-      f, {
-      bool scoped = true,
-    }) async {
-      try {
-        final base = scoped
-            ? _scoped(await branchCollection(collection), library: library)
-            : await branchCollection(collection);
-        return (await f(base).count().get()).count;
-      } catch (_) {
-        return null;
-      }
+  /// Live dashboard figures for the branch (or one [library]), from the analytics summary the server keeps
+  /// (`libraryStats/overall`). Titles and borrowers belong to the branch, so a single library has no titles.
+  Stream<Map<String, num?>> dashboard({SchoolLibrary? library}) async* {
+    final summary = (await branchCollection(Collections.libraryStats))
+        .doc('overall');
+    await for (final snapshot in summary.snapshots()) {
+      yield _figures(snapshot.data(), library);
     }
+  }
 
-    Future<num?> copies(String status) => count(
-      'libraryCopies',
-      (query) => query.where('status', isEqualTo: status),
-    );
-    Future<num?> members(String type) async {
-      try {
-        final query = (await branchCollection('libraryMembers'))
-            .where('memberType', isEqualTo: type);
-        return (await query.count().get()).count;
-      } catch (_) {
-        return null;
-      }
-    }
-
-    Future<num?> fines() async {
-      try {
-        final query = _scoped(
-          await branchCollection('libraryFines'),
-          library: library,
-        );
-        return (await query
-                .where('status', whereIn: ['outstanding', 'partially_paid'])
-                .aggregate(sum('outstanding'))
-                .get())
-            .getSum('outstanding');
-      } catch (_) {
-        return null;
-      }
-    }
-
-    final figures = <String, Future<num?>>{
-      // The catalogue is branch-wide; a library has no titles of its own.
-      'titles': library == null
-          ? count('libraryCatalogue', (query) => query, scoped: false)
-          : Future.value(),
-      'copies': count('libraryCopies', (query) => query),
-      'available': copies('available'),
-      'issued': copies('issued'),
-      'lost': copies('lost'),
-      'damaged': copies('damaged'),
-      'overdue': count(
-        'libraryLoans',
-        (query) => query
-            .where('status', isEqualTo: 'active')
-            .where('dueDate', isLessThan: dayTimestamp(today)),
-      ),
-      'pending': count(
-        'libraryLoans',
-        (query) => query.where('status', isEqualTo: 'active'),
-      ),
-      'students': members('student'),
-      'teachers': members('teacher'),
-      'fines': fines(),
-    };
-    final values = await Future.wait(figures.values);
+  /// A summary not built yet reads as zeros, and fills in live once the server writes it.
+  Map<String, num?> _figures(
+    Map<String, dynamic>? summary,
+    SchoolLibrary? library,
+  ) {
+    final overall = summary ?? const <String, dynamic>{};
+    final figures = library == null
+        ? overall
+        : ((overall['libraries'] as Map<String, dynamic>?)?[library.id]
+                  as Map<String, dynamic>? ??
+              const {});
+    num figure(Map<String, dynamic> source, String key) =>
+        source[key] as num? ?? 0;
     return {
-      for (final (index, key) in figures.keys.indexed) key: values[index],
+      'titles': library == null ? figure(overall, 'titles') : null,
+      'copies': figure(figures, 'copies'),
+      'available': figure(figures, 'available'),
+      'issued': figure(figures, 'issued'),
+      'lost': figure(figures, 'lost'),
+      'damaged': figure(figures, 'damaged'),
+      'overdue': figure(figures, 'overdue'),
+      'pending': figure(figures, 'activeLoans'),
+      'students': figure(overall, 'students'),
+      'teachers': figure(overall, 'teachers'),
+      'fines': figure(figures, 'outstandingFines'),
     };
   }
 
-  /// Titles by ID (for report cells); 30 per Firestore `whereIn`.
-  Future<Map<String, LibraryBook>> titlesByIds(Iterable<String> ids) async {
-    final collection = await branchCollection('libraryCatalogue');
-    final need = ids.toSet().toList();
-    final out = <String, LibraryBook>{};
-    for (var i = 0; i < need.length; i += 30) {
-      final snapshot = await collection
-          .where(
-            FieldPath.documentId,
-            whereIn: need.sublist(i, (i + 30).clamp(0, need.length)),
-          )
-          .get();
-      for (final document in snapshot.docs) {
-        out[document.id] = LibraryBook.fromMap(document.id, document.data());
-      }
-    }
-    return out;
-  }
+  /// Titles by ID (for report cells).
+  Future<Map<String, LibraryBook>> titlesByIds(Iterable<String> ids) async => {
+    for (final document in await _byIds('libraryCatalogue', ids))
+      document.id: LibraryBook.fromMap(document.id, document.data()),
+  };
 
-  static const reportLimit = 500;
   static const loanLimit = 5000;
 
-  /// Loans whose [field] (`issuedDate` / `returnedDate`) falls in the range, newest first.
-  Future<List<ReportRow>> _loansBetween(
+  /// Loans of [library] whose [field] (`issuedDate` / `returnedDate`) falls from [from] to [to].
+  Future<Query<Map<String, dynamic>>> _loansBetween(
     SchoolLibrary? library,
     String field,
     DateTime from,
-    DateTime to, {
-    int limit = loanLimit,
-  }) async {
-    final query = _scoped(
-      await branchCollection('libraryLoans'),
-      library: library,
-    );
-    final snapshot = await query
-        .where(field, isGreaterThanOrEqualTo: dayTimestamp(from.toApiDate()))
-        .where(field, isLessThanOrEqualTo: dayTimestamp(to.toApiDate()))
-        .orderBy(field, descending: true)
-        .limit(limit)
-        .get();
-    return [for (final document in snapshot.docs) document.data()];
-  }
+    DateTime to,
+  ) async => _scoped(await branchCollection('libraryLoans'), library: library)
+      .where(field, isGreaterThanOrEqualTo: dayTimestamp(from.toApiDate()))
+      .where(field, isLessThanOrEqualTo: dayTimestamp(to.toApiDate()));
 
-  /// Rows of [def] over the loans issued (and, monthly, returned) from [from] to [to].
-  Future<List<ReportRow>> report(
-    LibraryReportDef def, {
+  /// The loans report: loans issued in the range, newest first, in [status] when given;
+  /// page it with `FirestorePager`.
+  Future<Query<Map<String, dynamic>>> reportLoansQuery({
     required DateTime from,
     required DateTime to,
     SchoolLibrary? library,
     String? status,
   }) async {
-    if (def.kind == LibraryReportKind.loans) {
-      final loans = await _loansBetween(
-        library,
-        'issuedDate',
-        from,
-        to,
-        limit: reportLimit,
-      );
-      return [
-        for (final loan in loans)
-          if (status == null || loan['status'] == status) loan,
-      ];
+    var query = await _loansBetween(library, 'issuedDate', from, to);
+    if (status != null) query = query.where('status', isEqualTo: status);
+    return query.orderBy('issuedDate', descending: true);
+  }
+
+  /// KPI counts of the loans report; a [status] filter leaves the other statuses at zero.
+  Future<LoanReportCounts> reportLoanCounts({
+    required DateTime from,
+    required DateTime to,
+    SchoolLibrary? library,
+    String? status,
+  }) async {
+    final base = await _loansBetween(library, 'issuedDate', from, to);
+    Future<int> count(Query<Map<String, dynamic>> query) async =>
+        (await query.count().get()).count ?? 0;
+    Future<int> inStatus(String value, [String? dueBefore]) async {
+      if (status != null && status != value) return 0;
+      var query = base.where('status', isEqualTo: value);
+      if (dueBefore != null) {
+        query = query.where('dueDate', isLessThan: dayTimestamp(dueBefore));
+      }
+      return count(query);
     }
-    final issued = await _loansBetween(library, 'issuedDate', from, to);
+
+    final [returned, active, lost, overdue] = await Future.wait([
+      inStatus('returned'),
+      inStatus('active'),
+      inStatus('lost'),
+      inStatus('active', todayIST()),
+    ]);
+    return (returned: returned, active: active, overdueOrLost: overdue + lost);
+  }
+
+  /// Up to [loanLimit] loans in the range, newest first; `capped` when the limit cut some off.
+  Future<({List<ReportRow> rows, bool capped})> _loanRows(
+    SchoolLibrary? library,
+    String field,
+    DateTime from,
+    DateTime to,
+  ) async {
+    final snapshot = await (await _loansBetween(
+      library,
+      field,
+      from,
+      to,
+    )).orderBy(field, descending: true).limit(loanLimit).get();
+    return (
+      rows: [for (final document in snapshot.docs) document.data()],
+      capped: snapshot.docs.length >= loanLimit,
+    );
+  }
+
+  /// Rows of the summary report [def] (monthly, student or staff) over the loans issued (and,
+  /// monthly, returned) from [from] to [to]; the loans report pages [reportLoansQuery] instead.
+  Future<({List<ReportRow> rows, bool capped})> report(
+    LibraryReportDef def, {
+    required DateTime from,
+    required DateTime to,
+    SchoolLibrary? library,
+  }) async {
+    final issuedRows = await _loanRows(library, 'issuedDate', from, to);
+    final issued = issuedRows.rows;
     if (def.kind == LibraryReportKind.monthly) {
-      final returned = await _loansBetween(library, 'returnedDate', from, to);
+      final returnedRows = await _loanRows(library, 'returnedDate', from, to);
       final months = <String, Map<String, int>>{};
       void add(ReportRow loan, String field, String counter) {
         final month = readDay(loan[field]).substring(0, 7);
-        months.putIfAbsent(month, () => {'issued': 0, 'returned': 0})[counter] =
-            months[month]![counter]! + 1;
+        months
+            .putIfAbsent(month, () => {'issued': 0, 'returned': 0})
+            .update(counter, (total) => total + 1);
       }
 
       for (final loan in issued) {
         add(loan, 'issuedDate', 'issued');
       }
-      for (final loan in returned) {
+      for (final loan in returnedRows.rows) {
         add(loan, 'returnedDate', 'returned');
       }
-      return [
-        for (final month in months.keys.toList()..sort())
-          {'month': month, ...months[month]!},
-      ];
+      return (
+        rows: [
+          for (final month in months.keys.toList()..sort())
+            {'month': month, ...months[month]!},
+        ],
+        capped: issuedRows.capped || returnedRows.capped,
+      );
     }
     final memberType = def.kind == LibraryReportKind.student
         ? 'student'
@@ -480,7 +529,13 @@ class LibraryService {
         }
       }
     }
-    return members.values.toList()
-      ..sort((a, b) => (b['issued'] as int).compareTo(a['issued'] as int));
+    return (
+      rows: members.values.toList()
+        ..sort(
+          (left, right) =>
+              (right['issued'] as int).compareTo(left['issued'] as int),
+        ),
+      capped: issuedRows.capped,
+    );
   }
 }

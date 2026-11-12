@@ -23,7 +23,7 @@ class OverviewKpiGrid extends StatelessWidget {
     final overdue = stats['overdue'] ?? 0;
     final fines = stats['fines'] ?? 0;
 
-    // Figures a role may not see come back null and are left out.
+    // Every tile always shows; a figure that is missing reads 0.
     final tiles = <(String, String, num?, IconData, String?, String?, Color?)>[
       (
         'copies',
@@ -102,16 +102,17 @@ class OverviewKpiGrid extends StatelessWidget {
           children: [
             for (final (key, label, value, icon, caption, route, color)
                 in tiles)
-              if (value != null)
-                IcueKpiCard(
-                  label: label,
-                  value: key == 'fines' ? value.toRupees() : '${value.round()}',
-                  icon: icon,
-                  caption: caption,
-                  route: route,
-                  color: color,
-                  width: width,
-                ),
+              IcueKpiCard(
+                label: label,
+                value: key == 'fines'
+                    ? (value ?? 0).toRupees()
+                    : '${(value ?? 0).round()}',
+                icon: icon,
+                caption: caption,
+                route: route,
+                color: color,
+                width: width,
+              ),
           ],
         );
       },

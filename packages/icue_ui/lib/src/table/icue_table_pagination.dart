@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:icue_firebase/icue_firebase.dart' show FirestorePager;
 import 'package:icue_ui/src/table/icue_table_controls.dart';
 import 'package:icue_ui/src/table/icue_table_models.dart';
 import 'package:flutter/material.dart';
@@ -25,6 +26,21 @@ class IcueTablePagination extends StatelessWidget {
     this.onPageSelected,
     this.isLoading = false,
   });
+
+  /// Wires every control to [pager].
+  IcueTablePagination.pager(FirestorePager<Object?> pager, {super.key})
+    : pageIndex = pager.pageIndex,
+      pageSize = pager.pageSize,
+      itemCount = pager.items.length,
+      totalCount = pager.total,
+      hasPrevious = pager.hasPrevious,
+      hasNext = pager.hasNext,
+      onPrevious = pager.previous,
+      onNext = pager.next,
+      pageSizeOptions = const [10, 25, 50, 100],
+      onPageSizeChanged = pager.setPageSize,
+      onPageSelected = null,
+      isLoading = pager.loading;
 
   /// Zero-based page number (for cursor paging: pages walked so far).
   final int pageIndex;

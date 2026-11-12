@@ -78,11 +78,11 @@ class _FineDialogState extends State<FineDialog> {
     setState(() => _busy = true);
     final libraryProvider = context.read<LibraryProvider>();
     final navigator = Navigator.of(context);
-    final result = await libraryProvider.waiveFine({
-      'id': widget.fine.id,
-      'amount': amount,
-      'reason': reason,
-    });
+    final result = await libraryProvider.waiveFine(
+      id: widget.fine.id,
+      amount: amount,
+      reason: reason,
+    );
     if (!mounted) return;
     if (result) {
       navigator.pop();
@@ -151,11 +151,11 @@ class _FineDialogState extends State<FineDialog> {
     setState(() => _busy = true);
     final libraryProvider = context.read<LibraryProvider>();
     final navigator = Navigator.of(context);
-    final result = await libraryProvider.setFinePayment({
-      'id': widget.fine.id,
-      'paidAmount': amount,
-      'reference': ?blankToNull(refController),
-    });
+    final result = await libraryProvider.setFinePayment(
+      id: widget.fine.id,
+      amount: amount,
+      reference: blankToNull(refController),
+    );
     if (!mounted) return;
     if (result) {
       navigator.pop();

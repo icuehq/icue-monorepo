@@ -16,15 +16,15 @@ class FinesPage extends StatefulWidget {
 }
 
 class _FinesPageState extends State<FinesPage> {
-  final _searchController = TextEditingController();
-  String _status = 'all';
-  String _searchQuery = '';
+  late final _searchController = TextEditingController(
+    text: context.read<LibraryProvider>().fineSearch,
+  );
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback(
-      (_) => context.read<LibraryProvider>().loadFines(status: _status),
+      (_) => context.read<LibraryProvider>().loadFines(),
     );
   }
 
@@ -35,89 +35,32 @@ class _FinesPageState extends State<FinesPage> {
   }
 
   void _onStatusChanged(String value) {
-    setState(() => _status = value);
-    context.read<LibraryProvider>().loadFines(status: value);
+    context.read<LibraryProvider>()
+      ..fineStatus = value == 'all' ? null : value
+      ..loadFines();
   }
 
-  void _clearSearch() {
-    setState(() {
-      _searchController.clear();
-      _searchQuery = '';
-    });
+  void _search(String value) {
+    context.read<LibraryProvider>()
+      ..fineSearch = value.trim()
+      ..loadFines();
+  }
+
+  void _clearFilters() {
+    _searchController.clear();
+    context.read<LibraryProvider>().clearFineFilters();
   }
 
   Future<void> _open(LibraryFine fine) async {
     await FineDialog.show(context, fine);
     if (mounted) {
-      await context.read<LibraryProvider>().loadFines(status: _status);
+      await context.read<LibraryProvider>().loadFines();
     }
   }
 
-  Widget _statusPill(BuildContext context, LibraryFine fine) {
+  Widget _summaryBar(BuildContext context) {
     final theme = Theme.of(context);
-    final (color, background) = switch (fine.status) {
-      'paid' => (Colors.green.shade700, Colors.green.withValues(alpha: 0.12)),
-      'partially_paid' => (
-        Colors.orange.shade800,
-        Colors.orange.withValues(alpha: 0.12),
-      ),
-      'waived' => (
-        Colors.blueGrey.shade700,
-        Colors.blueGrey.withValues(alpha: 0.12),
-      ),
-      _ => (
-        theme.colorScheme.error,
-        theme.colorScheme.errorContainer.withValues(alpha: 0.4),
-      ),
-    };
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Text(
-        humanizeStatus(fine.status),
-        style: TextStyle(
-          color: color,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-
-  Widget _typePill(BuildContext context, String type) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        fineTypeLabel(type),
-        style: theme.textTheme.labelSmall?.copyWith(
-          color: theme.colorScheme.onSurfaceVariant,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-    );
-  }
-
-  Widget _summaryBar(BuildContext context, List<LibraryFine> fines) {
-    final theme = Theme.of(context);
-    double totalOutstanding = 0;
-    double totalPaid = 0;
-    double totalWaived = 0;
-
-    for (final fine in fines) {
-      totalOutstanding += fine.outstanding;
-      totalPaid += fine.paid;
-      totalWaived += fine.waived;
-    }
+    final totals = context.watch<LibraryProvider>().fineTotals;
 
     Widget metricItem(String label, String value, Color color, IconData icon) {
       return Expanded(
@@ -178,21 +121,21 @@ class _FinesPageState extends State<FinesPage> {
         children: [
           metricItem(
             'Outstanding',
-            totalOutstanding.toRupees(),
+            totals?.outstanding.toRupees() ?? '…',
             theme.colorScheme.error,
             Icons.pending_actions_rounded,
           ),
           const SizedBox(width: 10),
           metricItem(
             'Collected',
-            totalPaid.toRupees(),
+            totals?.paid.toRupees() ?? '…',
             Colors.green.shade700,
             Icons.check_circle_outline_rounded,
           ),
           const SizedBox(width: 10),
           metricItem(
             'Waived',
-            totalWaived.toRupees(),
+            totals?.waived.toRupees() ?? '…',
             Colors.blueGrey.shade700,
             Icons.handshake_outlined,
           ),
@@ -205,54 +148,19 @@ class _FinesPageState extends State<FinesPage> {
   Widget build(BuildContext context) {
     final libraryProvider = context.watch<LibraryProvider>();
     final theme = Theme.of(context);
-    final allFines = libraryProvider.fines;
-
-    final filteredFines = allFines.where((fine) {
-      if (_searchQuery.isNotEmpty) {
-        final query = _searchQuery.toLowerCase();
-        final matchMember = fine.memberLabel.toLowerCase().contains(query);
-        final matchFineNumber = fine.fineNumber.toLowerCase().contains(query);
-        final matchAccession =
-            fine.barcode?.toLowerCase().contains(query) ?? false;
-        return matchMember || matchFineNumber || matchAccession;
-      }
-      return true;
-    }).toList();
-
+    final pager = libraryProvider.fines;
+    final status = libraryProvider.fineStatus ?? 'all';
     return Scaffold(
       appBar: AppBar(title: const Text('Fines')),
       body: context.isWide
           ? Column(
               children: [
-                _summaryBar(context, allFines),
+                _summaryBar(context),
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
-                      children: [
-                        Expanded(
-                          child: FinesTable(
-                            fines: allFines,
-                            loading:
-                                libraryProvider.finesLoading &&
-                                allFines.isEmpty,
-                            status: _status,
-                            onStatusChanged: _onStatusChanged,
-                            onOpen: _open,
-                          ),
-                        ),
-                        if (libraryProvider.hasMoreFines)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            child: IcueButton(
-                              label: 'Load more',
-                              onPressed: libraryProvider.finesLoading
-                                  ? null
-                                  : () => libraryProvider.loadFines(more: true),
-                              variant: IcueButtonVariant.ghost,
-                            ),
-                          ),
-                      ],
+                      children: [Expanded(child: FinesTable(onOpen: _open))],
                     ),
                   ),
                 ),
@@ -261,7 +169,7 @@ class _FinesPageState extends State<FinesPage> {
           : IcueCenteredBody(
               child: Column(
                 children: [
-                  _summaryBar(context, allFines),
+                  _summaryBar(context),
                   Padding(
                     padding: const EdgeInsets.all(12),
                     child: Row(
@@ -289,7 +197,7 @@ class _FinesPageState extends State<FinesPage> {
                                   label: Text('Waived'),
                                 ),
                               ],
-                              selected: {_status},
+                              selected: {status},
                               onSelectionChanged: (values) =>
                                   _onStatusChanged(values.first),
                             ),
@@ -301,7 +209,7 @@ class _FinesPageState extends State<FinesPage> {
                           child: TextField(
                             controller: _searchController,
                             decoration: InputDecoration(
-                              hintText: 'Search member, fine #…',
+                              hintText: 'Fine # or accession no.',
                               prefixIcon: const Icon(Icons.search, size: 18),
                               isDense: true,
                               filled: true,
@@ -313,127 +221,43 @@ class _FinesPageState extends State<FinesPage> {
                                 horizontal: 10,
                                 vertical: 8,
                               ),
-                              suffixIcon: _searchQuery.isNotEmpty
+                              suffixIcon: libraryProvider.fineSearch.isNotEmpty
                                   ? IconButton(
                                       icon: const Icon(Icons.clear, size: 16),
-                                      onPressed: _clearSearch,
+                                      onPressed: () {
+                                        _searchController.clear();
+                                        _search('');
+                                      },
                                     )
                                   : null,
                             ),
-                            onChanged: (value) =>
-                                setState(() => _searchQuery = value.trim()),
+                            textInputAction: TextInputAction.search,
+                            onSubmitted: _search,
                           ),
                         ),
                       ],
                     ),
                   ),
                   Expanded(
-                    child: libraryProvider.finesLoading && allFines.isEmpty
+                    child: pager.loading && pager.items.isEmpty
                         ? const Center(child: CircularProgressIndicator())
-                        : filteredFines.isEmpty
-                        ? (allFines.isEmpty
-                              ? FineInitialEmptyState(status: _status)
-                              : FineNoResultsState(
-                                  searchQuery: _searchQuery,
-                                  onClear: _clearSearch,
-                                ))
+                        : pager.items.isEmpty
+                        ? (libraryProvider.fineSearch.isNotEmpty ||
+                                  libraryProvider.fineType != null
+                              ? FineNoResultsState(
+                                  searchQuery: libraryProvider.fineSearch,
+                                  onClear: _clearFilters,
+                                )
+                              : FineInitialEmptyState(status: status))
                         : RefreshIndicator(
-                            onRefresh: () =>
-                                libraryProvider.loadFines(status: _status),
-                            child: IcueAdaptiveList<LibraryFine>(
-                              items: filteredFines,
-                              onTap: _open,
-                              columns: [
-                                IcueAdaptiveColumn(
-                                  label: 'Fine #',
-                                  flex: 2,
-                                  cell: (context, fine) => Text(
-                                    fine.fineNumber,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                                IcueAdaptiveColumn(
-                                  label: 'Member',
-                                  flex: 3,
-                                  cell: (context, fine) => Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        fine.memberType == 'teacher'
-                                            ? Icons.person_outline_rounded
-                                            : Icons.school_outlined,
-                                        size: 16,
-                                        color: Colors.grey,
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Flexible(
-                                        child: Text(
-                                          fine.memberLabel,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                IcueAdaptiveColumn(
-                                  label: 'Type',
-                                  flex: 2,
-                                  cell: (context, fine) =>
-                                      _typePill(context, fine.type),
-                                ),
-                                IcueAdaptiveColumn.text(
-                                  'Total',
-                                  (fine) => fine.amount.toRupees(),
-                                ),
-                                IcueAdaptiveColumn.text(
-                                  'Paid',
-                                  (fine) => fine.paid.toRupees(),
-                                ),
-                                IcueAdaptiveColumn(
-                                  label: 'Due',
-                                  cell: (context, fine) => Text(
-                                    fine.outstanding.toRupees(),
-                                    style: TextStyle(
-                                      color: fine.outstanding > 0
-                                          ? theme.colorScheme.error
-                                          : null,
-                                      fontWeight: fine.outstanding > 0
-                                          ? FontWeight.w600
-                                          : FontWeight.normal,
-                                    ),
-                                  ),
-                                ),
-                                IcueAdaptiveColumn(
-                                  label: 'Status',
-                                  cell: (context, fine) =>
-                                      _statusPill(context, fine),
-                                ),
-                              ],
-                              cardBuilder: (context, fine) => FineCard(
-                                fine: fine,
-                                onTap: () => _open(fine),
+                            onRefresh: libraryProvider.loadFines,
+                            child: IcueAdaptiveCardList(
+                              itemCount: pager.items.length,
+                              footer: IcueLoadMoreFooter.of(pager),
+                              itemBuilder: (context, index) => FineCard(
+                                fine: pager.items[index],
+                                onTap: () => _open(pager.items[index]),
                               ),
-                              footer: libraryProvider.hasMoreFines
-                                  ? Center(
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 8,
-                                        ),
-                                        child: IcueButton(
-                                          label: 'Load more',
-                                          onPressed:
-                                              libraryProvider.finesLoading
-                                              ? null
-                                              : () => libraryProvider.loadFines(
-                                                  more: true,
-                                                ),
-                                          variant: IcueButtonVariant.ghost,
-                                        ),
-                                      ),
-                                    )
-                                  : null,
                             ),
                           ),
                   ),

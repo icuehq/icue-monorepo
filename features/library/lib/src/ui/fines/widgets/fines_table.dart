@@ -1,53 +1,76 @@
 import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
+import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
-/// Wide-screen fines as an [IcueClientTable]. The status filter reloads server
-/// data, so the page owns it.
+/// Wide-screen fines as an [IcueTable]. Search and every filter are Firestore
+/// queries (the provider reloads); pages come from its pager.
 class FinesTable extends StatelessWidget {
-  const FinesTable({
-    required this.fines,
-    required this.loading,
-    required this.status,
-    required this.onStatusChanged,
-    required this.onOpen,
-    super.key,
-  });
+  const FinesTable({required this.onOpen, super.key});
 
-  final List<LibraryFine> fines;
-  final bool loading;
-  final String status;
-  final ValueChanged<String> onStatusChanged;
   final void Function(LibraryFine fine) onOpen;
+
+  static const statuses = {
+    'outstanding': 'Outstanding',
+    'partially_paid': 'Partially paid',
+    'paid': 'Paid',
+    'waived': 'Waived',
+  };
 
   @override
   Widget build(BuildContext context) {
-    return IcueClientTable<LibraryFine>(
+    final provider = context.watch<LibraryProvider>();
+    final pager = provider.fines;
+
+    return IcueTable<LibraryFine>(
       title: 'Fines',
-      items: fines,
+      rows: pager.items,
       rowKey: (fine) => fine.id,
       rowLabel: (fine) => fine.fineNumber,
-      status: IcueTableStatus.of(failed: false, loading: loading),
+      count: pager.total ?? pager.items.length,
+      status: IcueTableStatus.pager(pager),
+      onRetry: pager.retry,
+      pagination: IcueTablePagination.pager(pager),
       onRowTap: onOpen,
-      searchHint: 'Search member, fine #, or copy...',
-      searchText: (fine) =>
-          '${fine.memberLabel} ${fine.fineNumber} ${fine.barcode ?? ''}',
-      externalFilters: [
+      searchHint: 'Fine # or accession no.',
+      initialSearch: provider.fineSearch,
+      searchDebounce: const Duration(milliseconds: 400),
+      onSearchChanged: (query) {
+        provider.fineSearch = query.trim();
+        provider.loadFines();
+      },
+      filters: [
         IcueTableFilter(
           id: 'status',
           label: 'Status',
-          options: const [
-            IcueTableFilterOption('outstanding', 'Outstanding'),
-            IcueTableFilterOption('partially_paid', 'Partially paid'),
-            IcueTableFilterOption('paid', 'Paid'),
-            IcueTableFilterOption('waived', 'Waived'),
+          options: [
+            for (final MapEntry(:key, :value) in statuses.entries)
+              IcueTableFilterOption(key, value),
           ],
-          value: status == 'all' ? null : status,
-          onChanged: (value) => onStatusChanged(value ?? 'all'),
+          value: provider.fineStatus,
+          onChanged: (value) {
+            provider
+              ..fineStatus = value
+              ..loadFines();
+          },
+        ),
+        IcueTableFilter(
+          id: 'type',
+          label: 'Type',
+          options: [
+            for (final type in const ['overdue', 'lost', 'damaged'])
+              IcueTableFilterOption(type, fineTypeLabel(type)),
+          ],
+          value: provider.fineType,
+          onChanged: (value) {
+            provider
+              ..fineType = value
+              ..loadFines();
+          },
         ),
       ],
-      externalFiltersActive: status != 'all',
-      onClearExternalFilters: () => onStatusChanged('all'),
+      isFiltered: provider.finesFiltered,
+      onClearFilters: provider.clearFineFilters,
       emptyTitle: 'No fines',
       emptyMessage: 'Fines will appear here.',
       columns: [
@@ -55,16 +78,12 @@ class FinesTable extends StatelessWidget {
           id: 'number',
           label: 'Fine #',
           flex: 2,
-          sortable: true,
-          comparator: (fine) => fine.fineNumber,
           cellBuilder: (context, fine) => IcueTableCellText(fine.fineNumber),
         ),
         IcueTableColumn(
           id: 'member',
           label: 'Member',
           flex: 3,
-          sortable: true,
-          comparator: (fine) => fine.memberLabel,
           cellBuilder: (context, fine) => IcueTableCellText(
             fine.memberLabel,
             style: IcueTableStyle.of(context).secondary,
@@ -81,16 +100,12 @@ class FinesTable extends StatelessWidget {
         IcueTableColumn(
           id: 'amount',
           label: 'Total',
-          sortable: true,
-          comparator: (fine) => fine.amount,
           cellBuilder: (context, fine) =>
               IcueTableCellText(fine.amount.toRupees()),
         ),
         IcueTableColumn(
           id: 'paid',
           label: 'Paid',
-          sortable: true,
-          comparator: (fine) => fine.paid,
           cellBuilder: (context, fine) => IcueTableCellText(
             fine.paid.toRupees(),
             style: IcueTableStyle.of(context).secondary,
@@ -99,8 +114,6 @@ class FinesTable extends StatelessWidget {
         IcueTableColumn(
           id: 'due',
           label: 'Due',
-          sortable: true,
-          comparator: (fine) => fine.outstanding,
           cellBuilder: (context, fine) =>
               IcueTableCellText(fine.outstanding.toRupees()),
         ),

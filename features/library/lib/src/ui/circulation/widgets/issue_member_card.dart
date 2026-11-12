@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:school_library/school_library.dart';
 
 /// Card showing the selected borrower and their current borrowing standing at the desk.
@@ -63,17 +64,16 @@ class IssueMemberCard extends StatelessWidget {
                         spacing: 6,
                         runSpacing: 6,
                         children: [
-                          _InfoPill(
+                          IcueStatusPill(
                             label: person.isStudent ? 'Student' : 'Staff',
                             background: colorScheme.secondaryContainer,
-                            foreground: colorScheme.onSecondaryContainer,
-                            bold: true,
+                            color: colorScheme.onSecondaryContainer,
                           ),
-                          _InfoPill(
+                          IcueStatusPill(
                             icon: Icons.badge_outlined,
                             label: 'ID ${person.personErpId}',
                             background: colorScheme.surfaceContainerHighest,
-                            foreground: colorScheme.onSurfaceVariant,
+                            color: colorScheme.onSurfaceVariant,
                           ),
                         ],
                       ),
@@ -202,50 +202,6 @@ class _BorrowerPhoto extends StatelessWidget {
                 loadingBuilder: (_, child, progress) =>
                     progress == null ? child : fallback,
               ),
-      ),
-    );
-  }
-}
-
-class _InfoPill extends StatelessWidget {
-  const _InfoPill({
-    required this.label,
-    required this.background,
-    required this.foreground,
-    this.icon,
-    this.bold = false,
-  });
-
-  final String label;
-  final Color background;
-  final Color foreground;
-  final IconData? icon;
-  final bool bold;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 14, color: foreground),
-            const SizedBox(width: 4),
-          ],
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
-              color: foreground,
-            ),
-          ),
-        ],
       ),
     );
   }

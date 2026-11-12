@@ -272,24 +272,14 @@ class _TagBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final foregroundColor = color ?? theme.colorScheme.onSurfaceVariant;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-      decoration: BoxDecoration(
-        color:
-            backgroundColor ??
-            theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        label,
-        style: theme.textTheme.labelSmall?.copyWith(
-          color: foregroundColor,
-          fontSize: 11,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
+    final scheme = Theme.of(context).colorScheme;
+    return IcueStatusPill(
+      label: label,
+      color: color ?? scheme.onSurfaceVariant,
+      background:
+          backgroundColor ??
+          scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+      bordered: false,
     );
   }
 }

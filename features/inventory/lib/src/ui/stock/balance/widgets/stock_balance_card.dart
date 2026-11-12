@@ -9,33 +9,15 @@ Widget _pill(
   Color? color,
   Color? backgroundColor,
 }) {
-  final theme = Theme.of(context);
-  return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-    decoration: BoxDecoration(
-      color:
-          backgroundColor ??
-          theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-      borderRadius: BorderRadius.circular(6),
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          icon,
-          size: 13,
-          color: color ?? theme.colorScheme.onSurfaceVariant,
-        ),
-        const SizedBox(width: 4),
-        Text(
-          label,
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: color ?? theme.colorScheme.onSurfaceVariant,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
-    ),
+  final scheme = Theme.of(context).colorScheme;
+  return IcueStatusPill(
+    label: label,
+    icon: icon,
+    color: color ?? scheme.onSurfaceVariant,
+    background:
+        backgroundColor ??
+        scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+    bordered: false,
   );
 }
 

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icue_ui/icue_ui.dart';
@@ -8,9 +10,8 @@ import 'package:school_library/src/ui/circulation/widgets/loan_card.dart';
 import 'package:school_library/src/ui/circulation/widgets/loan_dialog.dart';
 import 'package:school_library/src/ui/circulation/widgets/loans_table.dart';
 
-enum CirculationFilter { all, overdue, dueToday }
-
 /// Active loans (tap one to return or renew) and an Issue button that opens the step-by-step issue flow (FRS 11.9–11.11).
+/// Every filter is a Firestore query, paged by the provider's `loans` pager.
 class CirculationPage extends StatefulWidget {
   const CirculationPage({super.key});
 
@@ -19,16 +20,18 @@ class CirculationPage extends StatefulWidget {
 }
 
 class _CirculationPageState extends State<CirculationPage> {
-  final _searchController = TextEditingController();
-  var _filter = CirculationFilter.all;
-  String _searchQuery = '';
+  late final _searchController = TextEditingController(
+    text: context.read<LibraryProvider>().loanSearch,
+  );
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => context.read<LibraryProvider>().loadLoans(),
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final libraryProvider = context.read<LibraryProvider>();
+      unawaited(libraryProvider.loadStandards());
+      libraryProvider.loadLoans();
+    });
   }
 
   @override
@@ -37,11 +40,15 @@ class _CirculationPageState extends State<CirculationPage> {
     super.dispose();
   }
 
-  void _clearSearch() {
-    setState(() {
-      _searchController.clear();
-      _searchQuery = '';
-    });
+  void _search(String value) {
+    context.read<LibraryProvider>()
+      ..loanSearch = value.trim()
+      ..loadLoans();
+  }
+
+  void _clearFilters() {
+    _searchController.clear();
+    context.read<LibraryProvider>().clearLoanFilters();
   }
 
   Future<void> _open(LibraryLoan loan) async {
@@ -50,13 +57,20 @@ class _CirculationPageState extends State<CirculationPage> {
     await LoanDialog.show(context, loan, book?.title ?? loan.barcode);
   }
 
-  Widget _filterBar(
-    BuildContext context, {
-    required int totalCount,
-    required int overdueCount,
-    required int dueTodayCount,
-  }) {
+  Widget _filterBar(BuildContext context, LibraryProvider libraryProvider) {
     final theme = Theme.of(context);
+    final total = libraryProvider.loans.total;
+    Widget chip(String label, LoanDueFilter? due) {
+      final selected = libraryProvider.loanDue == due;
+      return ChoiceChip(
+        label: Text(selected && total != null ? '$label ($total)' : label),
+        selected: selected,
+        onSelected: (_) => libraryProvider
+          ..loanDue = due
+          ..loadLoans(),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
@@ -66,26 +80,11 @@ class _CirculationPageState extends State<CirculationPage> {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  ChoiceChip(
-                    label: Text('All ($totalCount)'),
-                    selected: _filter == CirculationFilter.all,
-                    onSelected: (_) =>
-                        setState(() => _filter = CirculationFilter.all),
-                  ),
-                  const SizedBox(width: 8),
-                  ChoiceChip(
-                    label: Text('Overdue ($overdueCount)'),
-                    selected: _filter == CirculationFilter.overdue,
-                    onSelected: (_) =>
-                        setState(() => _filter = CirculationFilter.overdue),
-                  ),
-                  const SizedBox(width: 8),
-                  ChoiceChip(
-                    label: Text('Due Today ($dueTodayCount)'),
-                    selected: _filter == CirculationFilter.dueToday,
-                    onSelected: (_) =>
-                        setState(() => _filter = CirculationFilter.dueToday),
-                  ),
+                  chip('All', null),
+                  for (final due in LoanDueFilter.values) ...[
+                    const SizedBox(width: 8),
+                    chip(due.label, due),
+                  ],
                 ],
               ),
             ),
@@ -95,8 +94,9 @@ class _CirculationPageState extends State<CirculationPage> {
             width: 220,
             child: TextField(
               controller: _searchController,
+              textInputAction: TextInputAction.search,
               decoration: InputDecoration(
-                hintText: 'Search loans…',
+                hintText: 'Loan, accession or adm. no.',
                 prefixIcon: const Icon(Icons.search, size: 18),
                 isDense: true,
                 filled: true,
@@ -107,14 +107,17 @@ class _CirculationPageState extends State<CirculationPage> {
                   horizontal: 10,
                   vertical: 8,
                 ),
-                suffixIcon: _searchQuery.isNotEmpty
+                suffixIcon: libraryProvider.loanSearch.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear, size: 16),
-                        onPressed: _clearSearch,
+                        onPressed: () {
+                          _searchController.clear();
+                          _search('');
+                        },
                       )
                     : null,
               ),
-              onChanged: (value) => setState(() => _searchQuery = value.trim()),
+              onSubmitted: _search,
             ),
           ),
         ],
@@ -125,48 +128,10 @@ class _CirculationPageState extends State<CirculationPage> {
   @override
   Widget build(BuildContext context) {
     final libraryProvider = context.watch<LibraryProvider>();
+    final pager = libraryProvider.loans;
+    final loans = pager.items;
     final today = todayIST();
-    final allLoans = libraryProvider.loans;
-
-    final overdueCount = allLoans
-        .where((loan) => loan.overdueOn(today) > 0)
-        .length;
-    final dueTodayCount = allLoans
-        .where((loan) => loan.dueDate == today)
-        .length;
-
-    final filteredLoans = allLoans.where((loan) {
-      if (_filter == CirculationFilter.overdue && loan.overdueOn(today) <= 0) {
-        return false;
-      }
-      if (_filter == CirculationFilter.dueToday && loan.dueDate != today) {
-        return false;
-      }
-      if (_searchQuery.isNotEmpty) {
-        final query = _searchQuery.toLowerCase();
-        final matchMember = loan.memberLabel.toLowerCase().contains(query);
-        final matchAccession = loan.barcode.toLowerCase().contains(query);
-        final matchNumber = loan.number.toLowerCase().contains(query);
-        return matchMember || matchAccession || matchNumber;
-      }
-      return true;
-    }).toList();
-
     final isWide = context.isWide;
-    final loadMore = libraryProvider.hasMoreLoans
-        ? Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: IcueButton(
-                label: 'Load more',
-                onPressed: libraryProvider.loansLoading
-                    ? null
-                    : () => libraryProvider.loadLoans(more: true),
-                variant: IcueButtonVariant.ghost,
-              ),
-            ),
-          )
-        : null;
 
     return Scaffold(
       appBar: AppBar(
@@ -183,53 +148,32 @@ class _CirculationPageState extends State<CirculationPage> {
       body: isWide
           ? Padding(
               padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  Expanded(
-                    child: LoansTable(
-                      loans: allLoans,
-                      loading: libraryProvider.loansLoading && allLoans.isEmpty,
-                      today: today,
-                      onOpen: _open,
-                    ),
-                  ),
-                  ?loadMore,
-                ],
-              ),
+              child: LoansTable(today: today, onOpen: _open),
             )
           : Column(
               children: [
-                _filterBar(
-                  context,
-                  totalCount: allLoans.length,
-                  overdueCount: overdueCount,
-                  dueTodayCount: dueTodayCount,
-                ),
+                _filterBar(context, libraryProvider),
                 const SizedBox(height: 6),
                 Expanded(
-                  child: libraryProvider.loansLoading && allLoans.isEmpty
+                  child: pager.loading && loans.isEmpty
                       ? const Center(child: CircularProgressIndicator())
-                      : filteredLoans.isEmpty
-                      ? (allLoans.isEmpty
-                            ? const CirculationInitialEmptyState()
-                            : CirculationNoResultsState(
-                                searchQuery: _searchQuery,
-                                onClear: _clearSearch,
-                              ))
+                      : loans.isEmpty
+                      ? (libraryProvider.loansFiltered
+                            ? CirculationNoResultsState(
+                                searchQuery: libraryProvider.loanSearch,
+                                onClear: _clearFilters,
+                              )
+                            : const CirculationInitialEmptyState())
                       : RefreshIndicator(
-                          onRefresh: () => libraryProvider.loadLoans(),
+                          onRefresh: libraryProvider.loadLoans,
                           child: IcueAdaptiveCardList(
-                            itemCount:
-                                filteredLoans.length +
-                                (loadMore == null ? 0 : 1),
-                            itemBuilder: (context, index) =>
-                                index == filteredLoans.length
-                                ? loadMore!
-                                : LoanCard(
-                                    loan: filteredLoans[index],
-                                    today: today,
-                                    onTap: () => _open(filteredLoans[index]),
-                                  ),
+                            itemCount: loans.length,
+                            footer: IcueLoadMoreFooter.of(pager),
+                            itemBuilder: (context, index) => LoanCard(
+                              loan: loans[index],
+                              today: today,
+                              onTap: () => _open(loans[index]),
+                            ),
                           ),
                         ),
                 ),

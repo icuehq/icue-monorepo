@@ -50,7 +50,7 @@ class IcueTable<T> extends StatefulWidget {
     this.emptyMessage,
     this.emptyAction,
     this.pagination,
-    this.initialDensity = IcueTableDensity.comfortable,
+    this.initialDensity = IcueTableDensity.spacious,
     this.onDensityChanged,
     this.initiallyHiddenColumns = const {},
     this.loadingRowCount = 8,

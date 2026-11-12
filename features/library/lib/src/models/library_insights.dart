@@ -15,6 +15,9 @@ class LibraryNames {
 typedef LibraryReportCol = ReportColumn<LibraryNames>;
 
 /// How a report's rows are built from the loans of the chosen period.
+/// KPI counts of the loans report across every matching loan, not just the loaded page.
+typedef LoanReportCounts = ({int returned, int active, int overdueOrLost});
+
 enum LibraryReportKind {
   /// One row per loan issued in the range.
   loans,

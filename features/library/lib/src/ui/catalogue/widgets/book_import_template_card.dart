@@ -63,9 +63,15 @@ class BookImportTemplateCard extends StatelessWidget {
           runSpacing: 6,
           children: [
             for (final column in _requiredColumns)
-              _ColumnBadge(label: '$column *', isRequired: true),
+              IcueStatusPill(
+                label: '$column *',
+                color: Theme.of(context).colorScheme.primary,
+              ),
             for (final column in _optionalColumns)
-              _ColumnBadge(label: column, isRequired: false),
+              IcueStatusPill(
+                label: column,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
           ],
         ),
         const SizedBox(height: 16),
@@ -88,41 +94,6 @@ class BookImportTemplateCard extends StatelessWidget {
           ],
         ),
       ],
-    );
-  }
-}
-
-class _ColumnBadge extends StatelessWidget {
-  const _ColumnBadge({required this.label, required this.isRequired});
-
-  final String label;
-  final bool isRequired;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: isRequired
-            ? scheme.primaryContainer.withValues(alpha: 0.6)
-            : scheme.surfaceContainerHighest.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(
-          color: isRequired
-              ? scheme.primary.withValues(alpha: 0.3)
-              : scheme.outlineVariant.withValues(alpha: 0.4),
-        ),
-      ),
-      child: Text(
-        label,
-        style: theme.textTheme.bodySmall?.copyWith(
-          fontSize: 11,
-          fontWeight: isRequired ? FontWeight.w600 : FontWeight.normal,
-          color: isRequired ? scheme.primary : scheme.onSurfaceVariant,
-        ),
-      ),
     );
   }
 }

@@ -45,6 +45,9 @@ class IssueBooksCard extends StatelessWidget {
       trailing: successfulCount > 0
           ? Chip(
               label: Text('$successfulCount issued'),
+              labelStyle: theme.textTheme.labelLarge?.copyWith(
+                color: colorScheme.onPrimaryContainer,
+              ),
               visualDensity: VisualDensity.compact,
               backgroundColor: colorScheme.primaryContainer,
               side: BorderSide.none,

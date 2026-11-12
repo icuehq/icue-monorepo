@@ -26,3 +26,20 @@ extension LibraryMemberMembers on LibraryMember {
       ? '${isStudent ? 'Student' : 'Teacher'} #$personErpId'
       : name;
 }
+
+/// Who the members list shows. Staff are the library's `teacher` members.
+enum MemberKind {
+  all('All'),
+  student('Students'),
+  staff('Staff');
+
+  const MemberKind(this.label);
+  final String label;
+
+  /// The stored `memberType`, or null for everyone.
+  String? get memberType => switch (this) {
+    all => null,
+    student => 'student',
+    staff => 'teacher',
+  };
+}

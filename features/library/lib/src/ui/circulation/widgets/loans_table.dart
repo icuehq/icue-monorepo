@@ -1,50 +1,108 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icue_ui/icue_ui.dart';
+import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
-/// Wide-screen active loans as an [IcueClientTable]; search and the status
-/// filter run over the loans loaded so far.
+/// Wide-screen active loans as an [IcueTable]. Search and every filter are
+/// Firestore queries (the provider reloads); pages come from its pager.
 class LoansTable extends StatelessWidget {
-  const LoansTable({
-    required this.loans,
-    required this.loading,
-    required this.today,
-    required this.onOpen,
-    super.key,
-  });
+  const LoansTable({required this.today, required this.onOpen, super.key});
 
-  final List<LibraryLoan> loans;
-  final bool loading;
   final String today;
   final void Function(LibraryLoan loan) onOpen;
 
   @override
   Widget build(BuildContext context) {
-    return IcueClientTable<LibraryLoan>(
+    final provider = context.watch<LibraryProvider>();
+    final pager = provider.loans;
+    final standard = provider.standards
+        .where((standard) => standard.id == provider.loanClassId)
+        .firstOrNull;
+
+    return IcueTable<LibraryLoan>(
       title: 'Issued Books',
-      items: loans,
+      rows: pager.items,
       rowKey: (loan) => loan.id,
-      rowLabel: (loan) => loan.barcode,
-      status: IcueTableStatus.of(failed: false, loading: loading),
+      rowLabel: (loan) => loan.bookLabel,
+      count: pager.total ?? pager.items.length,
+      status: IcueTableStatus.pager(pager),
+      onRetry: pager.retry,
+      pagination: IcueTablePagination.pager(pager),
       onRowTap: onOpen,
-      searchHint: 'Search member, copy, or loan #...',
-      searchText: (loan) =>
-          '${loan.memberLabel} ${loan.barcode} ${loan.number}',
-      initialSort: const IcueTableSort('due'),
+      searchHint: 'Loan #, accession no. or admission no.',
+      initialSearch: provider.loanSearch,
+      searchDebounce: const Duration(milliseconds: 400),
+      onSearchChanged: (query) {
+        provider.loanSearch = query.trim();
+        provider.loadLoans();
+      },
       filters: [
-        IcueClientFilter<LibraryLoan>(
+        IcueTableFilter(
+          id: 'class',
+          label: 'Class',
+          options: [
+            for (final standard in provider.standards)
+              IcueTableFilterOption('${standard.id}', standard.name),
+          ],
+          value: standard == null ? null : '${standard.id}',
+          onChanged: (value) {
+            provider
+              ..loanClassId = value == null ? null : int.parse(value)
+              ..loanSection = null
+              ..loadLoans();
+          },
+        ),
+        if (standard != null && standard.sections.isNotEmpty)
+          IcueTableFilter(
+            id: 'section',
+            label: 'Section',
+            options: [
+              for (final section in standard.sections)
+                IcueTableFilterOption(section.name, section.name),
+            ],
+            value: provider.loanSection,
+            onChanged: (value) {
+              provider
+                ..loanSection = value
+                ..loadLoans();
+            },
+          ),
+        IcueTableFilter(
+          id: 'issued',
+          label: 'Issued',
+          options: [
+            for (final window in LoanIssuedWindow.values)
+              IcueTableFilterOption(window.name, window.label),
+          ],
+          value: provider.loanIssued?.name,
+          onChanged: (value) {
+            provider
+              ..loanIssued = value == null
+                  ? null
+                  : LoanIssuedWindow.values.byName(value)
+              ..loadLoans();
+          },
+        ),
+        IcueTableFilter(
           id: 'status',
           label: 'Status',
-          options: const [
-            IcueTableFilterOption('overdue', 'Overdue'),
-            IcueTableFilterOption('dueToday', 'Due today'),
+          options: [
+            for (final due in LoanDueFilter.values)
+              IcueTableFilterOption(due.name, due.label),
           ],
-          matches: (loan, option) => option == 'overdue'
-              ? loan.overdueOn(today) > 0
-              : loan.dueDate == today,
+          value: provider.loanDue?.name,
+          onChanged: (value) {
+            provider
+              ..loanDue = value == null
+                  ? null
+                  : LoanDueFilter.values.byName(value)
+              ..loadLoans();
+          },
         ),
       ],
+      isFiltered: provider.loansFiltered,
+      onClearFilters: provider.clearLoanFilters,
       primaryAction: IcueTableAction(
         label: 'Issue',
         icon: Icons.add_rounded,
@@ -54,38 +112,51 @@ class LoansTable extends StatelessWidget {
       emptyMessage: 'Issued books will appear here.',
       columns: [
         IcueTableColumn(
-          id: 'copy',
-          label: 'Copy',
+          id: 'book',
+          label: 'Book Title',
           flex: 2,
-          sortable: true,
-          comparator: (loan) => loan.barcode,
-          cellBuilder: (context, loan) => IcueTableCellText(loan.barcode),
+          cellBuilder: (context, loan) => IcueTableCellText(loan.bookLabel),
         ),
         IcueTableColumn(
           id: 'member',
           label: 'Member',
-          flex: 3,
-          sortable: true,
-          comparator: (loan) => loan.memberLabel,
+          flex: 2,
           cellBuilder: (context, loan) => IcueTableCellText(
             loan.memberLabel,
             style: IcueTableStyle.of(context).secondary,
           ),
         ),
         IcueTableColumn(
-          id: 'number',
-          label: 'Loan #',
+          id: 'class',
+          label: 'Class',
           hideBelowWidth: 900,
           cellBuilder: (context, loan) => IcueTableCellText(
-            loan.number,
+            loan.memberClass ?? '-',
+            style: IcueTableStyle.of(context).secondary,
+          ),
+        ),
+        IcueTableColumn(
+          id: 'section',
+          label: 'Section',
+          hideBelowWidth: 900,
+          cellBuilder: (context, loan) => IcueTableCellText(
+            loan.memberSection ?? '-',
+            style: IcueTableStyle.of(context).secondary,
+          ),
+        ),
+        IcueTableColumn(
+          id: 'admission',
+          label: 'Admission Number',
+          flex: 2,
+          hideBelowWidth: 900,
+          cellBuilder: (context, loan) => IcueTableCellText(
+            loan.admissionNumber ?? '-',
             style: IcueTableStyle.of(context).secondary,
           ),
         ),
         IcueTableColumn(
           id: 'issued',
           label: 'Issued',
-          sortable: true,
-          comparator: (loan) => loan.issuedDate,
           cellBuilder: (context, loan) => IcueTableCellText(
             loan.issuedDate.toDisplayDay(),
             style: IcueTableStyle.of(context).secondary,
@@ -94,8 +165,6 @@ class LoansTable extends StatelessWidget {
         IcueTableColumn(
           id: 'due',
           label: 'Due',
-          sortable: true,
-          comparator: (loan) => loan.dueDate,
           cellBuilder: (context, loan) => IcueTableCellText(
             loan.dueDate.toDisplayDay(),
             style: IcueTableStyle.of(context).secondary,
@@ -105,37 +174,15 @@ class LoansTable extends StatelessWidget {
           id: 'status',
           label: 'Status',
           width: 110,
-          cellBuilder: (context, loan) =>
-              _StatusPill(daysLate: loan.overdueOn(today)),
+          cellBuilder: (context, loan) => _lateness(loan.overdueOn(today)),
         ),
       ],
     );
   }
 }
 
-class _StatusPill extends StatelessWidget {
-  const _StatusPill({required this.daysLate});
-
-  final int daysLate;
-
-  @override
-  Widget build(BuildContext context) {
-    final isLate = daysLate > 0;
-    final color = isLate ? Colors.red.shade700 : Colors.green.shade700;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Text(
-        isLate ? '$daysLate d late' : 'On time',
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          color: color,
-        ),
-      ),
-    );
-  }
-}
+Widget _lateness(int daysLate) => IcueStatusPill(
+  label: daysLate > 0 ? '$daysLate d late' : 'On time',
+  color: daysLate > 0 ? Colors.red.shade700 : Colors.green.shade700,
+  compact: true,
+);

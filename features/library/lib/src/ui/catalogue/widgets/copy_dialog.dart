@@ -220,22 +220,11 @@ class _CopyDialogState extends State<CopyDialog> {
   }
 
   Widget _statusPill(ThemeData theme, String status) {
-    final (textColor, backgroundColor) = _statusColors(theme, status);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: textColor.withValues(alpha: 0.3)),
-      ),
-      child: Text(
-        humanizeStatus(status),
-        style: TextStyle(
-          color: textColor,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
+    final (color, background) = _statusColors(theme, status);
+    return IcueStatusPill(
+      label: humanizeStatus(status),
+      color: color,
+      background: background,
     );
   }
 

@@ -232,7 +232,7 @@ service cloud.firestore {
 
     // Library masters (Lib-1): catalogue is branch-wide, readable by anyone who may browse it.
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/{coll}/{id} {
-      allow read: if staff(orgId, zoneId, branchId) && coll in ['libraries', 'libraryCategories', 'libraryCatalogue', 'libraryCopies'];
+      allow read: if staff(orgId, zoneId, branchId) && coll in ['libraries', 'libraryCategories', 'libraryCatalogue', 'libraryCopies', 'libraryStats'];
     }
     // Parents (Lib-8): browse the catalogue read-only; copies stay with staff.
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/{coll}/{id} {

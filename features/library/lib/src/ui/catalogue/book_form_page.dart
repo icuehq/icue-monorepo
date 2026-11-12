@@ -329,7 +329,7 @@ class _BookFormPageState extends State<BookFormPage> {
         appBar: AppBar(
           title: Text(editing ? 'Edit book' : 'Add book'),
           actions: [
-            if (!editing)
+            if (!editing && showSampleData)
               IconButton(
                 tooltip: 'Fill sample data',
                 icon: const Icon(Icons.auto_fix_high_rounded),

@@ -5,6 +5,9 @@ class LibraryPerson {
     required this.personErpId,
     required this.name,
     this.classId,
+    this.className = '',
+    this.section = '',
+    this.admissionNumber = '',
     this.detail = '',
     this.photoUrl = '',
   });
@@ -13,6 +16,9 @@ class LibraryPerson {
   final int personErpId;
   final String name;
   final int? classId;
+  final String className;
+  final String section;
+  final String admissionNumber;
 
   /// Class, section and admission number for the search result list; empty for teachers.
   final String detail;
@@ -28,5 +34,8 @@ class LibraryPerson {
     'personErpId': personErpId,
     'name': name,
     'classId': ?classId,
+    'className': className,
+    'section': section,
+    'admissionNumber': admissionNumber,
   };
 }

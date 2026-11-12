@@ -4,6 +4,25 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 String? _branchUid;
 String? _branchPath;
+Future<String>? _resolving;
+
+/// The signed-in user's branch path, resolved once per sign-in. Concurrent callers (a dashboard runs a dozen
+/// queries at once) share one lookup instead of each forcing its own token refresh.
+Future<String> _resolveBranchPath(User user) async {
+  var claims = (await user.getIdTokenResult()).claims;
+  // Right after first sign-in the cached token may predate the claims; refresh it once.
+  if (claims?['branchId'] == null) {
+    claims = (await user.getIdTokenResult(true)).claims;
+  }
+  if (claims?['branchId'] == null) throw StateError('Branch claims missing');
+  // Web returns numeric claims as doubles (`8.0`), which would not match the `8` path in the rules.
+  String id(String key) {
+    final value = claims?[key];
+    return value is num ? value.toInt().toString() : '$value';
+  }
+
+  return 'orgs/${id('orgId')}/zones/${id('zoneId')}/branches/${id('branchId')}';
+}
 
 /// A collection of the branch the signed-in user is working in
 /// (`orgs/{orgId}/zones/{zoneId}/branches/{branchId}/{path}`). The branch is the tenant. The token is
@@ -13,21 +32,13 @@ Future<CollectionReference<Map<String, dynamic>>> branchCollection(
 ) async {
   final user = FirebaseAuth.instance.currentUser!;
   if (_branchUid != user.uid) {
-    var claims = (await user.getIdTokenResult()).claims;
-    // Right after first sign-in the cached token may predate the claims; refresh it once.
-    if (claims?['branchId'] == null) {
-      claims = (await user.getIdTokenResult(true)).claims;
+    final lookup = _resolving ??= _resolveBranchPath(user);
+    try {
+      _branchPath = await lookup;
+      _branchUid = user.uid;
+    } finally {
+      _resolving = null;
     }
-    if (claims?['branchId'] == null) throw StateError('Branch claims missing');
-    // Web returns numeric claims as doubles (`8.0`), which would not match the `8` path in the rules.
-    String id(String key) {
-      final value = claims?[key];
-      return value is num ? value.toInt().toString() : '$value';
-    }
-
-    _branchPath =
-        'orgs/${id('orgId')}/zones/${id('zoneId')}/branches/${id('branchId')}';
-    _branchUid = user.uid;
   }
   return FirebaseFirestore.instance.collection('$_branchPath/$path');
 }

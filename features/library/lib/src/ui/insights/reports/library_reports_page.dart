@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:icue_firebase/icue_firebase.dart' show callableErrorMessage;
 import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
@@ -82,6 +83,23 @@ class _LibraryReportsPageState extends State<LibraryReportsPage> {
   }
 
   Future<void> _exportCsv(List<String> header, List<List<String>> rows) async {
+    final library = context.read<LibraryProvider>();
+    if (_def.kind == LibraryReportKind.loans) {
+      // The table holds one page; export every matching loan.
+      final names = LibraryNames(
+        title: library.titleName,
+        library: library.libraryName,
+      );
+      try {
+        rows = [
+          for (final row in await library.exportReportLoans())
+            [for (final column in _def.cols) column.cell(row, names)],
+        ];
+      } catch (error) {
+        if (mounted) showMessage(context, callableErrorMessage(error));
+        return;
+      }
+    }
     final csv = toCsv(header, rows);
     final saved = await saveCsvFile('${_def.key}-report.csv', csv);
 
@@ -90,7 +108,7 @@ class _LibraryReportsPageState extends State<LibraryReportsPage> {
       SnackBar(
         content: Text(
           saved
-              ? 'Downloaded ${rows.length} ${rows.length == 1 ? 'row' : 'rows'} as CSV'
+              ? 'Downloaded ${rows.length} ${rows.length == 1 ? 'row' : 'rows'} as CSV${rows.length >= LibraryService.loanLimit ? '. The limit was reached; choose a shorter period for the rest.' : ''}'
               : 'Download cancelled',
         ),
         duration: const Duration(seconds: 3),
@@ -107,9 +125,11 @@ class _LibraryReportsPageState extends State<LibraryReportsPage> {
       library: library.libraryName,
     );
 
+    final pager = library.reportLoans;
+    final paged = _def.kind == LibraryReportKind.loans;
     final header = [for (final column in _def.cols) column.label];
     final rows = [
-      for (final row in library.reportRows)
+      for (final row in paged ? pager.items : library.reportRows)
         [for (final column in _def.cols) column.cell(row, names)],
     ];
     final sumColumns = {
@@ -117,18 +137,12 @@ class _LibraryReportsPageState extends State<LibraryReportsPage> {
         if (_def.cols[index].sum) index,
     };
 
-    final footerNote =
-        _def.kind == LibraryReportKind.loans &&
-            library.reportRows.length >= LibraryService.reportLimit
-        ? 'Showing the latest ${LibraryService.reportLimit} records. Narrow down the date range to view older loans.'
-        : null;
-
     final horizontalPadding = context.isWide ? 24.0 : 16.0;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Library Reports'),
-        bottom: library.insightsLoading
+        bottom: library.insightsLoading || (paged && pager.loading)
             ? const PreferredSize(
                 preferredSize: Size.fromHeight(3),
                 child: LinearProgressIndicator(minHeight: 3),
@@ -142,6 +156,8 @@ class _LibraryReportsPageState extends State<LibraryReportsPage> {
             final kpis = LibraryReportKpis(
               kind: _def.kind,
               rows: library.reportRows,
+              loanTotal: pager.total,
+              loanCounts: library.reportLoanCounts,
             );
             final table = LibraryReportTable(
               header: header,
@@ -222,11 +238,26 @@ class _LibraryReportsPageState extends State<LibraryReportsPage> {
                 });
                 _load();
               },
-              isLoading: library.insightsLoading,
-              errorMessage: library.errorMessage,
-              footerNote: footerNote,
+              isLoading: paged
+                  ? pager.loading && pager.items.isEmpty
+                  : library.insightsLoading,
+              errorMessage: paged
+                  ? (pager.error == null ? null : library.errorMessage)
+                  : library.errorMessage,
               onExport: rows.isEmpty ? null : () => _exportCsv(header, rows),
+              count: pager.total ?? pager.items.length,
+              onRetry: pager.retry,
+              pagination: paged ? IcueTablePagination.pager(pager) : null,
             );
+            final notice = library.reportCapped && !paged
+                ? Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Text(
+                      'Only the latest ${LibraryService.loanLimit} loans in this period are counted. Choose a shorter period for complete figures.',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  )
+                : const SizedBox.shrink();
             final padding = EdgeInsets.symmetric(
               horizontal: horizontalPadding,
               vertical: 20,
@@ -239,6 +270,7 @@ class _LibraryReportsPageState extends State<LibraryReportsPage> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         kpis,
+                        notice,
                         const SizedBox(height: 18),
                         Expanded(child: table),
                       ],
@@ -246,7 +278,7 @@ class _LibraryReportsPageState extends State<LibraryReportsPage> {
                   )
                 : ListView(
                     padding: padding,
-                    children: [kpis, const SizedBox(height: 18), table],
+                    children: [kpis, notice, const SizedBox(height: 18), table],
                   );
           },
         ),

@@ -70,7 +70,7 @@ class LoanCard extends StatelessWidget {
                         Row(
                           children: [
                             Text(
-                              loan.barcode,
+                              loan.bookLabel,
                               style: theme.textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.w700,
                                 fontSize: 15,

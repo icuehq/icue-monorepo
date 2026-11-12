@@ -27,7 +27,7 @@ class LibraryPeopleService {
     }
     final student = await _routes.findStudentByAdmissionNumberOrRfid(number);
     if (student == null) return null;
-    return personFrom(memberType, student);
+    return personFrom(student);
   }
 
   /// Classes with their sections, for picking a student from a class list.
@@ -48,17 +48,17 @@ class LibraryPeopleService {
     }
   }
 
-  LibraryPerson personFrom(
-    String memberType,
-    StudentData student,
-  ) => LibraryPerson(
-    memberType: memberType,
+  LibraryPerson personFrom(StudentData student) => LibraryPerson(
+    memberType: 'student',
     personErpId: student.id,
     name: student.name,
     classId: student.classId == 0 ? null : student.classId,
+    className: student.standard,
+    section: student.section,
+    admissionNumber: student.admissionNumber,
     photoUrl: student.photoUrl,
     detail: [
-      if (memberType == 'student' && student.standard.isNotEmpty)
+      if (student.standard.isNotEmpty)
         '${student.standard.toLowerCase().startsWith('class') ? '' : 'Class '}${student.standard}${student.section.isEmpty ? '' : ' ${student.section}'}',
       if (student.admissionNumber.isNotEmpty) 'Adm. ${student.admissionNumber}',
     ].join(' · '),

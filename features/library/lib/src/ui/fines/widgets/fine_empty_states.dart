@@ -31,8 +31,10 @@ class FineNoResultsState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => IcueEmptyState.noResults(
-    title: 'No fines match "$searchQuery"',
-    message: 'Try searching by member name, fine number, or book barcode.',
+    title: searchQuery.isEmpty
+        ? 'No fines match these filters'
+        : 'No fines match "$searchQuery"',
+    message: 'Search by the exact fine number or accession number.',
     onAction: onClear,
   );
 }

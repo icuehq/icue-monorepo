@@ -115,13 +115,13 @@ class _IncidentDialogState extends State<IncidentDialog> {
     setState(() => _busy = true);
     final libraryProvider = context.read<LibraryProvider>();
     final navigator = Navigator.of(context);
-    final result = await libraryProvider.resolveIncident({
-      'id': widget.incident.id,
-      'resolution': resolution,
-      'repairCost': ?repairCost,
-      'charge': ?charge,
-      'remarks': ?blankToNull(remarksController),
-    });
+    final result = await libraryProvider.resolveIncident(
+      id: widget.incident.id,
+      resolution: resolution,
+      repairCost: repairCost,
+      charge: charge,
+      remarks: blankToNull(remarksController),
+    );
     if (!mounted) return;
     if (result) {
       navigator.pop();

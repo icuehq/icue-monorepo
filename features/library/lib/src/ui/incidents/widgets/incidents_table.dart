@@ -1,42 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
+import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
-/// Wide-screen lost and damaged incidents as an [IcueClientTable]. The status
-/// filter reloads server data, so the page owns it.
+/// Wide-screen lost and damaged incidents as an [IcueTable]. Search and every
+/// filter are Firestore queries (the provider reloads); pages come from its pager.
 class IncidentsTable extends StatelessWidget {
   const IncidentsTable({
-    required this.incidents,
-    required this.loading,
-    required this.status,
-    required this.onStatusChanged,
     required this.onOpen,
     required this.onReport,
     super.key,
   });
 
-  final List<LibraryIncident> incidents;
-  final bool loading;
-  final String status;
-  final ValueChanged<String> onStatusChanged;
   final void Function(LibraryIncident incident) onOpen;
   final VoidCallback onReport;
 
   @override
   Widget build(BuildContext context) {
-    return IcueClientTable<LibraryIncident>(
+    final provider = context.watch<LibraryProvider>();
+    final pager = provider.incidents;
+
+    return IcueTable<LibraryIncident>(
       title: 'Lost & damaged',
-      items: incidents,
+      rows: pager.items,
       rowKey: (incident) => incident.id,
       rowLabel: (incident) => incident.incidentNumber,
-      status: IcueTableStatus.of(failed: false, loading: loading),
+      count: pager.total ?? pager.items.length,
+      status: IcueTableStatus.pager(pager),
+      onRetry: pager.retry,
+      pagination: IcueTablePagination.pager(pager),
       onRowTap: onOpen,
-      searchHint: 'Search copy, member, or incident #...',
-      searchText: (incident) =>
-          '${incident.barcode} ${incident.memberLabel ?? ''} '
-          '${incident.incidentNumber}',
-      initialSort: const IcueTableSort('reported', ascending: false),
-      externalFilters: [
+      searchHint: 'Incident # or accession no.',
+      initialSearch: provider.incidentSearch,
+      searchDebounce: const Duration(milliseconds: 400),
+      onSearchChanged: (query) {
+        provider.incidentSearch = query.trim();
+        provider.loadIncidents();
+      },
+      filters: [
         IcueTableFilter(
           id: 'status',
           label: 'Status',
@@ -44,12 +45,30 @@ class IncidentsTable extends StatelessWidget {
             IcueTableFilterOption('open', 'Open'),
             IcueTableFilterOption('resolved', 'Resolved'),
           ],
-          value: status == 'all' ? null : status,
-          onChanged: (value) => onStatusChanged(value ?? 'all'),
+          value: provider.incidentStatus,
+          onChanged: (value) {
+            provider
+              ..incidentStatus = value
+              ..loadIncidents();
+          },
+        ),
+        IcueTableFilter(
+          id: 'type',
+          label: 'Type',
+          options: const [
+            IcueTableFilterOption('lost', 'Lost'),
+            IcueTableFilterOption('damaged', 'Damaged'),
+          ],
+          value: provider.incidentType,
+          onChanged: (value) {
+            provider
+              ..incidentType = value
+              ..loadIncidents();
+          },
         ),
       ],
-      externalFiltersActive: status != 'all',
-      onClearExternalFilters: () => onStatusChanged('all'),
+      isFiltered: provider.incidentsFiltered,
+      onClearFilters: provider.clearIncidentFilters,
       primaryAction: IcueTableAction(
         label: 'Report incident',
         icon: Icons.report_problem_outlined,
@@ -62,8 +81,6 @@ class IncidentsTable extends StatelessWidget {
           id: 'copy',
           label: 'Copy',
           flex: 2,
-          sortable: true,
-          comparator: (incident) => incident.barcode,
           cellBuilder: (context, incident) =>
               IcueTableCellText(incident.barcode),
         ),
@@ -71,8 +88,6 @@ class IncidentsTable extends StatelessWidget {
           id: 'member',
           label: 'Member',
           flex: 3,
-          sortable: true,
-          comparator: (incident) => incident.memberLabel ?? '',
           cellBuilder: (context, incident) => IcueTableCellText(
             incident.memberLabel ?? 'In stock',
             style: IcueTableStyle.of(context).secondary,
@@ -101,8 +116,6 @@ class IncidentsTable extends StatelessWidget {
         IcueTableColumn(
           id: 'reported',
           label: 'Reported',
-          sortable: true,
-          comparator: (incident) => incident.reportedDate,
           cellBuilder: (context, incident) => IcueTableCellText(
             incident.reportedDate.toDisplayDay(),
             style: IcueTableStyle.of(context).secondary,
@@ -111,8 +124,6 @@ class IncidentsTable extends StatelessWidget {
         IcueTableColumn(
           id: 'charge',
           label: 'Charge',
-          sortable: true,
-          comparator: (incident) => incident.charge,
           cellBuilder: (context, incident) => IcueTableCellText(
             incident.charge > 0 ? incident.charge.toRupees() : '—',
           ),

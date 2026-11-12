@@ -24,8 +24,10 @@ class MemberNoResultsState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => IcueEmptyState.noResults(
-    title: 'No members match "$searchQuery"',
-    message: 'Try searching by another name, ERP ID, or class number.',
+    title: searchQuery.isEmpty
+        ? 'No members match these filters'
+        : 'No member with ERP ID "$searchQuery"',
+    message: 'Search by the exact ERP ID, or clear the filters.',
     onAction: onClear,
   );
 }

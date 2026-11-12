@@ -6,13 +6,11 @@ import 'package:icue_ui/icue_ui.dart';
 class OverviewAttentionCard extends StatelessWidget {
   const OverviewAttentionCard({
     required this.stats,
-    required this.allowed,
     required this.targets,
     super.key,
   });
 
   final Map<String, num?> stats;
-  final bool Function(String key) allowed;
   final Map<String, String> targets;
 
   @override
@@ -51,8 +49,7 @@ class OverviewAttentionCard extends StatelessWidget {
           theme.colorScheme.error,
         ),
       ])
-        if (allowed(key) && (stats[key] ?? 0) > 0)
-          (targets[key]!, text, icon, color),
+        if ((stats[key] ?? 0) > 0) (targets[key]!, text, icon, color),
     ];
 
     final hasIssues = items.isNotEmpty;

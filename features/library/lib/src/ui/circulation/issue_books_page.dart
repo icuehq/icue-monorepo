@@ -140,10 +140,7 @@ class _IssueBooksPageState extends State<IssueBooksPage> {
     setState(() => _busy = true);
     try {
       for (final item in queued) {
-        final success = await libraryProvider.issueLoan({
-          'person': person.toPayload(),
-          'barcode': item.copy!.id,
-        });
+        final success = await libraryProvider.issueLoan(person, item.copy!.id);
         if (!mounted) return;
         final member = _member;
         setState(() {

@@ -201,20 +201,11 @@ class PurchaseRequestCard extends StatelessWidget {
     );
   }
 
-  Widget _buildBadge(_BadgeConfig config) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-    decoration: BoxDecoration(
-      color: config.background,
-      borderRadius: BorderRadius.circular(6),
-    ),
-    child: Text(
-      config.label,
-      style: TextStyle(
-        fontSize: 11,
-        fontWeight: FontWeight.w600,
-        color: config.foreground,
-      ),
-    ),
+  Widget _buildBadge(_BadgeConfig config) => IcueStatusPill(
+    label: config.label,
+    color: config.foreground,
+    background: config.background,
+    bordered: false,
   );
 
   _BadgeConfig _getStatusConfig(String status) {

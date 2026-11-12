@@ -6,11 +6,11 @@ import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/catalogue/widgets/catalogue_filter_header.dart';
 
 /// Wide-screen catalogue: books as an [IcueTable]. Search, category and class
-/// are server-side (the provider reloads); status filters the loaded books.
+/// and status are Firestore filters (the provider reloads); pages come from
+/// the provider's [FirestorePager].
 class CatalogueTable extends StatelessWidget {
   const CatalogueTable({
     required this.books,
-    required this.scrollController,
     required this.statusFilter,
     required this.onStatusChanged,
     required this.onOpen,
@@ -19,7 +19,6 @@ class CatalogueTable extends StatelessWidget {
   });
 
   final List<LibraryBook> books;
-  final ScrollController scrollController;
   final CatalogueStatusFilter statusFilter;
   final ValueChanged<CatalogueStatusFilter> onStatusChanged;
   final void Function(LibraryBook book) onOpen;
@@ -28,6 +27,7 @@ class CatalogueTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<LibraryProvider>();
+    final pager = provider.books;
     final categories = [
       ...provider.topCategories,
       ...provider.categories.where((category) => category.parentId != null),
@@ -39,13 +39,10 @@ class CatalogueTable extends StatelessWidget {
       rows: books,
       rowKey: (book) => book.id,
       rowLabel: (book) => book.title,
-      scrollController: scrollController,
-      countLabel: provider.hasMoreBooks ? '${books.length}+' : null,
-      count: books.length,
-      status: IcueTableStatus.of(
-        failed: false,
-        loading: provider.booksLoading && provider.books.isEmpty,
-      ),
+      count: pager.total ?? books.length,
+      status: IcueTableStatus.pager(pager),
+      onRetry: pager.retry,
+      pagination: IcueTablePagination.pager(pager),
       onRowTap: onOpen,
       searchHint: 'Search title, author, or publisher...',
       initialSearch: provider.bookSearch,
@@ -199,7 +196,10 @@ class CatalogueTable extends StatelessWidget {
           id: 'status',
           label: 'Status',
           width: 110,
-          cellBuilder: (context, book) => _StatusPill(active: book.active),
+          cellBuilder: (context, book) => IcueStatusPill(
+            label: book.active ? 'Active' : 'Inactive',
+            color: book.active ? Colors.green.shade700 : Colors.grey.shade700,
+          ),
         ),
       ],
     );
@@ -208,30 +208,4 @@ class CatalogueTable extends StatelessWidget {
 
 extension on String {
   String ifEmpty(String fallback) => isEmpty ? fallback : this;
-}
-
-class _StatusPill extends StatelessWidget {
-  const _StatusPill({required this.active});
-
-  final bool active;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = active ? Colors.green.shade700 : Colors.grey.shade700;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Text(
-        active ? 'Active' : 'Inactive',
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          color: color,
-        ),
-      ),
-    );
-  }
 }

@@ -25,6 +25,7 @@ abstract final class Collections {
   static const libraryFines = 'libraryFines';
   static const libraryLoans = 'libraryLoans';
   static const libraryMembers = 'libraryMembers';
+  static const libraryStats = 'libraryStats';
 }
 
 /// Lifecycle of a purchase request; ordered quantities move it to partially_ordered / ordered.
@@ -149,6 +150,11 @@ abstract final class LibraryLoanFields {
   static const memberType = 'memberType';
   static const personErpId = 'personErpId';
   static const memberName = 'memberName';
+  static const memberClassId = 'memberClassId';
+  static const memberClass = 'memberClass';
+  static const memberSection = 'memberSection';
+  static const admissionNumber = 'admissionNumber';
+  static const bookTitle = 'bookTitle';
   static const barcode = 'barcode';
   static const catalogueId = 'catalogueId';
   static const libraryId = 'libraryId';
@@ -184,4 +190,40 @@ abstract final class LoanPolicySnapshotFields {
   static const fineAmount = 'fineAmount';
   static const graceDays = 'graceDays';
   static const maxFine = 'maxFine';
+}
+
+/// Current-state figures of a branch or one library, kept by the audit triggers and rebuilt nightly (libraryStats/overall). Overdue is exact only after the nightly rebuild plus later returns/renewals.
+abstract final class LibraryStatsTotalsFields {
+  static const copies = 'copies';
+  static const available = 'available';
+  static const issued = 'issued';
+  static const lost = 'lost';
+  static const damaged = 'damaged';
+  static const activeLoans = 'activeLoans';
+  static const overdue = 'overdue';
+  static const outstandingFines = 'outstandingFines';
+  static const titles = 'titles';
+  static const students = 'students';
+  static const teachers = 'teachers';
+}
+
+/// What happened in a branch or one library on one India-time day (libraryStats/day_yyyy-MM-dd). A month is the sum of its days.
+abstract final class LibraryDailyTotalsFields {
+  static const loansIssued = 'loansIssued';
+  static const loansReturned = 'loansReturned';
+  static const loansRenewed = 'loansRenewed';
+  static const loansLost = 'loansLost';
+  static const finesRaised = 'finesRaised';
+  static const finesCollected = 'finesCollected';
+  static const incidents = 'incidents';
+}
+
+/// libraryStats/overall: branch figures, with per-library figures under libraries.
+abstract final class LibraryStatsFields {
+  static const libraries = 'libraries';
+}
+
+/// libraryStats/day_yyyy-MM-dd: the day's branch flows, with per-library flows under libraries.
+abstract final class LibraryDailyStatsFields {
+  static const libraries = 'libraries';
 }

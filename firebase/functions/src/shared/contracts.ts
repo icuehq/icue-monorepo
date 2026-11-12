@@ -27,6 +27,7 @@ export const Collections = {
   libraryFines: 'libraryFines',
   libraryLoans: 'libraryLoans',
   libraryMembers: 'libraryMembers',
+  libraryStats: 'libraryStats',
 } as const;
 
 /** Lifecycle of a purchase request; ordered quantities move it to partially_ordered / ordered. */
@@ -115,6 +116,11 @@ export interface LibraryLoan {
   memberType: MemberType;
   personErpId: number;
   memberName?: string | null;
+  memberClassId?: number | null;
+  memberClass?: string | null;
+  memberSection?: string | null;
+  admissionNumber?: string | null;
+  bookTitle?: string | null;
   barcode: string;
   catalogueId: string;
   libraryId: string;
@@ -150,4 +156,40 @@ export interface LoanPolicySnapshot {
   fineAmount: number;
   graceDays: number;
   maxFine?: number | null;
+}
+
+/** Current-state figures of a branch or one library, kept by the audit triggers and rebuilt nightly (libraryStats/overall). Overdue is exact only after the nightly rebuild plus later returns/renewals. */
+export interface LibraryStatsTotals {
+  copies: number;
+  available: number;
+  issued: number;
+  lost: number;
+  damaged: number;
+  activeLoans: number;
+  overdue: number;
+  outstandingFines: number;
+  titles: number;
+  students: number;
+  teachers: number;
+}
+
+/** What happened in a branch or one library on one India-time day (libraryStats/day_yyyy-MM-dd). A month is the sum of its days. */
+export interface LibraryDailyTotals {
+  loansIssued: number;
+  loansReturned: number;
+  loansRenewed: number;
+  loansLost: number;
+  finesRaised: number;
+  finesCollected: number;
+  incidents: number;
+}
+
+/** libraryStats/overall: branch figures, with per-library figures under libraries. */
+export interface LibraryStats {
+  libraries: Record<string, LibraryStatsTotals>;
+}
+
+/** libraryStats/day_yyyy-MM-dd: the day's branch flows, with per-library flows under libraries. */
+export interface LibraryDailyStats {
+  libraries: Record<string, LibraryDailyTotals>;
 }

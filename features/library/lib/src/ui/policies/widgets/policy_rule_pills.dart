@@ -48,26 +48,12 @@ class PolicyRulePills extends StatelessWidget {
         ? theme.colorScheme.errorContainer.withValues(alpha: 0.3)
         : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5);
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 13, color: color),
-          const SizedBox(width: 4),
-          Text(
-            text,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
+    return IcueStatusPill(
+      label: text,
+      color: color,
+      background: backgroundColor,
+      icon: icon,
+      bordered: false,
     );
   }
 }

@@ -3,6 +3,7 @@ import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { BRANCH_TRIGGER, branchPathOf } from '../shared/branch';
 import { serverTimestamp } from '../shared/firestore';
 import { type Change, noticeFine, noticeIncident, noticeLoan } from './notices';
+import { recordStats } from './stats';
 
 const IGNORED = ['lastWrite', 'updatedAt'];
 
@@ -20,7 +21,7 @@ function changedFields(before: DocumentData | undefined, after: DocumentData) {
  * Audit log for client writes (no callable): every such write stamps `lastWrite` {by, action, reason, at}
  * (enforced by `firestore.rules`). A write that leaves the stamp alone (a callable's, say) is not logged here.
  * The event ID is the log's ID, so a redelivered event cannot log twice.
- * One trigger per collection also runs its member [notice], so a write is billed one invocation, not two.
+ * One trigger per collection also runs its member [notice] and updates the analytics summary (`stats.ts`), so a write is billed one invocation, not three.
  */
 const auditClientWrites = (collection: string, notice?: (change: Change) => Promise<void>) =>
   onDocumentWritten(`${BRANCH_TRIGGER}/${collection}/{docId}`, async (event) => {
@@ -31,6 +32,7 @@ const auditClientWrites = (collection: string, notice?: (change: Change) => Prom
     await Promise.all([
       audit(collection, event.id, branchPath, docId, before, after),
       notice?.({ branchPath, docId, before, after }),
+      recordStats(collection, { branchPath, docId, before, after }),
     ]);
   });
 

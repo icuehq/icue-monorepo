@@ -300,6 +300,7 @@ class IcueAdaptiveCardList extends StatelessWidget {
     this.padding = EdgeInsets.zero,
     this.spacing = 0,
     this.controller,
+    this.footer,
     this.emptyMessage = 'No items found',
     this.emptyIcon = Icons.inbox_outlined,
     this.emptyAction,
@@ -311,6 +312,9 @@ class IcueAdaptiveCardList extends StatelessWidget {
   final EdgeInsetsGeometry padding;
   final double spacing;
   final ScrollController? controller;
+
+  /// Full-width row after the last card (e.g. "Load more").
+  final Widget? footer;
   final String emptyMessage;
   final IconData emptyIcon;
   final Widget? emptyAction;
@@ -360,6 +364,7 @@ class IcueAdaptiveCardList extends StatelessWidget {
       );
     }
 
+    final extra = footer == null ? 0 : 1;
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth < IcueBreakpoints.twoColumns) {
@@ -367,17 +372,20 @@ class IcueAdaptiveCardList extends StatelessWidget {
             controller: controller,
             physics: const AlwaysScrollableScrollPhysics(),
             padding: padding,
-            itemCount: itemCount,
+            itemCount: itemCount + extra,
             separatorBuilder: (_, _) => SizedBox(height: spacing),
-            itemBuilder: itemBuilder,
+            itemBuilder: (context, index) =>
+                index == itemCount ? footer! : itemBuilder(context, index),
           );
         }
+        final rows = (itemCount + 1) ~/ 2;
         return ListView.builder(
           controller: controller,
           physics: const AlwaysScrollableScrollPhysics(),
           padding: padding,
-          itemCount: (itemCount + 1) ~/ 2,
+          itemCount: rows + extra,
           itemBuilder: (context, row) {
+            if (row == rows) return footer!;
             final first = row * 2;
             return Padding(
               padding: EdgeInsets.only(bottom: spacing),

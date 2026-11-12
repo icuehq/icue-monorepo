@@ -10,7 +10,15 @@ enum CatalogueStatusFilter {
   inactive('Inactive');
 
   const CatalogueStatusFilter(this.label);
+
+  /// The filter for a stored `status` (null means both).
+  factory CatalogueStatusFilter.of(String? status) =>
+      status == null ? all : values.byName(status);
+
   final String label;
+
+  /// The `status` the catalogue query keeps, or null for both.
+  String? get status => this == all ? null : name;
 }
 
 class CatalogueFilterHeader extends StatelessWidget {

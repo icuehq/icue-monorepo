@@ -59,14 +59,14 @@ class _IncidentReportDialogState extends State<IncidentReportDialog> {
     setState(() => _busy = true);
     final libraryProvider = context.read<LibraryProvider>();
     final navigator = Navigator.of(context);
-    final ok = await libraryProvider.reportIncident({
-      'barcode': _copy!.id,
-      'personErpId': ?personErpId,
-      'type': _kind,
-      'severity': _kind == 'damaged' ? _severity : 'moderate',
-      'description': ?blankToNull(_description),
-      'charge': charge,
-    });
+    final ok = await libraryProvider.reportIncident(
+      barcode: _copy!.id,
+      type: _kind,
+      personErpId: personErpId,
+      severity: _kind == 'damaged' ? _severity : 'moderate',
+      description: blankToNull(_description),
+      charge: charge,
+    );
     if (!mounted) return;
     if (ok) {
       navigator.pop();

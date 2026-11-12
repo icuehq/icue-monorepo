@@ -26,7 +26,9 @@ class _ClassStudentChooserState extends State<ClassStudentChooser> {
   void initState() {
     super.initState();
     _run(() async {
-      _classes = await context.read<LibraryProvider>().classes();
+      final provider = context.read<LibraryProvider>();
+      await provider.loadStandards();
+      _classes = provider.standards;
     });
   }
 
