@@ -23,9 +23,7 @@ describe('inventory masters', () => {
   let category: string;
   beforeEach(async () => {
     await clearFirestore();
-    await db()
-      .doc(`${BRANCH}/userAccess/1`)
-      .set({ permissions: ALL });
+    await db().doc(`${BRANCH}/userAccess/1`).set({ permissions: ALL });
     await db()
       .doc(`${BRANCH}/userAccess/2`)
       .set({ permissions: ['inventory.items.view'] });
@@ -97,9 +95,7 @@ describe('inventory masters', () => {
     await expect(newItem({ code: 'X1', stockUnit: 'nope' })).rejects.toMatchObject({
       code: 'failed-precondition',
     });
-    await db()
-      .doc(`${BRANCH}/inventoryCategories/${category}`)
-      .update({ status: 'inactive' });
+    await db().doc(`${BRANCH}/inventoryCategories/${category}`).update({ status: 'inactive' });
     await expect(newItem({ code: 'X2' })).rejects.toMatchObject({ code: 'failed-precondition' });
     // existing item may be edited while its category stays the same
     await expect(newItem({ id, code: undefined, name: 'Blue Pen XL' })).resolves.toEqual({ id });

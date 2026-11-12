@@ -32,7 +32,10 @@ const def: CallableDef<
   },
 };
 
-const staff = (uid = '1') => ({ uid, token: { orgId: 8, zoneId: 147, branchId: 427, personType: 'staff' } });
+const staff = (uid = '1') => ({
+  uid,
+  token: { orgId: 8, zoneId: 147, branchId: 427, personType: 'staff' },
+});
 const call = (
   data: Record<string, unknown>,
   auth: Parameters<typeof runCallable>[1] | null = staff(),
@@ -63,7 +66,10 @@ describe('runCallable', () => {
   it('rejects unauthenticated, parents, unsynced users, missing permission', async () => {
     await expect(call({}, null)).rejects.toMatchObject({ code: 'unauthenticated' });
     await expect(
-      call({}, { uid: 'parent-1', token: { orgId: 8, zoneId: 147, branchId: 427, personType: 'parent' } }),
+      call(
+        {},
+        { uid: 'parent-1', token: { orgId: 8, zoneId: 147, branchId: 427, personType: 'parent' } },
+      ),
     ).rejects.toMatchObject({ code: 'permission-denied' });
     await expect(call({}, staff('2'))).rejects.toMatchObject({ code: 'failed-precondition' });
     await grant('3', { permissions: ['inventory.items.view'] });
@@ -71,7 +77,10 @@ describe('runCallable', () => {
   });
 
   it('works only in the branch of the token', async () => {
-    const otherBranch = { uid: '1', token: { orgId: 8, zoneId: 147, branchId: 428, personType: 'staff' } };
+    const otherBranch = {
+      uid: '1',
+      token: { orgId: 8, zoneId: 147, branchId: 428, personType: 'staff' },
+    };
     await expect(call({}, otherBranch)).rejects.toMatchObject({ code: 'failed-precondition' });
     await expect(
       call({}, { uid: '1', token: { orgId: 8, personType: 'staff' } }),
@@ -91,15 +100,11 @@ describe('runCallable', () => {
     expect((await db().doc(`${BRANCH}/inventoryItems/PEN`).get()).data()).toMatchObject({
       number: result.number,
     });
-    expect(
-      (await db().doc(`${BRANCH}/counters/PR_${FINANCIAL_YEAR}`).get()).get('next'),
-    ).toBe(1);
-    expect(
-      (await db().doc(`${BRANCH}/uniqueKeys/item_pen`).get()).get('documentPath'),
-    ).toBe(`${BRANCH}/inventoryItems/PEN`);
-    expect(
-      (await db().doc(`${BRANCH}/outbox/created__1`).get()).get('status'),
-    ).toBe('pending');
+    expect((await db().doc(`${BRANCH}/counters/PR_${FINANCIAL_YEAR}`).get()).get('next')).toBe(1);
+    expect((await db().doc(`${BRANCH}/uniqueKeys/item_pen`).get()).get('documentPath')).toBe(
+      `${BRANCH}/inventoryItems/PEN`,
+    );
+    expect((await db().doc(`${BRANCH}/outbox/created__1`).get()).get('status')).toBe('pending');
     expect(await count('auditLogs')).toBe(1);
     expect((await db().doc(`${BRANCH}/requests/req-00001`).get()).data()).toMatchObject({
       uid: '1',
@@ -112,9 +117,7 @@ describe('runCallable', () => {
     const first = await call({});
     expect(await call({ code: 'OTHER' })).toEqual(first);
     expect(await count('auditLogs')).toBe(1);
-    expect(
-      (await db().doc(`${BRANCH}/counters/PR_${FINANCIAL_YEAR}`).get()).get('next'),
-    ).toBe(1);
+    expect((await db().doc(`${BRANCH}/counters/PR_${FINANCIAL_YEAR}`).get()).get('next')).toBe(1);
   });
 
   it('rejects a requestId reused by another user', async () => {
@@ -128,9 +131,7 @@ describe('runCallable', () => {
     await expect(call({ requestId: 'req-00002', code: 'pen' })).rejects.toMatchObject({
       code: 'already-exists',
     });
-    expect(
-      (await db().doc(`${BRANCH}/counters/PR_${FINANCIAL_YEAR}`).get()).get('next'),
-    ).toBe(1);
+    expect((await db().doc(`${BRANCH}/counters/PR_${FINANCIAL_YEAR}`).get()).get('next')).toBe(1);
     expect(await count('auditLogs')).toBe(1);
   });
 

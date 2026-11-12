@@ -14,7 +14,9 @@ describe('session', () => {
 
   it('syncs userAccess from claims, permissions from actionIds', async () => {
     const result = await syncSession(db(), '1', {
-      orgId: 8, zoneId: 147, branchId: 427,
+      orgId: 8,
+      zoneId: 147,
+      branchId: 427,
       roleIds: [4, 9],
       actionIds: [300, 312, 313],
       personType: 'teacher',
@@ -33,12 +35,17 @@ describe('session', () => {
   });
 
   it('gives no permissions without actionIds', async () => {
-    expect((await syncSession(db(), '1', { orgId: 8, zoneId: 147, branchId: 427, roleIds: [4] })).permissions).toEqual([]);
+    expect(
+      (await syncSession(db(), '1', { orgId: 8, zoneId: 147, branchId: 427, roleIds: [4] }))
+        .permissions,
+    ).toEqual([]);
   });
 
   it('gives parents no permissions, keeps wardStudentIds', async () => {
     const result = await syncSession(db(), 'parent-1', {
-      orgId: 8, zoneId: 147, branchId: 427,
+      orgId: 8,
+      zoneId: 147,
+      branchId: 427,
       actionIds: [312],
       personType: 'parent',
       wardStudentIds: [5521],

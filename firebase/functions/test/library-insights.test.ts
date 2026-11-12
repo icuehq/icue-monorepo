@@ -30,7 +30,9 @@ describe('library notifications', () => {
   beforeEach(async () => {
     await clearFirestore();
     const category = (await seedLibraryCategory({ name: 'General' })).id;
-    title = (await seedLibraryTitle({ title: 'Wings of Fire', authors: ['Kalam'], categoryId: category })).id;
+    title = (
+      await seedLibraryTitle({ title: 'Wings of Fire', authors: ['Kalam'], categoryId: category })
+    ).id;
   });
 
   it("issue and return tell the member (the student's parents)", async () => {

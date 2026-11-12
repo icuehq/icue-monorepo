@@ -38,11 +38,9 @@ describe('library copies and books', () => {
   beforeEach(async () => {
     await clearFirestore();
     barcodeSequence = 0;
-    await db()
-      .doc(`${BRANCH}/userAccess/1`)
-      .set({
-        permissions: [],
-      });
+    await db().doc(`${BRANCH}/userAccess/1`).set({
+      permissions: [],
+    });
     const category = (await seedLibraryCategory({ name: 'General' })).id;
     title = (
       await seedLibraryTitle({
@@ -75,7 +73,10 @@ describe('library copies and books', () => {
     });
     expect(donation.barcodes).toEqual(['ACC-000004', 'ACC-000005']);
     expect(await count('libraryCopies')).toBe(5);
-    expect(await get('libraryCopies/ACC-000004')).toMatchObject({ libraryId: secondLibrary, price: 0 });
+    expect(await get('libraryCopies/ACC-000004')).toMatchObject({
+      libraryId: secondLibrary,
+      price: 0,
+    });
   });
 
   it('createBook stores scanned barcodes and rejects wrong counts or repeats', async () => {

@@ -70,7 +70,7 @@ describe('assets and maintenance', () => {
     asset = (await run(a.register, { itemId: laptop, storeId: store, serialNumber: 'SN1' })).id;
   });
 
-  it("registers with a unique ID; only asset-tracked items", async () => {
+  it('registers with a unique ID; only asset-tracked items', async () => {
     const assetDocument = (await get(`inventoryAssets/${asset}`))!;
     expect(assetDocument).toMatchObject({
       assetId: expect.stringMatching(/^AST\/\d{4}-\d{2}\/000001$/),

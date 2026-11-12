@@ -44,12 +44,9 @@ describe('outbox', () => {
     await clearFirestore();
     await user('1', { permissions: ['inventory.stock.operate'] }, ['t1']);
     await user('2', { permissions: ['inventory.stock.operate'] }, ['t2']);
-    await user(
-      '3',
-      { permissions: ['inventory.stock.operate'] },
-      ['t3', 'dead'],
-      { 'inventory.lowStock': false },
-    );
+    await user('3', { permissions: ['inventory.stock.operate'] }, ['t3', 'dead'], {
+      'inventory.lowStock': false,
+    });
     await user('4', { personErpId: 884 }, ['t4'], { 'inventory.lowStock': true });
     await user('parent-1', { personType: 'parent', wardStudentIds: [5521] }, ['t5']);
   });

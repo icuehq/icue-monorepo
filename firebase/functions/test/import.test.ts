@@ -16,7 +16,10 @@ const run = (definition: CallableDef<any, any>, data: Record<string, unknown>, u
     { requestId: `req-${String(++requestSequence).padStart(6, '0')}`, ...data },
   );
 const imp = (type: string, rows: Record<string, string>[], uid = '1', importId = 'imp_000001') =>
-  runImport({ uid, token: { orgId: 8, zoneId: 147, branchId: 427, personType: 'staff' } }, { importId, type, rows });
+  runImport(
+    { uid, token: { orgId: 8, zoneId: 147, branchId: 427, personType: 'staff' } },
+    { importId, type, rows },
+  );
 const code = (promise: Promise<unknown>) =>
   promise.then(
     () => 'ok',

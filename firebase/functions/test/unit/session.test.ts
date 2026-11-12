@@ -12,7 +12,9 @@ describe('createSessionToken', () => {
     const result = await createSessionToken(
       {
         uid: '884',
-        orgId: 8, zoneId: 147, branchId: 427,
+        orgId: 8,
+        zoneId: 147,
+        branchId: 427,
         roleIds: [4],
         actionIds: [100, 101],
       },

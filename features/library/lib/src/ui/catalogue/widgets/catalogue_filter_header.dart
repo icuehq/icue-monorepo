@@ -302,10 +302,7 @@ class CatalogueFilterHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (textSearchSupported) ...[
-            searchField,
-            const SizedBox(height: 8),
-          ],
+          if (textSearchSupported) ...[searchField, const SizedBox(height: 8)],
           Row(
             children: [
               Expanded(child: categoryDropdown),
