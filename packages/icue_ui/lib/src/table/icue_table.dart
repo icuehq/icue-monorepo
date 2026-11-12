@@ -328,7 +328,9 @@ class _AdminTableState<T> extends State<IcueTable<T>> {
             .where((action) => action.inline)
             .fold<double>(
               0,
-              (sum, action) => sum + IcueTableTextAction.widthFor(action.label),
+              (sum, action) =>
+                  sum +
+                  IcueTableTextAction.widthFor(action.label, action.variant),
             );
         if (width > inlineWidth) inlineWidth = width;
         if (actions.any((action) => !action.inline)) hasMenu = true;

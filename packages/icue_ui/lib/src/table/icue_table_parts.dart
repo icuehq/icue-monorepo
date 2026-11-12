@@ -1,5 +1,6 @@
 import 'package:icue_ui/src/table/icue_table_controls.dart';
 import 'package:icue_ui/src/table/icue_table_models.dart';
+import 'package:icue_ui/src/widgets/icue_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -243,6 +244,8 @@ class _AdminTableRowState<T> extends State<IcueTableRow<T>> {
                                   IcueTableTextAction(
                                     label: action.label,
                                     destructive: action.destructive,
+                                    variant: action.variant,
+                                    color: action.color,
                                     onTap: () => action.onPressed(widget.row),
                                   ),
                               if (menuActions.isNotEmpty)
@@ -307,11 +310,18 @@ class _RowMenu<T> extends StatelessWidget {
           MenuItemButton(
             style: adminTableMenuItemStyle(
               context,
-              destructive: action.destructive,
+              destructive:
+                  action.destructive ||
+                  action.variant == IcueButtonVariant.destructive,
             ),
-            leadingIcon: Icon(action.icon, size: 16),
+            leadingIcon: Icon(action.icon, size: 16, color: action.color),
             onPressed: () => action.onPressed(row),
-            child: Text(action.label),
+            child: Text(
+              action.label,
+              style: action.color != null
+                  ? TextStyle(color: action.color)
+                  : null,
+            ),
           ),
       ],
       builder: (_, menu, _) => IcueTableIconButton(
@@ -477,45 +487,97 @@ class IcueTableMessage extends StatelessWidget {
   }
 }
 
-/// Text button for an inline row action.
+/// Text or styled button for an inline row action.
 class IcueTableTextAction extends StatelessWidget {
   const IcueTableTextAction({
     required this.label,
     required this.onTap,
     super.key,
     this.destructive = false,
+    this.variant,
+    this.color,
   });
 
   final String label;
   final VoidCallback onTap;
   final bool destructive;
+  final IcueButtonVariant? variant;
+  final Color? color;
 
   static const _style = TextStyle(fontSize: 13, fontWeight: FontWeight.w600);
   static const _horizontalPadding = 8.0;
 
   /// Width the button needs for [label].
-  static double widthFor(String label) {
+  static double widthFor(String label, [IcueButtonVariant? variant]) {
     final painter = TextPainter(
       text: TextSpan(text: label, style: _style),
       textDirection: TextDirection.ltr,
       maxLines: 1,
     )..layout();
-    return painter.width + _horizontalPadding * 2 + 4;
+    final extra =
+        (variant == IcueButtonVariant.outline ||
+            variant == IcueButtonVariant.secondary ||
+            variant == IcueButtonVariant.primary)
+        ? 8.0
+        : 0.0;
+    return painter.width + _horizontalPadding * 2 + 4 + extra;
   }
 
   @override
   Widget build(BuildContext context) {
     final tokens = IcueTableStyle.of(context);
-    return TextButton(
-      onPressed: onTap,
-      style: TextButton.styleFrom(
-        foregroundColor: destructive ? tokens.scheme.error : tokens.accent,
-        minimumSize: const Size(0, 30),
-        padding: const EdgeInsets.symmetric(horizontal: _horizontalPadding),
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        textStyle: _style,
+    final isDestructive =
+        destructive || variant == IcueButtonVariant.destructive;
+    final fg =
+        color ??
+        (isDestructive
+            ? tokens.scheme.error
+            : switch (variant) {
+                IcueButtonVariant.secondary => tokens.scheme.secondary,
+                _ => tokens.accent,
+              });
+
+    final (bg, border) = switch (variant) {
+      IcueButtonVariant.primary => (color ?? tokens.accent, null),
+      IcueButtonVariant.secondary => (tokens.scheme.secondaryContainer, null),
+      IcueButtonVariant.outline => (
+        Colors.transparent,
+        BorderSide(
+          color:
+              (color ??
+                      (isDestructive
+                          ? tokens.scheme.error
+                          : tokens.scheme.outline))
+                  .withValues(alpha: 0.4),
+        ),
       ),
-      child: Text(label, maxLines: 1),
+      _ => (Colors.transparent, null),
+    };
+
+    final textStyle = _style.copyWith(
+      color: variant == IcueButtonVariant.primary
+          ? tokens.scheme.onPrimary
+          : fg,
+    );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: TextButton(
+        onPressed: onTap,
+        style: TextButton.styleFrom(
+          foregroundColor: variant == IcueButtonVariant.primary
+              ? tokens.scheme.onPrimary
+              : fg,
+          backgroundColor: bg,
+          side: border,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+          minimumSize: const Size(0, 28),
+          padding: const EdgeInsets.symmetric(horizontal: _horizontalPadding),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          textStyle: textStyle,
+        ),
+        child: Text(label, maxLines: 1),
+      ),
     );
   }
 }

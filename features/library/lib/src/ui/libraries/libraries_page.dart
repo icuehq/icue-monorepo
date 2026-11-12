@@ -52,6 +52,18 @@ class _LibrariesPageState extends State<LibrariesPage> {
     SchoolLibrary library,
   ) async {
     final libraryProvider = context.read<LibraryProvider>();
+    final action = library.active ? 'Deactivate' : 'Activate';
+    final confirmed = await IcueDialog.confirm(
+      context,
+      title: '$action library',
+      message: library.active
+          ? '${library.name} will no longer be available for new '
+                'circulation. Existing records are not affected.'
+          : '${library.name} will be available again.',
+      confirmLabel: action,
+      destructive: library.active,
+    );
+    if (!confirmed || !context.mounted) return;
     final success = await libraryProvider.setLibraryActive(
       library.id,
       active: !library.active,
@@ -126,13 +138,11 @@ class _LibrariesPageState extends State<LibrariesPage> {
                         LibraryFilterHeader(
                           searchController: _searchController,
                           statusFilter: _statusFilter,
-                          isWide: isWide,
                           totalCount: filteredLibraries.length,
                           onSearchChanged: (value) =>
                               setState(() => _searchQuery = value.trim()),
                           onStatusChanged: (filter) =>
                               setState(() => _statusFilter = filter),
-                          onAddLibrary: () => AddLibraryDialog.show(context),
                           onClearSearch: () {
                             _searchController.clear();
                             setState(() => _searchQuery = '');

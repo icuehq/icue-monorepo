@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/libraries/widgets/library_category_dialog.dart';
@@ -59,30 +58,13 @@ class LibraryCategoriesTable extends StatelessWidget {
           matches: (category, optionId) =>
               (optionId == 'active') == category.active,
         ),
-        IcueClientFilter<LibraryCategory>(
-          id: 'level',
-          label: 'Level',
-          options: const [
-            IcueTableFilterOption('top', 'Categories'),
-            IcueTableFilterOption('sub', 'Subcategories'),
-          ],
-          matches: (category, optionId) =>
-              (optionId == 'sub') == byId.containsKey(category.parentId),
-        ),
       ],
       rowActions: (category) => [
-        IcueTableRowAction(
-          label: 'View books',
-          icon: Icons.menu_book_outlined,
-          inline: true,
-          onPressed: (row) => context.push(
-            '${LibraryRoutes.libraryCatalogue}?category=${row.id}',
-          ),
-        ),
         IcueTableRowAction(
           label: 'Edit',
           icon: Icons.edit_outlined,
           inline: true,
+          variant: IcueButtonVariant.outline,
           onPressed: (row) =>
               LibraryCategoryDialog.show(context, category: row),
         ),
@@ -90,6 +72,8 @@ class LibraryCategoriesTable extends StatelessWidget {
           IcueTableRowAction(
             label: 'Add subcategory',
             icon: Icons.subdirectory_arrow_right_rounded,
+            inline: true,
+            variant: IcueButtonVariant.outline,
             onPressed: (row) =>
                 LibraryCategoryDialog.show(context, parentId: row.id),
           ),
@@ -98,7 +82,12 @@ class LibraryCategoriesTable extends StatelessWidget {
           icon: category.active
               ? Icons.block_outlined
               : Icons.check_circle_outline_rounded,
+          inline: true,
           destructive: category.active,
+          variant: category.active
+              ? IcueButtonVariant.destructive
+              : IcueButtonVariant.outline,
+          color: category.active ? null : const Color(0xFF16A34A),
           onPressed: onToggleActive,
         ),
       ],

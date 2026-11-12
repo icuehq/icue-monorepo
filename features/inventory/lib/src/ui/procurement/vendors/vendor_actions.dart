@@ -10,28 +10,16 @@ Future<void> toggleVendorActive(
 ) async {
   final procurementProvider = context.read<ProcurementProvider>();
   if (vendor.active) {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Deactivate vendor'),
-        content: Text(
+    final confirmed = await IcueDialog.confirm(
+      context,
+      title: 'Deactivate vendor',
+      message:
           '${vendor.name} will no longer be offered on new quotations and '
           'purchase orders. Existing documents are not affected.',
-        ),
-        actions: [
-          IcueButton(
-            label: 'Cancel',
-            onPressed: () => Navigator.pop(context, false),
-            variant: IcueButtonVariant.ghost,
-          ),
-          IcueButton(
-            label: 'Deactivate',
-            onPressed: () => Navigator.pop(context, true),
-          ),
-        ],
-      ),
+      confirmLabel: 'Deactivate',
+      destructive: true,
     );
-    if (confirmed != true || !context.mounted) return;
+    if (!confirmed || !context.mounted) return;
   }
   final result = await procurementProvider.setVendorActive(
     vendor.id,

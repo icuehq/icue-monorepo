@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:icue_ui/icue_ui.dart';
 
 enum LibraryStatusFilter {
   all('All'),
@@ -15,21 +14,17 @@ class LibraryFilterHeader extends StatelessWidget {
     super.key,
     required this.searchController,
     required this.statusFilter,
-    required this.isWide,
     required this.totalCount,
     required this.onSearchChanged,
     required this.onStatusChanged,
-    required this.onAddLibrary,
     required this.onClearSearch,
   });
 
   final TextEditingController searchController;
   final LibraryStatusFilter statusFilter;
-  final bool isWide;
   final int totalCount;
   final ValueChanged<String> onSearchChanged;
   final ValueChanged<LibraryStatusFilter> onStatusChanged;
-  final VoidCallback onAddLibrary;
   final VoidCallback onClearSearch;
 
   @override
@@ -40,7 +35,7 @@ class LibraryFilterHeader extends StatelessWidget {
       controller: searchController,
       onChanged: onSearchChanged,
       decoration: InputDecoration(
-        hintText: 'Search libraries by name, code, location…',
+        hintText: 'Search libraries by name or location…',
         prefixIcon: const Icon(Icons.search_rounded),
         suffixIcon: searchController.text.isNotEmpty
             ? IconButton(
@@ -87,27 +82,7 @@ class LibraryFilterHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (isWide)
-            Row(
-              children: [
-                Expanded(child: searchField),
-                const SizedBox(width: 12),
-                statusChips,
-                ...[
-                  const SizedBox(width: 12),
-                  IcueButton(
-                    label: 'Add Library',
-                    onPressed: onAddLibrary,
-                    leadingIcon: Icons.add_rounded,
-                  ),
-                ],
-              ],
-            )
-          else ...[
-            searchField,
-            const SizedBox(height: 8),
-            statusChips,
-          ],
+          ...[searchField, const SizedBox(height: 8), statusChips],
           const SizedBox(height: 8),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),

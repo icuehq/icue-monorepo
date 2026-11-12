@@ -20,6 +20,7 @@ export 'src/utils/icue_file_picking.dart';
 export 'src/utils/icue_number_formatting.dart';
 export 'src/utils/icue_text_utils.dart';
 export 'src/widgets/icue_button.dart';
+export 'src/widgets/icue_dialog.dart';
 export 'src/widgets/icue_connectivity_banner.dart';
 export 'src/widgets/icue_date_field.dart';
 export 'src/widgets/icue_date_filter_modal.dart';

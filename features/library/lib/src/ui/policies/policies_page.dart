@@ -18,6 +18,15 @@ class PoliciesPage extends StatelessWidget {
     LibraryProvider libraryProvider,
     LibraryPolicy policy,
   ) async {
+    final verb = policy.active ? 'Deactivate' : 'Activate';
+    final confirmed = await IcueDialog.confirm(
+      context,
+      title: '$verb policy?',
+      message: '$verb "${policy.name}"?',
+      confirmLabel: verb,
+      destructive: policy.active,
+    );
+    if (!confirmed || !context.mounted) return;
     if (!await libraryProvider.setPolicyActive(
           policy.id,
           active: !policy.active,

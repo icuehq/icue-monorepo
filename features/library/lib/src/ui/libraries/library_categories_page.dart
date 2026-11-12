@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
@@ -47,6 +46,17 @@ class _LibraryCategoriesPageState extends State<LibraryCategoriesPage> {
     LibraryProvider provider,
     LibraryCategory category,
   ) async {
+    final deactivating = category.active;
+    final confirmed = await IcueDialog.confirm(
+      context,
+      title: deactivating ? 'Deactivate category?' : 'Activate category?',
+      message: deactivating
+          ? '"${category.name}" will no longer be available for new books.'
+          : '"${category.name}" will be available for new books again.',
+      confirmLabel: deactivating ? 'Deactivate' : 'Activate',
+      destructive: deactivating,
+    );
+    if (!confirmed || !mounted) return;
     final success = await provider.setCategoryActive(
       category.id,
       active: !category.active,
@@ -213,9 +223,6 @@ class _LibraryCategoriesPageState extends State<LibraryCategoriesPage> {
                           category: top,
                           subcategories: subs,
                           initiallyExpanded: isSearching,
-                          onViewBooks: (category) => context.push(
-                            '${LibraryRoutes.libraryCatalogue}?category=${category.id}',
-                          ),
                           onEdit: (category) => LibraryCategoryDialog.show(
                             context,
                             category: category,

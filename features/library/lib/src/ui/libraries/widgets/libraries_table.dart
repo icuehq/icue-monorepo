@@ -53,6 +53,7 @@ class LibrariesTable extends StatelessWidget {
           label: 'Edit',
           icon: Icons.edit_outlined,
           inline: true,
+          variant: IcueButtonVariant.outline,
           onPressed: (row) => AddLibraryDialog.show(context, library: row),
         ),
         IcueTableRowAction(
@@ -61,6 +62,11 @@ class LibrariesTable extends StatelessWidget {
               ? Icons.block_outlined
               : Icons.check_circle_outline_rounded,
           inline: true,
+          destructive: library.active,
+          variant: library.active
+              ? IcueButtonVariant.destructive
+              : IcueButtonVariant.outline,
+          color: library.active ? null : const Color(0xFF16A34A),
           onPressed: onToggleActive,
         ),
       ],

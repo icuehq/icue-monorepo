@@ -8,7 +8,6 @@ class LibraryCategoryCard extends StatefulWidget {
     super.key,
     required this.category,
     required this.subcategories,
-    required this.onViewBooks,
     required this.onEdit,
     required this.onAddSubcategory,
     required this.onToggleActive,
@@ -18,7 +17,6 @@ class LibraryCategoryCard extends StatefulWidget {
   final LibraryCategory category;
   final List<LibraryCategory> subcategories;
   final bool initiallyExpanded;
-  final ValueChanged<LibraryCategory> onViewBooks;
   final ValueChanged<LibraryCategory> onEdit;
   final ValueChanged<LibraryCategory> onAddSubcategory;
   final ValueChanged<LibraryCategory> onToggleActive;
@@ -71,7 +69,7 @@ class _LibraryCategoryCardState extends State<LibraryCategoryCard> {
           InkWell(
             onTap: hasSubs
                 ? () => setState(() => _expanded = !_expanded)
-                : () => widget.onViewBooks(category),
+                : () => widget.onEdit(category),
             child: Padding(
               padding: const EdgeInsets.fromLTRB(14, 14, 10, 12),
               child: Row(
@@ -195,7 +193,7 @@ class _LibraryCategoryCardState extends State<LibraryCategoryCard> {
                         ),
                       ),
                     InkWell(
-                      onTap: () => widget.onViewBooks(subs[i]),
+                      onTap: () => widget.onEdit(subs[i]),
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(20, 9, 10, 9),
                         child: Row(
@@ -266,14 +264,8 @@ class _LibraryCategoryCardState extends State<LibraryCategoryCard> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                IcueButton(
-                  label: 'View books',
-                  onPressed: () => widget.onViewBooks(category),
-                  variant: IcueButtonVariant.ghost,
-                  leadingIcon: Icons.menu_book_outlined,
-                ),
-                const Spacer(),
                 IcueButton(
                   label: 'Add subcategory',
                   onPressed: () => widget.onAddSubcategory(category),
@@ -298,8 +290,6 @@ class _LibraryCategoryCardState extends State<LibraryCategoryCard> {
       tooltip: 'Options',
       onSelected: (value) {
         switch (value) {
-          case 'books':
-            widget.onViewBooks(category);
           case 'edit':
             widget.onEdit(category);
           case 'sub':
@@ -309,16 +299,6 @@ class _LibraryCategoryCardState extends State<LibraryCategoryCard> {
         }
       },
       itemBuilder: (_) => [
-        const PopupMenuItem(
-          value: 'books',
-          child: Row(
-            children: [
-              Icon(Icons.menu_book_outlined, size: 18),
-              SizedBox(width: 10),
-              Text('View books'),
-            ],
-          ),
-        ),
         ...[
           const PopupMenuItem(
             value: 'edit',

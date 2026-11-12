@@ -1,5 +1,6 @@
 import 'package:icue_firebase/icue_firebase.dart' show FirestorePager;
 import 'package:flutter/material.dart';
+import 'package:icue_ui/src/widgets/icue_button.dart';
 
 /// Row/header sizing preset, chosen from the display menu.
 enum IcueTableDensity {
@@ -163,6 +164,8 @@ class IcueTableRowAction<T> {
     required this.icon,
     required this.onPressed,
     this.destructive = false,
+    this.variant,
+    this.color,
     this.inline = false,
   });
 
@@ -170,6 +173,8 @@ class IcueTableRowAction<T> {
   final IconData icon;
   final void Function(T row) onPressed;
   final bool destructive;
+  final IcueButtonVariant? variant;
+  final Color? color;
 
   /// Keep to one or two per row.
   final bool inline;

@@ -27,7 +27,11 @@ Future<String> _resolveBranchPath(User user) async {
 /// The signed-in user's branch path (`orgs/{orgId}/zones/{zoneId}/branches/{branchId}`). The token is
 /// issued for one active branch, so it is read once per sign-in (a branch switch signs in again).
 Future<String> branchPath() async {
-  final user = FirebaseAuth.instance.currentUser!;
+  // On web `currentUser` is null until Firebase Auth restores the session, so wait for the first auth state.
+  final user =
+      FirebaseAuth.instance.currentUser ??
+      await FirebaseAuth.instance.authStateChanges().first;
+  if (user == null) throw StateError('Not signed in');
   if (_branchUid != user.uid) {
     final lookup = _resolving ??= _resolveBranchPath(user);
     try {
@@ -37,7 +41,7 @@ Future<String> branchPath() async {
       _resolving = null;
     }
   }
-  return _branchPath!;
+  return _branchPath ?? (throw StateError('Branch path missing'));
 }
 
 /// A collection of the branch the signed-in user is working in (`{branchPath}/{path}`). The branch is the tenant.
