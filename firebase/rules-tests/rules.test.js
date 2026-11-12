@@ -371,17 +371,13 @@ describe('library client writes (no callable)', () => {
     await assertFails(setDoc(doc(db('p', parent), 'orgs/8/zones/147/branches/427/uniqueKeys/libraryTitle_z'), key));
  });
 
-  it('copies: edit; move only an available copy to another active library', async () => {
+  it('copies: stamped edit by staff only', async () => {
     const edit = { condition: 'fair', shelf: 'A-3', remarks: null, lastWrite: stamp('libraryCopy.update') };
     await assertSucceeds(updateDoc(doc(db('4'), 'orgs/8/zones/147/branches/427/libraryCopies/c1'), edit));
     await assertFails(updateDoc(doc(db('4'), 'orgs/8/zones/147/branches/427/libraryCopies/c1'), { condition: 'fair', shelf: null, remarks: null })); // unstamped
     await assertFails(updateDoc(doc(db('p', parent), 'orgs/8/zones/147/branches/427/libraryCopies/c1'), edit));
-    const move = (libraryId, campusId) => ({ libraryId, campusId, shelf: 'J-1', lastWrite: stamp('libraryCopy.move') });
-    await assertFails(updateDoc(doc(db('4'), 'orgs/8/zones/147/branches/427/libraryCopies/c1'), move('other', 31))); // inactive library
-    await assertFails(updateDoc(doc(db('4'), 'orgs/8/zones/147/branches/427/libraryCopies/c2'), move('other', 31))); // not available
-    await env.withSecurityRulesDisabled((context) => setDoc(doc(context.firestore(), 'orgs/8/zones/147/branches/427/libraries/second'), { status: 'active' }));
-    await assertSucceeds(updateDoc(doc(db('4'), 'orgs/8/zones/147/branches/427/libraryCopies/c1'), move('second', 31)));
  });
+
 
   it('policies: stamped create on an active library; library, person type and campus fixed', async () => {
     await env.withSecurityRulesDisabled((context) => setDoc(doc(context.firestore(), 'orgs/8/zones/147/branches/427/libraryBorrowingPolicies/p1'), { libraryId: 'main', memberType: 'student', status: 'active' }));

@@ -10,12 +10,25 @@ collections:
   - libraryStats
 
 enums:
+  CopyStatus:
+    doc: Where a physical copy stands; issued is set by circulation, the rest by the librarian.
+    values: [available, issued, under_maintenance, damaged, lost, withdrawn]
   LoanStatus:
     doc: Lifecycle of a loan.
     values: [active, returned, lost]
   MemberType:
     doc: Who a library member is in the ERP.
     values: [student, teacher]
+
+constants:
+  manualCopyStatuses:
+    doc: Statuses a librarian may set by hand; issued belongs to circulation.
+    enum: CopyStatus
+    values: [available, under_maintenance, damaged, lost, withdrawn]
+  terminalCopyStatuses:
+    doc: A copy in these never becomes available again by hand.
+    enum: CopyStatus
+    values: [lost, withdrawn]
 
 documents:
   LibraryLoan:

@@ -109,6 +109,24 @@ abstract final class MaintenanceStatus {
   ];
 }
 
+/// Where a physical copy stands; issued is set by circulation, the rest by the librarian.
+abstract final class CopyStatus {
+  static const available = 'available';
+  static const issued = 'issued';
+  static const underMaintenance = 'under_maintenance';
+  static const damaged = 'damaged';
+  static const lost = 'lost';
+  static const withdrawn = 'withdrawn';
+  static const values = [
+    available,
+    issued,
+    underMaintenance,
+    damaged,
+    lost,
+    withdrawn,
+  ];
+}
+
 /// Lifecycle of a loan.
 abstract final class LoanStatus {
   static const active = 'active';
@@ -143,6 +161,18 @@ const orderablePurchaseRequestStatuses = [
   PurchaseRequestStatus.approved,
   PurchaseRequestStatus.partiallyOrdered,
 ];
+
+/// Statuses a librarian may set by hand; issued belongs to circulation.
+const manualCopyStatuses = [
+  CopyStatus.available,
+  CopyStatus.underMaintenance,
+  CopyStatus.damaged,
+  CopyStatus.lost,
+  CopyStatus.withdrawn,
+];
+
+/// A copy in these never becomes available again by hand.
+const terminalCopyStatuses = [CopyStatus.lost, CopyStatus.withdrawn];
 
 /// One issue of a copy to a member.
 abstract final class LibraryLoanFields {

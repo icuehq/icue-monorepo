@@ -260,13 +260,10 @@ service cloud.firestore {
       allow update: if staff(orgId, zoneId, branchId) && stamped()
         && request.resource.data.lastWrite.action in ['libraryCatalogue.update', 'libraryCatalogue.status'];
     }
-    // Copies: edit, or moving an available copy to another active library.
+    // Copies: edit.
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/libraryCopies/{barcode} {
-      allow update: if staff(orgId, zoneId, branchId) && stamped() && (
-        request.resource.data.lastWrite.action == 'libraryCopy.update'
-        || (resource.data.status == 'available' && request.resource.data.libraryId != resource.data.libraryId
-          && libraryOf(orgId, zoneId, branchId, request.resource.data.libraryId).status == 'active'
-          && request.resource.data.lastWrite.action == 'libraryCopy.move'));
+      allow update: if staff(orgId, zoneId, branchId) && stamped()
+        && request.resource.data.lastWrite.action == 'libraryCopy.update';
     }
     // Circulation moves a copy between shelf, loan, damaged and lost (LoanWrites); nothing else changes.
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/libraryCopies/{barcode} {

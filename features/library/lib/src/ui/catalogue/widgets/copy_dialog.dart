@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/catalogue/widgets/copy_labels.dart';
 
-/// One copy: details, label, and (for librarians) shelf / condition edit, move and status.
+/// One copy: details, label, and (for librarians) shelf / condition edit and status.
 class CopyDialog extends StatefulWidget {
   const CopyDialog({super.key, required this.copy, required this.title});
 
@@ -15,7 +16,10 @@ class CopyDialog extends StatefulWidget {
     BuildContext context,
     LibraryCopy copy,
     String title,
-  ) => showFormPage(context, () => CopyDialog(copy: copy, title: title));
+  ) => showDialog<void>(
+    context: context,
+    builder: (_) => CopyDialog(copy: copy, title: title),
+  );
 
   @override
   State<CopyDialog> createState() => _CopyDialogState();
@@ -38,47 +42,44 @@ class _CopyDialogState extends State<CopyDialog> {
   }
 
   bool _statusRequiresReason(String status) =>
-      status == 'damaged' || status == 'lost' || status == 'withdrawn';
+      status == CopyStatus.damaged ||
+      status == CopyStatus.lost ||
+      status == CopyStatus.withdrawn;
 
   bool get _needsReason =>
       _status != widget.copy.status && _statusRequiresReason(_status);
 
-  bool get _isTerminalStatus => _status == 'lost' || _status == 'withdrawn';
+  bool get _isTerminalStatus => terminalCopyStatuses.contains(_status);
 
   List<String> get _availableStatuses {
-    if (widget.copy.canChangeStatus) return copyManualStatuses;
-    return copyManualStatuses.contains(widget.copy.status)
-        ? copyManualStatuses
-        : [widget.copy.status, ...copyManualStatuses];
+    if (widget.copy.canChangeStatus) return manualCopyStatuses;
+    return manualCopyStatuses.contains(widget.copy.status)
+        ? manualCopyStatuses
+        : [widget.copy.status, ...manualCopyStatuses];
   }
 
   String? _statusDisabledReason(String status) => switch (status) {
-    'issued' => 'Cannot change status while issued to a member',
-    'in_transit' => 'Cannot change status while in transit',
-    'lost' => 'Lost status is final and cannot be modified',
-    'withdrawn' => 'Withdrawn status is final and cannot be modified',
+    CopyStatus.issued => 'Cannot change status while issued to a member',
+    CopyStatus.lost => 'Lost status is final and cannot be modified',
+    CopyStatus.withdrawn => 'Withdrawn status is final and cannot be modified',
     _ => 'Status cannot be changed manually',
   };
 
   (Color, Color) _statusColors(ThemeData theme, String status) {
     return switch (status) {
-      'available' => (
+      CopyStatus.available => (
         Colors.green.shade700,
         Colors.green.withValues(alpha: 0.12),
       ),
-      'issued' => (
+      CopyStatus.issued => (
         theme.colorScheme.primary,
         theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
       ),
-      'in_transit' => (
-        Colors.amber.shade900,
-        Colors.amber.withValues(alpha: 0.12),
-      ),
-      'under_maintenance' => (
+      CopyStatus.underMaintenance => (
         Colors.blue.shade700,
         Colors.blue.withValues(alpha: 0.12),
       ),
-      'lost' || 'damaged' || 'withdrawn' => (
+      CopyStatus.lost || CopyStatus.damaged || CopyStatus.withdrawn => (
         theme.colorScheme.error,
         theme.colorScheme.errorContainer.withValues(alpha: 0.4),
       ),
@@ -89,7 +90,7 @@ class _CopyDialogState extends State<CopyDialog> {
   Future<void> _run(Future<bool> Function() action) async {
     setState(() => _busy = true);
     final libraryProvider = context.read<LibraryProvider>();
-    final navigator = Navigator.of(context);
+    final navigator = Navigator.of(context, rootNavigator: true);
     final ok = await action();
     if (!mounted) return;
     if (ok) {
@@ -116,7 +117,7 @@ class _CopyDialogState extends State<CopyDialog> {
         _remarks.text.trim() != (widget.copy.remarks ?? '');
 
     if (!detailsChanged && !statusChanged) {
-      Navigator.of(context).pop();
+      Navigator.of(context, rootNavigator: true).pop();
       return;
     }
 
@@ -143,82 +144,6 @@ class _CopyDialogState extends State<CopyDialog> {
     });
   }
 
-  Future<void> _move() async {
-    final libraryProvider = context.read<LibraryProvider>();
-    final copy = widget.copy;
-    final libraries = [
-      for (final schoolLibrary in libraryProvider.libraries)
-        if (schoolLibrary.active && schoolLibrary.id != copy.libraryId)
-          schoolLibrary,
-    ];
-    if (libraries.isEmpty) {
-      showMessage(
-        context,
-        'No other active library available to move this copy to',
-      );
-      return;
-    }
-
-    String selectedLibraryId = libraries.first.id;
-    final shelf = TextEditingController();
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Move to another library'),
-          content: SizedBox(
-            width: 360,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                IcueDropdown<String>(
-                  value: selectedLibraryId,
-                  items: [
-                    for (final schoolLibrary in libraries)
-                      DropdownMenuItem(
-                        value: schoolLibrary.id,
-                        child: Text(schoolLibrary.name),
-                      ),
-                  ],
-                  onChanged: (value) {
-                    if (value != null) {
-                      setDialogState(() => selectedLibraryId = value);
-                    }
-                  },
-                  label: 'Destination library',
-                ),
-                const SizedBox(height: 16),
-                IcueTextField(
-                  controller: shelf,
-                  label: 'Shelf in new library (optional)',
-                  hintText: 'e.g. Rack A',
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            IcueButton(
-              label: 'Cancel',
-              onPressed: () => Navigator.pop(dialogContext, false),
-              variant: IcueButtonVariant.ghost,
-            ),
-            IcueButton(
-              label: 'Move copy',
-              onPressed: () => Navigator.pop(dialogContext, true),
-            ),
-          ],
-        ),
-      ),
-    );
-    final newShelf = blankToNull(shelf);
-    shelf.dispose();
-    if (confirmed != true || !mounted) return;
-    await _run(
-      () => libraryProvider.moveCopy(copy.id, selectedLibraryId, newShelf),
-    );
-  }
-
   Widget _statusPill(ThemeData theme, String status) {
     final (color, background) = _statusColors(theme, status);
     return IcueStatusPill(
@@ -243,7 +168,7 @@ class _CopyDialogState extends State<CopyDialog> {
         if (fact.$2 != null && fact.$2!.isNotEmpty) fact,
     ];
 
-    return Column(
+    final content = Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -254,13 +179,6 @@ class _CopyDialogState extends State<CopyDialog> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    widget.title,
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
                   Wrap(
                     spacing: 8,
                     runSpacing: 4,
@@ -426,28 +344,26 @@ class _CopyDialogState extends State<CopyDialog> {
           hintText: 'Notes regarding copy condition or history',
           maxLines: 3,
         ),
-        const SizedBox(height: 20),
-        Wrap(
-          spacing: 12,
-          runSpacing: 8,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            IcueButton(
-              label: _busy ? 'Saving…' : 'Save changes',
-              onPressed: _busy ? null : _save,
-              leadingIcon: Icons.check_rounded,
-              isLoading: _busy,
-            ),
-            if (copy.status == 'available' && _status == 'available')
-              IcueButton(
-                label: 'Move library',
-                onPressed: _busy ? null : _move,
-                variant: IcueButtonVariant.outline,
-                leadingIcon: Icons.swap_horiz_rounded,
-              ),
-          ],
-        ),
       ],
+    );
+
+    return IcueDialog(
+      title: widget.title,
+      size: IcueDialogSize.large,
+      content: content,
+      secondaryAction: IcueDialogAction(
+        label: 'Cancel',
+        variant: IcueButtonVariant.ghost,
+        onPressed: _busy
+            ? null
+            : () => Navigator.of(context, rootNavigator: true).pop(),
+      ),
+      primaryAction: IcueDialogAction(
+        label: 'Save changes',
+        icon: Icons.check_rounded,
+        isLoading: _busy,
+        onPressed: _busy ? null : _save,
+      ),
     );
   }
 }

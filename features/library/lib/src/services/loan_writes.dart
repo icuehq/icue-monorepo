@@ -95,7 +95,7 @@ class LoanWrites {
   /// A copy came free: it goes back on the shelf.
   void _release(Transaction transaction, _Ref copyReference) {
     transaction.update(copyReference, {
-      'status': 'available',
+      'status': CopyStatus.available,
       'activeLoanId': null,
       'updatedAt': FieldValue.serverTimestamp(),
     });
@@ -251,7 +251,8 @@ class LoanWrites {
       final copy = (await transaction.get(copyReference)).data();
       if (copy == null) writeFail('Copy not found', 'not-found');
       if (member?['blocked'] == true) writeFail('Member is blocked');
-      if (copy['status'] != 'available' || copy['activeLoanId'] != null) {
+      if (copy['status'] != CopyStatus.available ||
+          copy['activeLoanId'] != null) {
         writeFail('Copy is ${copy['status']}');
       }
       transaction
@@ -279,12 +280,12 @@ class LoanWrites {
             'policyId': found.id,
             for (final field in _snapshotFields) field: policy[field],
           },
-          'status': 'active',
+          'status': LoanStatus.active,
           'issuedBy': _uid,
           'lastWrite': writeStamp('libraryLoan.issue'),
         })
         ..update(copyReference, {
-          'status': 'issued',
+          'status': CopyStatus.issued,
           'activeLoanId': loanReference.id,
           'updatedAt': FieldValue.serverTimestamp(),
         });
@@ -345,7 +346,7 @@ class LoanWrites {
       final overdueDays = earlierLoan.overdueOn(today);
       final fined = fineAmount > 0 && member != null;
       transaction.update(loanReference, {
-        'status': 'returned',
+        'status': LoanStatus.returned,
         'returnNumber': returnNumber,
         'returnedDate': dayTimestamp(today),
         'condition': condition,
@@ -379,7 +380,7 @@ class LoanWrites {
       if (condition == 'damaged') {
         transaction
           ..update(copyReference, {
-            'status': 'damaged',
+            'status': CopyStatus.damaged,
             'activeLoanId': null,
             'updatedAt': FieldValue.serverTimestamp(),
           })
@@ -433,7 +434,7 @@ class LoanWrites {
       if (replacement < 0) writeFail('Charge cannot be negative');
       transaction
         ..update(loanReference, {
-          'status': 'lost',
+          'status': LoanStatus.lost,
           'lostDate': dayTimestamp(todayIST()),
           'lostRemarks': reason,
           'charge': replacement,
@@ -442,7 +443,7 @@ class LoanWrites {
           'lastWrite': writeStamp('libraryLoan.markLost', reason),
         })
         ..update(copyReference, {
-          'status': 'lost',
+          'status': CopyStatus.lost,
           'activeLoanId': null,
           'updatedAt': FieldValue.serverTimestamp(),
         });
@@ -704,7 +705,7 @@ class LoanWrites {
     await FirebaseFirestore.instance.runTransaction((transaction) async {
       final copy = (await transaction.get(copyReference)).data();
       if (copy == null) writeFail('Copy not found', 'not-found');
-      if (copy['status'] == 'lost' || copy['status'] == 'withdrawn') {
+      if (terminalCopyStatuses.contains(copy['status'])) {
         writeFail('Copy is already ${copy['status']}');
       }
       if (copy['activeLoanId'] != null) {
@@ -734,7 +735,7 @@ class LoanWrites {
           ),
         )
         ..update(copyReference, {
-          'status': type == 'lost' ? 'lost' : 'damaged',
+          'status': type == 'lost' ? CopyStatus.lost : CopyStatus.damaged,
           'activeLoanId': null,
           'updatedAt': FieldValue.serverTimestamp(),
         });
@@ -823,20 +824,21 @@ class LoanWrites {
       var repairStatus = incident['repairStatus'];
       if (resolution == 'repaired' || resolution == 'dismissed') {
         if (resolution == 'repaired') repairStatus = 'repaired';
-        if (copy['status'] == 'damaged' || copy['status'] == 'lost') {
+        if (copy['status'] == CopyStatus.damaged ||
+            copy['status'] == CopyStatus.lost) {
           _release(transaction, copyReference);
         }
       } else if (resolution == 'written_off') {
         repairStatus = 'writeoff';
         transaction.update(copyReference, {
-          'status': 'withdrawn',
+          'status': CopyStatus.withdrawn,
           'updatedAt': FieldValue.serverTimestamp(),
         });
       } else if (resolution == 'replaced' ||
-          (resolution == 'charged' && copy['status'] == 'lost')) {
+          (resolution == 'charged' && copy['status'] == CopyStatus.lost)) {
         // A replaced or paid-for lost copy is gone for good; a replacement comes in as a new book entry.
         transaction.update(copyReference, {
-          'status': 'withdrawn',
+          'status': CopyStatus.withdrawn,
           'updatedAt': FieldValue.serverTimestamp(),
         });
       }

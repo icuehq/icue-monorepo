@@ -851,11 +851,7 @@ Open **Library** from the dashboard. The Library hub displays 15 option grid til
 - [ ] 2.2.5 **Print Spine & Barcode Labels**:
   - On copy `ACC-000001` sheet, tap **Print label** (or share labels action).
   - **Expect** printable label preview renders accession barcode, call number, title, and library name.
-- [ ] 2.2.6 **Inter-Library Copy Move**:
-  - Open Copy `ACC-000003` ("Wings of Fire").
-  - Tap **Move library** → select `Junior School Library` . New shelf: `Junior Shelf J-04`.
-  - Tap confirm. **Expect** copy's library updates to `Junior School Library`; it appears in that library's copy inventory.
-- [ ] 2.2.7 **Copy Maintenance State Transitions**:
+- [ ] 2.2.6 **Copy Maintenance State Transitions**:
   - Open Copy `ACC-000002` → tap **Change status** → select `under_maintenance`.
   - **Expect** status transitions to `Under maintenance` (amber); copy is excluded from available loans.
   - Tap **Change status** → select `available`. **Expect** status restored to `Available`.

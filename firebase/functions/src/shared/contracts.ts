@@ -86,6 +86,17 @@ export const MaintenanceStatus = {
 } as const;
 export type MaintenanceStatus = (typeof MaintenanceStatus)[keyof typeof MaintenanceStatus];
 
+/** Where a physical copy stands; issued is set by circulation, the rest by the librarian. */
+export const CopyStatus = {
+  available: 'available',
+  issued: 'issued',
+  underMaintenance: 'under_maintenance',
+  damaged: 'damaged',
+  lost: 'lost',
+  withdrawn: 'withdrawn',
+} as const;
+export type CopyStatus = (typeof CopyStatus)[keyof typeof CopyStatus];
+
 /** Lifecycle of a loan. */
 export const LoanStatus = {
   active: 'active',
@@ -109,6 +120,12 @@ export const cancellablePurchaseRequestStatuses = [PurchaseRequestStatus.draft, 
 
 /** Quotations and purchase orders may be raised against these. */
 export const orderablePurchaseRequestStatuses = [PurchaseRequestStatus.approved, PurchaseRequestStatus.partiallyOrdered] as const;
+
+/** Statuses a librarian may set by hand; issued belongs to circulation. */
+export const manualCopyStatuses = [CopyStatus.available, CopyStatus.underMaintenance, CopyStatus.damaged, CopyStatus.lost, CopyStatus.withdrawn] as const;
+
+/** A copy in these never becomes available again by hand. */
+export const terminalCopyStatuses = [CopyStatus.lost, CopyStatus.withdrawn] as const;
 
 /** One issue of a copy to a member. */
 export interface LibraryLoan {

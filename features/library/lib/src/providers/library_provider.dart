@@ -486,9 +486,6 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   Future<bool> updateCopy(Map<String, Object?> data) =>
       _write(() => _writes.updateCopy(data));
 
-  Future<bool> moveCopy(String id, String libraryId, String? shelf) =>
-      _write(() => _writes.moveCopy(id, libraryId, shelf));
-
   Future<bool> setCopyStatus(String id, String status, String? reason) =>
       _write(() => _service.setCopyStatus(id, status, reason));
 

@@ -145,29 +145,6 @@ class LibraryWrites {
     );
   }
 
-  /// Moves an available copy to another library.
-  Future<void> moveCopy(String id, String libraryId, String? shelf) async {
-    final reference = await schoolDocument('libraryCopies', id);
-    final libraryReference = await schoolDocument('libraries', libraryId);
-    await FirebaseFirestore.instance.runTransaction((transaction) async {
-      final copy = (await transaction.get(reference)).data();
-      if (copy == null) writeFail('Copy not found');
-      if (copy['status'] != 'available') writeFail('Copy is ${copy['status']}');
-      if (copy['libraryId'] == libraryId) {
-        writeFail('Copy is already in this library');
-      }
-      final library = (await transaction.get(libraryReference)).data();
-      if (library == null) writeFail('Library not found');
-      if (library['status'] != 'active') writeFail('Library is inactive');
-      transaction.update(reference, {
-        'libraryId': libraryId,
-        'shelf': shelf,
-        'updatedAt': FieldValue.serverTimestamp(),
-        'lastWrite': writeStamp('libraryCopy.move'),
-      });
-    });
-  }
-
   /// Hand-set block (or lift); never lifted by paying fines.
   Future<void> setMemberBlocked(
     String id, {

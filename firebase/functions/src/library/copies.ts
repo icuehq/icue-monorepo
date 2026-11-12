@@ -1,9 +1,10 @@
 import { HttpsError } from 'firebase-functions/v2/https';
 import { z } from 'zod';
 import type { CallableContext } from '../shared/callable';
+import { CopyStatus, manualCopyStatuses, terminalCopyStatuses } from '../shared/contracts';
 import { dayTimestamp, isoDate, todayIST } from '../shared/dates';
 import { serverTimestamp } from '../shared/firestore';
-import { nextNumber, nextSequence } from '../shared/keys';
+import { nextSequence } from '../shared/keys';
 import { defineCallable, failed, id, missing, optionalText, usable } from '../shared/masters';
 
 const text = z.string().trim().min(1).max(120);
@@ -11,10 +12,6 @@ const CONDITIONS = ['good', 'fair', 'poor'] as const;
 
 /** Most copies one call creates: 200 copy writes plus the record, counter and audit stay under Firestore's 500 writes per transaction. */
 const MAX_COPIES = 200;
-
-/** Statuses a librarian may set by hand; issued / in_transit belong to circulation and transfers. */
-const MANUAL = ['available', 'under_maintenance', 'damaged', 'lost', 'withdrawn'] as const;
-const TERMINAL = ['lost', 'withdrawn'];
 
 /** Barcodes the system issues; scanned ones may not use this shape, so they never take a future number. */
 const GENERATED = /^LB\d{6,}$/i;
@@ -99,7 +96,6 @@ export const copies = {
       );
       if (existing)
         throw new HttpsError('already-exists', `Barcode "${existing.id}" already exists`);
-      const number = await nextNumber(context, 'ACQ');
       let totalPrice = 0;
       ids.forEach((barcode, index) => {
         const detail = i.details?.[index];
@@ -114,7 +110,7 @@ export const copies = {
           acquiredDate: detail?.date ? dayTimestamp(detail.date) : date,
           price,
           condition: detail?.condition ?? i.condition,
-          status: 'available',
+          status: CopyStatus.available,
           remarks: i.remarks ?? null,
           activeLoanId: null,
           createdAt: serverTimestamp(),
@@ -123,7 +119,6 @@ export const copies = {
         });
       });
       const after = {
-        number,
         catalogueId: i.catalogueId,
         libraryId: i.libraryId,
         quantity: i.quantity,
@@ -136,20 +131,30 @@ export const copies = {
       };
       context.set(book, { ...after, createdAt: serverTimestamp(), createdBy: context.uid });
       context.audit({ action: 'libraryBook.create', documentPath: book.path, after });
-      return { id: book.id, number, barcodes: ids };
+      return { id: book.id, barcodes: ids };
     },
   }),
 
   /** Maintenance, damage, loss and withdrawal. Lost and withdrawn copies never become available again here (a lost copy that turns up is put back by dismissing its incident). */
   copySetStatus: defineCallable({
     name: 'library.copy.setStatus',
-    input: z.object({ id, status: z.enum(MANUAL), reason: z.string().trim().max(500).nullish() }),
+    input: z.object({
+      id,
+      status: z.enum(manualCopyStatuses),
+      reason: z.string().trim().max(500).nullish(),
+    }),
     handler: async (context, i) => {
       const { ref, copy } = await loadCopy(context, i.id);
-      if (TERMINAL.includes(copy.status)) throw failed(`Copy is ${copy.status}`);
-      if (!MANUAL.includes(copy.status)) throw failed(`Copy is ${copy.status}`);
+      if ((terminalCopyStatuses as readonly string[]).includes(copy.status))
+        throw failed(`Copy is ${copy.status}`);
+      if (!(manualCopyStatuses as readonly string[]).includes(copy.status))
+        throw failed(`Copy is ${copy.status}`);
       if (copy.status === i.status) return { id: ref.id };
-      if (i.status !== 'available' && i.status !== 'under_maintenance' && !i.reason)
+      if (
+        i.status !== CopyStatus.available &&
+        i.status !== CopyStatus.underMaintenance &&
+        !i.reason
+      )
         throw failed('A reason is required');
       context.update(ref, { status: i.status, updatedAt: serverTimestamp() });
       context.audit({

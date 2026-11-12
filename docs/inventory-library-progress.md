@@ -330,8 +330,8 @@ Collections: `libraryCopies` (doc ID = barcode), `libraryBooks`.
 
 Functions (`firebase/functions/src/library/copies.ts`, all `library.catalogue`, campus scoped through the library / copy):
 
-- [x] `library-book-create` (purchase, donation or opening stock; 1–200 copies per call, each with optional own shelf, condition, price and date (`details`), one batched read for the barcode check, `libraryBooks` also stores `totalPrice`; purchase needs a price, donation may be 0; active title and library only; numbering `ACQ/<financialYear>/<seq>`; creates one copy per unit; each copy's document ID is its required, scanned barcode, so a repeated barcode fails with `already-exists`)
-- [x] `library-copy-update` (shelf, condition, remarks, RFID tag unique per school via `uniqueKeys` `libraryRfid`), `library-copy-move` (available copies only, to another active library on an allowed campus), `library-copy-setStatus` (available / under maintenance / damaged / lost / withdrawn; reason for damaged, lost, withdrawn; lost and withdrawn are final; issued, reserved, in-transit untouchable)
+- [x] `library-book-create` (purchase, donation or opening stock; 1–200 copies per call, each with optional own shelf, condition, price and date (`details`), one batched read for the barcode check, `libraryBooks` also stores `totalPrice`; purchase needs a price, donation may be 0; active title and library only; the acquisition is identified by its document ID (no separate number); creates one copy per unit; each copy's document ID is its required, scanned barcode, so a repeated barcode fails with `already-exists`)
+- [x] `library-copy-update` (shelf, condition, remarks, RFID tag unique per school via `uniqueKeys` `libraryRfid`), `library-copy-setStatus` (available / under maintenance / damaged / lost / withdrawn; reason for damaged, lost, withdrawn; lost and withdrawn are final; issued, reserved, in-transit untouchable)
 - [x] Tests: `test/copies.test.ts` (emulator)
 
 Rules and indexes:

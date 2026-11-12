@@ -8,6 +8,7 @@ import {
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { z } from 'zod';
 import type { QueryDef } from '../shared/callable';
+import { CopyStatus, LoanStatus } from '../shared/contracts';
 import { dayTimestamp, todayIST } from '../shared/dates';
 import { schoolCollection } from '../shared/firestore';
 import { forEachBranch } from '../shared/scheduled';
@@ -28,7 +29,12 @@ import type { Change } from './notices';
 type Counts = Record<string, number>;
 
 /** Copy statuses the dashboard shows; other statuses only count towards `copies`. */
-const COPY_STATUSES = ['available', 'issued', 'lost', 'damaged'];
+const COPY_STATUSES: string[] = [
+  CopyStatus.available,
+  CopyStatus.issued,
+  CopyStatus.lost,
+  CopyStatus.damaged,
+];
 const OPEN_FINE = ['outstanding', 'partially_paid'];
 
 /** Signed amounts to add, for the branch and for each library they belong to. */
@@ -99,9 +105,9 @@ function deltas(collection: string, { before, after }: Change, today: string) {
   if (collection === 'libraryLoans' && after) {
     const library = after.libraryId;
     if (!before) daily.add('loansIssued', 1, library);
-    else if (before.status === 'active' && after.status === 'returned')
+    else if (before.status === LoanStatus.active && after.status === LoanStatus.returned)
       daily.add('loansReturned', 1, library);
-    else if (before.status === 'active' && after.status === 'lost')
+    else if (before.status === LoanStatus.active && after.status === LoanStatus.lost)
       daily.add('loansLost', 1, library);
     if (before && (after.renewals?.length ?? 0) > (before.renewals?.length ?? 0))
       daily.add('loansRenewed', 1, library);

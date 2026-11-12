@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
@@ -63,6 +64,17 @@ class _BookCopiesSectionState extends State<BookCopiesSection> {
           ),
           errorMessage: _error,
           onRetry: _load,
+          filters: [
+            IcueClientFilter<LibraryCopy>(
+              id: 'status',
+              label: 'Status',
+              options: [
+                for (final status in CopyStatus.values)
+                  IcueTableFilterOption(status, humanizeStatus(status)),
+              ],
+              matches: (copy, status) => copy.status == status,
+            ),
+          ],
           columns: [
             IcueTableColumn<LibraryCopy>(
               id: 'barcode',
@@ -93,14 +105,6 @@ class _BookCopiesSectionState extends State<BookCopiesSection> {
               sortable: true,
               comparator: (copy) => copy.status,
               cellBuilder: (context, copy) => Text(humanizeStatus(copy.status)),
-            ),
-            IcueTableColumn<LibraryCopy>(
-              id: 'price',
-              label: 'Price',
-              alignment: Alignment.centerRight,
-              sortable: true,
-              comparator: (copy) => copy.price,
-              cellBuilder: (context, copy) => Text(copy.price.toRupees()),
             ),
           ],
           onRowTap: (copy) async {

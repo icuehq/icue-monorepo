@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:school_library/school_library.dart';
 
@@ -36,7 +37,7 @@ class BookScanDialog extends StatelessWidget {
     final loan = this.loan;
     final onLoan = loan != null;
     final overdue = loan?.overdueOn(todayIST()) ?? 0;
-    final canIssue = !onLoan && copy.status == 'available';
+    final canIssue = !onLoan && copy.status == CopyStatus.available;
     final statusLabel = onLoan
         ? (overdue > 0
               ? 'Overdue · $overdue day${overdue == 1 ? '' : 's'}'
