@@ -80,8 +80,6 @@ melos:
     clean:
       description: Flutter clean every package.
       run: melos exec -c 5 -- flutter clean
-      packageFilters:
-        flutter: true
 
     firebase:test:
       description: Cloud Functions and Security Rules tests on the emulator.
