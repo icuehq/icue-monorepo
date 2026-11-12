@@ -140,6 +140,10 @@ class _IcueAdminAppState extends State<IcueAdminApp> {
   void _syncFirebaseUser() {
     final user = _authProvider.user;
     final branch = _authProvider.selectedBranch;
+    if (user?.id != _trackedUserId ||
+        (branch != null && branch.id != _trackedBranchId)) {
+      _libraryProvider.clearSession();
+    }
     if (user?.id != _trackedUserId) {
       if (user == null) {
         track(AppEvents.logout);

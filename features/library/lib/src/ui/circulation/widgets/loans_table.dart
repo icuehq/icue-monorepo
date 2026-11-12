@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icue_ui/icue_ui.dart';
@@ -11,6 +13,28 @@ class LoansTable extends StatelessWidget {
 
   final String today;
   final void Function(LibraryLoan loan) onOpen;
+
+  Future<void> _setPeriod(
+    BuildContext context,
+    LibraryProvider provider,
+    String? name,
+  ) async {
+    final preset = name == null ? null : LibraryDatePreset.values.byName(name);
+    var range = preset == null ? null : calculateRangeForPreset(preset);
+    if (preset == LibraryDatePreset.custom) {
+      range = await showDateRangePicker(
+        context: context,
+        firstDate: DateTime(2000),
+        lastDate: DateTime(DateTime.now().year + 2),
+        initialDateRange: provider.loanRange,
+      );
+      if (range == null) return;
+    }
+    provider
+      ..loanPeriod = preset
+      ..loanRange = range;
+    await provider.loadLoans();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,20 +93,15 @@ class LoansTable extends StatelessWidget {
             },
           ),
         IcueTableFilter(
-          id: 'issued',
-          label: 'Issued',
+          id: 'period',
+          label: 'Period',
           options: [
-            for (final window in LoanIssuedWindow.values)
-              IcueTableFilterOption(window.name, window.label),
+            for (final preset in LibraryDatePreset.values)
+              if (preset != LibraryDatePreset.all)
+                IcueTableFilterOption(preset.name, preset.label),
           ],
-          value: provider.loanIssued?.name,
-          onChanged: (value) {
-            provider
-              ..loanIssued = value == null
-                  ? null
-                  : LoanIssuedWindow.values.byName(value)
-              ..loadLoans();
-          },
+          value: provider.loanPeriod?.name,
+          onChanged: (name) => unawaited(_setPeriod(context, provider, name)),
         ),
         IcueTableFilter(
           id: 'status',
@@ -104,7 +123,7 @@ class LoansTable extends StatelessWidget {
       isFiltered: provider.loansFiltered,
       onClearFilters: provider.clearLoanFilters,
       primaryAction: IcueTableAction(
-        label: 'Issue',
+        label: 'Issue Books',
         icon: Icons.add_rounded,
         onPressed: () => context.push(LibraryRoutes.libraryIssue),
       ),

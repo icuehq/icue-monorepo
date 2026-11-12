@@ -7,9 +7,9 @@ import 'package:icue_firebase/icue_firebase.dart'
 class LibraryIncident {
   const LibraryIncident({
     required this.id,
-    required this.incidentNumber,
     required this.type,
     required this.barcode,
+    this.bookTitle,
     required this.catalogueId,
     required this.libraryId,
     required this.status,
@@ -32,9 +32,9 @@ class LibraryIncident {
   factory LibraryIncident.fromMap(String id, Map<String, dynamic> data) =>
       LibraryIncident(
         id: id,
-        incidentNumber: data['incidentNumber'] as String? ?? id,
         type: data['type'] as String? ?? '',
         barcode: data['barcode'] as String? ?? '',
+        bookTitle: data['bookTitle'] as String?,
         catalogueId: data['catalogueId'] as String? ?? '',
         libraryId: data['libraryId'] as String? ?? '',
         status: data['status'] as String? ?? '',
@@ -59,9 +59,9 @@ class LibraryIncident {
       );
 
   final String id;
-  final String incidentNumber;
   final String type;
   final String barcode;
+  final String? bookTitle;
   final String catalogueId;
   final String libraryId;
   final String status;

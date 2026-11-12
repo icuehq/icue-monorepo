@@ -15,7 +15,7 @@ typedef _Ref = DocumentReference<_Json>;
 ///
 /// ponytail: queries (policy, borrowing limit) run just before the transaction, which
 /// client transactions cannot do; two desks acting in the same instant could exceed a limit.
-/// Retries are not idempotent and numbers (`LIS`, `LRT`, `FIN`, `INC`) may skip.
+/// Retries are not idempotent.
 @lazySingleton
 class LoanWrites {
   static const _snapshotFields = [
@@ -36,26 +36,6 @@ class LoanWrites {
 
   Future<_Ref> _memberReference(int personErpId) =>
       schoolDocument('libraryMembers', '$personErpId');
-
-  /// Next `TYPE/2026-27/000123`, from a counter document updated in a transaction of its own.
-  Future<String> _nextNumber(String type) async {
-    final financialYear = DateTime.now().toIndianTime().financialYear;
-    final counter = await schoolDocument('counters', '${type}_$financialYear');
-    final next = await FirebaseFirestore.instance.runTransaction((
-      transaction,
-    ) async {
-      final value =
-          (((await transaction.get(counter)).data()?['next'] as num?) ?? 0)
-              .toInt() +
-          1;
-      transaction.set(counter, {
-        'next': value,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-      return value;
-    });
-    return '$type/$financialYear/${next.toString().padLeft(6, '0')}';
-  }
 
   /// The active policy of a person type in a library that covers a book of [categoryId]: one naming the
   /// category, else its parent, else the catch-all; the person type's policies win over 'all'.
@@ -109,21 +89,24 @@ class LoanWrites {
   };
 
   Map<String, Object?> _newFine({
-    required String number,
     required String type,
     required double amount,
     required _Json member,
     required _Json loan,
+    required String? bookTitle,
     required String? loanId,
     String? incidentId,
     required Map<String, Object?> calculation,
   }) => {
-    'fineNumber': number,
     'incidentId': ?incidentId,
     'loanId': loanId,
     'memberType': member['memberType'],
     'personErpId': member['personErpId'],
     'memberName': member['name'],
+    'memberClassId': member['classId'],
+    'memberSection': member['section'],
+    'admissionNumber': member['admissionNumber'],
+    'bookTitle': bookTitle,
     'barcode': loan['barcode'],
     'catalogueId': loan['catalogueId'],
     'libraryId': loan['libraryId'],
@@ -142,10 +125,10 @@ class LoanWrites {
   };
 
   Map<String, Object?> _newIncident({
-    required String number,
     required String type,
     required _Json copy,
     required String barcode,
+    required String? bookTitle,
     required _Json? member,
     required String? loanId,
     required String? severity,
@@ -155,9 +138,9 @@ class LoanWrites {
     Map<String, Object?> extra = const {},
   }) => {
     ...extra,
-    'incidentNumber': number,
     'type': type,
     'barcode': barcode,
+    'bookTitle': bookTitle,
     'catalogueId': copy['catalogueId'],
     'libraryId': copy['libraryId'],
     'memberType': member?['memberType'],
@@ -243,21 +226,21 @@ class LoanWrites {
     if ((underPolicy.count ?? 0) >= maxBooks) {
       writeFail('Borrowing limit of $maxBooks reached');
     }
-    final number = await _nextNumber('LIS');
     final loanReference = (await branchCollection('libraryLoans')).doc();
     final memberReference = await _memberReference(personErpId);
     await FirebaseFirestore.instance.runTransaction((transaction) async {
       final member = (await transaction.get(memberReference)).data();
       final copy = (await transaction.get(copyReference)).data();
       if (copy == null) writeFail('Copy not found', 'not-found');
-      if (member?['blocked'] == true) writeFail('Member is blocked');
+      if (member?['blocked'] == true) {
+        writeFail('This member is blocked and cannot borrow books');
+      }
       if (copy['status'] != CopyStatus.available ||
           copy['activeLoanId'] != null) {
         writeFail('Copy is ${copy['status']}');
       }
       transaction
         ..set(loanReference, {
-          'number': number,
           'memberType': memberType,
           'personErpId': personErpId,
           'memberName': person['name'],
@@ -292,6 +275,10 @@ class LoanWrites {
       final shown = {
         'name': person['name'],
         'classId': memberType == 'student' ? person['classId'] : null,
+        'section': memberType == 'student' ? person['section'] : null,
+        'admissionNumber': memberType == 'student'
+            ? person['admissionNumber']
+            : null,
       };
       if (member == null) {
         transaction.set(memberReference, {
@@ -330,11 +317,6 @@ class LoanWrites {
     final earlierLoan = LibraryLoan.fromMap(id, earlier.data()!);
     final today = todayIST();
     final fineAmount = earlierLoan.fineOn(today);
-    final returnNumber = await _nextNumber('LRT');
-    final fineNumber = fineAmount > 0 ? await _nextNumber('FIN') : null;
-    final incidentNumber = condition == 'damaged'
-        ? await _nextNumber('INC')
-        : null;
     await FirebaseFirestore.instance.runTransaction((transaction) async {
       final read = await _readActive(transaction, loanReference);
       final loan = read.loan;
@@ -347,7 +329,6 @@ class LoanWrites {
       final fined = fineAmount > 0 && member != null;
       transaction.update(loanReference, {
         'status': LoanStatus.returned,
-        'returnNumber': returnNumber,
         'returnedDate': dayTimestamp(today),
         'condition': condition,
         'overdueDays': overdueDays,
@@ -361,11 +342,11 @@ class LoanWrites {
         transaction.set(
           await schoolDocument('libraryFines', '${id}__overdue'),
           _newFine(
-            number: fineNumber!,
             type: 'overdue',
             amount: fineAmount,
             member: member,
             loan: loan,
+            bookTitle: loan['bookTitle'] as String?,
             loanId: id,
             calculation: {
               'overdueDays': overdueDays,
@@ -387,10 +368,10 @@ class LoanWrites {
           ..set(
             (await branchCollection('libraryIncidents')).doc(),
             _newIncident(
-              number: incidentNumber!,
               type: 'damaged',
               copy: read.copy,
               barcode: copyReference.id,
+              bookTitle: loan['bookTitle'] as String?,
               member: member,
               loanId: id,
               severity: 'moderate',
@@ -419,8 +400,6 @@ class LoanWrites {
     double? charge,
   }) async {
     final loanReference = await _loanReference(id);
-    final incidentNumber = await _nextNumber('INC');
-    final fineNumber = await _nextNumber('FIN');
     await FirebaseFirestore.instance.runTransaction((transaction) async {
       final read = await _readActive(transaction, loanReference);
       final loan = read.loan;
@@ -456,11 +435,11 @@ class LoanWrites {
           transaction.set(
             await schoolDocument('libraryFines', '${id}__lost'),
             _newFine(
-              number: fineNumber,
               type: 'lost',
               amount: replacement,
               member: member,
               loan: loan,
+              bookTitle: loan['bookTitle'] as String?,
               loanId: id,
               calculation: {
                 'copyPrice': read.copy['price'],
@@ -473,10 +452,10 @@ class LoanWrites {
       transaction.set(
         (await branchCollection('libraryIncidents')).doc(),
         _newIncident(
-          number: incidentNumber,
           type: 'lost',
           copy: read.copy,
           barcode: copyReference.id,
+          bookTitle: loan['bookTitle'] as String?,
           member: member,
           loanId: id,
           severity: null,
@@ -697,9 +676,7 @@ class LoanWrites {
     final memberReference = personErpId == null
         ? null
         : await _memberReference(personErpId);
-    final incidentNumber = await _nextNumber('INC');
     final fined = personErpId != null && charge > 0;
-    final fineNumber = fined ? await _nextNumber('FIN') : null;
     final incidentReference = (await branchCollection('libraryIncidents'))
         .doc();
     await FirebaseFirestore.instance.runTransaction((transaction) async {
@@ -717,14 +694,22 @@ class LoanWrites {
       if (memberReference != null && member == null) {
         writeFail('Member not found', 'not-found');
       }
+      final title =
+          (await transaction.get(
+                await schoolDocument(
+                  'libraryCatalogue',
+                  copy['catalogueId'] as String,
+                ),
+              )).data()?['title']
+              as String?;
       transaction
         ..set(
           incidentReference,
           _newIncident(
-            number: incidentNumber,
             type: type,
             copy: copy,
             barcode: barcode,
+            bookTitle: title,
             member: member,
             loanId: null,
             severity: type == 'damaged' ? severity : null,
@@ -747,15 +732,14 @@ class LoanWrites {
               'inc_${incidentReference.id}__$type',
             ),
             _newFine(
-              number: fineNumber!,
               type: type,
               amount: charge,
               member: member,
               loan: copy,
+              bookTitle: title,
               loanId: null,
               incidentId: incidentReference.id,
               calculation: {
-                'incidentNumber': incidentNumber,
                 'type': type,
                 'severity': severity,
                 'charge': charge,
@@ -797,9 +781,6 @@ class LoanWrites {
     }
     final difference = newCharge - earlierCharge;
     final personErpId = (earlier['personErpId'] as num?)?.toInt();
-    final fineNumber = difference > 0 && personErpId != null
-        ? await _nextNumber('FIN')
-        : null;
     final copyReference = await schoolDocument(
       'libraryCopies',
       earlier['barcode'] as String,
@@ -847,18 +828,14 @@ class LoanWrites {
           ..set(
             await schoolDocument('libraryFines', 'inc_${id}__penalty'),
             _newFine(
-              number: fineNumber!,
               type: incident['type'] as String,
               amount: difference,
               member: member,
               loan: incident,
+              bookTitle: incident['bookTitle'] as String?,
               loanId: incident['loanId'] as String?,
               incidentId: id,
-              calculation: {
-                'incidentNumber': incident['incidentNumber'],
-                'resolution': resolution,
-                'charge': difference,
-              },
+              calculation: {'resolution': resolution, 'charge': difference},
             ),
           )
           ..update(memberReference!, {

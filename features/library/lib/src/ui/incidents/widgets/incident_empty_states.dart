@@ -42,7 +42,7 @@ class IncidentNoResultsState extends StatelessWidget {
     title: searchQuery.isEmpty
         ? 'No incidents match these filters'
         : 'No incidents match "$searchQuery"',
-    message: 'Search by the exact incident number or accession number.',
+    message: 'Search by the exact incident ID or accession number.',
     onAction: onClear,
   );
 }

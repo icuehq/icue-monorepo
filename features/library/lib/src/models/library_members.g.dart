@@ -60,6 +60,8 @@ class LibraryMember {
     required this.personErpId,
     required this.name,
     this.classId,
+    this.section,
+    this.admissionNumber,
     required this.activeLoans,
     required this.blocked,
   });
@@ -71,6 +73,8 @@ class LibraryMember {
         personErpId: (data['personErpId'] as num? ?? 0).toInt(),
         name: data['name'] as String? ?? '',
         classId: (data['classId'] as num?)?.toInt(),
+        section: data['section'] as String?,
+        admissionNumber: data['admissionNumber'] as String?,
         activeLoans: (data['activeLoans'] as num? ?? 0).toInt(),
         blocked: data['blocked'] == true,
       );
@@ -80,6 +84,8 @@ class LibraryMember {
   final int personErpId;
   final String name;
   final int? classId;
+  final String? section;
+  final String? admissionNumber;
   final int activeLoans;
   final bool blocked;
 }

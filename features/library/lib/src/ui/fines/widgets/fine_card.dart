@@ -78,7 +78,7 @@ class FineCard extends StatelessWidget {
                         Row(
                           children: [
                             Text(
-                              fine.fineNumber,
+                              fine.id,
                               style: theme.textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.w700,
                                 fontSize: 15,

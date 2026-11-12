@@ -3,7 +3,6 @@ import 'package:icue_firebase/icue_firebase.dart' show callableErrorMessage;
 import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
-import 'package:school_library/src/ui/insights/reports/widgets/library_report_filters.dart';
 import 'package:school_library/src/ui/insights/reports/widgets/library_report_kpis.dart';
 import 'package:school_library/src/ui/insights/reports/widgets/library_report_table.dart';
 

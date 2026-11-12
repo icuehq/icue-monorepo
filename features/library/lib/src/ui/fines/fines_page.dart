@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
@@ -23,9 +25,11 @@ class _FinesPageState extends State<FinesPage> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => context.read<LibraryProvider>().loadFines(),
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final libraryProvider = context.read<LibraryProvider>();
+      unawaited(libraryProvider.loadStandards());
+      unawaited(libraryProvider.loadFines());
+    });
   }
 
   @override

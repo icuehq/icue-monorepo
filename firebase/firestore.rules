@@ -276,11 +276,7 @@ service cloud.firestore {
       allow create: if staff(orgId, zoneId, branchId) && request.resource.data.createdBy == request.auth.uid
         && request.resource.data.blocked == false && request.resource.data.activeLoans in [0, 1];
       allow update: if staff(orgId, zoneId, branchId)
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'classId', 'activeLoans', 'blocked', 'blockedBy', 'updatedAt']);
-    }
-    // Library numbers (LIS, LRT, FIN, INC); Library staff hold no permissions, so the counter rule below does not cover them.
-    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/counters/{id} {
-      allow read, write: if staff(orgId, zoneId, branchId) && id.matches('(LIS|LRT|FIN|INC|RSV)_.*');
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'classId', 'section', 'admissionNumber', 'activeLoans', 'blocked', 'blockedBy', 'updatedAt']);
     }
     // Manual block / unblock of a member.
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/libraryMembers/{id} {

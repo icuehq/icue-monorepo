@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icue_ui/icue_ui.dart';
+import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
-/// Details of a scanned copy with the one action that applies: Issue Book, or Return Book when it is on loan.
-/// Pops `true` when the librarian taps the action.
-class BookScanDialog extends StatelessWidget {
+/// Details of a scanned copy with the actions that apply:
+/// Issue Book (when available), or Return / Renew Book (when on loan).
+/// Pops `true` when the librarian taps to proceed (e.g. Return Book or Issue Book).
+class BookScanDialog extends StatefulWidget {
   const BookScanDialog({
     required this.copy,
     required this.book,
@@ -23,26 +25,72 @@ class BookScanDialog extends StatelessWidget {
     required LibraryBook? book,
     required LibraryLoan? loan,
   }) async =>
-      await pushFormPage<bool>(
-        context,
-        () => BookScanDialog(copy: copy, book: book, loan: loan),
+      await showDialog<bool>(
+        context: context,
+        builder: (_) => BookScanDialog(copy: copy, book: book, loan: loan),
       ) ??
       false;
+
+  @override
+  State<BookScanDialog> createState() => _BookScanDialogState();
+}
+
+class _BookScanDialogState extends State<BookScanDialog> {
+  bool _busy = false;
+
+  Future<void> _renew() async {
+    final loan = widget.loan;
+    if (loan == null) return;
+    setState(() => _busy = true);
+    final libraryProvider = context.read<LibraryProvider>();
+    final navigator = Navigator.of(context, rootNavigator: true);
+    final isSuccess = await libraryProvider.renewLoan(loan.id);
+    if (!mounted) return;
+    if (isSuccess) {
+      navigator.pop(false);
+      showMessage(
+        context,
+        'Loan for ${widget.book?.title ?? widget.copy.barcode} renewed successfully.',
+      );
+    } else {
+      setState(() => _busy = false);
+      showMessage(
+        context,
+        libraryProvider.errorMessage ?? 'Failed to renew loan',
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final book = this.book;
-    final loan = this.loan;
+    final book = widget.book;
+    final loan = widget.loan;
     final onLoan = loan != null;
     final overdue = loan?.overdueOn(todayIST()) ?? 0;
-    final canIssue = !onLoan && copy.status == CopyStatus.available;
+    final isOverdue = overdue > 0;
+    final canIssue = !onLoan && widget.copy.status == CopyStatus.available;
+    final canRenew = onLoan && loan.canRenew && !isOverdue;
+
+    String? cannotRenewReason;
+    if (onLoan && !canRenew) {
+      if (!loan.isActive) {
+        cannotRenewReason = 'Cannot renew: Loan is not active';
+      } else if (isOverdue) {
+        cannotRenewReason =
+            'Cannot renew: Book is overdue by $overdue day${overdue == 1 ? '' : 's'}';
+      } else if (loan.renewals >= loan.maxRenewals) {
+        cannotRenewReason =
+            'Cannot renew: Renewal limit reached (${loan.renewals}/${loan.maxRenewals})';
+      }
+    }
+
     final statusLabel = onLoan
         ? (overdue > 0
               ? 'Overdue · $overdue day${overdue == 1 ? '' : 's'}'
               : 'Issued')
-        : copy.status.replaceAll('_', ' ').capitalized;
+        : widget.copy.status.replaceAll('_', ' ').capitalized;
     final statusColor = onLoan
         ? (overdue > 0 ? scheme.error : scheme.tertiary)
         : canIssue
@@ -55,10 +103,10 @@ class BookScanDialog extends StatelessWidget {
       (Icons.calendar_today_outlined, 'Year', book?.year?.toString()),
       (Icons.translate_rounded, 'Language', book?.language),
       (Icons.menu_book_outlined, 'Pages', book?.pages?.toString()),
-      (Icons.shelves, 'Shelf', copy.shelf ?? book?.shelf),
-      (Icons.verified_outlined, 'Condition', copy.condition.capitalized),
+      (Icons.shelves, 'Shelf', widget.copy.shelf ?? book?.shelf),
+      (Icons.verified_outlined, 'Condition', widget.copy.condition.capitalized),
     ];
-    return Column(
+    final content = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -83,7 +131,7 @@ class BookScanDialog extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    book?.title ?? copy.barcode,
+                    book?.title ?? widget.copy.barcode,
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
@@ -103,7 +151,7 @@ class BookScanDialog extends StatelessWidget {
                       Chip(
                         visualDensity: VisualDensity.compact,
                         avatar: const Icon(Icons.qr_code_2_rounded, size: 18),
-                        label: Text(copy.barcode),
+                        label: Text(widget.copy.barcode),
                       ),
                       Chip(
                         visualDensity: VisualDensity.compact,
@@ -150,8 +198,9 @@ class BookScanDialog extends StatelessWidget {
                         'Issued to ${loan.memberLabel}',
                         style: theme.textTheme.titleSmall,
                       ),
+                      const SizedBox(height: 2),
                       Text(
-                        'Issued ${loan.issuedDate.toDisplayDay()} · due ${loan.dueDate.toDisplayDay()}',
+                        'Issued ${loan.issuedDate.toDisplayDay()} · due ${loan.dueDate.toDisplayDay()} · ${loan.renewals}/${loan.maxRenewals} renewals used',
                         style: theme.textTheme.bodySmall,
                       ),
                     ],
@@ -207,24 +256,52 @@ class BookScanDialog extends StatelessWidget {
             style: theme.textTheme.bodySmall,
           ),
         ],
-        const SizedBox(height: 20),
-        if (onLoan)
-          IcueButton(
-            autofocus: true,
-            isFullWidth: true,
-            label: 'Return Book',
-            leadingIcon: Icons.assignment_return_rounded,
-            onPressed: () => Navigator.of(context).pop(true),
-          )
-        else if (canIssue)
-          IcueButton(
-            autofocus: true,
-            isFullWidth: true,
-            label: 'Issue Book',
-            leadingIcon: Icons.outbox_rounded,
-            onPressed: () => Navigator.of(context).pop(true),
+        if (cannotRenewReason != null) ...[
+          const SizedBox(height: 12),
+          Text(
+            cannotRenewReason,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+              fontStyle: FontStyle.italic,
+            ),
           ),
+        ],
       ],
+    );
+
+    void close(bool proceed) =>
+        Navigator.of(context, rootNavigator: true).pop(proceed);
+
+    return IcueDialog(
+      title: 'Scanned book',
+      size: IcueDialogSize.large,
+      content: content,
+      secondaryAction: onLoan
+          ? IcueDialogAction(
+              label: 'Renew',
+              icon: Icons.autorenew_rounded,
+              variant: IcueButtonVariant.outline,
+              isLoading: _busy,
+              onPressed: (_busy || !canRenew) ? null : _renew,
+            )
+          : null,
+      primaryAction: onLoan
+          ? IcueDialogAction(
+              label: 'Return Book',
+              icon: Icons.assignment_return_rounded,
+              onPressed: _busy ? null : () => close(true),
+            )
+          : canIssue
+          ? IcueDialogAction(
+              label: 'Issue Book',
+              icon: Icons.outbox_rounded,
+              onPressed: () => close(true),
+            )
+          : IcueDialogAction(
+              label: 'Close',
+              variant: IcueButtonVariant.ghost,
+              onPressed: () => close(false),
+            ),
     );
   }
 }

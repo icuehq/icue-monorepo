@@ -10,7 +10,10 @@ class FineDialog extends StatefulWidget {
   final LibraryFine fine;
 
   static Future<void> show(BuildContext context, LibraryFine fine) =>
-      showFormPage(context, () => FineDialog(fine: fine));
+      showDialog<void>(
+        context: context,
+        builder: (_) => FineDialog(fine: fine),
+      );
 
   @override
   State<FineDialog> createState() => _FineDialogState();
@@ -24,41 +27,18 @@ class _FineDialogState extends State<FineDialog> {
       text: widget.fine.outstanding.toAmountText(),
     );
     final reasonController = TextEditingController();
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Waive fine'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Max waivable: ${widget.fine.outstanding.toRupees()}'),
-            const SizedBox(height: 12),
-            IcueTextField(
-              controller: amountController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              label: 'Amount to waive (₹)',
-            ),
-            const SizedBox(height: 8),
-            IcueTextField(
-              controller: reasonController,
-              label: 'Reason for waiver',
-            ),
-          ],
+    final ok = await _ask(
+      title: 'Waive fine',
+      confirmLabel: 'Confirm waive',
+      description: 'Maximum waivable: ${widget.fine.outstanding.toRupees()}',
+      fields: [
+        IcueTextField(
+          controller: amountController,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          label: 'Amount to waive (₹)',
         ),
-        actions: [
-          IcueButton(
-            label: 'Cancel',
-            onPressed: () => Navigator.of(context).pop(false),
-            variant: IcueButtonVariant.ghost,
-          ),
-          IcueButton(
-            label: 'Confirm waive',
-            onPressed: () => Navigator.of(context).pop(true),
-          ),
-        ],
-      ),
+        IcueTextField(controller: reasonController, label: 'Reason for waiver'),
+      ],
     );
     if (ok != true || !mounted) return;
     final amount = double.tryParse(amountController.text.trim());
@@ -77,7 +57,7 @@ class _FineDialogState extends State<FineDialog> {
 
     setState(() => _busy = true);
     final libraryProvider = context.read<LibraryProvider>();
-    final navigator = Navigator.of(context);
+    final navigator = Navigator.of(context, rootNavigator: true);
     final result = await libraryProvider.waiveFine(
       id: widget.fine.id,
       amount: amount,
@@ -101,42 +81,22 @@ class _FineDialogState extends State<FineDialog> {
       text: widget.fine.outstanding.toAmountText(),
     );
     final refController = TextEditingController();
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Record fine payment'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Outstanding: ${widget.fine.outstanding.toRupees()}'),
-            const SizedBox(height: 12),
-            IcueTextField(
-              controller: amountController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              label: 'Paid amount (₹)',
-            ),
-            const SizedBox(height: 8),
-            IcueTextField(
-              controller: refController,
-              label: 'Payment receipt / reference',
-              hintText: 'e.g. REC-1234',
-            ),
-          ],
+    final ok = await _ask(
+      title: 'Record fine payment',
+      confirmLabel: 'Record payment',
+      description: 'Outstanding: ${widget.fine.outstanding.toRupees()}',
+      fields: [
+        IcueTextField(
+          controller: amountController,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          label: 'Paid amount (₹)',
         ),
-        actions: [
-          IcueButton(
-            label: 'Cancel',
-            onPressed: () => Navigator.of(context).pop(false),
-            variant: IcueButtonVariant.ghost,
-          ),
-          IcueButton(
-            label: 'Record payment',
-            onPressed: () => Navigator.of(context).pop(true),
-          ),
-        ],
-      ),
+        IcueTextField(
+          controller: refController,
+          label: 'Payment receipt / reference',
+          hintText: 'e.g. REC-1234',
+        ),
+      ],
     );
     if (ok != true || !mounted) return;
     final amount = double.tryParse(amountController.text.trim());
@@ -150,7 +110,7 @@ class _FineDialogState extends State<FineDialog> {
 
     setState(() => _busy = true);
     final libraryProvider = context.read<LibraryProvider>();
-    final navigator = Navigator.of(context);
+    final navigator = Navigator.of(context, rootNavigator: true);
     final result = await libraryProvider.setFinePayment(
       id: widget.fine.id,
       amount: amount,
@@ -169,32 +129,69 @@ class _FineDialogState extends State<FineDialog> {
     }
   }
 
+  Future<bool> _ask({
+    required String title,
+    required String confirmLabel,
+    required String description,
+    required List<Widget> fields,
+  }) async {
+    void close(bool value) =>
+        Navigator.of(context, rootNavigator: true).pop(value);
+    final ok = await IcueDialog.show<bool>(
+      context,
+      title: title,
+      description: description,
+      size: IcueDialogSize.small,
+      content: Column(
+        children: [
+          for (final field in fields) ...[field, const SizedBox(height: 12)],
+        ],
+      ),
+      secondaryAction: IcueDialogAction(
+        label: 'Cancel',
+        variant: IcueButtonVariant.ghost,
+        onPressed: () => close(false),
+      ),
+      primaryAction: IcueDialogAction(
+        label: confirmLabel,
+        onPressed: () => close(true),
+      ),
+    );
+    return ok ?? false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final fine = widget.fine;
+    final theme = Theme.of(context);
+    final (statusColor, statusLabel) = switch (fine.status) {
+      'paid' => (Colors.green.shade700, 'Paid'),
+      'partially_paid' => (Colors.orange.shade800, 'Partially paid'),
+      'waived' => (Colors.blueGrey.shade700, 'Waived'),
+      _ => (theme.colorScheme.error, 'Outstanding'),
+    };
+    final catalogueId = fine.catalogueId;
+    final calculation = fine.calculationLabel;
+    final raisedAt = fine.createdAt?.toLocal().toNumericDateTime();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              fine.fineNumber,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            Chip(
-              label: Text(humanizeStatus(fine.status)),
-              backgroundColor: fine.isOutstanding
-                  ? Theme.of(context).colorScheme.errorContainer
-                  : null,
-            ),
-          ],
+        Align(
+          alignment: Alignment.centerLeft,
+          child: IcueStatusPill(label: statusLabel, color: statusColor),
         ),
-        const SizedBox(height: 8),
-        Text('Member: ${fine.memberLabel}'),
-        Text('Fine type: ${fineTypeLabel(fine.type)}'),
+        const SizedBox(height: 12),
+        if (catalogueId != null)
+          FutureBuilder<LibraryBook?>(
+            future: context.read<LibraryProvider>().book(catalogueId),
+            builder: (context, snapshot) =>
+                _Detail('Book', snapshot.data?.title ?? fine.barcode ?? '-'),
+          ),
+        if (fine.barcode != null) _Detail('Barcode', fine.barcode!),
+        _Detail('Member', fine.memberLabel),
+        if (raisedAt != null) _Detail('Raised on', raisedAt),
         const Divider(height: 24),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -209,54 +206,83 @@ class _FineDialogState extends State<FineDialog> {
             ),
           ],
         ),
-        if (fine.fineCalculation != null &&
-            fine.fineCalculation!.isNotEmpty) ...[
+        if (calculation != null) ...[
           const SizedBox(height: 12),
-          Text(
-            'Calculation: ${fine.fineCalculation}',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
+          Text(calculation, style: theme.textTheme.bodySmall),
         ],
         if (fine.waivers.isNotEmpty) ...[
           const SizedBox(height: 12),
-          Text('Waivers:', style: Theme.of(context).textTheme.labelMedium),
+          Text('Waivers', style: theme.textTheme.labelLarge),
           for (final fineWaiver in fine.waivers)
             Text(
-              '• ${fineWaiver.amount.toRupees()} on ${fineWaiver.performedAt?.toLocal().toNumericDateTime() ?? '-'} (${fineWaiver.reason})',
-              style: Theme.of(context).textTheme.bodySmall,
+              '${fineWaiver.amount.toRupees()} on ${fineWaiver.performedAt?.toLocal().toNumericDateTime() ?? '-'} (${fineWaiver.reason})',
+              style: theme.textTheme.bodySmall,
             ),
         ],
         if (fine.payments.isNotEmpty) ...[
           const SizedBox(height: 12),
-          Text('Payments:', style: Theme.of(context).textTheme.labelMedium),
+          Text('Payments', style: theme.textTheme.labelLarge),
           for (final pay in fine.payments)
             Text(
-              '• ${pay.amount.toRupees()} on ${pay.date?.toDisplayDay() ?? '-'} (${pay.reference ?? 'no ref'})',
-              style: Theme.of(context).textTheme.bodySmall,
+              '${pay.amount.toRupees()} on ${pay.date?.toDisplayDay() ?? '-'} (${pay.reference ?? 'no reference'})',
+              style: theme.textTheme.bodySmall,
             ),
         ],
-        if (fine.isOutstanding) ...[
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: IcueButton(
-                  label: 'Waive',
-                  onPressed: _busy ? null : _waive,
-                  variant: IcueButtonVariant.secondary,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: IcueButton(
-                  label: 'Record payment',
-                  onPressed: _busy ? null : _recordPayment,
-                ),
-              ),
-            ],
-          ),
-        ],
       ],
+    );
+
+    return IcueDialog(
+      title: '${fineTypeLabel(fine.type)} fine',
+      size: IcueDialogSize.large,
+      content: content,
+      secondaryAction: fine.isOutstanding
+          ? IcueDialogAction(
+              label: 'Waive',
+              variant: IcueButtonVariant.outline,
+              onPressed: _busy ? null : _waive,
+            )
+          : null,
+      primaryAction: fine.isOutstanding
+          ? IcueDialogAction(
+              label: 'Record payment',
+              isLoading: _busy,
+              onPressed: _busy ? null : _recordPayment,
+            )
+          : IcueDialogAction(
+              label: 'Close',
+              variant: IcueButtonVariant.ghost,
+              onPressed: () => Navigator.of(context, rootNavigator: true).pop(),
+            ),
+    );
+  }
+}
+
+class _Detail extends StatelessWidget {
+  const _Detail(this.label, this.value);
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 90,
+            child: Text(
+              label,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          Expanded(child: Text(value, style: theme.textTheme.bodyMedium)),
+        ],
+      ),
     );
   }
 }

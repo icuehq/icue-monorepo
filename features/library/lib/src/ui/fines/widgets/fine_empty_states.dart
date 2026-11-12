@@ -34,7 +34,7 @@ class FineNoResultsState extends StatelessWidget {
     title: searchQuery.isEmpty
         ? 'No fines match these filters'
         : 'No fines match "$searchQuery"',
-    message: 'Search by the exact fine number or accession number.',
+    message: 'Search by the exact fine ID or accession number.',
     onAction: onClear,
   );
 }

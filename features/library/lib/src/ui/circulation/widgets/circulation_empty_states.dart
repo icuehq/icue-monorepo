@@ -27,7 +27,7 @@ class CirculationNoResultsState extends StatelessWidget {
     title: searchQuery.isEmpty
         ? 'No loans match these filters'
         : 'No loan matches "$searchQuery"',
-    message: 'Search by the exact loan, accession or admission number.',
+    message: 'Search by the exact loan ID, accession or admission number.',
     onAction: onClear,
   );
 }

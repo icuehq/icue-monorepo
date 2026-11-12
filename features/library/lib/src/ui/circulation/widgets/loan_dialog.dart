@@ -6,7 +6,7 @@ import 'package:school_library/src/ui/circulation/widgets/loan_details_card.dart
 import 'package:school_library/src/ui/circulation/widgets/mark_lost_dialog.dart';
 import 'package:school_library/src/ui/fines/widgets/fine_dialog.dart';
 
-/// One active loan: renew it or take the book back (FRS 11.10–11.11).
+/// One active loan: return the book or mark it as lost (FRS 11.10–11.11).
 class LoanDialog extends StatefulWidget {
   const LoanDialog({super.key, required this.loan, required this.title});
 
@@ -17,7 +17,10 @@ class LoanDialog extends StatefulWidget {
     BuildContext context,
     LibraryLoan loan,
     String title,
-  ) => showFormPage(context, () => LoanDialog(loan: loan, title: title));
+  ) => showDialog<void>(
+    context: context,
+    builder: (_) => LoanDialog(loan: loan, title: title),
+  );
 
   @override
   State<LoanDialog> createState() => _LoanDialogState();
@@ -39,7 +42,7 @@ class _LoanDialogState extends State<LoanDialog> {
   ) async {
     setState(() => _busy = true);
     final libraryProvider = context.read<LibraryProvider>();
-    final navigator = Navigator.of(context);
+    final navigator = Navigator.of(context, rootNavigator: true);
     final isSuccess = await action(libraryProvider);
     if (!mounted) return false;
     if (isSuccess) {
@@ -73,13 +76,26 @@ class _LoanDialogState extends State<LoanDialog> {
       }
     }
 
-    return Column(
+    final content = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: colors.primaryContainer.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                Icons.menu_book_rounded,
+                size: 28,
+                color: colors.primary,
+              ),
+            ),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -91,12 +107,13 @@ class _LoanDialogState extends State<LoanDialog> {
                     overdueDays: overdueDays,
                     daysUntilDue: daysUntilDue,
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Text(
                     widget.title,
-                    style: theme.textTheme.titleLarge?.copyWith(
+                    style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
-                      height: 1.2,
+                      fontSize: 18,
+                      height: 1.25,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -113,12 +130,6 @@ class _LoanDialogState extends State<LoanDialog> {
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: colors.onSurfaceVariant,
                           fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      Text(
-                        ' · ${loan.number}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: colors.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -151,7 +162,8 @@ class _LoanDialogState extends State<LoanDialog> {
                 theme: theme,
                 colors: colors,
                 label: 'Good condition',
-                icon: Icons.check_circle_outline_rounded,
+                subtitle: 'Normal wear & tear',
+                icon: Icons.check_circle_rounded,
                 selected: _selectedCondition == 'good',
                 onTap: _busy
                     ? null
@@ -164,7 +176,8 @@ class _LoanDialogState extends State<LoanDialog> {
                 theme: theme,
                 colors: colors,
                 label: 'Damaged',
-                icon: Icons.heart_broken_outlined,
+                subtitle: 'Torn, broken or stained',
+                icon: Icons.heart_broken_rounded,
                 selected: _selectedCondition == 'damaged',
                 selectedColor: colors.error,
                 onTap: _busy
@@ -177,21 +190,26 @@ class _LoanDialogState extends State<LoanDialog> {
         if (_selectedCondition == 'damaged') ...[
           const SizedBox(height: 8),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: colors.errorContainer.withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(6),
+              color: colors.errorContainer.withValues(alpha: 0.35),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: colors.error.withValues(alpha: 0.4)),
             ),
             child: Row(
               children: [
-                Icon(Icons.info_outline_rounded, size: 14, color: colors.error),
-                const SizedBox(width: 6),
+                Icon(
+                  Icons.warning_amber_rounded,
+                  size: 16,
+                  color: colors.error,
+                ),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Copy will be marked damaged and an incident will be logged.',
+                    'Copy will be marked damaged and an incident will be logged in the library register.',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: colors.error,
-                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
@@ -199,76 +217,41 @@ class _LoanDialogState extends State<LoanDialog> {
             ),
           ),
         ],
-        const SizedBox(height: 12),
+        const SizedBox(height: 14),
         IcueTextField(
           controller: _remarksController,
           label: _selectedCondition == 'damaged'
-              ? 'Damage remarks (recommended)'
+              ? 'Damage remarks (describe damage)'
               : 'Return remarks (optional)',
           hintText: _selectedCondition == 'damaged'
-              ? 'e.g. Broken binding, water stains'
-              : null,
+              ? 'e.g. Broken spine, torn pages, water stains'
+              : 'Add any optional note',
         ),
-        const SizedBox(height: 16),
-        IcueButton(
-          label: _selectedCondition == 'damaged'
-              ? 'Return book as damaged'
-              : 'Return book',
-          onPressed: _busy ? null : () => _returnBook(_selectedCondition),
-          variant: _selectedCondition == 'damaged'
-              ? IcueButtonVariant.destructive
-              : IcueButtonVariant.primary,
-          leadingIcon: _selectedCondition == 'damaged'
-              ? Icons.heart_broken_rounded
-              : Icons.assignment_returned_rounded,
-          isLoading: _busy,
-          isFullWidth: true,
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-              child: IcueButton(
-                label: 'Renew loan',
-                onPressed: _busy || !loan.canRenew
-                    ? null
-                    : () => _run(
-                        (libraryProvider) => libraryProvider.renewLoan(loan.id),
-                      ),
-                variant: IcueButtonVariant.outline,
-                leadingIcon: Icons.autorenew_rounded,
-                isLoading: _busy,
-                isFullWidth: true,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: IcueButton(
-                label: 'Mark as lost',
-                onPressed: _busy ? null : _markLost,
-                variant: IcueButtonVariant.outline,
-                leadingIcon: Icons.report_gmailerrorred_rounded,
-                isLoading: _busy,
-                isFullWidth: true,
-              ),
-            ),
-          ],
-        ),
-        if (!loan.canRenew)
-          Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: Text(
-              !loan.isActive
-                  ? 'Cannot renew: Loan is not active'
-                  : 'Cannot renew: Maximum renewals reached (${loan.renewals}/${loan.maxRenewals})',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: colors.onSurfaceVariant,
-                fontStyle: FontStyle.italic,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
       ],
+    );
+
+    final damaged = _selectedCondition == 'damaged';
+    return IcueDialog(
+      title: 'Return book',
+      size: IcueDialogSize.large,
+      content: content,
+      secondaryAction: IcueDialogAction(
+        label: 'Mark as lost',
+        icon: Icons.report_gmailerrorred_rounded,
+        variant: IcueButtonVariant.outline,
+        onPressed: _busy ? null : _markLost,
+      ),
+      primaryAction: IcueDialogAction(
+        label: damaged ? 'Return as damaged' : 'Complete return',
+        icon: damaged
+            ? Icons.heart_broken_rounded
+            : Icons.assignment_returned_rounded,
+        variant: damaged
+            ? IcueButtonVariant.destructive
+            : IcueButtonVariant.primary,
+        isLoading: _busy,
+        onPressed: _busy ? null : () => _returnBook(_selectedCondition),
+      ),
     );
   }
 
@@ -294,7 +277,7 @@ class _LoanDialogState extends State<LoanDialog> {
       );
     }
     return IcueStatusPill(
-      label: 'Active · Due in $daysUntilDue day${daysUntilDue == 1 ? '' : 's'}',
+      label: 'Due in $daysUntilDue day${daysUntilDue == 1 ? '' : 's'}',
       color: Colors.green.shade700,
       icon: Icons.check_circle_outline_rounded,
     );
@@ -304,6 +287,7 @@ class _LoanDialogState extends State<LoanDialog> {
     required ThemeData theme,
     required ColorScheme colors,
     required String label,
+    required String subtitle,
     required IconData icon,
     required bool selected,
     required VoidCallback? onTap,
@@ -314,14 +298,15 @@ class _LoanDialogState extends State<LoanDialog> {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+        borderRadius: BorderRadius.circular(10),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
           decoration: BoxDecoration(
             color: selected
-                ? activeColor.withValues(alpha: 0.1)
+                ? activeColor.withValues(alpha: 0.08)
                 : colors.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(10),
             border: Border.all(
               color: selected
                   ? activeColor
@@ -330,19 +315,36 @@ class _LoanDialogState extends State<LoanDialog> {
             ),
           ),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
                 icon,
-                size: 16,
+                size: 20,
                 color: selected ? activeColor : colors.onSurfaceVariant,
               ),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-                  color: selected ? activeColor : colors.onSurface,
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      label,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: selected
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                        color: selected ? activeColor : colors.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontSize: 11,
+                        color: colors.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -354,7 +356,7 @@ class _LoanDialogState extends State<LoanDialog> {
 
   Future<void> _returnBook(String condition) async {
     final loan = widget.loan;
-    final navigator = Navigator.of(context);
+    final navigator = Navigator.of(context, rootNavigator: true);
     final libraryProvider = context.read<LibraryProvider>();
     final isFined = loan.fineOn(todayIST()) > 0;
     final isSuccess = await _run(

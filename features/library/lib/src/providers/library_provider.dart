@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart' show DateTimeRange;
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:injectable/injectable.dart';
 import 'package:routes/routes.dart';
@@ -64,7 +65,10 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
 
   /// Section name within [loanClassId].
   String? loanSection;
-  LoanIssuedWindow? loanIssued;
+
+  /// Issue-date period of the list; [loanRange] holds its days (null = any time).
+  LibraryDatePreset? loanPeriod;
+  DateTimeRange? loanRange;
   LoanDueFilter? loanDue;
 
   /// Words of a book title, member name or admission number; overrides the other filters.
@@ -74,7 +78,7 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
       loanSearch.isNotEmpty ||
       loanClassId != null ||
       loanSection != null ||
-      loanIssued != null ||
+      loanRange != null ||
       loanDue != null;
 
   /// The next active loans due, for the overview (ignores the Issued Books filters).
@@ -90,7 +94,7 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   /// `overdue`, `lost`, `damaged`, or null for every type.
   String? fineType;
 
-  /// Exact fine or accession number; overrides the other filters.
+  /// Exact fine ID or accession number; overrides the other filters.
   String fineSearch = '';
 
   bool get finesFiltered =>
@@ -109,7 +113,7 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   /// `lost`, `damaged`, or null for both.
   String? incidentType;
 
-  /// Exact incident or accession number; overrides the other filters.
+  /// Exact incident ID or accession number; overrides the other filters.
   String incidentSearch = '';
 
   bool get incidentsFiltered =>
@@ -151,6 +155,13 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
       errorMessage = callableErrorMessage(error);
       notifyListeners();
     }
+  }
+
+  /// Drops the cached ERP classes (sign-out or branch change).
+  void clearSession() {
+    _people.clearCache();
+    standards = [];
+    notifyListeners();
   }
 
   /// The ERP class name; a class missing from the ERP shows as `Class <id>`.
@@ -261,7 +272,7 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
       await _service.activeLoansQuery(
         classId: loanClassId,
         section: loanSection,
-        issued: loanIssued,
+        issued: loanRange,
         due: loanDue,
       ),
       (document) => LibraryLoan.fromMap(document.id, document.data()!),
@@ -272,7 +283,8 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   Future<void> clearLoanFilters() {
     loanClassId = null;
     loanSection = null;
-    loanIssued = null;
+    loanPeriod = null;
+    loanRange = null;
     loanDue = null;
     loanSearch = '';
     return loadLoans();
@@ -723,7 +735,7 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     }) async {
       final page = await fetchPage(
         query,
-        (document) => document.data()!,
+        (document) => {...document.data()!, 'id': document.id},
         after: after,
         limit: limit,
       );
@@ -737,7 +749,10 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     final snapshot = await _reportLoansQuery!
         .limit(LibraryService.loanLimit)
         .get();
-    final rows = [for (final document in snapshot.docs) document.data()];
+    final rows = [
+      for (final document in snapshot.docs)
+        {...document.data(), 'id': document.id},
+    ];
     await _loadTitles(rows);
     return rows;
   }

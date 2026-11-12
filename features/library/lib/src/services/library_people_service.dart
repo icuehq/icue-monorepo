@@ -30,8 +30,18 @@ class LibraryPeopleService {
     return personFrom(student);
   }
 
-  /// Classes with their sections, for picking a student from a class list.
-  Future<List<Standards>> classes() => _routes.getStandards();
+  Future<List<Standards>>? _classes;
+
+  /// Classes with their sections, fetched from Node once per session; callers
+  /// that ask while it is loading share the same request. A failure is not cached.
+  Future<List<Standards>> classes() =>
+      _classes ??= _routes.getStandards().onError<Object>((error, stack) {
+        _classes = null;
+        Error.throwWithStackTrace(error, stack);
+      });
+
+  /// Forgets cached ERP data; call when the signed-in user or branch changes.
+  void clearCache() => _classes = null;
 
   /// Every student of [classId] in [sections], following Node's pages.
   Future<List<StudentData>> studentsOf(

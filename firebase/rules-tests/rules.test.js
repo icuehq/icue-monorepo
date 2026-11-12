@@ -393,7 +393,7 @@ describe('library client writes (no callable)', () => {
     await assertFails(updateDoc(doc(db('4'), 'orgs/8/zones/147/branches/427/libraryBorrowingPolicies/p1'), edit({ libraryId: 'other' })));
  });
 
-  it('circulation: stamped loans, narrow copy / member edits, library counters, fines and incidents', async () => {
+  it('circulation: stamped loans, narrow copy / member edits, fines and incidents', async () => {
     await env.withSecurityRulesDisabled(async (context) => {
       const firestore = context.firestore();
       await setDoc(doc(firestore, 'orgs/8/zones/147/branches/427/libraryLoans/l1'), { status: 'active' });
@@ -414,9 +414,6 @@ describe('library client writes (no callable)', () => {
     await assertFails(setDoc(doc(db('4'), 'orgs/8/zones/147/branches/427/libraryMembers/778'), { ...member, blocked: true }));
     await assertSucceeds(updateDoc(doc(db('4'), 'orgs/8/zones/147/branches/427/libraryMembers/501'), { activeLoans: 2, name: 'A' }));
     await assertFails(updateDoc(doc(db('4'), 'orgs/8/zones/147/branches/427/libraryMembers/501'), { memberType: 'teacher' }));
-    await assertSucceeds(setDoc(doc(db('4'), 'orgs/8/zones/147/branches/427/counters/LIS_2026-27'), { next: 1 }));
-    await assertFails(setDoc(doc(db('4'), 'orgs/8/zones/147/branches/427/counters/PO_2026-27'), { next: 1 }));
-    await assertFails(setDoc(doc(db('p', parent), 'orgs/8/zones/147/branches/427/counters/LIS_2026-27'), { next: 1 }));
     const fine = { status: 'outstanding', createdBy: '4' };
     await assertSucceeds(setDoc(doc(db('4'), 'orgs/8/zones/147/branches/427/libraryFines/l1__overdue'), fine));
     await assertFails(setDoc(doc(db('4'), 'orgs/8/zones/147/branches/427/libraryFines/x'), { ...fine, status: 'paid' }));

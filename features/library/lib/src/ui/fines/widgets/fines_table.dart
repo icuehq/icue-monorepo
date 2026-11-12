@@ -26,7 +26,7 @@ class FinesTable extends StatelessWidget {
       title: 'Fines',
       rows: pager.items,
       rowKey: (fine) => fine.id,
-      rowLabel: (fine) => fine.fineNumber,
+      rowLabel: (fine) => fine.id,
       count: pager.total ?? pager.items.length,
       status: IcueTableStatus.pager(pager),
       onRetry: pager.retry,
@@ -75,10 +75,11 @@ class FinesTable extends StatelessWidget {
       emptyMessage: 'Fines will appear here.',
       columns: [
         IcueTableColumn(
-          id: 'number',
-          label: 'Fine #',
+          id: 'book',
+          label: 'Book Title',
           flex: 2,
-          cellBuilder: (context, fine) => IcueTableCellText(fine.fineNumber),
+          cellBuilder: (context, fine) =>
+              IcueTableCellText(fine.bookTitle ?? fine.barcode ?? '-'),
         ),
         IcueTableColumn(
           id: 'member',
@@ -86,6 +87,38 @@ class FinesTable extends StatelessWidget {
           flex: 3,
           cellBuilder: (context, fine) => IcueTableCellText(
             fine.memberLabel,
+            style: IcueTableStyle.of(context).secondary,
+          ),
+        ),
+        IcueTableColumn(
+          id: 'class',
+          label: 'Class',
+          hideBelowWidth: 900,
+          cellBuilder: (context, fine) => IcueTableCellText(
+            fine.memberClassId == null
+                ? '-'
+                : context.watch<LibraryProvider>().className(
+                    fine.memberClassId!,
+                  ),
+            style: IcueTableStyle.of(context).secondary,
+          ),
+        ),
+        IcueTableColumn(
+          id: 'section',
+          label: 'Section',
+          hideBelowWidth: 900,
+          cellBuilder: (context, fine) => IcueTableCellText(
+            fine.memberSection ?? '-',
+            style: IcueTableStyle.of(context).secondary,
+          ),
+        ),
+        IcueTableColumn(
+          id: 'admission',
+          label: 'Admission Number',
+          flex: 2,
+          hideBelowWidth: 900,
+          cellBuilder: (context, fine) => IcueTableCellText(
+            fine.admissionNumber ?? '-',
             style: IcueTableStyle.of(context).secondary,
           ),
         ),

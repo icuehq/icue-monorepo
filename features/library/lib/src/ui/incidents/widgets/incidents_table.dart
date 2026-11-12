@@ -24,7 +24,7 @@ class IncidentsTable extends StatelessWidget {
       title: 'Lost & damaged',
       rows: pager.items,
       rowKey: (incident) => incident.id,
-      rowLabel: (incident) => incident.incidentNumber,
+      rowLabel: (incident) => incident.id,
       count: pager.total ?? pager.items.length,
       status: IcueTableStatus.pager(pager),
       onRetry: pager.retry,
@@ -98,7 +98,7 @@ class IncidentsTable extends StatelessWidget {
           label: 'Incident #',
           hideBelowWidth: 900,
           cellBuilder: (context, incident) => IcueTableCellText(
-            incident.incidentNumber,
+            incident.id,
             style: IcueTableStyle.of(context).secondary,
           ),
         ),

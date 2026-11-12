@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart' show DateTimeRange;
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:injectable/injectable.dart';
@@ -187,7 +188,7 @@ class LibraryService {
   Future<Query<Map<String, dynamic>>> activeLoansQuery({
     int? classId,
     String? section,
-    LoanIssuedWindow? issued,
+    DateTimeRange? issued,
     LoanDueFilter? due,
   }) async {
     Query<Map<String, dynamic>> query = (await branchCollection('libraryLoans'))
@@ -213,7 +214,8 @@ class LibraryService {
     if (issued != null) {
       query = query.where(
         'issuedDate',
-        isGreaterThanOrEqualTo: dayTimestamp(issued.from(today)),
+        isGreaterThanOrEqualTo: dayTimestamp(issued.start.toApiDate()),
+        isLessThanOrEqualTo: dayTimestamp(issued.end.toApiDate()),
       );
     }
     return query.orderBy('dueDate');
@@ -257,7 +259,7 @@ class LibraryService {
           );
   }
 
-  /// Fines, newest first. A [search] is an exact fine or accession number and ignores the filters.
+  /// Fines, newest first. A [search] is an exact fine ID or accession number and ignores the filters.
   Future<Query<Map<String, dynamic>>> finesQuery({
     String? status,
     String? type,
@@ -268,7 +270,7 @@ class LibraryService {
       final terms = {search, search.toUpperCase()}.toList();
       query = query.where(
         Filter.or(
-          Filter('fineNumber', whereIn: terms),
+          Filter(FieldPath.documentId, whereIn: terms),
           Filter('barcode', whereIn: terms),
         ),
       );
@@ -283,7 +285,7 @@ class LibraryService {
   Future<LibraryFine?> fine(String id) =>
       _one('libraryFines', id, LibraryFine.fromMap);
 
-  /// Lost/damaged incidents, newest first. A [search] is an exact incident or accession number and ignores the filters.
+  /// Lost/damaged incidents, newest first. A [search] is an exact incident ID or accession number and ignores the filters.
   Future<Query<Map<String, dynamic>>> incidentsQuery({
     String? status,
     String? type,
@@ -296,7 +298,7 @@ class LibraryService {
       final terms = {search, search.toUpperCase()}.toList();
       query = query.where(
         Filter.or(
-          Filter('incidentNumber', whereIn: terms),
+          Filter(FieldPath.documentId, whereIn: terms),
           Filter('barcode', whereIn: terms),
         ),
       );

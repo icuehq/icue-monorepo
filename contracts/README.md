@@ -32,7 +32,7 @@ constants:                             # checked subsets of an enum
 documents:                             # Firestore shape, for TS interfaces and key constants
   LibraryLoan:
     collection: libraryLoans
-    fields: { number: string, remarks: string?, renewals: list<LoanRenewal> }
+    fields: { remarks: string?, renewals: list<LoanRenewal> }
 
 modelsPackage: school_library          # Dart package and directory of the models
 modelsDir: features/library/lib/src/models

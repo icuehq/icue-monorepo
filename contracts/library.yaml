@@ -35,7 +35,6 @@ documents:
     doc: One issue of a copy to a member.
     collection: libraryLoans
     fields:
-      number: string
       memberType: MemberType
       personErpId: int
       memberName: string?
@@ -53,7 +52,6 @@ documents:
       policySnapshot: LoanPolicySnapshot
       status: LoanStatus
       issuedBy: string
-      returnNumber: string?
       returnedDate: timestamp?
       condition: string?
       overdueDays: int?
@@ -148,10 +146,12 @@ models:
       doc: "A library fine (overdue, lost book replacement, damaged penalty)."
       id: id
       fields:
-        fineNumber: { type: string, default: "$id" }
         memberType: string
         personErpId: int
         memberName: string?
+        memberClassId: int?
+        memberSection: string?
+        admissionNumber: string?
         libraryId: string
         type: string
         amount: double
@@ -161,6 +161,7 @@ models:
         status: string
         loanId: string?
         incidentId: string?
+        bookTitle: string?
         barcode: string?
         catalogueId: string?
         fineCalculation: json?
@@ -172,9 +173,9 @@ models:
       doc: "A lost or damaged book incident (FRS 11.14)."
       id: id
       fields:
-        incidentNumber: { type: string, default: "$id" }
         type: string
         barcode: string
+        bookTitle: string?
         catalogueId: string
         libraryId: string
         status: string
@@ -198,7 +199,6 @@ models:
       doc: "One issue of a copy to a member (FRS 11.9\u201311.11). Policy values are frozen on the loan at issue."
       id: id
       fields:
-        number: string
         memberType: string
         personErpId: int
         memberName: string?
@@ -279,5 +279,7 @@ models:
         personErpId: int
         name: string
         classId: int?
+        section: string?
+        admissionNumber: string?
         activeLoans: int
         blocked: bool

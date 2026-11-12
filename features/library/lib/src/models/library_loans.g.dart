@@ -7,7 +7,6 @@ import 'package:icue_firebase/icue_firebase.dart'
 class LibraryLoan {
   const LibraryLoan({
     required this.id,
-    required this.number,
     required this.memberType,
     required this.personErpId,
     this.memberName,
@@ -37,7 +36,6 @@ class LibraryLoan {
     Map<String, dynamic> data,
   ) => LibraryLoan(
     id: id,
-    number: data['number'] as String? ?? '',
     memberType: data['memberType'] as String? ?? '',
     personErpId: (data['personErpId'] as num? ?? 0).toInt(),
     memberName: data['memberName'] as String?,
@@ -65,7 +63,6 @@ class LibraryLoan {
   );
 
   final String id;
-  final String number;
   final String memberType;
   final int personErpId;
   final String? memberName;

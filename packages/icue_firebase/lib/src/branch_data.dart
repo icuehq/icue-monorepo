@@ -107,8 +107,13 @@ Future<void> setMasterActive(
 String callableErrorMessage(Object error) => switch (error) {
   FirebaseFunctionsException(:final message, :final code) => message ?? code,
   FirebaseException(:final message, :final code) => message ?? code,
-  _ => error.toString(),
+  _ => _plainText(error.toString()),
 };
+
+/// A Firestore error that crossed a transaction (web) arrives as text such as
+/// `Error: Dart exception: [cloud_firestore/failed-precondition] Member is blocked`; keep only the message.
+String _plainText(String text) =>
+    RegExp(r'\[[\w-]+/[\w-]+\]\s*(.+)').firstMatch(text)?.group(1) ?? text;
 
 /// Implemented by providers that keep the message of their last failed call.
 abstract interface class ErrorReporting {

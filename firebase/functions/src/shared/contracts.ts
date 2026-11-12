@@ -129,7 +129,6 @@ export const terminalCopyStatuses = [CopyStatus.lost, CopyStatus.withdrawn] as c
 
 /** One issue of a copy to a member. */
 export interface LibraryLoan {
-  number: string;
   memberType: MemberType;
   personErpId: number;
   memberName?: string | null;
@@ -147,7 +146,6 @@ export interface LibraryLoan {
   policySnapshot: LoanPolicySnapshot;
   status: LoanStatus;
   issuedBy: string;
-  returnNumber?: string | null;
   returnedDate?: Timestamp | null;
   condition?: string | null;
   overdueDays?: number | null;

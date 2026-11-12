@@ -176,7 +176,6 @@ const terminalCopyStatuses = [CopyStatus.lost, CopyStatus.withdrawn];
 
 /// One issue of a copy to a member.
 abstract final class LibraryLoanFields {
-  static const number = 'number';
   static const memberType = 'memberType';
   static const personErpId = 'personErpId';
   static const memberName = 'memberName';
@@ -194,7 +193,6 @@ abstract final class LibraryLoanFields {
   static const policySnapshot = 'policySnapshot';
   static const status = 'status';
   static const issuedBy = 'issuedBy';
-  static const returnNumber = 'returnNumber';
   static const returnedDate = 'returnedDate';
   static const condition = 'condition';
   static const overdueDays = 'overdueDays';

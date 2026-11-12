@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart' show DateTimeRange;
 import 'package:icue_ui/icue_ui.dart';
 import 'package:school_library/src/models/library_loans.g.dart';
 
@@ -36,28 +37,51 @@ extension LibraryLoanMembers on LibraryLoan {
   }
 }
 
-/// Issue-date window of the Issued Books list; each runs from [from] to today.
-enum LoanIssuedWindow {
-  today('Today'),
-  week('Last 7 days'),
-  month('Last 30 days'),
-  thisMonth('This month');
+/// Date range presets shared by library reports and the Issued Books period filter.
+enum LibraryDatePreset {
+  all('All'),
+  currentMonth('Current Month'),
+  lastMonth('Last Month'),
+  last6Months('Last 6 Months'),
+  last12Months('Last 12 Months'),
+  custom('Custom Date Range');
 
-  const LoanIssuedWindow(this.label);
+  const LibraryDatePreset(this.label);
   final String label;
+}
 
-  /// First issue day (`yyyy-MM-dd`) of the window ending on [todayDate].
-  String from(String todayDate) {
-    String daysBefore(int days) =>
-        DateTime.parse('${todayDate}T00:00:00Z')
-            .subtract(Duration(days: days))
-            .toApiDate();
-    return switch (this) {
-      LoanIssuedWindow.today => todayDate,
-      LoanIssuedWindow.week => daysBefore(6),
-      LoanIssuedWindow.month => daysBefore(29),
-      LoanIssuedWindow.thisMonth => '${todayDate.substring(0, 7)}-01',
-    };
+/// Computes the [DateTimeRange] for a given [LibraryDatePreset].
+DateTimeRange calculateRangeForPreset(
+  LibraryDatePreset preset, {
+  DateTimeRange? customRange,
+}) {
+  final today = DateTime.now().dateOnly;
+  switch (preset) {
+    case LibraryDatePreset.all:
+      return DateTimeRange(start: DateTime(2000), end: today);
+    case LibraryDatePreset.currentMonth:
+      return DateTimeRange(
+        start: DateTime(today.year, today.month),
+        end: today,
+      );
+    case LibraryDatePreset.lastMonth:
+      return DateTimeRange(
+        start: DateTime(today.year, today.month - 1),
+        end: DateTime(today.year, today.month, 0),
+      );
+    case LibraryDatePreset.last6Months:
+      return DateTimeRange(
+        start: DateTime(today.year, today.month - 5),
+        end: today,
+      );
+    case LibraryDatePreset.last12Months:
+      return DateTimeRange(
+        start: DateTime(today.year, today.month - 11),
+        end: today,
+      );
+    case LibraryDatePreset.custom:
+      return customRange ??
+          DateTimeRange(start: DateTime(today.year, today.month), end: today);
   }
 }
 

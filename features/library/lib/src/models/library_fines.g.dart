@@ -58,10 +58,12 @@ class LibraryFinePayment {
 class LibraryFine {
   const LibraryFine({
     required this.id,
-    required this.fineNumber,
     required this.memberType,
     required this.personErpId,
     this.memberName,
+    this.memberClassId,
+    this.memberSection,
+    this.admissionNumber,
     required this.libraryId,
     required this.type,
     required this.amount,
@@ -71,6 +73,7 @@ class LibraryFine {
     required this.status,
     this.loanId,
     this.incidentId,
+    this.bookTitle,
     this.barcode,
     this.catalogueId,
     this.fineCalculation,
@@ -82,10 +85,12 @@ class LibraryFine {
   factory LibraryFine.fromMap(String id, Map<String, dynamic> data) =>
       LibraryFine(
         id: id,
-        fineNumber: data['fineNumber'] as String? ?? id,
         memberType: data['memberType'] as String? ?? '',
         personErpId: (data['personErpId'] as num? ?? 0).toInt(),
         memberName: data['memberName'] as String?,
+        memberClassId: (data['memberClassId'] as num?)?.toInt(),
+        memberSection: data['memberSection'] as String?,
+        admissionNumber: data['admissionNumber'] as String?,
         libraryId: data['libraryId'] as String? ?? '',
         type: data['type'] as String? ?? '',
         amount: readDouble(data['amount']),
@@ -95,6 +100,7 @@ class LibraryFine {
         status: data['status'] as String? ?? '',
         loanId: data['loanId'] as String?,
         incidentId: data['incidentId'] as String?,
+        bookTitle: data['bookTitle'] as String?,
         barcode: data['barcode'] as String?,
         catalogueId: data['catalogueId'] as String?,
         fineCalculation: data['fineCalculation'] is Map
@@ -114,10 +120,12 @@ class LibraryFine {
       );
 
   final String id;
-  final String fineNumber;
   final String memberType;
   final int personErpId;
   final String? memberName;
+  final int? memberClassId;
+  final String? memberSection;
+  final String? admissionNumber;
   final String libraryId;
   final String type;
   final double amount;
@@ -127,6 +135,7 @@ class LibraryFine {
   final String status;
   final String? loanId;
   final String? incidentId;
+  final String? bookTitle;
   final String? barcode;
   final String? catalogueId;
   final Map<String, dynamic>? fineCalculation;

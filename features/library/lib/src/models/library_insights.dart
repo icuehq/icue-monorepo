@@ -89,7 +89,7 @@ final libraryReports = <LibraryReportDef>[
     'Every book issued between two dates',
     LibraryReportKind.loans,
     [
-      _text('Issue', 'number'),
+      _text('Loan', 'id'),
       _member(),
       LibraryReportCol(
         'Title',

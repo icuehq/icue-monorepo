@@ -151,7 +151,7 @@ class _IncidentDialogState extends State<IncidentDialog> {
           children: [
             Expanded(
               child: Text(
-                incident.incidentNumber,
+                incident.id,
                 style: theme.textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),

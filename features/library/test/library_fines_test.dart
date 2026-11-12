@@ -5,7 +5,6 @@ import 'package:school_library/school_library.dart';
 void main() {
   test('LibraryFine parses fine document, calculations, waivers, payments, and statuses', () {
     final fine = LibraryFine.fromMap('f1', {
-      'fineNumber': 'FIN/2026-27/000001',
       'personErpId': 501,
       'memberType': 'student',
       'libraryId': 'lib1',
@@ -34,7 +33,6 @@ void main() {
       ],
     });
 
-    expect(fine.fineNumber, 'FIN/2026-27/000001');
     expect(fine.memberLabel, 'Student #501');
     expect(fine.amount, 25.0);
     expect(fine.waived, 5.0);

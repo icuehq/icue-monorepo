@@ -42,7 +42,7 @@ void main() {
 
   test('loan row shows names for IDs and the days', () {
     final row = cells('dateRange', {
-      'number': 'ISS/1',
+      'id': 'loan1',
       'memberName': 'Asha',
       'personErpId': 501,
       'catalogueId': 'T',
@@ -51,7 +51,7 @@ void main() {
       'issuedDate': dayTimestamp('2026-11-01'),
       'status': 'active',
     });
-    expect(row, 'ISS/1|Asha (#501)|name:T|B1|name:L|01/11/2026|||active');
+    expect(row, 'loan1|Asha (#501)|name:T|B1|name:L|01/11/2026|||active');
   });
 }
 
