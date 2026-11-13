@@ -1,7 +1,6 @@
 import { initializeApp } from 'firebase-admin/app';
 import './region';
 import { assets, maintenance } from './inventory/assets';
-import { importRun } from './inventory/import';
 import { masters } from './inventory/masters';
 import { copies as libraryCopies } from './library/copies';
 import { sync, token } from './session';
@@ -41,7 +40,7 @@ export {
   auditLibraryPolicies,
 } from './library/audit';
 
-// Inventory masters other than seedDefaults are written by the client or only through the importer.
+// Inventory masters other than seedDefaults are written by the client.
 const mutations: AnyCallableDef[] = [
   assets,
   maintenance,
@@ -54,5 +53,4 @@ export const { session, inventory, library } = routes([
   ['session.sync', sync],
   ['session.token', token],
   ...mutations.map((def) => [def.name, callable(def)] as [string, unknown]),
-  ['inventory.import.run', importRun],
 ]);

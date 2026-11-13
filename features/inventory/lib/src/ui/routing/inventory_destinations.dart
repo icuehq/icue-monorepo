@@ -39,15 +39,6 @@ List<InventoryEntry> inventoryEntries(ModuleAccess access) => [
       iconAsset: 'assets/dashboard/reports.png',
       group: 'Overview',
     ),
-  if (access.can('inventory.settings') ||
-      access.can('inventory.items.manage') ||
-      access.can('inventory.vendors.manage'))
-    const InventoryEntry(
-      label: 'Import',
-      path: InventoryRoutes.inventoryImport,
-      iconAsset: 'assets/dashboard/inventory-import.png',
-      group: 'Overview',
-    ),
   if (access.can('inventory.stock.view'))
     const InventoryEntry(
       label: 'Stock',

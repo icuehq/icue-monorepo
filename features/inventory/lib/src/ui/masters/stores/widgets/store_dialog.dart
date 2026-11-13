@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
-import 'package:inventory/src/ui/shared/widgets/person_search_field.dart';
 import 'package:provider/provider.dart';
 
 /// Adds a store or edits [store]: a dialog on wide screens, a full screen on phones.
@@ -25,7 +24,6 @@ class _StoreDialogState extends State<StoreDialog> {
     text: widget.store?.description,
   );
   late final _location = TextEditingController(text: widget.store?.location);
-  late final Set<int> _storekeeperIds = {...?widget.store?.storekeeperIds};
   int _nextSample = 0;
   bool _busy = false;
   bool _submitted = false;
@@ -74,7 +72,6 @@ class _StoreDialogState extends State<StoreDialog> {
         'name': _name.text.trim(),
         'description': blankToNull(_description),
         'location': blankToNull(_location),
-        'storekeeperIds': _storekeeperIds.toList(),
       }),
     );
     if (mounted && !saved) {
@@ -130,8 +127,8 @@ class _StoreDialogState extends State<StoreDialog> {
                     const SizedBox(height: 3),
                     Text(
                       editing
-                          ? 'Update the details and storekeepers.'
-                          : 'Set up a store and assign its storekeepers.',
+                          ? 'Update the store details.'
+                          : 'Set up a new store.',
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                         fontSize: 13,
@@ -210,39 +207,6 @@ class _StoreDialogState extends State<StoreDialog> {
                 label: 'Description',
                 hintText: 'Optional notes or purpose of the store',
                 icon: Icons.description_outlined,
-              ),
-            ],
-          ),
-          IcueFormSectionCard(
-            title: 'Store Keepers',
-            icon: Icons.people_outline,
-            children: [
-              if (_storekeeperIds.isNotEmpty) ...[
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final staffId in _storekeeperIds)
-                      Chip(
-                        avatar: const CircleAvatar(
-                          child: Icon(Icons.person_outline, size: 16),
-                        ),
-                        label: Text(staffDisplayName(staffId)),
-                        deleteIcon: const Icon(Icons.close, size: 16),
-                        onDeleted: () =>
-                            setState(() => _storekeeperIds.remove(staffId)),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-              ],
-              PersonSearchField(
-                label: 'Add storekeeper',
-                hint: 'Search staff by name or ID…',
-                exclude: _storekeeperIds,
-                clearOnSelect: true,
-                onSelected: (staff) =>
-                    setState(() => _storekeeperIds.add(staff.id)),
               ),
             ],
           ),

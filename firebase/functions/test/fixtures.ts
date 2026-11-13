@@ -13,10 +13,9 @@ const audit = {
 
 export async function seedStore(fields: {
   name: string;
-  storekeeperIds?: number[];
 }): Promise<{ id: string }> {
   const ref = db().collection(`${SCHOOL}/inventoryStores`).doc();
-  await ref.set({ description: null, location: null, storekeeperIds: [], ...fields, ...audit });
+  await ref.set({ description: null, location: null, ...fields, ...audit });
   return { id: ref.id };
 }
 

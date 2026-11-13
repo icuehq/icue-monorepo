@@ -44,7 +44,6 @@ class StoreCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final keepersCount = store.storekeeperIds.length;
     return Card(
       elevation: 0,
       margin: const EdgeInsets.symmetric(vertical: 6),
@@ -172,12 +171,6 @@ class StoreCard extends StatelessWidget {
                     context,
                     Icons.place_outlined,
                     store.location!.trim(),
-                  ),
-                if (keepersCount > 0)
-                  _metaPill(
-                    context,
-                    Icons.people_outline,
-                    '$keepersCount keeper${keepersCount == 1 ? '' : 's'}',
                   ),
               ],
             ),

@@ -349,25 +349,3 @@ const dashboardStats = <(String, String, List<String>)>[
   ('assets', 'Registered assets', ['inventory.assets.view']),
   ('maint', 'Assets under maintenance', ['inventory.assets.view']),
 ];
-
-/// Columns of each import type (`inventory-import-run`); the first row of the pasted CSV.
-const importColumns = <String, List<String>>{
-  'categories': ['code', 'name', 'tracking', 'parentCode'],
-  'items': [
-    'code',
-    'name',
-    'categoryCode',
-    'stockUnit',
-    'tracking',
-    'reorderLevel',
-    'defaultPrice',
-  ],
-  'vendors': ['code', 'name', 'contactPerson', 'phone', 'email', 'taxNumber'],
-};
-
-/// Permission the single-record callable of each import type needs.
-const importPermissions = <String, String>{
-  'categories': 'inventory.settings',
-  'items': 'inventory.items.manage',
-  'vendors': 'inventory.vendors.manage',
-};

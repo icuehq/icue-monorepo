@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { assets as a } from '../src/inventory/assets';
-import { runImport } from '../src/inventory/import';
 import { masters } from '../src/inventory/masters';
 import { runCallable, type CallableDef } from '../src/shared/callable';
 import { seedStore } from './fixtures';
@@ -15,18 +14,13 @@ const run = (definition: CallableDef<any, any>, data: Record<string, unknown>, u
     { uid, token: { orgId: 8, zoneId: 147, branchId: 427, personType: 'staff' } },
     { requestId: `req-${String(++requestSequence).padStart(6, '0')}`, ...data },
   );
-const imp = (type: string, rows: Record<string, string>[], uid = '1', importId = 'imp_000001') =>
-  runImport(
-    { uid, token: { orgId: 8, zoneId: 147, branchId: 427, personType: 'staff' } },
-    { importId, type, rows },
-  );
 const code = (promise: Promise<unknown>) =>
   promise.then(
     () => 'ok',
     (error) => error.code,
   );
 
-describe('import and RFID', () => {
+describe('RFID', () => {
   beforeEach(async () => {
     await clearFirestore();
     const permissionsList = (permissions: string[]) => ({
@@ -46,32 +40,6 @@ describe('import and RFID', () => {
       .doc(`${BRANCH}/userAccess/none`)
       .set(permissionsList(['inventory.stock.view']));
     await run(masters.seedDefaults, {});
-  });
-
-  it('imports rows through the single-record rules, reporting bad rows and duplicates; replay is safe', async () => {
-    const cats = [
-      { code: 'GEN', name: 'General' },
-      { code: 'GEN', name: 'Again' },
-      { code: 'X', name: '' },
-    ];
-    const result = await imp('categories', cats);
-    expect(result.results.map((result) => result.ok)).toEqual([true, false, false]);
-    expect(result.results[1].error).toMatch(/already exists/);
-    expect((await imp('categories', cats)).created).toBe(1); // same importId: replayed, no duplicate
-    const items = await imp(
-      'items',
-      [
-        { code: 'PEN', name: 'Pen', categoryCode: 'gen', stockUnit: 'pcs', reorderLevel: '5' },
-        { code: 'BAD', name: 'Bad', categoryCode: 'nope' },
-      ],
-      '1',
-      'imp_000002',
-    );
-    expect(items.results.map((result) => result.ok)).toEqual([true, false]);
-    expect((await db().collection(`${BRANCH}/inventoryItems`).get()).size).toBe(1);
-    expect(await code(imp('vendors', [{ code: 'V', name: 'V' }], 'none', 'imp_000003'))).toBe(
-      'permission-denied',
-    );
   });
 
   it('assigns a unique RFID tag, moves and clears it', async () => {

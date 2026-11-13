@@ -107,17 +107,6 @@ class StoresTable extends StatelessWidget {
             style: IcueTableStyle.of(context).secondary,
           ),
         ),
-        IcueTableColumn(
-          id: 'storekeepers',
-          label: 'Storekeepers',
-          sortable: true,
-          comparator: (store) => store.storekeeperIds.length,
-          alignment: Alignment.centerRight,
-          cellBuilder: (context, store) => IcueTableCellText(
-            '${store.storekeeperIds.length}',
-            style: IcueTableStyle.of(context).secondary,
-          ),
-        ),
       ],
     );
   }

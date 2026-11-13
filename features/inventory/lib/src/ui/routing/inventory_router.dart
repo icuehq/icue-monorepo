@@ -4,7 +4,6 @@ import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/assets/maintenance/maintenance_page.dart';
 import 'package:inventory/src/ui/assets/registry/asset_form_page.dart';
 import 'package:inventory/src/ui/assets/registry/assets_page.dart';
-import 'package:inventory/src/ui/insights/import/import_page.dart';
 import 'package:inventory/src/ui/insights/overview/inventory_overview_page.dart';
 import 'package:inventory/src/ui/insights/reports/report_page.dart';
 import 'package:inventory/src/ui/insights/reports/reports_page.dart';
@@ -247,11 +246,6 @@ final _inventoryPages = <RouteBase>[
     name: InventoryRoutes.inventoryReportName,
     builder: (context, state) =>
         InventoryReportPage(def: state.extra! as ReportDef),
-  ),
-  GoRoute(
-    path: InventoryRoutes.inventoryImport,
-    name: InventoryRoutes.inventoryImportName,
-    builder: (context, state) => const ImportPage(),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryInvoices,

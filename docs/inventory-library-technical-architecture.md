@@ -133,7 +133,7 @@ Common fields on every document: `createdAt`, `createdBy` (uid), `updatedAt`, `s
 | `inventoryUnits` | code, name | Defaults seeded (FRS 10.4) |
 | `inventoryItems` | code, name, categoryId, subcategoryId, stockUnit, purchaseUnits `[{unit, factor}]`, tracking `quantity | batch | asset`, variantAttrs, minLevel, reorderLevel, defaultPrice, preferredVendorId, defaultLocation, imagePath | `categoryHistory` via audit log |
 | `inventoryItems/{id}/variants` | attrs `{size, color}`, sku, status | Uniforms etc. |
-| `inventoryStores` | code, name, location, storekeeperIds, status | Department/location is a field on the store or balance |
+| `inventoryStores` | code, name, location, status | Department/location is a field on the store or balance |
 | `inventoryBalances/{storeId__itemId__variantId__batchId}` | quantityAvailable, quantityReserved, quantityDamaged, quantityExpired, totalQuantityReceived, totalQuantityIssued, unitCost, value, batchNumber, manufacturingDate, expiryDate, isBelowReorderLevel | **The only stock balance.** One doc per store × item × variant × batch (`-` when not applicable). |
 | `inventoryMovements` | type (`receive`, `issue`, `return`, `adjust`, `expire`, `damage`, `writeoff`, `restore`), balanceId, itemId, storeId, quantity (signed), bucket, refType, refId, unitCost | Append-only ledger. Never updated. |
 | `inventoryIssueRequests` | lineItems `[{itemId, variantId, quantityRequested, quantityApproved, quantityIssued}]`, itemIds, requester, purpose, status, approval `{by, at, comment}` | FRS 10.8 |

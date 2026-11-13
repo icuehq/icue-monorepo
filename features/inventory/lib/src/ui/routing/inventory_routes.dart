@@ -110,8 +110,6 @@ class InventoryRoutes {
   static const String inventoryInvoices = '/inventory/invoices';
   static const String inventoryInvoicesName = 'inventory.invoices';
 
-  static const String inventoryImport = '/inventory/import';
-  static const String inventoryImportName = 'inventory.import';
   static const String inventoryAssets = '/inventory/assets';
   static const String inventoryAssetsName = 'inventory.assets';
 
