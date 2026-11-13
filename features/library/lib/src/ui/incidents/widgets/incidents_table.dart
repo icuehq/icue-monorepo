@@ -78,20 +78,18 @@ class IncidentsTable extends StatelessWidget {
         IcueTableColumn(
           id: 'member',
           label: 'Member',
-          flex: 3,
-          cellBuilder: (context, incident) => IcueTableCellText(
-            incident.memberLabel ?? 'In stock',
-            style: IcueTableStyle.of(context).secondary,
-          ),
-        ),
-        IcueTableColumn(
-          id: 'class',
-          label: 'Class',
-          hideBelowWidth: 900,
-          cellBuilder: (context, incident) => IcueTableCellText(
-            provider.classLabel(incident.memberClassId, incident.memberSection),
-            style: IcueTableStyle.of(context).secondary,
-          ),
+          flex: 2,
+          cellBuilder: (context, incident) {
+            final classLabel = provider.classLabel(
+              incident.memberClassId,
+              incident.memberSection,
+            );
+            return IcueTableCellText(
+              incident.memberLabel ?? 'In stock',
+              style: IcueTableStyle.of(context).secondary,
+              subtitle: classLabel == '-' ? null : classLabel,
+            );
+          },
         ),
         IcueTableColumn(
           id: 'admission',
@@ -132,7 +130,7 @@ class IncidentsTable extends StatelessWidget {
         IcueTableColumn(
           id: 'status',
           label: 'Status',
-          width: 110,
+          width: 160,
           cellBuilder: (context, incident) =>
               LibraryStatusChip(incident.status),
         ),

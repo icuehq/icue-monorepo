@@ -16,9 +16,10 @@ class InventoryService {
   }
 
   Future<ModuleAccess> access() async {
-    final user = FirebaseAuth.instance.currentUser!;
-    final doc = await (await branchCollection('userAccess'))
-        .doc(user.uid)
+    // branchCollection waits for the sign-in, so read the user after it.
+    final collection = await branchCollection('userAccess');
+    final doc = await collection
+        .doc(FirebaseAuth.instance.currentUser!.uid)
         .get();
     return ModuleAccess.fromMap(doc.data() ?? {});
   }

@@ -5,6 +5,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 String? _branchUid;
 String? _branchPath;
 Future<String>? _resolving;
+Future<Object?>? _signIn;
+
+/// Registers an in-flight Firebase sign-in (custom-token exchange). Branch reads wait for it instead of
+/// failing with "Not signed in" while it runs, and resolve the branch again from the new token.
+void trackFirebaseSignIn(Future<Object?> signIn) {
+  _branchUid = null;
+  _signIn = signIn;
+}
 
 /// The signed-in user's branch path, resolved once per sign-in. Concurrent callers (a dashboard runs a dozen
 /// queries at once) share one lookup instead of each forcing its own token refresh.
@@ -27,6 +35,12 @@ Future<String> _resolveBranchPath(User user) async {
 /// The signed-in user's branch path (`orgs/{orgId}/zones/{zoneId}/branches/{branchId}`). The token is
 /// issued for one active branch, so it is read once per sign-in (a branch switch signs in again).
 Future<String> branchPath() async {
+  // Right after login the Firebase sign-in is still running (it signs out first); wait for it.
+  try {
+    await _signIn;
+  } catch (_) {
+    // A failed sign-in surfaces below as "Not signed in".
+  }
   // On web `currentUser` is null until Firebase Auth restores the session, so wait for the first auth state.
   final user =
       FirebaseAuth.instance.currentUser ??

@@ -378,6 +378,12 @@ describe('library client writes (no callable)', () => {
     await assertFails(updateDoc(doc(db('p', parent), 'orgs/8/zones/147/branches/427/libraryCopies/c1'), edit));
  });
 
+  it('copies: stamped status change to a known status', async () => {
+    const path = 'orgs/8/zones/147/branches/427/libraryCopies/c1';
+    await assertSucceeds(updateDoc(doc(db('4'), path), { status: 'damaged', lastWrite: stamp('libraryCopy.status') }));
+    await assertFails(updateDoc(doc(db('4'), path), { status: 'bogus', lastWrite: stamp('libraryCopy.status') }));
+  });
+
 
   it('policies: stamped create on an active library; library, person type and campus fixed', async () => {
     await env.withSecurityRulesDisabled((context) => setDoc(doc(context.firestore(), 'orgs/8/zones/147/branches/427/libraryBorrowingPolicies/p1'), { libraryId: 'main', memberType: 'student', status: 'active' }));

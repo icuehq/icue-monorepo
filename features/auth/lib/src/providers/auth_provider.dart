@@ -12,6 +12,7 @@ import 'package:auth/src/storage/session_token_provider.dart';
 import 'package:auth/src/storage/user_local_storage.dart';
 import 'package:auth/src/utils/indian_phone_validator.dart';
 import 'package:flutter/foundation.dart';
+import 'package:icue_firebase/icue_firebase.dart' show trackFirebaseSignIn;
 import 'package:injectable/injectable.dart';
 
 /// Steps in the two-stage authentication flow.
@@ -87,7 +88,7 @@ class AuthProvider extends ChangeNotifier {
       _username = storedUser.userName;
       _step = AuthStep.authenticated;
       // Restored Node session: sign in to Firebase if it has no user.
-      unawaited(_authService.ensureFirebaseSession());
+      trackFirebaseSignIn(_authService.ensureFirebaseSession());
     }
   }
 
@@ -103,7 +104,7 @@ class AuthProvider extends ChangeNotifier {
       _username = storedUser.userName;
       _step = AuthStep.authenticated;
       // Restored Node session: sign in to Firebase if it has no user.
-      unawaited(_authService.ensureFirebaseSession());
+      trackFirebaseSignIn(_authService.ensureFirebaseSession());
       notifyListeners();
     }
   }

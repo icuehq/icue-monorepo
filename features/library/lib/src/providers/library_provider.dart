@@ -405,6 +405,10 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   Future<LibraryMember?> member(int personErpId) =>
       _service.member(personErpId);
 
+  /// Fines the member still owes, shown at the issue desk (they never block borrowing).
+  Future<List<LibraryFine>> openFines(int personErpId) =>
+      _service.openFines(personErpId);
+
   Future<LibraryBook?> book(String id) => _service.book(id);
 
   Future<List<LibraryCopy>> copiesOf(String catalogueId) =>
@@ -513,7 +517,7 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
       _write(() => _writes.updateCopy(data));
 
   Future<bool> setCopyStatus(String id, String status, String? reason) =>
-      _write(() => _service.setCopyStatus(id, status, reason));
+      _write(() => _loanWrites.setCopyStatus(id, status, reason));
 
   Future<bool> savePolicy(Map<String, Object?> data) =>
       _write(() => _writes.savePolicy(data), reload: loadMasters);
@@ -574,28 +578,6 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
 
   Future<bool> renewLoan(String id) =>
       _write(() => _loanWrites.renew(id), reload: loadLoans);
-
-  Future<bool> waiveFine({
-    required String id,
-    required double amount,
-    required String reason,
-  }) => _write(
-    () => _loanWrites.waiveFine(id: id, amount: amount, reason: reason),
-    reload: loadFines,
-  );
-
-  Future<bool> setFinePayment({
-    required String id,
-    required double amount,
-    String? reference,
-  }) => _write(
-    () => _loanWrites.recordFinePayment(
-      id: id,
-      amount: amount,
-      reference: reference,
-    ),
-    reload: loadFines,
-  );
 
   Future<bool> resolveIncident({
     required String id,

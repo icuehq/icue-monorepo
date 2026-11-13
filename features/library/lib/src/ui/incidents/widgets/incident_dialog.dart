@@ -4,14 +4,17 @@ import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/shared/library_status_chip.dart';
 
-/// Detailed view of a lost or damaged book incident with resolve action.
+/// Details of a lost or damaged book incident, with a resolve action while it is open.
 class IncidentDialog extends StatefulWidget {
   const IncidentDialog({super.key, required this.incident});
 
   final LibraryIncident incident;
 
   static Future<void> show(BuildContext context, LibraryIncident incident) =>
-      showFormPage(context, () => IncidentDialog(incident: incident));
+      showDialog<void>(
+        context: context,
+        builder: (_) => IncidentDialog(incident: incident),
+      );
 
   @override
   State<IncidentDialog> createState() => _IncidentDialogState();
@@ -113,7 +116,7 @@ class _IncidentDialogState extends State<IncidentDialog> {
 
     setState(() => _busy = true);
     final libraryProvider = context.read<LibraryProvider>();
-    final navigator = Navigator.of(context);
+    final navigator = Navigator.of(context, rootNavigator: true);
     final result = await libraryProvider.resolveIncident(
       id: widget.incident.id,
       resolution: resolution,
@@ -137,29 +140,18 @@ class _IncidentDialogState extends State<IncidentDialog> {
   @override
   Widget build(BuildContext context) {
     final incident = widget.incident;
-    final theme = Theme.of(context);
 
-    return Column(
+    final content = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                incident.id,
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-            LibraryStatusChip(incident.status),
-          ],
+        Align(
+          alignment: Alignment.centerLeft,
+          child: LibraryStatusChip(incident.status),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
         if (incident.bookTitle != null) _Field('Book', incident.bookTitle!),
         _Field('Copy', incident.barcode),
-        _Field('Kind', humanizeStatus(incident.type)),
         if (incident.severity != null)
           _Field('Severity', humanizeStatus(incident.severity)),
         if (incident.memberLabel != null)
@@ -186,17 +178,27 @@ class _IncidentDialogState extends State<IncidentDialog> {
           if (incident.resolutionRemarks != null)
             _Field('Remarks', incident.resolutionRemarks!),
         ],
-        if (incident.isOpen) ...[
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            child: IcueButton(
-              label: 'Resolve incident',
-              onPressed: _busy ? null : _resolve,
-            ),
-          ),
-        ],
       ],
+    );
+
+    void close() => Navigator.of(context, rootNavigator: true).pop();
+    final closeAction = IcueDialogAction(
+      label: 'Close',
+      variant: IcueButtonVariant.ghost,
+      onPressed: close,
+    );
+    return IcueDialog(
+      title: '${fineTypeLabel(incident.type)} incident',
+      size: IcueDialogSize.large,
+      content: content,
+      secondaryAction: incident.isOpen ? closeAction : null,
+      primaryAction: incident.isOpen
+          ? IcueDialogAction(
+              label: 'Resolve incident',
+              isLoading: _busy,
+              onPressed: _busy ? null : _resolve,
+            )
+          : closeAction,
     );
   }
 }

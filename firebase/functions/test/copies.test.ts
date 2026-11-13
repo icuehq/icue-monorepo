@@ -148,26 +148,4 @@ describe('library copies and books', () => {
     await expect(buy()).rejects.toMatchObject({ code: 'failed-precondition' });
     expect(await count('libraryCopies')).toBe(3); // only the one good purchase
   });
-
-  it('status: reason for damage/loss/withdrawal; lost and withdrawn are final; circulation states are untouchable', async () => {
-    await buy({ quantity: 3 });
-    await run(copies.copySetStatus, { id: 'ACC-000001', status: 'under_maintenance' });
-    await run(copies.copySetStatus, { id: 'ACC-000001', status: 'available' });
-    await expect(
-      run(copies.copySetStatus, { id: 'ACC-000001', status: 'damaged' }),
-    ).rejects.toMatchObject({ code: 'failed-precondition' });
-    await run(copies.copySetStatus, { id: 'ACC-000001', status: 'damaged', reason: 'torn' });
-    await run(copies.copySetStatus, {
-      id: 'ACC-000001',
-      status: 'withdrawn',
-      reason: 'beyond repair',
-    });
-    await expect(
-      run(copies.copySetStatus, { id: 'ACC-000001', status: 'available' }),
-    ).rejects.toMatchObject({ code: 'failed-precondition' });
-    await db().doc(`${BRANCH}/libraryCopies/ACC-000002`).update({ status: 'issued' });
-    await expect(
-      run(copies.copySetStatus, { id: 'ACC-000002', status: 'lost', reason: 'x' }),
-    ).rejects.toMatchObject({ code: 'failed-precondition' });
-  });
 });

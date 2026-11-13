@@ -26,6 +26,7 @@ class _IssueBooksPageState extends State<IssueBooksPage> {
 
   LibraryPerson? _person;
   LibraryMember? _member;
+  List<LibraryFine> _fines = const [];
   bool _busy = false;
 
   /// Issue attempts in this session, newest first.
@@ -52,6 +53,7 @@ class _IssueBooksPageState extends State<IssueBooksPage> {
       setState(() {
         _person = null;
         _member = null;
+        _fines = const [];
       });
       return;
     }
@@ -62,8 +64,12 @@ class _IssueBooksPageState extends State<IssueBooksPage> {
     });
     try {
       final member = await libraryProvider.member(person.personErpId);
+      final fines = await libraryProvider.openFines(person.personErpId);
       if (mounted) {
-        setState(() => _member = member);
+        setState(() {
+          _member = member;
+          _fines = fines;
+        });
       }
     } finally {
       if (mounted) {
@@ -218,6 +224,7 @@ class _IssueBooksPageState extends State<IssueBooksPage> {
           IssueMemberCard(
             person: person,
             member: _member,
+            fines: _fines,
             onChange: _changePerson,
             disabled: _busy,
           ),

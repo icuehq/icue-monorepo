@@ -85,32 +85,18 @@ class FinesTable extends StatelessWidget {
         IcueTableColumn(
           id: 'member',
           label: 'Member',
-          flex: 3,
-          cellBuilder: (context, fine) => IcueTableCellText(
-            fine.memberLabel,
-            style: IcueTableStyle.of(context).secondary,
-          ),
-        ),
-        IcueTableColumn(
-          id: 'class',
-          label: 'Class',
-          hideBelowWidth: 900,
-          cellBuilder: (context, fine) => IcueTableCellText(
-            context.watch<LibraryProvider>().classLabel(
+          flex: 2,
+          cellBuilder: (context, fine) {
+            final classLabel = context.watch<LibraryProvider>().classLabel(
               fine.memberClassId,
-              null,
-            ),
-            style: IcueTableStyle.of(context).secondary,
-          ),
-        ),
-        IcueTableColumn(
-          id: 'section',
-          label: 'Section',
-          hideBelowWidth: 900,
-          cellBuilder: (context, fine) => IcueTableCellText(
-            fine.memberSection ?? '-',
-            style: IcueTableStyle.of(context).secondary,
-          ),
+              fine.memberSection,
+            );
+            return IcueTableCellText(
+              fine.memberLabel,
+              style: IcueTableStyle.of(context).secondary,
+              subtitle: classLabel == '-' ? null : classLabel,
+            );
+          },
         ),
         IcueTableColumn(
           id: 'admission',
@@ -125,7 +111,6 @@ class FinesTable extends StatelessWidget {
         IcueTableColumn(
           id: 'type',
           label: 'Type',
-          flex: 2,
           hideBelowWidth: 900,
           cellBuilder: (context, fine) =>
               IcueTableCellText(fineTypeLabel(fine.type)),
@@ -162,7 +147,7 @@ class FinesTable extends StatelessWidget {
         IcueTableColumn(
           id: 'status',
           label: 'Status',
-          width: 130,
+          width: 160,
           cellBuilder: (context, fine) => LibraryStatusChip(fine.status),
         ),
       ],

@@ -7,6 +7,7 @@ class IssueMemberCard extends StatelessWidget {
   const IssueMemberCard({
     required this.person,
     this.member,
+    this.fines = const [],
     this.onChange,
     this.disabled = false,
     super.key,
@@ -14,6 +15,9 @@ class IssueMemberCard extends StatelessWidget {
 
   final LibraryPerson person;
   final LibraryMember? member;
+
+  /// Unsettled fines of the borrower; shown as a notice, they never block issuing.
+  final List<LibraryFine> fines;
   final VoidCallback? onChange;
   final bool disabled;
 
@@ -142,6 +146,59 @@ class IssueMemberCard extends StatelessWidget {
               ],
             ),
           ),
+          if (fines.isNotEmpty) _PendingFines(fines: fines),
+        ],
+      ),
+    );
+  }
+}
+
+/// Notice listing what the borrower still owes; issuing is still allowed.
+class _PendingFines extends StatelessWidget {
+  const _PendingFines({required this.fines});
+
+  final List<LibraryFine> fines;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final total = fines.fold<double>(0, (sum, fine) => sum + fine.outstanding);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+      color: colorScheme.tertiaryContainer,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.warning_amber_rounded,
+                size: 18,
+                color: colorScheme.onTertiaryContainer,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Pending fines: ${total.toRupees()}',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onTertiaryContainer,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          for (final fine in fines)
+            Padding(
+              padding: const EdgeInsets.only(top: 4, left: 26),
+              child: Text(
+                '${fineTypeLabel(fine.type)}${fine.bookTitle == null ? '' : ' · ${fine.bookTitle}'} · ${fine.outstanding.toRupees()}',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onTertiaryContainer,
+                ),
+              ),
+            ),
         ],
       ),
     );

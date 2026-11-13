@@ -78,7 +78,7 @@ class AuthService {
 
     // Persist full user info in Hive 'userInfo-v2' matching existing app format
     await userLocalStorage.saveUser(userInfo);
-    unawaited(ensureFirebaseSession(refresh: true));
+    trackFirebaseSignIn(ensureFirebaseSession(refresh: true));
 
     return userInfo;
   }

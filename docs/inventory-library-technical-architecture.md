@@ -202,7 +202,7 @@ Names below are logical; they deploy as `<group>-<name>` (`session.sync` → `se
 | Members | `library.member.upsert/setStatus` |
 | Circulation | Client transactions (`LoanWrites`): issue, return, renew, mark lost. Notices come from `notices.ts` triggers. |
 | Reservations | Client transactions (`LoanWrites`): reserve, cancel. |
-| Fines | Client transactions (`LoanWrites`): waive, record payment (Finance reference only). |
+| Fines | Read-only. Fines never block borrowing; the issue desk lists the member's pending fines. A dismissed lost-copy incident waives its fine (`LoanWrites`). |
 | Incidents | Client transactions (`LoanWrites`): report, resolve. |
 | Transfers | `library.transfer.request/approve/dispatch/receive` |
 | Files | `files.getUploadPath` (returns an authorised Storage path) |

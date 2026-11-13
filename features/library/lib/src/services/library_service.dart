@@ -37,9 +37,10 @@ class LibraryService {
 
   /// The signed-in user's module permissions.
   Future<ModuleAccess> access() async {
-    final user = FirebaseAuth.instance.currentUser!;
-    final doc = await (await branchCollection('userAccess'))
-        .doc(user.uid)
+    // branchCollection waits for the sign-in, so read the user after it.
+    final collection = await branchCollection('userAccess');
+    final doc = await collection
+        .doc(FirebaseAuth.instance.currentUser!.uid)
         .get();
     return ModuleAccess.fromMap(doc.data() ?? {});
   }
@@ -289,6 +290,24 @@ class LibraryService {
     return query.orderBy('createdAt', descending: true);
   }
 
+  /// Fines of one member that are not yet settled, newest first.
+  Future<List<LibraryFine>> openFines(int personErpId) async {
+    final snapshot = await (await branchCollection('libraryFines'))
+        .where('personErpId', isEqualTo: personErpId)
+        .where('status', whereIn: ['outstanding', 'partially_paid'])
+        .get();
+    final fines =
+        [
+          for (final document in snapshot.docs)
+            LibraryFine.fromMap(document.id, document.data()),
+        ]..sort(
+          (a, b) => (b.createdAt ?? DateTime(0)).compareTo(
+            a.createdAt ?? DateTime(0),
+          ),
+        );
+    return fines;
+  }
+
   /// A single fine by ID.
   Future<LibraryFine?> fine(String id) =>
       _one('libraryFines', id, LibraryFine.fromMap);
@@ -344,13 +363,6 @@ class LibraryService {
     return [
       for (final row in result['barcodes']! as List<Object?>) row! as String,
     ];
-  }
-
-  Future<void> setCopyStatus(String id, String status, String? reason) async {
-    await callFunction(
-      'library-copy-setStatus',
-      data: {'id': id, 'status': status, 'reason': ?reason},
-    );
   }
 
   // ---- Dashboard and reports (Lib-8) ----
