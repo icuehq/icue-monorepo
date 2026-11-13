@@ -38,6 +38,6 @@ appId: com.thoughtniques.icueadmin.dev
     file: ../helpers/open-inventory-page.yaml
     env:
       PAGE: Assets
-- assertVisible: ".*AST/.*Room 102.*"
-- assertVisible: ".*AST/.*Room 204.*"
+- assertVisible: ".*Room 102.*"
+- assertVisible: ".*Room 204.*"
 - assertVisible: "Available"

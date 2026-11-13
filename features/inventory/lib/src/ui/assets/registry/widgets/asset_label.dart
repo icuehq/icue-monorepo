@@ -29,7 +29,7 @@ Future<void> shareAssetLabel(InventoryAsset asset) {
           pw.Expanded(
             child: pw.BarcodeWidget(
               barcode: pw.Barcode.code128(),
-              data: asset.assetId,
+              data: asset.id,
               textStyle: const pw.TextStyle(
                 fontSize: 7,
                 fontWeight: pw.FontWeight.bold,

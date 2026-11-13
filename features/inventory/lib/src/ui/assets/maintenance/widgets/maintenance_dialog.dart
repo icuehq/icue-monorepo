@@ -66,7 +66,7 @@ class _MaintenanceDialogState extends State<MaintenanceDialog> {
             widget.job == null ? 'Report fault' : widget.job!.number,
             style: Theme.of(context).textTheme.titleLarge,
           ),
-          Text(widget.asset?.assetId ?? widget.job!.assetCode),
+          Text(widget.asset?.name ?? widget.job!.assetName),
           IcueTextField(
             controller: _issue,
             maxLines: 3,

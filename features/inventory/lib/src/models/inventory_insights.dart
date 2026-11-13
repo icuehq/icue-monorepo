@@ -240,7 +240,6 @@ final inventoryReports = <ReportDef>[
     'Asset register',
     'inventoryAssets',
     [
-      _textColumn('Asset', 'assetId'),
       _textColumn('Name', 'name'),
       _textColumn('Serial', 'serialNumber'),
       _textColumn('Status', 'status'),
@@ -265,8 +264,7 @@ final inventoryReports = <ReportDef>[
   ),
   ReportDef('assignments', 'Asset assignment', 'inventoryAssetAssignments', [
     _date('Assigned', 'assignedAt'),
-    _textColumn('Asset', 'assetCode'),
-    _textColumn('Name', 'assetName'),
+    _textColumn('Asset', 'assetName'),
     ReportCol(
       'Assignee',
       (m, _) =>
@@ -282,7 +280,7 @@ final inventoryReports = <ReportDef>[
     [
       _date('Date', 'createdAt'),
       _textColumn('Job', 'number'),
-      _textColumn('Asset', 'assetCode'),
+      _textColumn('Asset', 'assetName'),
       _textColumn('Status', 'status'),
       ReportCol('Cost', (m, _) => _money(m['cost']), sum: true),
     ],

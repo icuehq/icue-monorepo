@@ -125,7 +125,7 @@ class _Header extends StatelessWidget {
     trailing: StatusChip(asset.status),
     children: [
       SelectableText(
-        asset.assetId,
+        asset.id,
         style: Theme.of(context).textTheme.titleMedium,
       ),
       Wrap(

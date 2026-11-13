@@ -114,7 +114,7 @@ class _MaintenancePageState extends State<MaintenancePage> {
                           '${maintenance.number} · ${maintenance.assetName}',
                         ),
                         subtitle: Text(
-                          '${maintenance.issue}\n${maintenance.assetCode} · ${humanizeStatus(maintenance.priority)} priority · ${maintenance.reportedDate.toDisplayDay()}',
+                          '${maintenance.issue}\n${maintenance.assetName} · ${humanizeStatus(maintenance.priority)} priority · ${maintenance.reportedDate.toDisplayDay()}',
                         ),
                         isThreeLine: true,
                         trailing: StatusChip(maintenance.status),
@@ -161,7 +161,7 @@ class MaintenanceSheet extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                '${maintenance.assetName} · ${maintenance.assetCode}',
+                maintenance.assetName,
               ),
             ),
             StatusChip(maintenance.status),

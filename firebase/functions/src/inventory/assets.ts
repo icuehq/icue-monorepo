@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type { CallableContext } from '../shared/callable';
 import { dayTimestamp, dayTimestampOrNull, isoDate, todayIST } from '../shared/dates';
 import { serverTimestamp } from '../shared/firestore';
-import { claimUniqueKey, nextNumber, nextNumbers, uniqueKeyRef } from '../shared/keys';
+import { claimUniqueKey, nextNumber, uniqueKeyRef } from '../shared/keys';
 import {
   defineCallable,
   failed,
@@ -76,7 +76,6 @@ function openAssignment(
   const ref = context.newDoc('inventoryAssetAssignments');
   context.set(ref, {
     assetId: assetDocId,
-    assetCode: asset.assetId,
     assetName: asset.name,
     assignee: i.assignee,
     // A department ID is not a person's ERP ID, so it never matches a user's own-record rule.
@@ -117,7 +116,7 @@ async function closeAssignment(
 }
 
 export const assets = {
-  /** One asset, or `quantity` identical ones (no serial number) per call; the asset ID (`AST/<financialYear>/<seq>`) doubles as its barcode / QR value. */
+  /** One asset, or `quantity` identical ones (no serial number) per call; the document ID is the asset ID and doubles as its barcode value. */
   register: defineCallable({
     name: 'inventory.asset.register',
     permission: 'inventory.assets.manage',
@@ -187,13 +186,10 @@ export const assets = {
         vendorId = purchaseOrder.vendorId;
         price ??= line.unitPrice;
       }
-      const numbers = await nextNumbers(context, 'AST', i.quantity);
       const ids: string[] = [];
-      for (const assetId of numbers) {
+      for (let unit = 0; unit < i.quantity; unit++) {
         const ref = context.newDoc('inventoryAssets');
-        await claimUniqueKey(context, 'inventoryAsset', assetId, ref.path);
         const asset = {
-          assetId,
           itemId: i.itemId,
           name: i.name ?? item.name,
           categoryId: item.categoryId,
@@ -227,11 +223,11 @@ export const assets = {
         context.audit({
           action: 'inventoryAsset.register',
           documentPath: ref.path,
-          after: { assetId, itemId: i.itemId },
+          after: { itemId: i.itemId },
         });
         ids.push(ref.id);
       }
-      return { id: ids[0], number: numbers[0], ids, numbers };
+      return { id: ids[0], ids };
     },
   }),
 
@@ -484,7 +480,6 @@ export const maintenance = {
         ...fields,
         number,
         assetId: aRef.id,
-        assetCode: asset.assetId,
         assetName: asset.name,
         reportedDate: dayTimestamp(reported),
         reportedBy: context.uid,

@@ -125,7 +125,7 @@ export async function runDailyInventory(branchPath: string, today = todayIST()):
         to: { permission: 'inventory.assets.manage' },
         category: 'inventory.asset',
         title: 'Warranty ending',
-        body: `${asset.assetId} ${asset.name}: warranty ends ${timestampDay(asset.warranty.end)}.`,
+        body: `${asset.name}: warranty ends ${timestampDay(asset.warranty.end)}.`,
         data: { assetId: snapshot.id },
       },
     );
@@ -146,7 +146,7 @@ export async function runDailyInventory(branchPath: string, today = todayIST()):
         to: { permission: 'inventory.assets.manage' },
         category: 'inventory.asset',
         title: 'Maintenance due',
-        body: `${asset.assetId} ${asset.name}: service due ${timestampDay(asset.nextServiceDate)}.`,
+        body: `${asset.name}: service due ${timestampDay(asset.nextServiceDate)}.`,
         data: { assetId: snapshot.id },
       },
     );

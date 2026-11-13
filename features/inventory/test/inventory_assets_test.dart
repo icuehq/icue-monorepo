@@ -5,7 +5,6 @@ import 'package:inventory/inventory.dart';
 void main() {
   test('asset parses custody, warranty and maintenance flags', () {
     final asset = InventoryAsset.fromMap('a', {
-      'assetId': 'AST/2026-27/000001',
       'status': 'assigned',
       'warranty': {
         'start': dayTimestamp('2026-01-01'),

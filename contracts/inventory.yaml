@@ -89,7 +89,6 @@ models:
       doc: "One physical asset (`inventoryAssets`)."
       id: id
       fields:
-        assetId: { type: string, doc: "Human asset ID (`AST/2026-27/000001`); also the barcode / QR value." }
         name: string
         itemId: string
         storeId: string
@@ -135,7 +134,6 @@ models:
       fields:
         number: string
         assetId: string
-        assetCode: string
         assetName: string
         issue: string
         priority: { type: string, default: medium }

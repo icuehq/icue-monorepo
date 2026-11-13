@@ -28,21 +28,20 @@ class AssetsService {
     return data == null ? null : InventoryAsset.fromMap(document.id, data);
   }
 
-  /// A scan: the asset whose ID or RFID tag equals [code] in this branch, or null.
+  /// A scan: the asset whose ID (document ID) or RFID tag equals [code] in this branch, or null.
   Future<InventoryAsset?> findByCode(String code) async {
-    for (final field in ['assetId', 'rfidTag']) {
-      final snapshot = await (await branchCollection('inventoryAssets'))
-          .where(field, isEqualTo: code)
-          .limit(1)
-          .get();
-      if (snapshot.docs.isNotEmpty) {
-        return InventoryAsset.fromMap(
-          snapshot.docs.first.id,
-          snapshot.docs.first.data(),
-        );
-      }
-    }
-    return null;
+    if (code.isEmpty || code.contains('/')) return null;
+    final byId = await asset(code);
+    if (byId != null) return byId;
+    final snapshot = await (await branchCollection('inventoryAssets'))
+        .where('rfidTag', isEqualTo: code)
+        .limit(1)
+        .get();
+    if (snapshot.docs.isEmpty) return null;
+    return InventoryAsset.fromMap(
+      snapshot.docs.first.id,
+      snapshot.docs.first.data(),
+    );
   }
 
   Future<List<InventoryAssignment>> assignments(String assetId) async {

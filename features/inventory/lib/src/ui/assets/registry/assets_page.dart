@@ -69,7 +69,7 @@ class _AssetsPageState extends State<AssetsPage> {
     final shown = [
       for (final asset in assetsProvider.assets)
         if (currentValue.isEmpty ||
-            asset.assetId.toLowerCase().contains(currentValue) ||
+            asset.id.toLowerCase().contains(currentValue) ||
             asset.name.toLowerCase().contains(currentValue) ||
             (asset.serialNumber ?? '').toLowerCase().contains(currentValue) ||
             (asset.rfidTag ?? '').toLowerCase().contains(currentValue))
@@ -157,7 +157,7 @@ class _AssetsPageState extends State<AssetsPage> {
                               ),
                               IcueAdaptiveColumn.text(
                                 'ID',
-                                (asset) => asset.assetId,
+                                (asset) => asset.id,
                               ),
                               IcueAdaptiveColumn.text(
                                 'Assigned to',
@@ -176,7 +176,7 @@ class _AssetsPageState extends State<AssetsPage> {
                             cardBuilder: (context, asset) => ListTile(
                               title: Text(asset.name),
                               subtitle: Text(
-                                '${asset.assetId}${asset.assignedTo == null ? '' : ' · ${asset.assignedTo!.label}'}'
+                                '${asset.id}${asset.assignedTo == null ? '' : ' · ${asset.assignedTo!.label}'}'
                                 '${asset.location == null ? '' : ' · ${asset.location}'}',
                               ),
                               trailing: StatusChip(asset.status),

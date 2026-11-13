@@ -534,7 +534,7 @@ Open **Assets** from Inventory tiles.
     - Purchase Price: `54000.00`.
     - Warranty: Start: Today, End: 3 years from today (`YYYY-MM-DD`).
     - Tap **Register asset**.
-  - **Expect** Asset created with status `Available` (green pill), identifier `AST/<financialYear>/<seq>`. Linked PO and item code displayed on card.
+  - **Expect** Asset created with status `Available` (green pill), identifier = the asset's document ID. Linked PO and item code displayed on card.
 - [ ] 1.4.2 **Asset Registration (Unit 2)**:
   - Register second asset for same item `LAP-DELL-15`:
     - Linked PO: Same `PO/...`.
@@ -552,9 +552,9 @@ Open **Assets** from Inventory tiles.
 
 #### Asset Labels & Identification
 
-- [ ] 1.4.4 **QR Code Label Generation**:
+- [ ] 1.4.4 **Barcode Label Generation**:
   - Open Asset 1 sheet → tap **Label** button.
-  - **Expect** system share sheet / preview renders printable asset label with QR code encoding asset identifier (`AST/...`), serial number, item name, and school branding.
+  - **Expect** system share sheet / preview renders printable 50×25 mm asset label with a Code 128 barcode of the asset's document ID, the item name and the serial number.
 - [ ] 1.4.5 **RFID Tag Assignment & Uniqueness**:
   - Open Asset 1 sheet → tap **RFID tag**:
     - Enter RFID Tag: `RFID-LAP-001`. Tap Save. **Expect** RFID tag saved and shown on Asset 1 card.

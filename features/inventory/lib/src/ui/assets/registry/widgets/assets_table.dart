@@ -47,7 +47,7 @@ class AssetsTable extends StatelessWidget {
       initialPageSize: 25,
       searchHint: 'Search asset ID, tag, name or serial...',
       searchText: (asset) =>
-          '${asset.assetId} ${asset.name} ${asset.serialNumber ?? ''} '
+          '${asset.id} ${asset.name} ${asset.serialNumber ?? ''} '
           '${asset.rfidTag ?? ''}',
       filters: [
         IcueClientFilter(
@@ -90,13 +90,13 @@ class AssetsTable extends StatelessWidget {
           ),
         ),
         IcueTableColumn(
-          id: 'assetId',
+          id: 'id',
           label: 'ID',
           flex: 2,
           sortable: true,
-          comparator: (asset) => asset.assetId,
+          comparator: (asset) => asset.id,
           cellBuilder: (context, asset) =>
-              IcueTableCellText(asset.assetId, subtitle: asset.serialNumber),
+              IcueTableCellText(asset.id, subtitle: asset.serialNumber),
         ),
         IcueTableColumn(
           id: 'assignedTo',

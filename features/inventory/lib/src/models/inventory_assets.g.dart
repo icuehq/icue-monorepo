@@ -9,7 +9,6 @@ import 'package:inventory/src/models/inventory_assets.dart';
 class InventoryAsset {
   const InventoryAsset({
     required this.id,
-    required this.assetId,
     required this.name,
     required this.itemId,
     required this.storeId,
@@ -35,7 +34,6 @@ class InventoryAsset {
   factory InventoryAsset.fromMap(String id, Map<String, dynamic> data) =>
       InventoryAsset(
         id: id,
-        assetId: data['assetId'] as String? ?? '',
         name: data['name'] as String? ?? '',
         itemId: data['itemId'] as String? ?? '',
         storeId: data['storeId'] as String? ?? '',
@@ -59,9 +57,6 @@ class InventoryAsset {
       );
 
   final String id;
-
-  /// Human asset ID (`AST/2026-27/000001`); also the barcode / QR value.
-  final String assetId;
   final String name;
   final String itemId;
   final String storeId;
@@ -160,7 +155,6 @@ class InventoryMaintenance {
     required this.id,
     required this.number,
     required this.assetId,
-    required this.assetCode,
     required this.assetName,
     required this.issue,
     required this.priority,
@@ -179,7 +173,6 @@ class InventoryMaintenance {
         id: id,
         number: data['number'] as String? ?? '',
         assetId: data['assetId'] as String? ?? '',
-        assetCode: data['assetCode'] as String? ?? '',
         assetName: data['assetName'] as String? ?? '',
         issue: data['issue'] as String? ?? '',
         priority: data['priority'] as String? ?? 'medium',
@@ -203,7 +196,6 @@ class InventoryMaintenance {
   final String id;
   final String number;
   final String assetId;
-  final String assetCode;
   final String assetName;
   final String issue;
   final String priority;

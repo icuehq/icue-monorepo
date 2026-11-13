@@ -179,7 +179,7 @@ class _AssetActionDialogState extends State<AssetActionDialog> {
     return IcueDialog(
       title: _a.title,
       icon: _icon,
-      description: '${asset.name} · ${asset.assetId}',
+      description: asset.name,
       content: Form(
         key: _form,
         child: Column(

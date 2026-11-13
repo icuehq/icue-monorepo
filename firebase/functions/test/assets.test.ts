@@ -73,7 +73,6 @@ describe('assets and maintenance', () => {
   it('registers with a unique ID; only asset-tracked items', async () => {
     const assetDocument = (await get(`inventoryAssets/${asset}`))!;
     expect(assetDocument).toMatchObject({
-      assetId: expect.stringMatching(/^AST\/\d{4}-\d{2}\/000001$/),
       name: 'LAP',
       status: 'available',
       condition: 'new',
@@ -133,7 +132,7 @@ describe('assets and maintenance', () => {
   it('registers several identical units in one call, within the accepted quantity', async () => {
     const bulk = await run(a.register, { itemId: laptop, storeId: store, quantity: 3 });
     expect(bulk.ids).toHaveLength(3);
-    expect(new Set(bulk.numbers).size).toBe(3);
+    expect(new Set(bulk.ids).size).toBe(3);
     expect(await get(`inventoryAssets/${bulk.ids[2]}`)).toMatchObject({ status: 'available' });
     expect(
       await code(
