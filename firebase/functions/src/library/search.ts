@@ -54,3 +54,12 @@ export const applyLoanChange = (
 ) => applyChange(LOANS, projectLoan, branchPath, loanId, after, changedAt, db);
 
 export const syncLoanSearch = syncTrigger(LOANS, projectLoan);
+
+/** Lost & Damaged search mirror (incidents): whole words of the book title, member name or admission number. */
+const INCIDENTS = 'libraryIncidents';
+const INCIDENT_ROW = [...LOAN_TEXT, 'status', 'type', 'createdAt'];
+
+export const projectIncident = (incident: DocumentData) =>
+  Object.fromEntries(INCIDENT_ROW.map((field) => [field, incident[field] ?? null]));
+
+export const syncIncidentSearch = syncTrigger(INCIDENTS, projectIncident);

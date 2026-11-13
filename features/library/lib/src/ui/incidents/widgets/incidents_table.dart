@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:icue_firebase/icue_firebase.dart' show textSearchSupported;
 import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/shared/library_status_chip.dart';
 
-/// Wide-screen lost and damaged incidents as an [IcueTable]. Search and every
-/// filter are Firestore queries (the provider reloads); pages come from its pager.
+/// Wide-screen lost and damaged incidents as an [IcueTable]. Filters are Firestore queries and
+/// search is the `search` mirror (web only), both run by the provider; pages come from its pager.
 class IncidentsTable extends StatelessWidget {
   const IncidentsTable({required this.onOpen, super.key});
 
@@ -26,13 +27,15 @@ class IncidentsTable extends StatelessWidget {
       onRetry: pager.retry,
       pagination: IcueTablePagination.pager(pager),
       onRowTap: onOpen,
-      searchHint: 'Incident # or accession no.',
+      searchHint: 'Title, member or adm. no.',
       initialSearch: provider.incidentSearch,
       searchDebounce: const Duration(milliseconds: 400),
-      onSearchChanged: (query) {
-        provider.incidentSearch = query.trim();
-        provider.loadIncidents();
-      },
+      onSearchChanged: textSearchSupported
+          ? (query) {
+              provider.incidentSearch = query.trim();
+              provider.loadIncidents();
+            }
+          : null,
       filters: [
         IcueTableFilter(
           id: 'status',

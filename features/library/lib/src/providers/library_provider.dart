@@ -117,7 +117,7 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   /// `lost`, `damaged`, or null for both.
   String? incidentType;
 
-  /// Exact incident ID or accession number; overrides the other filters.
+  /// Words of the book title, member name or admission number (web only), combined with the filters.
   String incidentSearch = '';
 
   bool get incidentsFiltered =>
@@ -381,12 +381,28 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
 
   /// Loads the first page of incidents for the current filters.
   Future<void> loadIncidents() async {
+    final query = incidentSearch;
+    final status = incidentStatus;
+    final type = incidentType;
+    if (query.isNotEmpty) {
+      await incidents.load(({
+        required after,
+        required offset,
+        required limit,
+      }) async {
+        final page = await _service.searchIncidents(
+          query,
+          status: status,
+          type: type,
+          offset: offset,
+          limit: limit,
+        );
+        return PagedResult(page.items, null, hasMore: page.hasMore);
+      });
+      return;
+    }
     await incidents.loadQuery(
-      await _service.incidentsQuery(
-        status: incidentStatus,
-        type: incidentType,
-        search: incidentSearch,
-      ),
+      await _service.incidentsQuery(status: status, type: type),
       (document) => LibraryIncident.fromMap(document.id, document.data()!),
     );
   }

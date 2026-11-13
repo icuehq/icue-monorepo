@@ -17,7 +17,7 @@ List<String> searchTerms(String query) => query
     .toList();
 
 /// One page of whole-word matches from the `search` database (a Functions-written mirror of the branch's
-/// documents, architecture §10), sorted by [sortField]; the caller reads full documents from `(default)` if it needs them.
+/// documents, architecture §10), sorted by [sortField] ([descending] for newest first); the caller reads full documents from `(default)` if it needs them.
 ///
 /// Narrow the match with `categoryIds` (any of), `arrayHas` (field -> element) and `equals` (field -> value). No words (only punctuation) match nothing.
 /// A mirrored document: its ID and its list-row fields.
@@ -27,6 +27,7 @@ Future<({List<MirrorRow> rows, bool hasMore})> searchMirror(
   String collection,
   String query, {
   required String sortField,
+  bool descending = false,
   List<String>? categoryIds,
   Map<String, Object> arrayHas = const {},
   Map<String, Object> equals = const {},
@@ -57,7 +58,11 @@ Future<({List<MirrorRow> rows, bool hasMore})> searchMirror(
   }
   // One extra row tells whether another page exists.
   final snapshot = await pipeline
-      .sort(Field(sortField).ascending())
+      .sort(
+        descending
+            ? Field(sortField).descending()
+            : Field(sortField).ascending(),
+      )
       .offset(offset)
       .limit(limit + 1)
       .execute();

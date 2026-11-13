@@ -27,3 +27,4 @@ create_index() {
 create_index inventoryItems name code
 create_index libraryCatalogue title subtitle authorsText publisher keywordsText
 create_index libraryLoans bookTitle memberName admissionNumber
+create_index libraryIncidents bookTitle memberName admissionNumber

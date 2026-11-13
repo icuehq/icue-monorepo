@@ -1,6 +1,7 @@
 import { Timestamp } from 'firebase-admin/firestore';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { applyItemChange } from '../src/inventory/search';
+import { projectIncident } from '../src/library/search';
 import { searchDb } from '../src/shared/searchMirror';
 import { clearFirestore } from './setup';
 
@@ -42,5 +43,31 @@ describe('item search mirror', () => {
     await applyItemChange(BRANCH, 'i1', item('New name', 'A'), timestampAt(5));
     await applyItemChange(BRANCH, 'i1', item('Old name', 'A'), timestampAt(3));
     expect((await mirror().doc('i1').get()).data()?.name).toBe('New name');
+  });
+});
+
+describe('incident search projection', () => {
+  it('keeps only the search text and list filters', () => {
+    const createdAt = timestampAt(7);
+    expect(
+      projectIncident({
+        bookTitle: 'Wings of Fire',
+        memberName: 'Asha Rao',
+        admissionNumber: 'A-101',
+        status: 'open',
+        type: 'lost',
+        createdAt,
+        charge: 250,
+        barcode: 'B1',
+      }),
+    ).toEqual({
+      bookTitle: 'Wings of Fire',
+      memberName: 'Asha Rao',
+      admissionNumber: 'A-101',
+      status: 'open',
+      type: 'lost',
+      createdAt,
+    });
+    expect(projectIncident({ status: 'open', type: 'damaged' }).memberName).toBeNull();
   });
 });

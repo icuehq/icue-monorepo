@@ -345,20 +345,6 @@
       ]
     },
     {
-      "collectionGroup": "libraryIncidents",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "barcode",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
       "collectionGroup": "libraryLoans",
       "queryScope": "COLLECTION",
       "fields": [
@@ -538,20 +524,6 @@
         },
         {
           "fieldPath": "type",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "libraryIncidents",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "incidentNumber",
           "order": "ASCENDING"
         },
         {

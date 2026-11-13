@@ -7,6 +7,7 @@ import 'package:injectable/injectable.dart';
 import 'package:school_library/src/import/concurrent.dart';
 import 'package:school_library/src/models/library_copies.dart';
 import 'package:school_library/src/models/library_fines.dart';
+import 'package:school_library/src/models/library_incidents.dart';
 import 'package:school_library/src/models/library_insights.dart';
 import 'package:school_library/src/models/library_loans.dart';
 import 'package:school_library/src/models/library_masters.dart';
@@ -312,28 +313,43 @@ class LibraryService {
   Future<LibraryFine?> fine(String id) =>
       _one('libraryFines', id, LibraryFine.fromMap);
 
-  /// Lost/damaged incidents, newest first. A [search] is an exact incident ID or accession number and ignores the filters.
+  /// Lost/damaged incidents, newest first.
   Future<Query<Map<String, dynamic>>> incidentsQuery({
     String? status,
     String? type,
-    String search = '',
   }) async {
     Query<Map<String, dynamic>> query = await branchCollection(
       'libraryIncidents',
     );
-    if (search.isNotEmpty) {
-      final terms = {search, search.toUpperCase()}.toList();
-      query = query.where(
-        Filter.or(
-          Filter(FieldPath.documentId, whereIn: terms),
-          Filter('barcode', whereIn: terms),
-        ),
-      );
-    } else {
-      if (status != null) query = query.where('status', isEqualTo: status);
-      if (type != null) query = query.where('type', isEqualTo: type);
-    }
+    if (status != null) query = query.where('status', isEqualTo: status);
+    if (type != null) query = query.where('type', isEqualTo: type);
     return query.orderBy('createdAt', descending: true);
+  }
+
+  /// Incidents whose book title, member name or admission number holds every word of [query],
+  /// newest first (`search` database, web only, then the incidents themselves from Firestore).
+  Future<({List<LibraryIncident> items, bool hasMore})> searchIncidents(
+    String query, {
+    String? status,
+    String? type,
+    int offset = 0,
+    int limit = 25,
+  }) async {
+    final page = await searchMirror(
+      'libraryIncidents',
+      query,
+      sortField: 'createdAt',
+      descending: true,
+      equals: {'status': ?status, 'type': ?type},
+      offset: offset,
+      limit: limit,
+    );
+    final ids = [for (final row in page.rows) row.id];
+    final found = {
+      for (final document in await _byIds('libraryIncidents', ids))
+        document.id: LibraryIncident.fromMap(document.id, document.data()),
+    };
+    return (items: [for (final id in ids) ?found[id]], hasMore: page.hasMore);
   }
 
   // --- writes: masters are plain client CRUD (`firestore.rules`); books and copy status are callables, same requestId on user retry ---

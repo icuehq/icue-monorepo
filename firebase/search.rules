@@ -16,7 +16,7 @@ service cloud.firestore {
     }
     // Library has no sub-permissions: any non-parent staff user of the branch (same as `(default)`).
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/{coll}/{id} {
-      allow read: if coll in ['libraryCatalogue', 'libraryLoans'] && inBranch(orgId, zoneId, branchId)
+      allow read: if coll in ['libraryCatalogue', 'libraryLoans', 'libraryIncidents'] && inBranch(orgId, zoneId, branchId)
         && request.auth.token.get('personType', '') != 'parent';
     }
   }
