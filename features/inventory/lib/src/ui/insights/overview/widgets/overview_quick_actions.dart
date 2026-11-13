@@ -22,13 +22,6 @@ class OverviewQuickActions extends StatelessWidget {
         true,
       ),
       (
-        'Issue request',
-        Icons.outbox_outlined,
-        InventoryRoutes.inventoryRequestForm,
-        'inventory.issue.request',
-        false,
-      ),
-      (
         'Purchase request',
         Icons.request_quote_outlined,
         InventoryRoutes.inventoryPurchaseRequestForm,

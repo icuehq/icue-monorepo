@@ -98,7 +98,7 @@ Future<void> stockSteps(WidgetTester tester) async {
     String item,
     String quantity,
   ) async {
-    await open(tester, InventoryRoutes.inventoryMyRequests);
+    await open(tester, InventoryRoutes.inventoryRequests);
     await tapLabel(tester, 'New Request');
     await tapText(tester, 'Issue from store');
     await tapText(tester, 'Central Main Store', index: 1);

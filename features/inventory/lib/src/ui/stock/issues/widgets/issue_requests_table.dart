@@ -16,7 +16,6 @@ class IssueRequestsTable extends StatelessWidget {
     required this.storeName,
     required this.onOpen,
     required this.onRetry,
-    this.onNewRequest,
     super.key,
   });
 
@@ -29,17 +28,9 @@ class IssueRequestsTable extends StatelessWidget {
   final String Function(String storeId) storeName;
   final void Function(InventoryIssueRequest request) onOpen;
   final VoidCallback onRetry;
-  final VoidCallback? onNewRequest;
 
   @override
   Widget build(BuildContext context) {
-    final newRequest = onNewRequest == null
-        ? null
-        : IcueTableAction(
-            label: 'New request',
-            icon: Icons.add_rounded,
-            onPressed: onNewRequest,
-          );
     return IcueClientTable<InventoryIssueRequest>(
       title: 'Issue requests',
       items: requests,
@@ -70,10 +61,8 @@ class IssueRequestsTable extends StatelessWidget {
       externalFiltersActive: status != null,
       onClearExternalFilters: () => onStatusChanged(null),
       onRowTap: onOpen,
-      primaryAction: newRequest,
       emptyTitle: 'No issue requests',
-      emptyMessage: 'Submit an issue request to withdraw supplies or equipment from store stock.',
-      emptyAction: newRequest,
+      emptyMessage: 'Requests raised by staff in your branch appear here.',
       columns: [
         IcueTableColumn(
           id: 'number',

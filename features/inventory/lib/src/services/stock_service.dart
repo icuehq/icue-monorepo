@@ -32,13 +32,11 @@ class StockService {
     ];
   }
 
-  /// [mine]: the signed-in user's own requests; otherwise the branch's (approvers, stock users).
-  Future<List<InventoryIssueRequest>> requests({
-    required bool mine,
-    String? status,
-  }) async {
-    final base = await branchCollection('inventoryIssueRequests');
-    var query = mine ? base.where('createdBy', isEqualTo: uid) : base;
+  /// The branch's issue requests (approvers, stock users).
+  Future<List<InventoryIssueRequest>> requests({String? status}) async {
+    Query<Map<String, dynamic>> query = await branchCollection(
+      'inventoryIssueRequests',
+    );
     if (status != null) query = query.where('status', isEqualTo: status);
     final snapshot = await query
         .orderBy('createdAt', descending: true)

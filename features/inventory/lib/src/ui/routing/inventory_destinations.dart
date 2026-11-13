@@ -46,13 +46,6 @@ List<InventoryEntry> inventoryEntries(ModuleAccess access) => [
       iconAsset: 'assets/dashboard/inventory-stock.png',
       group: 'Stock',
     ),
-  if (access.can('inventory.issue.request'))
-    const InventoryEntry(
-      label: 'My requests',
-      path: InventoryRoutes.inventoryMyRequests,
-      iconAsset: 'assets/dashboard/inventory-issue-requests.png',
-      group: 'Stock',
-    ),
   if (access.can('inventory.issue.approve') ||
       access.can('inventory.stock.view'))
     const InventoryEntry(

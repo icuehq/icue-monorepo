@@ -29,7 +29,6 @@ import 'package:inventory/src/ui/procurement/vendors/vendors_page.dart';
 import 'package:inventory/src/ui/routing/inventory_destinations.dart';
 import 'package:inventory/src/ui/stock/balance/stock_details_page.dart';
 import 'package:inventory/src/ui/stock/balance/stock_page.dart';
-import 'package:inventory/src/ui/stock/issues/issue_request_form_page.dart';
 import 'package:inventory/src/ui/stock/issues/issue_request_page.dart';
 import 'package:inventory/src/ui/stock/issues/issue_requests_page.dart';
 import 'package:inventory/src/ui/stock/issues/issue_return_page.dart';
@@ -116,17 +115,7 @@ final _inventoryPages = <RouteBase>[
   GoRoute(
     path: InventoryRoutes.inventoryRequests,
     name: InventoryRoutes.inventoryRequestsName,
-    builder: (context, state) => const IssueRequestsPage(mine: false),
-  ),
-  GoRoute(
-    path: InventoryRoutes.inventoryMyRequests,
-    name: InventoryRoutes.inventoryMyRequestsName,
-    builder: (context, state) => const IssueRequestsPage(mine: true),
-  ),
-  GoRoute(
-    path: InventoryRoutes.inventoryRequestForm,
-    name: InventoryRoutes.inventoryRequestFormName,
-    builder: (context, state) => const IssueRequestFormPage(),
+    builder: (context, state) => const IssueRequestsPage(),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryRequestDetail,

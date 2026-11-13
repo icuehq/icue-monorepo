@@ -1,7 +1,7 @@
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icue_ui/icue_ui.dart';
 
-/// Client-side stock writes: Receive Stock (`inventory-receipt-confirm`), receiving goods against a purchase order (`inventory-purchaseOrder-receive`), issue request submit and approve/reject, issuing stock (`inventory-issue-create`) confirming an issue's receipt returns against an issue requesting, stock adjustments and unavailable stock.
+/// Client-side stock writes: Receive Stock (`inventory-receipt-confirm`), receiving goods against a purchase order (`inventory-purchaseOrder-receive`), issue request approve/reject, issuing stock (`inventory-issue-create`) confirming an issue's receipt returns against an issue requesting, stock adjustments and unavailable stock.
 ///
 /// One Firestore transaction writes the receipt, its balances, the ledger rows
 /// and the GRN counter (Receive Stock writes only the balances). Business checks live here and in `firestore.rules`
@@ -13,7 +13,6 @@ class StockWrites {
   static const names = {
     'inventory-receipt-confirm',
     'inventory-purchaseOrder-receive',
-    'inventory-issueRequest-submit',
     'inventory-issueRequest-decide',
     'inventory-issueRequest-cancel',
     'inventory-issueRequest-close',
@@ -37,7 +36,6 @@ class StockWrites {
       switch (name) {
         'inventory-receipt-confirm' => _confirmReceipt(data),
         'inventory-purchaseOrder-receive' => _receivePurchaseOrder(data),
-        'inventory-issueRequest-submit' => _submitIssueRequest(data),
         'inventory-issueRequest-decide' => _decideIssueRequest(data),
         'inventory-issueRequest-cancel' => _endIssueRequest(data, cancel: true),
         'inventory-issueRequest-close' => _endIssueRequest(data, cancel: false),
@@ -236,91 +234,6 @@ class StockWrites {
       if (error.code == 'permission-denied') return double.infinity;
       rethrow;
     }
-  }
-
-  Future<Map<String, dynamic>> _submitIssueRequest(
-    Map<String, Object?> data,
-  ) async {
-    final user = FirebaseAuth.instance.currentUser!;
-    final claims = (await user.getIdTokenResult()).claims;
-    final financialYear = _financialYear;
-    final storeId = data['storeId']! as String;
-    final purpose = _blankToNull(data['purpose']);
-    if (purpose == null || purpose.length > 500) {
-      _fail('Purpose is required (500 characters at most)');
-    }
-    final lines = [
-      for (final line in (data['lineItems']! as List))
-        Map<String, dynamic>.from(line as Map),
-    ];
-    if (lines.isEmpty) _fail('Add at least one item');
-    final lineKeys = {
-      for (final line in lines)
-        '${line['itemId']}__${line['variantId'] ?? '-'}',
-    };
-    if (lineKeys.length != lines.length) {
-      _fail('Each item (and variant) may appear once');
-    }
-    if (lines.any((line) => ((line['quantity'] as num?) ?? 0) <= 0)) {
-      _fail('Each line needs a quantity');
-    }
-
-    final storeRef = await _doc('inventoryStores/$storeId');
-    final counterRef = await _doc('counters/ISR_$financialYear');
-    final requestRef = (await branchCollection('inventoryIssueRequests')).doc();
-    final number = await FirebaseFirestore.instance.runTransaction((
-      transaction,
-    ) async {
-      final store = (await transaction.get(storeRef)).data();
-      if (store == null) _fail('Store not found');
-      if (store['status'] != 'active') _fail('Store is inactive');
-      final next =
-          ((await transaction.get(counterRef)).data()?['next'] as num? ?? 0)
-              .toInt() +
-          1;
-      for (final line in lines) {
-        await _stockItem(
-          transaction,
-          line['itemId']! as String,
-          line['variantId'] as String?,
-        );
-      }
-      final requestNumber =
-          'ISR/$financialYear/${next.toString().padLeft(6, '0')}';
-      transaction.set(counterRef, {
-        'next': next,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-      transaction.set(requestRef, {
-        'number': requestNumber,
-        'storeId': storeId,
-        'destination': _blankToNull(data['destination']),
-        'purpose': purpose,
-        'remarks': _blankToNull(data['remarks']),
-        'requesterId': claims?['personErpId'],
-        'lineItems': [
-          for (final line in lines)
-            {
-              'itemId': line['itemId'],
-              'variantId': line['variantId'],
-              'quantityRequested': line['quantity'],
-              'quantityApproved': null,
-              'quantityIssued': 0,
-            },
-        ],
-        'itemIds': [for (final line in lines) line['itemId']],
-        'status': 'pending',
-        'approval': null,
-        'transactionDate': dayTimestamp(todayIST()),
-        'financialYear': financialYear,
-        'createdAt': FieldValue.serverTimestamp(),
-        'createdBy': user.uid,
-        'lastWrite': writeStamp('inventoryIssueRequest.submit'),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-      return requestNumber;
-    });
-    return {'id': requestRef.id, 'number': number};
   }
 
   /// Receive Stock: adds each line straight to its store balance (no receipt, ledger row or number).

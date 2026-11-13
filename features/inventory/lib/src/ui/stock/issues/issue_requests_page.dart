@@ -6,12 +6,9 @@ import 'package:inventory/src/ui/stock/issues/widgets/issue_request_card.dart';
 import 'package:inventory/src/ui/stock/issues/widgets/issue_requests_table.dart';
 import 'package:provider/provider.dart';
 
-/// Issue requests (FRS 10.8). [mine]: staff's own requests, where new ones are raised;
-/// otherwise the branch's requests for approvers and storekeepers.
+/// Issue requests (FRS 10.8): the branch's requests for approvers and storekeepers.
 class IssueRequestsPage extends StatefulWidget {
-  const IssueRequestsPage({required this.mine, super.key});
-
-  final bool mine;
+  const IssueRequestsPage({super.key});
 
   @override
   State<IssueRequestsPage> createState() => _IssueRequestsPageState();
@@ -27,10 +24,7 @@ class _IssueRequestsPageState extends State<IssueRequestsPage> {
     final inventoryProvider = context.read<InventoryProvider>();
     if (inventoryProvider.stores.isEmpty) await inventoryProvider.loadMasters();
     if (mounted) {
-      await context.read<StockProvider>().loadRequests(
-        mine: widget.mine,
-        status: _status,
-      );
+      await context.read<StockProvider>().loadRequests(status: _status);
     }
     if (mounted) setState(() => _loaded = true);
   }
@@ -39,11 +33,6 @@ class _IssueRequestsPageState extends State<IssueRequestsPage> {
     if (status == _status) return;
     setState(() => _status = status);
     _load();
-  }
-
-  Future<void> _newRequest() async {
-    await context.push(InventoryRoutes.inventoryRequestForm);
-    if (mounted) await _load();
   }
 
   Future<void> _open(InventoryIssueRequest request) async {
@@ -63,8 +52,6 @@ class _IssueRequestsPageState extends State<IssueRequestsPage> {
   Widget build(BuildContext context) {
     final stockProvider = context.watch<StockProvider>();
     final inventoryProvider = context.watch<InventoryProvider>();
-    final access = inventoryProvider.access;
-    final canRequest = widget.mine && access.can('inventory.issue.request');
     final theme = Theme.of(context);
 
     String storeName(String storeId) =>
@@ -86,16 +73,7 @@ class _IssueRequestsPageState extends State<IssueRequestsPage> {
     ];
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.mine ? 'My Requests' : 'Issue Requests'),
-      ),
-      floatingActionButton: canRequest && !context.isWide
-          ? FloatingActionButton.extended(
-              onPressed: _newRequest,
-              icon: const Icon(Icons.add_rounded),
-              label: const Text('New request'),
-            )
-          : null,
+      appBar: AppBar(title: const Text('Issue Requests')),
       body: context.isWide
           ? Padding(
               padding: const EdgeInsets.all(16),
@@ -109,7 +87,6 @@ class _IssueRequestsPageState extends State<IssueRequestsPage> {
                 storeName: storeName,
                 onOpen: _open,
                 onRetry: _load,
-                onNewRequest: canRequest ? _newRequest : null,
               ),
             )
           : IcueCenteredBody(
@@ -209,8 +186,6 @@ class _IssueRequestsPageState extends State<IssueRequestsPage> {
                                               stockProvider.errorMessage ??
                                                   (_status != null
                                                       ? 'There are currently no requests with this status filter.'
-                                                      : widget.mine
-                                                      ? 'Submit an issue request to withdraw supplies or equipment from store stock.'
                                                       : 'Requests raised by staff in your branch appear here.'),
                                               textAlign: TextAlign.center,
                                               style: theme.textTheme.bodySmall
@@ -238,12 +213,6 @@ class _IssueRequestsPageState extends State<IssueRequestsPage> {
                                                     IcueButtonVariant.outline,
                                                 leadingIcon: Icons
                                                     .filter_alt_off_outlined,
-                                              )
-                                            else if (canRequest)
-                                              IcueButton(
-                                                label: 'New request',
-                                                onPressed: _newRequest,
-                                                leadingIcon: Icons.add,
                                               ),
                                           ],
                                         ),
