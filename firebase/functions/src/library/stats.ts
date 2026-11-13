@@ -16,7 +16,7 @@ import { bump, type Counts, increments } from '../shared/statsCounts';
  * is lost; key each event (a marker per event ID) if the figures must be exact. Every write also bumps one document
  * (~1 write/s sustained), so a bulk copy import may fail a few; split per library if that becomes visible.
  */
-/** Copy statuses the dashboard shows; other statuses only count towards `copies`. */
+/** Copy statuses with their own figure; under_maintenance and withdrawn share `outOfCirculation`. */
 const COPY_STATUSES: string[] = [
   CopyStatus.available,
   CopyStatus.issued,
@@ -69,7 +69,12 @@ export function deltas(collection: string, { before, after }: Change) {
     switch (collection) {
       case 'libraryCopies':
         overall.add('copies', sign, data.libraryId);
-        if (COPY_STATUSES.includes(data.status)) overall.add(data.status, sign, data.libraryId);
+        // Every status lands in one figure, so the figures always add up to `copies`.
+        overall.add(
+          COPY_STATUSES.includes(data.status) ? data.status : 'outOfCirculation',
+          sign,
+          data.libraryId,
+        );
         break;
       case 'libraryLoans':
         if (data.status !== LoanStatus.active) break;

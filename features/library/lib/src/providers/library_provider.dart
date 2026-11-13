@@ -92,6 +92,7 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   /// The next active loans due, for the overview (ignores the Issued Books filters).
   List<LibraryLoan> dueNext = [];
   bool dueNextLoading = false;
+  String? dueNextError;
 
   /// Fines, newest first, filtered in Firestore by the fields below.
   late final fines = _pager<LibraryFine>();
@@ -296,6 +297,7 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   /// Loads the first [count] active loans by due date into [dueNext], of one [library] when given.
   Future<void> loadDueNext({SchoolLibrary? library, int count = 8}) async {
     dueNextLoading = true;
+    dueNextError = null;
     notifyListeners();
     try {
       final snapshot = await (await _service.activeLoansQuery(library: library))
@@ -306,7 +308,7 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
           LibraryLoan.fromMap(document.id, document.data()),
       ];
     } catch (error) {
-      errorMessage = callableErrorMessage(error);
+      dueNextError = callableErrorMessage(error);
     } finally {
       dueNextLoading = false;
       notifyListeners();

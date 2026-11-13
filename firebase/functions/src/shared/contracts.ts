@@ -194,13 +194,14 @@ export interface LoanPolicySnapshot {
   maxFine?: number | null;
 }
 
-/** Current-state figures of a branch or one library (libraryStats/overall), kept only by the audit triggers. dueOn counts active loans by India-time due day (yyyy-MM-dd); overdue is the sum of the days before today. Per library, titles counts catalogue titles with copies there (libraryCatalogue holdings.{libraryId}) and students/teachers the members who borrowed there (libraryMembers libraryIds). */
+/** Current-state figures of a branch or one library (libraryStats/overall), kept only by the audit triggers. available + issued + lost + damaged + outOfCirculation (under_maintenance and withdrawn copies) = copies. dueOn counts active loans by India-time due day (yyyy-MM-dd); overdue is the sum of the days before today. Per library, titles counts catalogue titles with copies there (libraryCatalogue holdings.{libraryId}) and students/teachers the members who borrowed there (libraryMembers libraryIds). */
 export interface LibraryStatsTotals {
   copies: number;
   available: number;
   issued: number;
   lost: number;
   damaged: number;
+  outOfCirculation: number;
   activeLoans: number;
   dueOn: Record<string, number>;
   outstandingFines: number;

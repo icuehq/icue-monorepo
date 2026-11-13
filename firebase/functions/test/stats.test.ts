@@ -74,6 +74,17 @@ describe('library analytics summary', () => {
     });
   });
 
+  it('every copy status lands in one figure that adds up to copies', async () => {
+    for (const status of ['available', 'issued', 'withdrawn', 'under_maintenance'])
+      await record('libraryCopies', undefined, { libraryId: 'main', catalogueId: 'c', status });
+    expect(await read('overall')).toMatchObject({
+      copies: 4,
+      available: 1,
+      issued: 1,
+      outOfCirculation: 2,
+    });
+  });
+
   it('a library counts a title while it holds a copy of it', async () => {
     await db().doc(`${BRANCH}/libraryCatalogue/t1`).set({ title: 'A' });
     const copy = (libraryId: string) => ({ catalogueId: 't1', libraryId, status: 'available' });

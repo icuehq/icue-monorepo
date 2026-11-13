@@ -157,6 +157,7 @@ Map<String, num> overviewFigures(
     'issued': figure('issued'),
     'lost': figure('lost'),
     'damaged': figure('damaged'),
+    'outOfCirculation': figure('outOfCirculation'),
     'overdue': dueOn.entries
         .where((entry) => entry.key.compareTo(today) < 0)
         .fold<num>(0, (total, entry) => total + (entry.value as num)),
@@ -176,6 +177,7 @@ const libraryDashboardStats = <(String, String)>[
   ('overdue', 'Overdue books'),
   ('lost', 'Lost books'),
   ('damaged', 'Damaged books'),
+  ('outOfCirculation', 'Out of circulation'),
   ('students', 'Student borrowers'),
   ('teachers', 'Teacher borrowers'),
   ('pending', 'Pending returns'),

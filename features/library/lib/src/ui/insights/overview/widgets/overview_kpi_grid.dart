@@ -73,6 +73,15 @@ class OverviewKpiGrid extends StatelessWidget {
         damaged > 0 ? Colors.orange.shade700 : null,
       ),
       (
+        'outOfCirculation',
+        'Out of circulation',
+        stats['outOfCirculation'],
+        Icons.inventory_2_outlined,
+        _share('outOfCirculation', 'copies', 'withdrawn or in repair'),
+        LibraryRoutes.libraryCatalogue,
+        null,
+      ),
+      (
         'overdue',
         'Overdue',
         stats['overdue'],

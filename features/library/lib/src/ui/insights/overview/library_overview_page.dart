@@ -92,7 +92,7 @@ class _LibraryOverviewPageState extends State<LibraryOverviewPage> {
         stream: _stats,
         builder: (context, snapshot) {
           final stats = snapshot.data ?? const <String, num?>{};
-          final error = snapshot.error ?? libraryProvider.errorMessage;
+          final error = snapshot.error ?? libraryProvider.dueNextError;
           final attention = OverviewAttentionCard(
             stats: stats,
             targets: _targets,
