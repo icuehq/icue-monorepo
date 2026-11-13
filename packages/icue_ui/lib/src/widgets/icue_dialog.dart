@@ -35,6 +35,7 @@ class IcueDialogAction {
 /// and a footer with an optional [secondaryAction] left of [primaryAction].
 /// The dialog sits on the root navigator, so action callbacks must close it
 /// with `Navigator.of(context, rootNavigator: true).pop()`.
+/// A close button sits top right; it pops with null (confirm reads that as no).
 /// Open it with [IcueDialog.show], or [IcueDialog.confirm] for a yes/no ask.
 class IcueDialog extends StatelessWidget {
   const IcueDialog({
@@ -125,7 +126,7 @@ class IcueDialog extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+              padding: const EdgeInsets.fromLTRB(24, 16, 8, 12),
               child: Row(
                 children: [
                   if (icon != null) ...[
@@ -134,6 +135,12 @@ class IcueDialog extends StatelessWidget {
                   ],
                   Expanded(
                     child: Text(title, style: theme.textTheme.titleLarge),
+                  ),
+                  IconButton(
+                    tooltip: 'Close',
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () =>
+                        Navigator.of(context, rootNavigator: true).pop(),
                   ),
                 ],
               ),

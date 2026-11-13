@@ -18,13 +18,14 @@ class FinesPage extends StatefulWidget {
 }
 
 class _FinesPageState extends State<FinesPage> {
-  late final _searchController = TextEditingController(
-    text: context.read<LibraryProvider>().fineSearch,
-  );
+  late final TextEditingController _searchController;
 
   @override
   void initState() {
     super.initState();
+    _searchController = TextEditingController(
+      text: context.read<LibraryProvider>().fineSearch,
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final libraryProvider = context.read<LibraryProvider>();
       unawaited(libraryProvider.loadStandards());

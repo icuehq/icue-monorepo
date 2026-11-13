@@ -6,7 +6,9 @@ void main() {
   final names = LibraryNames(
     title: _name,
     library: _name,
-    classLabel: (classId, section) => 'Class $classId',
+    classLabel: (classId, section) => section == null || section.isEmpty
+        ? 'Class $classId'
+        : 'Class $classId ($section)',
   );
   String cells(String key, Map<String, dynamic> row) => libraryReports
       .firstWhere((reportDef) => reportDef.key == key)

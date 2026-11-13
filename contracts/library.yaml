@@ -95,10 +95,10 @@ documents:
       loansIssued: int
       loansReturned: int
       loansRenewed: int
-      loansLost: int
       finesRaised: double
       finesCollected: double
-      incidents: int
+      booksLost: int
+      booksDamaged: int
   LibraryStats:
     doc: "libraryStats/overall: branch figures, with per-library figures under libraries."
     collection: libraryStats

@@ -73,9 +73,7 @@ LibraryReportCol _member() => LibraryReportCol('Member', (m, names) {
   final label = name.isEmpty ? '#${m['personErpId']}' : name;
   final classId = (m['memberClassId'] as num?)?.toInt();
   if (classId == null) return label;
-  final section = readString(m['memberSection']);
-  final className = names.classLabel(classId, null);
-  return '$label\n$className${section.isEmpty ? '' : ' ($section)'}';
+  return '$label\n${names.classLabel(classId, readString(m['memberSection']))}';
 });
 LibraryReportCol _month() => LibraryReportCol('Month', (m, _) {
   final parts = readString(m['month']).split('-');

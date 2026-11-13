@@ -53,11 +53,25 @@ class _ScanFieldState extends State<IcueScanField> {
         clipBehavior: Clip.antiAlias,
         child: AspectRatio(
           aspectRatio: 1,
-          child: MobileScanner(
-            onDetect: (capture) {
-              final value = capture.barcodes.firstOrNull?.rawValue;
-              if (value != null) Navigator.of(context).pop(value);
-            },
+          child: Stack(
+            children: [
+              MobileScanner(
+                onDetect: (capture) {
+                  final value = capture.barcodes.firstOrNull?.rawValue;
+                  if (value != null) Navigator.of(context).pop(value);
+                },
+              ),
+              Positioned(
+                top: 4,
+                right: 4,
+                child: IconButton(
+                  tooltip: 'Close',
+                  color: Colors.white,
+                  icon: const Icon(Icons.close_rounded),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ),
+            ],
           ),
         ),
       ),

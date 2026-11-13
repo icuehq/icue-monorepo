@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
+import 'package:school_library/src/ui/shared/library_member_cell.dart';
 import 'package:school_library/src/ui/shared/library_status_chip.dart';
 
 /// Wide-screen active loans as an [IcueTable]. Search and every filter are
@@ -141,36 +142,20 @@ class LoansTable extends StatelessWidget {
           id: 'member',
           label: 'Member',
           flex: 2,
-          cellBuilder: (context, loan) => IcueTableCellText(
-            loan.memberLabel,
-            style: IcueTableStyle.of(context).secondary,
-          ),
-        ),
-        IcueTableColumn(
-          id: 'class',
-          label: 'Class',
-          hideBelowWidth: 900,
-          cellBuilder: (context, loan) => IcueTableCellText(
-            context.watch<LibraryProvider>().classLabel(
+          cellBuilder: (context, loan) {
+            final classLabel = context.watch<LibraryProvider>().classLabel(
               loan.memberClassId,
-              null,
-            ),
-            style: IcueTableStyle.of(context).secondary,
-          ),
-        ),
-        IcueTableColumn(
-          id: 'section',
-          label: 'Section',
-          hideBelowWidth: 900,
-          cellBuilder: (context, loan) => IcueTableCellText(
-            loan.memberSection ?? '-',
-            style: IcueTableStyle.of(context).secondary,
-          ),
+              loan.memberSection,
+            );
+            return LibraryMemberCell(
+              name: loan.memberLabel,
+              classLabel: classLabel,
+            );
+          },
         ),
         IcueTableColumn(
           id: 'admission',
           label: 'Admission Number',
-          flex: 2,
           hideBelowWidth: 900,
           cellBuilder: (context, loan) => IcueTableCellText(
             loan.admissionNumber ?? '-',
@@ -196,7 +181,6 @@ class LoansTable extends StatelessWidget {
         IcueTableColumn(
           id: 'status',
           label: 'Status',
-          width: 110,
           cellBuilder: (context, loan) => _lateness(loan.overdueOn(today)),
         ),
       ],

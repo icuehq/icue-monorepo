@@ -18,13 +18,14 @@ class MembersPage extends StatefulWidget {
 }
 
 class _MembersPageState extends State<MembersPage> {
-  late final _searchController = TextEditingController(
-    text: context.read<LibraryProvider>().memberSearch,
-  );
+  late final TextEditingController _searchController;
 
   @override
   void initState() {
     super.initState();
+    _searchController = TextEditingController(
+      text: context.read<LibraryProvider>().memberSearch,
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final libraryProvider = context.read<LibraryProvider>();
       unawaited(libraryProvider.loadStandards());

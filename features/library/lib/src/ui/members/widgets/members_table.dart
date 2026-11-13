@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
+import 'package:school_library/src/ui/shared/library_member_cell.dart';
 import 'package:school_library/src/ui/shared/library_status_chip.dart';
 
 /// Wide-screen members as an [IcueTable]. Search and every filter are Firestore
@@ -101,25 +102,10 @@ class MembersTable extends StatelessWidget {
         IcueTableColumn(
           id: 'name',
           label: 'Name',
-          flex: 3,
           minWidth: 200,
-          cellBuilder: (context, member) => IcueTableCellText(
-            member.label,
-            leading: Icon(
-              member.isStudent
-                  ? Icons.school_outlined
-                  : Icons.person_outline_rounded,
-              size: 16,
-              color: IcueTableStyle.of(context).inkMuted,
-            ),
-          ),
-        ),
-        IcueTableColumn(
-          id: 'erpId',
-          label: 'ERP ID',
-          cellBuilder: (context, member) => IcueTableCellText(
-            '${member.personErpId}',
-            style: IcueTableStyle.of(context).numeric,
+          cellBuilder: (context, member) => LibraryMemberCell(
+            name: member.label,
+            classLabel: provider.classLabel(member.classId, member.section),
           ),
         ),
         IcueTableColumn(
@@ -128,15 +114,6 @@ class MembersTable extends StatelessWidget {
           hideBelowWidth: 800,
           cellBuilder: (context, member) => IcueTableCellText(
             member.admissionNumber ?? '-',
-            style: IcueTableStyle.of(context).secondary,
-          ),
-        ),
-        IcueTableColumn(
-          id: 'class',
-          label: 'Class',
-          hideBelowWidth: 800,
-          cellBuilder: (context, member) => IcueTableCellText(
-            provider.classLabel(member.classId, member.section),
             style: IcueTableStyle.of(context).secondary,
           ),
         ),

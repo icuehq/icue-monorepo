@@ -22,6 +22,8 @@ class OverviewKpiGrid extends StatelessWidget {
     final danger = theme.colorScheme.error;
     final overdue = stats['overdue'] ?? 0;
     final fines = stats['fines'] ?? 0;
+    final lost = stats['lost'] ?? 0;
+    final damaged = stats['damaged'] ?? 0;
 
     // Every tile always shows; a figure that is missing reads 0.
     final tiles = <(String, String, num?, IconData, String?, String?, Color?)>[
@@ -51,6 +53,24 @@ class OverviewKpiGrid extends StatelessWidget {
         _share('issued', 'copies', 'of copies'),
         LibraryRoutes.libraryCirculation,
         null,
+      ),
+      (
+        'lost',
+        'Lost books',
+        stats['lost'],
+        Icons.report_gmailerrorred_outlined,
+        _share('lost', 'copies', 'of copies'),
+        LibraryRoutes.libraryIncidents,
+        lost > 0 ? danger : null,
+      ),
+      (
+        'damaged',
+        'Damaged books',
+        stats['damaged'],
+        Icons.broken_image_outlined,
+        _share('damaged', 'copies', 'of copies'),
+        LibraryRoutes.libraryIncidents,
+        damaged > 0 ? Colors.orange.shade700 : null,
       ),
       (
         'overdue',

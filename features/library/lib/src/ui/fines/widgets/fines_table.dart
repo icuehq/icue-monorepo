@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
+import 'package:school_library/src/ui/shared/library_member_cell.dart';
 import 'package:school_library/src/ui/shared/library_status_chip.dart';
 
 /// Wide-screen fines as an [IcueTable]. Search and every filter are Firestore
@@ -91,10 +92,9 @@ class FinesTable extends StatelessWidget {
               fine.memberClassId,
               fine.memberSection,
             );
-            return IcueTableCellText(
-              fine.memberLabel,
-              style: IcueTableStyle.of(context).secondary,
-              subtitle: classLabel == '-' ? null : classLabel,
+            return LibraryMemberCell(
+              name: fine.memberLabel,
+              classLabel: classLabel,
             );
           },
         ),

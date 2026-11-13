@@ -113,15 +113,14 @@ function deltas(collection: string, { before, after }: Change) {
     if (!before) daily.add('loansIssued', 1, library);
     else if (before.status === LoanStatus.active && after.status === LoanStatus.returned)
       daily.add('loansReturned', 1, library);
-    else if (before.status === LoanStatus.active && after.status === LoanStatus.lost)
-      daily.add('loansLost', 1, library);
     if (before && (after.renewals?.length ?? 0) > (before.renewals?.length ?? 0))
       daily.add('loansRenewed', 1, library);
   } else if (collection === 'libraryFines' && after) {
     if (!before) daily.add('finesRaised', after.amount ?? 0, after.libraryId);
     daily.add('finesCollected', (after.paid ?? 0) - (before?.paid ?? 0), after.libraryId);
   } else if (collection === 'libraryIncidents' && after && !before) {
-    daily.add('incidents', 1, after.libraryId);
+    // A loan marked lost also records a lost incident, so this counts every lost book once.
+    daily.add(after.type === 'lost' ? 'booksLost' : 'booksDamaged', 1, after.libraryId);
   }
   return { overall, daily };
 }

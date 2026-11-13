@@ -196,7 +196,6 @@ class CatalogueTable extends StatelessWidget {
         IcueTableColumn(
           id: 'status',
           label: 'Status',
-          width: 110,
           cellBuilder: (context, book) =>
               LibraryStatusChip.active(active: book.active),
         ),

@@ -17,13 +17,14 @@ class IncidentsPage extends StatefulWidget {
 }
 
 class _IncidentsPageState extends State<IncidentsPage> {
-  late final _searchController = TextEditingController(
-    text: context.read<LibraryProvider>().incidentSearch,
-  );
+  late final TextEditingController _searchController;
 
   @override
   void initState() {
     super.initState();
+    _searchController = TextEditingController(
+      text: context.read<LibraryProvider>().incidentSearch,
+    );
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => context.read<LibraryProvider>().loadIncidents(),
     );

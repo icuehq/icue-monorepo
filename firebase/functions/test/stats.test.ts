@@ -62,6 +62,18 @@ describe('library analytics summary', () => {
     expect(await read(`day_${today}`)).toMatchObject({ finesRaised: 50, finesCollected: 20 });
   });
 
+  it('each day counts lost and damaged books apart', async () => {
+    const incident = (type: string) => ({ type, libraryId: 'main' });
+    await record('libraryIncidents', undefined, incident('lost'));
+    await record('libraryIncidents', undefined, incident('damaged'));
+    await record('libraryIncidents', undefined, incident('damaged'));
+    expect(await read(`day_${today}`)).toMatchObject({
+      booksLost: 1,
+      booksDamaged: 2,
+      libraries: { main: { booksLost: 1, booksDamaged: 2 } },
+    });
+  });
+
   it('a library counts a title while it holds a copy of it', async () => {
     await db().doc(`${BRANCH}/libraryCatalogue/t1`).set({ title: 'A' });
     const copy = (libraryId: string) => ({ catalogueId: 't1', libraryId, status: 'available' });

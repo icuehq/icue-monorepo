@@ -131,10 +131,7 @@ class _LibraryOverviewPageState extends State<LibraryOverviewPage> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      flex: 3,
-                      child: dueNext,
-                    ),
+                    Expanded(flex: 3, child: dueNext),
                     const SizedBox(width: 16),
                     Expanded(flex: 2, child: attention),
                   ],

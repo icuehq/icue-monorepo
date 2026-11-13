@@ -178,10 +178,9 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   /// Class and section as shown in lists, e.g. `Class 5 A`; `-` for staff.
   String classLabel(int? classId, String? section) => classId == null
       ? '-'
-      : [
-          className(classId),
-          if (section != null && section.isNotEmpty) section,
-        ].join(' ');
+      : section == null || section.isEmpty
+      ? className(classId)
+      : '${className(classId)} ($section)';
 
   List<LibraryCategory> get topCategories =>
       categories.where((category) => category.parentId == null).toList();

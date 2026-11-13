@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
+import 'package:school_library/src/ui/shared/library_member_cell.dart';
 import 'package:school_library/src/ui/shared/library_status_chip.dart';
 
 /// Report records with status badges and a totals strip for summed columns.
@@ -57,33 +58,6 @@ class LibraryReportTable extends StatelessWidget {
   static Widget _status(String status) =>
       LibraryStatusChip(status.toLowerCase().trim());
 
-  /// Bold name and the class/section as a small pill (students).
-  Widget _member(BuildContext context, String name, String? classLabel) {
-    final tokens = IcueTableStyle.of(context);
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              IcueTableCellText(name, style: tokens.primary),
-              if (classLabel != null) ...[
-                const SizedBox(height: 4),
-                _badge(
-                  classLabel,
-                  tokens.scheme.surfaceContainerHighest,
-                  tokens.inkMuted,
-                  icon: Icons.school_outlined,
-                ),
-              ],
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _cell(BuildContext context, String cell, String headerName) {
     if (headerName == 'status') return _status(cell);
     if (headerName == 'overdue' && (int.tryParse(cell) ?? 0) > 0) {
@@ -99,10 +73,9 @@ class LibraryReportTable extends StatelessWidget {
     }
     if (headerName == 'member') {
       final lines = cell.split('\n');
-      return _member(
-        context,
-        lines.first,
-        lines.length > 1 ? lines.last : null,
+      return LibraryMemberCell(
+        name: lines.first,
+        classLabel: lines.length > 1 ? lines.last : null,
       );
     }
     final tokens = IcueTableStyle.of(context);

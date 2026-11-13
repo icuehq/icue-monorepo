@@ -192,10 +192,10 @@ export interface LibraryDailyTotals {
   loansIssued: number;
   loansReturned: number;
   loansRenewed: number;
-  loansLost: number;
   finesRaised: number;
   finesCollected: number;
-  incidents: number;
+  booksLost: number;
+  booksDamaged: number;
 }
 
 /** libraryStats/overall: branch figures, with per-library figures under libraries. */

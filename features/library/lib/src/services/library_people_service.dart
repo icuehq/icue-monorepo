@@ -71,7 +71,7 @@ class LibraryPeopleService {
     photoUrl: student.photoUrl,
     detail: [
       if (student.standard.isNotEmpty)
-        '${student.standard.toLowerCase().startsWith('class') ? '' : 'Class '}${student.standard}${student.section.isEmpty ? '' : ' ${student.section}'}',
+        '${student.standard.toLowerCase().startsWith('class') ? '' : 'Class '}${student.standard}${student.section.isEmpty ? '' : ' (${student.section})'}',
       if (student.admissionNumber.isNotEmpty) 'Adm. ${student.admissionNumber}',
     ].join(' · '),
   );

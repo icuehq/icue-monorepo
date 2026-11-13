@@ -21,13 +21,14 @@ class CirculationPage extends StatefulWidget {
 }
 
 class _CirculationPageState extends State<CirculationPage> {
-  late final _searchController = TextEditingController(
-    text: context.read<LibraryProvider>().loanSearch,
-  );
+  late final TextEditingController _searchController;
 
   @override
   void initState() {
     super.initState();
+    _searchController = TextEditingController(
+      text: context.read<LibraryProvider>().loanSearch,
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final libraryProvider = context.read<LibraryProvider>();
       unawaited(libraryProvider.loadStandards());

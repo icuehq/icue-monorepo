@@ -239,10 +239,10 @@ abstract final class LibraryDailyTotalsFields {
   static const loansIssued = 'loansIssued';
   static const loansReturned = 'loansReturned';
   static const loansRenewed = 'loansRenewed';
-  static const loansLost = 'loansLost';
   static const finesRaised = 'finesRaised';
   static const finesCollected = 'finesCollected';
-  static const incidents = 'incidents';
+  static const booksLost = 'booksLost';
+  static const booksDamaged = 'booksDamaged';
 }
 
 /// libraryStats/overall: branch figures, with per-library figures under libraries.

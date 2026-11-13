@@ -129,7 +129,10 @@ class LoanDetailsCard extends StatelessWidget {
   ) {
     final classId = loan.memberClassId;
     final classText = classId != null
-        ? '${context.watch<LibraryProvider>().className(classId)}${loan.memberSection != null && loan.memberSection!.isNotEmpty ? '-${loan.memberSection}' : ''}'
+        ? context.watch<LibraryProvider>().classLabel(
+            classId,
+            loan.memberSection,
+          )
         : null;
     final admissionText =
         loan.admissionNumber != null && loan.admissionNumber!.isNotEmpty
