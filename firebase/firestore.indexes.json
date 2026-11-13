@@ -427,24 +427,6 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "libraryId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "outstanding",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "libraryFines",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
           "fieldPath": "type",
           "order": "ASCENDING"
         },
@@ -464,20 +446,6 @@
         },
         {
           "fieldPath": "type",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "libraryFines",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "fineNumber",
           "order": "ASCENDING"
         },
         {
