@@ -1,7 +1,7 @@
 import { Timestamp } from 'firebase-admin/firestore';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { applyItemChange } from '../src/inventory/search';
-import { projectIncident } from '../src/library/search';
+import { prefixText, projectCatalogue, projectIncident } from '../src/library/search';
 import { searchDb } from '../src/shared/searchMirror';
 import { clearFirestore } from './setup';
 
@@ -69,5 +69,22 @@ describe('incident search projection', () => {
       createdAt,
     });
     expect(projectIncident({ status: 'open', type: 'damaged' }).memberName).toBeNull();
+  });
+});
+
+describe('catalogue prefix text', () => {
+  it('holds every prefix of 3+ letters, so half-typed words match', () => {
+    expect(prefixText('Marigold')).toBe('mar mari marig marigo marigol');
+    expect(prefixText('Cat', 'at')).toBe('');
+    expect(prefixText('Garden, Garden')).toBe('gar gard garde');
+  });
+
+  it('covers title, authors and keywords', () => {
+    const { prefixText: text } = projectCatalogue({
+      title: 'Marigold',
+      authors: ['Tagore'],
+      keywords: ['flowers'],
+    });
+    expect(text.split(' ')).toEqual(expect.arrayContaining(['mari', 'tag', 'flow']));
   });
 });

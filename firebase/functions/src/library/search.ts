@@ -14,17 +14,49 @@ const ROW = [
   'classIds',
   'status',
 ] as const;
-/** The text index covers title, subtitle, authorsText, publisher and keywordsText (`firebase/scripts/create-search-index.sh`). */
+/** The text index covers title, subtitle, authorsText, publisher, keywordsText and prefixText (`firebase/scripts/create-search-index.sh`). */
 
 const projectRow = (catalogueDocument: DocumentData) =>
   Object.fromEntries(ROW.map((field) => [field, catalogueDocument[field] ?? null]));
 
+const MIN_PREFIX = 3;
+
+/**
+ * Every prefix of at least [MIN_PREFIX] letters of each word, so a half-typed word matches: the text index
+ * only matches whole words. 'Marigold' gives 'mar mari marig marigo marigol' (the full word is indexed already).
+ */
+export const prefixText = (...texts: string[]) =>
+  [
+    ...new Set(
+      texts
+        .join(' ')
+        .toLowerCase()
+        .split(/[^\p{L}\p{N}]+/u)
+        .flatMap((word) =>
+          Array.from({ length: Math.max(0, word.length - MIN_PREFIX) }, (_, index) =>
+            word.slice(0, MIN_PREFIX + index),
+          ),
+        ),
+    ),
+  ].join(' ');
+
 /** The list-row fields plus flat text copies of the array fields, which the text index needs. */
-export const projectCatalogue = (catalogueDocument: DocumentData) => ({
-  ...projectRow(catalogueDocument),
-  authorsText: (catalogueDocument.authors ?? []).join(' '),
-  keywordsText: (catalogueDocument.keywords ?? []).join(' '),
-});
+export const projectCatalogue = (catalogueDocument: DocumentData) => {
+  const authorsText = (catalogueDocument.authors ?? []).join(' ');
+  const keywordsText = (catalogueDocument.keywords ?? []).join(' ');
+  return {
+    ...projectRow(catalogueDocument),
+    authorsText,
+    keywordsText,
+    prefixText: prefixText(
+      catalogueDocument.title ?? '',
+      catalogueDocument.subtitle ?? '',
+      authorsText,
+      catalogueDocument.publisher ?? '',
+      keywordsText,
+    ),
+  };
+};
 
 export const applyCatalogueChange = (
   branchPath: string,

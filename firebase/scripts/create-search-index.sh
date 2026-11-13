@@ -3,6 +3,8 @@
 # firestore.indexes.json). Run once per project, AFTER creating the database:
 #   firebase/scripts/create-search-index.sh <project-id>
 # Re-running is safe for a new collection; an existing index answers with an error to ignore.
+# A collection may hold only ONE text index: after changing a collection's field list, delete the old index
+# (REST DELETE on .../collectionGroups/<coll>/indexes/<id>) or every query fails with "multiple global text search indexes".
 # The database itself: Enterprise edition, Native mode, asia-south1, ID `search`.
 # (`gcloud firestore indexes composite create` crashes on some gcloud versions, hence REST.)
 set -uo pipefail
@@ -30,6 +32,6 @@ create_index() {
 }
 
 create_index inventoryItems name code
-create_index libraryCatalogue title subtitle authorsText publisher keywordsText
+create_index libraryCatalogue title subtitle authorsText publisher keywordsText prefixText
 create_index libraryLoans bookTitle memberName admissionNumber
 create_index libraryIncidents bookTitle memberName admissionNumber
