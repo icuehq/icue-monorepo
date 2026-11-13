@@ -33,9 +33,12 @@ class _LibraryHomePageState extends State<LibraryHomePage> {
         actions: const [LibrarianLogoutButton()],
       ),
       body: libraryProvider.isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const IcueSkeletonTileGrid()
           : libraryProvider.errorMessage != null
-          ? Center(child: Text(libraryProvider.errorMessage!))
+          ? IcueEmptyState.error(
+              message: libraryProvider.errorMessage,
+              onAction: libraryProvider.loadMasters,
+            )
           : LayoutBuilder(
               builder: (context, constraints) {
                 final width = constraints.maxWidth;

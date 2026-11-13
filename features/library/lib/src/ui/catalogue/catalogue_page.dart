@@ -143,7 +143,7 @@ class _CataloguePageState extends State<CataloguePage> {
                 const Divider(height: 1),
                 Expanded(
                   child: libraryProvider.books.loading && books.isEmpty
-                      ? const Center(child: CircularProgressIndicator())
+                      ? const IcueSkeletonCardList()
                       : books.isEmpty
                       ? (!isFiltered
                             ? CatalogueInitialEmptyState(

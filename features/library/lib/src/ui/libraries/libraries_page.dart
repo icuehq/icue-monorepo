@@ -117,7 +117,7 @@ class _LibrariesPageState extends State<LibrariesPage> {
             )
           : null,
       body: libraryProvider.isLoading && allLibraries.isEmpty
-          ? const Center(child: CircularProgressIndicator())
+          ? const IcueSkeletonCardList()
           : isWide
           ? Padding(
               padding: const EdgeInsets.all(16),

@@ -158,7 +158,7 @@ class _CirculationPageState extends State<CirculationPage> {
                 const SizedBox(height: 6),
                 Expanded(
                   child: pager.loading && loans.isEmpty
-                      ? const Center(child: CircularProgressIndicator())
+                      ? const IcueSkeletonCardList()
                       : loans.isEmpty
                       ? (libraryProvider.loansFiltered
                             ? CirculationNoResultsState(

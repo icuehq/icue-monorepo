@@ -1,6 +1,7 @@
 import 'package:icue_ui/src/table/icue_table_controls.dart';
 import 'package:icue_ui/src/table/icue_table_models.dart';
 import 'package:icue_ui/src/widgets/icue_button.dart';
+import 'package:icue_ui/src/widgets/icue_skeleton.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -350,71 +351,52 @@ class IcueTableSkeleton<T> extends StatefulWidget {
   State<IcueTableSkeleton<T>> createState() => _AdminTableSkeletonState<T>();
 }
 
-class _AdminTableSkeletonState<T> extends State<IcueTableSkeleton<T>>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _pulse = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1100),
-  )..repeat(reverse: true);
-
-  @override
-  void dispose() {
-    _pulse.dispose();
-    super.dispose();
-  }
-
+class _AdminTableSkeletonState<T> extends State<IcueTableSkeleton<T>> {
   @override
   Widget build(BuildContext context) {
     final tokens = IcueTableStyle.of(context);
     final layout = widget.layout;
-    return Semantics(
-      label: 'Loading rows',
-      child: ExcludeSemantics(
-        child: FadeTransition(
-          opacity: Tween<double>(begin: 0.55, end: 1).animate(_pulse),
-          child: Column(
-            children: [
-              for (var r = 0; r < widget.rows; r++)
-                Container(
-                  height: widget.rowHeight,
-                  decoration: BoxDecoration(
-                    border: Border(bottom: BorderSide(color: tokens.divider)),
-                  ),
-                  child: Row(
-                    children: [
-                      if (layout.selectable)
-                        const SizedBox(width: IcueTableStyle.selectColumnWidth),
-                      for (var i = 0; i < layout.columns.length; i++)
-                        SizedBox(
-                          width: layout.widths[i],
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: IcueTableStyle.cellPadding,
-                            ),
-                            child: Align(
-                              alignment: layout.columns[i].alignment,
-                              child: FractionallySizedBox(
-                                widthFactor: 0.4 + ((r * 3 + i * 5) % 5) * 0.12,
-                                child: Container(
-                                  height: 9,
-                                  decoration: BoxDecoration(
-                                    color:
-                                        tokens.scheme.surfaceContainerHighest,
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                ),
+    return IcueSkeletonPulse(
+      child: Column(
+        children: [
+          for (var r = 0; r < widget.rows; r++)
+            Container(
+              height: widget.rowHeight,
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: tokens.divider)),
+              ),
+              child: Row(
+                children: [
+                  if (layout.selectable)
+                    const SizedBox(width: IcueTableStyle.selectColumnWidth),
+                  for (var i = 0; i < layout.columns.length; i++)
+                    SizedBox(
+                      width: layout.widths[i],
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: IcueTableStyle.cellPadding,
+                        ),
+                        child: Align(
+                          alignment: layout.columns[i].alignment,
+                          child: FractionallySizedBox(
+                            widthFactor: 0.4 + ((r * 3 + i * 5) % 5) * 0.12,
+                            child: Container(
+                              height: 9,
+                              decoration: BoxDecoration(
+                                color: tokens.scheme.surfaceContainerHighest,
+                                borderRadius: BorderRadius.circular(4),
                               ),
                             ),
                           ),
                         ),
-                      if (layout.hasRowActions)
-                        SizedBox(width: layout.actionsWidth),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-        ),
+                      ),
+                    ),
+                  if (layout.hasRowActions)
+                    SizedBox(width: layout.actionsWidth),
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }

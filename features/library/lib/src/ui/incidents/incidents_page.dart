@@ -140,7 +140,7 @@ class _IncidentsPageState extends State<IncidentsPage> {
                   ),
                   Expanded(
                     child: pager.loading && pager.items.isEmpty
-                        ? const Center(child: CircularProgressIndicator())
+                        ? const IcueSkeletonCardList()
                         : pager.items.isEmpty
                         ? (libraryProvider.incidentSearch.isNotEmpty ||
                                   libraryProvider.incidentType != null

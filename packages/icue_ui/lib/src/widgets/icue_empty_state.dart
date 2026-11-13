@@ -15,7 +15,7 @@ class IcueEmptyState extends StatelessWidget {
     this.outlinedAction = false,
     this.neutral = false,
     super.key,
-  });
+  }) : isError = false;
 
   /// "Nothing matches the search or filters", with a clear button.
   const IcueEmptyState.noResults({
@@ -27,7 +27,21 @@ class IcueEmptyState extends StatelessWidget {
   }) : icon = Icons.search_off_rounded,
        actionIcon = Icons.clear_rounded,
        outlinedAction = true,
-       neutral = true;
+       neutral = true,
+       isError = false;
+
+  /// "Could not load", with a retry button.
+  const IcueEmptyState.error({
+    required this.onAction,
+    this.title = 'Something went wrong',
+    this.message,
+    this.actionLabel = 'Try again',
+    super.key,
+  }) : icon = Icons.cloud_off_rounded,
+       actionIcon = Icons.refresh_rounded,
+       outlinedAction = true,
+       neutral = false,
+       isError = true;
 
   final IconData icon;
   final String title;
@@ -37,12 +51,17 @@ class IcueEmptyState extends StatelessWidget {
   final VoidCallback? onAction;
   final bool outlinedAction;
   final bool neutral;
+  final bool isError;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final tone = neutral ? scheme.onSurfaceVariant : scheme.primary;
+    final tone = isError
+        ? scheme.error
+        : neutral
+        ? scheme.onSurfaceVariant
+        : scheme.primary;
     final label = actionLabel;
     final action = onAction;
     return Center(
@@ -54,19 +73,26 @@ class IcueEmptyState extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                padding: const EdgeInsets.all(18),
+                padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: tone.withValues(alpha: neutral ? 0.08 : 0.1),
                   shape: BoxShape.circle,
+                  color: tone.withValues(alpha: 0.05),
                 ),
-                child: Icon(icon, size: 36, color: tone),
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: tone.withValues(alpha: neutral ? 0.1 : 0.12),
+                  ),
+                  child: Icon(icon, size: 40, color: tone),
+                ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               Text(
                 title,
                 textAlign: TextAlign.center,
                 style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
               if (message != null) ...[

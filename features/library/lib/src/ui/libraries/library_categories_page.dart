@@ -163,7 +163,7 @@ class _LibraryCategoriesPageState extends State<LibraryCategoriesPage> {
           );
 
           if (libraryProvider.isLoading && !hasAnyCategories) {
-            return const Center(child: CircularProgressIndicator());
+            return const IcueSkeletonCardList();
           }
 
           if (isWide) {

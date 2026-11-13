@@ -44,11 +44,14 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
     if (book == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Book Details')),
-        body: Center(
-          child: _loaded
-              ? const Text('Book not found')
-              : const CircularProgressIndicator(),
-        ),
+        body: _loaded
+            ? const IcueEmptyState(
+                icon: Icons.menu_book_outlined,
+                title: 'Book not found',
+                message: 'It may have been removed from the catalogue.',
+                neutral: true,
+              )
+            : const IcueLoadingState(label: 'Loading book…'),
       );
     }
     final categoryName = libraryProvider.category(book.categoryId)?.name;

@@ -27,6 +27,7 @@ export 'src/widgets/icue_date_filter_modal.dart';
 export 'src/widgets/icue_document_accordion.dart';
 export 'src/widgets/icue_dropdown.dart';
 export 'src/widgets/icue_empty_state.dart';
+export 'src/widgets/icue_skeleton.dart';
 export 'src/widgets/icue_status_pill.dart';
 export 'src/widgets/icue_form_helpers.dart';
 export 'src/widgets/icue_form_section_card.dart';

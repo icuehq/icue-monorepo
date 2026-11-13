@@ -197,7 +197,7 @@ class _ReportScreenState extends State<IcueReportScreen> {
   Widget _body(BuildContext context, List<List<String>> rows, bool hasTotals) {
     if (rows.isEmpty) {
       if (widget.isLoading) {
-        return const Center(child: CircularProgressIndicator());
+        return const IcueLoadingState(label: 'Loading report…');
       }
       if (widget.errorMessage != null) {
         return IcueEmptyState(

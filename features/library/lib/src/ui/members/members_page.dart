@@ -164,7 +164,7 @@ class _MembersPageState extends State<MembersPage> {
                   ),
                   Expanded(
                     child: pager.loading && pager.items.isEmpty
-                        ? const Center(child: CircularProgressIndicator())
+                        ? const IcueSkeletonCardList()
                         : pager.items.isEmpty
                         ? (libraryProvider.membersFiltered
                               ? MemberNoResultsState(

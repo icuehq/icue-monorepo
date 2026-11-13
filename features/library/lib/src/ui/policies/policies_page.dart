@@ -59,7 +59,7 @@ class PoliciesPage extends StatelessWidget {
               label: const Text('Policy'),
             ),
       body: libraryProvider.isLoading && allPolicies.isEmpty
-          ? const Center(child: CircularProgressIndicator())
+          ? const IcueSkeletonCardList()
           : allPolicies.isEmpty
           ? PolicyInitialEmptyState(
               onAddDefault: () async {

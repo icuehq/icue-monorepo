@@ -244,7 +244,7 @@ class _FinesPageState extends State<FinesPage> {
                   ),
                   Expanded(
                     child: pager.loading && pager.items.isEmpty
-                        ? const Center(child: CircularProgressIndicator())
+                        ? const IcueSkeletonCardList()
                         : pager.items.isEmpty
                         ? (libraryProvider.fineSearch.isNotEmpty ||
                                   libraryProvider.fineType != null

@@ -31,7 +31,9 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   List<SchoolLibrary> libraries = [];
   List<LibraryCategory> categories = [];
   List<LibraryPolicy> policies = [];
-  bool isLoading = false;
+
+  /// True until the first [loadMasters] finishes, so a page never flashes its empty state first.
+  bool isLoading = true;
   @override
   String? errorMessage;
 
@@ -326,7 +328,8 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
 
   /// A pager whose failures become [errorMessage] and whose changes rebuild listeners.
   FirestorePager<T> _pager<T>() {
-    final pager = FirestorePager<T>();
+    // Loading until the page's first load, so lists show a skeleton, not the empty state.
+    final pager = FirestorePager<T>()..loading = true;
     pager.addListener(() {
       final error = pager.error;
       if (error != null) errorMessage = callableErrorMessage(error);
