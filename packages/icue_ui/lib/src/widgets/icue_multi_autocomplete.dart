@@ -95,39 +95,43 @@ class IcueMultiAutocomplete<T extends Object> extends StatelessWidget {
       },
       optionsViewBuilder: (context, onSelected, matches) => Align(
         alignment: Alignment.topLeft,
-        child: Material(
-          elevation: 4,
-          borderRadius: BorderRadius.circular(8),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxHeight: 240,
-              maxWidth: constraints.maxWidth,
-            ),
-            child: ListView(
-              padding: EdgeInsets.zero,
-              shrinkWrap: true,
-              children: [
-                for (final option in matches)
-                  if (multiple)
-                    // Bypasses onSelected, which would close the menu; ExcludeFocus
-                    // keeps the text field focused so the menu stays open.
-                    ExcludeFocus(
-                      child: CheckboxListTile(
+        // Taps in the menu count as inside the field, so web/desktop's
+        // tap-outside unfocus does not close the menu on every pick.
+        child: TextFieldTapRegion(
+          child: Material(
+            elevation: 4,
+            borderRadius: BorderRadius.circular(8),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: 240,
+                maxWidth: constraints.maxWidth,
+              ),
+              child: ListView(
+                padding: EdgeInsets.zero,
+                shrinkWrap: true,
+                children: [
+                  for (final option in matches)
+                    if (multiple)
+                      // Bypasses onSelected, which would close the menu; ExcludeFocus
+                      // keeps the text field focused so the menu stays open.
+                      ExcludeFocus(
+                        child: CheckboxListTile(
+                          dense: true,
+                          controlAffinity: ListTileControlAffinity.leading,
+                          value: selected.contains(option),
+                          title: Text(labelOf(option)),
+                          onChanged: (_) => _pick(option),
+                        ),
+                      )
+                    else
+                      ListTile(
                         dense: true,
-                        controlAffinity: ListTileControlAffinity.leading,
-                        value: selected.contains(option),
+                        selected: selected.contains(option),
                         title: Text(labelOf(option)),
-                        onChanged: (_) => _pick(option),
+                        onTap: () => onSelected(option),
                       ),
-                    )
-                  else
-                    ListTile(
-                      dense: true,
-                      selected: selected.contains(option),
-                      title: Text(labelOf(option)),
-                      onTap: () => onSelected(option),
-                    ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

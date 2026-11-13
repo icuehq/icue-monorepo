@@ -47,7 +47,7 @@ class _UnitsPageState extends State<UnitsPage> {
             )
           : null,
       body: inventoryProvider.isLoading && allUnits.isEmpty
-          ? const Center(child: CircularProgressIndicator())
+          ? const IcueSkeletonCardList()
           : allUnits.isEmpty
           ? _EmptyUnitsView(
               canEdit: canEdit,
@@ -75,7 +75,12 @@ class _UnitsPageState extends State<UnitsPage> {
                   ),
                   Expanded(
                     child: filteredUnits.isEmpty
-                        ? const Center(child: Text('No matching units'))
+                        ? const IcueEmptyState(
+                            icon: Icons.search_off_rounded,
+                            title: 'No matching units',
+                            message: 'Try a different search.',
+                            neutral: true,
+                          )
                         : IcueAdaptiveCardList(
                             padding: const EdgeInsets.fromLTRB(16, 8, 16, 88),
                             spacing: 8,

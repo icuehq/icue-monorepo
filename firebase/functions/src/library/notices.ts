@@ -1,4 +1,5 @@
-import { type DocumentData, getFirestore } from 'firebase-admin/firestore';
+import { getFirestore } from 'firebase-admin/firestore';
+import type { Change } from '../shared/audit';
 import { timestampDay } from '../shared/dates';
 import { post } from '../shared/outbox';
 import { memberTo } from './notify';
@@ -9,13 +10,6 @@ import { memberTo } from './notify';
  * the collection's audit trigger (`audit.ts`), so each write costs one invocation. Outbox keys are fixed
  * per event, so a redelivered trigger never sends a notice twice.
  */
-export interface Change {
-  branchPath: string;
-  docId: string;
-  before?: DocumentData;
-  after?: DocumentData;
-}
-
 export async function noticeLoan({
   branchPath,
   docId,

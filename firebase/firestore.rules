@@ -2,6 +2,7 @@ rules_version = '2';
 
 // Clients read; all writes go through Cloud Functions (Admin SDK bypasses rules).
 // Exceptions: own device tokens/mute, Receive Stock (receipts, ledger rows, balances), issue request submit/approve, the master collections, and purchase requests/quotations/invoices.
+// Inventory and Library business records carry a `lastWrite` stamp (see stamped()); code-keyed masters do not.
 service cloud.firestore {
   match /databases/{db}/documents {
     function signedIn() { return request.auth != null; }
@@ -70,28 +71,28 @@ service cloud.firestore {
 
     // Purchase requests, quotations and invoices: client writes for the roles that handle them.
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryPurchaseRequests/{id} {
-      allow write: if inBranch(orgId, zoneId, branchId)
+      allow write: if inBranch(orgId, zoneId, branchId) && stamped()
         && (can(orgId, zoneId, branchId, 'inventory.purchaseRequest.request') || can(orgId, zoneId, branchId, 'inventory.purchaseRequest.approve'));
       // Issuing, cancelling or closing a purchase order moves its quantity on the request.
-      allow update: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.procure.operate');
+      allow update: if inBranch(orgId, zoneId, branchId) && stamped() && can(orgId, zoneId, branchId, 'inventory.procure.operate');
       // The last fully received order completes its request.
-      allow update: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.stock.operate')
+      allow update: if inBranch(orgId, zoneId, branchId) && stamped() && can(orgId, zoneId, branchId, 'inventory.stock.operate')
         && request.resource.data.status == 'completed';
     }
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryQuotations/{id} {
-      allow write: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.procure.operate');
+      allow write: if inBranch(orgId, zoneId, branchId) && stamped() && can(orgId, zoneId, branchId, 'inventory.procure.operate');
     }
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryInvoices/{id} {
-      allow write: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.procure.operate');
+      allow write: if inBranch(orgId, zoneId, branchId) && stamped() && can(orgId, zoneId, branchId, 'inventory.procure.operate');
     }
     // Purchase orders: client writes until cancelled or closed; receiving stays a callable.
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryPurchaseOrders/{id} {
-      allow create: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.procure.operate')
+      allow create: if inBranch(orgId, zoneId, branchId) && stamped() && can(orgId, zoneId, branchId, 'inventory.procure.operate')
         && request.resource.data.status == 'draft';
-      allow update: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.procure.operate')
+      allow update: if inBranch(orgId, zoneId, branchId) && stamped() && can(orgId, zoneId, branchId, 'inventory.procure.operate')
         && !(resource.data.status in ['cancelled', 'closed']);
       // Receiving goods moves an order to (partially / fully) received.
-      allow update: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.stock.operate')
+      allow update: if inBranch(orgId, zoneId, branchId) && stamped() && can(orgId, zoneId, branchId, 'inventory.stock.operate')
         && request.resource.data.status in ['partially_received', 'fully_received'];
     }
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryPurchaseOrders/{id}/revisions/{rev} {
@@ -123,18 +124,19 @@ service cloud.firestore {
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/{coll}/{id} {
       allow create: if inBranch(orgId, zoneId, branchId) && coll in ['inventoryReceipts', 'inventoryIssues', 'inventoryReturns', 'inventoryAdjustments', 'inventoryUnavailableStock', 'inventoryMovements']
         && can(orgId, zoneId, branchId, 'inventory.stock.operate')
+        && (coll == 'inventoryMovements' || stamped())
         && request.resource.data.createdBy == request.auth.uid;
     }
     // A return only moves an issue's returned quantities.
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryIssues/{id} {
-      allow update: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.stock.operate')
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lineItems', 'updatedAt']);
+      allow update: if inBranch(orgId, zoneId, branchId) && stamped() && can(orgId, zoneId, branchId, 'inventory.stock.operate')
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lineItems', 'lastWrite', 'updatedAt']);
     }
     // Acknowledging an issue only fills its empty acknowledgement.
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryIssues/{id} {
-      allow update: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.stock.operate')
+      allow update: if inBranch(orgId, zoneId, branchId) && stamped() && can(orgId, zoneId, branchId, 'inventory.stock.operate')
         && resource.data.acknowledgement == null
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['acknowledgement', 'updatedAt'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['acknowledgement', 'lastWrite', 'updatedAt'])
         && request.resource.data.acknowledgement.performedBy == request.auth.uid;
     }
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryBalances/{id} {
@@ -143,27 +145,27 @@ service cloud.firestore {
     }
     // Submitting, approving/rejecting and issuing against an issue request, and acknowledging an issue, are client writes.
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryIssueRequests/{id} {
-      allow create: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.issue.request')
+      allow create: if inBranch(orgId, zoneId, branchId) && stamped() && can(orgId, zoneId, branchId, 'inventory.issue.request')
         && request.resource.data.createdBy == request.auth.uid
         && request.resource.data.status == 'pending';
       // Approve / reject: only while pending, by an approver, touching only the decision fields.
-      allow update: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.issue.approve')
+      allow update: if inBranch(orgId, zoneId, branchId) && stamped() && can(orgId, zoneId, branchId, 'inventory.issue.approve')
         && resource.data.status == 'pending'
         && request.resource.data.status in ['approved', 'rejected']
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'lineItems', 'approval', 'updatedAt'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'lineItems', 'approval', 'lastWrite', 'updatedAt'])
         && request.resource.data.approval.performedBy == request.auth.uid;
     }
     // Issuing stock only moves an approved request's issued quantities and status.
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryIssueRequests/{id} {
-      allow update: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.stock.operate')
+      allow update: if inBranch(orgId, zoneId, branchId) && stamped() && can(orgId, zoneId, branchId, 'inventory.stock.operate')
         && resource.data.status in ['approved', 'partially_issued']
         && request.resource.data.status in ['partially_issued', 'issued']
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'lineItems', 'updatedAt']);
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'lineItems', 'lastWrite', 'updatedAt']);
     }
     // The requester may withdraw a pending request; a stock operator may close one still awaiting issue.
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryIssueRequests/{id} {
-      allow update: if inBranch(orgId, zoneId, branchId)
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'closure', 'updatedAt'])
+      allow update: if inBranch(orgId, zoneId, branchId) && stamped()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'closure', 'lastWrite', 'updatedAt'])
         && request.resource.data.closure.performedBy == request.auth.uid
         && ((resource.data.createdBy == request.auth.uid && resource.data.status == 'pending' && request.resource.data.status == 'cancelled')
           || (can(orgId, zoneId, branchId, 'inventory.stock.operate')
@@ -176,10 +178,10 @@ service cloud.firestore {
     }
     // Resolving an unavailable-stock entry: restore, repair or write off, by a stock operator.
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryUnavailableStock/{id} {
-      allow update: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.stock.operate')
+      allow update: if inBranch(orgId, zoneId, branchId) && stamped() && can(orgId, zoneId, branchId, 'inventory.stock.operate')
         && resource.data.status in ['open', 'in_repair']
         && request.resource.data.status in ['in_repair', 'resolved']
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'resolution', 'resolutionNote', 'resolvedAt', 'resolvedBy', 'updatedAt']);
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'resolution', 'resolutionNote', 'resolvedAt', 'resolvedBy', 'lastWrite', 'updatedAt']);
     }
 
     // Procurement (Inv-3). Vendors are branch-wide; requesters see their own requests,
@@ -228,6 +230,14 @@ service cloud.firestore {
     }
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryVendors/{id} {
       allow read: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.reports.view');
+    }
+    // The overview figures (`inventoryStats/overall`, kept by triggers): anyone whose role has a tile on the Inventory overview.
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryStats/{id} {
+      allow read: if inBranch(orgId, zoneId, branchId)
+        && (can(orgId, zoneId, branchId, 'inventory.items.view') || can(orgId, zoneId, branchId, 'inventory.stock.view')
+          || can(orgId, zoneId, branchId, 'inventory.reports.view') || can(orgId, zoneId, branchId, 'inventory.assets.view')
+          || can(orgId, zoneId, branchId, 'inventory.purchaseRequest.approve') || can(orgId, zoneId, branchId, 'inventory.issue.approve')
+          || can(orgId, zoneId, branchId, 'inventory.procure.operate'));
     }
 
     // Library masters (Lib-1): catalogue is branch-wide, readable by anyone who may browse it.

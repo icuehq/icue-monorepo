@@ -18,6 +18,7 @@ export const Collections = {
   inventoryPurchaseRequests: 'inventoryPurchaseRequests',
   inventoryQuotations: 'inventoryQuotations',
   inventoryReceipts: 'inventoryReceipts',
+  inventoryStats: 'inventoryStats',
   inventoryStores: 'inventoryStores',
   inventoryUnits: 'inventoryUnits',
   inventoryVendors: 'inventoryVendors',
@@ -126,6 +127,27 @@ export const manualCopyStatuses = [CopyStatus.available, CopyStatus.underMainten
 
 /** A copy in these never becomes available again by hand. */
 export const terminalCopyStatuses = [CopyStatus.lost, CopyStatus.withdrawn] as const;
+
+/** Current-state figures of a branch or one store (inventoryStats/overall), kept only by triggers. Balance figures (available, value, lowStock, outOfStock, expiryOn) exist per store under stores; the rest are branch-wide. expiryOn counts stock lines by the India-time day of their earliest expiry (yyyy-MM-dd); expired and expiring are sums of the days before today and in the next 30. */
+export interface InventoryStatsTotals {
+  items: number;
+  available: number;
+  value: number;
+  lowStock: number;
+  outOfStock: number;
+  expiryOn: Record<string, number>;
+  pendingPurchaseRequests: number;
+  pendingIssueRequests: number;
+  openPurchaseOrders: number;
+  awaitingReceipt: number;
+  assets: number;
+  underMaintenance: number;
+}
+
+/** inventoryStats/overall: branch figures, with per-store balance figures under stores. */
+export interface InventoryStats {
+  stores: Record<string, InventoryStatsTotals>;
+}
 
 /** One issue of a copy to a member. */
 export interface LibraryLoan {

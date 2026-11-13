@@ -20,6 +20,7 @@ collections:
   - inventoryPurchaseRequests
   - inventoryQuotations
   - inventoryReceipts
+  - inventoryStats
   - inventoryStores
   - inventoryUnits
   - inventoryVendors
@@ -55,6 +56,28 @@ constants:
     doc: Quotations and purchase orders may be raised against these.
     enum: PurchaseRequestStatus
     values: [approved, partially_ordered]
+
+documents:
+  InventoryStatsTotals:
+    doc: "Current-state figures of a branch or one store (inventoryStats/overall), kept only by triggers. Balance figures (available, value, lowStock, outOfStock, expiryOn) exist per store under stores; the rest are branch-wide. expiryOn counts stock lines by the India-time day of their earliest expiry (yyyy-MM-dd); expired and expiring are sums of the days before today and in the next 30."
+    fields:
+      items: int
+      available: double
+      value: double
+      lowStock: int
+      outOfStock: int
+      expiryOn: map<int>
+      pendingPurchaseRequests: int
+      pendingIssueRequests: int
+      openPurchaseOrders: int
+      awaitingReceipt: int
+      assets: int
+      underMaintenance: int
+  InventoryStats:
+    doc: "inventoryStats/overall: branch figures, with per-store balance figures under stores."
+    collection: inventoryStats
+    fields:
+      stores: map<InventoryStatsTotals>
 
 # Dart view models, generated to <modelsDir>/<file>.g.dart. Field: type, or {type, key, default, notEquals, present, doc, from};
 # key is the Firestore key (dotted for nested), from is a raw Dart expression over data/id.

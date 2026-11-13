@@ -178,38 +178,13 @@ class _QuotationsPageState extends State<QuotationsPage> {
       ),
       body: IcueCenteredBody(
         child: quotations.isEmpty
-            ? Center(
-                child: procurementProvider.isLoading
-                    ? const CircularProgressIndicator()
-                    : Padding(
-                        padding: const EdgeInsets.all(32),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.request_quote_outlined,
-                              size: 56,
-                              color: theme.colorScheme.outline,
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              'No quotations received yet',
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Record quotes from multiple vendors to compare prices and delivery schedules before issuing a purchase order.',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.outline,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      ),
-              )
+            ? procurementProvider.isLoading
+                  ? const IcueSkeletonCardList()
+                  : const IcueEmptyState(
+                      icon: Icons.request_quote_outlined,
+                      title: 'No quotations received yet',
+                      message: 'Record quotes from multiple vendors to compare prices and delivery schedules before issuing a purchase order.',
+                    )
             : ListView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
                 children: [

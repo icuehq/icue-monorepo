@@ -5,8 +5,9 @@ import 'package:icue_ui/icue_ui.dart';
 ///
 /// One Firestore transaction writes the receipt, its balances, the ledger rows
 /// and the GRN counter. Business checks live here and in `firestore.rules`
-/// (`inventory.stock.operate`). There is no audit log, no low-stock
-/// notification and no retry idempotency.
+/// (`inventory.stock.operate`). Receipts, issues, returns, adjustments and
+/// requests stamp `lastWrite`, which the audit triggers log. There is no
+/// low-stock notification and no retry idempotency.
 class StockWrites {
   /// Action names `StockProvider.act` routes here instead of to a callable.
   static const names = {
@@ -156,6 +157,12 @@ class StockWrites {
           'performedAt': FieldValue.serverTimestamp(),
           'comment': comment,
         },
+        'lastWrite': writeStamp(
+          approve
+              ? 'inventoryIssueRequest.approve'
+              : 'inventoryIssueRequest.reject',
+          comment,
+        ),
         'updatedAt': FieldValue.serverTimestamp(),
       });
     });
@@ -189,6 +196,12 @@ class StockWrites {
           'performedAt': FieldValue.serverTimestamp(),
           'reason': reason,
         },
+        'lastWrite': writeStamp(
+          cancel
+              ? 'inventoryIssueRequest.cancel'
+              : 'inventoryIssueRequest.close',
+          reason,
+        ),
         'updatedAt': FieldValue.serverTimestamp(),
       });
     });
@@ -304,6 +317,7 @@ class StockWrites {
         'financialYear': financialYear,
         'createdAt': FieldValue.serverTimestamp(),
         'createdBy': user.uid,
+        'lastWrite': writeStamp('inventoryIssueRequest.submit'),
         'updatedAt': FieldValue.serverTimestamp(),
       });
       return requestNumber;
@@ -470,6 +484,7 @@ class StockWrites {
         'financialYear': financialYear,
         'createdAt': FieldValue.serverTimestamp(),
         'createdBy': uid,
+        'lastWrite': writeStamp('inventoryReceipt.create'),
         'updatedAt': FieldValue.serverTimestamp(),
       });
       return grnNumber;
@@ -722,11 +737,13 @@ class StockWrites {
         'financialYear': financialYear,
         'createdAt': FieldValue.serverTimestamp(),
         'createdBy': uid,
+        'lastWrite': writeStamp('inventoryReceipt.create'),
         'updatedAt': FieldValue.serverTimestamp(),
       });
       transaction.update(orderRef, {
         'lineItems': orderLines,
         'status': full ? 'fully_received' : 'partially_received',
+        'lastWrite': writeStamp('inventoryPurchaseOrder.receive'),
         'updatedAt': FieldValue.serverTimestamp(),
       });
       // The request is completed once its last live order is fully received.
@@ -735,6 +752,7 @@ class StockWrites {
           requestSnapshot.data()?['status'] == 'ordered') {
         transaction.update(requestRef, {
           'status': 'completed',
+          'lastWrite': writeStamp('inventoryPurchaseRequest.complete'),
           'updatedAt': FieldValue.serverTimestamp(),
         });
       }
@@ -762,6 +780,7 @@ class StockWrites {
           'performedAt': FieldValue.serverTimestamp(),
           'remarks': _blankToNull(data['remarks']),
         },
+        'lastWrite': writeStamp('inventoryIssue.acknowledge'),
         'updatedAt': FieldValue.serverTimestamp(),
       });
     });
@@ -922,6 +941,7 @@ class StockWrites {
             'financialYear': financialYear,
             'createdAt': FieldValue.serverTimestamp(),
             'createdBy': uid,
+            'lastWrite': writeStamp('inventoryUnavailable.report'),
             'updatedAt': FieldValue.serverTimestamp(),
           });
         }
@@ -954,10 +974,12 @@ class StockWrites {
         'financialYear': financialYear,
         'createdAt': FieldValue.serverTimestamp(),
         'createdBy': uid,
+        'lastWrite': writeStamp('inventoryReturn.create'),
         'updatedAt': FieldValue.serverTimestamp(),
       });
       transaction.update(issueRef, {
         'lineItems': issueLines,
+        'lastWrite': writeStamp('inventoryIssue.return'),
         'updatedAt': FieldValue.serverTimestamp(),
       });
       return returnNumber;
@@ -1240,6 +1262,7 @@ class StockWrites {
         'financialYear': financialYear,
         'createdAt': FieldValue.serverTimestamp(),
         'createdBy': uid,
+        'lastWrite': writeStamp('inventoryAdjustment.create'),
         'updatedAt': FieldValue.serverTimestamp(),
       });
       return adjustmentNumber;
@@ -1406,6 +1429,7 @@ class StockWrites {
         'reportedBy': uid,
         ...ledger,
         'createdAt': FieldValue.serverTimestamp(),
+        'lastWrite': writeStamp('inventoryUnavailable.report'),
         'updatedAt': FieldValue.serverTimestamp(),
       });
     });
@@ -1537,6 +1561,7 @@ class StockWrites {
           'resolvedAt': FieldValue.serverTimestamp(),
           'resolvedBy': uid,
         },
+        'lastWrite': writeStamp('inventoryUnavailable.resolve'),
         'updatedAt': FieldValue.serverTimestamp(),
       });
     });
@@ -1698,11 +1723,13 @@ class StockWrites {
         'financialYear': financialYear,
         'createdAt': FieldValue.serverTimestamp(),
         'createdBy': uid,
+        'lastWrite': writeStamp('inventoryIssue.create'),
         'updatedAt': FieldValue.serverTimestamp(),
       });
       transaction.update(requestRef, {
         'lineItems': requestLines,
         'status': done ? 'issued' : 'partially_issued',
+        'lastWrite': writeStamp('inventoryIssueRequest.issue'),
         'updatedAt': FieldValue.serverTimestamp(),
       });
       return issueNumber;

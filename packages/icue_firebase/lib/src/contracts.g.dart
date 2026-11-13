@@ -16,6 +16,7 @@ abstract final class Collections {
   static const inventoryPurchaseRequests = 'inventoryPurchaseRequests';
   static const inventoryQuotations = 'inventoryQuotations';
   static const inventoryReceipts = 'inventoryReceipts';
+  static const inventoryStats = 'inventoryStats';
   static const inventoryStores = 'inventoryStores';
   static const inventoryUnits = 'inventoryUnits';
   static const inventoryVendors = 'inventoryVendors';
@@ -173,6 +174,27 @@ const manualCopyStatuses = [
 
 /// A copy in these never becomes available again by hand.
 const terminalCopyStatuses = [CopyStatus.lost, CopyStatus.withdrawn];
+
+/// Current-state figures of a branch or one store (inventoryStats/overall), kept only by triggers. Balance figures (available, value, lowStock, outOfStock, expiryOn) exist per store under stores; the rest are branch-wide. expiryOn counts stock lines by the India-time day of their earliest expiry (yyyy-MM-dd); expired and expiring are sums of the days before today and in the next 30.
+abstract final class InventoryStatsTotalsFields {
+  static const items = 'items';
+  static const available = 'available';
+  static const value = 'value';
+  static const lowStock = 'lowStock';
+  static const outOfStock = 'outOfStock';
+  static const expiryOn = 'expiryOn';
+  static const pendingPurchaseRequests = 'pendingPurchaseRequests';
+  static const pendingIssueRequests = 'pendingIssueRequests';
+  static const openPurchaseOrders = 'openPurchaseOrders';
+  static const awaitingReceipt = 'awaitingReceipt';
+  static const assets = 'assets';
+  static const underMaintenance = 'underMaintenance';
+}
+
+/// inventoryStats/overall: branch figures, with per-store balance figures under stores.
+abstract final class InventoryStatsFields {
+  static const stores = 'stores';
+}
 
 /// One issue of a copy to a member.
 abstract final class LibraryLoanFields {

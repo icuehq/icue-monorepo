@@ -14,7 +14,6 @@ class InsightsProvider extends ChangeNotifier {
   final InsightsService _service;
   final StockService _stock;
 
-  Map<String, num?> dashboard = {};
   List<ReportRow> rows = [];
   final Map<String, InventoryItem> items = {};
   String? errorMessage;
@@ -44,8 +43,9 @@ class InsightsProvider extends ChangeNotifier {
     if (need.isNotEmpty) items.addAll(await _stock.itemsByIds(need));
   }
 
-  Future<void> loadDashboard({InventoryStore? store}) =>
-      _load(() async => dashboard = await _service.dashboard(store: store));
+  /// Live overview figures; the caller listens for as long as it is on screen.
+  Stream<Map<String, num?>> watchDashboard({InventoryStore? store}) =>
+      _service.dashboard(store: store);
 
   /// Loads [def]; balance reports come back sorted by item name.
   Future<void> loadReport(

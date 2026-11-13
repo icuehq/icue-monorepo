@@ -147,6 +147,10 @@ describe('inventory masters', () => {
  });
 });
 
+// The `lastWrite` stamp inventory documents carry (written by [user]).
+const stamp = (action, uid = '4') => ({ by: uid, action, at: serverTimestamp() });
+const mark = (user, action = 'inventory.test') => ({ lastWrite: stamp(action, user) });
+
 describe('inventory stock', () => {
   const STOCK = ['inventoryBalances', 'inventoryMovements', 'inventoryReceipts', 'inventoryIssues', 'inventoryReturns', 'inventoryAdjustments', 'inventoryUnavailableStock'];
   beforeEach(() =>
@@ -178,13 +182,14 @@ describe('inventory stock', () => {
  });
 
   it('receive stock: operators write receipts, ledger rows and balances in the branch', async () => {
-    const write = (user, path, data) => setDoc(doc(db(user), `orgs/8/zones/147/branches/427/${path}`), data);
+    const write = (user, path, data) => setDoc(doc(db(user), `orgs/8/zones/147/branches/427/${path}`), { ...mark(user), ...data });
     for (const collectionName of ['inventoryReceipts', 'inventoryMovements']) {
       await assertSucceeds(write('op', `${collectionName}/n1`, { createdBy: 'op' }));
       await assertFails(write('op', `${collectionName}/n3`, { createdBy: 'someone' }));
       await assertFails(write('view', `${collectionName}/n4`, { createdBy: 'view' }));
       await assertFails(write('op', `${collectionName}/a31`, { createdBy: 'op' }));
    }
+    await assertFails(setDoc(doc(db('op'), 'orgs/8/zones/147/branches/427/inventoryReceipts/n5'), { createdBy: 'op' })); // unstamped
     await assertSucceeds(write('op', 'inventoryBalances/a31', {}));
     await assertFails(write('view', 'inventoryBalances/a31', {}));
     await assertSucceeds(write('op', 'inventoryIssues/n1', { createdBy: 'op' }));
@@ -192,7 +197,7 @@ describe('inventory stock', () => {
  });
 
   it('acknowledge issue: operators fill the empty acknowledgement once', async () => {
-    const acknowledge = (user, data, path = 'inventoryIssues/a31') => updateDoc(doc(db(user), `orgs/8/zones/147/branches/427/${path}`), data);
+    const acknowledge = (user, data, path = 'inventoryIssues/a31') => updateDoc(doc(db(user), `orgs/8/zones/147/branches/427/${path}`), { ...mark(user), ...data });
     const receipt = { acknowledgement: { performedBy: 'op' }, updatedAt: 1 };
     await assertFails(acknowledge('view', receipt));
     await assertFails(acknowledge('op', { ...receipt, acknowledgement: { performedBy: 'someone' } }));
@@ -202,12 +207,12 @@ describe('inventory stock', () => {
  });
 
   it('returns: operators write returns and register entries, and only move the issue\'s returned quantities', async () => {
-    const write = (user, path, data) => setDoc(doc(db(user), `orgs/8/zones/147/branches/427/${path}`), data);
+    const write = (user, path, data) => setDoc(doc(db(user), `orgs/8/zones/147/branches/427/${path}`), { ...mark(user), ...data });
     for (const collectionName of ['inventoryReturns', 'inventoryAdjustments', 'inventoryUnavailableStock']) {
       await assertSucceeds(write('op', `${collectionName}/n1`, { createdBy: 'op' }));
       await assertFails(write('view', `${collectionName}/n3`, { createdBy: 'view' }));
    }
-    const update = (user, data) => updateDoc(doc(db(user), 'orgs/8/zones/147/branches/427/inventoryIssues/a31'), data);
+    const update = (user, data) => updateDoc(doc(db(user), 'orgs/8/zones/147/branches/427/inventoryIssues/a31'), { ...mark(user), ...data });
     await assertFails(update('view', { lineItems: [], updatedAt: 1 }));
     await assertSucceeds(update('op', { lineItems: [], updatedAt: 1 }));
  });
@@ -216,7 +221,7 @@ describe('inventory stock', () => {
     await env.withSecurityRulesDisabled((context) =>
       setDoc(doc(context.firestore(), 'orgs/8/zones/147/branches/427/inventoryUnavailableStock/u1'), { status: 'open' }),
     );
-    const resolve = (user, data, path = 'inventoryUnavailableStock/u1') => updateDoc(doc(db(user), `orgs/8/zones/147/branches/427/${path}`), data);
+    const resolve = (user, data, path = 'inventoryUnavailableStock/u1') => updateDoc(doc(db(user), `orgs/8/zones/147/branches/427/${path}`), { ...mark(user), ...data });
     const resolution = { status: 'resolved', resolution: 'dispose', resolutionNote: null, resolvedAt: 1, resolvedBy: 'op', updatedAt: 1 };
     await assertFails(resolve('view', resolution));
     await assertFails(resolve('op', { ...resolution, quantity: 0 }));
@@ -225,7 +230,7 @@ describe('inventory stock', () => {
  });
 
   it('issue stock: operators move an approved request to issued, nothing else', async () => {
-    const issue = (user, data) => updateDoc(doc(db(user), 'orgs/8/zones/147/branches/427/inventoryIssueRequests/r1'), data);
+    const issue = (user, data) => updateDoc(doc(db(user), 'orgs/8/zones/147/branches/427/inventoryIssueRequests/r1'), { ...mark(user), ...data });
     await env.withSecurityRulesDisabled((context) =>
       updateDoc(doc(context.firestore(), 'orgs/8/zones/147/branches/427/inventoryIssueRequests/r1'), { status: 'approved' }),
     );
@@ -238,16 +243,17 @@ describe('inventory stock', () => {
  });
 
   it('issue request submit: requesters create pending requests in the branch, as themselves', async () => {
-    const submit = (user, data) => setDoc(doc(db(user), 'orgs/8/zones/147/branches/427/inventoryIssueRequests/n1'), data);
+    const submit = (user, data) => setDoc(doc(db(user), 'orgs/8/zones/147/branches/427/inventoryIssueRequests/n1'), { ...mark(user), ...data });
     await assertSucceeds(submit('req', { createdBy: 'req', status: 'pending' }));
     await assertFails(submit('req', { createdBy: 'other', status: 'pending' }));
     await assertFails(submit('req', { createdBy: 'req', status: 'approved' }));
     await assertFails(submit('view', { createdBy: 'view', status: 'pending' }));
+    await assertFails(setDoc(doc(db('req'), 'orgs/8/zones/147/branches/427/inventoryIssueRequests/n2'), { createdBy: 'req', status: 'pending' })); // unstamped
     await assertFails(setDoc(doc(db('req'), 'orgs/8/zones/147/branches/427/inventoryIssueRequests/r1'), { createdBy: 'req', status: 'pending' }));
  });
 
   it('issue request decide: approvers decide pending requests, decision fields only', async () => {
-    const decide = (user, data, path = 'orgs/8/zones/147/branches/427/inventoryIssueRequests/r1') => updateDoc(doc(db(user), path), data);
+    const decide = (user, data, path = 'orgs/8/zones/147/branches/427/inventoryIssueRequests/r1') => updateDoc(doc(db(user), path), { ...mark(user), ...data });
     const decision = { status: 'approved', approval: { performedBy: 'apr' }, updatedAt: 1 };
     await assertFails(decide('req', decision));
     await assertFails(decide('apr', { ...decision, approval: { performedBy: 'someone' } }));
@@ -264,6 +270,16 @@ describe('inventory stock', () => {
     await assertFails(getDoc(doc(db('2'), 'orgs/8/zones/147/branches/427/inventoryIssueRequests/r1')));
     await assertSucceeds(getDocs(query(collection(db('req'), 'orgs/8/zones/147/branches/427/inventoryIssueRequests'), where('createdBy', '==', 'req'))));
     await assertFails(setDoc(doc(db('req'), 'orgs/8/zones/147/branches/427/inventoryIssueRequests/r1'), { status: 'approved' }));
+ });
+
+  it('overview stats: readable by roles with an overview tile, never writable', async () => {
+    const stats = 'orgs/8/zones/147/branches/427/inventoryStats/overall';
+    await env.withSecurityRulesDisabled((context) => setDoc(doc(context.firestore(), stats), { items: 1 }));
+    await assertSucceeds(getDoc(doc(db('view'), stats)));
+    await assertSucceeds(getDoc(doc(db('apr'), stats)));
+    await assertFails(getDoc(doc(db('req'), stats)));
+    await assertFails(setDoc(doc(db('view'), stats), { items: 2 }));
+    await assertFails(setDoc(doc(db('op'), stats), { items: 2 }));
  });
 
   it('requesters can browse items and stores to build a request', async () => {
@@ -332,7 +348,6 @@ describe('library (staff gate)', () => {
 });
 
 describe('library client writes (no callable)', () => {
-  const stamp = (action, uid = '4') => ({ by: uid, action, at: serverTimestamp() });
   const title = { title: 'Wings of Fire', authors: ['Kalam'], categoryId: 'cat', identityKey: 'bib:x', status: 'active', createdBy: '4' };
   beforeEach(() =>
     env.withSecurityRulesDisabled(async (context) => {
@@ -513,7 +528,8 @@ describe('procurement (Inv-3)', () => {
     await assertFails(readPurchaseRequest('ven'));
     await assertFails(getDoc(doc(db('parent-apr', { ...staff, branchId: 428 }), 'orgs/8/zones/147/branches/427/inventoryPurchaseRequests/pr1')));
     await assertSucceeds(getDocs(query(collection(db('parent-req'), 'orgs/8/zones/147/branches/427/inventoryPurchaseRequests'), where('createdBy', '==', 'parent-req'))));
-    await assertSucceeds(setDoc(doc(db('parent-req'), 'orgs/8/zones/147/branches/427/inventoryPurchaseRequests/pr1'), { status: 'approved' }));
+    await assertSucceeds(setDoc(doc(db('parent-req'), 'orgs/8/zones/147/branches/427/inventoryPurchaseRequests/pr1'), { ...mark('parent-req'), status: 'approved' }));
+    await assertFails(setDoc(doc(db('parent-req'), 'orgs/8/zones/147/branches/427/inventoryPurchaseRequests/pr2'), { status: 'approved' })); // unstamped
     await assertFails(setDoc(doc(db('2'), 'orgs/8/zones/147/branches/427/inventoryPurchaseRequests/pr1'), { status: 'approved' }));
  });
 
@@ -553,7 +569,7 @@ describe('quotations and purchase orders (Inv-4)', () => {
   it('invoices follow procurement; receiving staff read orders due', async () => {
     await assertSucceeds(getDoc(doc(db('proc'), 'orgs/8/zones/147/branches/427/inventoryInvoices/i1')));
     await assertFails(getDoc(doc(db('store'), 'orgs/8/zones/147/branches/427/inventoryInvoices/i1')));
-    await assertSucceeds(setDoc(doc(db('proc'), 'orgs/8/zones/147/branches/427/inventoryInvoices/i1'), { paymentStatus: 'paid' }));
+    await assertSucceeds(setDoc(doc(db('proc'), 'orgs/8/zones/147/branches/427/inventoryInvoices/i1'), { ...mark('proc'), paymentStatus: 'paid' }));
     await assertFails(setDoc(doc(db('2'), 'orgs/8/zones/147/branches/427/inventoryInvoices/i1'), { paymentStatus: 'paid' }));
     await assertSucceeds(getDoc(doc(db('store'), 'orgs/8/zones/147/branches/427/inventoryPurchaseOrders/po1')));
     await assertFails(getDoc(doc(db('store'), 'orgs/8/zones/147/branches/427/inventoryQuotations/q1')));

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/home/inventory_home_page.dart';
@@ -27,6 +28,7 @@ class InventoryOverviewPage extends StatefulWidget {
 
 class _InventoryOverviewPageState extends State<InventoryOverviewPage> {
   String? _storeId;
+  Stream<Map<String, num?>>? _stats;
 
   Future<void> _load() async {
     final inventoryProvider = context.read<InventoryProvider>();
@@ -35,7 +37,11 @@ class _InventoryOverviewPageState extends State<InventoryOverviewPage> {
     final store = inventoryProvider.stores
         .where((currentStore) => currentStore.id == _storeId)
         .firstOrNull;
-    await context.read<InsightsProvider>().loadDashboard(store: store);
+    setState(
+      () => _stats = context.read<InsightsProvider>().watchDashboard(
+        store: store,
+      ),
+    );
   }
 
   @override
@@ -46,16 +52,9 @@ class _InventoryOverviewPageState extends State<InventoryOverviewPage> {
 
   @override
   Widget build(BuildContext context) {
-    final insightsProvider = context.watch<InsightsProvider>();
     final inventoryProvider = context.watch<InventoryProvider>();
     final access = inventoryProvider.access;
     final wide = context.isWide;
-
-    // Figures a role may not read are left out.
-    final stats = <String, num?>{
-      for (final (key, _, permissions) in dashboardStats)
-        if (permissions.any(access.can)) key: insightsProvider.dashboard[key],
-    };
 
     final filter = SizedBox(
       width: wide ? 240 : double.infinity,
@@ -86,41 +85,48 @@ class _InventoryOverviewPageState extends State<InventoryOverviewPage> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Overview')),
-      body: IcueCenteredBody(
-        child: ListView(
-          padding: EdgeInsets.all(wide ? 24 : 16),
-          children: [
-            if (wide)
-              Row(
-                children: [
-                  Expanded(child: OverviewQuickActions(access: access)),
-                  const SizedBox(width: 16),
+      body: StreamBuilder<Map<String, num?>>(
+        stream: _stats,
+        builder: (context, snapshot) {
+          // Figures a role may not read are left out.
+          final stats = <String, num?>{
+            for (final (key, _, permissions) in dashboardStats)
+              if (permissions.any(access.can)) key: snapshot.data?[key],
+          };
+          return IcueCenteredBody(
+            child: ListView(
+              padding: EdgeInsets.all(wide ? 24 : 16),
+              children: [
+                if (wide)
+                  Row(
+                    children: [
+                      Expanded(child: OverviewQuickActions(access: access)),
+                      const SizedBox(width: 16),
+                      filter,
+                    ],
+                  )
+                else ...[
                   filter,
+                  const SizedBox(height: 12),
+                  OverviewQuickActions(access: access),
                 ],
-              )
-            else ...[
-              filter,
-              const SizedBox(height: 12),
-              OverviewQuickActions(access: access),
-            ],
-            const SizedBox(height: 20),
-            if (insightsProvider.isLoading &&
-                insightsProvider.dashboard.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(56),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else if (stats.values.every((value) => value == null))
-              Center(
-                child: Text(insightsProvider.errorMessage ?? 'Nothing to show'),
-              )
-            else ...[
-              OverviewKpiGrid(stats: stats),
-              const SizedBox(height: 16),
-              OverviewAttentionCard(stats: stats),
-            ],
-          ],
-        ),
+                const SizedBox(height: 20),
+                if (snapshot.hasError)
+                  Center(child: Text(callableErrorMessage(snapshot.error!)))
+                else if (!snapshot.hasData)
+                  const Padding(
+                    padding: EdgeInsets.all(56),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else ...[
+                  OverviewKpiGrid(stats: stats),
+                  const SizedBox(height: 16),
+                  OverviewAttentionCard(stats: stats),
+                ],
+              ],
+            ),
+          );
+        },
       ),
     );
   }

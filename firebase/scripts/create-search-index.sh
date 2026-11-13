@@ -16,12 +16,17 @@ create_index() {
   for f in "$@"; do
     fields+="$(echo "$spec" | sed "s/^{/{\"fieldPath\":\"$f\",/"),"
   done
-  curl -sf -X POST \
+  local response
+  response="$(curl -s -X POST \
     -H "Authorization: Bearer $(gcloud auth print-access-token)" \
     -H "x-goog-user-project: $project" -H "Content-Type: application/json" \
     "https://firestore.googleapis.com/v1/projects/$project/databases/search/collectionGroups/$coll/indexes" \
-    -d "{\"queryScope\":\"COLLECTION\",\"searchIndexOptions\":{\"textLanguage\":\"en\"},\"fields\":[${fields%,}]}" \
-    || echo "index on $coll not created (already exists?)" >&2
+    -d "{\"queryScope\":\"COLLECTION\",\"searchIndexOptions\":{\"textLanguage\":\"en\"},\"fields\":[${fields%,}]}")"
+  if echo "$response" | grep -q '"error"'; then
+    echo "index on $coll not created: $response" >&2
+  else
+    echo "index on $coll requested"
+  fi
 }
 
 create_index inventoryItems name code

@@ -180,6 +180,11 @@ class ProcurementWrites {
         ...fields,
         if (submit) 'status': 'pending',
         'history': history,
+        'lastWrite': writeStamp(
+          submit
+              ? 'inventoryPurchaseRequest.submit'
+              : 'inventoryPurchaseRequest.update',
+        ),
         'updatedAt': FieldValue.serverTimestamp(),
       });
       return {'id': id, 'number': existing['number']};
@@ -199,6 +204,11 @@ class ProcurementWrites {
       'requestedDate': dayTimestamp(_today),
       'createdAt': FieldValue.serverTimestamp(),
       'createdBy': _uid,
+      'lastWrite': writeStamp(
+        submit
+            ? 'inventoryPurchaseRequest.submit'
+            : 'inventoryPurchaseRequest.create',
+      ),
       'updatedAt': FieldValue.serverTimestamp(),
     });
     return {'id': reference.id, 'number': number};
@@ -225,6 +235,7 @@ class ProcurementWrites {
     await reference.update({
       'status': 'pending',
       'history': [...(request['history'] as List), _historyEntry('submit')],
+      'lastWrite': writeStamp('inventoryPurchaseRequest.submit'),
       'updatedAt': FieldValue.serverTimestamp(),
     });
     return {'id': reference.id, 'number': request['number']};
@@ -262,6 +273,7 @@ class ProcurementWrites {
         'decision': decision,
         'comment': comment,
       },
+      'lastWrite': writeStamp('inventoryPurchaseRequest.$decision', comment),
       'updatedAt': FieldValue.serverTimestamp(),
     });
     return {'id': reference.id, 'number': request['number']};
@@ -291,6 +303,10 @@ class ProcurementWrites {
         ...(request['history'] as List),
         _historyEntry('cancel', _blankToNull(data['reason'])),
       ],
+      'lastWrite': writeStamp(
+        'inventoryPurchaseRequest.cancel',
+        _blankToNull(data['reason']),
+      ),
       'updatedAt': FieldValue.serverTimestamp(),
     });
     return {'id': reference.id, 'number': request['number']};
@@ -403,7 +419,10 @@ class ProcurementWrites {
       if (existing['status'] != 'draft') {
         _fail('Only draft quotations can be edited');
       }
-      await reference.update(fields);
+      await reference.update({
+        ...fields,
+        'lastWrite': writeStamp('inventoryQuotation.update'),
+      });
       return {'id': id, 'number': existing['number']};
     }
     final number = await _nextNumber('QT');
@@ -415,6 +434,7 @@ class ProcurementWrites {
       'selected': false,
       'selectionReason': null,
       'attachments': <Object?>[],
+      'lastWrite': writeStamp('inventoryQuotation.create'),
       'createdAt': FieldValue.serverTimestamp(),
       'createdBy': _uid,
     });
@@ -453,11 +473,16 @@ class ProcurementWrites {
       batch.update(sibling.reference, {
         'selected': false,
         'selectionReason': null,
+        'lastWrite': writeStamp('inventoryQuotation.deselect'),
       });
     }
     batch.update(reference, {
       'selected': true,
       'selectionReason': (data['reason']! as String).trim(),
+      'lastWrite': writeStamp(
+        'inventoryQuotation.select',
+        (data['reason']! as String).trim(),
+      ),
       'updatedAt': FieldValue.serverTimestamp(),
     });
     await batch.commit();
@@ -574,7 +599,10 @@ class ProcurementWrites {
       if ((existing['purchaseRequestIds'] as List).first != requestId) {
         _fail('Request cannot change');
       }
-      await reference.update(fields);
+      await reference.update({
+        ...fields,
+        'lastWrite': writeStamp('inventoryPurchaseOrder.update'),
+      });
       return {'id': id, 'number': existing['number']};
     }
     final number = await _nextNumber('PO');
@@ -587,6 +615,7 @@ class ProcurementWrites {
       'status': 'draft',
       'acknowledgement': null,
       'revision': 0,
+      'lastWrite': writeStamp('inventoryPurchaseOrder.create'),
       'createdAt': FieldValue.serverTimestamp(),
       'createdBy': _uid,
     });
@@ -656,12 +685,14 @@ class ProcurementWrites {
               : anyOrdered
               ? 'partially_ordered'
               : 'approved',
+          'lastWrite': writeStamp('inventoryPurchaseRequest.order'),
           'updatedAt': FieldValue.serverTimestamp(),
         })
         ..update(orderRef, {
           'status': 'issued',
           'issuedAt': FieldValue.serverTimestamp(),
           'issuedBy': _uid,
+          'lastWrite': writeStamp('inventoryPurchaseOrder.issue'),
           'updatedAt': FieldValue.serverTimestamp(),
         });
     });
@@ -730,6 +761,7 @@ class ProcurementWrites {
           'revision': (order['revision'] as num) + 1,
           'status': 'issued',
           'acknowledgement': null,
+          'lastWrite': writeStamp('inventoryPurchaseOrder.revise', reason),
           'updatedAt': FieldValue.serverTimestamp(),
         });
       return {'id': orderRef.id, 'number': order['number']};
@@ -753,6 +785,7 @@ class ProcurementWrites {
         'vendorRef': _blankToNull(data['vendorRef']),
         'remarks': _blankToNull(data['remarks']),
       },
+      'lastWrite': writeStamp('inventoryPurchaseOrder.acknowledge'),
       'updatedAt': FieldValue.serverTimestamp(),
     });
     return {'id': reference.id, 'number': order['number']};
@@ -837,12 +870,19 @@ class ProcurementWrites {
               : anyOrdered
               ? 'partially_ordered'
               : 'approved',
+          'lastWrite': writeStamp('inventoryPurchaseRequest.order'),
           'updatedAt': FieldValue.serverTimestamp(),
         });
       }
       transaction.update(orderRef, {
         'status': cancel ? 'cancelled' : 'closed',
         cancel ? 'cancelReason' : 'closeReason': reason,
+        'lastWrite': writeStamp(
+          cancel
+              ? 'inventoryPurchaseOrder.cancel'
+              : 'inventoryPurchaseOrder.close',
+          reason,
+        ),
         'updatedAt': FieldValue.serverTimestamp(),
       });
       return {'id': orderRef.id, 'number': order['number']};
@@ -911,7 +951,10 @@ class ProcurementWrites {
       if (existing['paymentStatus'] != 'unpaid') {
         _fail('Invoice is ${existing['paymentStatus']}');
       }
-      await reference.update(fields);
+      await reference.update({
+        ...fields,
+        'lastWrite': writeStamp('inventoryInvoice.update'),
+      });
       return {'id': id};
     }
     final invoiceNumber = (data['invoiceNumber']! as String).trim();
@@ -935,6 +978,7 @@ class ProcurementWrites {
       'paidAmount': 0,
       'payment': null,
       'attachments': <Object?>[],
+      'lastWrite': writeStamp('inventoryInvoice.create'),
       'createdAt': FieldValue.serverTimestamp(),
       'createdBy': _uid,
     });
@@ -980,6 +1024,7 @@ class ProcurementWrites {
           'performedBy': _uid,
         },
       ]),
+      'lastWrite': writeStamp('inventoryInvoice.payment'),
       'updatedAt': FieldValue.serverTimestamp(),
     });
     return {'id': reference.id, 'paymentStatus': paymentStatus};
@@ -999,6 +1044,7 @@ class ProcurementWrites {
     await reference.update({
       'paymentStatus': 'cancelled',
       'cancelReason': reason,
+      'lastWrite': writeStamp('inventoryInvoice.cancel', reason),
       'updatedAt': FieldValue.serverTimestamp(),
     });
     return {'id': reference.id};

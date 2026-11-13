@@ -95,67 +95,36 @@ class _VendorsPageState extends State<VendorsPage> {
             ?.name ??
         id;
 
-    Widget empty() => Center(
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          children: [
-            Icon(
-              Icons.store_mall_directory_outlined,
-              size: 56,
-              color: theme.colorScheme.outline,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              failure != null
-                  ? 'Could not load vendors'
-                  : filtering
-                  ? 'No vendors match your filters'
-                  : 'No vendors yet',
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              failure ??
-                  (canEdit
-                      ? 'Add trusted suppliers to issue quotations and purchase orders.'
-                      : 'Vendors will appear here once added.'),
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.outline,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            if (failure != null)
-              IcueButton(
-                label: 'Try again',
-                onPressed: _load,
-                variant: IcueButtonVariant.outline,
-                leadingIcon: Icons.refresh,
-              )
-            else if (filtering)
-              IcueButton(
-                label: 'Clear filters',
-                onPressed: () => setState(() {
-                  _searchController.clear();
-                  _selectedFilter = 'all';
-                  _categoryId = null;
-                }),
-                variant: IcueButtonVariant.outline,
-              )
-            else if (canEdit)
-              IcueButton(
-                label: 'New vendor',
-                onPressed: () => _open(InventoryRoutes.inventoryVendorForm),
-                leadingIcon: Icons.add,
-              ),
-          ],
-        ),
-      ),
-    );
+    void clearFilters() => setState(() {
+      _searchController.clear();
+      _selectedFilter = 'all';
+      _categoryId = null;
+    });
+
+    Widget empty() => failure != null
+        ? IcueEmptyState.error(
+            title: 'Could not load vendors',
+            message: failure,
+            onAction: _load,
+          )
+        : filtering
+        ? IcueEmptyState.noResults(
+            title: 'No vendors match your filters',
+            actionLabel: 'Clear filters',
+            onAction: clearFilters,
+          )
+        : IcueEmptyState(
+            icon: Icons.store_mall_directory_outlined,
+            title: 'No vendors yet',
+            message: canEdit
+                ? 'Add trusted suppliers to issue quotations and purchase orders.'
+                : 'Vendors will appear here once added.',
+            actionLabel: canEdit ? 'New vendor' : null,
+            actionIcon: Icons.add,
+            onAction: canEdit
+                ? () => _open(InventoryRoutes.inventoryVendorForm)
+                : null,
+          );
 
     return Scaffold(
       appBar: AppBar(title: const Text('Vendors')),
@@ -251,7 +220,7 @@ class _VendorsPageState extends State<VendorsPage> {
                 child:
                     !_loaded ||
                         (procurementProvider.isLoading && allVendors.isEmpty)
-                    ? const Center(child: CircularProgressIndicator())
+                    ? const IcueSkeletonCardList()
                     : filteredVendors.isEmpty
                     ? empty()
                     : IcueAdaptiveList<InventoryVendor>(

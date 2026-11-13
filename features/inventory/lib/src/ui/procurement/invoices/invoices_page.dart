@@ -163,7 +163,7 @@ class _InvoicesPageState extends State<InvoicesPage> {
               child: RefreshIndicator(
                 onRefresh: _load,
                 child: procurementProvider.isLoading && allInvoices.isEmpty
-                    ? const Center(child: CircularProgressIndicator())
+                    ? const IcueSkeletonCardList()
                     : shown.isEmpty
                     ? Center(
                         child: Padding(

@@ -135,7 +135,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
           );
 
           if (inventoryProvider.isLoading && !hasAnyCategories) {
-            return const Center(child: CircularProgressIndicator());
+            return const IcueSkeletonCardList();
           }
 
           if (context.isWide) {

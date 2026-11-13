@@ -112,7 +112,7 @@ class _UnavailablePageState extends State<UnavailablePage> {
                     child: RefreshIndicator(
                       onRefresh: _load,
                       child: stockProvider.isLoading && allItems.isEmpty
-                          ? const Center(child: CircularProgressIndicator())
+                          ? const IcueSkeletonCardList()
                           : filteredItems.isEmpty
                           ? Center(
                               child: Padding(

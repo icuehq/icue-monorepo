@@ -68,7 +68,7 @@ class _StoresPageState extends State<StoresPage> {
             )
           : null,
       body: inventoryProvider.isLoading && allStores.isEmpty
-          ? const Center(child: CircularProgressIndicator())
+          ? const IcueSkeletonCardList()
           : wide
           ? Padding(
               padding: const EdgeInsets.all(16),
@@ -95,19 +95,17 @@ class _StoresPageState extends State<StoresPage> {
                   ),
                   Expanded(
                     child: filteredStores.isEmpty
-                        ? ListView(
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.all(48),
-                                child: Center(
-                                  child: Text(
-                                    allStores.isEmpty
-                                        ? 'No stores yet'
-                                        : 'No matching stores',
-                                  ),
-                                ),
-                              ),
-                            ],
+                        ? IcueEmptyState(
+                            icon: allStores.isEmpty
+                                ? Icons.warehouse_outlined
+                                : Icons.search_off_rounded,
+                            title: allStores.isEmpty
+                                ? 'No stores yet'
+                                : 'No matching stores',
+                            message: allStores.isEmpty
+                                ? 'Create stores to organize and track physical inventory across the branch.'
+                                : 'Try a different search.',
+                            neutral: allStores.isNotEmpty,
                           )
                         : IcueAdaptiveCardList(
                             padding: const EdgeInsets.all(12),

@@ -1,10 +1,11 @@
 import { type DocumentData, FieldValue, getFirestore } from 'firebase-admin/firestore';
+import type { Change } from '../shared/audit';
 import { CopyStatus, LoanStatus } from '../shared/contracts';
 import { timestampDay, todayIST } from '../shared/dates';
-import type { Change } from './notices';
+import { bump, type Counts, increments } from '../shared/statsCounts';
 
 /**
- * Library analytics summary, kept only by the audit triggers (`audit.ts`); nothing recounts it later.
+ * Library analytics summary, kept only by the audit triggers (`audit.ts`); only `scripts/recompute-stats.ts`, run by hand, recounts it.
  *  - `libraryStats/overall`: current-state figures (LibraryStatsTotals) for the branch, and per library under `libraries`.
  *  - `libraryStats/day_yyyy-MM-dd`: that India-time day's flows (LibraryDailyTotals), same shape.
  * Overdue needs no job: active loans are counted by due date (`dueOn`) and the reader adds up the days before today.
@@ -15,8 +16,6 @@ import type { Change } from './notices';
  * is lost; key each event (a marker per event ID) if the figures must be exact. Every write also bumps one document
  * (~1 write/s sustained), so a bulk copy import may fail a few; split per library if that becomes visible.
  */
-type Counts = Record<string, number>;
-
 /** Copy statuses the dashboard shows; other statuses only count towards `copies`. */
 const COPY_STATUSES: string[] = [
   CopyStatus.available,
@@ -25,22 +24,6 @@ const COPY_STATUSES: string[] = [
   CopyStatus.damaged,
 ];
 const OPEN_FINE = ['outstanding', 'partially_paid'];
-
-const bump = (counts: Counts, key: string, amount: number) => {
-  counts[key] = (counts[key] ?? 0) + amount;
-};
-
-/** `{'dueOn.2026-11-20': 1}` → `{dueOn: {'2026-11-20': increment(1)}}`, without the keys that netted to zero. */
-function increments(counts: Counts) {
-  const out: Record<string, unknown> = {};
-  for (const [key, amount] of Object.entries(counts)) {
-    if (!amount) continue;
-    const [field, nested] = key.split('.');
-    if (nested === undefined) out[field] = FieldValue.increment(amount);
-    else ((out[field] ??= {}) as Record<string, unknown>)[nested] = FieldValue.increment(amount);
-  }
-  return out;
-}
 
 /** Signed amounts to add, for the branch and for each library they belong to. */
 class Tally {
@@ -77,7 +60,7 @@ class Tally {
 }
 
 /** What each collection's write adds to the overall figures and to today's flows. */
-function deltas(collection: string, { before, after }: Change) {
+export function deltas(collection: string, { before, after }: Change) {
   const overall = new Tally();
   const daily = new Tally();
   /** `sign` = +1 for the state a write left behind, -1 for the one it replaced. */

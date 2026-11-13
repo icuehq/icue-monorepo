@@ -163,7 +163,7 @@ class _PurchaseRequestsPageState extends State<PurchaseRequestsPage> {
                 child:
                     !_loaded ||
                         (procurementProvider.isLoading && allRequests.isEmpty)
-                    ? const Center(child: CircularProgressIndicator())
+                    ? const IcueSkeletonCardList()
                     : filteredRequests.isEmpty
                     ? Center(
                         child: Padding(

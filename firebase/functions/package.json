@@ -13,6 +13,8 @@
     "deploy:rules:prod": "firebase deploy --only firestore --project prod",
     "test:unit": "vitest run test/unit",
     "test": "firebase emulators:exec --only firestore --project demo-icue \"vitest run\"",
+    "stats:recompute": "tsx scripts/recompute-stats.ts",
+    "search:backfill": "tsx scripts/backfill-search.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",

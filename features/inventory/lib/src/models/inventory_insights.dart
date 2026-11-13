@@ -80,6 +80,47 @@ final stockCols = <ReportCol>[
   ReportCol('Value', (m, _) => _money(m['value']), sum: true),
 ];
 
+/// Dashboard figures from the `inventoryStats/overall` [summary] (InventoryStatsTotals): the branch's, with the
+/// stock figures of [storeId] when given. Expired and expiring stock lines are the `expiryOn` days before [today]
+/// and in the next 30 (`yyyy-MM-dd`).
+Map<String, num> overviewFigures(
+  Map<String, dynamic>? summary,
+  String? storeId, {
+  required String today,
+}) {
+  final branch = summary ?? const <String, dynamic>{};
+  final stock = storeId == null
+      ? branch
+      : (branch['stores'] as Map<String, dynamic>?)?[storeId]
+                as Map<String, dynamic>? ??
+            const <String, dynamic>{};
+  num figure(Map<String, dynamic> source, String key) =>
+      source[key] as num? ?? 0;
+  final soon = DateTime.parse(today).add(const Duration(days: 30)).toApiDate();
+  num lines(bool Function(String day) test) =>
+      (stock['expiryOn'] as Map<String, dynamic>? ?? const {}).entries
+          .where((entry) => test(entry.key))
+          .fold<num>(0, (total, entry) => total + (entry.value as num));
+  final pendingPurchases = figure(branch, 'pendingPurchaseRequests');
+  return {
+    'items': figure(branch, 'items'),
+    'available': figure(stock, 'available'),
+    'value': figure(stock, 'value'),
+    'low': figure(stock, 'lowStock'),
+    'out': figure(stock, 'outOfStock'),
+    'expiring': lines(
+      (day) => day.compareTo(today) >= 0 && day.compareTo(soon) <= 0,
+    ),
+    'expired': lines((day) => day.compareTo(today) < 0),
+    'prs': pendingPurchases,
+    'approvals': pendingPurchases + figure(branch, 'pendingIssueRequests'),
+    'pos': figure(branch, 'openPurchaseOrders'),
+    'receipts': figure(branch, 'awaitingReceipt'),
+    'assets': figure(branch, 'assets'),
+    'maint': figure(branch, 'underMaintenance'),
+  };
+}
+
 /// The FRS 10.23 reports.
 final inventoryReports = <ReportDef>[
   ReportDef(

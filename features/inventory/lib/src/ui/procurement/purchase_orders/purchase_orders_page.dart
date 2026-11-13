@@ -166,7 +166,7 @@ class _PurchaseOrdersPageState extends State<PurchaseOrdersPage> {
               child: RefreshIndicator(
                 onRefresh: _load,
                 child: procurementProvider.isLoading && allOrders.isEmpty
-                    ? const Center(child: CircularProgressIndicator())
+                    ? const IcueSkeletonCardList()
                     : filteredOrders.isEmpty
                     ? Center(
                         child: Padding(

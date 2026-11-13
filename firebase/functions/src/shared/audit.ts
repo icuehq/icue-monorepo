@@ -1,0 +1,67 @@
+import { type DocumentData, getFirestore } from 'firebase-admin/firestore';
+import { onDocumentWritten } from 'firebase-functions/v2/firestore';
+import { BRANCH_TRIGGER, branchPathOf } from './branch';
+import { serverTimestamp } from './firestore';
+
+const IGNORED = ['lastWrite', 'updatedAt'];
+
+/** What an audited write changed, as the extra handlers of [auditClientWrites] receive it. */
+export interface Change {
+  branchPath: string;
+  docId: string;
+  before: DocumentData | undefined;
+  after: DocumentData | undefined;
+}
+
+/** Only the fields that differ between [before] and [after] (all of [after] for a create). */
+function changedFields(before: DocumentData | undefined, after: DocumentData) {
+  const keys = Object.keys(after).filter((key) => !IGNORED.includes(key));
+  const differs = (key: string) => JSON.stringify(before?.[key]) !== JSON.stringify(after[key]);
+  const changed = before ? keys.filter(differs) : keys;
+  const pick = (source: DocumentData | undefined) =>
+    source ? Object.fromEntries(changed.map((key) => [key, source[key] ?? null])) : null;
+  return { before: pick(before), after: pick(after) };
+}
+
+/**
+ * Audit log for client writes (no callable): every such write stamps `lastWrite` {by, action, reason, at}
+ * (enforced by `firestore.rules`). A write that leaves the stamp alone (a callable's, say) is not logged here.
+ * The event ID is the log's ID, so a redelivered event cannot log twice.
+ * One trigger per collection also runs its [extras] (member notices, analytics summary), so a write is billed one invocation, not several.
+ */
+export const auditClientWrites = (
+  collection: string,
+  ...extras: ((change: Change) => Promise<void>)[]
+) =>
+  onDocumentWritten(`${BRANCH_TRIGGER}/${collection}/{docId}`, async (event) => {
+    const before = event.data?.before.data();
+    const after = event.data?.after.data();
+    const branchPath = branchPathOf(event.params);
+    const { docId } = event.params;
+    await Promise.all([
+      audit(collection, event.id, branchPath, docId, before, after),
+      ...extras.map((extra) => extra({ branchPath, docId, before, after })),
+    ]);
+  });
+
+async function audit(
+  collection: string,
+  eventId: string,
+  branchPath: string,
+  docId: string,
+  before: DocumentData | undefined,
+  after: DocumentData | undefined,
+) {
+  const mark = after?.lastWrite;
+  if (!after || !mark || before?.lastWrite?.at?.isEqual(mark.at)) return;
+  await getFirestore()
+    .doc(`${branchPath}/auditLogs/${eventId}`)
+    .set({
+      actor: mark.by,
+      action: mark.action,
+      documentPath: `${collection}/${docId}`,
+      ...changedFields(before, after),
+      reason: mark.reason ?? null,
+      performedAt: serverTimestamp(),
+    });
+}

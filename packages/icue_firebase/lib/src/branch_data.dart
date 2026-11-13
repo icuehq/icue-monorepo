@@ -117,6 +117,22 @@ Future<void> setMasterActive(
   });
 }
 
+/// Fails a client write with a message a school user can act on.
+Never writeFail(String message, [String code = 'failed-precondition']) =>
+    throw FirebaseException(
+      plugin: 'cloud_firestore',
+      code: code,
+      message: message,
+    );
+
+/// The `lastWrite` stamp `firestore.rules` demands on audited documents and the audit triggers turn into a log entry.
+Map<String, Object?> writeStamp(String action, [String? reason]) => {
+  'by': FirebaseAuth.instance.currentUser!.uid,
+  'action': action,
+  'reason': ?reason,
+  'at': FieldValue.serverTimestamp(),
+};
+
 /// The message to show for a failed call: the server's message for a callable error, else the error text.
 String callableErrorMessage(Object error) => switch (error) {
   FirebaseFunctionsException(:final message, :final code) => message ?? code,

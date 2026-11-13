@@ -33,7 +33,7 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Inventory')),
       body: inventoryProvider.isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const IcueSkeletonTileGrid()
           : inventoryProvider.errorMessage != null
           ? Center(child: Text(inventoryProvider.errorMessage!))
           : LayoutBuilder(

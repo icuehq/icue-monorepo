@@ -9,7 +9,24 @@ import { type AnyCallableDef, callable, routes } from './shared/callable';
 
 initializeApp();
 
+export {
+  auditInventoryAdjustments,
+  auditInventoryInvoices,
+  auditInventoryIssueRequests,
+  auditInventoryIssues,
+  auditInventoryPurchaseOrders,
+  auditInventoryPurchaseRequests,
+  auditInventoryQuotations,
+  auditInventoryReceipts,
+  auditInventoryReturns,
+  auditInventoryUnavailable,
+} from './inventory/audit';
 export { syncItemSearch } from './inventory/search';
+export {
+  statsInventoryAssets,
+  statsInventoryBalances,
+  statsInventoryItems,
+} from './inventory/stats';
 export { syncCatalogueSearch, syncIncidentSearch, syncLoanSearch } from './library/search';
 export { outboxSend } from './shared/outbox';
 export { dailyInventory } from './inventory/daily';
