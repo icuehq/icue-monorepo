@@ -30,7 +30,7 @@ class _ItemFormPageState extends State<ItemFormPage> {
   late String? _subcategoryId = _existingItem?.subcategoryId;
   late String? _stockUnit = _existingItem?.stockUnit;
   late Tracking _tracking = _existingItem?.tracking ?? Tracking.quantity;
-  int _nextSample = 0;
+  int _nextSample = 5; // the asset samples come first (see _sampleItems)
   bool _busy = false;
 
   static String _num(double? v) =>
@@ -74,7 +74,7 @@ class _ItemFormPageState extends State<ItemFormPage> {
         _categoryId = category.id;
         _subcategoryId = null;
         _stockUnit = unit.code;
-        _tracking = category.suggestedTracking;
+        _tracking = sample.tracking ?? category.suggestedTracking;
       });
       return;
     }
@@ -294,35 +294,69 @@ class _ItemFormPageState extends State<ItemFormPage> {
 }
 
 const _sampleItems =
-    <({String name, String description, int reorder, int price})>[
+    <
+      ({
+        String name,
+        String description,
+        int reorder,
+        int price,
+        Tracking? tracking,
+      })
+    >[
       (
         name: 'A4 Copier Paper (500 sheets)',
         description: '75 GSM white copier paper ream.',
         reorder: 20,
         price: 260,
+        tracking: null,
       ),
       (
         name: 'Blue Ball Pen',
         description: '0.7 mm ball point pen.',
         reorder: 100,
         price: 8,
+        tracking: null,
       ),
       (
         name: 'Whiteboard Marker',
         description: 'Assorted colours, bullet tip.',
         reorder: 50,
         price: 25,
+        tracking: null,
       ),
       (
         name: 'Floor Cleaner (5 L)',
         description: 'Disinfectant floor cleaning liquid.',
         reorder: 10,
         price: 350,
+        tracking: null,
       ),
       (
         name: 'Basketball (Size 7)',
         description: 'Rubber outdoor basketball.',
         reorder: 5,
         price: 900,
+        tracking: null,
+      ),
+      (
+        name: 'Dell Latitude Laptop',
+        description: 'Teacher laptop, tracked per unit.',
+        reorder: 0,
+        price: 48500,
+        tracking: Tracking.asset,
+      ),
+      (
+        name: 'Epson Classroom Projector',
+        description: 'Ceiling or table projector, tracked per unit.',
+        reorder: 0,
+        price: 32900,
+        tracking: Tracking.asset,
+      ),
+      (
+        name: 'Olympus Lab Microscope',
+        description: 'Compound microscope, tracked per unit.',
+        reorder: 0,
+        price: 27500,
+        tracking: Tracking.asset,
       ),
     ];

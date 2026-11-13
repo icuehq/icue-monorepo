@@ -2,6 +2,7 @@ import 'package:go_router/go_router.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/assets/maintenance/maintenance_page.dart';
+import 'package:inventory/src/ui/assets/registry/asset_details_page.dart';
 import 'package:inventory/src/ui/assets/registry/asset_form_page.dart';
 import 'package:inventory/src/ui/assets/registry/assets_page.dart';
 import 'package:inventory/src/ui/insights/overview/inventory_overview_page.dart';
@@ -214,6 +215,12 @@ final _inventoryPages = <RouteBase>[
     path: InventoryRoutes.inventoryAssets,
     name: InventoryRoutes.inventoryAssetsName,
     builder: (context, state) => const AssetsPage(),
+  ),
+  GoRoute(
+    path: InventoryRoutes.inventoryAssetDetails,
+    name: InventoryRoutes.inventoryAssetDetailsName,
+    builder: (context, state) =>
+        AssetDetailsPage(assetId: state.uri.queryParameters['id'] ?? ''),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryAssetForm,

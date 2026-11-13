@@ -6,10 +6,11 @@ import 'package:provider/provider.dart';
 typedef PickedItem = ({InventoryItem item, InventoryVariant? variant});
 
 /// Search-and-pick dialog for stock lines. Asset-tracked items are managed in Assets, so they are hidden
-/// unless [assets] (purchase requests can ask for them).
+/// unless [assets] (purchase requests can ask for them); [assetsOnly] lists only asset-tracked items.
 Future<PickedItem?> pickItem(
   BuildContext context, {
   bool assets = false,
+  bool assetsOnly = false,
 }) async {
   final inventoryProvider = context.read<InventoryProvider>();
   await inventoryProvider.loadItems(search: '', clearCategory: true);
@@ -18,7 +19,7 @@ Future<PickedItem?> pickItem(
     context,
     title: 'Select an item',
     size: IcueDialogSize.large,
-    content: _ItemList(assets: assets),
+    content: _ItemList(assets: assets, assetsOnly: assetsOnly),
     primaryAction: _cancelAction(context),
   );
   if (item == null || !context.mounted) {
@@ -72,9 +73,10 @@ class _VariantList extends StatelessWidget {
 }
 
 class _ItemList extends StatefulWidget {
-  const _ItemList({required this.assets});
+  const _ItemList({required this.assets, required this.assetsOnly});
 
   final bool assets;
+  final bool assetsOnly;
 
   @override
   State<_ItemList> createState() => _ItemListState();
@@ -99,7 +101,10 @@ class _ItemListState extends State<_ItemList> {
     final items = inventoryProvider.items
         .where(
           (item) =>
-              item.active && (widget.assets || item.tracking != Tracking.asset),
+              item.active &&
+              (widget.assetsOnly
+                  ? item.tracking == Tracking.asset
+                  : widget.assets || item.tracking != Tracking.asset),
         )
         .toList();
     final loading = inventoryProvider.itemsLoading;

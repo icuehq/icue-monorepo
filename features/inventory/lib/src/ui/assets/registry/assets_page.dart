@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:icue_firebase/icue_firebase.dart' show AssetStatus;
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
-import 'package:inventory/src/ui/assets/registry/widgets/asset_sheet.dart';
+import 'package:inventory/src/ui/assets/registry/widgets/assets_table.dart';
 import 'package:inventory/src/ui/assets/shared/asset_ui.dart';
 import 'package:provider/provider.dart';
 
@@ -44,12 +44,18 @@ class _AssetsPageState extends State<AssetsPage> {
       showMessage(context, assetsProvider.errorMessage ?? 'No asset "$code"');
       return;
     }
-    await showFormPage(context, () => AssetSheet(asset: asset));
-    if (mounted) await _load();
+    await _open(asset);
   }
 
   Future<void> _open(InventoryAsset asset) async {
-    await showFormPage(context, () => AssetSheet(asset: asset));
+    await context.push(
+      '${InventoryRoutes.inventoryAssetDetails}?id=${asset.id}',
+    );
+    if (mounted) await _load();
+  }
+
+  Future<void> _register() async {
+    await context.push(InventoryRoutes.inventoryAssetForm);
     if (mounted) await _load();
   }
 
@@ -80,92 +86,107 @@ class _AssetsPageState extends State<AssetsPage> {
           ),
         ],
       ),
-      floatingActionButton: manage
+      floatingActionButton: manage && !context.isWide
           ? FloatingActionButton.extended(
               icon: const Icon(Icons.add),
               label: const Text('Register'),
-              onPressed: () async {
-                await context.push(InventoryRoutes.inventoryAssetForm);
-                if (mounted) await _load();
-              },
+              onPressed: _register,
             )
           : null,
-      body: IcueCenteredBody(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      body: context.isWide
+          ? Padding(
+              padding: const EdgeInsets.all(16),
+              child: AssetsTable(
+                assetsProvider: assetsProvider,
+                onOpen: _open,
+                onReload: _load,
+                onRegister: manage ? _register : null,
+                onMaintenance: () =>
+                    context.push(InventoryRoutes.inventoryMaintenance),
+              ),
+            )
+          : IcueCenteredBody(
               child: Column(
                 children: [
-                  IcueScanField(
-                    hint: 'Search or scan asset ID, tag, name or serial',
-                    onChanged: (value) =>
-                        setState(() => _search = value.trim()),
-                    onScan: _scanned,
-                  ),
-                  DropdownButton<String?>(
-                    isExpanded: true,
-                    value: _status,
-                    items: [
-                      const DropdownMenuItem(child: Text('All statuses')),
-                      for (final status in AssetStatus.values)
-                        DropdownMenuItem(
-                          value: status,
-                          child: Text(humanizeStatus(status)),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                    child: Column(
+                      children: [
+                        IcueScanField(
+                          hint: 'Search or scan asset ID, tag, name or serial',
+                          onChanged: (value) =>
+                              setState(() => _search = value.trim()),
+                          onScan: _scanned,
                         ),
-                    ],
-                    onChanged: (value) {
-                      _status = value;
-                      _load();
-                    },
+                        DropdownButton<String?>(
+                          isExpanded: true,
+                          value: _status,
+                          items: [
+                            const DropdownMenuItem(child: Text('All statuses')),
+                            for (final status in AssetStatus.values)
+                              DropdownMenuItem(
+                                value: status,
+                                child: Text(humanizeStatus(status)),
+                              ),
+                          ],
+                          onChanged: (value) {
+                            _status = value;
+                            _load();
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: shown.isEmpty
+                        ? Center(
+                            child: assetsProvider.isLoading
+                                ? const CircularProgressIndicator()
+                                : Text(
+                                    assetsProvider.errorMessage ?? 'No assets',
+                                  ),
+                          )
+                        : IcueAdaptiveList<InventoryAsset>(
+                            items: shown,
+                            onTap: _open,
+                            columns: [
+                              IcueAdaptiveColumn.text(
+                                'Asset',
+                                (asset) => asset.name,
+                                flex: 2,
+                              ),
+                              IcueAdaptiveColumn.text(
+                                'ID',
+                                (asset) => asset.assetId,
+                              ),
+                              IcueAdaptiveColumn.text(
+                                'Assigned to',
+                                (asset) => asset.assignedTo?.label ?? '—',
+                              ),
+                              IcueAdaptiveColumn.text(
+                                'Location',
+                                (asset) => asset.location ?? '—',
+                              ),
+                              IcueAdaptiveColumn(
+                                label: 'Status',
+                                cell: (context, asset) =>
+                                    StatusChip(asset.status),
+                              ),
+                            ],
+                            cardBuilder: (context, asset) => ListTile(
+                              title: Text(asset.name),
+                              subtitle: Text(
+                                '${asset.assetId}${asset.assignedTo == null ? '' : ' · ${asset.assignedTo!.label}'}'
+                                '${asset.location == null ? '' : ' · ${asset.location}'}',
+                              ),
+                              trailing: StatusChip(asset.status),
+                              onTap: () => _open(asset),
+                            ),
+                          ),
                   ),
                 ],
               ),
             ),
-            Expanded(
-              child: shown.isEmpty
-                  ? Center(
-                      child: assetsProvider.isLoading
-                          ? const CircularProgressIndicator()
-                          : Text(assetsProvider.errorMessage ?? 'No assets'),
-                    )
-                  : IcueAdaptiveList<InventoryAsset>(
-                      items: shown,
-                      onTap: _open,
-                      columns: [
-                        IcueAdaptiveColumn.text(
-                          'Asset',
-                          (asset) => asset.name,
-                          flex: 2,
-                        ),
-                        IcueAdaptiveColumn.text('ID', (asset) => asset.assetId),
-                        IcueAdaptiveColumn.text(
-                          'Assigned to',
-                          (asset) => asset.assignedTo?.label ?? '—',
-                        ),
-                        IcueAdaptiveColumn.text(
-                          'Location',
-                          (asset) => asset.location ?? '—',
-                        ),
-                        IcueAdaptiveColumn(
-                          label: 'Status',
-                          cell: (context, asset) => StatusChip(asset.status),
-                        ),
-                      ],
-                      cardBuilder: (context, asset) => ListTile(
-                        title: Text(asset.name),
-                        subtitle: Text(
-                          '${asset.assetId}${asset.assignedTo == null ? '' : ' · ${asset.assignedTo!.label}'}'
-                          '${asset.location == null ? '' : ' · ${asset.location}'}',
-                        ),
-                        trailing: StatusChip(asset.status),
-                        onTap: () => _open(asset),
-                      ),
-                    ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

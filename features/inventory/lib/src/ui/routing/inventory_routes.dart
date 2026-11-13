@@ -107,6 +107,9 @@ class InventoryRoutes {
   static const String inventoryAssets = '/inventory/assets';
   static const String inventoryAssetsName = 'inventory.assets';
 
+  static const String inventoryAssetDetails = '/inventory/assets/details';
+  static const String inventoryAssetDetailsName = 'inventory.assets.details';
+
   static const String inventoryAssetForm = '/inventory/assets/form';
   static const String inventoryAssetFormName = 'inventory.assets.form';
 

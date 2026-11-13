@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
@@ -95,89 +96,113 @@ class _AssetActionDialogState extends State<AssetActionDialog> {
     if (mounted) setState(() => _busy = false);
   }
 
+  IconData get _icon => switch (_a) {
+    AssetAction.assign || AssetAction.transfer => Icons.swap_horiz_rounded,
+    AssetAction.giveBack => Icons.assignment_return_outlined,
+    AssetAction.condition => Icons.fact_check_outlined,
+    AssetAction.retire => Icons.archive_outlined,
+  };
+
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
-    return Form(
-      key: _form,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            '${_a.title} · ${widget.asset.assetId}',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          if (_custody) ...[
-            labelled(
-              'Custodian type',
-              const ['staff', 'student', 'department'],
-              _type,
-              (value) => setState(() => _type = value!),
-            ),
-            IcueTextField(
-              controller: _erpId,
-              keyboardType: TextInputType.number,
-              validator: (value) => int.tryParse((value ?? '').trim()) == null
-                  ? 'Enter a number'
-                  : null,
-              label: 'ERP ID *',
-            ),
-            optionalDate(
-              context,
-              _expected,
-              'Expected return',
-              first: now,
-              last: now.add(const Duration(days: 1095)),
-            ),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Custodian acknowledged receipt'),
-              value: _ack,
-              onChanged: (value) => setState(() => _ack = value),
-            ),
+    final asset = widget.asset;
+    final fields = <Widget>[
+      if (_custody) ...[
+        labelled(
+          'Custodian type',
+          const ['staff', 'student', 'department'],
+          _type,
+          (value) => setState(() => _type = value!),
+        ),
+        IcueTextField(
+          controller: _erpId,
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          validator: (value) => int.tryParse((value ?? '').trim()) == null
+              ? 'Enter the custodian ERP ID'
+              : null,
+          label: 'ERP ID *',
+        ),
+        optionalDate(
+          context,
+          _expected,
+          'Expected return',
+          first: now,
+          last: now.add(const Duration(days: 1095)),
+        ),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Custodian acknowledged receipt'),
+          value: _ack,
+          onChanged: (value) => setState(() => _ack = value),
+        ),
+      ],
+      if (_a != AssetAction.retire)
+        labelled(
+          _custody
+              ? 'Condition at handover'
+              : _a == AssetAction.giveBack
+              ? 'Condition at return'
+              : 'Condition',
+          AssetCondition.values,
+          _condition,
+          (value) => setState(() => _condition = value!),
+        ),
+      if (_a != AssetAction.condition && _a != AssetAction.retire)
+        IcueTextField(controller: _location, label: 'Location'),
+      if (_a == AssetAction.condition)
+        labelled(
+          'Mark as (optional)',
+          const ['available', 'damaged', 'lost'],
+          _status,
+          (value) => setState(() => _status = value),
+        ),
+      if (_a == AssetAction.retire)
+        labelled(
+          'Outcome',
+          const ['retired', 'disposed'],
+          _kind,
+          (value) => setState(() => _kind = value!),
+        ),
+      if (_a == AssetAction.giveBack ||
+          _a == AssetAction.condition ||
+          _a == AssetAction.retire)
+        IcueTextField(
+          controller: _text,
+          validator: _a == AssetAction.retire ? requiredText : null,
+          label: _a == AssetAction.retire ? 'Reason *' : 'Remarks',
+          minLines: 2,
+          maxLines: 4,
+        ),
+    ];
+    return IcueDialog(
+      title: _a.title,
+      icon: _icon,
+      description: '${asset.name} · ${asset.assetId}',
+      content: Form(
+        key: _form,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (var index = 0; index < fields.length; index++) ...[
+              if (index > 0) const SizedBox(height: 16),
+              fields[index],
+            ],
           ],
-          if (_a != AssetAction.retire)
-            labelled(
-              _a == AssetAction.assign || _a == AssetAction.transfer
-                  ? 'Condition at handover'
-                  : _a == AssetAction.giveBack
-                  ? 'Condition at return'
-                  : 'Condition',
-              AssetCondition.values,
-              _condition,
-              (value) => setState(() => _condition = value!),
-            ),
-          if (_a != AssetAction.condition && _a != AssetAction.retire)
-            IcueTextField(controller: _location, label: 'Location'),
-          if (_a == AssetAction.condition)
-            labelled(
-              'Mark as',
-              const ['available', 'damaged', 'lost'],
-              _status,
-              (value) => setState(() => _status = value),
-            ),
-          if (_a == AssetAction.retire)
-            labelled(
-              'Outcome',
-              const ['retired', 'disposed'],
-              _kind,
-              (value) => setState(() => _kind = value!),
-            ),
-          if (_a == AssetAction.giveBack ||
-              _a == AssetAction.condition ||
-              _a == AssetAction.retire)
-            IcueTextField(
-              controller: _text,
-              validator: _a == AssetAction.retire ? requiredText : null,
-              label: _a == AssetAction.retire ? 'Reason *' : 'Remarks',
-            ),
-          const SizedBox(height: 16),
-          IcueButton(
-            label: _busy ? 'Saving…' : _a.title,
-            onPressed: _busy ? null : _save,
-          ),
-        ],
+        ),
+      ),
+      secondaryAction: IcueDialogAction(
+        label: 'Cancel',
+        variant: IcueButtonVariant.ghost,
+        onPressed: _busy
+            ? null
+            : () => Navigator.of(context, rootNavigator: true).pop(),
+      ),
+      primaryAction: IcueDialogAction(
+        label: _a == AssetAction.condition ? 'Save' : _a.title,
+        isLoading: _busy,
+        onPressed: _busy ? null : _save,
       ),
     );
   }
