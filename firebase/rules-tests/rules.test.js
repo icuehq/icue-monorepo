@@ -401,16 +401,16 @@ describe('library client writes (no callable)', () => {
 
 
   it('policies: stamped create on an active library; library, person type and campus fixed', async () => {
-    await env.withSecurityRulesDisabled((context) => setDoc(doc(context.firestore(), 'orgs/8/zones/147/branches/427/libraryBorrowingPolicies/p1'), { libraryId: 'main', memberType: 'student', status: 'active' }));
-    const policy = (libraryId, campusId, action = 'libraryPolicy.create', by = '4') => ({ libraryId, campusId, memberType: 'student', status: 'active', createdBy: by, lastWrite: stamp(action) });
+    await env.withSecurityRulesDisabled((context) => setDoc(doc(context.firestore(), 'orgs/8/zones/147/branches/427/libraryBorrowingPolicies/p1'), { libraryId: 'main', memberType: 'STUDENT', status: 'active' }));
+    const policy = (libraryId, campusId, action = 'libraryPolicy.create', by = '4') => ({ libraryId, campusId, memberType: 'STUDENT', status: 'active', createdBy: by, lastWrite: stamp(action) });
     await assertSucceeds(setDoc(doc(db('4'), 'orgs/8/zones/147/branches/427/libraryBorrowingPolicies/p2'), policy('main', 31)));
     await assertFails(setDoc(doc(db('4'), 'orgs/8/zones/147/branches/427/libraryBorrowingPolicies/p3'), { ...policy('main', 31), lastWrite: null })); // unstamped
     await assertFails(setDoc(doc(db('4'), 'orgs/8/zones/147/branches/427/libraryBorrowingPolicies/p3'), policy('other', 31))); // inactive library
     await assertFails(setDoc(doc(db('p', parent), 'orgs/8/zones/147/branches/427/libraryBorrowingPolicies/p3'), policy('main', 31, 'libraryPolicy.create', 'p')));
-    const edit = (extra) => ({ libraryId: 'main', memberType: 'student', maxBooks: 3, lastWrite: stamp('libraryPolicy.update'), ...extra });
+    const edit = (extra) => ({ libraryId: 'main', memberType: 'STUDENT', maxBooks: 3, lastWrite: stamp('libraryPolicy.update'), ...extra });
     await assertSucceeds(updateDoc(doc(db('4'), 'orgs/8/zones/147/branches/427/libraryBorrowingPolicies/p1'), edit({})));
     await assertSucceeds(updateDoc(doc(db('4'), 'orgs/8/zones/147/branches/427/libraryBorrowingPolicies/p1'), { status: 'inactive', lastWrite: stamp('libraryPolicy.status') }));
-    await assertFails(updateDoc(doc(db('4'), 'orgs/8/zones/147/branches/427/libraryBorrowingPolicies/p1'), edit({ memberType: 'teacher' })));
+    await assertFails(updateDoc(doc(db('4'), 'orgs/8/zones/147/branches/427/libraryBorrowingPolicies/p1'), edit({ memberType: 'EMPLOYEE' })));
     await assertFails(updateDoc(doc(db('4'), 'orgs/8/zones/147/branches/427/libraryBorrowingPolicies/p1'), edit({ libraryId: 'other' })));
  });
 
@@ -430,11 +430,11 @@ describe('library client writes (no callable)', () => {
     await assertSucceeds(updateDoc(doc(db('4'), 'orgs/8/zones/147/branches/427/libraryCopies/c1'), { status: 'issued', activeLoanId: 'l3' }));
     await assertFails(updateDoc(doc(db('4'), 'orgs/8/zones/147/branches/427/libraryCopies/c1'), { status: 'in_transit' }));
     await assertFails(updateDoc(doc(db('4'), 'orgs/8/zones/147/branches/427/libraryCopies/c1'), { status: 'lost', libraryId: 'junior' }));
-    const member = { memberType: 'student', personErpId: 777, activeLoans: 1, blocked: false, createdBy: '4' };
+    const member = { memberType: 'STUDENT', personErpId: 777, activeLoans: 1, blocked: false, createdBy: '4' };
     await assertSucceeds(setDoc(doc(db('4'), 'orgs/8/zones/147/branches/427/libraryMembers/777'), member));
     await assertFails(setDoc(doc(db('4'), 'orgs/8/zones/147/branches/427/libraryMembers/778'), { ...member, blocked: true }));
     await assertSucceeds(updateDoc(doc(db('4'), 'orgs/8/zones/147/branches/427/libraryMembers/501'), { activeLoans: 2, name: 'A' }));
-    await assertFails(updateDoc(doc(db('4'), 'orgs/8/zones/147/branches/427/libraryMembers/501'), { memberType: 'teacher' }));
+    await assertFails(updateDoc(doc(db('4'), 'orgs/8/zones/147/branches/427/libraryMembers/501'), { memberType: 'EMPLOYEE' }));
     const fine = { status: 'outstanding', createdBy: '4' };
     await assertSucceeds(setDoc(doc(db('4'), 'orgs/8/zones/147/branches/427/libraryFines/l1__overdue'), fine));
     await assertFails(setDoc(doc(db('4'), 'orgs/8/zones/147/branches/427/libraryFines/x'), { ...fine, status: 'paid' }));

@@ -119,7 +119,7 @@ class MemberCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       member.admissionNumber?.isNotEmpty ?? false
-                          ? 'Adm. ${member.admissionNumber}'
+                          ? '${member.memberType == 'STUDENT' ? 'Adm.' : 'Staff no.'} ${member.admissionNumber}'
                           : 'ERP ID: ${member.personErpId}',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,

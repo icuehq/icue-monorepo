@@ -24,7 +24,7 @@ class LibraryPerson {
   /// ERP photo of a student; empty when there is none.
   final String photoUrl;
 
-  bool get isStudent => memberType == 'student';
+  bool get isStudent => memberType == 'STUDENT';
 
   /// What the issue callable take as `person`.
   Map<String, Object?> toPayload() => {

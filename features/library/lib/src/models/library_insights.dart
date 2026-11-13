@@ -67,10 +67,13 @@ LibraryReportCol _count(String label, String field) => LibraryReportCol(
   sum: true,
 );
 
-/// Member name with class and section on a second line (students only).
+/// Member name with class and section (students) or `Employee` (staff) on a second line.
+const employeeLabel = 'Employee';
+
 LibraryReportCol _member() => LibraryReportCol('Member', (m, names) {
   final name = readString(m['memberName']);
   final label = name.isEmpty ? '#${m['personErpId']}' : name;
+  if (m['memberType'] == 'EMPLOYEE') return '$label\n$employeeLabel';
   final classId = (m['memberClassId'] as num?)?.toInt();
   if (classId == null) return label;
   return '$label\n${names.classLabel(classId, readString(m['memberSection']))}';
@@ -179,7 +182,7 @@ const libraryDashboardStats = <(String, String)>[
   ('damaged', 'Damaged books'),
   ('outOfCirculation', 'Out of circulation'),
   ('students', 'Student borrowers'),
-  ('teachers', 'Teacher borrowers'),
+  ('teachers', 'Employee borrowers'),
   ('pending', 'Pending returns'),
   ('fines', 'Outstanding fines'),
 ];

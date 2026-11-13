@@ -16,5 +16,5 @@ extension LibraryIncidentMembers on LibraryIncident {
   String? get memberLabel => personErpId == null
       ? null
       : memberName ??
-            '${memberType == 'student' ? 'Student' : 'Teacher'} #$personErpId';
+            '${memberType == 'STUDENT' ? 'Student' : 'Employee'} #$personErpId';
 }

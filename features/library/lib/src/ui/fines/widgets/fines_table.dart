@@ -95,6 +95,7 @@ class FinesTable extends StatelessWidget {
             return LibraryMemberCell(
               name: fine.memberLabel,
               classLabel: classLabel,
+              isEmployee: fine.memberType == 'EMPLOYEE',
             );
           },
         ),

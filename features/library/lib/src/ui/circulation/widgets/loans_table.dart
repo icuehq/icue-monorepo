@@ -150,6 +150,7 @@ class LoansTable extends StatelessWidget {
             return LibraryMemberCell(
               name: loan.memberLabel,
               classLabel: classLabel,
+              isEmployee: loan.memberType == 'EMPLOYEE',
             );
           },
         ),

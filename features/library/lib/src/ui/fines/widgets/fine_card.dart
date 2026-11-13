@@ -84,7 +84,7 @@ class FineCard extends StatelessWidget {
                     Row(
                       children: [
                         Icon(
-                          fine.memberType == 'teacher'
+                          fine.memberType == 'EMPLOYEE'
                               ? Icons.person_outline_rounded
                               : Icons.school_outlined,
                           size: 14,
@@ -112,6 +112,7 @@ class FineCard extends StatelessWidget {
             classId: fine.memberClassId,
             section: fine.memberSection,
             admissionNumber: fine.admissionNumber,
+            isEmployee: fine.memberType == 'EMPLOYEE',
             date: fine.createdAt?.toLocal().toNumericDate(),
           ),
           const SizedBox(height: 12),

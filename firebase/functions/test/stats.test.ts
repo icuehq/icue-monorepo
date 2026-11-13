@@ -104,7 +104,7 @@ describe('library analytics summary', () => {
   });
 
   it('a member counts as a borrower of each library once', async () => {
-    await db().doc(`${BRANCH}/libraryMembers/7`).set({ memberType: 'student' });
+    await db().doc(`${BRANCH}/libraryMembers/7`).set({ memberType: 'STUDENT' });
     await record('libraryLoans', undefined, loan());
     await record('libraryLoans', undefined, loan());
     await record('libraryLoans', undefined, loan({ libraryId: 'annex' }));
@@ -117,7 +117,7 @@ describe('library analytics summary', () => {
   it('a branch-only write leaves every library figure alone', async () => {
     await record('libraryLoans', undefined, loan());
     await record('libraryCatalogue', undefined, { title: 'B' });
-    await record('libraryMembers', undefined, { memberType: 'teacher' });
+    await record('libraryMembers', undefined, { memberType: 'EMPLOYEE' });
     expect(await read('overall')).toMatchObject({
       titles: 1,
       teachers: 1,

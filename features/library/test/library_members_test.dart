@@ -25,7 +25,7 @@ void main() {
     final policy = LibraryPolicy.fromMap('l1_student', {
       'name': 'Students',
       'libraryId': 'l1',
-      'memberType': 'student',
+      'memberType': 'STUDENT',
       'maxBooks': 1,
       'loanDays': 7,
       'maxRenewals': 2,
@@ -40,15 +40,15 @@ void main() {
     expect(policy.active, isFalse);
 
     final member = LibraryMember.fromMap('9', {
-      'memberType': 'teacher',
+      'memberType': 'EMPLOYEE',
       'personErpId': 9,
     });
-    expect(member.label, 'Teacher #9');
+    expect(member.label, 'Employee #9');
     expect(member.blocked, isFalse);
     expect(member.activeLoans, 0);
 
     final named = LibraryMember.fromMap('5', {
-      'memberType': 'student',
+      'memberType': 'STUDENT',
       'personErpId': 5,
       'name': 'Asha Rao',
       'classId': 4,
@@ -61,31 +61,30 @@ void main() {
   });
 
   test(
-    'LibraryPeopleService looks up students by admission and staff by ID',
+    'LibraryPeopleService looks up students and staff by number or RFID',
     () async {
       final peopleService = LibraryPeopleService(_FakeRouteService());
 
-      final student = await peopleService.findByIdentifier('student', 'ADM001');
+      final student = await peopleService.findByIdentifier('STUDENT', 'ADM001');
       expect(student?.personErpId, 10);
       expect(student?.name, 'Student 10');
-      expect(student?.memberType, 'student');
+      expect(student?.memberType, 'STUDENT');
 
       final missingStudent = await peopleService.findByIdentifier(
-        'student',
+        'STUDENT',
         'UNKNOWN',
       );
       expect(missingStudent, isNull);
 
-      final staff = await peopleService.findByIdentifier('teacher', '42');
-      expect(staff?.personErpId, 42);
-      expect(staff?.name, 'Staff #42');
-      expect(staff?.memberType, 'teacher');
+      final staff = await peopleService.findByIdentifier('EMPLOYEE', 'ADM001');
+      expect(staff?.personErpId, 10);
+      expect(staff?.memberType, 'EMPLOYEE');
+      expect(staff?.classId, isNull);
 
-      final invalidStaff = await peopleService.findByIdentifier(
-        'teacher',
-        'abc',
+      expect(
+        await peopleService.findByIdentifier('EMPLOYEE', 'UNKNOWN'),
+        isNull,
       );
-      expect(invalidStaff, isNull);
     },
   );
 }

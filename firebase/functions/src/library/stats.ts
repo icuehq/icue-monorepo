@@ -86,7 +86,7 @@ export function deltas(collection: string, { before, after }: Change) {
           overall.add('outstandingFines', sign * (data.outstanding ?? 0), data.libraryId);
         break;
       case 'libraryMembers':
-        overall.add(data.memberType === 'teacher' ? 'teachers' : 'students', sign);
+        overall.add(data.memberType === 'EMPLOYEE' ? 'teachers' : 'students', sign);
         break;
       case 'libraryCatalogue':
         overall.add('titles', sign);
@@ -165,7 +165,7 @@ export async function recordStats(collection: string, change: Change): Promise<v
     if (member?.exists && loan && !libraryIds.includes(loan.libraryId)) {
       transaction.update(member.ref, { libraryIds: FieldValue.arrayUnion(loan.libraryId) });
       overall.addLibrary(
-        member.data()?.memberType === 'teacher' ? 'teachers' : 'students',
+        member.data()?.memberType === 'EMPLOYEE' ? 'teachers' : 'students',
         1,
         loan.libraryId,
       );

@@ -18,7 +18,7 @@ enums:
     values: [active, returned, lost]
   MemberType:
     doc: Who a library member is in the ERP.
-    values: [student, teacher]
+    values: [STUDENT, EMPLOYEE]
 
 constants:
   manualCopyStatuses:
@@ -260,7 +260,7 @@ models:
         active: { type: bool, key: status, notEquals: inactive }
   library_members:
     LibraryPolicy:
-      doc: "Borrowing rules of one person type (student or teacher) in one library, for the listed book categories or, when none are listed, every other category (FRS 11.8)."
+      doc: "Borrowing rules of one person type (STUDENT or EMPLOYEE) in one library, for the listed book categories or, when none are listed, every other category (FRS 11.8)."
       id: id
       fields:
         name: string
@@ -276,7 +276,7 @@ models:
         categoryIds: list<string>
         active: { type: bool, key: status, notEquals: inactive }
     LibraryMember:
-      doc: "A student or teacher who has borrowed (FRS 11.7). Created on first use from the ERP details; the ERP stays the source of truth."
+      doc: "A student or employee (staff) who has borrowed (FRS 11.7). Created on first use from the ERP details; the ERP stays the source of truth."
       id: id
       fields:
         memberType: string

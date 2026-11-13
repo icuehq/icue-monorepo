@@ -170,7 +170,7 @@ async function library(path: string) {
     for (const libraryId of borrowed[id] ?? [])
       bump(
         (libraries[libraryId] ??= {}),
-        data.memberType === 'teacher' ? 'teachers' : 'students',
+        data.memberType === 'EMPLOYEE' ? 'teachers' : 'students',
         1,
       );
 

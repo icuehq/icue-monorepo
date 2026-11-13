@@ -9,7 +9,7 @@ extension LibraryLoanMembers on LibraryLoan {
   bool get canRenew => isActive && renewals < maxRenewals;
   String get memberLabel =>
       memberName ??
-      '${memberType == 'student' ? 'Student' : 'Teacher'} #$personErpId';
+      '${memberType == 'STUDENT' ? 'Student' : 'Employee'} #$personErpId';
 
   /// Book title, or the copy barcode when the title is missing.
   String get bookLabel => bookTitle ?? barcode;

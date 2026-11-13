@@ -506,8 +506,8 @@ class LibraryService {
       );
     }
     final memberType = def.kind == LibraryReportKind.student
-        ? 'student'
-        : 'teacher';
+        ? 'STUDENT'
+        : 'EMPLOYEE';
     final today = dayTimestamp(todayIST());
     final members = <Object?, ReportRow>{};
     for (final loan in issued) {
@@ -516,6 +516,7 @@ class LibraryService {
         loan['personErpId'],
         () => {
           'personErpId': loan['personErpId'],
+          'memberType': memberType,
           'memberName': loan['memberName'],
           'admissionNumber': loan['admissionNumber'],
           'memberClassId': loan['memberClassId'],

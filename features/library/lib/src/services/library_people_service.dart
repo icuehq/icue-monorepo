@@ -9,25 +9,16 @@ class LibraryPeopleService {
 
   final RouteService _routes;
 
-  /// The student by admission number or RFID, or staff member by ERP ID, or null.
+  /// The student or staff member (both are ERP records) by admission/staff number or RFID, or null.
   Future<LibraryPerson?> findByIdentifier(
     String memberType,
     String identifier,
   ) async {
-    final number = identifier.trim();
-    if (memberType == 'teacher') {
-      final staffId = int.tryParse(number);
-      if (staffId == null || staffId <= 0) return null;
-      return LibraryPerson(
-        memberType: 'teacher',
-        personErpId: staffId,
-        name: 'Staff #$staffId',
-        detail: 'Staff ID $staffId',
-      );
-    }
-    final student = await _routes.findStudentByAdmissionNumberOrRfid(number);
-    if (student == null) return null;
-    return personFrom(student);
+    final found = await _routes.findStudentByAdmissionNumberOrRfid(
+      identifier.trim(),
+    );
+    if (found == null) return null;
+    return personFrom(found, memberType: memberType);
   }
 
   Future<List<Standards>>? _classes;
@@ -61,18 +52,25 @@ class LibraryPeopleService {
     }
   }
 
-  LibraryPerson personFrom(StudentData student) => LibraryPerson(
-    memberType: 'student',
+  LibraryPerson personFrom(
+    StudentData student, {
+    String memberType = 'STUDENT',
+  }) => LibraryPerson(
+    memberType: memberType,
     personErpId: student.id,
     name: student.name,
-    classId: student.classId == 0 ? null : student.classId,
-    section: student.section,
+    // Staff belong to no class.
+    classId: memberType == 'EMPLOYEE' || student.classId == 0
+        ? null
+        : student.classId,
+    section: memberType == 'EMPLOYEE' ? '' : student.section,
     admissionNumber: student.admissionNumber,
     photoUrl: student.photoUrl,
     detail: [
       if (student.standard.isNotEmpty)
         '${student.standard.toLowerCase().startsWith('class') ? '' : 'Class '}${student.standard}${student.section.isEmpty ? '' : ' (${student.section})'}',
-      if (student.admissionNumber.isNotEmpty) 'Adm. ${student.admissionNumber}',
+      if (student.admissionNumber.isNotEmpty)
+        '${memberType == 'EMPLOYEE' ? 'Staff no.' : 'Adm.'} ${student.admissionNumber}',
     ].join(' · '),
   );
 }

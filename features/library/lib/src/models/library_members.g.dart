@@ -2,7 +2,7 @@
 
 import 'package:icue_firebase/icue_firebase.dart' show readDouble, readList;
 
-/// Borrowing rules of one person type (student or teacher) in one library, for the listed book categories or, when none are listed, every other category (FRS 11.8).
+/// Borrowing rules of one person type (STUDENT or EMPLOYEE) in one library, for the listed book categories or, when none are listed, every other category (FRS 11.8).
 class LibraryPolicy {
   const LibraryPolicy({
     required this.id,
@@ -52,7 +52,7 @@ class LibraryPolicy {
   final bool active;
 }
 
-/// A student or teacher who has borrowed (FRS 11.7). Created on first use from the ERP details; the ERP stays the source of truth.
+/// A student or employee (staff) who has borrowed (FRS 11.7). Created on first use from the ERP details; the ERP stays the source of truth.
 class LibraryMember {
   const LibraryMember({
     required this.id,

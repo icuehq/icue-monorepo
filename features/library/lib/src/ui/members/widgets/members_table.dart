@@ -105,6 +105,7 @@ class MembersTable extends StatelessWidget {
           minWidth: 200,
           cellBuilder: (context, member) => LibraryMemberCell(
             name: member.label,
+            isEmployee: !member.isStudent,
             classLabel: provider.classLabel(member.classId, member.section),
           ),
         ),

@@ -138,9 +138,9 @@ abstract final class LoanStatus {
 
 /// Who a library member is in the ERP.
 abstract final class MemberType {
-  static const student = 'student';
-  static const teacher = 'teacher';
-  static const values = [student, teacher];
+  static const STUDENT = 'STUDENT';
+  static const EMPLOYEE = 'EMPLOYEE';
+  static const values = [STUDENT, EMPLOYEE];
 }
 
 /// The requester may edit and resubmit these.

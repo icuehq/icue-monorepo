@@ -10,8 +10,8 @@ const fineTypes = {
 
 extension LibraryPolicyMembers on LibraryPolicy {
   String get appliesTo => switch (memberType) {
-    'student' => 'Students',
-    'teacher' => 'Teachers',
+    'STUDENT' => 'Students',
+    'EMPLOYEE' => 'Employees',
     _ => 'Everyone',
   };
 
@@ -21,13 +21,13 @@ extension LibraryPolicyMembers on LibraryPolicy {
 }
 
 extension LibraryMemberMembers on LibraryMember {
-  bool get isStudent => memberType == 'student';
+  bool get isStudent => memberType == 'STUDENT';
   String get label => name.isEmpty
-      ? '${isStudent ? 'Student' : 'Teacher'} #$personErpId'
+      ? '${isStudent ? 'Student' : 'Employee'} #$personErpId'
       : name;
 }
 
-/// Who the members list shows. Staff are the library's `teacher` members.
+/// Who the members list shows. Staff are the library's `EMPLOYEE` members.
 enum MemberKind {
   all('All'),
   student('Students'),
@@ -39,7 +39,7 @@ enum MemberKind {
   /// The stored `memberType`, or null for everyone.
   String? get memberType => switch (this) {
     all => null,
-    student => 'student',
-    staff => 'teacher',
+    student => 'STUDENT',
+    staff => 'EMPLOYEE',
   };
 }

@@ -91,7 +91,7 @@ class IncidentCard extends StatelessWidget {
                       Row(
                         children: [
                           Icon(
-                            incident.memberType == 'teacher'
+                            incident.memberType == 'EMPLOYEE'
                                 ? Icons.person_outline_rounded
                                 : Icons.school_outlined,
                             size: 14,
@@ -126,6 +126,7 @@ class IncidentCard extends StatelessWidget {
             classId: incident.memberClassId,
             section: incident.memberSection,
             admissionNumber: incident.admissionNumber,
+            isEmployee: incident.memberType == 'EMPLOYEE',
           ),
           const SizedBox(height: 12),
           const Divider(height: 1),

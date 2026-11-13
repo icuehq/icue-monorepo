@@ -35,6 +35,11 @@ class Standards {
   final String? standardType;
   final List<Section> sections;
 
+  /// Node types each class `STUDENT`, `STAFF` or `NON_STAFF`; the last two list staff members.
+  bool get isStudent => standardType == 'STUDENT';
+
+  bool get isStaff => standardType == 'STAFF' || standardType == 'NON_STAFF';
+
   Map<String, dynamic> toJson() => {
     'Id': id,
     'Name': name,

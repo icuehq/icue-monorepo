@@ -129,8 +129,8 @@ class _PolicyDialogState extends State<PolicyDialog> {
               IcueDropdown<String>(
                 value: _type,
                 items: const [
-                  DropdownMenuItem(value: 'student', child: Text('Students')),
-                  DropdownMenuItem(value: 'teacher', child: Text('Teachers')),
+                  DropdownMenuItem(value: 'STUDENT', child: Text('Students')),
+                  DropdownMenuItem(value: 'EMPLOYEE', child: Text('Employees')),
                   DropdownMenuItem(
                     value: 'all',
                     child: Text('Everyone (default)'),

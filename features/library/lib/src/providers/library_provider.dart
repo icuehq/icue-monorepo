@@ -130,15 +130,15 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
       incidentStatus != null ||
       incidentType != null;
 
-  /// The student (`student`) or staff member (`teacher`) with [identifier] (student admission number or RFID, staff ERP ID) in the ERP, or null.
+  /// The student (`STUDENT`) or staff member (`EMPLOYEE`) with [identifier] (student admission number or RFID, staff number or RFID) in the ERP, or null.
   Future<LibraryPerson?> findPerson(String type, String identifier) =>
       _people.findByIdentifier(type, identifier);
 
   Future<List<StudentData>> studentsOf(int classId, List<String> sections) =>
       _people.studentsOf(classId, sections);
 
-  LibraryPerson studentPerson(StudentData student) =>
-      _people.personFrom(student);
+  LibraryPerson studentPerson(StudentData student, {bool staff = false}) =>
+      _people.personFrom(student, memberType: staff ? 'EMPLOYEE' : 'STUDENT');
 
   LibraryCategory? category(String? id) =>
       categories.where((category) => category.id == id).firstOrNull;

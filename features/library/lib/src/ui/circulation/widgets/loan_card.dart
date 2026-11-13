@@ -111,7 +111,7 @@ class LoanCard extends StatelessWidget {
                     Row(
                       children: [
                         Icon(
-                          loan.memberType == 'teacher'
+                          loan.memberType == 'EMPLOYEE'
                               ? Icons.person_outline_rounded
                               : Icons.school_outlined,
                           size: 14,
@@ -150,10 +150,12 @@ class LoanCard extends StatelessWidget {
                     loan.memberSection,
                   ),
                 ),
+              if (loan.memberType == 'EMPLOYEE')
+                const LibraryMetaPill(Icons.badge_outlined, 'Employee'),
               if (loan.admissionNumber?.isNotEmpty ?? false)
                 LibraryMetaPill(
                   Icons.badge_outlined,
-                  'Adm. ${loan.admissionNumber}',
+                  '${loan.memberType == 'STUDENT' ? 'Adm.' : 'Staff no.'} ${loan.admissionNumber}',
                 ),
               LibraryMetaPill(
                 Icons.calendar_today_outlined,

@@ -12,7 +12,7 @@ void main() {
       'status': 'open',
       'reportedDate': dayTimestamp('2026-11-01'),
       'personErpId': 101,
-      'memberType': 'teacher',
+      'memberType': 'EMPLOYEE',
       'severity': 'moderate',
       'description': 'Water damaged back cover',
       'charge': 100.0,
@@ -20,7 +20,7 @@ void main() {
     });
 
     expect(incident.isOpen, isTrue);
-    expect(incident.memberLabel, 'Teacher #101');
+    expect(incident.memberLabel, 'Employee #101');
     expect(incident.charge, 100.0);
     expect(incidentResolutionLabel('repaired'), 'Repaired');
   });

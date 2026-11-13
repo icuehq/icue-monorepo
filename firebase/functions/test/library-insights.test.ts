@@ -15,7 +15,7 @@ const outbox = async (): Promise<{ id: string; [field: string]: any }[]> =>
 const day = (offset: number) =>
   new Date(Date.now() + 330 * 60_000 + offset * 86_400_000).toISOString().slice(0, 10);
 const loan = (catalogueId: string, dueOffset: number, status = 'active') => ({
-  memberType: 'student',
+  memberType: 'STUDENT',
   personErpId: 501,
   barcode: 'ACC-000001',
   catalogueId,

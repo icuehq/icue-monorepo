@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
+import 'package:school_library/school_library.dart' show employeeLabel;
 import 'package:school_library/src/ui/shared/library_member_cell.dart';
 import 'package:school_library/src/ui/shared/library_status_chip.dart';
 
@@ -73,9 +74,11 @@ class LibraryReportTable extends StatelessWidget {
     }
     if (headerName == 'member') {
       final lines = cell.split('\n');
+      final isEmployee = lines.last == employeeLabel;
       return LibraryMemberCell(
         name: lines.first,
-        classLabel: lines.length > 1 ? lines.last : null,
+        isEmployee: isEmployee,
+        classLabel: lines.length > 1 && !isEmployee ? lines.last : null,
       );
     }
     final tokens = IcueTableStyle.of(context);

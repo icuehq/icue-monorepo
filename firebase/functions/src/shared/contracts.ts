@@ -108,8 +108,8 @@ export type LoanStatus = (typeof LoanStatus)[keyof typeof LoanStatus];
 
 /** Who a library member is in the ERP. */
 export const MemberType = {
-  student: 'student',
-  teacher: 'teacher',
+  STUDENT: 'STUDENT',
+  EMPLOYEE: 'EMPLOYEE',
 } as const;
 export type MemberType = (typeof MemberType)[keyof typeof MemberType];
 

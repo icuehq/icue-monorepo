@@ -94,13 +94,16 @@ class AuthService {
     final user = userLocalStorage.getUser();
     if (user == null || Firebase.apps.isEmpty) return false;
     // Web restores the Firebase user asynchronously.
-    final current = await FirebaseAuth.instance
+    // A stale persisted user (invalid-refresh-token) errors here: treat as
+    // signed out and re-exchange below.
+    final User? current = await FirebaseAuth.instance
         .authStateChanges()
         .first
         .timeout(
           const Duration(seconds: 3),
           onTimeout: () => FirebaseAuth.instance.currentUser,
-        );
+        )
+        .then<User?>((user) => user, onError: (_) => null);
     if (!refresh && current?.uid == user.id.toString()) return true;
     return _firebaseSignIn ??= _exchangeFirebaseToken().whenComplete(
       () => _firebaseSignIn = null,
@@ -110,7 +113,7 @@ class AuthService {
   Future<bool> _exchangeFirebaseToken() async {
     try {
       final auth = FirebaseAuth.instance;
-      if (auth.currentUser != null) await auth.signOut();
+      await auth.signOut().catchError((_) {});
       final token = usesEmulator
           ? await _emulatorToken()
           : await _cloudFirebaseToken();

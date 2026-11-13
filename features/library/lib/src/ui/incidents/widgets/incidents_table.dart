@@ -91,6 +91,7 @@ class IncidentsTable extends StatelessWidget {
             return LibraryMemberCell(
               name: incident.memberLabel ?? 'In stock',
               classLabel: classLabel,
+              isEmployee: incident.memberType == 'EMPLOYEE',
             );
           },
         ),

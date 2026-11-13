@@ -2,11 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:routes/routes.dart';
 import 'package:school_library/school_library.dart';
+import 'package:school_library/src/ui/shared/person_list_tile.dart';
 
-/// Picks a class and section, lists its students from the ERP (Node) and reports the one tapped.
+/// Picks a class (or, with [staff], a staff group) and section, lists its people from the ERP (Node) and reports the one tapped.
 class ClassStudentChooser extends StatefulWidget {
-  const ClassStudentChooser({required this.onChosen, super.key});
+  const ClassStudentChooser({
+    required this.onChosen,
+    this.staff = false,
+    super.key,
+  });
 
+  final bool staff;
   final ValueChanged<LibraryPerson> onChosen;
 
   @override
@@ -28,7 +34,10 @@ class _ClassStudentChooserState extends State<ClassStudentChooser> {
     _run(() async {
       final provider = context.read<LibraryProvider>();
       await provider.loadStandards();
-      _classes = provider.standards;
+      _classes = [
+        for (final standard in provider.standards)
+          if (widget.staff ? standard.isStaff : standard.isStudent) standard,
+      ];
     });
   }
 
@@ -78,6 +87,7 @@ class _ClassStudentChooserState extends State<ClassStudentChooser> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final visible = _students.where(_matches).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
@@ -88,7 +98,9 @@ class _ClassStudentChooserState extends State<ClassStudentChooser> {
               child: DropdownButtonFormField<Standards>(
                 initialValue: _class,
                 isExpanded: true,
-                decoration: const InputDecoration(labelText: 'Class'),
+                decoration: InputDecoration(
+                  labelText: widget.staff ? 'Group' : 'Class',
+                ),
                 items: [
                   for (final standard in _classes)
                     DropdownMenuItem(
@@ -120,9 +132,11 @@ class _ClassStudentChooserState extends State<ClassStudentChooser> {
           TextField(
             onChanged: (text) =>
                 setState(() => _filter = text.trim().toLowerCase()),
-            decoration: const InputDecoration(
-              hintText: 'Search by name, roll no. or admission no.',
-              prefixIcon: Icon(Icons.search),
+            decoration: InputDecoration(
+              hintText: widget.staff
+                  ? 'Search by name or staff no.'
+                  : 'Search by name, roll no. or admission no.',
+              prefixIcon: const Icon(Icons.search),
             ),
           ),
         ],
@@ -135,30 +149,37 @@ class _ClassStudentChooserState extends State<ClassStudentChooser> {
         else if (_error != null)
           Text(_error!, style: TextStyle(color: theme.colorScheme.error))
         else if (_class != null && _students.isEmpty)
-          const Text('No students in this class')
+          Text(
+            widget.staff
+                ? 'No staff in this group'
+                : 'No students in this class',
+          )
         else
           ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 320),
-            child: ListView(
+            constraints: const BoxConstraints(maxHeight: 400),
+            child: ListView.separated(
               shrinkWrap: true,
-              children: [
-                for (final student in _students.where(_matches))
-                  ListTile(
-                    dense: true,
-                    leading: const Icon(Icons.person_outline_rounded),
-                    title: Text(student.name),
-                    subtitle: Text(
-                      [
-                        if (student.rollNo.isNotEmpty) 'Roll ${student.rollNo}',
-                        if (student.admissionNumber.isNotEmpty)
-                          'Adm. ${student.admissionNumber}',
-                      ].join(' · '),
-                    ),
-                    onTap: () => widget.onChosen(
-                      context.read<LibraryProvider>().studentPerson(student),
+              itemCount: visible.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 8),
+              itemBuilder: (context, index) {
+                final student = visible[index];
+                return PersonListTile(
+                  name: student.name,
+                  photoUrl: student.photoUrl,
+                  chips: [
+                    if (!widget.staff && student.rollNo.isNotEmpty)
+                      'Roll ${student.rollNo}',
+                    if (student.admissionNumber.isNotEmpty)
+                      '${widget.staff ? 'Staff no.' : 'Adm.'} ${student.admissionNumber}',
+                  ],
+                  onTap: () => widget.onChosen(
+                    context.read<LibraryProvider>().studentPerson(
+                      student,
+                      staff: widget.staff,
                     ),
                   ),
-              ],
+                );
+              },
             ),
           ),
       ],

@@ -136,17 +136,16 @@ class LoanDetailsCard extends StatelessWidget {
         : null;
     final admissionText =
         loan.admissionNumber != null && loan.admissionNumber!.isNotEmpty
-        ? 'Adm. #${loan.admissionNumber}'
+        ? '${loan.memberType == 'STUDENT' ? 'Adm.' : 'Staff no.'} #${loan.admissionNumber}'
         : null;
-    final roleText = loan.memberType == 'student'
+    final roleText = loan.memberType == 'STUDENT'
         ? 'Student'
-        : (loan.memberType == 'teacher' ? 'Teacher' : 'Staff');
+        : (loan.memberType == 'EMPLOYEE' ? 'Employee' : 'Staff');
 
     final subtitleParts = [
       ?classText,
+      if (classText == null) roleText,
       ?admissionText,
-      if (classText == null && admissionText == null) roleText,
-      'ERP #${loan.personErpId}',
     ];
 
     return Container(
@@ -166,7 +165,7 @@ class LoanDetailsCard extends StatelessWidget {
               shape: BoxShape.circle,
             ),
             child: Icon(
-              loan.memberType == 'student'
+              loan.memberType == 'STUDENT'
                   ? Icons.school_rounded
                   : Icons.badge_rounded,
               color: colors.primary,

@@ -23,7 +23,7 @@ const defaultPolicy = <String, Object?>{
 class LibraryWrites {
   static const _conditions = ['good', 'fair', 'poor'];
   static const _fineTypes = ['none', 'per_day', 'flat'];
-  static const _policyMemberTypes = ['student', 'teacher', 'all'];
+  static const _policyMemberTypes = ['STUDENT', 'EMPLOYEE', 'all'];
 
   String _words(Object? value) => ('${value ?? ''}'.toLowerCase())
       .split(RegExp(r'[^\p{L}\p{N}]+', unicode: true))

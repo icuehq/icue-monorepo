@@ -45,8 +45,8 @@ class PolicyCard extends StatelessWidget {
                 ),
                 child: Icon(
                   switch (policy.memberType) {
-                    'student' => Icons.school_outlined,
-                    'teacher' => Icons.person_outline_rounded,
+                    'STUDENT' => Icons.school_outlined,
+                    'EMPLOYEE' => Icons.person_outline_rounded,
                     _ => Icons.groups_outlined,
                   },
                   color: theme.colorScheme.primary,

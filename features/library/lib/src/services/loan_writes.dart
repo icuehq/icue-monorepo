@@ -241,11 +241,9 @@ class LoanWrites {
           'memberType': memberType,
           'personErpId': personErpId,
           'memberName': person['name'],
-          'memberClassId': memberType == 'student' ? person['classId'] : null,
-          'memberSection': memberType == 'student' ? person['section'] : null,
-          'admissionNumber': memberType == 'student'
-              ? person['admissionNumber']
-              : null,
+          'memberClassId': memberType == 'STUDENT' ? person['classId'] : null,
+          'memberSection': memberType == 'STUDENT' ? person['section'] : null,
+          'admissionNumber': person['admissionNumber'],
           'bookTitle': title['title'],
           'barcode': barcode,
           'catalogueId': copy['catalogueId'],
@@ -271,11 +269,9 @@ class LoanWrites {
         });
       final shown = {
         'name': person['name'],
-        'classId': memberType == 'student' ? person['classId'] : null,
-        'section': memberType == 'student' ? person['section'] : null,
-        'admissionNumber': memberType == 'student'
-            ? person['admissionNumber']
-            : null,
+        'classId': memberType == 'STUDENT' ? person['classId'] : null,
+        'section': memberType == 'STUDENT' ? person['section'] : null,
+        'admissionNumber': person['admissionNumber'],
       };
       if (member == null) {
         transaction.set(memberReference, {

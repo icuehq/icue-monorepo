@@ -15,7 +15,7 @@ extension LibraryFineMembers on LibraryFine {
       outstanding > 0 && status != 'waived' && status != 'paid';
   String get memberLabel =>
       memberName ??
-      '${memberType == 'student' ? 'Student' : 'Teacher'} #$personErpId';
+      '${memberType == 'STUDENT' ? 'Student' : 'Employee'} #$personErpId';
 }
 
 extension LibraryFineCalculation on LibraryFine {

@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/shared/class_student_chooser.dart';
 
-/// Finds a student or staff member in the ERP (Node) by admission number or RFID (staff by ERP ID), then reports the choice.
+/// Finds a student or staff member in the ERP (Node) by admission number or RFID (staff by staff no. or RFID), or from a class/staff-group list, then reports the choice.
 class PersonPicker extends StatefulWidget {
   const PersonPicker({
     required this.onChanged,
@@ -22,7 +22,7 @@ class PersonPicker extends StatefulWidget {
 class _PersonPickerState extends State<PersonPicker> {
   final _admissionNumber = TextEditingController();
   final _focusNode = FocusNode();
-  String _type = 'student';
+  String _type = 'STUDENT';
   String _mode = 'number';
   LibraryPerson? _chosen;
   bool _loading = false;
@@ -57,10 +57,10 @@ class _PersonPickerState extends State<PersonPicker> {
       final person = await libraryProvider.findPerson(_type, number);
       if (!mounted) return;
       if (person == null) {
-        final identifier = _type == 'student'
-            ? 'admission number or RFID'
-            : 'staff ID';
-        setState(() => _error = 'No $_label found with $identifier "$number"');
+        setState(
+          () => _error =
+              'No $_label found with ${_type == 'STUDENT' ? 'admission number' : 'staff number'} or RFID "$number"',
+        );
         _focusNode.requestFocus();
       } else {
         _choose(person);
@@ -74,7 +74,7 @@ class _PersonPickerState extends State<PersonPicker> {
     }
   }
 
-  String get _label => _type == 'student' ? 'student' : 'staff member';
+  String get _label => _type == 'STUDENT' ? 'student' : 'staff member';
 
   @override
   Widget build(BuildContext context) {
@@ -91,8 +91,8 @@ class _PersonPickerState extends State<PersonPicker> {
                 label: 'Borrower type',
                 value: _type,
                 items: const [
-                  DropdownMenuItem(value: 'student', child: Text('Student')),
-                  DropdownMenuItem(value: 'teacher', child: Text('Staff')),
+                  DropdownMenuItem(value: 'STUDENT', child: Text('Student')),
+                  DropdownMenuItem(value: 'EMPLOYEE', child: Text('Staff')),
                 ],
                 onChanged: (value) {
                   if (value == null) return;
@@ -101,18 +101,25 @@ class _PersonPickerState extends State<PersonPicker> {
                 },
               ),
             ),
-            if (chosen == null && _type == 'student') ...[
+            if (chosen == null) ...[
               const SizedBox(width: 12),
               Expanded(
                 child: IcueDropdown<String>(
                   label: 'Search by',
                   value: _mode,
-                  items: const [
+                  items: [
                     DropdownMenuItem(
                       value: 'number',
-                      child: Text('Admission no. / RFID'),
+                      child: Text(
+                        _type == 'STUDENT'
+                            ? 'Admission no. / RFID'
+                            : 'Staff no. / RFID',
+                      ),
                     ),
-                    DropdownMenuItem(value: 'class', child: Text('Class')),
+                    DropdownMenuItem(
+                      value: 'class',
+                      child: Text(_type == 'STUDENT' ? 'Class' : 'Staff list'),
+                    ),
                   ],
                   onChanged: (value) {
                     if (value != null) setState(() => _mode = value);
@@ -143,21 +150,24 @@ class _PersonPickerState extends State<PersonPicker> {
               ),
             ),
           )
-        else if (chosen == null && _type == 'student' && _mode == 'class')
-          ClassStudentChooser(onChosen: _choose)
+        else if (chosen == null && _mode == 'class')
+          ClassStudentChooser(
+            key: ValueKey(_type),
+            staff: _type == 'EMPLOYEE',
+            onChosen: _choose,
+          )
         else if (chosen == null) ...[
           TextField(
             controller: _admissionNumber,
             focusNode: _focusNode,
             autofocus: widget.autofocus,
             enabled: !_loading,
-            keyboardType: _type == 'teacher' ? TextInputType.number : null,
             textInputAction: TextInputAction.search,
             onSubmitted: _find,
             decoration: InputDecoration(
-              hintText: _type == 'student'
+              hintText: _type == 'STUDENT'
                   ? 'Enter admission number or scan RFID'
-                  : 'Enter staff ID (ERP ID)',
+                  : 'Enter staff number or scan RFID',
               prefixIcon: const Icon(Icons.badge_outlined),
               suffixIcon: _loading
                   ? const Padding(

@@ -8,6 +8,7 @@ class MemberDetailsLine extends StatelessWidget {
     this.classId,
     this.section,
     this.admissionNumber,
+    this.isEmployee = false,
     this.date,
     super.key,
   });
@@ -15,6 +16,7 @@ class MemberDetailsLine extends StatelessWidget {
   final int? classId;
   final String? section;
   final String? admissionNumber;
+  final bool isEmployee;
   final String? date;
 
   @override
@@ -22,7 +24,9 @@ class MemberDetailsLine extends StatelessWidget {
     final parts = [
       if (classId != null)
         context.watch<LibraryProvider>().classLabel(classId, section),
-      if (admissionNumber?.isNotEmpty ?? false) 'Adm. $admissionNumber',
+      if (isEmployee) 'Employee',
+      if (admissionNumber?.isNotEmpty ?? false)
+        '${isEmployee ? 'Staff no.' : 'Adm.'} $admissionNumber',
       ?date,
     ];
     if (parts.isEmpty) return const SizedBox.shrink();
