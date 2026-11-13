@@ -13,7 +13,12 @@ internal class TrackedIdentityCache(
     private val matchedRefreshFrames: Int = 10,
     private val unmatchedRefreshFrames: Int = 3,
 ) {
-    data class Identity(val personId: String?, val score: Float, val matched: Boolean)
+    data class Identity(
+        val personId: String?,
+        val score: Float,
+        val matched: Boolean,
+        val embedding: FloatArray?,
+    )
 
     private data class Entry(val identity: Identity, val storedAtFrame: Long)
 

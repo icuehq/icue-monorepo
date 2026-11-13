@@ -200,6 +200,7 @@ class IcueFaceSdk(
                     score = identity.score,
                     matched = identity.matched,
                     boundingBox = faces[fIdx].toBoundingBox(),
+                    embedding = identity.embedding,
                 )
             }
         }
@@ -245,6 +246,7 @@ class IcueFaceSdk(
                     score = candidate.score,
                     matched = true,
                     boundingBox = faces[candidate.faceIdx].toBoundingBox(),
+                    embedding = liveEmbeddings.getValue(candidate.faceIdx),
                 )
             }
         }
@@ -261,12 +263,13 @@ class IcueFaceSdk(
                     score = bestScore,
                     matched = false,
                     boundingBox = faces[fIdx].toBoundingBox(),
+                    embedding = liveEmb,
                 )
             }
             faceResults[fIdx]?.let { result ->
                 cache?.store(
                     faces[fIdx].trackingId,
-                    TrackedIdentityCache.Identity(result.personId, result.score, result.matched),
+                    TrackedIdentityCache.Identity(result.personId, result.score, result.matched, result.embedding),
                 )
             }
         }

@@ -35,6 +35,7 @@ import school.icue.face.core.model.IcueFaceProfile
 import school.icue.face.core.model.IcueRecognitionResult
 import school.icue.face.core.model.IcueYuv420Frame
 import school.icue.face.core.model.RecognitionMode
+import school.icue.face.core.model.toUnrecognizedFaceMap
 
 class IcueFaceSdkPlugin :
     FlutterPlugin,
@@ -470,6 +471,7 @@ class IcueFaceSdkPlugin :
             val startTimeMs = System.currentTimeMillis()
             val markedPresentMap = mutableMapOf<String, Map<String, Any?>>()
             var unrecognizedFaceCount = 0
+            val unrecognizedFaces = mutableListOf<Map<String, Any?>>()
 
             for (imagePath in imagePaths) {
                 val bitmap = withContext(Dispatchers.IO) {
@@ -500,6 +502,7 @@ class IcueFaceSdkPlugin :
                             }
                         } else {
                             frameUnrecognized++
+                            unrecognizedFaces.add(recognition.toUnrecognizedFaceMap())
                         }
                     }
                     unrecognizedFaceCount += frameUnrecognized
@@ -517,6 +520,7 @@ class IcueFaceSdkPlugin :
                 "present" to presentList,
                 "absentPersonIds" to absentIds,
                 "unrecognizedFaceCount" to unrecognizedFaceCount,
+                "unrecognizedFaces" to unrecognizedFaces,
                 "totalRosterCount" to roster.size,
                 "sessionStartTimeMs" to startTimeMs,
                 "sessionEndTimeMs" to endTimeMs,

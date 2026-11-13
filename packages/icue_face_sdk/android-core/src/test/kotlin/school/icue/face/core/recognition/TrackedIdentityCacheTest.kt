@@ -5,8 +5,8 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 class TrackedIdentityCacheTest {
-    private val matched = TrackedIdentityCache.Identity("student-1", 0.9f, matched = true)
-    private val unmatched = TrackedIdentityCache.Identity(null, 0.2f, matched = false)
+    private val matched = TrackedIdentityCache.Identity("student-1", 0.9f, matched = true, embedding = null)
+    private val unmatched = TrackedIdentityCache.Identity(null, 0.2f, matched = false, embedding = null)
 
     @Test
     fun matchedFaceIsReusedUntilItsRefreshFrame() {

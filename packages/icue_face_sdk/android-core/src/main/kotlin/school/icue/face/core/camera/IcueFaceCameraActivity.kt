@@ -76,6 +76,7 @@ import school.icue.face.core.FaceSdkException
 import school.icue.face.core.model.IcueBoundingBox
 import school.icue.face.core.model.IcueFaceProfile
 import school.icue.face.core.model.RecognitionMode
+import school.icue.face.core.model.toUnrecognizedFaceMap
 import school.icue.face.core.recognition.TrackedIdentityCache
 
 class IcueFaceCameraActivity : ComponentActivity() {
@@ -105,6 +106,8 @@ class IcueFaceCameraActivity : ComponentActivity() {
     private val liveAttendanceHitsMap = java.util.concurrent.ConcurrentHashMap<String, Int>()
     private val capturedPhotoPaths = java.util.Collections.synchronizedList(mutableListOf<String>())
     private var unrecognizedCount = 0
+    // Live: one entry per tracked face, dropped if that face is later matched. Multi-photo: every unmatched face.
+    private val unrecognizedFaces = java.util.Collections.synchronizedMap(LinkedHashMap<Any, Map<String, Any?>>())
     private var photosCapturedCount = 0
     private var sessionStartTimeMs = 0L
     // Replaced, not cleared, on every camera start: tracking IDs reset with the stream, and a
@@ -1067,8 +1070,10 @@ class IcueFaceCameraActivity : ComponentActivity() {
                             )
                         }
                     }
+                    recognition.boundingBox.trackingId?.let { unrecognizedFaces.remove(it) }
                 } else {
                     frameUnrecognized++
+                    recognition.boundingBox.trackingId?.let { unrecognizedFaces[it] = recognition.toUnrecognizedFaceMap() }
                 }
             }
             if (frameUnrecognized > unrecognizedCount) {
@@ -1171,6 +1176,7 @@ class IcueFaceCameraActivity : ComponentActivity() {
                     }
                 } else {
                     frameUnrecognized++
+                    unrecognizedFaces[java.util.UUID.randomUUID()] = recognition.toUnrecognizedFaceMap()
                 }
             }
             saveLowQualityJpeg(frame)?.let { path ->
@@ -1263,6 +1269,7 @@ class IcueFaceCameraActivity : ComponentActivity() {
             "present" to presentList,
             "absentPersonIds" to absentIds,
             "unrecognizedFaceCount" to unrecognizedCount,
+            "unrecognizedFaces" to synchronized(unrecognizedFaces) { unrecognizedFaces.values.toList() },
             "totalRosterCount" to roster.size,
             "sessionStartTimeMs" to sessionStartTimeMs,
             "sessionEndTimeMs" to endTimeMs,
