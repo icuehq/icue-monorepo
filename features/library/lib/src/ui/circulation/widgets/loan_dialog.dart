@@ -363,7 +363,7 @@ class _LoanDialogState extends State<LoanDialog> {
     );
     if (!isSuccess || !isFined || !navigator.mounted) return;
     // The server raises the overdue fine under this id; open it so it can be collected now.
-    final fine = await libraryProvider.fine('${loan.id}__overdue');
+    final fine = await libraryProvider.service.fine('${loan.id}__overdue');
     if (fine != null && navigator.mounted) {
       await FineDialog.show(navigator.context, fine);
     }

@@ -54,7 +54,9 @@ class _CirculationPageState extends State<CirculationPage> {
   }
 
   Future<void> _open(LibraryLoan loan) async {
-    final book = await context.read<LibraryProvider>().book(loan.catalogueId);
+    final book = await context.read<LibraryProvider>().service.book(
+      loan.catalogueId,
+    );
     if (!mounted) return;
     await LoanDialog.show(context, loan, book?.title ?? loan.barcode);
   }

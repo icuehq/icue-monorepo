@@ -5,7 +5,6 @@ import 'package:flutter/material.dart' show DateTimeRange;
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:injectable/injectable.dart';
 import 'package:routes/routes.dart';
-import 'package:school_library/src/models/library_copies.dart';
 import 'package:school_library/src/models/library_fines.dart';
 import 'package:school_library/src/models/library_incidents.dart';
 import 'package:school_library/src/models/library_insights.dart';
@@ -21,6 +20,9 @@ import 'package:school_library/src/services/loan_writes.dart';
 @lazySingleton
 class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   LibraryProvider(this._service, this._people, this._writes, this._loanWrites);
+
+  /// Read-side lookups (single records, scans) that need no provider state.
+  LibraryService get service => _service;
 
   final LibraryService _service;
   final LibraryWrites _writes;
@@ -266,33 +268,19 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   }
 
   /// Reloads Issued Books from its first page with the current filters.
-  Future<void> loadLoans() async {
-    final query = loanSearch;
-    if (query.isNotEmpty) {
-      await loans.load(({
-        required after,
-        required offset,
-        required limit,
-      }) async {
-        final page = await _service.searchLoans(
-          query,
-          offset: offset,
-          limit: limit,
-        );
-        return PagedResult(page.items, null, hasMore: page.hasMore);
-      });
-      return;
-    }
-    await loans.loadQuery(
-      await _service.activeLoansQuery(
-        classId: loanClassId,
-        section: loanSection,
-        issued: loanRange,
-        due: loanDue,
-      ),
-      (document) => LibraryLoan.fromMap(document.id, document.data()!),
-    );
-  }
+  Future<void> loadLoans() => _loadSearchable(
+    loans,
+    loanSearch,
+    (query, {required offset, required limit}) =>
+        _service.searchLoans(query, offset: offset, limit: limit),
+    () async => _service.activeLoansQuery(
+      classId: loanClassId,
+      section: loanSection,
+      issued: loanRange,
+      due: loanDue,
+    ),
+    (document) => LibraryLoan.fromMap(document.id, document.data()!),
+  );
 
   /// Clears every Issued Books filter and reloads.
   Future<void> clearLoanFilters() {
@@ -323,6 +311,28 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
       dueNextLoading = false;
       notifyListeners();
     }
+  }
+
+  /// Loads [pager] from the text search when [search] is set, else from the filtered [query].
+  Future<void> _loadSearchable<T>(
+    FirestorePager<T> pager,
+    String search,
+    Future<({List<T> items, bool hasMore})> Function(
+      String query, {
+      required int offset,
+      required int limit,
+    })
+    searchPage,
+    Future<Query<Map<String, dynamic>>> Function() query,
+    T Function(DocumentSnapshot<Map<String, dynamic>> document) fromDocument,
+  ) async {
+    if (search.isEmpty) {
+      return pager.loadQuery(await query(), fromDocument);
+    }
+    await pager.load(({required after, required offset, required limit}) async {
+      final page = await searchPage(search, offset: offset, limit: limit);
+      return PagedResult(page.items, null, hasMore: page.hasMore);
+    });
   }
 
   /// A pager whose failures become [errorMessage] and whose changes rebuild listeners.
@@ -379,32 +389,21 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     }
   }
 
-  Future<LibraryFine?> fine(String id) => _service.fine(id);
-
   /// Loads the first page of incidents for the current filters.
-  Future<void> loadIncidents() async {
-    final query = incidentSearch;
+  Future<void> loadIncidents() {
     final status = incidentStatus;
     final type = incidentType;
-    if (query.isNotEmpty) {
-      await incidents.load(({
-        required after,
-        required offset,
-        required limit,
-      }) async {
-        final page = await _service.searchIncidents(
-          query,
-          status: status,
-          type: type,
-          offset: offset,
-          limit: limit,
-        );
-        return PagedResult(page.items, null, hasMore: page.hasMore);
-      });
-      return;
-    }
-    await incidents.loadQuery(
-      await _service.incidentsQuery(status: status, type: type),
+    return _loadSearchable(
+      incidents,
+      incidentSearch,
+      (query, {required offset, required limit}) => _service.searchIncidents(
+        query,
+        status: status,
+        type: type,
+        offset: offset,
+        limit: limit,
+      ),
+      () async => _service.incidentsQuery(status: status, type: type),
       (document) => LibraryIncident.fromMap(document.id, document.data()!),
     );
   }
@@ -417,41 +416,26 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     return loadIncidents();
   }
 
-  Future<LibraryLoan?> activeLoanOf(String barcode) =>
-      _service.activeLoanOf(barcode);
-
-  Future<LibraryMember?> member(int personErpId) =>
-      _service.member(personErpId);
-
-  /// Fines the member still owes, shown at the issue desk (they never block borrowing).
-  Future<List<LibraryFine>> openFines(int personErpId) =>
-      _service.openFines(personErpId);
-
-  Future<LibraryBook?> book(String id) => _service.book(id);
-
-  Future<List<LibraryCopy>> copiesOf(String catalogueId) =>
-      _service.copiesOf(catalogueId);
-
-  Future<LibraryCopy?> findCopy(String code) => _service.findCopy(code);
-
   SchoolLibrary? library(String? id) =>
       libraries.where((library) => library.id == id).firstOrNull;
 
   // Writes return true on success, else set [errorMessage].
 
   Future<bool> saveLibrary(Map<String, Object?> data) =>
-      _write(() => _service.saveLibrary(data), reload: loadMasters);
+      _write(() => saveMasterDocument('libraries', data), reload: loadMasters);
 
   Future<bool> setLibraryActive(String id, {required bool active}) => _write(
-    () => _service.setLibraryActive(id, active: active),
+    () => setMasterActive('libraries', id, active: active),
     reload: loadMasters,
   );
 
-  Future<bool> saveCategory(Map<String, Object?> data) =>
-      _write(() => _service.saveCategory(data), reload: loadMasters);
+  Future<bool> saveCategory(Map<String, Object?> data) => _write(
+    () => saveMasterDocument('libraryCategories', data),
+    reload: loadMasters,
+  );
 
   Future<bool> setCategoryActive(String id, {required bool active}) => _write(
-    () => _service.setCategoryActive(id, active: active),
+    () => setMasterActive('libraryCategories', id, active: active),
     reload: loadMasters,
   );
 
@@ -520,9 +504,6 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     }
   }
 
-  Future<Set<String>> existingBarcodes(List<String> barcodes) =>
-      _service.existingBarcodes(barcodes);
-
   Future<String?> findTitleId(Map<String, Object?> data) =>
       _writes.findTitleId(data);
 
@@ -551,17 +532,8 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
       );
       if (!schoolLibrary.active || hasDefault) continue;
       await _writes.savePolicy({
+        ...defaultPolicy,
         'libraryId': schoolLibrary.id,
-        'memberType': 'all',
-        'name': 'Default policy',
-        'maxBooks': 3,
-        'loanDays': 14,
-        'maxRenewals': 1,
-        'fineType': 'per_day',
-        'fineAmount': 1,
-        'graceDays': 1,
-        'maxFine': 100,
-        'categoryIds': <String>[],
       });
     }
   }, reload: loadMasters);
@@ -675,9 +647,6 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     }
   }
 
-  Future<void> _insights(Future<void> Function() body) =>
-      _busy((loading) => insightsLoading = loading, body);
-
   /// Live overview figures; the caller listens for as long as it is on screen.
   Stream<Map<String, num?>> watchDashboard({SchoolLibrary? library}) =>
       _service.dashboard(library: library);
@@ -690,7 +659,7 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     String? status,
   }) async {
     if (def.kind != LibraryReportKind.loans) {
-      return _insights(() async {
+      return _busy((loading) => insightsLoading = loading, () async {
         final report = await _service.report(
           def,
           library: library,

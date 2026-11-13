@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:school_library/school_library.dart';
+import 'package:school_library/src/ui/shared/library_meta_pill.dart';
+import 'package:school_library/src/ui/shared/library_record_card.dart';
 import 'package:school_library/src/ui/shared/library_status_chip.dart';
 import 'package:school_library/src/ui/shared/member_details.dart';
 
@@ -41,161 +43,119 @@ class FineCard extends StatelessWidget {
     final theme = Theme.of(context);
     final (statusColor, statusBackground) = _statusColors(theme);
 
-    return Card(
-      elevation: 0,
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
-        ),
-      ),
-      color: theme.colorScheme.surface,
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
+    return LibraryRecordCard(
+      onTap: onTap,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 42,
-                    height: 42,
-                    decoration: BoxDecoration(
-                      color: statusBackground,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(_typeIcon(), color: statusColor, size: 20),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: statusBackground,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(_typeIcon(), color: statusColor, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       children: [
-                        Row(
-                          children: [
-                            Text(
-                              fine.bookTitle ??
-                                  fine.barcode ??
-                                  fineTypeLabel(fine.type),
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 15,
-                              ),
-                            ),
-                            const Spacer(),
-                            LibraryStatusChip(fine.status),
-                          ],
+                        Text(
+                          fine.bookTitle ??
+                              fine.barcode ??
+                              fineTypeLabel(fine.type),
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                          ),
                         ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Icon(
-                              fine.memberType == 'teacher'
-                                  ? Icons.person_outline_rounded
-                                  : Icons.school_outlined,
-                              size: 14,
-                              color: theme.colorScheme.onSurfaceVariant,
+                        const Spacer(),
+                        LibraryStatusChip(fine.status),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(
+                          fine.memberType == 'teacher'
+                              ? Icons.person_outline_rounded
+                              : Icons.school_outlined,
+                          size: 14,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            fine.memberLabel,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurface,
+                              fontWeight: FontWeight.w500,
                             ),
-                            const SizedBox(width: 4),
-                            Flexible(
-                              child: Text(
-                                fine.memberLabel,
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: theme.colorScheme.onSurface,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ],
                     ),
-                  ),
-                ],
-              ),
-              MemberDetailsLine(
-                classId: fine.memberClassId,
-                section: fine.memberSection,
-                admissionNumber: fine.admissionNumber,
-                date: fine.createdAt?.toLocal().toNumericDate(),
-              ),
-              const SizedBox(height: 12),
-              const Divider(height: 1),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  _metaPill(
-                    context,
-                    Icons.category_outlined,
-                    fineTypeLabel(fine.type),
-                  ),
-
-                  if (fine.barcode != null && fine.barcode!.isNotEmpty) ...[
-                    const SizedBox(width: 6),
-                    _metaPill(context, Icons.qr_code_2_rounded, fine.barcode!),
                   ],
-                  const Spacer(),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        fine.outstanding > 0
-                            ? 'Due: ${fine.outstanding.toRupees()}'
-                            : fine.status == 'waived'
-                            ? 'Waived'
-                            : 'Paid',
-                        style: TextStyle(
-                          color: fine.outstanding > 0
-                              ? theme.colorScheme.error
-                              : Colors.green.shade700,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14,
-                        ),
-                      ),
-                      if (fine.outstanding > 0 && fine.paid > 0)
-                        Text(
-                          'Total ${fine.amount.toRupees()}',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                    ],
-                  ),
-                ],
+                ),
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
+          MemberDetailsLine(
+            classId: fine.memberClassId,
+            section: fine.memberSection,
+            admissionNumber: fine.admissionNumber,
+            date: fine.createdAt?.toLocal().toNumericDate(),
+          ),
+          const SizedBox(height: 12),
+          const Divider(height: 1),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              LibraryMetaPill(
+                Icons.category_outlined,
+                fineTypeLabel(fine.type),
+              ),
 
-  Widget _metaPill(BuildContext context, IconData icon, String text) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 13, color: theme.colorScheme.onSurfaceVariant),
-          const SizedBox(width: 4),
-          Text(
-            text,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-              fontWeight: FontWeight.w500,
-            ),
+              if (fine.barcode != null && fine.barcode!.isNotEmpty) ...[
+                const SizedBox(width: 6),
+                LibraryMetaPill(Icons.qr_code_2_rounded, fine.barcode!),
+              ],
+              const Spacer(),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    fine.outstanding > 0
+                        ? 'Due: ${fine.outstanding.toRupees()}'
+                        : fine.status == 'waived'
+                        ? 'Waived'
+                        : 'Paid',
+                    style: TextStyle(
+                      color: fine.outstanding > 0
+                          ? theme.colorScheme.error
+                          : Colors.green.shade700,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                  ),
+                  if (fine.outstanding > 0 && fine.paid > 0)
+                    Text(
+                      'Total ${fine.amount.toRupees()}',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                ],
+              ),
+            ],
           ),
         ],
       ),

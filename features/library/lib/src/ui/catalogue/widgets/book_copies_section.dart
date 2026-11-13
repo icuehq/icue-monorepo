@@ -30,7 +30,7 @@ class _BookCopiesSectionState extends State<BookCopiesSection> {
 
   Future<void> _load() async {
     try {
-      final copies = await context.read<LibraryProvider>().copiesOf(
+      final copies = await context.read<LibraryProvider>().service.copiesOf(
         widget.book.id,
       );
       if (mounted) setState(() => _copies = copies);

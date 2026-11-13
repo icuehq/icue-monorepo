@@ -63,8 +63,8 @@ class _IssueBooksPageState extends State<IssueBooksPage> {
       _busy = true;
     });
     try {
-      final member = await libraryProvider.member(person.personErpId);
-      final fines = await libraryProvider.openFines(person.personErpId);
+      final member = await libraryProvider.service.member(person.personErpId);
+      final fines = await libraryProvider.service.openFines(person.personErpId);
       if (mounted) {
         setState(() {
           _member = member;
@@ -96,7 +96,7 @@ class _IssueBooksPageState extends State<IssueBooksPage> {
     final libraryProvider = context.read<LibraryProvider>();
     setState(() => _busy = true);
     try {
-      final copy = await libraryProvider.findCopy(code);
+      final copy = await libraryProvider.service.findCopy(code);
       if (!mounted) return;
       if (copy == null) {
         _notify('No copy found with barcode "$code"');
@@ -118,7 +118,9 @@ class _IssueBooksPageState extends State<IssueBooksPage> {
       _notify('Book "${copy.barcode}" is already scanned');
       return;
     }
-    final book = await context.read<LibraryProvider>().book(copy.catalogueId);
+    final book = await context.read<LibraryProvider>().service.book(
+      copy.catalogueId,
+    );
     if (!mounted) return;
     setState(() {
       _queue.add(

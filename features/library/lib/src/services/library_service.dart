@@ -306,8 +306,8 @@ class LibraryService {
           for (final document in snapshot.docs)
             LibraryFine.fromMap(document.id, document.data()),
         ]..sort(
-          (a, b) => (b.createdAt ?? DateTime(0)).compareTo(
-            a.createdAt ?? DateTime(0),
+          (first, second) => (second.createdAt ?? DateTime(0)).compareTo(
+            first.createdAt ?? DateTime(0),
           ),
         );
     return fines;
@@ -357,18 +357,6 @@ class LibraryService {
   }
 
   // --- writes: masters are plain client CRUD (`firestore.rules`); books and copy status are callables, same requestId on user retry ---
-
-  Future<void> saveLibrary(Map<String, Object?> data) =>
-      saveMasterDocument('libraries', data);
-
-  Future<void> setLibraryActive(String id, {required bool active}) =>
-      setMasterActive('libraries', id, active: active);
-
-  Future<void> saveCategory(Map<String, Object?> data) =>
-      saveMasterDocument('libraryCategories', data);
-
-  Future<void> setCategoryActive(String id, {required bool active}) =>
-      setMasterActive('libraryCategories', id, active: active);
 
   /// Returns the new copies' barcodes.
   Future<List<String>> createBook(

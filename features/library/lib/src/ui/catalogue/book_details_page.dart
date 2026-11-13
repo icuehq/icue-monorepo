@@ -29,7 +29,9 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
 
   Future<void> _load() async {
     unawaited(context.read<LibraryProvider>().loadStandards());
-    final book = await context.read<LibraryProvider>().book(widget.bookId);
+    final book = await context.read<LibraryProvider>().service.book(
+      widget.bookId,
+    );
     if (!mounted) return;
     setState(() {
       _book = book;

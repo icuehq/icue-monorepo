@@ -76,7 +76,7 @@ class _LibraryScanListenerState extends State<LibraryScanListener> {
     _handling = true;
     try {
       final libraryProvider = context.read<LibraryProvider>();
-      final copy = await libraryProvider.findCopy(code);
+      final copy = await libraryProvider.service.findCopy(code);
       if (!mounted) return;
       if (copy == null) {
         await IcueDialog.show<void>(
@@ -92,8 +92,8 @@ class _LibraryScanListenerState extends State<LibraryScanListener> {
         );
         return;
       }
-      final loan = await libraryProvider.activeLoanOf(copy.id);
-      final book = await libraryProvider.book(copy.catalogueId);
+      final loan = await libraryProvider.service.activeLoanOf(copy.id);
+      final book = await libraryProvider.service.book(copy.catalogueId);
       if (!mounted) return;
       final proceed = await BookScanDialog.show(
         context,

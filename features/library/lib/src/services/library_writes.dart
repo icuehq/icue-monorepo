@@ -2,6 +2,20 @@ import 'package:icue_firebase/icue_firebase.dart';
 import 'package:injectable/injectable.dart';
 import 'package:school_library/src/services/write_support.dart';
 
+/// Starter borrowing rule for everyone in a library; add `libraryId`.
+const defaultPolicy = <String, Object?>{
+  'memberType': 'all',
+  'name': 'Default policy',
+  'maxBooks': 3,
+  'loanDays': 14,
+  'maxRenewals': 1,
+  'fineType': 'per_day',
+  'fineAmount': 1,
+  'graceDays': 1,
+  'maxFine': 100,
+  'categoryIds': <String>[],
+};
+
 /// Library writes that need no Cloud Function: title create / edit / status, copy edit / move,
 /// manual member block and borrowing policy create / edit / status. `firestore.rules` checks the shape; each write stamps `lastWrite` and the audit
 /// triggers in `firebase/functions/src/library/audit.ts` log it. No retry idempotency.

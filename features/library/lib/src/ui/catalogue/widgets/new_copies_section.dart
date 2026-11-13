@@ -44,7 +44,7 @@ class _NewCopiesSectionState extends State<NewCopiesSection> {
   Future<void> _checkTaken(String value) async {
     final code = value.trim();
     if (code.isEmpty || _taken.contains(code)) return;
-    final copy = await context.read<LibraryProvider>().findCopy(code);
+    final copy = await context.read<LibraryProvider>().service.findCopy(code);
     if (copy != null && mounted) setState(() => _taken.add(code));
   }
 

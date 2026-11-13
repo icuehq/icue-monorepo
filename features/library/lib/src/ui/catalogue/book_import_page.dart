@@ -73,7 +73,7 @@ class _BookImportPageState extends State<BookImportPage> {
       );
       // Every check runs now, before anything is written.
       plan = plan.withTakenBarcodes(
-        await libraryProvider.existingBarcodes([
+        await libraryProvider.service.existingBarcodes([
           for (final book in plan.books)
             for (final copy in book.copies) copy.barcode,
         ]),
