@@ -4,7 +4,7 @@ import 'package:icue_ui/icue_ui.dart';
 /// Client-side stock writes: Receive Stock (`inventory-receipt-confirm`), receiving goods against a purchase order (`inventory-purchaseOrder-receive`), issue request submit and approve/reject, issuing stock (`inventory-issue-create`) confirming an issue's receipt returns against an issue requesting, stock adjustments and unavailable stock.
 ///
 /// One Firestore transaction writes the receipt, its balances, the ledger rows
-/// and the GRN counter. Business checks live here and in `firestore.rules`
+/// and the GRN counter (Receive Stock writes only the balances). Business checks live here and in `firestore.rules`
 /// (`inventory.stock.operate`). Receipts, issues, returns, adjustments and
 /// requests stamp `lastWrite`, which the audit triggers log. There is no
 /// low-stock notification and no retry idempotency.
@@ -32,8 +32,6 @@ class StockWrites {
     'excess',
     'other',
   ];
-
-  static const _sources = ['opening', 'return'];
 
   Future<Map<String, dynamic>> run(String name, Map<String, Object?> data) =>
       switch (name) {
@@ -325,68 +323,41 @@ class StockWrites {
     return {'id': requestRef.id, 'number': number};
   }
 
+  /// Receive Stock: adds each line straight to its store balance (no receipt, ledger row or number).
   Future<Map<String, dynamic>> _confirmReceipt(
     Map<String, Object?> data,
   ) async {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-    final now = DateTime.now().toIndianTime();
-    final today = now.toApiDate();
-    final financialYear = _financialYear;
-
+    final today = todayIST();
     final storeId = data['storeId']! as String;
-    final source = data['source']! as String;
-    if (!_sources.contains(source)) _fail('Invalid receipt source');
     final lines = [
       for (final line in (data['lineItems']! as List))
         Map<String, dynamic>.from(line as Map),
     ];
     if (lines.isEmpty) _fail('Add at least one item');
-    // Batches of one item are separate balances, so the batch is part of the key.
-    final lineKeys = {
-      for (final line in lines)
-        '${line['itemId']}__${line['variantId'] ?? '-'}__'
-            '${_blankToNull(line['batchNumber']) ?? '-'}',
-    };
-    if (lineKeys.length != lines.length) {
-      _fail('Each item, variant and batch may appear once');
-    }
-
     final storeRef = await _doc('inventoryStores/$storeId');
-    final counterRef = await _doc('counters/GRN_$financialYear');
-    final receiptRef = (await branchCollection('inventoryReceipts')).doc();
-    final movements = await branchCollection('inventoryMovements');
 
-    final number = await FirebaseFirestore.instance.runTransaction((
-      transaction,
-    ) async {
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
       // All reads first.
       final store = (await transaction.get(storeRef)).data();
       if (store == null) _fail('Store not found');
       if (store['status'] != 'active') _fail('Store is inactive');
 
-      final next =
-          ((await transaction.get(counterRef)).data()?['next'] as num? ?? 0)
-              .toInt() +
-          1;
-
       final prepared = <_ReceiptLine>[];
+      final balanceIds = <String>{};
       for (final line in lines) {
         final itemId = line['itemId']! as String;
         final variantId = line['variantId'] as String?;
         final item = await _stockItem(transaction, itemId, variantId);
-        final name = item['name'];
-
-        final accepted = (line['quantityAccepted'] as num? ?? 0).toDouble();
-        final rejected = (line['quantityRejected'] as num? ?? 0).toDouble();
-        if (accepted < 0 || rejected < 0 || accepted + rejected <= 0) {
-          _fail('Each line needs a quantity');
-        }
+        final quantity = (line['quantityAccepted'] as num? ?? 0).toDouble();
+        if (quantity <= 0) _fail('Each line needs a quantity');
 
         String? batchNumber;
         String? expiryDate;
         if (item['tracking'] == 'batch') {
           batchNumber = _blankToNull(line['batchNumber']);
-          if (batchNumber == null) _fail('$name needs a batch number');
+          if (batchNumber == null) {
+            _fail('${item['name']} needs a batch number');
+          }
           expiryDate = _blankToNull(line['expiryDate']);
           if (expiryDate != null && expiryDate.compareTo(today) < 0) {
             _fail('Expired batches cannot be received');
@@ -399,6 +370,9 @@ class StockWrites {
           variantId ?? '-',
           batchNumber == null ? '-' : Uri.encodeComponent(batchNumber),
         ].join('__');
+        if (!balanceIds.add(balanceId)) {
+          _fail('Each item, variant and batch may appear once');
+        }
         final balanceRef = await _doc('inventoryBalances/$balanceId');
         prepared.add(
           _ReceiptLine(
@@ -406,37 +380,27 @@ class StockWrites {
             variantId: variantId,
             batchNumber: batchNumber,
             expiryDate: expiryDate,
-            accepted: accepted,
-            rejected: rejected,
+            accepted: quantity,
+            rejected: 0,
             unitCost:
                 (line['unitCost'] as num?)?.toDouble() ??
                 (item['defaultPrice'] as num?)?.toDouble() ??
                 0,
-            condition: _blankToNull(line['condition']),
+            condition: null,
             reorderLevel: (item['reorderLevel'] as num?)?.toDouble(),
             balanceId: balanceId,
             balanceRef: balanceRef,
-            balance: accepted > 0
-                ? (await transaction.get(balanceRef)).data()
-                : null,
+            balance: (await transaction.get(balanceRef)).data(),
           ),
         );
       }
 
       // Then writes.
-      final grnNumber = 'GRN/$financialYear/${next.toString().padLeft(6, '0')}';
-      transaction.set(counterRef, {
-        'next': next,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-      var sequence = 0;
       for (final line in prepared) {
-        if (line.accepted <= 0) continue;
-        _addStock(
+        _setBalance(
           transaction,
-          movements,
-          reference: line.balanceRef,
-          balance: line.balance,
+          line.balanceRef,
+          line.balance,
           storeId: storeId,
           itemId: line.itemId,
           variantId: line.variantId,
@@ -445,51 +409,10 @@ class StockWrites {
           quantity: line.accepted,
           unitCost: line.unitCost,
           reorderLevel: line.reorderLevel,
-          type: 'receive',
-          referenceType: 'receipt',
-          referenceId: receiptRef.id,
-          sequence: sequence++,
-          ledger: {
-            'transactionDate': dayTimestamp(today),
-            'financialYear': financialYear,
-            'createdBy': uid,
-          },
         );
       }
-      transaction.set(receiptRef, {
-        'number': grnNumber,
-        'storeId': storeId,
-        'source': source,
-        'reference': _blankToNull(data['reference']),
-        'remarks': _blankToNull(data['remarks']),
-        'lineItems': [
-          for (final line in prepared)
-            {
-              'itemId': line.itemId,
-              'variantId': line.variantId,
-              'batchNumber': line.batchNumber,
-              'manufacturingDate': null,
-              'expiryDate': dayTimestampOrNull(line.expiryDate),
-              'unitCost': line.unitCost,
-              'condition': line.condition,
-              'quantityReceived': line.accepted + line.rejected,
-              'quantityAccepted': line.accepted,
-              'quantityRejected': line.rejected,
-            },
-        ],
-        'itemIds': {for (final line in prepared) line.itemId}.toList(),
-        'attachments': <Object?>[],
-        'status': 'confirmed',
-        'transactionDate': dayTimestamp(today),
-        'financialYear': financialYear,
-        'createdAt': FieldValue.serverTimestamp(),
-        'createdBy': uid,
-        'lastWrite': writeStamp('inventoryReceipt.create'),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-      return grnNumber;
     });
-    return {'id': receiptRef.id, 'number': number};
+    return {'id': storeId};
   }
 
   /// One delivery against a PO. Accepted quantity enters the store at the PO unit price;
@@ -1109,6 +1032,53 @@ class StockWrites {
     required Map<String, Object?> ledger,
     Object? manufacturingDate,
   }) {
+    _setBalance(
+      transaction,
+      reference,
+      balance,
+      storeId: storeId,
+      itemId: itemId,
+      variantId: variantId,
+      batchNumber: batchNumber,
+      expiryDate: expiryDate,
+      quantity: quantity,
+      unitCost: unitCost,
+      reorderLevel: reorderLevel,
+      manufacturingDate: manufacturingDate,
+    );
+    transaction.set(movements.doc(), {
+      'type': type,
+      'balanceId': reference.id,
+      'itemId': itemId,
+      'variantId': variantId,
+      'storeId': storeId,
+      'batchNumber': batchNumber,
+      'quantity': quantity,
+      'bucket': 'available',
+      'referenceType': referenceType,
+      'referenceId': referenceId,
+      'unitCost': unitCost,
+      'seq': sequence,
+      'createdAt': FieldValue.serverTimestamp(),
+      ...ledger,
+    });
+  }
+
+  /// Adds [quantity] to a balance (created if missing) at the weighted-average cost.
+  void _setBalance(
+    Transaction transaction,
+    DocumentReference<Map<String, dynamic>> reference,
+    Map<String, dynamic>? balance, {
+    required String storeId,
+    required String itemId,
+    required String? variantId,
+    required String? batchNumber,
+    required String? expiryDate,
+    required double quantity,
+    required double unitCost,
+    required double? reorderLevel,
+    Object? manufacturingDate,
+  }) {
     final have = (balance?['quantityAvailable'] as num? ?? 0).toDouble();
     final cost = (balance?['unitCost'] as num? ?? 0).toDouble();
     final available = have + quantity;
@@ -1142,22 +1112,6 @@ class StockWrites {
       'createdBy':
           balance?['createdBy'] ?? FirebaseAuth.instance.currentUser!.uid,
       'updatedAt': FieldValue.serverTimestamp(),
-    });
-    transaction.set(movements.doc(), {
-      'type': type,
-      'balanceId': reference.id,
-      'itemId': itemId,
-      'variantId': variantId,
-      'storeId': storeId,
-      'batchNumber': batchNumber,
-      'quantity': quantity,
-      'bucket': 'available',
-      'referenceType': referenceType,
-      'referenceId': referenceId,
-      'unitCost': unitCost,
-      'seq': sequence,
-      'createdAt': FieldValue.serverTimestamp(),
-      ...ledger,
     });
   }
 

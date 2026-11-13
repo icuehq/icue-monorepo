@@ -9,6 +9,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  api_client:
   go_router: ^18.1.1
   icue_firebase:
   icue_ui:
