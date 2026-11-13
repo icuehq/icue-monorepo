@@ -4,6 +4,7 @@ import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/procurement/vendors/vendor_actions.dart';
 import 'package:inventory/src/ui/procurement/vendors/widgets/vendor_card.dart';
+import 'package:inventory/src/ui/procurement/vendors/widgets/vendors_table.dart';
 import 'package:provider/provider.dart';
 
 /// Vendors (FRS 10.14). Directory of suppliers with category mapping and contact details.
@@ -128,192 +129,238 @@ class _VendorsPageState extends State<VendorsPage> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Vendors')),
-      floatingActionButton: canEdit
+      floatingActionButton: canEdit && !context.isWide
           ? FloatingActionButton.extended(
               onPressed: () => _open(InventoryRoutes.inventoryVendorForm),
               icon: const Icon(Icons.add_rounded),
               label: const Text('New vendor'),
             )
           : null,
-      body: IcueCenteredBody(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              child: TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Search by name, contact, phone or GST…',
-                  prefixIcon: const Icon(Icons.search_rounded),
-                  suffixIcon: _searchController.text.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear_rounded),
-                          onPressed: () {
-                            _searchController.clear();
-                            setState(() {});
-                          },
-                        )
-                      : null,
-                  isDense: true,
-                  filled: true,
-                  fillColor: theme.colorScheme.surfaceContainerHighest
-                      .withValues(alpha: 0.35),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide.none,
-                  ),
+      body: context.isWide
+          ? Padding(
+              padding: const EdgeInsets.all(16),
+              child: VendorsTable(
+                vendors: allVendors,
+                categories: inventoryProvider.categories,
+                loading:
+                    !_loaded ||
+                    (procurementProvider.isLoading && allVendors.isEmpty),
+                errorMessage: failure,
+                onOpen: (vendor) => _open(
+                  '${InventoryRoutes.inventoryVendorDetail}?id=${vendor.id}',
                 ),
-                onChanged: (_) => setState(() {}),
+                onReload: _load,
+                onCreate: canEdit
+                    ? () => _open(InventoryRoutes.inventoryVendorForm)
+                    : null,
+                onEdit: canEdit
+                    ? (vendor) => _open(
+                        '${InventoryRoutes.inventoryVendorForm}?id=${vendor.id}',
+                      )
+                    : null,
+                onToggleActive: canEdit
+                    ? (vendor) => toggleVendorActive(context, vendor)
+                    : null,
               ),
-            ),
-            SizedBox(
-              height: 40,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+            )
+          : IcueCenteredBody(
+              child: Column(
                 children: [
-                  for (final (key, label, count) in [
-                    ('all', 'All', allVendors.length),
-                    (
-                      'active',
-                      'Active',
-                      allVendors.where((vendor) => vendor.active).length,
-                    ),
-                    (
-                      'inactive',
-                      'Inactive',
-                      allVendors.where((vendor) => !vendor.active).length,
-                    ),
-                  ])
-                    Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: ChoiceChip(
-                        label: Text('$label ($count)'),
-                        selected: _selectedFilter == key,
-                        onSelected: (_) =>
-                            setState(() => _selectedFilter = key),
-                      ),
-                    ),
-                  if (usedCategories.isNotEmpty) ...[
-                    const VerticalDivider(width: 16, indent: 8, endIndent: 8),
-                    for (final category in usedCategories)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: FilterChip(
-                          label: Text(category.name),
-                          selected: _categoryId == category.id,
-                          showCheckmark: false,
-                          onSelected: (selected) => setState(
-                            () => _categoryId = selected ? category.id : null,
-                          ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        hintText: 'Search by name, contact, phone or GST…',
+                        prefixIcon: const Icon(Icons.search_rounded),
+                        suffixIcon: _searchController.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear_rounded),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  setState(() {});
+                                },
+                              )
+                            : null,
+                        isDense: true,
+                        filled: true,
+                        fillColor: theme.colorScheme.surfaceContainerHighest
+                            .withValues(alpha: 0.35),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide.none,
                         ),
                       ),
-                  ],
+                      onChanged: (_) => setState(() {}),
+                    ),
+                  ),
+                  SizedBox(
+                    height: 40,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      children: [
+                        for (final (key, label, count) in [
+                          ('all', 'All', allVendors.length),
+                          (
+                            'active',
+                            'Active',
+                            allVendors.where((vendor) => vendor.active).length,
+                          ),
+                          (
+                            'inactive',
+                            'Inactive',
+                            allVendors.where((vendor) => !vendor.active).length,
+                          ),
+                        ])
+                          Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: ChoiceChip(
+                              label: Text('$label ($count)'),
+                              selected: _selectedFilter == key,
+                              onSelected: (_) =>
+                                  setState(() => _selectedFilter = key),
+                            ),
+                          ),
+                        if (usedCategories.isNotEmpty) ...[
+                          const VerticalDivider(
+                            width: 16,
+                            indent: 8,
+                            endIndent: 8,
+                          ),
+                          for (final category in usedCategories)
+                            Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: FilterChip(
+                                label: Text(category.name),
+                                selected: _categoryId == category.id,
+                                showCheckmark: false,
+                                onSelected: (selected) => setState(
+                                  () => _categoryId = selected
+                                      ? category.id
+                                      : null,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Divider(height: 1),
+                  Expanded(
+                    child: RefreshIndicator(
+                      onRefresh: _load,
+                      child:
+                          !_loaded ||
+                              (procurementProvider.isLoading &&
+                                  allVendors.isEmpty)
+                          ? const IcueSkeletonCardList()
+                          : filteredVendors.isEmpty
+                          ? empty()
+                          : IcueAdaptiveList<InventoryVendor>(
+                              items: filteredVendors,
+                              onTap: (vendor) => _open(
+                                '${InventoryRoutes.inventoryVendorDetail}?id=${vendor.id}',
+                              ),
+                              columns: [
+                                IcueAdaptiveColumn(
+                                  label: 'Vendor',
+                                  flex: 2,
+                                  cell: (context, vendor) => Row(
+                                    children: [
+                                      if (!vendor.active)
+                                        const IcueInactiveBadge(),
+                                      Flexible(child: Text(vendor.name)),
+                                    ],
+                                  ),
+                                ),
+                                IcueAdaptiveColumn.text(
+                                  'Contact',
+                                  (vendor) => vendor.contactPerson ?? '—',
+                                ),
+                                IcueAdaptiveColumn.text(
+                                  'Phone',
+                                  (vendor) => vendor.phone ?? '—',
+                                ),
+                                IcueAdaptiveColumn.text(
+                                  'Email',
+                                  (vendor) => vendor.email ?? '—',
+                                  flex: 2,
+                                ),
+                                IcueAdaptiveColumn.text(
+                                  'Categories',
+                                  (vendor) => vendor.categoryIds
+                                      .map(categoryName)
+                                      .join(', '),
+                                  flex: 2,
+                                ),
+                                IcueAdaptiveColumn(
+                                  label: '',
+                                  width: 96,
+                                  cell: (context, vendor) => canEdit
+                                      ? Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            IconButton(
+                                              tooltip: 'Edit',
+                                              icon: const Icon(
+                                                Icons.edit_outlined,
+                                              ),
+                                              onPressed: () => _open(
+                                                '${InventoryRoutes.inventoryVendorForm}?id=${vendor.id}',
+                                              ),
+                                            ),
+                                            IconButton(
+                                              tooltip: vendor.active
+                                                  ? 'Deactivate'
+                                                  : 'Activate',
+                                              icon: Icon(
+                                                vendor.active
+                                                    ? Icons.toggle_on_rounded
+                                                    : Icons.toggle_off_rounded,
+                                              ),
+                                              onPressed: () =>
+                                                  toggleVendorActive(
+                                                    context,
+                                                    vendor,
+                                                  ),
+                                            ),
+                                          ],
+                                        )
+                                      : const SizedBox.shrink(),
+                                ),
+                              ],
+                              cardBuilder: (context, vendor) => Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  6,
+                                  16,
+                                  6,
+                                ),
+                                child: VendorCard(
+                                  vendor: vendor,
+                                  categoryNames: [
+                                    for (final id in vendor.categoryIds)
+                                      categoryName(id),
+                                  ],
+                                  canEdit: canEdit,
+                                  onTap: () => _open(
+                                    '${InventoryRoutes.inventoryVendorDetail}?id=${vendor.id}',
+                                  ),
+                                  onEdit: () => _open(
+                                    '${InventoryRoutes.inventoryVendorForm}?id=${vendor.id}',
+                                  ),
+                                  onToggleActive: () =>
+                                      toggleVendorActive(context, vendor),
+                                ),
+                              ),
+                            ),
+                    ),
+                  ),
                 ],
               ),
             ),
-            const SizedBox(height: 8),
-            const Divider(height: 1),
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: _load,
-                child:
-                    !_loaded ||
-                        (procurementProvider.isLoading && allVendors.isEmpty)
-                    ? const IcueSkeletonCardList()
-                    : filteredVendors.isEmpty
-                    ? empty()
-                    : IcueAdaptiveList<InventoryVendor>(
-                        items: filteredVendors,
-                        onTap: (vendor) => _open(
-                          '${InventoryRoutes.inventoryVendorDetail}?id=${vendor.id}',
-                        ),
-                        columns: [
-                          IcueAdaptiveColumn(
-                            label: 'Vendor',
-                            flex: 2,
-                            cell: (context, vendor) => Row(
-                              children: [
-                                if (!vendor.active) const IcueInactiveBadge(),
-                                Flexible(child: Text(vendor.name)),
-                              ],
-                            ),
-                          ),
-                          IcueAdaptiveColumn.text(
-                            'Contact',
-                            (vendor) => vendor.contactPerson ?? '—',
-                          ),
-                          IcueAdaptiveColumn.text(
-                            'Phone',
-                            (vendor) => vendor.phone ?? '—',
-                          ),
-                          IcueAdaptiveColumn.text(
-                            'Email',
-                            (vendor) => vendor.email ?? '—',
-                            flex: 2,
-                          ),
-                          IcueAdaptiveColumn.text(
-                            'Categories',
-                            (vendor) =>
-                                vendor.categoryIds.map(categoryName).join(', '),
-                            flex: 2,
-                          ),
-                          IcueAdaptiveColumn(
-                            label: '',
-                            width: 96,
-                            cell: (context, vendor) => canEdit
-                                ? Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      IconButton(
-                                        tooltip: 'Edit',
-                                        icon: const Icon(Icons.edit_outlined),
-                                        onPressed: () => _open(
-                                          '${InventoryRoutes.inventoryVendorForm}?id=${vendor.id}',
-                                        ),
-                                      ),
-                                      IconButton(
-                                        tooltip: vendor.active
-                                            ? 'Deactivate'
-                                            : 'Activate',
-                                        icon: Icon(
-                                          vendor.active
-                                              ? Icons.toggle_on_rounded
-                                              : Icons.toggle_off_rounded,
-                                        ),
-                                        onPressed: () =>
-                                            toggleVendorActive(context, vendor),
-                                      ),
-                                    ],
-                                  )
-                                : const SizedBox.shrink(),
-                          ),
-                        ],
-                        cardBuilder: (context, vendor) => Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
-                          child: VendorCard(
-                            vendor: vendor,
-                            categoryNames: [
-                              for (final id in vendor.categoryIds)
-                                categoryName(id),
-                            ],
-                            canEdit: canEdit,
-                            onTap: () => _open(
-                              '${InventoryRoutes.inventoryVendorDetail}?id=${vendor.id}',
-                            ),
-                            onEdit: () => _open(
-                              '${InventoryRoutes.inventoryVendorForm}?id=${vendor.id}',
-                            ),
-                            onToggleActive: () =>
-                                toggleVendorActive(context, vendor),
-                          ),
-                        ),
-                      ),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

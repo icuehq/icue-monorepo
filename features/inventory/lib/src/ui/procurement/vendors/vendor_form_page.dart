@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
@@ -37,6 +38,8 @@ class _VendorFormPageState extends State<VendorFormPage> {
   late final Set<String> _categories = {...?_vendor?.categoryIds};
   var _dirty = false;
   var _busy = false;
+  var _submitted = false;
+  var _nextSample = 0;
 
   bool get _editing => _vendor != null;
 
@@ -113,6 +116,7 @@ class _VendorFormPageState extends State<VendorFormPage> {
       false;
 
   Future<void> _save() async {
+    setState(() => _submitted = true);
     if (!_form.currentState!.validate()) return;
     final procurementProvider = context.read<ProcurementProvider>();
     final navigator = Navigator.of(context);
@@ -149,26 +153,58 @@ class _VendorFormPageState extends State<VendorFormPage> {
     navigator.pop();
   }
 
+  /// Fills the form with the next sample vendor (debug builds only).
+  void _fillSample() {
+    final sample = _sampleVendors[_nextSample++ % _sampleVendors.length];
+    final categories = context.read<InventoryProvider>().topCategories;
+    setState(() {
+      _dirty = true;
+      _name.text = sample.name;
+      _contact.text = sample.contact;
+      _phone.text = sample.phone;
+      _email.text = sample.email;
+      _website.text = sample.website;
+      _address.text = sample.address;
+      _tax.text = sample.tax;
+      _remarks.text = sample.remarks;
+      _categories
+        ..clear()
+        ..addAll(categories.take(2 + _nextSample % 2).map((c) => c.id));
+    });
+  }
+
+  /// Two fields side by side when there is room, stacked on phones.
+  Widget _pair(Widget first, Widget second) => LayoutBuilder(
+    builder: (context, constraints) {
+      if (constraints.maxWidth < 520) {
+        return Column(children: [first, const SizedBox(height: 14), second]);
+      }
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: first),
+          const SizedBox(width: 12),
+          Expanded(child: second),
+        ],
+      );
+    },
+  );
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final categories = context.watch<InventoryProvider>().topCategories;
+    final inventoryProvider = context.watch<InventoryProvider>();
+    final categories = inventoryProvider.topCategories;
     if (widget.vendorId != null && !_editing) {
       return Scaffold(
         appBar: AppBar(title: const Text('Edit vendor')),
-        body: const Center(child: Text('Vendor not found')),
+        body: const IcueEmptyState(
+          icon: Icons.store_mall_directory_outlined,
+          title: 'Vendor not found',
+          message: 'It may have been removed.',
+        ),
       );
     }
-
-    Widget section(String title) => Padding(
-      padding: const EdgeInsets.only(top: 20, bottom: 10),
-      child: Text(
-        title,
-        style: theme.textTheme.titleSmall?.copyWith(
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
 
     return PopScope(
       canPop: !_dirty || _busy,
@@ -178,136 +214,221 @@ class _VendorFormPageState extends State<VendorFormPage> {
         if (await _confirmDiscard()) navigator.pop();
       },
       child: Scaffold(
-        appBar: AppBar(title: Text(_editing ? 'Edit vendor' : 'New vendor')),
-        body: IcueCenteredBody(
-          maxWidth: IcueBreakpoints.formMaxWidth,
-          child: Form(
-            key: _form,
-            onChanged: () {
-              if (!_dirty) setState(() => _dirty = true);
-            },
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                IcueTextField(
-                  controller: _name,
-                  maxLength: 120,
-                  textCapitalization: TextCapitalization.words,
-                  validator: requiredText,
-                  label: 'Vendor name *',
-                  hintText: 'e.g. Apex Office Supplies Pvt Ltd',
-                  icon: Icons.business_rounded,
+        appBar: AppBar(
+          title: Text(_editing ? 'Edit vendor' : 'New vendor'),
+          actions: [
+            if (kDebugMode && !_editing)
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: FilledButton.tonalIcon(
+                  onPressed: _busy ? null : _fillSample,
+                  icon: const Icon(Icons.auto_fix_high_rounded, size: 18),
+                  label: const Text('Fill sample'),
+                  style: FilledButton.styleFrom(minimumSize: const Size(0, 40)),
                 ),
-                section('Contact'),
-                IcueTextField(
-                  controller: _contact,
-                  maxLength: 120,
-                  textCapitalization: TextCapitalization.words,
-                  validator: (value) => _maxLength(value, 120),
-                  label: 'Contact person',
-                  icon: Icons.person_outline_rounded,
-                ),
-                const SizedBox(height: 4),
-                IcueTextField(
-                  controller: _phone,
-                  keyboardType: TextInputType.phone,
-                  validator: (value) => _optional(
-                    value,
-                    30,
-                    pattern: _phonePattern,
-                    message: 'Enter a valid phone number',
+              ),
+          ],
+        ),
+        body: Form(
+          key: _form,
+          autovalidateMode: _submitted
+              ? AutovalidateMode.onUserInteraction
+              : AutovalidateMode.disabled,
+          onChanged: () {
+            if (!_dirty) setState(() => _dirty = true);
+          },
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final twoColumns = constraints.maxWidth >= 900;
+              final vendorCard = IcueFormSectionCard(
+                title: 'Vendor',
+                icon: Icons.business_rounded,
+                children: [
+                  IcueTextField(
+                    controller: _name,
+                    maxLength: 120,
+                    textCapitalization: TextCapitalization.words,
+                    textInputAction: TextInputAction.next,
+                    validator: requiredText,
+                    label: 'Vendor name *',
+                    hintText: 'e.g. Apex Office Supplies Pvt Ltd',
                   ),
-                  label: 'Phone',
-                  hintText: 'e.g. +91 98765 43210',
-                  icon: Icons.phone_outlined,
-                ),
-                const SizedBox(height: 12),
-                IcueTextField(
-                  controller: _email,
-                  keyboardType: TextInputType.emailAddress,
-                  validator: (value) => _optional(
-                    value,
-                    200,
-                    pattern: _emailPattern,
-                    message: 'Enter a valid email address',
-                  ),
-                  label: 'Email',
-                  hintText: 'sales@apexsupplies.com',
-                  icon: Icons.email_outlined,
-                ),
-                const SizedBox(height: 12),
-                IcueTextField(
-                  controller: _website,
-                  keyboardType: TextInputType.url,
-                  validator: _validateWebsite,
-                  label: 'Website',
-                  hintText: 'www.apexsupplies.com',
-                  icon: Icons.language_rounded,
-                ),
-                const SizedBox(height: 12),
-                IcueTextField(
-                  controller: _address,
-                  maxLines: 2,
-                  maxLength: 500,
-                  label: 'Address',
-                  icon: Icons.location_on_outlined,
-                ),
-                section('Tax'),
-                IcueTextField(
-                  controller: _tax,
-                  maxLength: 40,
-                  textCapitalization: TextCapitalization.characters,
-                  label: 'GST / Tax ID',
-                  hintText: 'e.g. 29AAAAA0000A1Z5',
-                  icon: Icons.receipt_long_outlined,
-                ),
-                section('Supplied categories'),
-                if (categories.isEmpty)
-                  Text(
-                    'No categories yet. Add item categories first to map vendors to them.',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                  _pair(
+                    IcueTextField(
+                      controller: _tax,
+                      maxLength: 40,
+                      textCapitalization: TextCapitalization.characters,
+                      textInputAction: TextInputAction.next,
+                      label: 'GST / Tax ID',
+                      hintText: 'e.g. 29AAAAA0000A1Z5',
                     ),
-                  )
-                else
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 6,
-                    children: [
-                      for (final category in categories)
-                        FilterChip(
-                          label: Text(category.name),
-                          selected: _categories.contains(category.id),
-                          onSelected: (selected) => setState(() {
-                            _dirty = true;
-                            selected
-                                ? _categories.add(category.id)
-                                : _categories.remove(category.id);
-                          }),
-                        ),
-                    ],
+                    IcueTextField(
+                      controller: _contact,
+                      maxLength: 120,
+                      textCapitalization: TextCapitalization.words,
+                      textInputAction: TextInputAction.next,
+                      validator: (value) => _maxLength(value, 120),
+                      label: 'Contact person',
+                    ),
                   ),
-                section('Notes'),
-                IcueTextField(
-                  controller: _remarks,
-                  maxLines: 3,
-                  maxLength: 500,
-                  label: 'Remarks (optional)',
-                  icon: Icons.notes_rounded,
-                ),
-              ],
-            ),
+                ],
+              );
+              final contactCard = IcueFormSectionCard(
+                title: 'Contact details',
+                icon: Icons.contact_phone_outlined,
+                children: [
+                  _pair(
+                    IcueTextField(
+                      controller: _phone,
+                      keyboardType: TextInputType.phone,
+                      textInputAction: TextInputAction.next,
+                      validator: (value) => _optional(
+                        value,
+                        30,
+                        pattern: _phonePattern,
+                        message: 'Enter a valid phone number',
+                      ),
+                      label: 'Phone',
+                      hintText: 'e.g. +91 98765 43210',
+                      icon: Icons.phone_outlined,
+                    ),
+                    IcueTextField(
+                      controller: _email,
+                      keyboardType: TextInputType.emailAddress,
+                      textInputAction: TextInputAction.next,
+                      validator: (value) => _optional(
+                        value,
+                        200,
+                        pattern: _emailPattern,
+                        message: 'Enter a valid email address',
+                      ),
+                      label: 'Email',
+                      hintText: 'sales@apexsupplies.com',
+                      icon: Icons.email_outlined,
+                    ),
+                  ),
+                  IcueTextField(
+                    controller: _website,
+                    keyboardType: TextInputType.url,
+                    textInputAction: TextInputAction.next,
+                    validator: _validateWebsite,
+                    label: 'Website',
+                    hintText: 'www.apexsupplies.com',
+                    icon: Icons.language_rounded,
+                  ),
+                  IcueTextField(
+                    controller: _address,
+                    maxLines: 2,
+                    maxLength: 500,
+                    label: 'Address',
+                    icon: Icons.location_on_outlined,
+                  ),
+                ],
+              );
+              final categoriesCard = IcueFormSectionCard(
+                title: 'Supplied categories',
+                icon: Icons.category_outlined,
+                children: [
+                  if (inventoryProvider.isLoading && categories.isEmpty)
+                    const Center(child: CircularProgressIndicator())
+                  else if (categories.isEmpty)
+                    Text(
+                      'No categories yet. Add item categories first to map vendors to them.',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    )
+                  else
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      children: [
+                        for (final category in categories)
+                          FilterChip(
+                            label: Text(category.name),
+                            selected: _categories.contains(category.id),
+                            onSelected: (selected) => setState(() {
+                              _dirty = true;
+                              selected
+                                  ? _categories.add(category.id)
+                                  : _categories.remove(category.id);
+                            }),
+                          ),
+                      ],
+                    ),
+                ],
+              );
+              final notesCard = IcueFormSectionCard(
+                title: 'Notes',
+                icon: Icons.notes_rounded,
+                children: [
+                  IcueTextField(
+                    controller: _remarks,
+                    maxLines: 3,
+                    maxLength: 500,
+                    label: 'Remarks (optional)',
+                  ),
+                ],
+              );
+              return SingleChildScrollView(
+                padding: EdgeInsets.all(twoColumns ? 24 : 16),
+                child: twoColumns
+                    ? Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(children: [vendorCard, contactCard]),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              children: [categoriesCard, notesCard],
+                            ),
+                          ),
+                        ],
+                      )
+                    : Column(
+                        children: [
+                          vendorCard,
+                          contactCard,
+                          categoriesCard,
+                          notesCard,
+                        ],
+                      ),
+              );
+            },
           ),
         ),
         bottomNavigationBar: Material(
           elevation: 8,
           child: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-              child: IcueButton(
-                label: _busy ? 'Saving…' : 'Save vendor',
-                onPressed: _busy ? null : _save,
-                leadingIcon: Icons.save_rounded,
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: _busy
+                          ? null
+                          : () => Navigator.of(context).maybePop(),
+                      child: const Text('Cancel'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: IcueButton(
+                      label: _busy
+                          ? 'Saving…'
+                          : _editing
+                          ? 'Save changes'
+                          : 'Create vendor',
+                      isLoading: _busy,
+                      onPressed: _busy ? null : _save,
+                      leadingIcon: Icons.save_rounded,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -316,3 +437,66 @@ class _VendorFormPageState extends State<VendorFormPage> {
     );
   }
 }
+
+const _sampleVendors = [
+  (
+    name: 'Apex Office Supplies Pvt Ltd',
+    contact: 'Rahul Mehta',
+    phone: '+91 98765 43210',
+    email: 'sales@apexsupplies.in',
+    website: 'www.apexsupplies.in',
+    address: '12, Industrial Estate, Peenya, Bengaluru 560058',
+    tax: '29AAAAA0000A1Z5',
+    remarks: 'Net 30 payment terms. Delivers within 3 days.',
+  ),
+  (
+    name: 'Sri Lakshmi Stationers',
+    contact: 'Lakshmi Narayan',
+    phone: '+91 91234 56780',
+    email: 'orders@srilakshmistationers.com',
+    website: 'www.srilakshmistationers.com',
+    address: '45, Main Bazaar, Tirupati, Andhra Pradesh 517501',
+    tax: '37BBBBB1111B1Z2',
+    remarks: 'Bulk discounts on notebooks and registers.',
+  ),
+  (
+    name: 'TechNova Computers',
+    contact: 'Anita Rao',
+    phone: '+91 99887 76655',
+    email: 'support@technova.co.in',
+    website: 'technova.co.in',
+    address: '8, Tech Park Road, Hitech City, Hyderabad 500081',
+    tax: '36CCCCC2222C1Z8',
+    remarks: 'Authorised reseller; 1-year onsite warranty.',
+  ),
+  (
+    name: 'GreenLeaf Sports & Lab Equipments',
+    contact: 'Imran Sheikh',
+    phone: '+91 90000 11122',
+    email: 'info@greenleafequip.com',
+    website: 'www.greenleafequip.com',
+    address: '22, Sports Complex Lane, Pune, Maharashtra 411001',
+    tax: '27DDDDD3333D1Z4',
+    remarks: 'Science lab kits and playground equipment.',
+  ),
+  (
+    name: 'Bharat Furniture Works',
+    contact: 'Suresh Kumar',
+    phone: '+91 97000 22233',
+    email: 'bharatfurniture@gmail.com',
+    website: 'www.bharatfurniture.in',
+    address: '5, Carpenter Street, Vijayawada, Andhra Pradesh 520001',
+    tax: '37EEEEE4444E1Z6',
+    remarks: 'Custom desks and benches; 2-week lead time.',
+  ),
+  (
+    name: 'CleanPro Housekeeping Supplies',
+    contact: 'Divya Reddy',
+    phone: '+91 98450 33344',
+    email: 'divya@cleanpro.in',
+    website: 'www.cleanpro.in',
+    address: '31, Mall Road, Chennai, Tamil Nadu 600001',
+    tax: '33FFFFF5555F1Z1',
+    remarks: 'Monthly consumables contract available.',
+  ),
+];
