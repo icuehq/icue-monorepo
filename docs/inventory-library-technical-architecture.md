@@ -118,7 +118,7 @@ Common fields on every document: `createdAt`, `createdBy` (uid), `updatedAt`, `s
 | `config/{doc}` | `rolePermissions`, `inventorySettings` (expiry warning days, approval toggles), `librarySettings` (hold days, blocking rules) |
 | `userAccess/{uid}` | Resolved permissions (§3.2) |
 | `counters/{type_year}` | Sequential numbers: `PR/2026-27/000123`. Incremented inside the owning transaction. |
-| `uniqueKeys/{kind_value}` | Uniqueness guard (item code, vendor code, inventory category code, library code, asset ID). Created in the same transaction as the record; existing key → `already-exists`. |
+| `uniqueKeys/{kind_value}` | Uniqueness guard (vendor code, library code, asset ID). Created in the same transaction as the record; existing key → `already-exists`. |
 | `requests/{requestId}` | Idempotency: stored result of a completed callable, TTL 7 days. |
 | `auditLogs/{id}` | `{actor, action, ref, before, after, reason, at}`. Function-written only (FRS 16). |
 | `outbox/{eventKey}` | Pending notifications (§7). |
@@ -129,9 +129,9 @@ Common fields on every document: `createdAt`, `createdBy` (uid), `updatedAt`, `s
 
 | Collection | Key fields | Notes |
 | --- | --- | --- |
-| `inventoryCategories` | code, name, parentId, suggestedTracking, status | Subcategory = `parentId` set |
+| `inventoryCategories` | name, parentId, suggestedTracking, status | Subcategory = `parentId` set |
 | `inventoryUnits` | code, name | Defaults seeded (FRS 10.4) |
-| `inventoryItems` | code, name, categoryId, subcategoryId, stockUnit, purchaseUnits `[{unit, factor}]`, tracking `quantity | batch | asset`, variantAttrs, minLevel, reorderLevel, defaultPrice, preferredVendorId, defaultLocation, imagePath | `categoryHistory` via audit log |
+| `inventoryItems` | name, categoryId, subcategoryId, stockUnit, purchaseUnits `[{unit, factor}]`, tracking `quantity | batch | asset`, variantAttrs, minLevel, reorderLevel, defaultPrice, preferredVendorId, defaultLocation, imagePath | `categoryHistory` via audit log |
 | `inventoryItems/{id}/variants` | attrs `{size, color}`, sku, status | Uniforms etc. |
 | `inventoryStores` | code, name, location, status | Department/location is a field on the store or balance |
 | `inventoryBalances/{storeId__itemId__variantId__batchId}` | quantityAvailable, quantityReserved, quantityDamaged, quantityExpired, totalQuantityReceived, totalQuantityIssued, unitCost, value, batchNumber, manufacturingDate, expiryDate, isBelowReorderLevel | **The only stock balance.** One doc per store × item × variant × batch (`-` when not applicable). |

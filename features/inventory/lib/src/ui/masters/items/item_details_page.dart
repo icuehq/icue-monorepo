@@ -294,38 +294,6 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
                                       vertical: 3,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: theme
-                                          .colorScheme
-                                          .surfaceContainerHighest
-                                          .withValues(alpha: 0.6),
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.qr_code_2_outlined,
-                                          size: 14,
-                                          color: theme.colorScheme.onSurface,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          item.code,
-                                          style: theme.textTheme.labelSmall
-                                              ?.copyWith(
-                                                fontWeight: FontWeight.w600,
-                                                fontFamily: 'monospace',
-                                              ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 3,
-                                    ),
-                                    decoration: BoxDecoration(
                                       color: item.active
                                           ? theme.colorScheme.primaryContainer
                                                 .withValues(alpha: 0.5)

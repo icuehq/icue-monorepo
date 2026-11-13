@@ -37,7 +37,6 @@ class StockBalanceList extends StatelessWidget {
         child: StockBalanceCard(
           balance: balance,
           itemName: stockProvider.itemName(balance.itemId),
-          itemCode: item?.code,
           stockUnit: item?.stockUnit,
           reorderLevel: item?.reorderLevel,
           onTap: () => onOpen(balance),

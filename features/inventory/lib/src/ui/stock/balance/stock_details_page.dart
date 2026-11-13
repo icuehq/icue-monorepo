@@ -59,7 +59,6 @@ class _StockDetailsPageState extends State<StockDetailsPage> {
     ];
 
     final detailRows = <Widget>[
-      _InfoRow('Item code', item?.code ?? '—'),
       _InfoRow(
         'Category',
         inventoryProvider.category(item?.categoryId)?.name ?? '—',
@@ -114,7 +113,6 @@ class _StockDetailsPageState extends State<StockDetailsPage> {
                         const SizedBox(height: 4),
                         Text(
                           [
-                            ?item?.code,
                             ?stockProvider.store?.name,
                             if (balance.batchNumber != null)
                               'Batch ${balance.batchNumber}',

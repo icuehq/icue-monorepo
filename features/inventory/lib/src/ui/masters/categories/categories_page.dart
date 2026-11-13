@@ -78,7 +78,6 @@ class _CategoriesPageState extends State<CategoriesPage> {
       final topMatchesQuery =
           !isSearching ||
           top.name.toLowerCase().contains(query) ||
-          top.code.toLowerCase().contains(query) ||
           (top.description?.toLowerCase().contains(query) ?? false);
 
       final matchingSubs = topSubs.where((category) {
@@ -91,7 +90,6 @@ class _CategoriesPageState extends State<CategoriesPage> {
 
         if (!isSearching) return true;
         return category.name.toLowerCase().contains(query) ||
-            category.code.toLowerCase().contains(query) ||
             (category.description?.toLowerCase().contains(query) ?? false);
       }).toList();
 

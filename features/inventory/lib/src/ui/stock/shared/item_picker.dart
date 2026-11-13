@@ -135,7 +135,7 @@ class _PickerDialogState extends State<_PickerDialog> {
                   textInputAction: TextInputAction.search,
                   onSubmitted: (_) => _run(inventoryProvider),
                   decoration: InputDecoration(
-                    hintText: 'Search by item name or code',
+                    hintText: 'Search by item name',
                     helperText: 'Press enter to search',
                     prefixIcon: const Icon(Icons.search_rounded),
                     suffixIcon: _search.text.isEmpty
@@ -171,7 +171,7 @@ class _PickerDialogState extends State<_PickerDialog> {
                                   style: theme.textTheme.titleSmall,
                                 ),
                                 Text(
-                                  'Try a different name or code.',
+                                  'Try a different name.',
                                   style: theme.textTheme.bodySmall?.copyWith(
                                     color: theme.colorScheme.onSurfaceVariant,
                                   ),
@@ -200,7 +200,7 @@ class _PickerDialogState extends State<_PickerDialog> {
                             ?.name;
                         return _PickerTile(
                           title: item.name,
-                          subtitle: [item.code, ?category].join(' · '),
+                          subtitle: category,
                           trailing: [
                             if (item.stockUnit.isNotEmpty) item.stockUnit,
                             if (item.tracking == Tracking.batch) 'Batch',

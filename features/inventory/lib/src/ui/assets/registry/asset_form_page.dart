@@ -147,7 +147,6 @@ class _AssetFormPageState extends State<AssetFormPage> {
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 title: Text(_item?.name ?? 'Choose asset item *'),
-                subtitle: _item == null ? null : Text(_item!.code),
                 trailing: const Icon(Icons.search),
                 onTap: _pick,
               ),

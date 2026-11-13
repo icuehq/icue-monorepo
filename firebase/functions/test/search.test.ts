@@ -8,9 +8,8 @@ import { clearFirestore } from './setup';
 const BRANCH = 'orgs/8/zones/147/branches/427';
 const mirror = (branch = BRANCH) => searchDb().collection(`${branch}/inventoryItems`);
 const timestampAt = (milliseconds: number) => Timestamp.fromMillis(milliseconds);
-const item = (name: string, code: string, categoryId = 'c1') => ({
+const item = (name: string, categoryId = 'c1') => ({
   name,
-  code,
   categoryId,
   status: 'active',
   stockUnit: 'pcs',
@@ -23,17 +22,16 @@ describe('item search mirror', () => {
   });
 
   it('mirrors only the projection, updates it, and deletes it', async () => {
-    await applyItemChange(BRANCH, 'i1', item('Blue Pen', 'PEN-01'), timestampAt(1));
+    await applyItemChange(BRANCH, 'i1', item('Blue Pen'), timestampAt(1));
     expect((await mirror().doc('i1').get()).data()).toEqual({
       name: 'Blue Pen',
-      code: 'PEN-01',
       categoryId: 'c1',
       status: 'active',
       stockUnit: 'pcs',
       tracking: 'quantity',
       srcUpdatedAt: timestampAt(1),
     });
-    await applyItemChange(BRANCH, 'i1', item('Blue Pen XL', 'PEN-01'), timestampAt(2));
+    await applyItemChange(BRANCH, 'i1', item('Blue Pen XL'), timestampAt(2));
     expect((await mirror().doc('i1').get()).data()?.name).toBe('Blue Pen XL');
     await applyItemChange(BRANCH, 'i1', undefined);
     expect((await mirror().doc('i1').get()).exists).toBe(false);

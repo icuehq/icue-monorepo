@@ -137,15 +137,6 @@ class ItemCard extends StatelessWidget {
                             ],
                           ],
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          item.code,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w500,
-                            letterSpacing: 0.3,
-                          ),
-                        ),
                         if (item.description != null &&
                             item.description!.trim().isNotEmpty) ...[
                           const SizedBox(height: 4),

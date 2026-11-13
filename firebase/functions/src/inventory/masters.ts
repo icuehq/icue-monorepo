@@ -1,8 +1,6 @@
 import { z } from 'zod';
 import { serverTimestamp } from '../shared/firestore';
 import {
-  code,
-  codeDocId,
   defineCallable,
   failed,
   id,
@@ -24,7 +22,6 @@ export const masters = {
     permission: 'inventory.settings',
     input: z.object({
       id: id.optional(),
-      code: code.optional(),
       name,
       description: optionalText,
       parentId: id.nullish(),
@@ -34,9 +31,8 @@ export const masters = {
       saveMaster(context, {
         coll: 'inventoryCategories',
         entityType: 'inventoryCategory',
-        idFromCode: true,
+        codeless: true,
         id: i.id,
-        code: i.code,
         build: async (before) => {
           if (i.parentId) {
             if (i.parentId === i.id) throw failed('A category cannot be its own parent');
@@ -62,7 +58,6 @@ export const masters = {
     permission: 'inventory.items.manage',
     input: z.object({
       id: id.optional(),
-      code: code.optional(),
       name,
       categoryId: id,
       subcategoryId: id.nullish(),
@@ -78,8 +73,8 @@ export const masters = {
       saveMaster(context, {
         coll: 'inventoryItems',
         entityType: 'inventoryItem',
+        codeless: true,
         id: i.id,
-        code: i.code,
         build: async (before) => {
           const category = usable(
             await context.transaction.get(context.doc(`inventoryCategories/${i.categoryId}`)),
@@ -137,20 +132,18 @@ export const masters = {
     input: z.object({}),
     handler: async (context) => {
       const now = serverTimestamp();
-      const categoryRefs = DEFAULT_CATEGORIES.map((category) =>
-        context.doc(`inventoryCategories/${codeDocId(category.code)}`),
+      const existingNames = new Set(
+        (await context.transaction.get(context.coll('inventoryCategories'))).docs.map(
+          (snapshot) => String(snapshot.data().name).trim().toLowerCase(),
+        ),
       );
       const unitRefs = DEFAULT_UNITS.map((unit) => context.doc(`inventoryUnits/${unit.code}`));
-      const [categorySnaps, unitSnaps] = await Promise.all([
-        context.transaction.getAll(...categoryRefs),
-        context.transaction.getAll(...unitRefs),
-      ]);
+      const unitSnaps = await context.transaction.getAll(...unitRefs);
       let categories = 0;
       let units = 0;
-      DEFAULT_CATEGORIES.forEach((category, index) => {
-        if (categorySnaps[index].exists) return;
-        context.set(categoryRefs[index], {
-          code: category.code,
+      DEFAULT_CATEGORIES.forEach((category) => {
+        if (existingNames.has(category.name.toLowerCase())) return;
+        context.set(context.newDoc('inventoryCategories'), {
           name: category.name,
           description: null,
           parentId: null,

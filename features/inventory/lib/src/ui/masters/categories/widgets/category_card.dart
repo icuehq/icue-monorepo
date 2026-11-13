@@ -43,36 +43,6 @@ class TrackingBadge extends StatelessWidget {
   }
 }
 
-class CategoryCodeBadge extends StatelessWidget {
-  const CategoryCodeBadge({super.key, required this.code});
-
-  final String code;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.7),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
-        ),
-      ),
-      child: Text(
-        code,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          color: theme.colorScheme.onSurfaceVariant,
-          letterSpacing: 0.4,
-        ),
-      ),
-    );
-  }
-}
-
 class CategoryCard extends StatefulWidget {
   const CategoryCard({
     super.key,
@@ -183,7 +153,6 @@ class _CategoryCardState extends State<CategoryCard> {
                           runSpacing: 4,
                           crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
-                            CategoryCodeBadge(code: category.code),
                             TrackingBadge(tracking: category.suggestedTracking),
                             if (hasSubs)
                               Container(
@@ -356,7 +325,6 @@ class _SubcategoryRow extends StatelessWidget {
                   runSpacing: 4,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    CategoryCodeBadge(code: category.code),
                     TrackingBadge(tracking: category.suggestedTracking),
                   ],
                 ),

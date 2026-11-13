@@ -55,14 +55,14 @@ describe('assets and maintenance', () => {
     const category = (
       await run(
         masters.categoryUpsert,
-        { code: 'GEN', name: 'General', suggestedTracking: 'quantity' },
+        { name: 'General', suggestedTracking: 'quantity' },
         '1',
       )
     ).id;
     const item = (itemCode: string, tracking: string) =>
       run(
         masters.itemUpsert,
-        { code: itemCode, name: itemCode, categoryId: category, stockUnit: 'pcs', tracking },
+        { name: itemCode, categoryId: category, stockUnit: 'pcs', tracking },
         '1',
       ).then((extra) => extra.id as string);
     [laptop, ink] = [await item('LAP', 'asset'), await item('INK', 'quantity')];

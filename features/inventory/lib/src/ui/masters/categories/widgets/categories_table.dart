@@ -39,9 +39,9 @@ class CategoriesTable extends StatelessWidget {
       items: rows,
       rowKey: (category) => category.id,
       rowLabel: (category) => category.name,
-      searchHint: 'Search name, code or description...',
+      searchHint: 'Search name or description...',
       searchText: (category) =>
-          '${category.name} ${category.code} ${category.description ?? ''}',
+          '${category.name} ${category.description ?? ''}',
       initialPageSize: 25,
       onRowTap: canEdit
           ? (category) => CategoryDialog.show(context, category: category)
@@ -138,14 +138,6 @@ class CategoriesTable extends StatelessWidget {
                   : null,
             );
           },
-        ),
-        IcueTableColumn(
-          id: 'code',
-          label: 'Code',
-          cellBuilder: (context, category) => IcueTableCellText(
-            category.code,
-            style: IcueTableStyle.of(context).secondary,
-          ),
         ),
         IcueTableColumn(
           id: 'parent',

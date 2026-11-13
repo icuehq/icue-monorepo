@@ -47,10 +47,9 @@ class StockBalanceTable extends StatelessWidget {
       errorMessage: stockProvider.errorMessage,
       onRetry: store == null ? null : () => stockProvider.loadBalances(store),
       initialPageSize: 25,
-      searchHint: 'Search item, code or batch...',
+      searchHint: 'Search item or batch...',
       searchText: (balance) =>
           '${stockProvider.itemName(balance.itemId)} '
-          '${stockProvider.items[balance.itemId]?.code ?? ''} '
           '${balance.batchNumber ?? ''}',
       externalFilters: [
         IcueTableFilter(
@@ -107,14 +106,6 @@ class StockBalanceTable extends StatelessWidget {
             subtitle: balance.batchNumber == null
                 ? null
                 : 'Batch ${balance.batchNumber}',
-          ),
-        ),
-        IcueTableColumn(
-          id: 'code',
-          label: 'Code',
-          cellBuilder: (context, balance) => IcueTableCellText(
-            stockProvider.items[balance.itemId]?.code ?? '—',
-            style: IcueTableStyle.of(context).secondary,
           ),
         ),
         IcueTableColumn(

@@ -68,7 +68,7 @@ class _ItemsTableState extends State<ItemsTable> {
       ),
       errorMessage: provider.errorMessage,
       onRetry: () => provider.loadItems(),
-      searchHint: 'Search by item name or code...',
+      searchHint: 'Search by item name...',
       initialSearch: provider.itemSearch,
       onSearchChanged: textSearchSupported
           ? (query) {
@@ -146,11 +146,6 @@ class _ItemsTableState extends State<ItemsTable> {
         }),
       ),
       columns: [
-        IcueTableColumn(
-          id: 'code',
-          label: 'Code',
-          cellBuilder: (context, item) => IcueTableCellText(item.code),
-        ),
         IcueTableColumn(
           id: 'name',
           label: 'Item',

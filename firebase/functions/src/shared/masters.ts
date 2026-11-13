@@ -22,13 +22,11 @@ export const missing = (what: string) => new HttpsError('not-found', `${what} no
 
 /** Document ID for masters keyed by their code (case-insensitive: `STA` and `sta` are one document). */
 export const codeDocId = (value: string) => value.trim().toLowerCase();
-const codeIdPattern = /^[a-z0-9_-]+$/;
 
 /**
  * Creates (no `id`) or edits (`id`) a master document. Codes are immutable once
- * created (their `uniqueKeys` entry is never released). With `idFromCode` the
- * document ID is the lowercased code, so uniqueness is the document itself
- * and no `uniqueKeys` entry is written.
+ * created (their `uniqueKeys` entry is never released). A `codeless` master
+ * has no code at all (auto ID only).
  * `build` runs after the existing doc is loaded and returns the fields to write.
  */
 export async function saveMaster(
@@ -38,8 +36,8 @@ export async function saveMaster(
     entityType: string;
     id?: string;
     code?: string;
-    idFromCode?: boolean;
-    build: (before: DocumentData | undefined, code: string) => Promise<Record<string, unknown>>;
+    codeless?: boolean;
+    build: (before: DocumentData | undefined, code: string | undefined) => Promise<Record<string, unknown>>;
   },
 ): Promise<{ id: string }> {
   const now = serverTimestamp();
@@ -60,30 +58,16 @@ export async function saveMaster(
     });
     return { id: ref.id };
   }
-  if (!documentData.code) throw new HttpsError('invalid-argument', 'Please enter a code.');
-  let ref;
-  if (documentData.idFromCode) {
-    const docId = codeDocId(documentData.code);
-    if (!codeIdPattern.test(docId))
-      throw new HttpsError(
-        'invalid-argument',
-        'Code may only contain letters, digits, "-" and "_"',
-      );
-    ref = context.doc(`${documentData.coll}/${docId}`);
-    if ((await context.transaction.get(ref)).exists)
-      throw new HttpsError(
-        'already-exists',
-        `${documentData.entityType} "${documentData.code}" already exists`,
-      );
-  } else {
-    ref = context.newDoc(documentData.coll);
+  if (!documentData.code && !documentData.codeless)
+    throw new HttpsError('invalid-argument', 'Please enter a code.');
+  const ref = context.newDoc(documentData.coll);
+  if (documentData.code)
     await claimUniqueKey(context, documentData.entityType, documentData.code, ref.path);
-  }
   const after = await documentData.build(undefined, documentData.code);
   context.set(ref, {
     status: 'active',
     ...after,
-    code: documentData.code,
+    ...(documentData.code ? { code: documentData.code } : {}),
     createdAt: now,
     createdBy: context.uid,
     updatedAt: now,

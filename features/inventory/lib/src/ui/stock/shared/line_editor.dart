@@ -208,8 +208,6 @@ class _LineCard extends StatelessWidget {
                       spacing: 6,
                       runSpacing: 4,
                       children: [
-                        if (item.code.isNotEmpty)
-                          _TagBadge(label: '#${item.code}'),
                         if (variant != null)
                           _TagBadge(
                             label: variant.attrs.isNotEmpty

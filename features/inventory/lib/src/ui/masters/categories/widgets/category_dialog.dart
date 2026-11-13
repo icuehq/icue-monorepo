@@ -26,7 +26,6 @@ class CategoryDialog extends StatefulWidget {
 
 class _CategoryDialogState extends State<CategoryDialog> {
   final _form = GlobalKey<FormState>();
-  late final _code = TextEditingController(text: widget.category?.code);
   late final _name = TextEditingController(text: widget.category?.name);
   late final _description = TextEditingController(
     text: widget.category?.description,
@@ -34,7 +33,6 @@ class _CategoryDialogState extends State<CategoryDialog> {
   late String? _parentId = widget.category?.parentId ?? widget.parentId;
   late Tracking _tracking =
       widget.category?.suggestedTracking ?? Tracking.quantity;
-  bool _codeManuallyEdited = false;
   int _nextSample = 0;
   bool _busy = false;
   bool _submitted = false;
@@ -42,7 +40,7 @@ class _CategoryDialogState extends State<CategoryDialog> {
 
   @override
   void dispose() {
-    for (final controller in [_code, _name, _description]) {
+    for (final controller in [_name, _description]) {
       controller.dispose();
     }
     super.dispose();
@@ -60,10 +58,8 @@ class _CategoryDialogState extends State<CategoryDialog> {
       if (taken.contains(sample.name.toLowerCase())) continue;
       setState(() {
         _name.text = sample.name;
-        _code.text = generateCategoryCode(sample.name);
         _description.text = sample.description;
         _tracking = sample.tracking;
-        _codeManuallyEdited = false;
       });
       return;
     }
@@ -92,11 +88,12 @@ class _CategoryDialogState extends State<CategoryDialog> {
     setState(() => _busy = true);
     final category = widget.category;
     final provider = context.read<InventoryProvider>();
+    final name = _name.text.trim();
     final saved = await submitAndClose<InventoryProvider>(
       context,
       () => provider.saveCategory({
-        if (category != null) 'id': category.id else 'code': _code.text.trim(),
-        'name': _name.text.trim(),
+        if (category != null) 'id': category.id,
+        'name': name,
         'description': blankToNull(_description),
         'parentId': _parentId,
         'suggestedTracking': _tracking.name,
@@ -225,39 +222,9 @@ class _CategoryDialogState extends State<CategoryDialog> {
                 textInputAction: TextInputAction.next,
                 textCapitalization: TextCapitalization.words,
                 validator: _validateName,
-                onChanged: (value) {
-                  if (!editing && !_codeManuallyEdited) {
-                    _code.text = generateCategoryCode(value);
-                  }
-                },
                 label: 'Name *',
                 hintText: 'e.g. Science Lab Equipment',
                 icon: Icons.label_outline,
-              ),
-              IcueTextField(
-                controller: _code,
-                enabled: !editing,
-                textCapitalization: TextCapitalization.characters,
-                textInputAction: TextInputAction.next,
-                validator: (value) {
-                  final required = requiredText(value);
-                  if (required != null) return required;
-                  if (!editing) {
-                    final code = value!.trim().toLowerCase();
-                    final exists = inventoryProvider.categories.any(
-                      (existing) =>
-                          existing.code.trim().toLowerCase() == code ||
-                          existing.id == code,
-                    );
-                    if (exists) return 'Code "$value" already exists';
-                  }
-                  return null;
-                },
-                onChanged: (value) =>
-                    _codeManuallyEdited = value.trim().isNotEmpty,
-                label: 'Code *',
-                icon: Icons.qr_code_2_outlined,
-                helperText: editing ? null : 'Unique code (e.g. BKD, CLN)',
               ),
               IcueDropdown<String?>(
                 value: _parentId,
@@ -359,23 +326,3 @@ const _sampleCategories =
         tracking: Tracking.quantity,
       ),
     ];
-
-/// Auto-generates an uppercase category code based on the category name.
-String generateCategoryCode(String name) {
-  final clean = name.trim().toUpperCase();
-  if (clean.isEmpty) return '';
-  final words = clean
-      .split(RegExp(r'[^A-Z0-9]+'))
-      .where((word) => word.isNotEmpty)
-      .toList();
-  if (words.isEmpty) return '';
-  if (words.length == 1) {
-    return words.first.substring(0, words.first.length.clamp(0, 3));
-  }
-  if (words.length == 2) {
-    final first = words[0];
-    final second = words[1];
-    return '${first.substring(0, first.length.clamp(0, 2))}${second[0]}';
-  }
-  return words.take(4).map((word) => word[0]).join();
-}

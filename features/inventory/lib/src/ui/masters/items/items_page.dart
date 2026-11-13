@@ -101,7 +101,7 @@ class _ItemsPageState extends State<ItemsPage> {
                       onSubmitted: (value) =>
                           inventoryProvider.loadItems(search: value),
                       decoration: InputDecoration(
-                        hintText: 'Search by item name or code…',
+                        hintText: 'Search by item name…',
                         prefixIcon: const Icon(Icons.search, size: 20),
                         filled: true,
                         fillColor: theme.colorScheme.surfaceContainerHighest
@@ -293,10 +293,6 @@ class _ItemsPageState extends State<ItemsPage> {
                               items: inventoryProvider.items,
                               onTap: _open,
                               columns: [
-                                IcueAdaptiveColumn.text(
-                                  'Code',
-                                  (item) => item.code,
-                                ),
                                 IcueAdaptiveColumn.text(
                                   'Name',
                                   (item) => item.name,

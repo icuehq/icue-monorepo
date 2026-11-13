@@ -4,7 +4,6 @@ import 'package:inventory/inventory.dart';
 void main() {
   test('InventoryItem parses a Firestore map', () {
     final item = InventoryItem.fromMap('i1', {
-      'code': 'PEN-01',
       'name': 'Blue Pen',
       'categoryId': 'c1',
       'stockUnit': 'pcs',

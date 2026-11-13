@@ -25,8 +25,10 @@ class InventoryService {
   }
 
   Future<List<InventoryCategory>> categories() async =>
-      (await _all('inventoryCategories', InventoryCategory.fromMap))
-        ..sort((left, right) => left.code.compareTo(right.code));
+      (await _all('inventoryCategories', InventoryCategory.fromMap))..sort(
+        (left, right) =>
+            left.name.toLowerCase().compareTo(right.name.toLowerCase()),
+      );
 
   Future<List<InventoryUnit>> units() async => (await _all(
     'inventoryUnits',

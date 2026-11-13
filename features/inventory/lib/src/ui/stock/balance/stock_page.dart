@@ -85,14 +85,10 @@ class _StockPageState extends State<StockPage> {
     final filteredRows = allRows.where((balance) {
       final item = stockProvider.items[balance.itemId];
       final name = (item?.name ?? balance.itemId).toLowerCase();
-      final code = (item?.code ?? '').toLowerCase();
       final batch = (balance.batchNumber ?? '').toLowerCase();
 
       final matchesQuery =
-          _query.isEmpty ||
-          name.contains(_query) ||
-          code.contains(_query) ||
-          batch.contains(_query);
+          _query.isEmpty || name.contains(_query) || batch.contains(_query);
 
       final matchesLow = !_lowOnly || balance.isBelowReorderLevel;
       return matchesQuery && matchesLow;

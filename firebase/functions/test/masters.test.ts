@@ -17,7 +17,7 @@ const get = async (path: string) => (await db().doc(`${BRANCH}/${path}`).get()).
 const count = async (collection: string) =>
   (await db().collection(`${BRANCH}/${collection}`).get()).size;
 
-const item = { name: 'Blue Pen', code: 'PEN-01', stockUnit: 'pcs', tracking: 'quantity' };
+const item = { name: 'Blue Pen', stockUnit: 'pcs', tracking: 'quantity' };
 
 describe('inventory masters', () => {
   let category: string;
@@ -30,7 +30,6 @@ describe('inventory masters', () => {
     await run(masters.seedDefaults, {});
     category = (
       await run(masters.categoryUpsert, {
-        code: 'GEN',
         name: 'General',
         suggestedTracking: 'quantity',
       })
@@ -48,35 +47,18 @@ describe('inventory masters', () => {
 
   it('requires permission', async () => {
     await expect(
-      run(masters.categoryUpsert, { code: 'X', name: 'X', suggestedTracking: 'quantity' }, '2'),
+      run(masters.categoryUpsert, { name: 'X', suggestedTracking: 'quantity' }, '2'),
     ).rejects.toMatchObject({ code: 'permission-denied' });
   });
 
-  it('keeps category codes unique and immutable, subcategories one level', async () => {
-    expect(category).toBe('gen');
-    await expect(
-      run(masters.categoryUpsert, { code: 'a/b', name: 'Bad', suggestedTracking: 'quantity' }),
-    ).rejects.toMatchObject({ code: 'invalid-argument' });
-    await expect(
-      run(masters.categoryUpsert, { code: 'gen', name: 'Dup', suggestedTracking: 'quantity' }),
-    ).rejects.toMatchObject({ code: 'already-exists' });
-    await expect(
-      run(masters.categoryUpsert, {
-        id: category,
-        code: 'NEW',
-        name: 'General',
-        suggestedTracking: 'quantity',
-      }),
-    ).rejects.toMatchObject({ code: 'failed-precondition' });
+  it('keeps subcategories to one level', async () => {
     const sub = await run(masters.categoryUpsert, {
-      code: 'SUB',
       name: 'Sub',
       parentId: category,
       suggestedTracking: 'quantity',
     });
     await expect(
       run(masters.categoryUpsert, {
-        code: 'SS',
         name: 'SubSub',
         parentId: sub.id,
         suggestedTracking: 'quantity',
@@ -84,21 +66,19 @@ describe('inventory masters', () => {
     ).rejects.toMatchObject({ code: 'failed-precondition' });
   });
 
-  it('creates items; rejects duplicates, inactive categories, unknown units', async () => {
+  it('creates items; rejects inactive categories, unknown units', async () => {
     const { id } = await newItem();
     expect(await get(`inventoryItems/${id}`)).toMatchObject({
-      code: 'PEN-01',
       status: 'active',
       name: 'Blue Pen',
     });
-    await expect(newItem()).rejects.toMatchObject({ code: 'already-exists' });
-    await expect(newItem({ code: 'X1', stockUnit: 'nope' })).rejects.toMatchObject({
+    await expect(newItem({ stockUnit: 'nope' })).rejects.toMatchObject({
       code: 'failed-precondition',
     });
     await db().doc(`${BRANCH}/inventoryCategories/${category}`).update({ status: 'inactive' });
-    await expect(newItem({ code: 'X2' })).rejects.toMatchObject({ code: 'failed-precondition' });
+    await expect(newItem()).rejects.toMatchObject({ code: 'failed-precondition' });
     // existing item may be edited while its category stays the same
-    await expect(newItem({ id, code: undefined, name: 'Blue Pen XL' })).resolves.toEqual({ id });
+    await expect(newItem({ id, name: 'Blue Pen XL' })).resolves.toEqual({ id });
   });
 
   it('blocks unit/tracking change after stock moved', async () => {
@@ -106,7 +86,6 @@ describe('inventory masters', () => {
     await run(masters.itemUpsert, {
       id,
       ...item,
-      code: undefined,
       categoryId: category,
       tracking: 'batch',
     });
@@ -115,8 +94,7 @@ describe('inventory masters', () => {
       run(masters.itemUpsert, {
         id,
         ...item,
-        code: undefined,
-        categoryId: category,
+          categoryId: category,
         tracking: 'quantity',
       }),
     ).rejects.toMatchObject({ code: 'failed-precondition' });

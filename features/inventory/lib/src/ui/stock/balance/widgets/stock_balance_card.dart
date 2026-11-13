@@ -26,7 +26,6 @@ class StockBalanceCard extends StatelessWidget {
     super.key,
     required this.balance,
     required this.itemName,
-    this.itemCode,
     this.stockUnit,
     this.reorderLevel,
     required this.onTap,
@@ -34,7 +33,6 @@ class StockBalanceCard extends StatelessWidget {
 
   final InventoryBalance balance;
   final String itemName;
-  final String? itemCode;
   final String? stockUnit;
   final double? reorderLevel;
   final VoidCallback onTap;
@@ -106,23 +104,7 @@ class StockBalanceCard extends StatelessWidget {
                         Wrap(
                           crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
-                            if (itemCode != null)
-                              Text(
-                                itemCode!,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                  fontFamily: 'monospace',
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
                             if (hasBatch) ...[
-                              if (itemCode != null)
-                                Text(
-                                  ' · ',
-                                  style: TextStyle(
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                  ),
-                                ),
                               if (balance.batchNumber != null)
                                 Text(
                                   'Batch ${balance.batchNumber}',

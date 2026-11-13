@@ -151,7 +151,6 @@ models:
     InventoryCategory:
       id: id
       fields:
-        code: string
         name: string
         description: string?
         parentId: string?
@@ -165,7 +164,6 @@ models:
     InventoryItem:
       id: id
       fields:
-        code: string
         name: string
         categoryId: string
         subcategoryId: string?

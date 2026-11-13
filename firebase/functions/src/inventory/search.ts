@@ -2,7 +2,7 @@ import { type DocumentData, type Firestore, type Timestamp } from 'firebase-admi
 import { applyChange, syncTrigger } from '../shared/searchMirror';
 
 /** Item search (architecture §10): `syncItemSearch` mirrors a small projection that web clients query. */
-const FIELDS = ['code', 'name', 'categoryId', 'status', 'stockUnit', 'tracking'] as const;
+const FIELDS = ['name', 'categoryId', 'status', 'stockUnit', 'tracking'] as const;
 
 /** The list-row fields mirrored into the search database. */
 export const projectItem = (data: DocumentData) =>

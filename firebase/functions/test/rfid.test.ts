@@ -44,11 +44,10 @@ describe('RFID', () => {
 
   it('assigns a unique RFID tag, moves and clears it', async () => {
     const category = (
-      await run(masters.categoryUpsert, { code: 'C', name: 'C', suggestedTracking: 'quantity' })
+      await run(masters.categoryUpsert, { name: 'C', suggestedTracking: 'quantity' })
     ).id;
     const item = (
       await run(masters.itemUpsert, {
-        code: 'L',
         name: 'L',
         categoryId: category,
         stockUnit: 'pcs',

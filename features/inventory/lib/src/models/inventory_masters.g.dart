@@ -5,7 +5,6 @@ import 'package:inventory/src/models/inventory_masters.dart';
 class InventoryCategory {
   const InventoryCategory({
     required this.id,
-    required this.code,
     required this.name,
     this.description,
     this.parentId,
@@ -16,7 +15,6 @@ class InventoryCategory {
   factory InventoryCategory.fromMap(String id, Map<String, dynamic> data) =>
       InventoryCategory(
         id: id,
-        code: data['code'] as String? ?? '',
         name: data['name'] as String? ?? '',
         description: data['description'] as String?,
         parentId: data['parentId'] as String?,
@@ -25,7 +23,6 @@ class InventoryCategory {
       );
 
   final String id;
-  final String code;
   final String name;
   final String? description;
   final String? parentId;
@@ -46,7 +43,6 @@ class InventoryUnit {
 class InventoryItem {
   const InventoryItem({
     required this.id,
-    required this.code,
     required this.name,
     required this.categoryId,
     this.subcategoryId,
@@ -62,7 +58,6 @@ class InventoryItem {
   factory InventoryItem.fromMap(String id, Map<String, dynamic> data) =>
       InventoryItem(
         id: id,
-        code: data['code'] as String? ?? '',
         name: data['name'] as String? ?? '',
         categoryId: data['categoryId'] as String? ?? '',
         subcategoryId: data['subcategoryId'] as String?,
@@ -76,7 +71,6 @@ class InventoryItem {
       );
 
   final String id;
-  final String code;
   final String name;
   final String categoryId;
   final String? subcategoryId;

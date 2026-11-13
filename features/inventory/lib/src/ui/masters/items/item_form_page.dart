@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
@@ -17,7 +16,6 @@ class ItemFormPage extends StatefulWidget {
 class _ItemFormPageState extends State<ItemFormPage> {
   final _form = GlobalKey<FormState>();
   late final InventoryItem? _existingItem = widget.item;
-  late final _code = TextEditingController(text: _existingItem?.code);
   late final _name = TextEditingController(text: _existingItem?.name);
   late final _description = TextEditingController(
     text: _existingItem?.description,
@@ -40,7 +38,7 @@ class _ItemFormPageState extends State<ItemFormPage> {
 
   @override
   void dispose() {
-    for (final controller in [_code, _name, _description, _reorder, _price]) {
+    for (final controller in [_name, _description, _reorder, _price]) {
       controller.dispose();
     }
     super.dispose();
@@ -52,7 +50,7 @@ class _ItemFormPageState extends State<ItemFormPage> {
   String? _blank(TextEditingController controller) =>
       controller.text.trim().isEmpty ? null : controller.text.trim();
 
-  /// Fills the form with the next sample whose code is not loaded yet, using the
+  /// Fills the form with the next sample whose name is not loaded yet, using the
   /// first active category and the first unit (debug builds, new items only).
   void _fillSample() {
     final provider = context.read<InventoryProvider>();
@@ -64,12 +62,11 @@ class _ItemFormPageState extends State<ItemFormPage> {
       showMessage(context, 'Add a category and a unit first');
       return;
     }
-    final taken = {for (final item in provider.items) item.code.toLowerCase()};
+    final taken = {for (final item in provider.items) item.name.toLowerCase()};
     for (var tried = 0; tried < _sampleItems.length; tried++) {
       final sample = _sampleItems[_nextSample++ % _sampleItems.length];
-      if (taken.contains(sample.code.toLowerCase())) continue;
+      if (taken.contains(sample.name.toLowerCase())) continue;
       setState(() {
-        _code.text = sample.code;
         _name.text = sample.name;
         _description.text = sample.description;
         _reorder.text = '${sample.reorder}';
@@ -90,10 +87,7 @@ class _ItemFormPageState extends State<ItemFormPage> {
     await submitAndClose<InventoryProvider>(
       context,
       () => context.read<InventoryProvider>().saveItem({
-        if (_existingItem != null)
-          'id': _existingItem.id
-        else
-          'code': _code.text.trim(),
+        if (_existingItem != null) 'id': _existingItem.id,
         'name': _name.text.trim(),
         'categoryId': _categoryId,
         'subcategoryId': _subcategoryId,
@@ -127,19 +121,6 @@ class _ItemFormPageState extends State<ItemFormPage> {
       title: 'Basic information',
       icon: Icons.inventory_2_outlined,
       children: [
-        IcueTextField(
-          controller: _code,
-          enabled: !editing,
-          textCapitalization: TextCapitalization.characters,
-          inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9._\-]')),
-          ],
-          textInputAction: TextInputAction.next,
-          validator: requiredText,
-          label: 'Item code / SKU *',
-          icon: Icons.qr_code_2_outlined,
-          helperText: !editing ? 'Unique identifier, e.g. PAP-A4-01' : null,
-        ),
         IcueTextField(
           controller: _name,
           textCapitalization: TextCapitalization.words,
@@ -313,37 +294,32 @@ class _ItemFormPageState extends State<ItemFormPage> {
 }
 
 const _sampleItems =
-    <({String code, String name, String description, int reorder, int price})>[
+    <({String name, String description, int reorder, int price})>[
       (
-        code: 'PAP-A4-01',
         name: 'A4 Copier Paper (500 sheets)',
         description: '75 GSM white copier paper ream.',
         reorder: 20,
         price: 260,
       ),
       (
-        code: 'PEN-BLU-01',
         name: 'Blue Ball Pen',
         description: '0.7 mm ball point pen.',
         reorder: 100,
         price: 8,
       ),
       (
-        code: 'MRK-WHT-01',
         name: 'Whiteboard Marker',
         description: 'Assorted colours, bullet tip.',
         reorder: 50,
         price: 25,
       ),
       (
-        code: 'CLN-FLR-01',
         name: 'Floor Cleaner (5 L)',
         description: 'Disinfectant floor cleaning liquid.',
         reorder: 10,
         price: 350,
       ),
       (
-        code: 'BSK-BAL-01',
         name: 'Basketball (Size 7)',
         description: 'Rubber outdoor basketball.',
         reorder: 5,
