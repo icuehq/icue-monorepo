@@ -60,12 +60,7 @@ class _PersonPickerState extends State<PersonPicker> {
         final identifier = _type == 'student'
             ? 'admission number or RFID'
             : 'staff ID';
-        // A student's RFID is never echoed back.
-        setState(
-          () => _error = _type == 'student'
-              ? 'No $_label found with that $identifier'
-              : 'No $_label found with $identifier "$number"',
-        );
+        setState(() => _error = 'No $_label found with $identifier "$number"');
         _focusNode.requestFocus();
       } else {
         _choose(person);
@@ -156,10 +151,6 @@ class _PersonPickerState extends State<PersonPicker> {
             focusNode: _focusNode,
             autofocus: widget.autofocus,
             enabled: !_loading,
-            // Students are found by RFID or admission number; show stars for both.
-            obscureText: _type == 'student',
-            enableSuggestions: _type != 'student',
-            autocorrect: _type != 'student',
             keyboardType: _type == 'teacher' ? TextInputType.number : null,
             textInputAction: TextInputAction.search,
             onSubmitted: _find,
