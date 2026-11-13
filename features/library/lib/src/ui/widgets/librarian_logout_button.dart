@@ -1,5 +1,6 @@
 import 'package:auth/auth.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 
 /// Logout for librarians, who have no dashboard to sign out from. Renders nothing for other roles.
@@ -11,24 +12,14 @@ class LibrarianLogoutButton extends StatelessWidget {
 
   Future<void> _confirm(BuildContext context) async {
     final auth = context.read<AuthProvider>();
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Logout'),
-        content: const Text('Are you sure you want to logout?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('No'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Yes'),
-          ),
-        ],
-      ),
+    final confirmed = await IcueDialog.confirm(
+      context,
+      title: 'Logout',
+      message: 'Are you sure you want to logout?',
+      confirmLabel: 'Logout',
+      destructive: true,
     );
-    if (confirmed ?? false) await auth.logout();
+    if (confirmed) await auth.logout();
   }
 
   @override

@@ -54,29 +54,28 @@ class _MembersPageState extends State<MembersPage> {
     String? reason;
     if (!member.blocked) {
       final reasonController = TextEditingController();
-      reason = await showDialog<String>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: Text('Block ${member.label}'),
-          content: IcueTextField(
-            controller: reasonController,
-            maxLength: 500,
-            autofocus: true,
-            label: 'Reason for blocking',
-          ),
-          actions: [
-            IcueButton(
-              label: 'Cancel',
-              onPressed: () => Navigator.pop(dialogContext),
-              variant: IcueButtonVariant.ghost,
-            ),
-            IcueButton(
-              label: 'Block borrower',
-              onPressed: () =>
-                  Navigator.pop(dialogContext, reasonController.text.trim()),
-              variant: IcueButtonVariant.destructive,
-            ),
-          ],
+      reason = await IcueDialog.show<String>(
+        context,
+        title: 'Block ${member.label}',
+        size: IcueDialogSize.small,
+        content: IcueTextField(
+          controller: reasonController,
+          maxLength: 500,
+          autofocus: true,
+          label: 'Reason for blocking',
+        ),
+        secondaryAction: IcueDialogAction(
+          label: 'Cancel',
+          variant: IcueButtonVariant.ghost,
+          onPressed: () => Navigator.of(context, rootNavigator: true).pop(),
+        ),
+        primaryAction: IcueDialogAction(
+          label: 'Block borrower',
+          variant: IcueButtonVariant.destructive,
+          onPressed: () => Navigator.of(
+            context,
+            rootNavigator: true,
+          ).pop(reasonController.text.trim()),
         ),
       );
       reasonController.dispose();

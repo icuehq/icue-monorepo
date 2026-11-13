@@ -160,28 +160,13 @@ class _BookFormPageState extends State<BookFormPage> {
     });
   }
 
-  Future<bool> _confirmDiscard() async =>
-      await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Discard changes?'),
-          content: const Text(
-            'Your unsaved changes to this book will be lost.',
-          ),
-          actions: [
-            IcueButton(
-              label: 'Keep editing',
-              onPressed: () => Navigator.of(context).pop(false),
-              variant: IcueButtonVariant.ghost,
-            ),
-            IcueButton(
-              label: 'Discard',
-              onPressed: () => Navigator.of(context).pop(true),
-            ),
-          ],
-        ),
-      ) ??
-      false;
+  Future<bool> _confirmDiscard() => IcueDialog.confirm(
+    context,
+    title: 'Discard changes?',
+    message: 'Your unsaved changes to this book will be lost.',
+    confirmLabel: 'Discard',
+    destructive: true,
+  );
 
   /// The copies to create with a new book; null when editing or when none are asked for.
   Map<String, Object?>? _newCopies() {

@@ -6,10 +6,15 @@ import 'package:icue_ui/icue_ui.dart';
 
 /// Resolves IDs to display names for report cells.
 class LibraryNames {
-  const LibraryNames({required this.title, required this.library});
+  const LibraryNames({
+    required this.title,
+    required this.library,
+    required this.classLabel,
+  });
 
   final String Function(Object? id) title;
   final String Function(Object? id) library;
+  final String Function(int? classId, String? section) classLabel;
 }
 
 typedef LibraryReportCol = ReportColumn<LibraryNames>;
@@ -61,12 +66,17 @@ LibraryReportCol _count(String label, String field) => LibraryReportCol(
   (m, _) => readString(readNumber(m[field])),
   sum: true,
 );
-LibraryReportCol _member() => LibraryReportCol(
-  'Member',
-  (m, _) => readString(m['memberName']).isEmpty
-      ? '#${m['personErpId']}'
-      : '${m['memberName']} (#${m['personErpId']})',
-);
+
+/// Member name with class and section on a second line (students only).
+LibraryReportCol _member() => LibraryReportCol('Member', (m, names) {
+  final name = readString(m['memberName']);
+  final label = name.isEmpty ? '#${m['personErpId']}' : name;
+  final classId = (m['memberClassId'] as num?)?.toInt();
+  if (classId == null) return label;
+  final section = readString(m['memberSection']);
+  final className = names.classLabel(classId, null);
+  return '$label\n$className${section.isEmpty ? '' : ' ($section)'}';
+});
 LibraryReportCol _month() => LibraryReportCol('Month', (m, _) {
   final parts = readString(m['month']).split('-');
   final date = DateTime(int.parse(parts[0]), int.parse(parts[1]));
@@ -75,6 +85,7 @@ LibraryReportCol _month() => LibraryReportCol('Month', (m, _) {
 
 final _memberCols = [
   _member(),
+  _text('Admission No.', 'admissionNumber'),
   _count('Issued', 'issued'),
   _count('Returned', 'returned'),
   _count('Still out', 'active'),
@@ -89,13 +100,12 @@ final libraryReports = <LibraryReportDef>[
     'Every book issued between two dates',
     LibraryReportKind.loans,
     [
-      _text('Loan', 'id'),
       _member(),
+      _text('Admission No.', 'admissionNumber'),
       LibraryReportCol(
         'Title',
         (data, names) => names.title(data['catalogueId']),
       ),
-      _text('Barcode', 'barcode'),
       LibraryReportCol('Library', (m, names) => names.library(m['libraryId'])),
       _day('Issued', 'issuedDate'),
       _day('Due', 'dueDate'),

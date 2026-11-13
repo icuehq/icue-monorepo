@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
+import 'package:school_library/src/ui/shared/library_status_chip.dart';
 
 /// Wide-screen active loans as an [IcueTable]. Search and every filter are
 /// Firestore queries (the provider reloads); pages come from its pager.
@@ -150,11 +151,10 @@ class LoansTable extends StatelessWidget {
           label: 'Class',
           hideBelowWidth: 900,
           cellBuilder: (context, loan) => IcueTableCellText(
-            loan.memberClassId == null
-                ? '-'
-                : context.watch<LibraryProvider>().className(
-                    loan.memberClassId!,
-                  ),
+            context.watch<LibraryProvider>().classLabel(
+              loan.memberClassId,
+              null,
+            ),
             style: IcueTableStyle.of(context).secondary,
           ),
         ),
@@ -204,8 +204,7 @@ class LoansTable extends StatelessWidget {
   }
 }
 
-Widget _lateness(int daysLate) => IcueStatusPill(
+Widget _lateness(int daysLate) => LibraryStatusChip(
+  daysLate > 0 ? 'overdue' : 'on_time',
   label: daysLate > 0 ? '$daysLate d late' : 'On time',
-  color: daysLate > 0 ? Colors.red.shade700 : Colors.green.shade700,
-  compact: true,
 );

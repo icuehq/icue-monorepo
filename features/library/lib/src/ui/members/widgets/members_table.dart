@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
+import 'package:school_library/src/ui/shared/library_status_chip.dart';
 
 /// Wide-screen members as an [IcueTable]. Search and every filter are Firestore
 /// queries (the provider reloads); pages come from its pager.
@@ -56,16 +57,27 @@ class MembersTable extends StatelessWidget {
           label: 'Status',
           options: const [
             IcueTableFilterOption('blocked', 'Blocked'),
-            IcueTableFilterOption('canBorrow', 'Can borrow'),
+            IcueTableFilterOption('active', 'Active'),
           ],
           value: switch (provider.memberBlocked) {
             null => null,
             true => 'blocked',
-            false => 'canBorrow',
+            false => 'active',
           },
           onChanged: (value) {
             provider
               ..memberBlocked = value == null ? null : value == 'blocked'
+              ..loadMembers();
+          },
+        ),
+        IcueTableFilter(
+          id: 'onLoan',
+          label: 'On loan',
+          options: const [IcueTableFilterOption('yes', 'Has books out')],
+          value: provider.memberOnLoan ? 'yes' : null,
+          onChanged: (value) {
+            provider
+              ..memberOnLoan = value != null
               ..loadMembers();
           },
         ),
@@ -111,13 +123,20 @@ class MembersTable extends StatelessWidget {
           ),
         ),
         IcueTableColumn(
+          id: 'admission',
+          label: 'Admission Number',
+          hideBelowWidth: 800,
+          cellBuilder: (context, member) => IcueTableCellText(
+            member.admissionNumber ?? '-',
+            style: IcueTableStyle.of(context).secondary,
+          ),
+        ),
+        IcueTableColumn(
           id: 'class',
           label: 'Class',
           hideBelowWidth: 800,
           cellBuilder: (context, member) => IcueTableCellText(
-            member.classId == null
-                ? '—'
-                : context.watch<LibraryProvider>().className(member.classId!),
+            provider.classLabel(member.classId, member.section),
             style: IcueTableStyle.of(context).secondary,
           ),
         ),
@@ -146,11 +165,6 @@ class MemberStatusPill extends StatelessWidget {
   final LibraryMember member;
 
   @override
-  Widget build(BuildContext context) => IcueStatusPill(
-    label: member.blocked ? 'Blocked' : 'Can borrow',
-    color: member.blocked
-        ? Theme.of(context).colorScheme.error
-        : Colors.green.shade700,
-    compact: true,
-  );
+  Widget build(BuildContext context) =>
+      LibraryStatusChip(member.blocked ? 'blocked' : 'active');
 }

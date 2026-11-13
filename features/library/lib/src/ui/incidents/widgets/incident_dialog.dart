@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
+import 'package:school_library/src/ui/shared/library_status_chip.dart';
 
 /// Detailed view of a lost or damaged book incident with resolve action.
 class IncidentDialog extends StatefulWidget {
@@ -20,90 +21,88 @@ class _IncidentDialogState extends State<IncidentDialog> {
   bool _busy = false;
 
   Future<void> _resolve() async {
-    String resolution = 'repaired';
+    final damaged = widget.incident.type == 'damaged';
+    var resolution = damaged ? 'repaired' : 'replaced';
     final repairCostController = TextEditingController();
     final chargeController = TextEditingController();
     final remarksController = TextEditingController();
 
     final ok = await showDialog<bool>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Resolve incident'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                IcueDropdown<String>(
-                  value: resolution,
-                  items: const [
-                    DropdownMenuItem(
+      builder: (_) => StatefulBuilder(
+        builder: (context, setDialogState) => IcueDialog(
+          title: 'Resolve incident',
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              IcueDropdown<String>(
+                value: resolution,
+                items: [
+                  if (damaged)
+                    const DropdownMenuItem(
                       value: 'repaired',
                       child: Text('Repaired (return to shelf)'),
                     ),
-                    DropdownMenuItem(
-                      value: 'replaced',
-                      child: Text('Replaced'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'written_off',
-                      child: Text('Written off (withdraw copy)'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'charged',
-                      child: Text('Charged penalty'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'dismissed',
-                      child: Text('Dismissed'),
-                    ),
-                  ],
-                  onChanged: (value) {
-                    if (value != null) setDialogState(() => resolution = value);
-                  },
-                  label: 'Resolution',
-                ),
-                const SizedBox(height: 8),
-                if (resolution == 'repaired')
-                  IcueTextField(
-                    controller: repairCostController,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    label: 'Repair cost (₹)',
-                    hintText: 'Optional',
+                  const DropdownMenuItem(
+                    value: 'replaced',
+                    child: Text('Replaced'),
                   ),
-                if (widget.incident.personErpId != null) ...[
-                  const SizedBox(height: 8),
-                  IcueTextField(
-                    controller: chargeController,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    label: 'Fine / penalty charge (₹)',
-                    hintText: 'Optional additional penalty',
+                  const DropdownMenuItem(
+                    value: 'written_off',
+                    child: Text('Written off (withdraw copy)'),
+                  ),
+                  const DropdownMenuItem(
+                    value: 'charged',
+                    child: Text('Charged penalty'),
+                  ),
+                  const DropdownMenuItem(
+                    value: 'dismissed',
+                    child: Text('Dismissed'),
                   ),
                 ],
+                onChanged: (value) {
+                  if (value != null) setDialogState(() => resolution = value);
+                },
+                label: 'Resolution',
+              ),
+              const SizedBox(height: 8),
+              if (resolution == 'repaired')
+                IcueTextField(
+                  controller: repairCostController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  label: 'Repair cost (₹)',
+                  hintText: 'Optional',
+                ),
+              if (widget.incident.personErpId != null) ...[
                 const SizedBox(height: 8),
                 IcueTextField(
-                  controller: remarksController,
-                  label: 'Resolution remarks',
+                  controller: chargeController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  label: 'Fine / penalty charge (₹)',
+                  hintText: 'Optional additional penalty',
                 ),
               ],
-            ),
+              const SizedBox(height: 8),
+              IcueTextField(
+                controller: remarksController,
+                label: 'Resolution remarks',
+              ),
+            ],
           ),
-          actions: [
-            IcueButton(
-              label: 'Cancel',
-              onPressed: () => Navigator.of(context).pop(false),
-              variant: IcueButtonVariant.ghost,
-            ),
-            IcueButton(
-              label: 'Resolve',
-              onPressed: () => Navigator.of(context).pop(true),
-            ),
-          ],
+          secondaryAction: IcueDialogAction(
+            label: 'Cancel',
+            variant: IcueButtonVariant.ghost,
+            onPressed: () => Navigator.of(context).pop(false),
+          ),
+          primaryAction: IcueDialogAction(
+            label: 'Resolve',
+            onPressed: () => Navigator.of(context).pop(true),
+          ),
         ),
       ),
     );
@@ -139,9 +138,6 @@ class _IncidentDialogState extends State<IncidentDialog> {
   Widget build(BuildContext context) {
     final incident = widget.incident;
     final theme = Theme.of(context);
-    final statusColor = incident.isOpen
-        ? theme.colorScheme.error
-        : Colors.green.shade700;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -157,29 +153,27 @@ class _IncidentDialogState extends State<IncidentDialog> {
                 ),
               ),
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: statusColor.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                humanizeStatus(incident.status),
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: statusColor,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
+            LibraryStatusChip(incident.status),
           ],
         ),
         const SizedBox(height: 16),
-        _Field('Book copy', incident.barcode),
+        if (incident.bookTitle != null) _Field('Book', incident.bookTitle!),
+        _Field('Copy', incident.barcode),
         _Field('Kind', humanizeStatus(incident.type)),
         if (incident.severity != null)
           _Field('Severity', humanizeStatus(incident.severity)),
         if (incident.memberLabel != null)
           _Field('Member', incident.memberLabel!),
+        if (incident.admissionNumber?.isNotEmpty ?? false)
+          _Field('Admission no.', incident.admissionNumber!),
+        if (incident.memberClassId != null)
+          _Field(
+            'Class',
+            context.read<LibraryProvider>().classLabel(
+              incident.memberClassId,
+              incident.memberSection,
+            ),
+          ),
         _Field('Reported on', incident.reportedDate.toDisplayDay()),
         if (incident.description != null && incident.description!.isNotEmpty)
           _Field('Description', incident.description!),

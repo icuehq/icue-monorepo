@@ -17,6 +17,9 @@ class LibraryIncident {
     this.memberType,
     this.personErpId,
     this.memberName,
+    this.memberClassId,
+    this.memberSection,
+    this.admissionNumber,
     this.loanId,
     this.severity,
     this.description,
@@ -42,6 +45,9 @@ class LibraryIncident {
         memberType: data['memberType'] as String?,
         personErpId: (data['personErpId'] as num?)?.toInt(),
         memberName: data['memberName'] as String?,
+        memberClassId: (data['memberClassId'] as num?)?.toInt(),
+        memberSection: data['memberSection'] as String?,
+        admissionNumber: data['admissionNumber'] as String?,
         loanId: data['loanId'] as String?,
         severity: data['severity'] as String?,
         description: data['description'] as String?,
@@ -69,6 +75,9 @@ class LibraryIncident {
   final String? memberType;
   final int? personErpId;
   final String? memberName;
+  final int? memberClassId;
+  final String? memberSection;
+  final String? admissionNumber;
   final String? loanId;
   final String? severity;
   final String? description;

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
+import 'package:school_library/src/ui/shared/library_status_chip.dart';
 
 /// Detailed view of a fine with actions to waive or record payment.
 class FineDialog extends StatefulWidget {
@@ -164,13 +165,6 @@ class _FineDialogState extends State<FineDialog> {
   Widget build(BuildContext context) {
     final fine = widget.fine;
     final theme = Theme.of(context);
-    final (statusColor, statusLabel) = switch (fine.status) {
-      'paid' => (Colors.green.shade700, 'Paid'),
-      'partially_paid' => (Colors.orange.shade800, 'Partially paid'),
-      'waived' => (Colors.blueGrey.shade700, 'Waived'),
-      _ => (theme.colorScheme.error, 'Outstanding'),
-    };
-    final catalogueId = fine.catalogueId;
     final calculation = fine.calculationLabel;
     final raisedAt = fine.createdAt?.toLocal().toNumericDateTime();
 
@@ -180,15 +174,10 @@ class _FineDialogState extends State<FineDialog> {
       children: [
         Align(
           alignment: Alignment.centerLeft,
-          child: IcueStatusPill(label: statusLabel, color: statusColor),
+          child: LibraryStatusChip(fine.status),
         ),
         const SizedBox(height: 12),
-        if (catalogueId != null)
-          FutureBuilder<LibraryBook?>(
-            future: context.read<LibraryProvider>().book(catalogueId),
-            builder: (context, snapshot) =>
-                _Detail('Book', snapshot.data?.title ?? fine.barcode ?? '-'),
-          ),
+        _Detail('Book', fine.bookTitle ?? '-'),
         if (fine.barcode != null) _Detail('Barcode', fine.barcode!),
         _Detail('Member', fine.memberLabel),
         if (raisedAt != null) _Detail('Raised on', raisedAt),

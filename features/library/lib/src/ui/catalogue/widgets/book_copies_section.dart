@@ -6,6 +6,7 @@ import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/catalogue/widgets/add_copies_form.dart';
 import 'package:school_library/src/ui/catalogue/widgets/copy_dialog.dart';
 import 'package:school_library/src/ui/catalogue/widgets/copy_labels.dart';
+import 'package:school_library/src/ui/shared/library_status_chip.dart';
 
 /// Physical copies of a title (FRS 11.1 "view physical copies"), .
 class BookCopiesSection extends StatefulWidget {
@@ -104,7 +105,7 @@ class _BookCopiesSectionState extends State<BookCopiesSection> {
               label: 'Status',
               sortable: true,
               comparator: (copy) => copy.status,
-              cellBuilder: (context, copy) => Text(humanizeStatus(copy.status)),
+              cellBuilder: (context, copy) => LibraryStatusChip(copy.status),
             ),
           ],
           onRowTap: (copy) async {

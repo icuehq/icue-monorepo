@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:school_library/school_library.dart';
+import 'package:school_library/src/ui/shared/library_status_chip.dart';
+import 'package:school_library/src/ui/shared/member_details.dart';
 
 class FineCard extends StatelessWidget {
   const FineCard({super.key, required this.fine, required this.onTap});
@@ -78,34 +80,16 @@ class FineCard extends StatelessWidget {
                         Row(
                           children: [
                             Text(
-                              fine.id,
+                              fine.bookTitle ??
+                                  fine.barcode ??
+                                  fineTypeLabel(fine.type),
                               style: theme.textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.w700,
                                 fontSize: 15,
                               ),
                             ),
                             const Spacer(),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 3,
-                              ),
-                              decoration: BoxDecoration(
-                                color: statusBackground,
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(
-                                  color: statusColor.withValues(alpha: 0.3),
-                                ),
-                              ),
-                              child: Text(
-                                humanizeStatus(fine.status),
-                                style: TextStyle(
-                                  color: statusColor,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
+                            LibraryStatusChip(fine.status),
                           ],
                         ),
                         const SizedBox(height: 4),
@@ -136,6 +120,12 @@ class FineCard extends StatelessWidget {
                   ),
                 ],
               ),
+              MemberDetailsLine(
+                classId: fine.memberClassId,
+                section: fine.memberSection,
+                admissionNumber: fine.admissionNumber,
+                date: fine.createdAt?.toLocal().toNumericDate(),
+              ),
               const SizedBox(height: 12),
               const Divider(height: 1),
               const SizedBox(height: 10),
@@ -146,6 +136,7 @@ class FineCard extends StatelessWidget {
                     Icons.category_outlined,
                     fineTypeLabel(fine.type),
                   ),
+
                   if (fine.barcode != null && fine.barcode!.isNotEmpty) ...[
                     const SizedBox(width: 6),
                     _metaPill(context, Icons.qr_code_2_rounded, fine.barcode!),

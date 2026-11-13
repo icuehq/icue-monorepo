@@ -120,7 +120,7 @@ class EmbeddingProvider extends ChangeNotifier {
         192,
         (_) => (random.nextDouble() * 2) - 1.0,
       );
-      final double sqNorm = mockRaw.fold(0.0, (sum, e) => sum + e * e);
+      final double sqNorm = mockRaw.fold(0.0, (s, e) => s + e * e);
       final double norm = sqrt(max(sqNorm, 1e-12));
       final List<double> mockEmbedding = mockRaw.map((e) => e / norm).toList();
 

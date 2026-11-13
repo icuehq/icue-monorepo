@@ -79,19 +79,15 @@ class _LibraryScanListenerState extends State<LibraryScanListener> {
       final copy = await libraryProvider.findCopy(code);
       if (!mounted) return;
       if (copy == null) {
-        await showDialog<void>(
-          context: context,
-          builder: (dialogContext) => AlertDialog(
-            icon: const Icon(Icons.error_outline_rounded),
-            title: const Text('Invalid barcode'),
-            content: Text('No book copy found for "$code".'),
-            actions: [
-              IcueButton(
-                autofocus: true,
-                label: 'OK',
-                onPressed: () => Navigator.of(dialogContext).pop(),
-              ),
-            ],
+        await IcueDialog.show<void>(
+          context,
+          title: 'Invalid barcode',
+          description: 'No book copy found for "$code".',
+          icon: Icons.error_outline_rounded,
+          size: IcueDialogSize.small,
+          primaryAction: IcueDialogAction(
+            label: 'OK',
+            onPressed: () => Navigator.of(context, rootNavigator: true).pop(),
           ),
         );
         return;

@@ -183,6 +183,9 @@ models:
         memberType: string?
         personErpId: int?
         memberName: string?
+        memberClassId: int?
+        memberSection: string?
+        admissionNumber: string?
         loanId: string?
         severity: string?
         description: string?

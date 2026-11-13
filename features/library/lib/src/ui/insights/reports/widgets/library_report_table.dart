@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
+import 'package:school_library/src/ui/shared/library_status_chip.dart';
 
 /// Report records with status badges and a totals strip for summed columns.
 /// Summary reports use an [IcueClientTable] (sort and search their computed rows);
@@ -37,6 +38,9 @@ class LibraryReportTable extends StatelessWidget {
   final int? count;
   final VoidCallback? onRetry;
 
+  /// Name-like columns that need room; the rest stay compact.
+  static const _wide = {'member', 'title'};
+
   static Widget _badge(
     String label,
     Color background,
@@ -50,40 +54,38 @@ class LibraryReportTable extends StatelessWidget {
     bordered: false,
   );
 
-  static Widget _status(BuildContext context, String status) {
-    final scheme = Theme.of(context).colorScheme;
-    final lower = status.toLowerCase().trim();
-    final label = humanizeStatus(lower);
-    return switch (lower) {
-      'active' => _badge(
-        label,
-        scheme.primaryContainer.withValues(alpha: 0.55),
-        scheme.primary,
-        icon: Icons.sync_rounded,
-      ),
-      'returned' => _badge(
-        label,
-        Colors.green.withValues(alpha: 0.15),
-        Colors.green.shade800,
-        icon: Icons.check_circle_outline_rounded,
-      ),
-      'lost' => _badge(
-        label,
-        scheme.errorContainer.withValues(alpha: 0.6),
-        scheme.error,
-        icon: Icons.cancel_outlined,
-      ),
-      _ => _badge(
-        label,
-        scheme.surfaceContainerHighest,
-        scheme.onSurfaceVariant,
-        icon: Icons.info_outline,
-      ),
-    };
+  static Widget _status(String status) =>
+      LibraryStatusChip(status.toLowerCase().trim());
+
+  /// Bold name and the class/section as a small pill (students).
+  Widget _member(BuildContext context, String name, String? classLabel) {
+    final tokens = IcueTableStyle.of(context);
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              IcueTableCellText(name, style: tokens.primary),
+              if (classLabel != null) ...[
+                const SizedBox(height: 4),
+                _badge(
+                  classLabel,
+                  tokens.scheme.surfaceContainerHighest,
+                  tokens.inkMuted,
+                  icon: Icons.school_outlined,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _cell(BuildContext context, String cell, String headerName) {
-    if (headerName == 'status') return _status(context, cell);
+    if (headerName == 'status') return _status(cell);
     if (headerName == 'overdue' && (int.tryParse(cell) ?? 0) > 0) {
       final scheme = Theme.of(context).colorScheme;
       return Align(
@@ -95,10 +97,18 @@ class LibraryReportTable extends StatelessWidget {
         ),
       );
     }
+    if (headerName == 'member') {
+      final lines = cell.split('\n');
+      return _member(
+        context,
+        lines.first,
+        lines.length > 1 ? lines.last : null,
+      );
+    }
     final tokens = IcueTableStyle.of(context);
     return IcueTableCellText(
-      cell,
-      style: headerName == 'member' ? tokens.primary : tokens.secondary,
+      cell.isEmpty ? '—' : cell,
+      style: tokens.secondary,
     );
   }
 
@@ -119,6 +129,12 @@ class LibraryReportTable extends StatelessWidget {
             id: '$index',
             label: header[index],
             sortable: pagination == null,
+            flex: _wide.contains(headerName) ? 2.5 : 1,
+            minWidth: _wide.contains(headerName)
+                ? 200
+                : numeric
+                ? 90
+                : 120,
             alignment: numeric ? Alignment.centerRight : Alignment.centerLeft,
             comparator: (row) => allNumbers
                 ? double.parse(row[index])

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart' show DateTimeRange;
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icue_ui/icue_ui.dart';
@@ -164,6 +166,7 @@ class LibraryService {
   Future<Query<Map<String, dynamic>>> membersQuery({
     String? memberType,
     bool? blocked,
+    bool onLoan = false,
     String search = '',
   }) async {
     Query<Map<String, dynamic>> query = await branchCollection(
@@ -176,6 +179,11 @@ class LibraryService {
         query = query.where('memberType', isEqualTo: memberType);
       }
       if (blocked != null) query = query.where('blocked', isEqualTo: blocked);
+      if (onLoan) {
+        query = query
+            .where('activeLoans', isGreaterThan: 0)
+            .orderBy('activeLoans');
+      }
     }
     return query.orderBy('personErpId');
   }
@@ -359,7 +367,16 @@ class LibraryService {
   Stream<Map<String, num?>> dashboard({SchoolLibrary? library}) async* {
     final summary = (await branchCollection(Collections.libraryStats))
         .doc('overall');
+    var requested = false;
     await for (final snapshot in summary.snapshots()) {
+      // Never built (nothing has triggered an update yet): build it once so the cards fill in.
+      if (!snapshot.exists && !requested) {
+        requested = true;
+        unawaited(
+          callFunction('library-stats-rebuild')
+              .then<void>((_) {}, onError: (_) {}),
+        );
+      }
       yield _figures(snapshot.data(), library);
     }
   }
@@ -516,6 +533,9 @@ class LibraryService {
         () => {
           'personErpId': loan['personErpId'],
           'memberName': loan['memberName'],
+          'admissionNumber': loan['admissionNumber'],
+          'memberClassId': loan['memberClassId'],
+          'memberSection': loan['memberSection'],
           'issued': 0,
           'returned': 0,
           'active': 0,

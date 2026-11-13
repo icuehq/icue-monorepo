@@ -3,6 +3,7 @@ import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
+import 'package:school_library/src/ui/shared/library_status_chip.dart';
 
 /// Details of a scanned copy with the actions that apply:
 /// Issue Book (when available), or Return / Renew Book (when on loan).
@@ -153,22 +154,11 @@ class _BookScanDialogState extends State<BookScanDialog> {
                         avatar: const Icon(Icons.qr_code_2_rounded, size: 18),
                         label: Text(widget.copy.barcode),
                       ),
-                      Chip(
-                        visualDensity: VisualDensity.compact,
-                        side: BorderSide.none,
-                        backgroundColor: statusColor.withValues(alpha: 0.14),
-                        avatar: Icon(
-                          Icons.circle,
-                          size: 10,
-                          color: statusColor,
-                        ),
-                        label: Text(
-                          statusLabel,
-                          style: TextStyle(
-                            color: statusColor,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                      LibraryStatusChip(
+                        onLoan
+                            ? (overdue > 0 ? 'overdue' : 'issued')
+                            : widget.copy.status,
+                        label: statusLabel,
                       ),
                     ],
                   ),

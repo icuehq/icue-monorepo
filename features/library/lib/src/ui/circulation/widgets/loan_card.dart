@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
+import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 
 class LoanCard extends StatelessWidget {
@@ -154,6 +155,21 @@ class LoanCard extends StatelessWidget {
                 spacing: 8,
                 runSpacing: 6,
                 children: [
+                  if (loan.memberClassId != null)
+                    _metaPill(
+                      context,
+                      Icons.class_outlined,
+                      context.watch<LibraryProvider>().classLabel(
+                        loan.memberClassId,
+                        loan.memberSection,
+                      ),
+                    ),
+                  if (loan.admissionNumber?.isNotEmpty ?? false)
+                    _metaPill(
+                      context,
+                      Icons.badge_outlined,
+                      'Adm. ${loan.admissionNumber}',
+                    ),
                   _metaPill(
                     context,
                     Icons.calendar_today_outlined,

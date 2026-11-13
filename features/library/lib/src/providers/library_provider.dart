@@ -51,13 +51,17 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   /// True for blocked members, false for those who can borrow, null for both.
   bool? memberBlocked;
 
+  /// Only members with books out.
+  bool memberOnLoan = false;
+
   /// Exact ERP ID; overrides the other filters.
   String memberSearch = '';
 
   bool get membersFiltered =>
       memberSearch.isNotEmpty ||
       memberKind != MemberKind.all ||
-      memberBlocked != null;
+      memberBlocked != null ||
+      memberOnLoan;
 
   /// Issued Books: active loans, earliest due first, filtered in Firestore by the fields below.
   late final loans = _pager<LibraryLoan>();
@@ -169,6 +173,14 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
       standards.where((standard) => standard.id == id).firstOrNull?.name ??
       'Class $id';
 
+  /// Class and section as shown in lists, e.g. `Class 5 A`; `-` for staff.
+  String classLabel(int? classId, String? section) => classId == null
+      ? '-'
+      : [
+          className(classId),
+          if (section != null && section.isNotEmpty) section,
+        ].join(' ');
+
   List<LibraryCategory> get topCategories =>
       categories.where((category) => category.parentId == null).toList();
 
@@ -236,6 +248,7 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
       await _service.membersQuery(
         memberType: memberKind.memberType,
         blocked: memberBlocked,
+        onLoan: memberOnLoan,
         search: memberSearch,
       ),
       (document) => LibraryMember.fromMap(document.id, document.data()!),
@@ -246,6 +259,7 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   Future<void> clearMemberFilters() {
     memberKind = MemberKind.all;
     memberBlocked = null;
+    memberOnLoan = false;
     memberSearch = '';
     return loadMembers();
   }
@@ -581,25 +595,6 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
       reference: reference,
     ),
     reload: loadFines,
-  );
-
-  Future<bool> reportIncident({
-    required String barcode,
-    required String type,
-    required String severity,
-    required double charge,
-    int? personErpId,
-    String? description,
-  }) => _write(
-    () => _loanWrites.reportIncident(
-      barcode: barcode,
-      type: type,
-      personErpId: personErpId,
-      severity: severity,
-      description: description,
-      charge: charge,
-    ),
-    reload: loadIncidents,
   );
 
   Future<bool> resolveIncident({

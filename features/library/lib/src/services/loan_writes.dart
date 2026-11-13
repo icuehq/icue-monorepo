@@ -146,6 +146,9 @@ class LoanWrites {
     'memberType': member?['memberType'],
     'personErpId': member?['personErpId'],
     'memberName': member?['name'],
+    'memberClassId': member?['classId'],
+    'memberSection': member?['section'],
+    'admissionNumber': member?['admissionNumber'],
     'loanId': ?loanId,
     'severity': severity,
     'description': description,
@@ -228,6 +231,10 @@ class LoanWrites {
     }
     final loanReference = (await branchCollection('libraryLoans')).doc();
     final memberReference = await _memberReference(personErpId);
+    // Checked before the transaction: an error thrown inside one reaches the web UI as an opaque "Dart exception".
+    if ((await memberReference.get()).data()?['blocked'] == true) {
+      writeFail('This member is blocked and cannot borrow books');
+    }
     await FirebaseFirestore.instance.runTransaction((transaction) async {
       final member = (await transaction.get(memberReference)).data();
       final copy = (await transaction.get(copyReference)).data();
@@ -651,109 +658,6 @@ class LoanWrites {
     );
   }
 
-  /// Reports a lost or damaged copy that is on the shelf (not on loan). A member held responsible
-  /// ([personErpId]) with a [charge] is fined and blocked. The copy leaves circulation.
-  Future<void> reportIncident({
-    required String barcode,
-    required String type,
-    int? personErpId,
-    String severity = 'moderate',
-    String? description,
-    double charge = 0,
-  }) async {
-    if (type != 'lost' && type != 'damaged') writeFail('Invalid incident type');
-    if (!const ['minor', 'moderate', 'severe'].contains(severity)) {
-      writeFail('Invalid severity');
-    }
-    if (charge < 0) writeFail('Charge cannot be negative');
-    final copyReference = await schoolDocument('libraryCopies', barcode);
-    final open = await (await branchCollection('libraryIncidents'))
-        .where('barcode', isEqualTo: barcode)
-        .where('status', isEqualTo: 'open')
-        .limit(1)
-        .get();
-    if (open.docs.isNotEmpty) writeFail('Copy already has an open incident');
-    final memberReference = personErpId == null
-        ? null
-        : await _memberReference(personErpId);
-    final fined = personErpId != null && charge > 0;
-    final incidentReference = (await branchCollection('libraryIncidents'))
-        .doc();
-    await FirebaseFirestore.instance.runTransaction((transaction) async {
-      final copy = (await transaction.get(copyReference)).data();
-      if (copy == null) writeFail('Copy not found', 'not-found');
-      if (terminalCopyStatuses.contains(copy['status'])) {
-        writeFail('Copy is already ${copy['status']}');
-      }
-      if (copy['activeLoanId'] != null) {
-        writeFail('Copy is on loan; use Mark lost / return as damaged first');
-      }
-      final member = memberReference == null
-          ? null
-          : (await transaction.get(memberReference)).data();
-      if (memberReference != null && member == null) {
-        writeFail('Member not found', 'not-found');
-      }
-      final title =
-          (await transaction.get(
-                await schoolDocument(
-                  'libraryCatalogue',
-                  copy['catalogueId'] as String,
-                ),
-              )).data()?['title']
-              as String?;
-      transaction
-        ..set(
-          incidentReference,
-          _newIncident(
-            type: type,
-            copy: copy,
-            barcode: barcode,
-            bookTitle: title,
-            member: member,
-            loanId: null,
-            severity: type == 'damaged' ? severity : null,
-            description: description,
-            charge: charge,
-            repairStatus: type == 'damaged' ? 'none' : null,
-            extra: {'lastWrite': writeStamp('libraryIncident.report')},
-          ),
-        )
-        ..update(copyReference, {
-          'status': type == 'lost' ? CopyStatus.lost : CopyStatus.damaged,
-          'activeLoanId': null,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-      if (fined && member != null) {
-        transaction
-          ..set(
-            await schoolDocument(
-              'libraryFines',
-              'inc_${incidentReference.id}__$type',
-            ),
-            _newFine(
-              type: type,
-              amount: charge,
-              member: member,
-              loan: copy,
-              bookTitle: title,
-              loanId: null,
-              incidentId: incidentReference.id,
-              calculation: {
-                'type': type,
-                'severity': severity,
-                'charge': charge,
-              },
-            ),
-          )
-          ..update(memberReference!, {
-            ..._fineBlock(member),
-            'updatedAt': FieldValue.serverTimestamp(),
-          });
-      }
-    });
-  }
-
   /// Resolves an open incident. Repaired or dismissed copies go back to the shelf (a dismissed lost copy's fine is waived); written-off, replaced and paid-for lost copies are withdrawn. A higher [charge] fines the
   /// difference.
   Future<void> resolveIncident({
@@ -774,6 +678,12 @@ class LoanWrites {
     final incidentReference = await schoolDocument('libraryIncidents', id);
     final earlier = (await incidentReference.get()).data();
     if (earlier == null) writeFail('Incident not found', 'not-found');
+    if (earlier['status'] != 'open') {
+      writeFail('Incident is already ${earlier['status']}');
+    }
+    if (resolution == 'repaired' && earlier['type'] != 'damaged') {
+      writeFail('Only a damaged copy can be repaired');
+    }
     final earlierCharge = (earlier['charge'] as num? ?? 0).toDouble();
     final newCharge = charge ?? earlierCharge;
     if (newCharge < earlierCharge) {

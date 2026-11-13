@@ -3,7 +3,11 @@ import 'package:icue_firebase/icue_firebase.dart';
 import 'package:school_library/school_library.dart';
 
 void main() {
-  const names = LibraryNames(title: _name, library: _name);
+  final names = LibraryNames(
+    title: _name,
+    library: _name,
+    classLabel: (classId, section) => 'Class $classId',
+  );
   String cells(String key, Map<String, dynamic> row) => libraryReports
       .firstWhere((reportDef) => reportDef.key == key)
       .cols
@@ -26,32 +30,37 @@ void main() {
     );
   });
 
-  test('member row shows name with ERP ID and the counts', () {
+  test('member row shows name, class (section), admission and counts', () {
     expect(
       cells('student', {
         'memberName': 'Asha',
         'personErpId': 501,
+        'memberClassId': 5,
+        'memberSection': 'A',
+        'admissionNumber': '1234',
         'issued': 3,
         'returned': 2,
         'active': 1,
         'overdue': 1,
       }),
-      'Asha (#501)|3|2|1|1',
+      'Asha\nClass 5 (A)|1234|3|2|1|1',
     );
+  });
+
+  test('staff row has no class and falls back to the ERP ID', () {
+    expect(cells('staff', {'personErpId': 77, 'issued': 1}), '#77||1|0|0|0');
   });
 
   test('loan row shows names for IDs and the days', () {
     final row = cells('dateRange', {
-      'id': 'loan1',
       'memberName': 'Asha',
       'personErpId': 501,
       'catalogueId': 'T',
-      'barcode': 'B1',
       'libraryId': 'L',
       'issuedDate': dayTimestamp('2026-11-01'),
       'status': 'active',
     });
-    expect(row, 'loan1|Asha (#501)|name:T|B1|name:L|01/11/2026|||active');
+    expect(row, 'Asha||name:T|name:L|01/11/2026|||active');
   });
 }
 

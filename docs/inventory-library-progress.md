@@ -421,7 +421,7 @@ Functions (`firebase/functions/src/library/fines.ts`, `incidents.ts`, `loans.ts`
 
 - [x] Fine waive, now `LoanWrites.waiveFine` (waives partial or full fine; unblocks member when balance is settled; `library.fines.waive`)
 - [x] Fine payment, now `LoanWrites.recordFinePayment` (records fine payment reference; unblocks member when balance is settled; `library.circulation.operate`)
-- [x] Incident report, now `LoanWrites.reportIncident` (reports lost or damaged copy; updates copy status; assesses penalty/fine if member responsible; `library.circulation.operate`)
+- [x] Incidents are created only from a loan (mark lost, return as damaged); the standalone shelf report form and `reportIncident` were removed
 - [x] Incident resolve, now `LoanWrites.resolveIncident` (resolves incident: repaired releases copy to shelf/reservation queue, replaced, written off marks withdrawn; assesses charge; `library.circulation.operate`)
 - [x] Mark lost, now `LoanWrites.markLost` (marks loan and copy lost, assesses replacement charge, blocks member, creates incident; `library.circulation.operate`)
 - [x] Overdue fine and damaged incident integrated into `loanReturn` (calculates overdue fine per loan snapshot policy, creates fine doc, blocks member; damaged return creates open incident)

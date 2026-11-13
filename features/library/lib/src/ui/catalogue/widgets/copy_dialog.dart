@@ -4,6 +4,7 @@ import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/catalogue/widgets/copy_labels.dart';
+import 'package:school_library/src/ui/shared/library_status_chip.dart';
 
 /// One copy: details, label, and (for librarians) shelf / condition edit and status.
 class CopyDialog extends StatefulWidget {
@@ -65,28 +66,6 @@ class _CopyDialogState extends State<CopyDialog> {
     _ => 'Status cannot be changed manually',
   };
 
-  (Color, Color) _statusColors(ThemeData theme, String status) {
-    return switch (status) {
-      CopyStatus.available => (
-        Colors.green.shade700,
-        Colors.green.withValues(alpha: 0.12),
-      ),
-      CopyStatus.issued => (
-        theme.colorScheme.primary,
-        theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
-      ),
-      CopyStatus.underMaintenance => (
-        Colors.blue.shade700,
-        Colors.blue.withValues(alpha: 0.12),
-      ),
-      CopyStatus.lost || CopyStatus.damaged || CopyStatus.withdrawn => (
-        theme.colorScheme.error,
-        theme.colorScheme.errorContainer.withValues(alpha: 0.4),
-      ),
-      _ => (Colors.grey.shade700, Colors.grey.withValues(alpha: 0.12)),
-    };
-  }
-
   Future<void> _run(Future<bool> Function() action) async {
     setState(() => _busy = true);
     final libraryProvider = context.read<LibraryProvider>();
@@ -144,15 +123,6 @@ class _CopyDialogState extends State<CopyDialog> {
     });
   }
 
-  Widget _statusPill(ThemeData theme, String status) {
-    final (color, background) = _statusColors(theme, status);
-    return IcueStatusPill(
-      label: humanizeStatus(status),
-      color: color,
-      background: background,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final libraryProvider = context.read<LibraryProvider>();
@@ -202,7 +172,7 @@ class _CopyDialogState extends State<CopyDialog> {
                           ),
                         ],
                       ),
-                      _statusPill(theme, copy.status),
+                      LibraryStatusChip(copy.status),
                     ],
                   ),
                 ],

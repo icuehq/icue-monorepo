@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
+import 'package:school_library/src/ui/shared/library_status_chip.dart';
 
 /// Wide-screen fines as an [IcueTable]. Search and every filter are Firestore
 /// queries (the provider reloads); pages come from its pager.
@@ -95,11 +96,10 @@ class FinesTable extends StatelessWidget {
           label: 'Class',
           hideBelowWidth: 900,
           cellBuilder: (context, fine) => IcueTableCellText(
-            fine.memberClassId == null
-                ? '-'
-                : context.watch<LibraryProvider>().className(
-                    fine.memberClassId!,
-                  ),
+            context.watch<LibraryProvider>().classLabel(
+              fine.memberClassId,
+              null,
+            ),
             style: IcueTableStyle.of(context).secondary,
           ),
         ),
@@ -131,6 +131,15 @@ class FinesTable extends StatelessWidget {
               IcueTableCellText(fineTypeLabel(fine.type)),
         ),
         IcueTableColumn(
+          id: 'date',
+          label: 'Date',
+          hideBelowWidth: 900,
+          cellBuilder: (context, fine) => IcueTableCellText(
+            fine.createdAt?.toLocal().toNumericDate() ?? '-',
+            style: IcueTableStyle.of(context).secondary,
+          ),
+        ),
+        IcueTableColumn(
           id: 'amount',
           label: 'Total',
           cellBuilder: (context, fine) =>
@@ -154,8 +163,7 @@ class FinesTable extends StatelessWidget {
           id: 'status',
           label: 'Status',
           width: 130,
-          cellBuilder: (context, fine) =>
-              IcueTableCellText(humanizeStatus(fine.status)),
+          cellBuilder: (context, fine) => LibraryStatusChip(fine.status),
         ),
       ],
     );

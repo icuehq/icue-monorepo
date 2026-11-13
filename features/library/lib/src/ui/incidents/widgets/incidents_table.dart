@@ -2,18 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
+import 'package:school_library/src/ui/shared/library_status_chip.dart';
 
 /// Wide-screen lost and damaged incidents as an [IcueTable]. Search and every
 /// filter are Firestore queries (the provider reloads); pages come from its pager.
 class IncidentsTable extends StatelessWidget {
-  const IncidentsTable({
-    required this.onOpen,
-    required this.onReport,
-    super.key,
-  });
+  const IncidentsTable({required this.onOpen, super.key});
 
   final void Function(LibraryIncident incident) onOpen;
-  final VoidCallback onReport;
 
   @override
   Widget build(BuildContext context) {
@@ -69,20 +65,15 @@ class IncidentsTable extends StatelessWidget {
       ],
       isFiltered: provider.incidentsFiltered,
       onClearFilters: provider.clearIncidentFilters,
-      primaryAction: IcueTableAction(
-        label: 'Report incident',
-        icon: Icons.report_problem_outlined,
-        onPressed: onReport,
-      ),
       emptyTitle: 'No incidents',
       emptyMessage: 'Lost and damaged copies will appear here.',
       columns: [
         IcueTableColumn(
-          id: 'copy',
-          label: 'Copy',
+          id: 'book',
+          label: 'Book Title',
           flex: 2,
           cellBuilder: (context, incident) =>
-              IcueTableCellText(incident.barcode),
+              IcueTableCellText(incident.bookTitle ?? incident.barcode),
         ),
         IcueTableColumn(
           id: 'member',
@@ -94,11 +85,21 @@ class IncidentsTable extends StatelessWidget {
           ),
         ),
         IcueTableColumn(
-          id: 'number',
-          label: 'Incident #',
+          id: 'class',
+          label: 'Class',
           hideBelowWidth: 900,
           cellBuilder: (context, incident) => IcueTableCellText(
-            incident.id,
+            provider.classLabel(incident.memberClassId, incident.memberSection),
+            style: IcueTableStyle.of(context).secondary,
+          ),
+        ),
+        IcueTableColumn(
+          id: 'admission',
+          label: 'Admission Number',
+          flex: 2,
+          hideBelowWidth: 900,
+          cellBuilder: (context, incident) => IcueTableCellText(
+            incident.admissionNumber ?? '-',
             style: IcueTableStyle.of(context).secondary,
           ),
         ),
@@ -133,7 +134,7 @@ class IncidentsTable extends StatelessWidget {
           label: 'Status',
           width: 110,
           cellBuilder: (context, incident) =>
-              IcueTableCellText(humanizeStatus(incident.status)),
+              LibraryStatusChip(incident.status),
         ),
       ],
     );

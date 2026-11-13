@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:school_library/school_library.dart';
+import 'package:school_library/src/ui/shared/library_status_chip.dart';
 
 /// One copy scan attempt in the current session.
 class IssueScanRecord {
@@ -46,8 +47,6 @@ class IssueScanItemCard extends StatelessWidget {
     final Color iconColor;
     final IconData statusIcon;
     final String statusLabel;
-    final Color statusTextColor;
-    final Color statusBackgroundColor;
 
     if (isPending) {
       borderColor = colorScheme.tertiary.withValues(alpha: 0.4);
@@ -56,8 +55,6 @@ class IssueScanItemCard extends StatelessWidget {
       iconColor = colorScheme.onTertiaryContainer;
       statusIcon = Icons.hourglass_top_rounded;
       statusLabel = 'Ready to issue';
-      statusTextColor = colorScheme.onTertiaryContainer;
-      statusBackgroundColor = colorScheme.tertiaryContainer;
     } else if (isSuccess) {
       borderColor = Colors.green.withValues(alpha: 0.3);
       backgroundColor = Colors.green.withValues(alpha: 0.04);
@@ -65,8 +62,6 @@ class IssueScanItemCard extends StatelessWidget {
       iconColor = Colors.green.shade700;
       statusIcon = Icons.check_circle_rounded;
       statusLabel = 'Issued';
-      statusTextColor = Colors.green.shade800;
-      statusBackgroundColor = Colors.green.withValues(alpha: 0.15);
     } else {
       borderColor = colorScheme.error.withValues(alpha: 0.3);
       backgroundColor = colorScheme.error.withValues(alpha: 0.04);
@@ -74,8 +69,6 @@ class IssueScanItemCard extends StatelessWidget {
       iconColor = colorScheme.error;
       statusIcon = Icons.error_outline_rounded;
       statusLabel = 'Failed';
-      statusTextColor = colorScheme.onErrorContainer;
-      statusBackgroundColor = colorScheme.errorContainer;
     }
 
     return Card(
@@ -181,23 +174,11 @@ class IssueScanItemCard extends StatelessWidget {
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: statusBackgroundColor,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        statusLabel,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: statusTextColor,
-                        ),
-                      ),
+                    LibraryStatusChip(
+                      isPending
+                          ? 'ready'
+                          : (isSuccess ? 'available' : 'failed'),
+                      label: statusLabel,
                     ),
                     if (isPending && onRemove != null) ...[
                       const SizedBox(width: 4),

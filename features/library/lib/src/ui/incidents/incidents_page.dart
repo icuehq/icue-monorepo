@@ -5,7 +5,6 @@ import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/incidents/widgets/incident_card.dart';
 import 'package:school_library/src/ui/incidents/widgets/incident_dialog.dart';
 import 'package:school_library/src/ui/incidents/widgets/incident_empty_states.dart';
-import 'package:school_library/src/ui/incidents/widgets/incident_report_dialog.dart';
 import 'package:school_library/src/ui/incidents/widgets/incidents_table.dart';
 
 /// Manage lost and damaged book incidents (FRS 11.14).
@@ -59,13 +58,6 @@ class _IncidentsPageState extends State<IncidentsPage> {
     }
   }
 
-  Future<void> _openReportIncident() async {
-    await IncidentReportDialog.show(context);
-    if (mounted) {
-      await context.read<LibraryProvider>().loadIncidents();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final libraryProvider = context.watch<LibraryProvider>();
@@ -74,20 +66,10 @@ class _IncidentsPageState extends State<IncidentsPage> {
     final status = libraryProvider.incidentStatus ?? 'all';
     return Scaffold(
       appBar: AppBar(title: const Text('Lost & Damaged')),
-      floatingActionButton: context.isWide
-          ? null
-          : FloatingActionButton.extended(
-              onPressed: _openReportIncident,
-              icon: const Icon(Icons.report_problem_outlined),
-              label: const Text('Report incident'),
-            ),
       body: context.isWide
           ? Padding(
               padding: const EdgeInsets.all(16),
-              child: IncidentsTable(
-                onOpen: _open,
-                onReport: _openReportIncident,
-              ),
+              child: IncidentsTable(onOpen: _open),
             )
           : IcueCenteredBody(
               child: Column(
@@ -163,10 +145,7 @@ class _IncidentsPageState extends State<IncidentsPage> {
                                   searchQuery: libraryProvider.incidentSearch,
                                   onClear: _clearFilters,
                                 )
-                              : IncidentInitialEmptyState(
-                                  status: status,
-                                  onReport: _openReportIncident,
-                                ))
+                              : IncidentInitialEmptyState(status: status))
                         : RefreshIndicator(
                             onRefresh: libraryProvider.loadIncidents,
                             child: IcueAdaptiveCardList(

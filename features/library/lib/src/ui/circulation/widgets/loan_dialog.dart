@@ -5,6 +5,7 @@ import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/circulation/widgets/loan_details_card.dart';
 import 'package:school_library/src/ui/circulation/widgets/mark_lost_dialog.dart';
 import 'package:school_library/src/ui/fines/widgets/fine_dialog.dart';
+import 'package:school_library/src/ui/shared/library_status_chip.dart';
 
 /// One active loan: return the book or mark it as lost (FRS 11.10–11.11).
 class LoanDialog extends StatefulWidget {
@@ -263,23 +264,17 @@ class _LoanDialogState extends State<LoanDialog> {
     required int daysUntilDue,
   }) {
     if (isOverdue) {
-      return IcueStatusPill(
+      return LibraryStatusChip(
+        'overdue',
         label: 'Overdue by $overdueDays day${overdueDays == 1 ? '' : 's'}',
-        color: colors.error,
-        icon: Icons.warning_amber_rounded,
       );
     }
     if (isDueToday) {
-      return IcueStatusPill(
-        label: 'Due today',
-        color: Colors.amber.shade900,
-        icon: Icons.schedule_rounded,
-      );
+      return const LibraryStatusChip('due_today', label: 'Due today');
     }
-    return IcueStatusPill(
+    return LibraryStatusChip(
+      'on_time',
       label: 'Due in $daysUntilDue day${daysUntilDue == 1 ? '' : 's'}',
-      color: Colors.green.shade700,
-      icon: Icons.check_circle_outline_rounded,
     );
   }
 

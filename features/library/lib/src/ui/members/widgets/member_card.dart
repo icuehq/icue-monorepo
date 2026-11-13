@@ -116,7 +116,7 @@ class MemberCard extends StatelessWidget {
                                 ),
                               ),
                               child: Text(
-                                'Can borrow',
+                                'Active',
                                 style: TextStyle(
                                   color: Colors.green.shade700,
                                   fontSize: 12,
@@ -128,7 +128,9 @@ class MemberCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'ERP ID: ${member.personErpId}',
+                        member.admissionNumber?.isNotEmpty ?? false
+                            ? 'Adm. ${member.admissionNumber}'
+                            : 'ERP ID: ${member.personErpId}',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
@@ -147,7 +149,10 @@ class MemberCard extends StatelessWidget {
                   _metaPill(
                     context,
                     Icons.class_outlined,
-                    context.watch<LibraryProvider>().className(member.classId!),
+                    context.watch<LibraryProvider>().classLabel(
+                      member.classId,
+                      member.section,
+                    ),
                   ),
                   const SizedBox(width: 6),
                 ],

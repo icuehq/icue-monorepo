@@ -4,6 +4,7 @@ import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/catalogue/widgets/catalogue_filter_header.dart';
+import 'package:school_library/src/ui/shared/library_status_chip.dart';
 
 /// Wide-screen catalogue: books as an [IcueTable]. Search, category and class
 /// and status are Firestore filters (the provider reloads); pages come from
@@ -196,10 +197,8 @@ class CatalogueTable extends StatelessWidget {
           id: 'status',
           label: 'Status',
           width: 110,
-          cellBuilder: (context, book) => IcueStatusPill(
-            label: book.active ? 'Active' : 'Inactive',
-            color: book.active ? Colors.green.shade700 : Colors.grey.shade700,
-          ),
+          cellBuilder: (context, book) =>
+              LibraryStatusChip.active(active: book.active),
         ),
       ],
     );

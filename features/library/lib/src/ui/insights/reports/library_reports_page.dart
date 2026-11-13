@@ -88,6 +88,7 @@ class _LibraryReportsPageState extends State<LibraryReportsPage> {
       final names = LibraryNames(
         title: library.titleName,
         library: library.libraryName,
+        classLabel: library.classLabel,
       );
       try {
         rows = [
@@ -122,6 +123,7 @@ class _LibraryReportsPageState extends State<LibraryReportsPage> {
     final names = LibraryNames(
       title: library.titleName,
       library: library.libraryName,
+      classLabel: library.classLabel,
     );
 
     final pager = library.reportLoans;

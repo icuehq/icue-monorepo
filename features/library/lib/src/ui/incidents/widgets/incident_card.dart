@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:school_library/school_library.dart';
+import 'package:school_library/src/ui/shared/library_status_chip.dart';
+import 'package:school_library/src/ui/shared/member_details.dart';
 
 class IncidentCard extends StatelessWidget {
   const IncidentCard({super.key, required this.incident, required this.onTap});
@@ -68,7 +70,7 @@ class IncidentCard extends StatelessWidget {
                         Row(
                           children: [
                             Text(
-                              incident.barcode,
+                              incident.bookTitle ?? incident.barcode,
                               style: theme.textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.w700,
                                 fontSize: 15,
@@ -94,27 +96,7 @@ class IncidentCard extends StatelessWidget {
                               ),
                             ),
                             const Spacer(),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 3,
-                              ),
-                              decoration: BoxDecoration(
-                                color: statusBackground,
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(
-                                  color: statusColor.withValues(alpha: 0.3),
-                                ),
-                              ),
-                              child: Text(
-                                humanizeStatus(incident.status),
-                                style: TextStyle(
-                                  color: statusColor,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
+                            LibraryStatusChip(incident.status),
                           ],
                         ),
                         const SizedBox(height: 4),
@@ -152,6 +134,11 @@ class IncidentCard extends StatelessWidget {
                     ),
                   ),
                 ],
+              ),
+              MemberDetailsLine(
+                classId: incident.memberClassId,
+                section: incident.memberSection,
+                admissionNumber: incident.admissionNumber,
               ),
               const SizedBox(height: 12),
               const Divider(height: 1),

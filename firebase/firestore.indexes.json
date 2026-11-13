@@ -823,6 +823,78 @@
           "order": "DESCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "libraryMembers",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "activeLoans",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "personErpId",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "libraryMembers",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "memberType",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "activeLoans",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "personErpId",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "libraryMembers",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "blocked",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "activeLoans",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "personErpId",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "libraryMembers",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "memberType",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "blocked",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "activeLoans",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "personErpId",
+          "order": "ASCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": [
