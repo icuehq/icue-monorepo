@@ -196,13 +196,17 @@ class LibraryService {
 
   /// Active loans by due date, narrowed by the Issued Books filters; page it with `FirestorePager`.
   Future<Query<Map<String, dynamic>>> activeLoansQuery({
+    SchoolLibrary? library,
     int? classId,
     String? section,
     DateTimeRange? issued,
     LoanDueFilter? due,
   }) async {
-    Query<Map<String, dynamic>> query = (await branchCollection('libraryLoans'))
-        .where('status', isEqualTo: 'active');
+    var query = _scoped(
+      (await branchCollection('libraryLoans'))
+          .where('status', isEqualTo: 'active'),
+      library: library,
+    );
     if (classId != null) {
       query = query.where('memberClassId', isEqualTo: classId);
     }
@@ -390,51 +394,15 @@ class LibraryService {
   }) =>
       library == null ? query : query.where('libraryId', isEqualTo: library.id);
 
-  /// Live dashboard figures for the branch (or one [library]), from the analytics summary the server keeps
-  /// (`libraryStats/overall`). Titles and borrowers belong to the branch, so a single library has no titles.
+  /// Live dashboard figures for the branch (or one [library]), from the analytics summary the audit triggers keep
+  /// (`libraryStats/overall`). A summary nothing has written yet reads as zeros.
   Stream<Map<String, num?>> dashboard({SchoolLibrary? library}) async* {
     final summary = (await branchCollection(Collections.libraryStats))
         .doc('overall');
-    var requested = false;
-    await for (final snapshot in summary.snapshots()) {
-      // Never built (nothing has triggered an update yet): build it once so the cards fill in.
-      if (!snapshot.exists && !requested) {
-        requested = true;
-        unawaited(
-          callFunction('library-stats-rebuild')
-              .then<void>((_) {}, onError: (_) {}),
-        );
-      }
-      yield _figures(snapshot.data(), library);
-    }
-  }
-
-  /// A summary not built yet reads as zeros, and fills in live once the server writes it.
-  Map<String, num?> _figures(
-    Map<String, dynamic>? summary,
-    SchoolLibrary? library,
-  ) {
-    final overall = summary ?? const <String, dynamic>{};
-    final figures = library == null
-        ? overall
-        : ((overall['libraries'] as Map<String, dynamic>?)?[library.id]
-                  as Map<String, dynamic>? ??
-              const {});
-    num figure(Map<String, dynamic> source, String key) =>
-        source[key] as num? ?? 0;
-    return {
-      'titles': library == null ? figure(overall, 'titles') : null,
-      'copies': figure(figures, 'copies'),
-      'available': figure(figures, 'available'),
-      'issued': figure(figures, 'issued'),
-      'lost': figure(figures, 'lost'),
-      'damaged': figure(figures, 'damaged'),
-      'overdue': figure(figures, 'overdue'),
-      'pending': figure(figures, 'activeLoans'),
-      'students': figure(overall, 'students'),
-      'teachers': figure(overall, 'teachers'),
-      'fines': figure(figures, 'outstandingFines'),
-    };
+    yield* summary.snapshots().map(
+      (snapshot) =>
+          overviewFigures(snapshot.data(), library?.id, today: todayIST()),
+    );
   }
 
   /// Titles by ID (for report cells).

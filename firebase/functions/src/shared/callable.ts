@@ -193,45 +193,6 @@ export function callable<S extends z.ZodType, R>(def: CallableDef<S, R>) {
   return onCall((request) => runCallable(def, request.auth, request.data));
 }
 
-export interface QueryDef<S extends z.ZodType, R> {
-  name: string;
-  permission?: Permission;
-  input: S;
-  handler: (branchPath: string, input: z.infer<S>) => Promise<R>;
-}
-
-/** Read-only callable pipeline: auth → permission → validation. No transaction, no request record. */
-export async function runQuery<S extends z.ZodType, R>(
-  def: QueryDef<S, R>,
-  auth: Auth,
-  data: unknown,
-): Promise<R> {
-  return logged(def.name, { uid: auth?.uid }, () => runQueryUnlogged(def, auth, data));
-}
-
-async function runQueryUnlogged<S extends z.ZodType, R>(
-  def: QueryDef<S, R>,
-  auth: Auth,
-  data: unknown,
-): Promise<R> {
-  const { uid, branchPath: branch } = signedInStaff(auth);
-  const access = (await getFirestore().doc(`${branch}/userAccess/${uid}`).get()).data() as
-    UserAccess | undefined;
-  if (!access)
-    throw new HttpsError(
-      'failed-precondition',
-      'Your session is still being set up. Please sign in again.',
-    );
-  requirePermission(def.permission, access);
-  const parsed = def.input.safeParse(data ?? {});
-  if (!parsed.success) throw invalidInput(parsed.error);
-  return def.handler(branch, parsed.data);
-}
-
-export function queryCallable<S extends z.ZodType, R>(def: QueryDef<S, R>) {
-  return onCall((request) => runQuery(def, request.auth, request.data));
-}
-
 /**
  * Nests `a.b.c` names into `{ a: { b: { c: fn } } }`; grouped exports deploy as
  * `a-b-c` (callable names cannot contain dots), so a callable's name is its route.

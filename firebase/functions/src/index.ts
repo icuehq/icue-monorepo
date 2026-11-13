@@ -4,9 +4,8 @@ import { assets, maintenance } from './inventory/assets';
 import { importRun } from './inventory/import';
 import { masters } from './inventory/masters';
 import { copies as libraryCopies } from './library/copies';
-import { rebuild as statsRebuild } from './library/stats';
 import { sync, token } from './session';
-import { type AnyCallableDef, callable, queryCallable, routes } from './shared/callable';
+import { type AnyCallableDef, callable, routes } from './shared/callable';
 
 initializeApp();
 
@@ -15,7 +14,6 @@ export { syncCatalogueSearch, syncIncidentSearch, syncLoanSearch } from './libra
 export { outboxSend } from './shared/outbox';
 export { dailyInventory } from './inventory/daily';
 export { dailyLibrary } from './library/daily';
-export { statsNightly as libraryStatsNightly } from './library/stats';
 export {
   auditLibraryCatalogue,
   auditLibraryCopies,
@@ -39,6 +37,5 @@ export const { session, inventory, library } = routes([
   ['session.sync', sync],
   ['session.token', token],
   ...mutations.map((def) => [def.name, callable(def)] as [string, unknown]),
-  [statsRebuild.name, queryCallable(statsRebuild)],
   ['inventory.import.run', importRun],
 ]);

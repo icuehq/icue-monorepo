@@ -1,30 +1,19 @@
-import {
-  AggregateField,
-  type DocumentData,
-  FieldValue,
-  getFirestore,
-  type Query,
-} from 'firebase-admin/firestore';
-import { onSchedule } from 'firebase-functions/v2/scheduler';
-import { z } from 'zod';
-import type { QueryDef } from '../shared/callable';
+import { type DocumentData, FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { CopyStatus, LoanStatus } from '../shared/contracts';
-import { dayTimestamp, todayIST } from '../shared/dates';
-import { schoolCollection } from '../shared/firestore';
-import { forEachBranch } from '../shared/scheduled';
+import { timestampDay, todayIST } from '../shared/dates';
 import type { Change } from './notices';
 
 /**
- * Library analytics summary. The dashboard reads two documents instead of counting every collection:
+ * Library analytics summary, kept only by the audit triggers (`audit.ts`); nothing recounts it later.
  *  - `libraryStats/overall`: current-state figures (LibraryStatsTotals) for the branch, and per library under `libraries`.
  *  - `libraryStats/day_yyyy-MM-dd`: that India-time day's flows (LibraryDailyTotals), same shape.
- * A month is the sum of its day documents (one range query on the document ID), so no monthly document exists.
+ * Overdue needs no job: active loans are counted by due date (`dueOn`) and the reader adds up the days before today.
+ * Books and borrowers per library are distinct counts, tracked on the catalogue (`holdings.{libraryId}`: copies there)
+ * and the member (`libraryIds`: libraries borrowed from).
  *
- * The audit trigger of each collection calls [recordStats] with the write's before/after, which adds the difference
- * with `increment`. A redelivered trigger would count twice and a loan turning overdue is no write at all, so the
- * nightly [rebuildStats] recounts the overall document from the data and corrects both.
- * ponytail: every copy write bumps one hot document (~1 write/s sustained), so a 200-copy import may lose a few
- * increments until the nightly rebuild; shard the document if imports must be exact at once.
+ * ponytail: triggers are at-least-once and not retried, so a rare redelivered event counts twice and a failed one
+ * is lost; key each event (a marker per event ID) if the figures must be exact. Every write also bumps one document
+ * (~1 write/s sustained), so a bulk copy import may fail a few; split per library if that becomes visible.
  */
 type Counts = Record<string, number>;
 
@@ -37,6 +26,22 @@ const COPY_STATUSES: string[] = [
 ];
 const OPEN_FINE = ['outstanding', 'partially_paid'];
 
+const bump = (counts: Counts, key: string, amount: number) => {
+  counts[key] = (counts[key] ?? 0) + amount;
+};
+
+/** `{'dueOn.2026-11-20': 1}` → `{dueOn: {'2026-11-20': increment(1)}}`, without the keys that netted to zero. */
+function increments(counts: Counts) {
+  const out: Record<string, unknown> = {};
+  for (const [key, amount] of Object.entries(counts)) {
+    if (!amount) continue;
+    const [field, nested] = key.split('.');
+    if (nested === undefined) out[field] = FieldValue.increment(amount);
+    else ((out[field] ??= {}) as Record<string, unknown>)[nested] = FieldValue.increment(amount);
+  }
+  return out;
+}
+
 /** Signed amounts to add, for the branch and for each library they belong to. */
 class Tally {
   branch: Counts = {};
@@ -44,35 +49,35 @@ class Tally {
 
   /** Adds [amount] to the branch and, when given, to the library. */
   add(key: string, amount: number, libraryId?: string) {
-    if (!amount) return;
-    this.branch[key] = (this.branch[key] ?? 0) + amount;
-    if (!libraryId) return;
-    const library = (this.libraries[libraryId] ??= {});
-    library[key] = (library[key] ?? 0) + amount;
+    bump(this.branch, key, amount);
+    if (libraryId) this.addLibrary(key, amount, libraryId);
+  }
+
+  /** Adds [amount] to one library only (figures whose branch total is counted elsewhere). */
+  addLibrary(key: string, amount: number, libraryId: string) {
+    bump((this.libraries[libraryId] ??= {}), key, amount);
   }
 
   get empty() {
-    return Object.keys(this.branch).length === 0;
+    return [this.branch, ...Object.values(this.libraries)].every((counts) =>
+      Object.values(counts).every((amount) => !amount),
+    );
   }
 
-  /** A merge-able document of `increment`s. */
+  /** A merge-able document of `increment`s. Never an empty map: a merge writes it as a value and wipes the field. */
   toIncrements() {
-    const increments = (counts: Counts) =>
-      Object.fromEntries(Object.entries(counts).map(([key, n]) => [key, FieldValue.increment(n)]));
+    const libraries = Object.entries(this.libraries)
+      .map(([id, counts]) => [id, increments(counts)] as const)
+      .filter(([, fields]) => Object.keys(fields).length);
     return {
       ...increments(this.branch),
-      libraries: Object.fromEntries(
-        Object.entries(this.libraries).map(([id, counts]) => [id, increments(counts)]),
-      ),
+      ...(libraries.length && { libraries: Object.fromEntries(libraries) }),
     };
   }
 }
 
-const isOverdue = (loan: DocumentData | undefined, today: string) =>
-  loan?.status === 'active' && loan.dueDate.toMillis() < dayTimestamp(today).toMillis();
-
 /** What each collection's write adds to the overall figures and to today's flows. */
-function deltas(collection: string, { before, after }: Change, today: string) {
+function deltas(collection: string, { before, after }: Change) {
   const overall = new Tally();
   const daily = new Tally();
   /** `sign` = +1 for the state a write left behind, -1 for the one it replaced. */
@@ -84,8 +89,9 @@ function deltas(collection: string, { before, after }: Change, today: string) {
         if (COPY_STATUSES.includes(data.status)) overall.add(data.status, sign, data.libraryId);
         break;
       case 'libraryLoans':
-        if (data.status === 'active') overall.add('activeLoans', sign, data.libraryId);
-        if (isOverdue(data, today)) overall.add('overdue', sign, data.libraryId);
+        if (data.status !== LoanStatus.active) break;
+        overall.add('activeLoans', sign, data.libraryId);
+        overall.add(`dueOn.${timestampDay(data.dueDate)}`, sign, data.libraryId);
         break;
       case 'libraryFines':
         if (OPEN_FINE.includes(data.status))
@@ -120,99 +126,67 @@ function deltas(collection: string, { before, after }: Change, today: string) {
   return { overall, daily };
 }
 
+/** Copies a copy write adds to or takes from each catalogue title in each library: `{catalogueId: {libraryId: n}}`. */
+function holdingMoves({ before, after }: Change) {
+  const moves: Record<string, Counts> = {};
+  for (const [copy, sign] of [
+    [after, 1],
+    [before, -1],
+  ] as const)
+    if (copy) bump((moves[copy.catalogueId] ??= {}), copy.libraryId, sign);
+  return Object.entries(moves)
+    .map(
+      ([id, libraries]) => [id, Object.entries(libraries).filter(([, amount]) => amount)] as const,
+    )
+    .filter(([, libraries]) => libraries.length);
+}
+
 /** Applies a write's effect on the analytics summary. Collections the summary ignores cost nothing. */
 export async function recordStats(collection: string, change: Change): Promise<void> {
-  const today = todayIST();
-  const { overall, daily } = deltas(collection, change, today);
-  if (overall.empty && daily.empty) return;
+  const preview = deltas(collection, change);
+  const moves = collection === 'libraryCopies' ? holdingMoves(change) : [];
+  const loan = collection === 'libraryLoans' && !change.before ? change.after : undefined;
+  if (preview.overall.empty && preview.daily.empty && !moves.length && !loan) return;
+
   const db = getFirestore();
-  const batch = db.batch();
-  if (!overall.empty)
-    batch.set(db.doc(`${change.branchPath}/libraryStats/overall`), overall.toIncrements(), {
-      merge: true,
+  const stats = db.collection(`${change.branchPath}/libraryStats`);
+  const titleRefs = moves.map(([id]) => db.doc(`${change.branchPath}/libraryCatalogue/${id}`));
+  const memberRef = loan && db.doc(`${change.branchPath}/libraryMembers/${loan.personErpId}`);
+
+  await db.runTransaction(async (transaction) => {
+    const [member, ...titles] = await Promise.all([
+      memberRef ? transaction.get(memberRef) : undefined,
+      ...titleRefs.map((ref) => transaction.get(ref)),
+    ]);
+    // Fresh tallies on every attempt: a retried transaction must not add twice.
+    const { overall, daily } = deltas(collection, change);
+
+    titles.forEach((title, index) => {
+      if (!title.exists) return;
+      const holdings: Counts = title.data()?.holdings ?? {};
+      const update: Counts = {};
+      for (const [libraryId, amount] of moves[index][1]) {
+        const held = holdings[libraryId] ?? 0;
+        update[`holdings.${libraryId}`] = held + amount;
+        if (held > 0 !== held + amount > 0)
+          overall.addLibrary('titles', held + amount > 0 ? 1 : -1, libraryId);
+      }
+      transaction.update(title.ref, update);
     });
-  if (!daily.empty)
-    batch.set(db.doc(`${change.branchPath}/libraryStats/day_${today}`), daily.toIncrements(), {
-      merge: true,
-    });
-  await batch.commit();
+
+    const libraryIds: string[] = member?.data()?.libraryIds ?? [];
+    if (member?.exists && loan && !libraryIds.includes(loan.libraryId)) {
+      transaction.update(member.ref, { libraryIds: FieldValue.arrayUnion(loan.libraryId) });
+      overall.addLibrary(
+        member.data()?.memberType === 'teacher' ? 'teachers' : 'students',
+        1,
+        loan.libraryId,
+      );
+    }
+
+    if (!overall.empty)
+      transaction.set(stats.doc('overall'), overall.toIncrements(), { merge: true });
+    if (!daily.empty)
+      transaction.set(stats.doc(`day_${todayIST()}`), daily.toIncrements(), { merge: true });
+  });
 }
-
-/** Counts of one library (or the whole branch) straight from the data. */
-async function recount(branchPath: string, today: string, libraryId?: string) {
-  const scoped = (name: string) => {
-    const collection = schoolCollection(branchPath, name);
-    return libraryId ? collection.where('libraryId', '==', libraryId) : collection;
-  };
-  const count = async (query: Query) => (await query.count().get()).data().count;
-  const copies = scoped('libraryCopies');
-  const active = scoped('libraryLoans').where('status', '==', 'active');
-  const [total, activeLoans, overdue, fines, ...byStatus] = await Promise.all([
-    count(copies),
-    count(active),
-    count(active.where('dueDate', '<', dayTimestamp(today))),
-    scoped('libraryFines')
-      .where('status', 'in', OPEN_FINE)
-      .aggregate({ sum: AggregateField.sum('outstanding') })
-      .get(),
-    ...COPY_STATUSES.map((status) => count(copies.where('status', '==', status))),
-  ]);
-  const [available, issued, lost, damaged] = byStatus;
-  return {
-    copies: total,
-    available,
-    issued,
-    lost,
-    damaged,
-    activeLoans,
-    overdue,
-    outstandingFines: fines.data().sum,
-  };
-}
-
-/** Recounts the overall document of a branch from the data (the nightly job and the one-time backfill). */
-export async function rebuildStats(branchPath: string, today = todayIST()): Promise<void> {
-  const libraries = await schoolCollection(branchPath, 'libraries').select().get();
-  const [branch, titles, students, teachers, ...perLibrary] = await Promise.all([
-    recount(branchPath, today),
-    schoolCollection(branchPath, 'libraryCatalogue').count().get(),
-    schoolCollection(branchPath, 'libraryMembers')
-      .where('memberType', '==', 'student')
-      .count()
-      .get(),
-    schoolCollection(branchPath, 'libraryMembers')
-      .where('memberType', '==', 'teacher')
-      .count()
-      .get(),
-    ...libraries.docs.map((library) => recount(branchPath, today, library.id)),
-  ]);
-  await getFirestore()
-    .doc(`${branchPath}/libraryStats/overall`)
-    .set({
-      ...branch,
-      titles: titles.data().count,
-      students: students.data().count,
-      teachers: teachers.data().count,
-      libraries: Object.fromEntries(
-        libraries.docs.map((library, index) => [library.id, perLibrary[index]]),
-      ),
-    });
-}
-
-/** 00:10 IST, every school: recount, which also makes the new day's overdue loans show. */
-export const statsNightly = onSchedule(
-  { schedule: '10 0 * * *', timeZone: 'Asia/Kolkata', timeoutSeconds: 540 },
-  async () => {
-    await forEachBranch((branchPath) => rebuildStats(branchPath));
-  },
-);
-
-/** Builds the summary on demand (first deploy, or after a restore). */
-export const rebuild: QueryDef<z.ZodObject<Record<string, never>>, { ok: true }> = {
-  name: 'library.stats.rebuild',
-  input: z.object({}),
-  handler: async (branchPath) => {
-    await rebuildStats(branchPath);
-    return { ok: true };
-  },
-};

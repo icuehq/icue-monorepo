@@ -362,6 +362,7 @@ Types: inventory categories, items, opening stock, stores, assets, vendors; libr
   - Matching is whole-word, case-insensitive with stemming; **no prefix or type-ahead matching** (checked on a dev database, 2026-10-31). A mirror update is searchable in about 150 ms.
   - Needs a text index per project (`firebase/scripts/create-search-index.sh`; catalogue: title, subtitle, authors, publisher, keywords). A catalogue query that is a valid ISBN is an exact lookup on `(default)` instead. Vendors will follow.
 - **Dashboards:** Firestore aggregation queries (`count()`, `sum()`) with the same filters as the lists — e.g. low stock = `count()` where `isBelowReorderLevel == true`; stock value = `sum('value')`. No pre-computed counters.
+  - **Library Overview** is the exception: counters in `libraryStats/overall` (branch figures, per library under `libraries`) and `libraryStats/day_yyyy-MM-dd` (that day's flows, same shape), kept only by the audit triggers (`library/stats.ts`) at write time, never by a scheduled job. Overdue is read from `dueOn` (active loans per due day); per-library titles and borrowers come from `holdings.{libraryId}` on the catalogue and `libraryIds` on the member, which the triggers keep.
 - **Popular/inactive books:** computed client-side over the selected period's loans. Ceiling: fine for tens of thousands of loans per period; add monthly stat docs if it gets slow.
 - **Indexes:** `firebase/firestore.indexes.json`, one composite index per list filter/sort combination, added with each screen.
 

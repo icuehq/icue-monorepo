@@ -479,7 +479,7 @@ Flutter:
 - [x] `features/library`: `lib_insights.dart` (15 `LibReportDef`s, dashboard stats, import columns, `libraryDay`), `LibraryService.dashboard/report/titlesByIds`, provider methods, `ModuleAccess.all`, model test
 - [x] `icueadmin` (`features/library/insights/`): dashboard with library filter, report catalogue and report view (library, date range, status, search, totals, CSV copy, PDF), import page; routes `/layout.Library/{dashboard,reports,reports/view,import}`; Dashboard, Reports and Import tiles
 - [x] `melos run lint`, `melos run test`, format check pass; 121 functions tests and 35 rules tests pass (run on a separate emulator port)
-- [x] Analytics summary: `libraryStats/overall` (branch + per-library current figures) and `libraryStats/day_yyyy-MM-dd` (daily flows), kept by the audit triggers (`library/stats.ts`), recounted nightly at 00:10 IST and on demand by `library.stats.rebuild` (run it once after deploy); the Overview reads the one document (`LibraryService.dashboard`). Tests: `test/stats.test.ts`
+- [x] Analytics summary: `libraryStats/overall` (branch + per-library current figures, overdue from `dueOn`, per-library titles and borrowers) and `libraryStats/day_yyyy-MM-dd` (daily flows), kept only by the audit triggers at write time (`library/stats.ts`, no scheduled job or rebuild); the Overview reads the one document (`LibraryService.dashboard`, `overviewFigures`) and filters it and Due next by library. Tests: `test/stats.test.ts`, `library_insights_test.dart`
 
 ## Decisions and deviations
 

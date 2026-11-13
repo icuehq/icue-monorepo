@@ -137,6 +137,38 @@ final libraryReports = <LibraryReportDef>[
   ),
 ];
 
+/// Dashboard figures from the `libraryStats/overall` [summary] (LibraryStatsTotals): the branch's, or those of
+/// [libraryId] under `libraries`. Overdue is the active loans due before [today] (`yyyy-MM-dd`).
+Map<String, num> overviewFigures(
+  Map<String, dynamic>? summary,
+  String? libraryId, {
+  required String today,
+}) {
+  final branch = summary ?? const <String, dynamic>{};
+  final figures = libraryId == null
+      ? branch
+      : (branch['libraries'] as Map<String, dynamic>?)?[libraryId]
+                as Map<String, dynamic>? ??
+            const <String, dynamic>{};
+  num figure(String key) => figures[key] as num? ?? 0;
+  final dueOn = figures['dueOn'] as Map<String, dynamic>? ?? const {};
+  return {
+    'titles': figure('titles'),
+    'copies': figure('copies'),
+    'available': figure('available'),
+    'issued': figure('issued'),
+    'lost': figure('lost'),
+    'damaged': figure('damaged'),
+    'overdue': dueOn.entries
+        .where((entry) => entry.key.compareTo(today) < 0)
+        .fold<num>(0, (total, entry) => total + (entry.value as num)),
+    'pending': figure('activeLoans'),
+    'students': figure('students'),
+    'teachers': figure('teachers'),
+    'fines': figure('outstandingFines'),
+  };
+}
+
 /// Dashboard tiles (FRS 11.1): key and label.
 const libraryDashboardStats = <(String, String)>[
   ('titles', 'Books'),

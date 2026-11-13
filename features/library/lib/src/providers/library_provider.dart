@@ -306,12 +306,12 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     return loadLoans();
   }
 
-  /// Loads the first [count] active loans by due date into [dueNext].
-  Future<void> loadDueNext({int count = 8}) async {
+  /// Loads the first [count] active loans by due date into [dueNext], of one [library] when given.
+  Future<void> loadDueNext({SchoolLibrary? library, int count = 8}) async {
     dueNextLoading = true;
     notifyListeners();
     try {
-      final snapshot = await (await _service.activeLoansQuery())
+      final snapshot = await (await _service.activeLoansQuery(library: library))
           .limit(count)
           .get();
       dueNext = [

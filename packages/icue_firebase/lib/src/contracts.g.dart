@@ -219,7 +219,7 @@ abstract final class LoanPolicySnapshotFields {
   static const maxFine = 'maxFine';
 }
 
-/// Current-state figures of a branch or one library, kept by the audit triggers and rebuilt nightly (libraryStats/overall). Overdue is exact only after the nightly rebuild plus later returns/renewals.
+/// Current-state figures of a branch or one library (libraryStats/overall), kept only by the audit triggers. dueOn counts active loans by India-time due day (yyyy-MM-dd); overdue is the sum of the days before today. Per library, titles counts catalogue titles with copies there (libraryCatalogue holdings.{libraryId}) and students/teachers the members who borrowed there (libraryMembers libraryIds).
 abstract final class LibraryStatsTotalsFields {
   static const copies = 'copies';
   static const available = 'available';
@@ -227,7 +227,7 @@ abstract final class LibraryStatsTotalsFields {
   static const lost = 'lost';
   static const damaged = 'damaged';
   static const activeLoans = 'activeLoans';
-  static const overdue = 'overdue';
+  static const dueOn = 'dueOn';
   static const outstandingFines = 'outstandingFines';
   static const titles = 'titles';
   static const students = 'students';

@@ -62,6 +62,26 @@ void main() {
     });
     expect(row, 'Asha||name:T|name:L|01/11/2026|||active');
   });
+
+  test('overview figures: branch or one library, overdue from due days before today', () {
+    final summary = {
+      'copies': 5,
+      'titles': 3,
+      'dueOn': {'2026-11-12': 2, '2026-11-13': 1, '2026-11-01': 0},
+      'libraries': {
+        'main': {
+          'copies': 2,
+          'students': 1,
+          'dueOn': {'2026-11-10': 1, '2026-11-20': 1},
+        },
+      },
+    };
+    final branch = overviewFigures(summary, null, today: '2026-11-13');
+    expect([branch['copies'], branch['titles'], branch['overdue']], [5, 3, 2]);
+    final main = overviewFigures(summary, 'main', today: '2026-11-13');
+    expect([main['copies'], main['students'], main['overdue']], [2, 1, 1]);
+    expect(overviewFigures(null, 'other', today: '2026-11-13')['copies'], 0);
+  });
 }
 
 String _name(Object? id) => 'name:$id';

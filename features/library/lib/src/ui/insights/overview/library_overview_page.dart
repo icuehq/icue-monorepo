@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/home/library_home_page.dart';
 import 'package:school_library/src/ui/insights/overview/widgets/overview_attention_card.dart';
-import 'package:school_library/src/ui/insights/overview/widgets/overview_collection_card.dart';
 import 'package:school_library/src/ui/insights/overview/widgets/overview_due_next_card.dart';
 import 'package:school_library/src/ui/insights/overview/widgets/overview_kpi_grid.dart';
 import 'package:school_library/src/ui/insights/overview/widgets/overview_quick_actions.dart';
@@ -42,15 +41,11 @@ class _LibraryOverviewPageState extends State<LibraryOverviewPage> {
     final libraryProvider = context.read<LibraryProvider>();
     if (libraryProvider.libraries.isEmpty) await libraryProvider.loadMasters();
     if (!mounted) return;
-    if (!mounted) return;
-    setState(
-      () => _stats = libraryProvider.watchDashboard(
-        library: libraryProvider.libraries
-            .where((schoolLibrary) => schoolLibrary.id == _libraryId)
-            .firstOrNull,
-      ),
-    );
-    await libraryProvider.loadDueNext();
+    final library = libraryProvider.libraries
+        .where((schoolLibrary) => schoolLibrary.id == _libraryId)
+        .firstOrNull;
+    setState(() => _stats = libraryProvider.watchDashboard(library: library));
+    await libraryProvider.loadDueNext(library: library);
   }
 
   @override
@@ -102,7 +97,6 @@ class _LibraryOverviewPageState extends State<LibraryOverviewPage> {
             stats: stats,
             targets: _targets,
           );
-          final collection = OverviewCollectionCard(stats: stats);
           final dueNext = OverviewDueNextCard(libraryProvider: libraryProvider);
           return ListView(
             padding: EdgeInsets.all(wide ? 24 : 16),
@@ -139,13 +133,7 @@ class _LibraryOverviewPageState extends State<LibraryOverviewPage> {
                   children: [
                     Expanded(
                       flex: 3,
-                      child: Column(
-                        children: [
-                          collection,
-                          const SizedBox(height: 16),
-                          dueNext,
-                        ],
-                      ),
+                      child: dueNext,
                     ),
                     const SizedBox(width: 16),
                     Expanded(flex: 2, child: attention),
@@ -153,8 +141,6 @@ class _LibraryOverviewPageState extends State<LibraryOverviewPage> {
                 )
               else ...[
                 attention,
-                const SizedBox(height: 16),
-                collection,
                 const SizedBox(height: 16),
                 dueNext,
               ],
