@@ -1,6 +1,9 @@
 import 'package:auth/auth.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
+import 'package:portal/widgets/login_form_card.dart';
+import 'package:portal/widgets/login_hero_pane.dart';
+import 'package:portal/widgets/login_mobile_header.dart';
 import 'package:provider/provider.dart';
 
 const _branchAdminRole = 'Branch_Admin';
@@ -42,7 +45,9 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!isBranchAdmin) {
       await authProvider.logout();
       if (mounted) {
-        setState(() => _roleError = 'This portal is for branch admins only.');
+        setState(
+          () => _roleError = 'This portal is for branch administrators only.',
+        );
       }
     }
   }
@@ -55,113 +60,93 @@ class _LoginScreenState extends State<LoginScreen> {
 
     return Scaffold(
       backgroundColor: scheme.surface,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 92,
-                      height: 92,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(24),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isWide = constraints.maxWidth >= IcueBreakpoints.wide;
+          if (isWide) {
+            return Row(
+              children: [
+                Expanded(flex: 5, child: LoginHeroPane(scheme: scheme)),
+                Expanded(
+                  flex: 6,
+                  child: Center(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 36,
+                        vertical: 32,
                       ),
-                      child: Image.asset(
-                        'assets/images/logo.webp',
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'iCue Portal',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                      color: scheme.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: 28),
-                  Card(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(24),
-                      side: BorderSide(
-                        color: scheme.primary.withValues(alpha: 0.2),
-                      ),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: AutofillGroup(
-                        child: Form(
-                          key: _formKey,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              IcueTextField(
-                                controller: _usernameController,
-                                label: 'Username',
-                                icon: Icons.account_circle_outlined,
-                                textInputAction: TextInputAction.next,
-                                autofillHints: const [AutofillHints.username],
-                                autocorrect: false,
-                                enableSuggestions: false,
-                                validator: (value) =>
-                                    value == null || value.trim().isEmpty
-                                    ? 'Please enter username'
-                                    : null,
-                              ),
-                              const SizedBox(height: 16),
-                              IcueTextField(
-                                controller: _passwordController,
-                                obscureText: true,
-                                label: 'Password',
-                                icon: Icons.lock_outline_rounded,
-                                textInputAction: TextInputAction.done,
-                                onFieldSubmitted: (_) => _handleLogin(),
-                                autofillHints: const [AutofillHints.password],
-                                validator: (value) =>
-                                    value == null || value.isEmpty
-                                    ? 'Please enter password'
-                                    : null,
-                              ),
-                              const SizedBox(height: 16),
-                              if (error != null)
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 16),
-                                  child: Text(
-                                    error,
-                                    style: TextStyle(
-                                      color: scheme.error,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                              IcueButton(
-                                label: 'SIGN IN',
-                                isLoading: authProvider.isLoading,
-                                onPressed: _handleLogin,
-                                leadingIcon: Icons.login_rounded,
-                                isFullWidth: true,
-                              ),
-                            ],
-                          ),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 440),
+                        child: LoginFormCard(
+                          formKey: _formKey,
+                          usernameController: _usernameController,
+                          passwordController: _passwordController,
+                          error: error,
+                          isLoading: authProvider.isLoading,
+                          onSubmit: _handleLogin,
+                          isWide: true,
                         ),
                       ),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
+            );
+          }
+
+          return SafeArea(
+            child: Stack(
+              children: [
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: 240,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          scheme.primary.withValues(alpha: 0.08),
+                          scheme.surface,
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Center(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 24,
+                    ),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 440),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          LoginMobileHeader(scheme: scheme),
+                          const SizedBox(height: 24),
+                          LoginFormCard(
+                            formKey: _formKey,
+                            usernameController: _usernameController,
+                            passwordController: _passwordController,
+                            error: error,
+                            isLoading: authProvider.isLoading,
+                            onSubmit: _handleLogin,
+                            isWide: false,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
