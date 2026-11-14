@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
 
 /// One scan input (architecture §11): type or use a USB / Bluetooth scanner or RFID reader in
-/// keyboard-wedge mode (Enter submits), or tap the camera button to read a barcode / QR code.
+/// keyboard-wedge mode (Enter submits), or type a code and tap the search button.
 class IcueScanField extends StatefulWidget {
   const IcueScanField({
     required this.hint,
@@ -46,42 +45,6 @@ class _ScanFieldState extends State<IcueScanField> {
     }
   }
 
-  Future<void> _camera() async {
-    final code = await showDialog<String>(
-      context: context,
-      builder: (context) => Dialog(
-        clipBehavior: Clip.antiAlias,
-        child: AspectRatio(
-          aspectRatio: 1,
-          child: Stack(
-            children: [
-              MobileScanner(
-                onDetect: (capture) {
-                  final value = capture.barcodes.firstOrNull?.rawValue;
-                  if (value != null) Navigator.of(context).pop(value);
-                },
-              ),
-              Positioned(
-                top: 4,
-                right: 4,
-                child: IconButton(
-                  tooltip: 'Close',
-                  color: Colors.white,
-                  icon: const Icon(Icons.close_rounded),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-    if (code == null || !mounted) return;
-    _controller.text = code;
-    widget.onChanged?.call(code);
-    _submit(code);
-  }
-
   @override
   Widget build(BuildContext context) => TextField(
     controller: _controller,
@@ -90,11 +53,11 @@ class _ScanFieldState extends State<IcueScanField> {
     textInputAction: TextInputAction.search,
     decoration: InputDecoration(
       hintText: widget.hint,
-      prefixIcon: const Icon(Icons.search),
+      prefixIcon: const Icon(Icons.qr_code_scanner),
       suffixIcon: IconButton(
-        tooltip: 'Scan with camera',
-        icon: const Icon(Icons.qr_code_scanner),
-        onPressed: _camera,
+        tooltip: 'Search',
+        icon: const Icon(Icons.search),
+        onPressed: () => _submit(_controller.text),
       ),
     ),
     onChanged: widget.onChanged,

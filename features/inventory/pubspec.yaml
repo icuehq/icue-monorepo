@@ -14,7 +14,6 @@ dependencies:
   icue_firebase:
   icue_ui:
   injectable: ^2.5.0
-  mobile_scanner: ^7.4.3
   pdf: ^3.11.3
   printing: ^5.14.2
   provider: ^6.1.2

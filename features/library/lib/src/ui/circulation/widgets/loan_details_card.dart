@@ -136,7 +136,7 @@ class LoanDetailsCard extends StatelessWidget {
         : null;
     final admissionText =
         loan.admissionNumber != null && loan.admissionNumber!.isNotEmpty
-        ? '${loan.memberType == 'STUDENT' ? 'Adm.' : 'Staff no.'} #${loan.admissionNumber}'
+        ? '${loan.memberType == 'STUDENT' ? 'Adm.' : 'Staff enrollment ID'} #${loan.admissionNumber}'
         : null;
     final roleText = loan.memberType == 'STUDENT'
         ? 'Student'

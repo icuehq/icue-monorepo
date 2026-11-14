@@ -31,7 +31,6 @@ dependencies:
   inventory:
   local_storage:
   logbook:
-  mobile_scanner: ^7.4.3
   otp_autofill: ^4.1.0
   pdf: ^3.11.3
   printing: ^5.14.2

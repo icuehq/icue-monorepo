@@ -155,7 +155,7 @@ class LoanCard extends StatelessWidget {
               if (loan.admissionNumber?.isNotEmpty ?? false)
                 LibraryMetaPill(
                   Icons.badge_outlined,
-                  '${loan.memberType == 'STUDENT' ? 'Adm.' : 'Staff no.'} ${loan.admissionNumber}',
+                  '${loan.memberType == 'STUDENT' ? 'Adm.' : 'Staff enrollment ID'} ${loan.admissionNumber}',
                 ),
               LibraryMetaPill(
                 Icons.calendar_today_outlined,

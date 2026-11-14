@@ -70,7 +70,7 @@ class LibraryPeopleService {
       if (student.standard.isNotEmpty)
         '${student.standard.toLowerCase().startsWith('class') ? '' : 'Class '}${student.standard}${student.section.isEmpty ? '' : ' (${student.section})'}',
       if (student.admissionNumber.isNotEmpty)
-        '${memberType == 'EMPLOYEE' ? 'Staff no.' : 'Adm.'} ${student.admissionNumber}',
+        '${memberType == 'EMPLOYEE' ? 'Staff enrollment ID' : 'Adm.'} ${student.admissionNumber}',
     ].join(' · '),
   );
 }

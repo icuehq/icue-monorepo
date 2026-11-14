@@ -26,7 +26,7 @@ class MemberDetailsLine extends StatelessWidget {
         context.watch<LibraryProvider>().classLabel(classId, section),
       if (isEmployee) 'Employee',
       if (admissionNumber?.isNotEmpty ?? false)
-        '${isEmployee ? 'Staff no.' : 'Adm.'} $admissionNumber',
+        '${isEmployee ? 'Staff enrollment ID' : 'Adm.'} $admissionNumber',
       ?date,
     ];
     if (parts.isEmpty) return const SizedBox.shrink();

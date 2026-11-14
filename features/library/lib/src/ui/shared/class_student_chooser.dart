@@ -134,7 +134,7 @@ class _ClassStudentChooserState extends State<ClassStudentChooser> {
                 setState(() => _filter = text.trim().toLowerCase()),
             decoration: InputDecoration(
               hintText: widget.staff
-                  ? 'Search by name or staff no.'
+                  ? 'Search by name or staff enrollment ID.'
                   : 'Search by name, roll no. or admission no.',
               prefixIcon: const Icon(Icons.search),
             ),
@@ -170,7 +170,7 @@ class _ClassStudentChooserState extends State<ClassStudentChooser> {
                     if (!widget.staff && student.rollNo.isNotEmpty)
                       'Roll ${student.rollNo}',
                     if (student.admissionNumber.isNotEmpty)
-                      '${widget.staff ? 'Staff no.' : 'Adm.'} ${student.admissionNumber}',
+                      '${widget.staff ? 'Staff enrollment ID' : 'Adm.'} ${student.admissionNumber}',
                   ],
                   onTap: () => widget.onChosen(
                     context.read<LibraryProvider>().studentPerson(

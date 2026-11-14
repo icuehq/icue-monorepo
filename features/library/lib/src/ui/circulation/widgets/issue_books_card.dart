@@ -105,7 +105,7 @@ class IssueBooksCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   hasPerson
-                      ? 'Use a barcode gun, camera, or type the code above.'
+                      ? 'Use a barcode scanner, or type the code above and tap search.'
                       : 'Choose a student or staff member to activate scanning.',
                   textAlign: TextAlign.center,
                   style: theme.textTheme.bodySmall?.copyWith(
