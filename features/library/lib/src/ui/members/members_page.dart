@@ -8,6 +8,7 @@ import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/members/widgets/member_card.dart';
 import 'package:school_library/src/ui/members/widgets/member_empty_states.dart';
 import 'package:school_library/src/ui/members/widgets/members_table.dart';
+import 'package:school_library/src/ui/shared/library_filter.dart';
 
 /// People who have borrowed (FRS 11.7). Nobody is enrolled here: the ERP is searched at
 /// the desk, and a person appears on this list the first time they borrow.
@@ -123,6 +124,13 @@ class _MembersPageState extends State<MembersPage> {
           : IcueCenteredBody(
               child: Column(
                 children: [
+                  LibraryFilterDropdown(
+                    libraries: libraryProvider.libraries,
+                    value: libraryProvider.memberLibraryId,
+                    onChanged: (value) => libraryProvider
+                      ..memberLibraryId = value
+                      ..loadMembers(),
+                  ),
                   Padding(
                     padding: const EdgeInsets.all(12),
                     child: Row(

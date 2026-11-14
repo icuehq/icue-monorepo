@@ -8,10 +8,19 @@ import 'package:school_library/src/ui/policies/widgets/policy_dialog.dart';
 import 'package:school_library/src/ui/policies/widgets/policy_empty_states.dart';
 import 'package:school_library/src/ui/routing/library_destinations.dart';
 import 'package:school_library/src/ui/routing/library_tab_bar.dart';
+import 'package:school_library/src/ui/shared/library_filter.dart';
 
 /// Borrowing policies per library and member category (FRS 11.8).
-class PoliciesPage extends StatelessWidget {
+class PoliciesPage extends StatefulWidget {
   const PoliciesPage({super.key});
+
+  @override
+  State<PoliciesPage> createState() => _PoliciesPageState();
+}
+
+class _PoliciesPageState extends State<PoliciesPage> {
+  /// The phone layout's Library filter; the wide table has its own.
+  String? _libraryId;
 
   Future<void> _toggle(
     BuildContext context,
@@ -40,6 +49,10 @@ class PoliciesPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final libraryProvider = context.watch<LibraryProvider>();
     final allPolicies = libraryProvider.policies;
+    final shownPolicies = [
+      for (final policy in allPolicies)
+        if (_libraryId == null || policy.libraryId == _libraryId) policy,
+    ];
     final isWide = context.isWide;
 
     return Scaffold(
@@ -81,25 +94,37 @@ class PoliciesPage extends StatelessWidget {
                     _toggle(context, libraryProvider, policy),
               ),
             )
-          : RefreshIndicator(
-              onRefresh: () => libraryProvider.loadMasters(),
-              child: IcueAdaptiveCardList(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                itemCount: allPolicies.length,
-                itemBuilder: (context, index) {
-                  final policy = allPolicies[index];
-                  return PolicyCard(
-                    policy: policy,
-                    scope: libraryProvider.policyScope(policy),
-                    libraryName:
-                        libraryProvider.library(policy.libraryId)?.name ??
-                        policy.libraryId,
-                    onTap: () => PolicyDialog.show(context, policy: policy),
-                    onToggleActive: () =>
-                        _toggle(context, libraryProvider, policy),
-                  );
-                },
-              ),
+          : Column(
+              children: [
+                LibraryFilterDropdown(
+                  libraries: libraryProvider.libraries,
+                  value: _libraryId,
+                  onChanged: (value) => setState(() => _libraryId = value),
+                ),
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: () => libraryProvider.loadMasters(),
+                    child: IcueAdaptiveCardList(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      itemCount: shownPolicies.length,
+                      itemBuilder: (context, index) {
+                        final policy = shownPolicies[index];
+                        return PolicyCard(
+                          policy: policy,
+                          scope: libraryProvider.policyScope(policy),
+                          libraryName:
+                              libraryProvider.library(policy.libraryId)?.name ??
+                              policy.libraryId,
+                          onTap: () =>
+                              PolicyDialog.show(context, policy: policy),
+                          onToggleActive: () =>
+                              _toggle(context, libraryProvider, policy),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ],
             ),
     );
   }

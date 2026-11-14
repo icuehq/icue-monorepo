@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
+import 'package:school_library/src/ui/shared/library_filter.dart';
 import 'package:school_library/src/ui/shared/library_member_cell.dart';
 import 'package:school_library/src/ui/shared/library_status_chip.dart';
 
@@ -42,6 +43,11 @@ class FinesTable extends StatelessWidget {
         provider.loadFines();
       },
       filters: [
+        libraryTableFilter(provider.libraries, provider.fineLibraryId, (value) {
+          provider
+            ..fineLibraryId = value
+            ..loadFines();
+        }),
         IcueTableFilter(
           id: 'status',
           label: 'Status',

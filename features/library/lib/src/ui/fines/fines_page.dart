@@ -8,6 +8,7 @@ import 'package:school_library/src/ui/fines/widgets/fine_card.dart';
 import 'package:school_library/src/ui/fines/widgets/fine_dialog.dart';
 import 'package:school_library/src/ui/fines/widgets/fine_empty_states.dart';
 import 'package:school_library/src/ui/fines/widgets/fines_table.dart';
+import 'package:school_library/src/ui/shared/library_filter.dart';
 
 /// Manage overdue fines, damage penalties, and lost book charges (FRS 11.13).
 class FinesPage extends StatefulWidget {
@@ -183,6 +184,13 @@ class _FinesPageState extends State<FinesPage> {
               child: Column(
                 children: [
                   _summaryBar(context),
+                  LibraryFilterDropdown(
+                    libraries: libraryProvider.libraries,
+                    value: libraryProvider.fineLibraryId,
+                    onChanged: (value) => libraryProvider
+                      ..fineLibraryId = value
+                      ..loadFines(),
+                  ),
                   Padding(
                     padding: const EdgeInsets.all(12),
                     child: Row(

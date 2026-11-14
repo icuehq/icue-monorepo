@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
+import 'package:school_library/src/ui/shared/library_filter.dart';
 import 'package:school_library/src/ui/shared/library_member_cell.dart';
 import 'package:school_library/src/ui/shared/library_status_chip.dart';
 
@@ -64,6 +65,11 @@ class LoansTable extends StatelessWidget {
         provider.loadLoans();
       },
       filters: [
+        libraryTableFilter(provider.libraries, provider.loanLibraryId, (value) {
+          provider
+            ..loanLibraryId = value
+            ..loadLoans();
+        }),
         IcueTableFilter(
           id: 'class',
           label: 'Class',

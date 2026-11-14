@@ -68,6 +68,7 @@ class LibraryService {
   /// Titles ordered by title, optionally within [categoryIds] (a category and its subcategories),
   /// meant for class [classId] and with [status] (`active`/`inactive`); page it with `FirestorePager`.
   Future<Query<Map<String, dynamic>>> booksQuery({
+    String? libraryId,
     List<String>? categoryIds,
     int? classId,
     String? status,
@@ -77,6 +78,10 @@ class LibraryService {
     );
     if (categoryIds != null) {
       query = query.where('categoryId', whereIn: categoryIds);
+    }
+    // Firestore allows one array-contains per query, so the provider never sends both a library and a class.
+    if (libraryId != null) {
+      query = query.where('libraryIds', arrayContains: libraryId);
     }
     if (classId != null) {
       query = query.where('classIds', arrayContains: classId);
@@ -90,6 +95,7 @@ class LibraryService {
   /// Whole-word search by title, author, publisher or keyword (`search` database, web only).
   Future<({List<LibraryBook> items, bool hasMore})> searchBooks(
     String query, {
+    String? libraryId,
     List<String>? categoryIds,
     int? classId,
     String? status,
@@ -101,7 +107,7 @@ class LibraryService {
       query,
       sortField: 'title',
       categoryIds: categoryIds,
-      arrayHas: {'classIds': ?classId},
+      arrayHas: {'classIds': ?classId, 'libraryIds': ?libraryId},
       equals: {'status': ?status},
       offset: offset,
       limit: limit,
@@ -166,6 +172,7 @@ class LibraryService {
 
   /// Members by ERP ID, narrowed by the filters. [memberType] is `student` or `teacher`.
   Future<Query<Map<String, dynamic>>> membersQuery({
+    String? libraryId,
     String? memberType,
     bool? blocked,
     bool onLoan = false,
@@ -173,6 +180,9 @@ class LibraryService {
     Query<Map<String, dynamic>> query = await branchCollection(
       'libraryMembers',
     );
+    if (libraryId != null) {
+      query = query.where('libraryIds', arrayContains: libraryId);
+    }
     if (memberType != null) {
       query = query.where('memberType', isEqualTo: memberType);
     }
@@ -189,6 +199,7 @@ class LibraryService {
   /// narrowed by the same filters (`search` database, web only, then the members from Firestore).
   Future<({List<LibraryMember> items, bool hasMore})> searchMembers(
     String query, {
+    String? libraryId,
     String? memberType,
     bool? blocked,
     bool onLoan = false,
@@ -199,6 +210,7 @@ class LibraryService {
       'libraryMembers',
       query,
       sortField: 'personErpId',
+      arrayHas: {'libraryIds': ?libraryId},
       equals: {
         'memberType': ?memberType,
         'blocked': ?blocked,
@@ -264,6 +276,7 @@ class LibraryService {
   /// earliest due first (`search` database, web only, then the loans themselves from Firestore).
   Future<({List<LibraryLoan> items, bool hasMore})> searchLoans(
     String query, {
+    String? libraryId,
     int offset = 0,
     int limit = 25,
   }) async {
@@ -271,7 +284,7 @@ class LibraryService {
       'libraryLoans',
       query,
       sortField: 'dueDate',
-      equals: {'status': 'active'},
+      equals: {'status': 'active', 'libraryId': ?libraryId},
       offset: offset,
       limit: limit,
     );
@@ -300,6 +313,7 @@ class LibraryService {
 
   /// Fines, newest first. A [search] is an exact fine ID or accession number and ignores the filters.
   Future<Query<Map<String, dynamic>>> finesQuery({
+    String? libraryId,
     String? status,
     String? type,
     String search = '',
@@ -314,6 +328,9 @@ class LibraryService {
         ),
       );
     } else {
+      if (libraryId != null) {
+        query = query.where('libraryId', isEqualTo: libraryId);
+      }
       if (status != null) query = query.where('status', isEqualTo: status);
       if (type != null) query = query.where('type', isEqualTo: type);
     }
@@ -344,12 +361,16 @@ class LibraryService {
 
   /// Lost/damaged incidents, newest first.
   Future<Query<Map<String, dynamic>>> incidentsQuery({
+    String? libraryId,
     String? status,
     String? type,
   }) async {
     Query<Map<String, dynamic>> query = await branchCollection(
       'libraryIncidents',
     );
+    if (libraryId != null) {
+      query = query.where('libraryId', isEqualTo: libraryId);
+    }
     if (status != null) query = query.where('status', isEqualTo: status);
     if (type != null) query = query.where('type', isEqualTo: type);
     return query.orderBy('createdAt', descending: true);
@@ -359,6 +380,7 @@ class LibraryService {
   /// newest first (`search` database, web only, then the incidents themselves from Firestore).
   Future<({List<LibraryIncident> items, bool hasMore})> searchIncidents(
     String query, {
+    String? libraryId,
     String? status,
     String? type,
     int offset = 0,
@@ -369,7 +391,7 @@ class LibraryService {
       query,
       sortField: 'createdAt',
       descending: true,
-      equals: {'status': ?status, 'type': ?type},
+      equals: {'libraryId': ?libraryId, 'status': ?status, 'type': ?type},
       offset: offset,
       limit: limit,
     );

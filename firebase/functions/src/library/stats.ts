@@ -156,12 +156,16 @@ export async function recordStats(collection: string, change: Change): Promise<v
     titles.forEach((title, index) => {
       if (!title.exists) return;
       const holdings: Counts = title.data()?.holdings ?? {};
-      const update: Counts = {};
+      const update: Record<string, unknown> = {};
       for (const [libraryId, amount] of moves[index][1]) {
         const held = holdings[libraryId] ?? 0;
         update[`holdings.${libraryId}`] = held + amount;
-        if (held > 0 !== held + amount > 0)
+        if (held > 0 !== held + amount > 0) {
           overall.addLibrary('titles', held + amount > 0 ? 1 : -1, libraryId);
+          // `libraryIds` lists the libraries holding copies, so the catalogue can be filtered by library.
+          update.libraryIds =
+            held + amount > 0 ? FieldValue.arrayUnion(libraryId) : FieldValue.arrayRemove(libraryId);
+        }
       }
       transaction.update(title.ref, update);
     });

@@ -12,6 +12,7 @@ const ROW = [
   'language',
   'categoryId',
   'classIds',
+  'libraryIds',
   'status',
 ] as const;
 /** The text index covers title, subtitle, authorsText, publisher, keywordsText and prefixText (`firebase/scripts/create-search-index.sh`). */

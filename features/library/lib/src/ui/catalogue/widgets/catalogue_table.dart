@@ -4,6 +4,7 @@ import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/catalogue/widgets/catalogue_filter_header.dart';
+import 'package:school_library/src/ui/shared/library_filter.dart';
 import 'package:school_library/src/ui/shared/library_status_chip.dart';
 
 /// Wide-screen catalogue: books as an [IcueTable]. Search, category and class
@@ -50,6 +51,12 @@ class CatalogueTable extends StatelessWidget {
       searchDebounce: const Duration(milliseconds: 400),
       onSearchChanged: (query) => provider.loadBooks(search: query.trim()),
       filters: [
+        libraryTableFilter(
+          provider.libraries,
+          provider.bookLibraryId,
+          (value) =>
+              provider.loadBooks(libraryId: value, clearLibrary: value == null),
+        ),
         IcueTableFilter(
           id: 'category',
           label: 'Category',
@@ -108,6 +115,7 @@ class CatalogueTable extends StatelessWidget {
           provider.bookSearch.isNotEmpty ||
           provider.bookCategoryId != null ||
           provider.bookClassId != null ||
+          provider.bookLibraryId != null ||
           statusFilter != CatalogueStatusFilter.all,
       onClearFilters: onClearFilters,
       secondaryAction: IcueTableAction(

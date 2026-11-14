@@ -9,6 +9,7 @@ import 'package:school_library/src/ui/catalogue/widgets/book_card.dart';
 import 'package:school_library/src/ui/catalogue/widgets/catalogue_empty_states.dart';
 import 'package:school_library/src/ui/catalogue/widgets/catalogue_filter_header.dart';
 import 'package:school_library/src/ui/catalogue/widgets/catalogue_table.dart';
+import 'package:school_library/src/ui/shared/library_filter.dart';
 
 class CataloguePage extends StatefulWidget {
   const CataloguePage({super.key, this.categoryId});
@@ -55,6 +56,7 @@ class _CataloguePageState extends State<CataloguePage> {
       search: '',
       clearCategory: true,
       clearClass: true,
+      clearLibrary: true,
       clearStatus: true,
     );
   }
@@ -74,6 +76,7 @@ class _CataloguePageState extends State<CataloguePage> {
         libraryProvider.bookSearch.isNotEmpty ||
         libraryProvider.bookCategoryId != null ||
         libraryProvider.bookClassId != null ||
+        libraryProvider.bookLibraryId != null ||
         libraryProvider.bookStatus != null;
 
     return Scaffold(
@@ -110,6 +113,14 @@ class _CataloguePageState extends State<CataloguePage> {
             )
           : Column(
               children: [
+                LibraryFilterDropdown(
+                  libraries: libraryProvider.libraries,
+                  value: libraryProvider.bookLibraryId,
+                  onChanged: (value) => libraryProvider.loadBooks(
+                    libraryId: value,
+                    clearLibrary: value == null,
+                  ),
+                ),
                 CatalogueFilterHeader(
                   searchController: _searchController,
                   selectedCategoryId: libraryProvider.bookCategoryId,

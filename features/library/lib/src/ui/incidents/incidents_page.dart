@@ -7,6 +7,7 @@ import 'package:school_library/src/ui/incidents/widgets/incident_card.dart';
 import 'package:school_library/src/ui/incidents/widgets/incident_dialog.dart';
 import 'package:school_library/src/ui/incidents/widgets/incident_empty_states.dart';
 import 'package:school_library/src/ui/incidents/widgets/incidents_table.dart';
+import 'package:school_library/src/ui/shared/library_filter.dart';
 
 /// Manage lost and damaged book incidents (FRS 11.14).
 class IncidentsPage extends StatefulWidget {
@@ -76,6 +77,13 @@ class _IncidentsPageState extends State<IncidentsPage> {
           : IcueCenteredBody(
               child: Column(
                 children: [
+                  LibraryFilterDropdown(
+                    libraries: libraryProvider.libraries,
+                    value: libraryProvider.incidentLibraryId,
+                    onChanged: (value) => libraryProvider
+                      ..incidentLibraryId = value
+                      ..loadIncidents(),
+                  ),
                   Padding(
                     padding: const EdgeInsets.all(12),
                     child: Row(

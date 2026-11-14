@@ -10,6 +10,7 @@ import 'package:school_library/src/ui/circulation/widgets/circulation_empty_stat
 import 'package:school_library/src/ui/circulation/widgets/loan_card.dart';
 import 'package:school_library/src/ui/circulation/widgets/loan_dialog.dart';
 import 'package:school_library/src/ui/circulation/widgets/loans_table.dart';
+import 'package:school_library/src/ui/shared/library_filter.dart';
 
 /// Active loans (tap one to return or renew) and an Issue button that opens the step-by-step issue flow (FRS 11.9–11.11).
 /// Every filter is a Firestore query, paged by the provider's `loans` pager.
@@ -157,6 +158,13 @@ class _CirculationPageState extends State<CirculationPage> {
             )
           : Column(
               children: [
+                LibraryFilterDropdown(
+                  libraries: libraryProvider.libraries,
+                  value: libraryProvider.loanLibraryId,
+                  onChanged: (value) => libraryProvider
+                    ..loanLibraryId = value
+                    ..loadLoans(),
+                ),
                 _filterBar(context, libraryProvider),
                 const SizedBox(height: 6),
                 Expanded(

@@ -45,12 +45,18 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   String? bookCategoryId;
   int? bookClassId;
 
+  /// Only titles with copies in this library; exclusive with [bookClassId] (Firestore allows one array filter).
+  String? bookLibraryId;
+
   /// `active`, `inactive`, or null for both.
   String? bookStatus;
 
   /// Everyone who has borrowed, by ERP ID, filtered in Firestore by the fields below.
   late final members = _pager<LibraryMember>();
   MemberKind memberKind = MemberKind.all;
+
+  /// Only members who borrowed from this library (null = every library).
+  String? memberLibraryId;
 
   /// True for blocked members, false for those who can borrow, null for both.
   bool? memberBlocked;
@@ -63,12 +69,14 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
 
   bool get membersFiltered =>
       memberSearch.isNotEmpty ||
+      memberLibraryId != null ||
       memberKind != MemberKind.all ||
       memberBlocked != null ||
       memberOnLoan;
 
   /// Issued Books: active loans, earliest due first, filtered in Firestore by the fields below.
   late final loans = _pager<LibraryLoan>();
+  String? loanLibraryId;
   int? loanClassId;
 
   /// Section name within [loanClassId].
@@ -84,6 +92,7 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
 
   bool get loansFiltered =>
       loanSearch.isNotEmpty ||
+      loanLibraryId != null ||
       loanClassId != null ||
       loanSection != null ||
       loanRange != null ||
@@ -97,6 +106,8 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   /// Fines, newest first, filtered in Firestore by the fields below.
   late final fines = _pager<LibraryFine>();
 
+  String? fineLibraryId;
+
   /// `outstanding`, `partially_paid`, `paid`, `waived`, or null for every status.
   String? fineStatus;
 
@@ -107,10 +118,15 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   String fineSearch = '';
 
   bool get finesFiltered =>
-      fineSearch.isNotEmpty || fineStatus != null || fineType != null;
+      fineSearch.isNotEmpty ||
+      fineLibraryId != null ||
+      fineStatus != null ||
+      fineType != null;
 
   /// Lost and damaged incidents, newest first, filtered in Firestore by the fields below.
   late final incidents = _pager<LibraryIncident>();
+
+  String? incidentLibraryId;
 
   /// `open`, `resolved`, or null for both.
   String? incidentStatus;
@@ -123,6 +139,7 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
 
   bool get incidentsFiltered =>
       incidentSearch.isNotEmpty ||
+      incidentLibraryId != null ||
       incidentStatus != null ||
       incidentType != null;
 
@@ -205,18 +222,24 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     bool clearCategory = false,
     int? classId,
     bool clearClass = false,
+    String? libraryId,
+    bool clearLibrary = false,
     String? status,
     bool clearStatus = false,
   }) async {
     bookSearch = (search ?? bookSearch).trim();
     bookCategoryId = clearCategory ? null : (categoryId ?? bookCategoryId);
     bookClassId = clearClass ? null : (classId ?? bookClassId);
+    bookLibraryId = clearLibrary ? null : (libraryId ?? bookLibraryId);
+    if (classId != null) bookLibraryId = null;
+    if (libraryId != null) bookClassId = null;
     bookStatus = clearStatus ? null : (status ?? bookStatus);
     final categoryIds = categoryScope(bookCategoryId);
     final query = bookSearch;
     if (query.isEmpty) {
       await books.loadQuery(
         await _service.booksQuery(
+          libraryId: bookLibraryId,
           categoryIds: categoryIds,
           classId: bookClassId,
           status: bookStatus,
@@ -231,6 +254,7 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
       }) async {
         final page = await _service.searchBooks(
           query,
+          libraryId: bookLibraryId,
           categoryIds: categoryIds,
           classId: bookClassId,
           status: bookStatus,
@@ -248,6 +272,7 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     memberSearch,
     (query, {required offset, required limit}) => _service.searchMembers(
       query,
+      libraryId: memberLibraryId,
       memberType: memberKind.memberType,
       blocked: memberBlocked,
       onLoan: memberOnLoan,
@@ -255,6 +280,7 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
       limit: limit,
     ),
     () => _service.membersQuery(
+      libraryId: memberLibraryId,
       memberType: memberKind.memberType,
       blocked: memberBlocked,
       onLoan: memberOnLoan,
@@ -265,6 +291,7 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   /// Clears every members filter and reloads.
   Future<void> clearMemberFilters() {
     memberKind = MemberKind.all;
+    memberLibraryId = null;
     memberBlocked = null;
     memberOnLoan = false;
     memberSearch = '';
@@ -275,9 +302,14 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   Future<void> loadLoans() => _loadSearchable(
     loans,
     loanSearch,
-    (query, {required offset, required limit}) =>
-        _service.searchLoans(query, offset: offset, limit: limit),
+    (query, {required offset, required limit}) => _service.searchLoans(
+      query,
+      libraryId: loanLibraryId,
+      offset: offset,
+      limit: limit,
+    ),
     () async => _service.activeLoansQuery(
+      library: library(loanLibraryId),
       classId: loanClassId,
       section: loanSection,
       issued: loanRange,
@@ -288,6 +320,7 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
 
   /// Clears every Issued Books filter and reloads.
   Future<void> clearLoanFilters() {
+    loanLibraryId = null;
     loanClassId = null;
     loanSection = null;
     loanPeriod = null;
@@ -355,6 +388,7 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   /// Loads the first page of fines and their totals for the current filters.
   Future<void> loadFines() async {
     final query = await _service.finesQuery(
+      libraryId: fineLibraryId,
       status: fineStatus,
       type: fineType,
       search: fineSearch,
@@ -367,6 +401,7 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
 
   /// Clears every fines filter and reloads.
   Future<void> clearFineFilters() {
+    fineLibraryId = null;
     fineStatus = null;
     fineType = null;
     fineSearch = '';
@@ -375,6 +410,7 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
 
   /// Loads the first page of incidents for the current filters.
   Future<void> loadIncidents() {
+    final libraryId = incidentLibraryId;
     final status = incidentStatus;
     final type = incidentType;
     return _loadSearchable(
@@ -382,18 +418,24 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
       incidentSearch,
       (query, {required offset, required limit}) => _service.searchIncidents(
         query,
+        libraryId: libraryId,
         status: status,
         type: type,
         offset: offset,
         limit: limit,
       ),
-      () async => _service.incidentsQuery(status: status, type: type),
+      () async => _service.incidentsQuery(
+        libraryId: libraryId,
+        status: status,
+        type: type,
+      ),
       (document) => LibraryIncident.fromMap(document.id, document.data()!),
     );
   }
 
   /// Clears every incident filter and reloads.
   Future<void> clearIncidentFilters() {
+    incidentLibraryId = null;
     incidentStatus = null;
     incidentType = null;
     incidentSearch = '';

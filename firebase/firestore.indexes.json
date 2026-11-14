@@ -821,6 +821,430 @@
           "order": "ASCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "libraryFines",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "libraryId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "libraryFines",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "libraryId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "libraryFines",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "libraryId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "type",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "libraryFines",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "libraryId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "type",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "libraryIncidents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "libraryId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "libraryIncidents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "libraryId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "libraryIncidents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "libraryId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "type",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "libraryIncidents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "libraryId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "type",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "libraryMembers",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "libraryIds",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "personErpId",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "libraryMembers",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "libraryIds",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "activeLoans",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "personErpId",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "libraryMembers",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "libraryIds",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "blocked",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "personErpId",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "libraryMembers",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "libraryIds",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "blocked",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "activeLoans",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "personErpId",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "libraryMembers",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "libraryIds",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "memberType",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "personErpId",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "libraryMembers",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "libraryIds",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "memberType",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "activeLoans",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "personErpId",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "libraryMembers",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "libraryIds",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "memberType",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "blocked",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "personErpId",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "libraryMembers",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "libraryIds",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "memberType",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "blocked",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "activeLoans",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "personErpId",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "libraryLoans",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "libraryId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "memberClassId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "dueDate",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "libraryLoans",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "libraryId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "memberClassId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "memberSection",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "dueDate",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "libraryCatalogue",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "libraryIds",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "title",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "libraryCatalogue",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "libraryIds",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "categoryId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "title",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "libraryCatalogue",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "libraryIds",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "title",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "libraryCatalogue",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "libraryIds",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "categoryId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "title",
+          "order": "ASCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": [

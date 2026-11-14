@@ -3,6 +3,7 @@ import 'package:icue_firebase/icue_firebase.dart' show textSearchSupported;
 import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
+import 'package:school_library/src/ui/shared/library_filter.dart';
 import 'package:school_library/src/ui/shared/library_member_cell.dart';
 import 'package:school_library/src/ui/shared/library_status_chip.dart';
 
@@ -37,6 +38,13 @@ class MembersTable extends StatelessWidget {
             }
           : null,
       filters: [
+        libraryTableFilter(provider.libraries, provider.memberLibraryId, (
+          value,
+        ) {
+          provider
+            ..memberLibraryId = value
+            ..loadMembers();
+        }),
         IcueTableFilter(
           id: 'kind',
           label: 'Kind',
