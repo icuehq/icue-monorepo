@@ -67,7 +67,7 @@ class _MarkLostDialogState extends State<MarkLostDialog> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: colors.errorContainer.withValues(alpha: 0.4),
+              color: colors.errorContainer,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
@@ -77,7 +77,7 @@ class _MarkLostDialogState extends State<MarkLostDialog> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'A replacement fine will be billed and the member will be temporarily blocked from borrowing.',
+                    'This will charge ${loan.memberLabel} a replacement fine.',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: colors.onErrorContainer,
                     ),
