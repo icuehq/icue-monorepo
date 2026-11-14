@@ -89,6 +89,43 @@
       ]
     },
     {
+      "name": "portal [Dev · Web]",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "apps/portal",
+      "program": "lib/main.dart",
+      "deviceId": "chrome",
+      "args": [
+        "--web-port=5556",
+        "--dart-define=ENV=dev"
+      ]
+    },
+    {
+      "name": "portal [Dev + Emulators · Web]",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "apps/portal",
+      "program": "lib/main.dart",
+      "deviceId": "chrome",
+      "args": [
+        "--web-port=5556",
+        "--dart-define=ENV=dev",
+        "--dart-define=FIREBASE_EMULATOR=127.0.0.1"
+      ]
+    },
+    {
+      "name": "portal [Prod · Web]",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "apps/portal",
+      "program": "lib/main.dart",
+      "deviceId": "chrome",
+      "args": [
+        "--web-port=5556",
+        "--dart-define=ENV=prod"
+      ]
+    },
+    {
       "name": "impl [Dev]",
       "request": "launch",
       "type": "dart",

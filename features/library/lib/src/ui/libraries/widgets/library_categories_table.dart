@@ -8,11 +8,13 @@ import 'package:school_library/src/ui/libraries/widgets/library_category_dialog.
 class LibraryCategoriesTable extends StatelessWidget {
   const LibraryCategoriesTable({
     required this.categories,
+    required this.libraryNames,
     required this.onToggleActive,
     super.key,
   });
 
   final List<LibraryCategory> categories;
+  final Map<String, String> libraryNames;
   final void Function(LibraryCategory category) onToggleActive;
 
   @override
@@ -112,6 +114,15 @@ class LibraryCategoriesTable extends StatelessWidget {
                   : null,
             );
           },
+        ),
+        IcueTableColumn(
+          id: 'library',
+          label: 'Library',
+          flex: 2,
+          cellBuilder: (context, category) => IcueTableCellText(
+            libraryNames[category.libraryId] ?? '—',
+            style: IcueTableStyle.of(context).secondary,
+          ),
         ),
         IcueTableColumn(
           id: 'parent',

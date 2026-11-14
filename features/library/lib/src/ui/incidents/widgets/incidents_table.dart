@@ -39,7 +39,7 @@ class IncidentsTable extends StatelessWidget {
             }
           : null,
       filters: [
-        libraryTableFilter(provider.libraries, provider.incidentLibraryId, (
+        ...libraryTableFilter(provider.libraries, provider.incidentLibraryId, (
           value,
         ) {
           provider
@@ -142,6 +142,7 @@ class IncidentsTable extends StatelessWidget {
         IcueTableColumn(
           id: 'status',
           label: 'Status',
+          width: 160,
           cellBuilder: (context, incident) =>
               LibraryStatusChip(incident.status),
         ),

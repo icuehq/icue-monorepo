@@ -7,6 +7,7 @@ environment:
 workspace:
   - apps/icueadmin
   - apps/impl
+  - apps/portal
   - apps/super_admin
   - packages/api_client
   - packages/icue_ui

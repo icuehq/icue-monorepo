@@ -41,6 +41,10 @@ class _LibraryCategoryDialogState extends State<LibraryCategoryDialog> {
     text: widget.category?.description,
   );
   late String? _parentId = widget.category?.parentId ?? widget.parentId;
+  // A subcategory always belongs to its parent's library.
+  late String? _libraryId =
+      widget.category?.libraryId ??
+      context.read<LibraryProvider>().category(widget.parentId)?.libraryId;
   bool _busy = false;
   bool _submitted = false;
   String? _errorMessage;
@@ -58,7 +62,8 @@ class _LibraryCategoryDialogState extends State<LibraryCategoryDialog> {
   void _prefillMock() {
     final taken = {
       for (final category in context.read<LibraryProvider>().categories)
-        if (category.parentId == _parentId) category.name.trim().toLowerCase(),
+        if (category.parentId == _parentId && category.libraryId == _libraryId)
+          category.name.trim().toLowerCase(),
     };
     for (var step = 0; step < mockCategories.length; step++) {
       final (name, description) =
@@ -89,6 +94,7 @@ class _LibraryCategoryDialogState extends State<LibraryCategoryDialog> {
         'name': _name.text.trim(),
         'description': blankToNull(_description),
         'parentId': _parentId,
+        'libraryId': _libraryId,
       }),
     );
     if (mounted && !saved) {
@@ -104,8 +110,15 @@ class _LibraryCategoryDialogState extends State<LibraryCategoryDialog> {
     final theme = Theme.of(context);
     final libraryProvider = context.read<LibraryProvider>();
     final editing = widget.category != null;
+    final libraries = libraryProvider.libraries;
+    // One library needs no choice.
+    if (libraries.length == 1) _libraryId ??= libraries.first.id;
     final tops = libraryProvider.topCategories
-        .where((category) => category.id != widget.category?.id)
+        .where(
+          (category) =>
+              category.id != widget.category?.id &&
+              category.libraryId == _libraryId,
+        )
         .toList();
     final parentCategory = _parentId != null
         ? libraryProvider.category(_parentId)
@@ -255,6 +268,10 @@ class _LibraryCategoryDialogState extends State<LibraryCategoryDialog> {
                   icon: Icons.badge_outlined,
                 ),
                 const SizedBox(height: 14),
+                if (libraries.length != 1) ...[
+                  _buildLibraryField(libraries),
+                  const SizedBox(height: 14),
+                ],
                 _buildParentField(tops),
                 const SizedBox(height: 14),
 
@@ -314,9 +331,29 @@ class _LibraryCategoryDialogState extends State<LibraryCategoryDialog> {
       (category) =>
           category.id != widget.category?.id &&
           category.parentId == _parentId &&
+          category.libraryId == _libraryId &&
           category.name.trim().toLowerCase() == name,
     );
     return exists ? '"${value.trim()}" already exists here' : null;
+  }
+
+  /// Required. Locked to the parent's library when under a parent.
+  Widget _buildLibraryField(List<SchoolLibrary> libraries) {
+    return IcueDropdown<String?>(
+      value: libraries.any((library) => library.id == _libraryId)
+          ? _libraryId
+          : null,
+      items: [
+        for (final library in libraries)
+          DropdownMenuItem(value: library.id, child: Text(library.name)),
+      ],
+      validator: (value) => value == null ? 'Please select a library' : null,
+      onChanged: _parentId != null
+          ? null
+          : (value) => setState(() => _libraryId = value),
+      label: 'Library *',
+      icon: Icons.local_library_outlined,
+    );
   }
 
   Widget _buildParentField(List<LibraryCategory> tops) {
@@ -327,7 +364,15 @@ class _LibraryCategoryDialogState extends State<LibraryCategoryDialog> {
         for (final category in tops)
           DropdownMenuItem(value: category.id, child: Text(category.name)),
       ],
-      onChanged: (value) => setState(() => _parentId = value),
+      onChanged: (value) => setState(() {
+        _parentId = value;
+        if (value != null) {
+          _libraryId = context
+              .read<LibraryProvider>()
+              .category(value)
+              ?.libraryId;
+        }
+      }),
       label: 'Parent category',
       icon: Icons.account_tree_outlined,
     );

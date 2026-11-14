@@ -6,13 +6,19 @@ class LibraryCard extends StatelessWidget {
   const LibraryCard({
     super.key,
     required this.library,
+    this.librarianName,
     required this.onEdit,
     required this.onToggleActive,
+    this.readOnly = false,
   });
 
   final SchoolLibrary library;
+  final String? librarianName;
   final VoidCallback onEdit;
   final VoidCallback onToggleActive;
+
+  /// A librarian cannot edit or deactivate libraries.
+  final bool readOnly;
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +44,7 @@ class LibraryCard extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: onEdit,
+          onTap: readOnly ? null : onEdit,
           child: Padding(
             padding: const EdgeInsets.all(14),
             child: Column(
@@ -87,46 +93,51 @@ class LibraryCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                    PopupMenuButton<String>(
-                      icon: const Icon(Icons.more_vert_rounded, size: 18),
-                      onSelected: (value) {
-                        if (value == 'edit') {
-                          onEdit();
-                        } else if (value == 'toggle') {
-                          onToggleActive();
-                        }
-                      },
-                      itemBuilder: (_) => [
-                        const PopupMenuItem(
-                          value: 'edit',
-                          child: Row(
-                            children: [
-                              Icon(Icons.edit_outlined, size: 18),
-                              SizedBox(width: 10),
-                              Text('Edit'),
-                            ],
+                    if (!readOnly)
+                      PopupMenuButton<String>(
+                        icon: const Icon(Icons.more_vert_rounded, size: 18),
+                        onSelected: (value) {
+                          if (value == 'edit') {
+                            onEdit();
+                          } else if (value == 'toggle') {
+                            onToggleActive();
+                          }
+                        },
+                        itemBuilder: (_) => [
+                          const PopupMenuItem(
+                            value: 'edit',
+                            child: Row(
+                              children: [
+                                Icon(Icons.edit_outlined, size: 18),
+                                SizedBox(width: 10),
+                                Text('Edit'),
+                              ],
+                            ),
                           ),
-                        ),
-                        PopupMenuItem(
-                          value: 'toggle',
-                          child: Row(
-                            children: [
-                              Icon(
-                                library.active
-                                    ? Icons.block_outlined
-                                    : Icons.check_circle_outline_rounded,
-                                size: 18,
-                              ),
-                              const SizedBox(width: 10),
-                              Text(library.active ? 'Deactivate' : 'Activate'),
-                            ],
+                          PopupMenuItem(
+                            value: 'toggle',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  library.active
+                                      ? Icons.block_outlined
+                                      : Icons.check_circle_outline_rounded,
+                                  size: 18,
+                                ),
+                                const SizedBox(width: 10),
+                                Text(
+                                  library.active ? 'Deactivate' : 'Activate',
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
                   ],
                 ),
-                if (library.location != null || library.hours != null) ...[
+                if (librarianName != null ||
+                    library.location != null ||
+                    library.hours != null) ...[
                   const SizedBox(height: 10),
                   Divider(
                     height: 1,
@@ -139,6 +150,24 @@ class LibraryCard extends StatelessWidget {
                     spacing: 14,
                     runSpacing: 6,
                     children: [
+                      if (librarianName != null)
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.person_outline_rounded,
+                              size: 14,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              librarianName!,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
                       if (library.location != null)
                         Row(
                           mainAxisSize: MainAxisSize.min,

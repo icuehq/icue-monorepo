@@ -65,7 +65,9 @@ class LoansTable extends StatelessWidget {
         provider.loadLoans();
       },
       filters: [
-        libraryTableFilter(provider.libraries, provider.loanLibraryId, (value) {
+        ...libraryTableFilter(provider.libraries, provider.loanLibraryId, (
+          value,
+        ) {
           provider
             ..loanLibraryId = value
             ..loadLoans();

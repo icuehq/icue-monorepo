@@ -64,13 +64,10 @@ class _ClassStudentChooserState extends State<ClassStudentChooser> {
     });
     if (standard == null) return;
     // No section yet: the whole class, across all its sections.
-    final sections = section == null
-        ? [for (final classSection in standard.sections) classSection.name]
-        : [section.name];
     _run(() async {
       final students = await context.read<LibraryProvider>().studentsOf(
         standard.id,
-        sections,
+        section?.name,
       );
       if (mounted) setState(() => _students = students);
     });
@@ -135,7 +132,7 @@ class _ClassStudentChooserState extends State<ClassStudentChooser> {
             decoration: InputDecoration(
               hintText: widget.staff
                   ? 'Search by name or staff enrollment ID.'
-                  : 'Search by name, roll no. or admission no.',
+                  : 'Search by name or admission no.',
               prefixIcon: const Icon(Icons.search),
             ),
           ),

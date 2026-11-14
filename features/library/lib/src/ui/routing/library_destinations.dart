@@ -38,7 +38,7 @@ const librarySettingsTabs = [
 const _groups = <(String, String, List<LibraryEntry>)>[
   (
     'Issue Books',
-    'assets/dashboard/library-circulation.png',
+    'packages/school_library/assets/dashboard/library-circulation.png',
     [
       LibraryEntry(
         label: 'Issued Books',
@@ -48,12 +48,12 @@ const _groups = <(String, String, List<LibraryEntry>)>[
   ),
   (
     'Fines',
-    'assets/dashboard/library-fines.png',
+    'packages/school_library/assets/dashboard/library-fines.png',
     [LibraryEntry(label: 'Fines', path: LibraryRoutes.libraryFines)],
   ),
   (
     'Lost & Damaged',
-    'assets/dashboard/library-incidents.png',
+    'packages/school_library/assets/dashboard/library-incidents.png',
     [
       LibraryEntry(
         label: 'Lost & Damaged',
@@ -63,20 +63,24 @@ const _groups = <(String, String, List<LibraryEntry>)>[
   ),
   (
     'Books Catalogue',
-    'assets/dashboard/library-catalogue.png',
+    'packages/school_library/assets/dashboard/library-catalogue.png',
     [LibraryEntry(label: 'Books', path: LibraryRoutes.libraryCatalogue)],
   ),
   (
     'Members',
-    'assets/dashboard/library-members.png',
+    'packages/school_library/assets/dashboard/library-members.png',
     [LibraryEntry(label: 'Members', path: LibraryRoutes.libraryMembers)],
   ),
   (
     'Reports',
-    'assets/dashboard/reports.png',
+    'packages/icue_ui/assets/dashboard/reports.png',
     [LibraryEntry(label: 'Reports', path: LibraryRoutes.libraryReports)],
   ),
-  ('Settings', 'assets/dashboard/library-libraries.png', librarySettingsTabs),
+  (
+    'Settings',
+    'packages/school_library/assets/dashboard/library-libraries.png',
+    librarySettingsTabs,
+  ),
 ];
 
 /// The Library groups: the Library tile from Node opens all of them.
@@ -90,7 +94,7 @@ final libraryNavigation = <IcueModuleDestination>[
   const IcueModuleDestination(
     label: 'Overview',
     path: LibraryRoutes.library,
-    iconAsset: 'assets/dashboard/library.png',
+    iconAsset: 'packages/school_library/assets/dashboard/library.png',
   ),
   for (final group in libraryGroups)
     IcueModuleDestination(

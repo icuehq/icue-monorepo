@@ -59,32 +59,40 @@ class _LibraryOverviewPageState extends State<LibraryOverviewPage> {
     final libraryProvider = context.watch<LibraryProvider>();
     final wide = context.isWide;
 
-    final filter = SizedBox(
-      width: wide ? 240 : double.infinity,
-      child: DropdownButtonFormField<String?>(
-        initialValue: _libraryId,
-        isExpanded: true,
-        decoration: const InputDecoration(
-          labelText: 'Library',
-          prefixIcon: Icon(Icons.local_library_outlined, size: 18),
-          isDense: true,
-        ),
-        items: [
-          const DropdownMenuItem(child: Text('All libraries')),
-          for (final schoolLibrary in libraryProvider.libraries.where(
-            (schoolLibrary) => schoolLibrary.active,
-          ))
-            DropdownMenuItem(
-              value: schoolLibrary.id,
-              child: Text(schoolLibrary.name, overflow: TextOverflow.ellipsis),
+    final filter = !libraryProvider.showLibraryFilter
+        ? const SizedBox.shrink()
+        : SizedBox(
+            width: wide ? 240 : double.infinity,
+            child: DropdownButtonFormField<String?>(
+              initialValue: libraryProvider.restricted
+                  ? (_libraryId ?? libraryProvider.libraries.firstOrNull?.id)
+                  : _libraryId,
+              isExpanded: true,
+              decoration: const InputDecoration(
+                labelText: 'Library',
+                prefixIcon: Icon(Icons.local_library_outlined, size: 18),
+                isDense: true,
+              ),
+              items: [
+                if (!libraryProvider.restricted)
+                  const DropdownMenuItem(child: Text('All libraries')),
+                for (final schoolLibrary in libraryProvider.libraries.where(
+                  (schoolLibrary) => schoolLibrary.active,
+                ))
+                  DropdownMenuItem(
+                    value: schoolLibrary.id,
+                    child: Text(
+                      schoolLibrary.name,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+              ],
+              onChanged: (value) {
+                _libraryId = value;
+                _load();
+              },
             ),
-        ],
-        onChanged: (value) {
-          _libraryId = value;
-          _load();
-        },
-      ),
-    );
+          );
 
     return Scaffold(
       appBar: AppBar(title: const Text('Overview')),

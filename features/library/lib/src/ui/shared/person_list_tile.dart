@@ -63,6 +63,8 @@ class PersonListTile extends StatelessWidget {
                       : Image.network(
                           photoUrl,
                           fit: BoxFit.cover,
+                          webHtmlElementStrategy:
+                              WebHtmlElementStrategy.fallback,
                           errorBuilder: (_, _, _) => fallback,
                           loadingBuilder: (_, child, progress) =>
                               progress == null ? child : fallback,

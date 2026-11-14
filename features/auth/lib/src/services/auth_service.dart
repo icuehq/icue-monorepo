@@ -8,6 +8,7 @@ import 'package:auth/src/models/branches.dart';
 import 'package:auth/src/models/otp_response.dart';
 import 'package:auth/src/models/person_types.dart';
 import 'package:auth/src/models/role_actions.dart';
+import 'package:auth/src/models/role_users.dart';
 import 'package:auth/src/models/user_info.dart';
 import 'package:auth/src/services/test_role_actions.dart';
 import 'package:auth/src/storage/session_token_provider.dart';
@@ -227,14 +228,39 @@ class AuthService {
       return withTestRoleActions(<RoleActions>[]);
     }
 
-    final actions = withTestRoleActions(
-      List<RoleActions>.from(
-        data.map((x) => RoleActions.fromJson(x as Map<String, dynamic>)),
-      )..sort((a, b) => a.tabOrder.compareTo(b.tabOrder)),
-    );
+    final actions = withTestRoleActions([
+      for (final item
+          in data.cast<Map<String, dynamic>>().toList()..sort(
+            (a, b) => ((a['TabOrder'] ?? 0) as num).compareTo(
+              (b['TabOrder'] ?? 0) as num,
+            ),
+          ))
+        RoleActions.fromJson(item),
+    ]);
 
     await userLocalStorage.saveRoleActions(actions);
     return actions;
+  }
+
+  /// Users of the current branch holding [roleId] (see [RoleIds]) via
+  /// `/v1.0/getUsersByRole`. Organization, zone, branch and source are added
+  /// by the API client.
+  Future<List<RoleUser>> getUsersByRole(int roleId) async {
+    final response = await apiClient.post<dynamic>(
+      '/v1.0/getUsersByRole',
+      data: <String, dynamic>{'RoleId': roleId},
+    );
+    final data = response.data;
+    final users = data is Map<String, dynamic> ? data['data'] : null;
+    if (users is! List) {
+      throw const UnknownApiException(
+        message: 'Unable to load users. Please try again.',
+      );
+    }
+    return [
+      for (final user in users.cast<Map<String, dynamic>>())
+        RoleUser.fromJson(user),
+    ];
   }
 
   /// Fetches the branch's admin app settings via `/v1.0/getAdminAppSettings`.

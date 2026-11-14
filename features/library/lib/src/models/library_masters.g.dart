@@ -8,6 +8,7 @@ class SchoolLibrary {
     required this.name,
     this.location,
     this.hours,
+    this.librarianId,
     required this.active,
   });
 
@@ -17,6 +18,7 @@ class SchoolLibrary {
         name: data['name'] as String? ?? '',
         location: data['location'] as String?,
         hours: data['hours'] as String?,
+        librarianId: data['librarianId'] as String?,
         active: data['status'] != 'inactive',
       );
 
@@ -24,6 +26,7 @@ class SchoolLibrary {
   final String name;
   final String? location;
   final String? hours;
+  final String? librarianId;
   final bool active;
 }
 
@@ -31,6 +34,7 @@ class LibraryCategory {
   const LibraryCategory({
     required this.id,
     required this.name,
+    required this.libraryId,
     this.description,
     this.parentId,
     required this.active,
@@ -40,6 +44,7 @@ class LibraryCategory {
       LibraryCategory(
         id: id,
         name: data['name'] as String? ?? '',
+        libraryId: data['libraryId'] as String? ?? '',
         description: data['description'] as String?,
         parentId: data['parentId'] as String?,
         active: data['status'] != 'inactive',
@@ -47,6 +52,7 @@ class LibraryCategory {
 
   final String id;
   final String name;
+  final String libraryId;
   final String? description;
   final String? parentId;
   final bool active;

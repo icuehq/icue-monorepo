@@ -6,6 +6,7 @@ import 'package:auth/src/models/assigned_entities.dart';
 import 'package:auth/src/models/branches.dart';
 import 'package:auth/src/models/person_types.dart';
 import 'package:auth/src/models/role_actions.dart';
+import 'package:auth/src/models/role_users.dart';
 import 'package:auth/src/models/user_info.dart';
 import 'package:auth/src/services/auth_service.dart';
 import 'package:auth/src/storage/session_token_provider.dart';
@@ -69,6 +70,11 @@ class AuthProvider extends ChangeNotifier {
   bool get isLibrarian =>
       user?.roles.any((role) => role.name.toLowerCase() == 'librarian') ??
       false;
+
+  /// A librarian who is not a branch admin works only in the libraries assigned to them.
+  bool get isAssignedLibrariesOnly =>
+      isLibrarian &&
+      !(user?.roles.any((role) => role.name == 'Branch_Admin') ?? false);
 
   /// Whether user must pick a branch before continuing to the main dashboard.
   bool get needsBranchSelection {
@@ -198,10 +204,11 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// Password login against `/v1.0/login` (super admin app); skips role actions.
+  /// Password login against `/v1.0/login` (super admin and portal apps); skips role actions.
   Future<bool> loginWithPassword({
     required String username,
     required String password,
+    String source = 'App',
   }) async {
     loading = true;
     _errorMessage = null;
@@ -212,7 +219,7 @@ class AuthProvider extends ChangeNotifier {
         username: username,
         password: password,
         path: '/v1.0/login',
-        source: 'App',
+        source: source,
       );
       _step = AuthStep.authenticated;
       return true;
@@ -229,6 +236,10 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  /// Users of the current branch holding [roleId] (see [RoleIds]).
+  Future<List<RoleUser>> usersByRole(int roleId) =>
+      _authService.getUsersByRole(roleId);
 
   /// Fetches actions permitted for the current user role against `/v1.0/getActionsByRole`.
   Future<void> getRoleActions({bool isSplash = false}) async {

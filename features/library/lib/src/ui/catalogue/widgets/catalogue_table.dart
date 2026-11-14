@@ -51,7 +51,7 @@ class CatalogueTable extends StatelessWidget {
       searchDebounce: const Duration(milliseconds: 400),
       onSearchChanged: (query) => provider.loadBooks(search: query.trim()),
       filters: [
-        libraryTableFilter(
+        ...libraryTableFilter(
           provider.libraries,
           provider.bookLibraryId,
           (value) =>
@@ -204,6 +204,7 @@ class CatalogueTable extends StatelessWidget {
         IcueTableColumn(
           id: 'status',
           label: 'Status',
+          width: 130,
           cellBuilder: (context, book) =>
               LibraryStatusChip.active(active: book.active),
         ),

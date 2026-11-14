@@ -46,14 +46,66 @@ class LibraryService {
     return ModuleAccess.fromMap(doc.data() ?? {});
   }
 
-  Future<List<SchoolLibrary>> libraries() =>
-      _sortedByName('libraries', SchoolLibrary.fromMap, (item) => item.name);
+  // A librarian works only in the libraries assigned to them (`libraries/{id}.librarianId`); everyone else sees all.
+  String? _userId;
+  bool _restricted = false;
+  List<SchoolLibrary>? _assigned;
 
-  Future<List<LibraryCategory>> categories() => _sortedByName(
-    'libraryCategories',
-    LibraryCategory.fromMap,
-    (item) => item.name,
-  );
+  /// Set on sign-in. A [restricted] user reads only libraries whose librarian is [userId], and every list,
+  /// report and figure is narrowed to one of them (the first when no library is chosen).
+  void scopeTo({required String? userId, required bool restricted}) {
+    _userId = userId;
+    _restricted = restricted;
+    _assigned = null;
+  }
+
+  bool get restricted => _restricted;
+
+  Future<List<SchoolLibrary>> libraries() async {
+    if (!_restricted) {
+      return _sortedByName(
+        'libraries',
+        SchoolLibrary.fromMap,
+        (item) => item.name,
+      );
+    }
+    final snapshot = await (await branchCollection('libraries'))
+        .where('librarianId', isEqualTo: _userId)
+        .get();
+    return _assigned = [
+      for (final document in snapshot.docs)
+        SchoolLibrary.fromMap(document.id, document.data()),
+    ]..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+  }
+
+  /// [selected], or for a restricted user the first assigned library; with none assigned a library that matches nothing.
+  Future<SchoolLibrary?> _scopedLibrary(SchoolLibrary? selected) async {
+    if (!_restricted || selected != null) return selected;
+    final assigned = _assigned ?? await libraries();
+    return assigned.firstOrNull ??
+        const SchoolLibrary(id: '-', name: '', active: false);
+  }
+
+  /// Same as [_scopedLibrary] for a library ID.
+  Future<String?> _scopedLibraryId(String? selected) async =>
+      selected != null || !_restricted
+      ? selected
+      : (await _scopedLibrary(null))?.id;
+
+  /// A librarian sees only the categories of the libraries assigned to them.
+  Future<List<LibraryCategory>> categories() async {
+    final categories = await _sortedByName(
+      'libraryCategories',
+      LibraryCategory.fromMap,
+      (item) => item.name,
+    );
+    if (!_restricted) return categories;
+    final ids = {for (final library in await libraries()) library.id};
+    return [
+      for (final category in categories)
+        if (ids.contains(category.libraryId)) category,
+    ];
+  }
 
   Future<List<T>> _sortedByName<T>(
     String path,
@@ -73,6 +125,7 @@ class LibraryService {
     int? classId,
     String? status,
   }) async {
+    libraryId = await _scopedLibraryId(libraryId);
     Query<Map<String, dynamic>> query = await branchCollection(
       'libraryCatalogue',
     );
@@ -102,6 +155,7 @@ class LibraryService {
     int offset = 0,
     int limit = 25,
   }) async {
+    libraryId = await _scopedLibraryId(libraryId);
     final page = await searchMirror(
       'libraryCatalogue',
       query,
@@ -164,11 +218,20 @@ class LibraryService {
     for (final document in await _byIds('libraryCopies', barcodes)) document.id,
   };
 
-  Future<List<LibraryPolicy>> policies() => _sortedByName(
-    'libraryBorrowingPolicies',
-    LibraryPolicy.fromMap,
-    (item) => item.name,
-  );
+  /// A librarian sees only the policies of the libraries assigned to them.
+  Future<List<LibraryPolicy>> policies() async {
+    final policies = await _sortedByName(
+      'libraryBorrowingPolicies',
+      LibraryPolicy.fromMap,
+      (item) => item.name,
+    );
+    if (!_restricted) return policies;
+    final ids = {for (final library in await libraries()) library.id};
+    return [
+      for (final policy in policies)
+        if (ids.contains(policy.libraryId)) policy,
+    ];
+  }
 
   /// Members by ERP ID, narrowed by the filters. [memberType] is `student` or `teacher`.
   Future<Query<Map<String, dynamic>>> membersQuery({
@@ -177,6 +240,7 @@ class LibraryService {
     bool? blocked,
     bool onLoan = false,
   }) async {
+    libraryId = await _scopedLibraryId(libraryId);
     Query<Map<String, dynamic>> query = await branchCollection(
       'libraryMembers',
     );
@@ -206,6 +270,7 @@ class LibraryService {
     int offset = 0,
     int limit = 25,
   }) async {
+    libraryId = await _scopedLibraryId(libraryId);
     final page = await searchMirror(
       'libraryMembers',
       query,
@@ -239,6 +304,7 @@ class LibraryService {
     DateTimeRange? issued,
     LoanDueFilter? due,
   }) async {
+    library = await _scopedLibrary(library);
     var query = _scoped(
       (await branchCollection('libraryLoans'))
           .where('status', isEqualTo: 'active'),
@@ -280,6 +346,7 @@ class LibraryService {
     int offset = 0,
     int limit = 25,
   }) async {
+    libraryId = await _scopedLibraryId(libraryId);
     final page = await searchMirror(
       'libraryLoans',
       query,
@@ -318,6 +385,7 @@ class LibraryService {
     String? type,
     String search = '',
   }) async {
+    libraryId = await _scopedLibraryId(libraryId);
     Query<Map<String, dynamic>> query = await branchCollection('libraryFines');
     if (search.isNotEmpty) {
       final terms = {search, search.toUpperCase()}.toList();
@@ -365,6 +433,7 @@ class LibraryService {
     String? status,
     String? type,
   }) async {
+    libraryId = await _scopedLibraryId(libraryId);
     Query<Map<String, dynamic>> query = await branchCollection(
       'libraryIncidents',
     );
@@ -386,6 +455,7 @@ class LibraryService {
     int offset = 0,
     int limit = 25,
   }) async {
+    libraryId = await _scopedLibraryId(libraryId);
     final page = await searchMirror(
       'libraryIncidents',
       query,
@@ -438,10 +508,11 @@ class LibraryService {
         controller.onCancel = () => subscription?.cancel();
         final summary = (await branchCollection(Collections.libraryStats))
             .doc('overall');
+        final scoped = await _scopedLibrary(library);
         if (controller.isClosed) return;
         subscription = summary.snapshots().listen(
           (snapshot) => controller.add(
-            overviewFigures(snapshot.data(), library?.id, today: todayIST()),
+            overviewFigures(snapshot.data(), scoped?.id, today: todayIST()),
           ),
           onError: controller.addError,
         );
@@ -461,9 +532,13 @@ class LibraryService {
     String field,
     DateTime from,
     DateTime to,
-  ) async => _scoped(await branchCollection('libraryLoans'), library: library)
-      .where(field, isGreaterThanOrEqualTo: dayTimestamp(from.toApiDate()))
-      .where(field, isLessThanOrEqualTo: dayTimestamp(to.toApiDate()));
+  ) async =>
+      _scoped(
+            await branchCollection('libraryLoans'),
+            library: await _scopedLibrary(library),
+          )
+          .where(field, isGreaterThanOrEqualTo: dayTimestamp(from.toApiDate()))
+          .where(field, isLessThanOrEqualTo: dayTimestamp(to.toApiDate()));
 
   /// The loans report: loans issued in the range, newest first, in [status] when given;
   /// page it with `FirestorePager`.

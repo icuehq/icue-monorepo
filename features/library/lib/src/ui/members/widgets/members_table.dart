@@ -38,7 +38,7 @@ class MembersTable extends StatelessWidget {
             }
           : null,
       filters: [
-        libraryTableFilter(provider.libraries, provider.memberLibraryId, (
+        ...libraryTableFilter(provider.libraries, provider.memberLibraryId, (
           value,
         ) {
           provider

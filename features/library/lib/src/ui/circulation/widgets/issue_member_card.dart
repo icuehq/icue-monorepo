@@ -255,6 +255,7 @@ class _BorrowerPhoto extends StatelessWidget {
             : Image.network(
                 person.photoUrl,
                 fit: BoxFit.cover,
+                webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
                 errorBuilder: (_, _, _) => fallback,
                 loadingBuilder: (_, child, progress) =>
                     progress == null ? child : fallback,

@@ -132,21 +132,26 @@ class _NewCopiesSectionState extends State<NewCopiesSection> {
             icon: Icons.copy_rounded,
             helperText: widget.allowNone ? '0 adds the title only' : null,
           ),
-          IcueDropdown<String>(
-            value: widget.libraryId,
-            items: [
-              for (final library in libraries)
-                DropdownMenuItem(value: library.id, child: Text(library.name)),
-            ],
-            onChanged: widget.onLibraryChanged,
-            validator: (value) =>
-                value == null && (int.tryParse(copies.text.trim()) ?? 0) > 0
-                ? 'Select a library'
-                : null,
-            icon: Icons.local_library_outlined,
-            label: 'Library',
-            helperText: libraries.isEmpty ? 'No active library found' : null,
-          ),
+          // With a single library it is preselected by the form and needs no choice.
+          if (libraries.length != 1)
+            IcueDropdown<String>(
+              value: widget.libraryId,
+              items: [
+                for (final library in libraries)
+                  DropdownMenuItem(
+                    value: library.id,
+                    child: Text(library.name),
+                  ),
+              ],
+              onChanged: widget.onLibraryChanged,
+              validator: (value) =>
+                  value == null && (int.tryParse(copies.text.trim()) ?? 0) > 0
+                  ? 'Select a library'
+                  : null,
+              icon: Icons.local_library_outlined,
+              label: 'Library',
+              helperText: libraries.isEmpty ? 'No active library found' : null,
+            ),
         ]),
         if (widget.barcodes.isNotEmpty)
           SwitchListTile(

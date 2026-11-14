@@ -237,11 +237,13 @@ models:
         name: string
         location: string?
         hours: string?
+        librarianId: string?
         active: { type: bool, key: status, notEquals: inactive }
     LibraryCategory:
       id: id
       fields:
         name: string
+        libraryId: string
         description: string?
         parentId: string?
         active: { type: bool, key: status, notEquals: inactive }

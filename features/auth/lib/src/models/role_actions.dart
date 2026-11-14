@@ -29,7 +29,8 @@ class RoleActions {
     routeState:
         json['RouteState'] as String? ?? json['routeState'] as String? ?? '',
     icon: json['Icon'] as String? ?? json['icon'] as String? ?? '',
-    tabOrder: json['TabOrder'] as int? ?? json['tabOrder'] as int? ?? 0,
+    // Web returns fractional orders (1.1, 2.547); the model keeps whole numbers.
+    tabOrder: ((json['TabOrder'] ?? json['tabOrder']) as num?)?.toInt() ?? 0,
     displayName:
         json['DisplayName'] as String? ?? json['displayName'] as String? ?? '',
     subActionItems: json['SubActionItems'] == null

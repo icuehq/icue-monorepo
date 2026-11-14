@@ -1,3 +1,4 @@
+import 'package:auth/auth.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
@@ -22,6 +23,9 @@ class _LibrariesPageState extends State<LibrariesPage> {
   var _statusFilter = LibraryStatusFilter.all;
   String _searchQuery = '';
 
+  /// Librarian display names by ID; Firestore keeps only the IDs.
+  Map<String, String> _librarianNames = const {};
+
   @override
   void initState() {
     super.initState();
@@ -31,6 +35,24 @@ class _LibrariesPageState extends State<LibrariesPage> {
         await libraryProvider.loadMasters();
       }
     });
+    _loadLibrarianNames();
+  }
+
+  Future<void> _loadLibrarianNames() async {
+    try {
+      final users = await context.read<AuthProvider>().usersByRole(
+        RoleIds.librarian,
+      );
+      if (mounted) {
+        setState(
+          () => _librarianNames = {
+            for (final user in users) '${user.id}': user.displayName,
+          },
+        );
+      }
+    } catch (_) {
+      // The list still works without names; librarians show as "—".
+    }
   }
 
   @override
@@ -81,6 +103,8 @@ class _LibrariesPageState extends State<LibrariesPage> {
     final libraryProvider = context.watch<LibraryProvider>();
     final allLibraries = libraryProvider.libraries;
     final isWide = context.isWide;
+    // Libraries are set up by admins in the portal; a librarian only sees their own.
+    final readOnly = libraryProvider.restricted;
 
     final filteredLibraries = allLibraries.where((lib) {
       final statusOk = switch (_statusFilter) {
@@ -109,7 +133,7 @@ class _LibrariesPageState extends State<LibrariesPage> {
           activePath: LibraryRoutes.libraryList,
         ),
       ),
-      floatingActionButton: !isWide && allLibraries.isNotEmpty
+      floatingActionButton: !isWide && allLibraries.isNotEmpty && !readOnly
           ? FloatingActionButton.extended(
               onPressed: () => AddLibraryDialog.show(context),
               icon: const Icon(Icons.add_rounded),
@@ -123,6 +147,8 @@ class _LibrariesPageState extends State<LibrariesPage> {
               padding: const EdgeInsets.all(16),
               child: LibrariesTable(
                 libraries: allLibraries,
+                librarianNames: _librarianNames,
+                readOnly: readOnly,
                 onToggleActive: (library) => _toggleActive(context, library),
               ),
             )
@@ -130,7 +156,9 @@ class _LibrariesPageState extends State<LibrariesPage> {
               onRefresh: () => libraryProvider.loadMasters(),
               child: allLibraries.isEmpty
                   ? LibraryInitialEmptyState(
-                      onAdd: () => AddLibraryDialog.show(context),
+                      onAdd: readOnly
+                          ? null
+                          : () => AddLibraryDialog.show(context),
                     )
                   : Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -162,6 +190,9 @@ class _LibrariesPageState extends State<LibrariesPage> {
                                     final library = filteredLibraries[index];
                                     return LibraryCard(
                                       library: library,
+                                      readOnly: readOnly,
+                                      librarianName:
+                                          _librarianNames[library.librarianId],
                                       onEdit: () => AddLibraryDialog.show(
                                         context,
                                         library: library,

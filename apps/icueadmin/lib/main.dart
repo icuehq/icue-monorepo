@@ -139,6 +139,10 @@ class _IcueAdminAppState extends State<IcueAdminApp> {
   /// Tags crash reports and analytics events with the signed-in user (cleared on logout).
   void _syncFirebaseUser() {
     final user = _authProvider.user;
+    _libraryProvider.scopeTo(
+      userId: user?.id.toString(),
+      restricted: _authProvider.isAssignedLibrariesOnly,
+    );
     final branch = _authProvider.selectedBranch;
     if (user?.id != _trackedUserId ||
         (branch != null && branch.id != _trackedBranchId)) {

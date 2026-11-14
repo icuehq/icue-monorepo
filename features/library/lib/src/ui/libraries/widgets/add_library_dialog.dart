@@ -1,3 +1,4 @@
+import 'package:auth/auth.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
@@ -21,10 +22,34 @@ class _AddLibraryDialogState extends State<AddLibraryDialog> {
   late final _name = TextEditingController(text: widget.library?.name);
   late final _location = TextEditingController(text: widget.library?.location);
   late final _hours = TextEditingController(text: widget.library?.hours);
+  late String? _librarianId = widget.library?.librarianId;
+  List<RoleUser> _librarians = const [];
+  bool _loadingLibrarians = true;
   int _nextSample = 0;
   bool _busy = false;
   bool _submitted = false;
   String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLibrarians();
+  }
+
+  Future<void> _loadLibrarians() async {
+    try {
+      final users = await context.read<AuthProvider>().usersByRole(
+        RoleIds.librarian,
+      );
+      if (mounted) setState(() => _librarians = users);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _errorMessage = 'Could not load the list of librarians');
+      }
+    } finally {
+      if (mounted) setState(() => _loadingLibrarians = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -82,6 +107,7 @@ class _AddLibraryDialogState extends State<AddLibraryDialog> {
         'name': _name.text.trim(),
         'location': blankToNull(_location),
         'hours': blankToNull(_hours),
+        'librarianId': _librarianId,
       }),
     );
     if (mounted && !saved) {
@@ -205,6 +231,8 @@ class _AddLibraryDialogState extends State<AddLibraryDialog> {
                 hintText: 'e.g. Central Library',
                 icon: Icons.business_outlined,
               ),
+              const SizedBox(height: 14),
+              _buildLibrarianField(),
             ],
           ),
           const SizedBox(height: 16),
@@ -243,6 +271,24 @@ class _AddLibraryDialogState extends State<AddLibraryDialog> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildLibrarianField() {
+    final known = _librarians.any((user) => '${user.id}' == _librarianId);
+    return IcueDropdown<String?>(
+      value: known ? _librarianId : null,
+      items: [
+        for (final user in _librarians)
+          DropdownMenuItem(value: '${user.id}', child: Text(user.displayName)),
+      ],
+      onChanged: _loadingLibrarians
+          ? null
+          : (value) => setState(() => _librarianId = value),
+      validator: (value) => value == null ? 'Please select a librarian' : null,
+      label: 'Select Librarian *',
+      hintText: _loadingLibrarians ? 'Loading…' : null,
+      icon: Icons.person_outline_rounded,
     );
   }
 

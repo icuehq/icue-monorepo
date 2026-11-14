@@ -95,7 +95,7 @@ Rules read one `userAccess` doc per request (`get()` is cached within a request)
 
 ### 3.3 Scope checks
 
-The branch is the scope: a document is reachable only through its path, and rules require the `orgId`, `zoneId` and `branchId` claims to equal the path's. There is no per-document campus field and no campus filter on queries. Library documents carry `libraryId`; librarian access to specific libraries is via `libraries/{id}.staffIds` (FRS 11.2 "assign librarians").
+The branch is the scope: a document is reachable only through its path, and rules require the `orgId`, `zoneId` and `branchId` claims to equal the path's. There is no per-document campus field and no campus filter on queries. Library documents carry `libraryId`; a librarian (Node role 43 without role 4) works only in the libraries whose `libraries/{id}.librarianId` is their ERP ID (FRS 11.2 "assign librarians"): `LibraryService.scopeTo` narrows every read, `assignedOnly()`/`inLibrary()` in `firestore.rules` guard library, loan, copy, policy and category writes. Reads of other collections are narrowed in the client only.
 
 ---
 

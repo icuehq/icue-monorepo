@@ -23,7 +23,7 @@ class ApiClient {
     Duration receiveTimeout = const Duration(seconds: 20),
     bool enableLogging = true,
     void Function(String message)? logPrint,
-    this.source = defaultSourceValue,
+    String source = defaultSourceValue,
     this.branchIdProvider,
     this.onShowErrorMessage,
     this.onSessionExpired,
@@ -100,7 +100,10 @@ class ApiClient {
 
   final Dio dio;
   final ApiEnvironment environment;
-  final String source;
+
+  /// `Source` sent with every request (web apps set `'web'` at startup).
+  String get source => _authInterceptor.source ?? defaultSourceValue;
+  set source(String value) => _authInterceptor.source = value;
   final dynamic Function()? branchIdProvider;
   void Function(String message)? onShowErrorMessage;
   void Function()? onSessionExpired;

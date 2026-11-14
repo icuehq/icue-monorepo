@@ -43,7 +43,9 @@ class FinesTable extends StatelessWidget {
         provider.loadFines();
       },
       filters: [
-        libraryTableFilter(provider.libraries, provider.fineLibraryId, (value) {
+        ...libraryTableFilter(provider.libraries, provider.fineLibraryId, (
+          value,
+        ) {
           provider
             ..fineLibraryId = value
             ..loadFines();

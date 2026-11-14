@@ -147,8 +147,8 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   Future<LibraryPerson?> findPerson(String type, String identifier) =>
       _people.findByIdentifier(type, identifier);
 
-  Future<List<StudentData>> studentsOf(int classId, List<String> sections) =>
-      _people.studentsOf(classId, sections);
+  Future<List<StudentData>> studentsOf(int classId, String? section) =>
+      _people.studentsOf(classId, section);
 
   LibraryPerson studentPerson(StudentData student, {bool staff = false}) =>
       _people.personFrom(student, memberType: staff ? 'EMPLOYEE' : 'STUDENT');
@@ -178,6 +178,25 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
       notifyListeners();
     }
   }
+
+  String? _scopedUserId;
+
+  /// Restricts the module to the libraries assigned to [userId] (a librarian); set by the app on every sign-in.
+  void scopeTo({required String? userId, required bool restricted}) {
+    if (userId == _scopedUserId && restricted == _service.restricted) return;
+    _scopedUserId = userId;
+    _service.scopeTo(userId: userId, restricted: restricted);
+    libraries = [];
+    categories = [];
+    policies = [];
+    notifyListeners();
+  }
+
+  /// A librarian never sees "All libraries": the lists are always of one assigned library.
+  bool get restricted => _service.restricted;
+
+  /// The Library filter is pointless with a single library.
+  bool get showLibraryFilter => libraries.length > 1;
 
   /// Drops the cached ERP classes (sign-out or branch change).
   void clearSession() {

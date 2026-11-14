@@ -626,3 +626,33 @@ describe('reports (Inv-7)', () => {
     await assertFails(getDoc(doc(db('stock'), 'orgs/8/zones/147/branches/427/inventoryPurchaseOrders/po1')));
  });
 });
+
+describe('library scope: a librarian works only in their assigned libraries', () => {
+  const base = 'orgs/8/zones/147/branches/427';
+  const librarian = { ...staff, roleIds: [43], personErpId: 4301 };
+  const admin = { ...staff, roleIds: [4, 43], personErpId: 1 };
+  beforeEach(() =>
+    env.withSecurityRulesDisabled(async (context) => {
+      const firestore = context.firestore();
+      await setDoc(doc(firestore, `${base}/libraries/main`), { status: 'active', librarianId: '4301' });
+      await setDoc(doc(firestore, `${base}/libraries/junior`), { status: 'active', librarianId: '4304' });
+      await setDoc(doc(firestore, `${base}/libraryLoans/mine`), { status: 'active', libraryId: 'main' });
+      await setDoc(doc(firestore, `${base}/libraryLoans/theirs`), { status: 'active', libraryId: 'junior' });
+    }),
+  );
+
+  it('reads only their own libraries (the query filters on librarianId); admins read all', async () => {
+    await assertSucceeds(getDocs(query(collection(db('4301', librarian), `${base}/libraries`), where('librarianId', '==', '4301'))));
+    await assertFails(getDocs(collection(db('4301', librarian), `${base}/libraries`)));
+    await assertFails(getDoc(doc(db('4301', librarian), `${base}/libraries/junior`)));
+    await assertSucceeds(getDocs(collection(db('1', admin), `${base}/libraries`)));
+  });
+
+  it('cannot edit libraries; works loans only in their own library', async () => {
+    await assertFails(updateDoc(doc(db('4301', librarian), `${base}/libraries/main`), { name: 'x' }));
+    await assertSucceeds(updateDoc(doc(db('1', admin), `${base}/libraries/main`), { name: 'x' }));
+    const mark = (action) => ({ by: '4301', at: serverTimestamp(), action });
+    await assertSucceeds(updateDoc(doc(db('4301', librarian), `${base}/libraryLoans/mine`), { status: 'returned', lastWrite: mark('libraryLoan.return') }));
+    await assertFails(updateDoc(doc(db('4301', librarian), `${base}/libraryLoans/theirs`), { status: 'returned', lastWrite: mark('libraryLoan.return') }));
+  });
+});

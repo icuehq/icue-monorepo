@@ -196,22 +196,23 @@ class _LibraryReportsPageState extends State<LibraryReportsPage> {
                     if (preset == LibraryDatePreset.custom) _pickCustomRange();
                   },
                 ),
-                IcueTableFilter(
-                  id: 'library',
-                  label: 'Library',
-                  options: [
-                    for (final schoolLibrary in library.libraries)
-                      IcueTableFilterOption(
-                        schoolLibrary.id,
-                        schoolLibrary.name,
-                      ),
-                  ],
-                  value: _libraryId,
-                  onChanged: (libraryId) {
-                    setState(() => _libraryId = libraryId);
-                    _load();
-                  },
-                ),
+                if (library.showLibraryFilter)
+                  IcueTableFilter(
+                    id: 'library',
+                    label: 'Library',
+                    options: [
+                      for (final schoolLibrary in library.libraries)
+                        IcueTableFilterOption(
+                          schoolLibrary.id,
+                          schoolLibrary.name,
+                        ),
+                    ],
+                    value: _libraryId,
+                    onChanged: (libraryId) {
+                      setState(() => _libraryId = libraryId);
+                      _load();
+                    },
+                  ),
                 if (_def.statuses.isNotEmpty)
                   IcueTableFilter(
                     id: 'status',

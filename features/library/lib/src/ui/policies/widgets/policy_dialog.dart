@@ -101,6 +101,12 @@ class _PolicyDialogState extends State<PolicyDialog> {
         if (schoolLibrary.active || schoolLibrary.id == _libraryId)
           schoolLibrary,
     ];
+    final categories = [
+      for (final category in libraryProvider.categories)
+        if (category.libraryId == _libraryId) category,
+    ];
+    // One library needs no choice.
+    if (libraries.length == 1) _libraryId ??= libraries.first.id;
     final theme = Theme.of(context);
     const gap = SizedBox(width: 12);
     return Form(
@@ -113,19 +119,26 @@ class _PolicyDialogState extends State<PolicyDialog> {
             title: 'Applies to',
             icon: Icons.groups_outlined,
             children: [
-              IcueDropdown<String>(
-                value: _libraryId,
-                items: [
-                  for (final schoolLibrary in libraries)
-                    DropdownMenuItem(
-                      value: schoolLibrary.id,
-                      child: Text(schoolLibrary.name),
-                    ),
-                ],
-                onChanged: editing ? null : (value) => _libraryId = value,
-                validator: (value) => value == null ? 'Required' : null,
-                label: 'Library *',
-              ),
+              if (libraries.length != 1)
+                IcueDropdown<String>(
+                  value: _libraryId,
+                  items: [
+                    for (final schoolLibrary in libraries)
+                      DropdownMenuItem(
+                        value: schoolLibrary.id,
+                        child: Text(schoolLibrary.name),
+                      ),
+                  ],
+                  onChanged: editing
+                      ? null
+                      : (value) => setState(() {
+                          _libraryId = value;
+                          // Categories belong to one library.
+                          _categories.clear();
+                        }),
+                  validator: (value) => value == null ? 'Required' : null,
+                  label: 'Library *',
+                ),
               IcueDropdown<String>(
                 value: _type,
                 items: const [
@@ -223,7 +236,7 @@ class _PolicyDialogState extends State<PolicyDialog> {
               ),
             ],
           ),
-          if (libraryProvider.categories.isNotEmpty)
+          if (categories.isNotEmpty)
             IcueFormSectionCard(
               title: 'Book categories',
               icon: Icons.category_outlined,
@@ -238,7 +251,7 @@ class _PolicyDialogState extends State<PolicyDialog> {
                   spacing: 8,
                   runSpacing: 4,
                   children: [
-                    for (final category in libraryProvider.categories)
+                    for (final category in categories)
                       FilterChip(
                         label: Text(category.name),
                         selected: _categories.contains(category.id),

@@ -2,16 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 
 class LibraryInitialEmptyState extends StatelessWidget {
-  const LibraryInitialEmptyState({required this.onAdd, super.key});
-  final VoidCallback onAdd;
+  const LibraryInitialEmptyState({this.onAdd, super.key});
+
+  /// Null when the user may not add libraries (a librarian): the message then asks for an assignment.
+  final VoidCallback? onAdd;
 
   @override
   Widget build(BuildContext context) => IcueEmptyState(
     icon: Icons.local_library_outlined,
-    title: 'No libraries configured',
-    message: 'Set up the libraries of this branch to manage book circulation, copy inventories, and borrow policies.',
-    actionLabel: 'Add Library',
-    actionIcon: Icons.add_rounded,
+    title: onAdd == null ? 'No library assigned' : 'No libraries configured',
+    message: onAdd == null
+        ? 'Ask your administrator to assign a library to you.'
+        : 'Set up the libraries of this branch to manage book circulation, copy inventories, and borrow policies.',
+    actionLabel: onAdd == null ? null : 'Add Library',
+    actionIcon: onAdd == null ? null : Icons.add_rounded,
     onAction: onAdd,
   );
 }

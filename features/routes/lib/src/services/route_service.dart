@@ -53,6 +53,34 @@ class RouteService {
     return const Student();
   }
 
+  /// Students with minimal data (id, name, admission number, class, section, photo) for [classId]
+  /// and optional [section] (whole class when null). The API has no paging. It does not return a
+  /// class id, so [classId] is stamped on every row. Node answers `err: true` with no rows.
+  Future<({List<StudentData> students, int total})> getStudentsBasic({
+    required int classId,
+    String? section,
+  }) async {
+    final response = await _apiClient.post<dynamic>(
+      '/v2.0/getStusBasicData',
+      data: {'ClassId': classId, 'Section': ?section, 'Source': 'adminapp'},
+    );
+    final body = response.data;
+    if (body is! Map<String, dynamic> || body['err'] == true) {
+      return (students: <StudentData>[], total: 0);
+    }
+    final metadata = body['metadata'];
+    return (
+      students: [
+        for (final row in body['data'] as List? ?? const <Object?>[])
+          if (row is Map<String, dynamic>)
+            StudentData.fromJson({...row, 'ClassId': classId}),
+      ],
+      total: metadata is Map<String, dynamic>
+          ? metadata['total'] as int? ?? 0
+          : 0,
+    );
+  }
+
   /// Searches for students matching a query string.
   Future<List<StudentData>> searchStudent({
     required String search,

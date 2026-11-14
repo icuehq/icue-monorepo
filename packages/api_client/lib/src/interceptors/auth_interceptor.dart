@@ -6,6 +6,7 @@ const String defaultSourceKey = 'Source';
 const String defaultBranchKey = 'BranchId';
 const String defaultOrganizationKey = 'OrganizationId';
 const String defaultZoneKey = 'ZoneId';
+
 const String defaultSourceValue = 'adminapp';
 
 /// Interceptor that attaches the authentication token ('token' header),
@@ -22,7 +23,7 @@ class AuthInterceptor extends QueuedInterceptor {
 
   TokenProvider? tokenProvider;
   final Dio dio;
-  final String? source;
+  String? source;
   final dynamic Function()? branchIdProvider;
   final void Function()? onSessionExpired;
 

@@ -14,6 +14,8 @@ service cloud.firestore {
     function access(orgId, zoneId, branchId) { return get(/databases/$(db)/documents/orgs/$(orgId)/zones/$(zoneId)/branches/$(branchId)/userAccess/$(request.auth.uid)).data; }
     // Library has no sub-permissions: the Node tile gates the UI and any non-parent staff user of the branch may operate.
     function staff(orgId, zoneId, branchId) { return inBranch(orgId, zoneId, branchId) && request.auth.token.get('personType', '') != 'parent'; }
+    // A librarian (Node role 43) who is not a branch admin (role 4) works only in the libraries assigned to them (`libraries/{id}.librarianId`).
+    function assignedOnly() { let roles = request.auth.token.get('roleIds', []); return 43 in roles && !(4 in roles); }
     function can(orgId, zoneId, branchId, p) { return p in access(orgId, zoneId, branchId).permissions; }
     function topLevelCategory(data) { return !('parentId' in data) || data.parentId == null; }
     function own() {
@@ -59,12 +61,15 @@ service cloud.firestore {
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryVendors/{id} {
       allow write: if inBranch(orgId, zoneId, branchId) && can(orgId, zoneId, branchId, 'inventory.vendors.manage');
     }
+    // Libraries are set up by admins; a librarian reads only their own (the query must filter on librarianId).
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/libraries/{id} {
-      allow write: if staff(orgId, zoneId, branchId);
+      allow read: if staff(orgId, zoneId, branchId) && (!assignedOnly() || resource.data.librarianId == request.auth.uid);
+      allow write: if staff(orgId, zoneId, branchId) && !assignedOnly();
     }
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/libraryCategories/{id} {
       // Two levels only: a subcategory's parent must itself be a top-level category.
       allow write: if staff(orgId, zoneId, branchId)
+        && inLibrary(orgId, zoneId, branchId, (resource == null ? request.resource.data.get('libraryId', '') : resource.data.get('libraryId', '')))
         && (request.method == 'delete' || topLevelCategory(request.resource.data)
           || topLevelCategory(get(/databases/$(db)/documents/orgs/$(orgId)/zones/$(zoneId)/branches/$(branchId)/libraryCategories/$(request.resource.data.parentId)).data));
     }
@@ -242,7 +247,7 @@ service cloud.firestore {
 
     // Library masters (Lib-1): catalogue is branch-wide, readable by anyone who may browse it.
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/{coll}/{id} {
-      allow read: if staff(orgId, zoneId, branchId) && coll in ['libraries', 'libraryCategories', 'libraryCatalogue', 'libraryCopies', 'libraryStats'];
+      allow read: if staff(orgId, zoneId, branchId) && coll in ['libraryCategories', 'libraryCatalogue', 'libraryCopies', 'libraryStats'];
     }
     // Parents (Lib-8): browse the catalogue read-only; copies stay with staff.
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/{coll}/{id} {
@@ -258,6 +263,10 @@ service cloud.firestore {
     function libraryOf(orgId, zoneId, branchId, libraryId) {
       return get(/databases/$(db)/documents/orgs/$(orgId)/zones/$(zoneId)/branches/$(branchId)/libraries/$(libraryId)).data;
     }
+    // Writes in a library: admins anywhere, a librarian only in their own.
+    function inLibrary(orgId, zoneId, branchId, libraryId) {
+      return !assignedOnly() || libraryOf(orgId, zoneId, branchId, libraryId).librarianId == request.auth.uid;
+    }
     // Title keys: created before a title takes its identity, deleted when it changes. An existing key cannot be overwritten.
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/uniqueKeys/{key} {
       allow get: if staff(orgId, zoneId, branchId) && key.matches('libraryTitle_.*');
@@ -272,14 +281,14 @@ service cloud.firestore {
     }
     // Copies: edit.
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/libraryCopies/{barcode} {
-      allow update: if staff(orgId, zoneId, branchId) && stamped()
+      allow update: if staff(orgId, zoneId, branchId) && stamped() && inLibrary(orgId, zoneId, branchId, resource.data.get('libraryId', ''))
         && request.resource.data.lastWrite.action in ['libraryCopy.update', 'libraryCopy.status']
         && (request.resource.data.lastWrite.action == 'libraryCopy.update'
           || request.resource.data.status in ['available', 'under_maintenance', 'damaged', 'lost', 'withdrawn']);
     }
     // Circulation moves a copy between shelf, loan, damaged and lost (LoanWrites); nothing else changes.
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/libraryCopies/{barcode} {
-      allow update: if staff(orgId, zoneId, branchId)
+      allow update: if staff(orgId, zoneId, branchId) && inLibrary(orgId, zoneId, branchId, resource.data.get('libraryId', ''))
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'activeLoanId', 'updatedAt'])
         && request.resource.data.status in ['available', 'issued', 'damaged', 'lost', 'withdrawn'];
     }
@@ -298,9 +307,10 @@ service cloud.firestore {
     // Borrowing policies: library and person type are fixed once created.
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/libraryBorrowingPolicies/{id} {
       allow create: if staff(orgId, zoneId, branchId) && stamped() && request.resource.data.createdBy == request.auth.uid
+        && inLibrary(orgId, zoneId, branchId, request.resource.data.get('libraryId', ''))
         && request.resource.data.lastWrite.action == 'libraryPolicy.create'
-        && libraryOf(orgId, zoneId, branchId, request.resource.data.libraryId).status == 'active';
-      allow update: if staff(orgId, zoneId, branchId) && stamped()
+        && libraryOf(orgId, zoneId, branchId, request.resource.data.get('libraryId', '')).status == 'active';
+      allow update: if staff(orgId, zoneId, branchId) && stamped() && inLibrary(orgId, zoneId, branchId, resource.data.get('libraryId', ''))
         && request.resource.data.lastWrite.action in ['libraryPolicy.update', 'libraryPolicy.status']
         && request.resource.data.libraryId == resource.data.libraryId
         && request.resource.data.memberType == resource.data.memberType;
@@ -322,10 +332,10 @@ service cloud.firestore {
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/libraryLoans/{id} {
       allow read: if inBranch(orgId, zoneId, branchId) && ((staff(orgId, zoneId, branchId)) || own());
       // Circulation (client transactions in LoanWrites): issue, then return / renew / mark lost of an active loan.
-      allow create: if staff(orgId, zoneId, branchId) && stamped()
+      allow create: if staff(orgId, zoneId, branchId) && stamped() && inLibrary(orgId, zoneId, branchId, request.resource.data.get('libraryId', ''))
         && request.resource.data.lastWrite.action == 'libraryLoan.issue'
         && request.resource.data.issuedBy == request.auth.uid && request.resource.data.status == 'active';
-      allow update: if staff(orgId, zoneId, branchId) && stamped() && resource.data.status == 'active'
+      allow update: if staff(orgId, zoneId, branchId) && stamped() && resource.data.status == 'active' && inLibrary(orgId, zoneId, branchId, resource.data.get('libraryId', ''))
         && request.resource.data.lastWrite.action in ['libraryLoan.return', 'libraryLoan.renew', 'libraryLoan.markLost'];
     }
 

@@ -11,11 +11,13 @@ class LibraryCategoryCard extends StatefulWidget {
     required this.onEdit,
     required this.onAddSubcategory,
     required this.onToggleActive,
+    this.libraryName,
     this.initiallyExpanded = false,
   });
 
   final LibraryCategory category;
   final List<LibraryCategory> subcategories;
+  final String? libraryName;
   final bool initiallyExpanded;
   final ValueChanged<LibraryCategory> onEdit;
   final ValueChanged<LibraryCategory> onAddSubcategory;
@@ -138,6 +140,16 @@ class _LibraryCategoryCardState extends State<LibraryCategoryCard> {
                               ),
                           ],
                         ),
+                        if (widget.libraryName != null) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            widget.libraryName!,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                         if (category.description != null &&
                             category.description!.isNotEmpty) ...[
                           const SizedBox(height: 4),

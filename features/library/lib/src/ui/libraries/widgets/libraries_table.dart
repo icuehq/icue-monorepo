@@ -7,11 +7,17 @@ import 'package:school_library/src/ui/libraries/widgets/add_library_dialog.dart'
 class LibrariesTable extends StatelessWidget {
   const LibrariesTable({
     required this.libraries,
+    required this.librarianNames,
+    this.readOnly = false,
     required this.onToggleActive,
     super.key,
   });
 
   final List<SchoolLibrary> libraries;
+  final Map<String, String> librarianNames;
+
+  /// A librarian cannot add, edit or deactivate libraries.
+  final bool readOnly;
   final void Function(SchoolLibrary library) onToggleActive;
 
   @override
@@ -23,19 +29,25 @@ class LibrariesTable extends StatelessWidget {
       rowLabel: (library) => library.name,
       searchHint: 'Search name or location...',
       searchText: (library) => '${library.name} ${library.location ?? ''}',
-      onRowTap: (library) => AddLibraryDialog.show(context, library: library),
-      primaryAction: IcueTableAction(
-        label: 'Library',
-        icon: Icons.add_rounded,
-        onPressed: () => AddLibraryDialog.show(context),
-      ),
+      onRowTap: readOnly
+          ? null
+          : (library) => AddLibraryDialog.show(context, library: library),
+      primaryAction: readOnly
+          ? null
+          : IcueTableAction(
+              label: 'Library',
+              icon: Icons.add_rounded,
+              onPressed: () => AddLibraryDialog.show(context),
+            ),
       emptyTitle: 'No libraries yet',
       emptyMessage: 'Add a library to start managing books.',
-      emptyAction: IcueTableAction(
-        label: 'Add library',
-        icon: Icons.add_rounded,
-        onPressed: () => AddLibraryDialog.show(context),
-      ),
+      emptyAction: readOnly
+          ? null
+          : IcueTableAction(
+              label: 'Add library',
+              icon: Icons.add_rounded,
+              onPressed: () => AddLibraryDialog.show(context),
+            ),
       filters: [
         IcueClientFilter<SchoolLibrary>(
           id: 'status',
@@ -48,28 +60,31 @@ class LibrariesTable extends StatelessWidget {
               (optionId == 'active') == library.active,
         ),
       ],
-      rowActions: (library) => [
-        IcueTableRowAction(
-          label: 'Edit',
-          icon: Icons.edit_outlined,
-          inline: true,
-          variant: IcueButtonVariant.outline,
-          onPressed: (row) => AddLibraryDialog.show(context, library: row),
-        ),
-        IcueTableRowAction(
-          label: library.active ? 'Deactivate' : 'Activate',
-          icon: library.active
-              ? Icons.block_outlined
-              : Icons.check_circle_outline_rounded,
-          inline: true,
-          destructive: library.active,
-          variant: library.active
-              ? IcueButtonVariant.destructive
-              : IcueButtonVariant.outline,
-          color: library.active ? null : const Color(0xFF16A34A),
-          onPressed: onToggleActive,
-        ),
-      ],
+      rowActions: readOnly
+          ? null
+          : (library) => [
+              IcueTableRowAction(
+                label: 'Edit',
+                icon: Icons.edit_outlined,
+                inline: true,
+                variant: IcueButtonVariant.outline,
+                onPressed: (row) =>
+                    AddLibraryDialog.show(context, library: row),
+              ),
+              IcueTableRowAction(
+                label: library.active ? 'Deactivate' : 'Activate',
+                icon: library.active
+                    ? Icons.block_outlined
+                    : Icons.check_circle_outline_rounded,
+                inline: true,
+                destructive: library.active,
+                variant: library.active
+                    ? IcueButtonVariant.destructive
+                    : IcueButtonVariant.outline,
+                color: library.active ? null : const Color(0xFF16A34A),
+                onPressed: onToggleActive,
+              ),
+            ],
       columns: [
         IcueTableColumn(
           id: 'name',
@@ -82,6 +97,15 @@ class LibrariesTable extends StatelessWidget {
           cellBuilder: (context, library) => IcueTableCellText(
             library.name,
             leading: library.active ? null : const IcueInactiveBadge(),
+          ),
+        ),
+        IcueTableColumn(
+          id: 'librarian',
+          label: 'Librarian',
+          flex: 2,
+          cellBuilder: (context, library) => IcueTableCellText(
+            librarianNames[library.librarianId] ?? '—',
+            style: IcueTableStyle.of(context).secondary,
           ),
         ),
         IcueTableColumn(

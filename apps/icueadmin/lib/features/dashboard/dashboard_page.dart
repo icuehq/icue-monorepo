@@ -20,15 +20,15 @@ const Map<String, String> _iconsMap = {
   'layout.fleetdashboard': 'assets/dashboard/fleet.png',
   'layout.repairsandexpenses': 'assets/dashboard/manage-vehicles.png',
   'layout.fuelfilling': 'assets/dashboard/manage-expense.png',
-  'layout.reports': 'assets/dashboard/reports.png',
+  'layout.reports': 'packages/icue_ui/assets/dashboard/reports.png',
   'layout.drivers': 'assets/dashboard/drivers.png',
   'layout.vehicles': 'assets/dashboard/vehicles.png',
   'layout.logbook': 'assets/dashboard/log-book.png',
   'layout.dropboarding': 'assets/dashboard/student-drop.png',
   'layout.gatepass': 'assets/dashboard/gate-pass.png',
   'layout.attendance': 'assets/dashboard/attendance.png',
-  'layout.inventory': 'assets/dashboard/inventory.png',
-  'layout.Library': 'assets/dashboard/library.png',
+  'layout.inventory': 'packages/inventory/assets/dashboard/inventory.png',
+  'layout.Library': 'packages/school_library/assets/dashboard/library.png',
 };
 
 /// Backend `routeState` id -> app route path. Unknown ids fall through to

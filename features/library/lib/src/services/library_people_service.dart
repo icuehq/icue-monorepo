@@ -34,23 +34,12 @@ class LibraryPeopleService {
   /// Forgets cached ERP data; call when the signed-in user or branch changes.
   void clearCache() => _classes = null;
 
-  /// Every student of [classId] in [sections], following Node's pages.
-  Future<List<StudentData>> studentsOf(
-    int classId,
-    List<String> sections,
-  ) async {
-    final students = <StudentData>[];
-    for (var page = 1; ; page++) {
-      final result = await _routes.getStudents(
+  /// The students of [classId] in [section] (the whole class when null). Node's endpoint has no paging.
+  Future<List<StudentData>> studentsOf(int classId, String? section) async =>
+      (await _routes.getStudentsBasic(
         classId: classId,
-        sections: sections,
-        pageNo: page,
-      );
-      students.addAll(result.data);
-      final total = result.metadata.isEmpty ? 0 : result.metadata.first.total;
-      if (result.data.isEmpty || students.length >= total) return students;
-    }
-  }
+        section: section,
+      )).students;
 
   LibraryPerson personFrom(
     StudentData student, {

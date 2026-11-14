@@ -42,6 +42,12 @@ class MockRouteService implements RouteService {
       null;
 
   @override
+  Future<({List<StudentData> students, int total})> getStudentsBasic({
+    required int classId,
+    String? section,
+  }) async => (students: <StudentData>[], total: 0);
+
+  @override
   Future<List<StudentData>> searchStudent({
     required String search,
     int? classId,

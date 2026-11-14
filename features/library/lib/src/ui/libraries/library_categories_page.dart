@@ -174,6 +174,10 @@ class _LibraryCategoriesPageState extends State<LibraryCategoriesPage> {
               padding: const EdgeInsets.all(16),
               child: LibraryCategoriesTable(
                 categories: libraryProvider.categories,
+                libraryNames: {
+                  for (final library in libraryProvider.libraries)
+                    library.id: library.name,
+                },
                 onToggleActive: (category) =>
                     _toggleActive(libraryProvider, category),
               ),
@@ -224,6 +228,9 @@ class _LibraryCategoriesPageState extends State<LibraryCategoriesPage> {
                         LibraryCategoryCard(
                           key: ValueKey(top.id),
                           category: top,
+                          libraryName: libraryProvider
+                              .library(top.libraryId)
+                              ?.name,
                           subcategories: subs,
                           initiallyExpanded: isSearching,
                           onEdit: (category) => LibraryCategoryDialog.show(
