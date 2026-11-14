@@ -353,7 +353,7 @@ class _StockPageState extends State<StockPage> {
                                               ? 'Select an active store above to view inventory balances.'
                                               : (_lowOnly || _query.isNotEmpty
                                                     ? 'Try clearing the search query or low stock filter.'
-                                                    : 'Receive items or transfer stock into this store to see balances.'),
+                                                    : 'Receive items into this store to see balances.'),
                                           textAlign: TextAlign.center,
                                           style: theme.textTheme.bodySmall
                                               ?.copyWith(

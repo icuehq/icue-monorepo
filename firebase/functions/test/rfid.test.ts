@@ -21,27 +21,31 @@ const code = (promise: Promise<unknown>) =>
   );
 
 describe('RFID', () => {
+  let store: string;
+
   beforeEach(async () => {
     await clearFirestore();
     const access = { personErpId: 5 };
     await db().doc(`${BRANCH}/userAccess/1`).set(access);
     await db().doc(`${BRANCH}/userAccess/none`).set(access);
+    store = (await seedStore({ name: 'Main' })).id;
+    await db().collection(`${BRANCH}/inventoryUnits`).add({ storeId: store, name: 'pcs' });
     await run(masters.seedDefaults, {});
   });
 
   it('assigns a unique RFID tag, moves and clears it', async () => {
     const category = (
-      await run(masters.categoryUpsert, { name: 'C', suggestedTracking: 'quantity' })
+      await run(masters.categoryUpsert, { storeId: store, name: 'C', suggestedTracking: 'quantity' })
     ).id;
     const item = (
       await run(masters.itemUpsert, {
+        storeId: store,
         name: 'L',
         categoryId: category,
         stockUnit: 'pcs',
         tracking: 'asset',
       })
     ).id;
-    const store = (await seedStore({ name: 'Main' })).id;
     const [firstAsset, secondAsset] = [
       (await run(a.register, { itemId: item, storeId: store })).id,
       (await run(a.register, { itemId: item, storeId: store })).id,

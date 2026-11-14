@@ -23,12 +23,23 @@ class InventoryProvider extends ChangeNotifier implements ErrorReporting {
   bool hasMoreItems = false;
   String itemSearch = '';
   String? itemCategoryId;
+
+  /// Restricts the loaded items to one store (set per load, e.g. by the item picker).
+  String? itemStoreId;
   DocumentSnapshot<Map<String, dynamic>>? _cursor;
   int _searchOffset = 0;
 
   InventoryCategory? category(String? id) {
     for (final category in categories) {
       if (category.id == id) return category;
+    }
+    return null;
+  }
+
+  /// The store's name, or `null` when the store is unknown.
+  String? storeName(String? id) {
+    for (final store in stores) {
+      if (store.id == id) return store.name;
     }
     return null;
   }
@@ -64,11 +75,13 @@ class InventoryProvider extends ChangeNotifier implements ErrorReporting {
     String? search,
     String? categoryId,
     bool clearCategory = false,
+    String? storeId,
   }) async {
     if (itemsLoading || (more && !hasMoreItems)) return;
     if (!more) {
       itemSearch = search ?? itemSearch;
       itemCategoryId = clearCategory ? null : (categoryId ?? itemCategoryId);
+      itemStoreId = storeId;
       _cursor = null;
       _searchOffset = 0;
     }
@@ -80,6 +93,7 @@ class InventoryProvider extends ChangeNotifier implements ErrorReporting {
       if (query.isEmpty) {
         final page = await _service.items(
           categoryId: itemCategoryId,
+          storeId: itemStoreId,
           after: _cursor,
         );
         if (!more) items.clear();
@@ -93,7 +107,11 @@ class InventoryProvider extends ChangeNotifier implements ErrorReporting {
           offset: _searchOffset,
         );
         if (!more) items.clear();
-        items.addAll(page.items);
+        items.addAll(
+          page.items.where(
+            (item) => itemStoreId == null || item.storeId == itemStoreId,
+          ),
+        );
         _searchOffset += page.items.length;
         hasMoreItems = page.hasMore;
       }
@@ -123,8 +141,14 @@ class InventoryProvider extends ChangeNotifier implements ErrorReporting {
     reload: loadMasters,
   );
 
-  Future<bool> saveUnit(String code, String name) =>
-      _write(() => _service.saveUnit(code, name), reload: loadMasters);
+  Future<bool> saveUnit({
+    required String storeId,
+    required String name,
+    InventoryUnit? unit,
+  }) => _write(
+    () => _service.saveUnit(storeId: storeId, name: name, unit: unit),
+    reload: loadMasters,
+  );
 
   Future<bool> saveItem(Map<String, Object?> data) =>
       _write(() => _service.saveItem(data), reload: loadItems);

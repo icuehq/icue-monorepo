@@ -152,17 +152,19 @@ models:
         name: string
         description: string?
         parentId: string?
+        storeId: string
         suggestedTracking: Tracking
         active: { type: bool, key: status, notEquals: inactive }
     InventoryUnit:
-      takesId: true
+      id: id
       fields:
-        code: { type: String, from: "id" }
-        name: { type: string, default: "$id" }
+        name: string
+        storeId: string
     InventoryItem:
       id: id
       fields:
         name: string
+        storeId: string
         categoryId: string
         subcategoryId: string?
         description: string?

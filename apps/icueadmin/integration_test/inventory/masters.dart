@@ -7,8 +7,8 @@ import '../support/driver.dart';
 Future<void> mastersSteps(WidgetTester tester) async {
   await step(tester, '1.1.1 default categories', () async {
     await open(tester, InventoryRoutes.inventoryCategories);
-    if (await appears(tester, find.text('Add default categories & units'))) {
-      await tapText(tester, 'Add default categories & units');
+    if (await appears(tester, find.text('Add default categories'))) {
+      await tapText(tester, 'Add default categories');
     }
     await waitFor(tester, find.textContaining(RegExp(r'\d+ categories')));
     await waitFor(tester, find.text('Stationery'));

@@ -153,11 +153,6 @@ class _EmptyUnitsView extends StatelessWidget {
                 spacing: 12,
                 runSpacing: 12,
                 children: [
-                  IcueSeedDefaultsButton<InventoryProvider>(
-                    label: 'Add default units',
-                    canSeed: (provider) => true,
-                    seed: (provider) => provider.seedDefaults(),
-                  ),
                   IcueButton(
                     label: 'Add unit',
                     onPressed: onAddUnit,

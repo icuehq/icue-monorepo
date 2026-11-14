@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
+import 'package:inventory/src/ui/stock/shared/stock_ui.dart';
 import 'package:provider/provider.dart';
 
 class ItemFormPage extends StatefulWidget {
@@ -26,6 +27,7 @@ class _ItemFormPageState extends State<ItemFormPage> {
   late final _price = TextEditingController(
     text: _num(_existingItem?.defaultPrice),
   );
+  late String? _storeId = _existingItem?.storeId;
   late String? _categoryId = _existingItem?.categoryId;
   late String? _subcategoryId = _existingItem?.subcategoryId;
   late String? _stockUnit = _existingItem?.stockUnit;
@@ -54,12 +56,27 @@ class _ItemFormPageState extends State<ItemFormPage> {
   /// first active category and the first unit (debug builds, new items only).
   void _fillSample() {
     final provider = context.read<InventoryProvider>();
+    final storeId =
+        [
+              for (final store in provider.stores)
+                if (store.active) store.id,
+            ]
+            .where(
+              (id) =>
+                  provider.topCategories.any(
+                    (category) => category.storeId == id && category.active,
+                  ) &&
+                  provider.units.any((unit) => unit.storeId == id),
+            )
+            .firstOrNull;
     final category = provider.topCategories
-        .where((category) => category.active)
+        .where((category) => category.storeId == storeId && category.active)
         .firstOrNull;
-    final unit = provider.units.firstOrNull;
+    final unit = provider.units
+        .where((unit) => unit.storeId == storeId)
+        .firstOrNull;
     if (category == null || unit == null) {
-      showMessage(context, 'Add a category and a unit first');
+      showMessage(context, 'Add a category and a unit to a store first');
       return;
     }
     final taken = {for (final item in provider.items) item.name.toLowerCase()};
@@ -71,9 +88,10 @@ class _ItemFormPageState extends State<ItemFormPage> {
         _description.text = sample.description;
         _reorder.text = '${sample.reorder}';
         _price.text = '${sample.price}';
+        _storeId = storeId;
         _categoryId = category.id;
         _subcategoryId = null;
-        _stockUnit = unit.code;
+        _stockUnit = unit.name;
         _tracking = sample.tracking ?? category.suggestedTracking;
       });
       return;
@@ -89,6 +107,7 @@ class _ItemFormPageState extends State<ItemFormPage> {
       () => context.read<InventoryProvider>().saveItem({
         if (_existingItem != null) 'id': _existingItem.id,
         'name': _name.text.trim(),
+        'storeId': _storeId,
         'categoryId': _categoryId,
         'subcategoryId': _subcategoryId,
         'description': _blank(_description),
@@ -107,7 +126,8 @@ class _ItemFormPageState extends State<ItemFormPage> {
     final editing = _existingItem != null;
     final tops = [
       for (final category in inventoryProvider.topCategories)
-        if (category.active || category.id == _existingItem?.categoryId)
+        if (category.storeId == _storeId &&
+            (category.active || category.id == _existingItem?.categoryId))
           category,
     ];
     final subs = [
@@ -121,6 +141,17 @@ class _ItemFormPageState extends State<ItemFormPage> {
       title: 'Basic information',
       icon: Icons.inventory_2_outlined,
       children: [
+        StoreDropdown(
+          label: 'Store *',
+          value: _storeId,
+          enabled: !editing,
+          onChanged: (value) => setState(() {
+            _storeId = value;
+            _categoryId = null;
+            _subcategoryId = null;
+            _stockUnit = null;
+          }),
+        ),
         IcueTextField(
           controller: _name,
           textCapitalization: TextCapitalization.words,
@@ -182,7 +213,8 @@ class _ItemFormPageState extends State<ItemFormPage> {
           value: _stockUnit,
           items: [
             for (final unit in inventoryProvider.units)
-              DropdownMenuItem(value: unit.code, child: Text(unit.name)),
+              if (unit.storeId == _storeId)
+                DropdownMenuItem(value: unit.name, child: Text(unit.name)),
           ],
           validator: (value) => value == null ? 'Required' : null,
           onChanged: (value) => setState(() => _stockUnit = value),

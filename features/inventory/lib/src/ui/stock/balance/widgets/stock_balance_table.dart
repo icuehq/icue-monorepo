@@ -89,7 +89,7 @@ class StockBalanceTable extends StatelessWidget {
           : 'No stock in this store',
       emptyMessage: store == null
           ? 'Pick a store from the Store filter to view its balances.'
-          : 'Receive items or transfer stock into this store to see balances.',
+          : 'Receive items into this store to see balances.',
       emptyAction: store == null ? null : receiveAction,
       columns: [
         IcueTableColumn(

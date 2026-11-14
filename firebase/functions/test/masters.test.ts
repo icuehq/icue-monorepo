@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { masters } from '../src/inventory/masters';
 import { runCallable, type CallableDef } from '../src/shared/callable';
+import { seedStore } from './fixtures';
 import { clearFirestore, db } from './setup';
 
 const BRANCH = 'orgs/8/zones/147/branches/427';
@@ -20,12 +21,16 @@ const item = { name: 'Blue Pen', stockUnit: 'pcs', tracking: 'quantity' };
 
 describe('inventory masters', () => {
   let category: string;
+  let store: string;
   beforeEach(async () => {
     await clearFirestore();
     await db().doc(`${BRANCH}/userAccess/1`).set({});
+    store = (await seedStore({ name: 'Main' })).id;
+    await db().collection(`${BRANCH}/inventoryUnits`).add({ storeId: store, name: 'pcs' });
     await run(masters.seedDefaults, {});
     category = (
       await run(masters.categoryUpsert, {
+        storeId: store,
         name: 'General',
         suggestedTracking: 'quantity',
       })
@@ -33,22 +38,39 @@ describe('inventory masters', () => {
   });
 
   const newItem = (extra: Record<string, unknown> = {}) =>
-    run(masters.itemUpsert, { ...item, categoryId: category, ...extra });
+    run(masters.itemUpsert, { ...item, storeId: store, categoryId: category, ...extra });
 
   it('seeds defaults once', async () => {
     expect(await count('inventoryCategories')).toBe(15);
-    expect(await count('inventoryUnits')).toBe(12);
-    expect(await run(masters.seedDefaults, {})).toEqual({ categories: 0, units: 0 });
+    expect(await run(masters.seedDefaults, {})).toEqual({ categories: 0 });
+  });
+
+  it('keeps categories and units per store', async () => {
+    const other = (await seedStore({ name: 'Lab' })).id;
+    expect(await run(masters.seedDefaults, {})).toEqual({ categories: 15 });
+    await expect(newItem({ storeId: other })).rejects.toMatchObject({
+      code: 'failed-precondition',
+    });
+    await expect(
+      run(masters.categoryUpsert, {
+        storeId: other,
+        name: 'Sub',
+        parentId: category,
+        suggestedTracking: 'quantity',
+      }),
+    ).rejects.toMatchObject({ code: 'failed-precondition' });
   });
 
   it('keeps subcategories to one level', async () => {
     const sub = await run(masters.categoryUpsert, {
+      storeId: store,
       name: 'Sub',
       parentId: category,
       suggestedTracking: 'quantity',
     });
     await expect(
       run(masters.categoryUpsert, {
+        storeId: store,
         name: 'SubSub',
         parentId: sub.id,
         suggestedTracking: 'quantity',
@@ -76,6 +98,7 @@ describe('inventory masters', () => {
     await run(masters.itemUpsert, {
       id,
       ...item,
+      storeId: store,
       categoryId: category,
       tracking: 'batch',
     });
@@ -84,6 +107,7 @@ describe('inventory masters', () => {
       run(masters.itemUpsert, {
         id,
         ...item,
+        storeId: store,
         categoryId: category,
         tracking: 'quantity',
       }),

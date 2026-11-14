@@ -10,6 +10,7 @@ const mirror = (branch = BRANCH) => searchDb().collection(`${branch}/inventoryIt
 const timestampAt = (milliseconds: number) => Timestamp.fromMillis(milliseconds);
 const item = (name: string, categoryId = 'c1') => ({
   name,
+  storeId: 's1',
   categoryId,
   status: 'active',
   stockUnit: 'pcs',
@@ -25,6 +26,7 @@ describe('item search mirror', () => {
     await applyItemChange(BRANCH, 'i1', item('Blue Pen'), timestampAt(1));
     expect((await mirror().doc('i1').get()).data()).toEqual({
       name: 'Blue Pen',
+      storeId: 's1',
       categoryId: 'c1',
       status: 'active',
       stockUnit: 'pcs',

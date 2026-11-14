@@ -9,7 +9,7 @@ import {
   saveMaster,
   usable,
 } from '../shared/masters';
-import { DEFAULT_CATEGORIES, DEFAULT_UNITS } from './defaults';
+import { DEFAULT_CATEGORIES } from './defaults';
 
 export type Tracking = 'quantity' | 'batch' | 'asset';
 
@@ -21,6 +21,7 @@ export const masters = {
     name: 'inventory.category.upsert',
     input: z.object({
       id: id.optional(),
+      storeId: id,
       name,
       description: optionalText,
       parentId: id.nullish(),
@@ -33,6 +34,13 @@ export const masters = {
         codeless: true,
         id: i.id,
         build: async (before) => {
+          usable(
+            await context.transaction.get(context.doc(`inventoryStores/${i.storeId}`)),
+            'Store',
+            before?.storeId === i.storeId,
+          );
+          if (before && before.storeId !== i.storeId)
+            throw failed('A category cannot move to another store');
           if (i.parentId) {
             if (i.parentId === i.id) throw failed('A category cannot be its own parent');
             const parent = usable(
@@ -41,8 +49,11 @@ export const masters = {
               before?.parentId === i.parentId,
             );
             if (parent.parentId) throw failed('Only one level of subcategories is supported');
+            if (parent.storeId !== i.storeId)
+              throw failed('The parent category belongs to another store');
           }
           return {
+            storeId: i.storeId,
             name: i.name,
             description: i.description ?? null,
             parentId: i.parentId ?? null,
@@ -56,6 +67,7 @@ export const masters = {
     name: 'inventory.item.upsert',
     input: z.object({
       id: id.optional(),
+      storeId: id,
       name,
       categoryId: id,
       subcategoryId: id.nullish(),
@@ -79,6 +91,10 @@ export const masters = {
             'Category',
             before?.categoryId === i.categoryId,
           );
+          if (category.storeId !== i.storeId)
+            throw failed('The category belongs to another store');
+          if (before && before.storeId !== i.storeId)
+            throw failed('An item cannot move to another store');
           if (category.parentId)
             throw failed('Pick a top-level category; use subcategory for the child');
           if (i.subcategoryId) {
@@ -97,8 +113,14 @@ export const masters = {
               before?.preferredVendorId === i.preferredVendorId,
             );
           }
-          if (!(await context.transaction.get(context.doc(`inventoryUnits/${i.stockUnit}`))).exists)
-            throw failed(`Unit "${i.stockUnit}" not found`);
+          const unit = await context.transaction.get(
+            context
+              .coll('inventoryUnits')
+              .where('storeId', '==', i.storeId)
+              .where('name', '==', i.stockUnit)
+              .limit(1),
+          );
+          if (unit.empty) throw failed(`Unit "${i.stockUnit}" not found in this store`);
           if (before && (before.stockUnit !== i.stockUnit || before.tracking !== i.tracking)) {
             const used = await context.transaction.get(
               context.coll('inventoryMovements').where('itemId', '==', i.id).limit(1),
@@ -107,6 +129,7 @@ export const masters = {
               throw failed('Stock unit and tracking cannot change once stock has moved');
           }
           return {
+            storeId: i.storeId,
             name: i.name,
             categoryId: i.categoryId,
             subcategoryId: i.subcategoryId ?? null,
@@ -123,52 +146,45 @@ export const masters = {
       }),
   }),
 
-  /** Adds the FRS default categories and units that do not exist yet. Safe to repeat. */
+  /** Adds the FRS default categories that a store does not have yet, for every store. Safe to repeat. */
   seedDefaults: defineCallable({
     name: 'inventory.seedDefaults',
     input: z.object({}),
     handler: async (context) => {
       const now = serverTimestamp();
-      const existingNames = new Set(
-        (await context.transaction.get(context.coll('inventoryCategories'))).docs.map(
-          (snapshot) => String(snapshot.data().name).trim().toLowerCase(),
+      const stores = (await context.transaction.get(context.coll('inventoryStores'))).docs;
+      if (stores.length === 0) throw failed('Add a store before adding default categories');
+      const existing = await context.transaction.get(context.coll('inventoryCategories'));
+      const existingKeys = new Set(
+        existing.docs.map(
+          (snapshot) =>
+            `${snapshot.data().storeId}/${String(snapshot.data().name).trim().toLowerCase()}`,
         ),
       );
-      const unitRefs = DEFAULT_UNITS.map((unit) => context.doc(`inventoryUnits/${unit.code}`));
-      const unitSnaps = await context.transaction.getAll(...unitRefs);
       let categories = 0;
-      let units = 0;
-      DEFAULT_CATEGORIES.forEach((category) => {
-        if (existingNames.has(category.name.toLowerCase())) return;
-        context.set(context.newDoc('inventoryCategories'), {
-          name: category.name,
-          description: null,
-          parentId: null,
-          suggestedTracking: category.tracking,
-          status: 'active',
-          createdAt: now,
-          createdBy: context.uid,
-          updatedAt: now,
+      stores.forEach((store) => {
+        DEFAULT_CATEGORIES.forEach((category) => {
+          if (existingKeys.has(`${store.id}/${category.name.toLowerCase()}`)) return;
+          context.set(context.newDoc('inventoryCategories'), {
+            storeId: store.id,
+            name: category.name,
+            description: null,
+            parentId: null,
+            suggestedTracking: category.tracking,
+            status: 'active',
+            createdAt: now,
+            createdBy: context.uid,
+            updatedAt: now,
+          });
+          categories++;
         });
-        categories++;
-      });
-      DEFAULT_UNITS.forEach((unit, index) => {
-        if (unitSnaps[index].exists) return;
-        context.set(unitRefs[index], {
-          ...unit,
-          status: 'active',
-          createdAt: now,
-          createdBy: context.uid,
-          updatedAt: now,
-        });
-        units++;
       });
       context.audit({
         action: 'inventory.seedDefaults',
         documentPath: `${context.branchPath}`,
-        after: { categories, units },
+        after: { categories },
       });
-      return { categories, units };
+      return { categories };
     },
   }),
 };

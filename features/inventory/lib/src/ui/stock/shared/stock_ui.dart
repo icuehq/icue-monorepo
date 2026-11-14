@@ -31,6 +31,7 @@ class StoreDropdown extends StatelessWidget {
     this.label = 'Store',
     this.exclude,
     this.prefixIcon,
+    this.enabled = true,
     super.key,
   });
 
@@ -40,13 +41,20 @@ class StoreDropdown extends StatelessWidget {
   final String? exclude;
   final Widget? prefixIcon;
 
+  /// `false` when the store can no longer change (an existing record).
+  final bool enabled;
+
   @override
   Widget build(BuildContext context) {
-    final stores = context.watch<InventoryProvider>().stores.where(
-      (store) => store.active && store.id != exclude,
-    );
+    final stores = context
+        .watch<InventoryProvider>()
+        .stores
+        .where(
+          (store) => (store.active || store.id == value) && store.id != exclude,
+        )
+        .toList();
     return DropdownButtonFormField<String>(
-      initialValue: value,
+      initialValue: stores.any((store) => store.id == value) ? value : null,
       isExpanded: true,
       decoration: InputDecoration(labelText: label, prefixIcon: prefixIcon),
       items: [
@@ -56,7 +64,7 @@ class StoreDropdown extends StatelessWidget {
             child: Text(store.name, overflow: TextOverflow.ellipsis),
           ),
       ],
-      onChanged: onChanged,
+      onChanged: enabled ? onChanged : null,
       validator: (value) => value == null ? 'Required' : null,
     );
   }

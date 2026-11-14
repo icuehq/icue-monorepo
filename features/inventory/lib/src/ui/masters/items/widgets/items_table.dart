@@ -53,10 +53,6 @@ class _ItemsTableState extends State<ItemsTable> {
     final page = pageCount == 0 ? 0 : _page.clamp(0, pageCount - 1);
     final rows = items.skip(page * _pageSize).take(_pageSize).toList();
 
-    String unitName(String code) =>
-        provider.units.where((unit) => unit.code == code).firstOrNull?.name ??
-        code;
-
     return IcueTable<InventoryItem>(
       title: 'Item catalogue',
       rows: rows,
@@ -167,10 +163,18 @@ class _ItemsTableState extends State<ItemsTable> {
           ),
         ),
         IcueTableColumn(
+          id: 'store',
+          label: 'Store',
+          cellBuilder: (context, item) => IcueTableCellText(
+            provider.storeName(item.storeId) ?? '—',
+            style: IcueTableStyle.of(context).secondary,
+          ),
+        ),
+        IcueTableColumn(
           id: 'unit',
           label: 'Unit',
           cellBuilder: (context, item) => IcueTableCellText(
-            unitName(item.stockUnit),
+            item.stockUnit,
             style: IcueTableStyle.of(context).secondary,
           ),
         ),

@@ -21,10 +21,11 @@ class InventoryService {
             left.name.toLowerCase().compareTo(right.name.toLowerCase()),
       );
 
-  Future<List<InventoryUnit>> units() async => (await _all(
-    'inventoryUnits',
-    (id, data) => InventoryUnit.fromMap(id, data),
-  ))..sort((left, right) => left.code.compareTo(right.code));
+  Future<List<InventoryUnit>> units() async =>
+      (await _all('inventoryUnits', InventoryUnit.fromMap))..sort(
+        (left, right) =>
+            left.name.toLowerCase().compareTo(right.name.toLowerCase()),
+      );
 
   /// Stores of the branch.
   Future<List<InventoryStore>> stores() async {
@@ -38,6 +39,7 @@ class InventoryService {
   /// A page of items by name, optionally within [categoryId] (Firestore query).
   Future<PagedResult<InventoryItem>> items({
     String? categoryId,
+    String? storeId,
     DocumentSnapshot<Map<String, dynamic>>? after,
   }) async {
     Query<Map<String, dynamic>> query = await branchCollection(
@@ -46,6 +48,7 @@ class InventoryService {
     if (categoryId != null) {
       query = query.where('categoryId', isEqualTo: categoryId);
     }
+    if (storeId != null) query = query.where('storeId', isEqualTo: storeId);
     return fetchPage(
       query.orderBy('name'),
       (document) => InventoryItem.fromMap(document.id, document.data()!),
@@ -99,14 +102,36 @@ class InventoryService {
   Future<void> setCategoryActive(String id, {required bool active}) =>
       setMasterActive('inventoryCategories', id, active: active);
 
-  Future<void> saveUnit(String code, String name) async {
-    final collection = await branchCollection('inventoryUnits');
-    final exists =
-        (await collection.doc(code.trim().toLowerCase()).get()).exists;
-    await saveMasterDocument('inventoryUnits', {
-      if (exists) 'id': code.trim().toLowerCase() else 'code': code,
-      'name': name,
-    });
+  /// Units have no code: a new unit gets the Firestore auto ID and items store its name.
+  /// Renaming a unit renames it on the store's items too, so they keep pointing at it.
+  Future<void> saveUnit({
+    required String storeId,
+    required String name,
+    InventoryUnit? unit,
+  }) async {
+    if (unit == null) {
+      await saveMasterDocument('inventoryUnits', {
+        'storeId': storeId,
+        'name': name,
+      });
+      return;
+    }
+    await saveMasterDocument('inventoryUnits', {'id': unit.id, 'name': name});
+    if (unit.name == name) return;
+    final items = await (await branchCollection('inventoryItems'))
+        .where('storeId', isEqualTo: storeId)
+        .where('stockUnit', isEqualTo: unit.name)
+        .get();
+    for (var start = 0; start < items.docs.length; start += 400) {
+      final batch = FirebaseFirestore.instance.batch();
+      for (final item in items.docs.skip(start).take(400)) {
+        batch.update(item.reference, {
+          'stockUnit': name,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+      await batch.commit();
+    }
   }
 
   Future<void> saveItem(Map<String, Object?> data) =>

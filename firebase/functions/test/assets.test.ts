@@ -42,18 +42,19 @@ describe('assets and maintenance', () => {
     await db().doc(`${BRANCH}/userAccess/1`).set(access);
     await db().doc(`${BRANCH}/userAccess/asset`).set(access);
     await db().doc(`${BRANCH}/userAccess/both`).set(access);
+    store = (await seedStore({ name: 'Main' })).id;
+    await db().collection(`${BRANCH}/inventoryUnits`).add({ storeId: store, name: 'pcs' });
     await run(masters.seedDefaults, {}, '1');
     const category = (
-      await run(masters.categoryUpsert, { name: 'General', suggestedTracking: 'quantity' }, '1')
+      await run(masters.categoryUpsert, { storeId: store, name: 'General', suggestedTracking: 'quantity' }, '1')
     ).id;
     const item = (itemCode: string, tracking: string) =>
       run(
         masters.itemUpsert,
-        { name: itemCode, categoryId: category, stockUnit: 'pcs', tracking },
+        { storeId: store, name: itemCode, categoryId: category, stockUnit: 'pcs', tracking },
         '1',
       ).then((extra) => extra.id as string);
     [laptop, ink] = [await item('LAP', 'asset'), await item('INK', 'quantity')];
-    store = (await seedStore({ name: 'Main' })).id;
     asset = (await run(a.register, { itemId: laptop, storeId: store, serialNumber: 'SN1' })).id;
   });
 

@@ -23,6 +23,7 @@ class _ReceivePageState extends State<ReceivePage> {
   final _lines = <LineDraft>[];
   final _requestId = newRequestId();
   late String? _store = widget.storeId;
+  var _storeResets = 0;
   var _busy = false;
 
   @override
@@ -45,10 +46,20 @@ class _ReceivePageState extends State<ReceivePage> {
     if (inventory.stores.isEmpty) await inventory.loadMasters();
     await inventory.loadItems(search: '', clearCategory: true);
     if (!mounted) return;
-    final store = inventory.stores.where((store) => store.active).firstOrNull;
     // Asset-tracked items are not received here (the item picker hides them too).
+    bool receivable(InventoryItem item) =>
+        item.active && item.tracking != Tracking.asset;
+    final store = inventory.stores
+        .where(
+          (store) =>
+              store.active &&
+              inventory.items.any(
+                (item) => item.storeId == store.id && receivable(item),
+              ),
+        )
+        .firstOrNull;
     final items = inventory.items
-        .where((item) => item.active && item.tracking != Tracking.asset)
+        .where((item) => item.storeId == store?.id && receivable(item))
         .take(3);
     if (store == null || items.isEmpty) {
       return IcueToast.error(
@@ -79,6 +90,29 @@ class _ReceivePageState extends State<ReceivePage> {
         ..clear()
         ..addAll(drafts);
     });
+  }
+
+  /// Lines belong to one store's items, so a different store starts a new receipt.
+  Future<void> _changeStore(String? value) async {
+    if (value == _store) return;
+    if (_lines.isNotEmpty) {
+      final confirmed = await IcueDialog.confirm(
+        context,
+        title: 'Change store?',
+        message: 'The items added so far belong to the current store and will be removed.',
+        confirmLabel: 'Change store',
+        destructive: true,
+      );
+      if (!confirmed || !mounted) {
+        setState(() => _storeResets++);
+        return;
+      }
+      for (final lineDraft in _lines) {
+        lineDraft.dispose();
+      }
+      _lines.clear();
+    }
+    setState(() => _store = value);
   }
 
   Future<void> _save() async {
@@ -174,9 +208,9 @@ class _ReceivePageState extends State<ReceivePage> {
                       const SizedBox(height: 16),
                       StoreDropdown(
                         // initialValue is read once; rebuild when a fill changes the store.
-                        key: ValueKey(_store),
+                        key: ValueKey('$_store#$_storeResets'),
                         value: _store,
-                        onChanged: (value) => setState(() => _store = value),
+                        onChanged: _changeStore,
                       ),
                     ],
                   ),
@@ -235,6 +269,8 @@ class _ReceivePageState extends State<ReceivePage> {
                       LineEditor(
                         lineItems: _lines,
                         receipt: true,
+                        storeId: _store,
+                        storeRequired: true,
                         onChanged: () => setState(() {}),
                       ),
                       if (_lines.isNotEmpty) ...[

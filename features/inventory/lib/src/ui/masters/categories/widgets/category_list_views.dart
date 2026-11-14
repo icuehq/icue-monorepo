@@ -140,7 +140,7 @@ class CategoryEmptyState extends StatelessWidget {
               alignment: WrapAlignment.center,
               children: [
                 IcueSeedDefaultsButton<InventoryProvider>(
-                  label: 'Add default categories & units',
+                  label: 'Add default categories',
                   canSeed: (provider) => true,
                   seed: (provider) => provider.seedDefaults(),
                 ),

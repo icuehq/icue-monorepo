@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/masters/units/widgets/unit_dialog.dart';
+import 'package:provider/provider.dart';
 
 /// Wide-screen units list: an [IcueClientTable] over the loaded units.
 class UnitsTable extends StatelessWidget {
@@ -14,10 +15,11 @@ class UnitsTable extends StatelessWidget {
   Widget build(BuildContext context) => IcueClientTable<InventoryUnit>(
     title: 'Units of measurement',
     items: units,
-    rowKey: (unit) => unit.code,
+    rowKey: (unit) => unit.id,
     rowLabel: (unit) => unit.name,
-    searchHint: 'Search name or code...',
-    searchText: (unit) => '${unit.name} ${unit.code}',
+    searchHint: 'Search name or store...',
+    searchText: (unit) =>
+        '${unit.name} ${context.read<InventoryProvider>().storeName(unit.storeId) ?? ''}',
     initialPageSize: 25,
     onRowTap: canEdit ? (unit) => UnitDialog.show(context, unit: unit) : null,
     primaryAction: canEdit
@@ -49,12 +51,11 @@ class UnitsTable extends StatelessWidget {
         cellBuilder: (context, unit) => IcueTableCellText(unit.name),
       ),
       IcueTableColumn(
-        id: 'code',
-        label: 'Code',
-        sortable: true,
-        comparator: (unit) => unit.code.toLowerCase(),
+        id: 'store',
+        label: 'Store',
+        flex: 2,
         cellBuilder: (context, unit) => IcueTableCellText(
-          unit.code,
+          context.read<InventoryProvider>().storeName(unit.storeId) ?? '—',
           style: IcueTableStyle.of(context).secondary,
         ),
       ),

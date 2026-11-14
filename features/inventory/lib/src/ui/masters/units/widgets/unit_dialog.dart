@@ -2,94 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
+import 'package:inventory/src/ui/stock/shared/stock_ui.dart';
 import 'package:provider/provider.dart';
-
-/// Auto-generates a standardized code from a unit name.
-String generateUnitCode(String unitName, List<InventoryUnit> existingUnits) {
-  final normalized = unitName.trim().toLowerCase();
-  const standardUnitCodes = <String, String>{
-    'piece': 'pcs',
-    'pieces': 'pcs',
-    'box': 'box',
-    'boxes': 'box',
-    'packet': 'pkt',
-    'packets': 'pkt',
-    'kilogram': 'kg',
-    'kilograms': 'kg',
-    'gram': 'g',
-    'grams': 'g',
-    'litre': 'l',
-    'litres': 'l',
-    'liter': 'l',
-    'liters': 'l',
-    'millilitre': 'ml',
-    'millilitres': 'ml',
-    'milliliter': 'ml',
-    'milliliters': 'ml',
-    'metre': 'm',
-    'metres': 'm',
-    'meter': 'm',
-    'meters': 'm',
-    'centimetre': 'cm',
-    'centimetres': 'cm',
-    'centimeter': 'cm',
-    'centimeters': 'cm',
-    'millimetre': 'mm',
-    'millimetres': 'mm',
-    'millimeter': 'mm',
-    'millimeters': 'mm',
-    'set': 'set',
-    'sets': 'set',
-    'pair': 'pair',
-    'pairs': 'pair',
-    'dozen': 'doz',
-    'dozens': 'doz',
-    'roll': 'roll',
-    'rolls': 'roll',
-    'bundle': 'bundle',
-    'bundles': 'bundle',
-    'bottle': 'bottle',
-    'bottles': 'bottle',
-    'bag': 'bag',
-    'bags': 'bag',
-    'can': 'can',
-    'cans': 'can',
-    'carton': 'carton',
-    'cartons': 'carton',
-    'pack': 'pack',
-    'packs': 'pack',
-    'sheet': 'sheet',
-    'sheets': 'sheet',
-    'drum': 'drum',
-    'drums': 'drum',
-    'square meter': 'sqm',
-    'square meters': 'sqm',
-    'square foot': 'sqft',
-    'square feet': 'sqft',
-  };
-
-  var baseCode = standardUnitCodes[normalized];
-  if (baseCode == null) {
-    baseCode = normalized
-        .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
-        .replaceAll(RegExp(r'^_+|_+$'), '');
-    if (baseCode.isEmpty) {
-      baseCode = 'unit';
-    }
-  }
-
-  final existingCodes = existingUnits
-      .map((existingUnit) => existingUnit.code.trim().toLowerCase())
-      .toSet();
-
-  var candidate = baseCode;
-  var counter = 2;
-  while (existingCodes.contains(candidate.toLowerCase())) {
-    candidate = '${baseCode}_$counter';
-    counter++;
-  }
-  return candidate;
-}
 
 /// Adds a unit or edits [unit]: a dialog on wide screens, a full screen on phones.
 class UnitDialog extends StatefulWidget {
@@ -107,6 +21,7 @@ class UnitDialog extends StatefulWidget {
 class _UnitDialogState extends State<UnitDialog> {
   final _form = GlobalKey<FormState>();
   late final _name = TextEditingController(text: widget.unit?.name);
+  late String? _storeId = widget.unit?.storeId;
   int _nextSample = 0;
   bool _busy = false;
   bool _submitted = false;
@@ -122,7 +37,7 @@ class _UnitDialogState extends State<UnitDialog> {
   void _fillSample() {
     final taken = {
       for (final unit in context.read<InventoryProvider>().units)
-        unit.name.trim().toLowerCase(),
+        if (unit.storeId == _storeId) unit.name.trim().toLowerCase(),
     };
     for (var tried = 0; tried < _sampleUnits.length; tried++) {
       final sample = _sampleUnits[_nextSample++ % _sampleUnits.length];
@@ -140,7 +55,8 @@ class _UnitDialogState extends State<UnitDialog> {
     final name = value!.trim().toLowerCase();
     final exists = context.read<InventoryProvider>().units.any(
       (unit) =>
-          unit.code != widget.unit?.code &&
+          unit.id != widget.unit?.id &&
+          unit.storeId == _storeId &&
           unit.name.trim().toLowerCase() == name,
     );
     return exists ? '"${value.trim()}" already exists' : null;
@@ -158,10 +74,7 @@ class _UnitDialogState extends State<UnitDialog> {
     final name = _name.text.trim();
     final saved = await submitAndClose<InventoryProvider>(
       context,
-      () => provider.saveUnit(
-        unit?.code ?? generateUnitCode(name, provider.units),
-        name,
-      ),
+      () => provider.saveUnit(storeId: _storeId!, name: name, unit: unit),
     );
     if (mounted && !saved) {
       setState(() {
@@ -271,6 +184,12 @@ class _UnitDialogState extends State<UnitDialog> {
             title: 'Unit Details',
             icon: Icons.straighten_outlined,
             children: [
+              StoreDropdown(
+                label: 'Store *',
+                value: _storeId,
+                enabled: !editing,
+                onChanged: (value) => setState(() => _storeId = value),
+              ),
               IcueTextField(
                 controller: _name,
                 autofocus: true,

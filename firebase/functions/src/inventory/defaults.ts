@@ -17,19 +17,3 @@ export const DEFAULT_CATEGORIES: { name: string; tracking: Tracking }[] = [
   { name: 'Electrical supplies', tracking: 'quantity' },
   { name: 'Maintenance materials', tracking: 'quantity' },
 ];
-
-/** FRS 10.4 default units; the doc ID is the code. */
-export const DEFAULT_UNITS: { code: string; name: string }[] = [
-  { code: 'pcs', name: 'Pieces' },
-  { code: 'box', name: 'Boxes' },
-  { code: 'pkt', name: 'Packets' },
-  { code: 'kg', name: 'Kilograms' },
-  { code: 'g', name: 'Grams' },
-  { code: 'l', name: 'Litres' },
-  { code: 'ml', name: 'Millilitres' },
-  { code: 'm', name: 'Metres' },
-  { code: 'set', name: 'Sets' },
-  { code: 'pair', name: 'Pairs' },
-  { code: 'doz', name: 'Dozens' },
-  { code: 'roll', name: 'Rolls' },
-];

@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
+import 'package:inventory/src/ui/stock/shared/stock_ui.dart';
 import 'package:provider/provider.dart';
 
 /// Adds a category (or a subcategory of [parentId]) or edits [category]: a dialog on wide screens, a full screen on phones.
@@ -31,6 +32,9 @@ class _CategoryDialogState extends State<CategoryDialog> {
     text: widget.category?.description,
   );
   late String? _parentId = widget.category?.parentId ?? widget.parentId;
+  late String? _storeId =
+      widget.category?.storeId ??
+      context.read<InventoryProvider>().category(widget.parentId)?.storeId;
   late Tracking _tracking =
       widget.category?.suggestedTracking ?? Tracking.quantity;
   int _nextSample = 0;
@@ -50,7 +54,7 @@ class _CategoryDialogState extends State<CategoryDialog> {
   void _fillSample() {
     final taken = {
       for (final category in context.read<InventoryProvider>().categories)
-        category.name.trim().toLowerCase(),
+        if (category.storeId == _storeId) category.name.trim().toLowerCase(),
     };
     for (var tried = 0; tried < _sampleCategories.length; tried++) {
       final sample =
@@ -74,6 +78,7 @@ class _CategoryDialogState extends State<CategoryDialog> {
     final exists = context.read<InventoryProvider>().categories.any(
       (category) =>
           category.id != widget.category?.id &&
+          category.storeId == _storeId &&
           category.name.trim().toLowerCase() == name,
     );
     return exists ? '"${value.trim()}" already exists' : null;
@@ -96,6 +101,7 @@ class _CategoryDialogState extends State<CategoryDialog> {
         'name': name,
         'description': blankToNull(_description),
         'parentId': _parentId,
+        if (category == null) 'storeId': _storeId,
         'suggestedTracking': _tracking.name,
       }),
     );
@@ -113,7 +119,11 @@ class _CategoryDialogState extends State<CategoryDialog> {
     final inventoryProvider = context.watch<InventoryProvider>();
     final editing = widget.category != null;
     final tops = inventoryProvider.topCategories
-        .where((category) => category.id != widget.category?.id)
+        .where(
+          (category) =>
+              category.id != widget.category?.id &&
+              category.storeId == _storeId,
+        )
         .toList();
     final parentCategory = inventoryProvider.category(_parentId);
     final title = editing
@@ -217,6 +227,15 @@ class _CategoryDialogState extends State<CategoryDialog> {
             title: 'Category Details',
             icon: Icons.category_outlined,
             children: [
+              StoreDropdown(
+                label: 'Store *',
+                value: _storeId,
+                enabled: !editing && widget.parentId == null,
+                onChanged: (value) => setState(() {
+                  _storeId = value;
+                  _parentId = null;
+                }),
+              ),
               IcueTextField(
                 controller: _name,
                 textInputAction: TextInputAction.next,

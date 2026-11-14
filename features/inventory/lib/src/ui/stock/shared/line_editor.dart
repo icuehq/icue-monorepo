@@ -50,6 +50,8 @@ class LineEditor extends StatelessWidget {
     required this.onChanged,
     this.quantityLabel = 'Quantity',
     this.receipt = false,
+    this.storeId,
+    this.storeRequired = false,
     super.key,
   });
 
@@ -60,8 +62,17 @@ class LineEditor extends StatelessWidget {
   /// Show rejected quantity, unit cost, batch number and expiry.
   final bool receipt;
 
+  /// Only this store's items can be added.
+  final String? storeId;
+
+  /// Items cannot be added until [storeId] is chosen.
+  final bool storeRequired;
+
   Future<void> _addItem(BuildContext context) async {
-    final picked = await pickItem(context);
+    if (storeRequired && storeId == null) {
+      return showMessage(context, 'Select a store first');
+    }
+    final picked = await pickItem(context, storeId: storeId);
     if (picked == null) return;
     final draft = LineDraft(picked.item, picked.variant);
     if (receipt &&

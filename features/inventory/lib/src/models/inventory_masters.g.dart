@@ -8,6 +8,7 @@ class InventoryCategory {
     required this.name,
     this.description,
     this.parentId,
+    required this.storeId,
     required this.suggestedTracking,
     required this.active,
   });
@@ -18,6 +19,7 @@ class InventoryCategory {
         name: data['name'] as String? ?? '',
         description: data['description'] as String?,
         parentId: data['parentId'] as String?,
+        storeId: data['storeId'] as String? ?? '',
         suggestedTracking: Tracking.parse(data['suggestedTracking']),
         active: data['status'] != 'inactive',
       );
@@ -26,24 +28,35 @@ class InventoryCategory {
   final String name;
   final String? description;
   final String? parentId;
+  final String storeId;
   final Tracking suggestedTracking;
   final bool active;
 }
 
 class InventoryUnit {
-  const InventoryUnit({required this.code, required this.name});
+  const InventoryUnit({
+    required this.id,
+    required this.name,
+    required this.storeId,
+  });
 
   factory InventoryUnit.fromMap(String id, Map<String, dynamic> data) =>
-      InventoryUnit(code: id, name: data['name'] as String? ?? id);
+      InventoryUnit(
+        id: id,
+        name: data['name'] as String? ?? '',
+        storeId: data['storeId'] as String? ?? '',
+      );
 
-  final String code;
+  final String id;
   final String name;
+  final String storeId;
 }
 
 class InventoryItem {
   const InventoryItem({
     required this.id,
     required this.name,
+    required this.storeId,
     required this.categoryId,
     this.subcategoryId,
     this.description,
@@ -59,6 +72,7 @@ class InventoryItem {
       InventoryItem(
         id: id,
         name: data['name'] as String? ?? '',
+        storeId: data['storeId'] as String? ?? '',
         categoryId: data['categoryId'] as String? ?? '',
         subcategoryId: data['subcategoryId'] as String?,
         description: data['description'] as String?,
@@ -72,6 +86,7 @@ class InventoryItem {
 
   final String id;
   final String name;
+  final String storeId;
   final String categoryId;
   final String? subcategoryId;
   final String? description;

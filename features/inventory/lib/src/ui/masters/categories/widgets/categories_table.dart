@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/masters/categories/widgets/category_dialog.dart';
+import 'package:provider/provider.dart';
 
 /// Wide-screen categories list: an [IcueClientTable] with each top-level
 /// category followed by its subcategories.
@@ -138,6 +139,16 @@ class CategoriesTable extends StatelessWidget {
                   : null,
             );
           },
+        ),
+        IcueTableColumn(
+          id: 'store',
+          label: 'Store',
+          flex: 2,
+          cellBuilder: (context, category) => IcueTableCellText(
+            context.read<InventoryProvider>().storeName(category.storeId) ??
+                '—',
+            style: IcueTableStyle.of(context).secondary,
+          ),
         ),
         IcueTableColumn(
           id: 'parent',
