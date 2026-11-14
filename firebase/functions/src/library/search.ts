@@ -112,4 +112,4 @@ export const projectMember = (member: DocumentData) => ({
   prefixText: prefixText(member.name ?? '', member.admissionNumber ?? ''),
 });
 
-export const syncMemberSearch = syncTrigger(MEMBERS, projectMember);
+export const syncLibraryMemberSearch = syncTrigger(MEMBERS, projectMember);

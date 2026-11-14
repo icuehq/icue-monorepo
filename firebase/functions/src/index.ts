@@ -30,7 +30,7 @@ export {
   syncCatalogueSearch,
   syncIncidentSearch,
   syncLoanSearch,
-  syncMemberSearch,
+  syncLibraryMemberSearch,
 } from './library/search';
 export { outboxSend } from './shared/outbox';
 export { dailyInventory } from './inventory/daily';
