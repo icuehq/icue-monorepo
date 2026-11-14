@@ -124,18 +124,17 @@ class ProcurementProvider extends ChangeNotifier {
     vendors = await _service.vendors();
   });
 
-  Future<void> loadRequests(ModuleAccess access, {String? status}) =>
-      _load(() async {
-        requests = await _service.requests(access, status: status);
-        final need = requests
-            .expand(
-              (purchaseRequest) => purchaseRequest.lineItems.map(
-                (purchaseRequestLine) => purchaseRequestLine.itemId,
-              ),
-            )
-            .where((i) => !items.containsKey(i));
-        if (need.isNotEmpty) items.addAll(await _stock.itemsByIds(need));
-      });
+  Future<void> loadRequests({String? status}) => _load(() async {
+    requests = await _service.requests(status: status);
+    final need = requests
+        .expand(
+          (purchaseRequest) => purchaseRequest.lineItems.map(
+            (purchaseRequestLine) => purchaseRequestLine.itemId,
+          ),
+        )
+        .where((i) => !items.containsKey(i));
+    if (need.isNotEmpty) items.addAll(await _stock.itemsByIds(need));
+  });
 
   /// Saves a vendor; returns an empty map, or null with [errorMessage] set.
   Future<Map<String, dynamic>?> saveVendor(Map<String, Object?> data) =>

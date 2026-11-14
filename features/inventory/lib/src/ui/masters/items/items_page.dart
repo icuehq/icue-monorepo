@@ -67,7 +67,7 @@ class _ItemsPageState extends State<ItemsPage> {
   @override
   Widget build(BuildContext context) {
     final inventoryProvider = context.watch<InventoryProvider>();
-    final canEdit = inventoryProvider.access.can('inventory.items.manage');
+    const canEdit = true;
     final searching = inventoryProvider.itemSearch.trim().isNotEmpty;
     final selectedCategory = inventoryProvider.itemCategoryId;
     final hasFilter = searching || selectedCategory != null;

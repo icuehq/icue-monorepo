@@ -70,7 +70,6 @@ class _VendorsPageState extends State<VendorsPage> {
     final theme = Theme.of(context);
     final procurementProvider = context.watch<ProcurementProvider>();
     final inventoryProvider = context.watch<InventoryProvider>();
-    final canEdit = inventoryProvider.access.can('inventory.vendors.manage');
 
     final allVendors = procurementProvider.vendors;
     final query = _searchController.text.trim().toLowerCase();
@@ -117,19 +116,15 @@ class _VendorsPageState extends State<VendorsPage> {
         : IcueEmptyState(
             icon: Icons.store_mall_directory_outlined,
             title: 'No vendors yet',
-            message: canEdit
-                ? 'Add trusted suppliers to issue quotations and purchase orders.'
-                : 'Vendors will appear here once added.',
-            actionLabel: canEdit ? 'New vendor' : null,
+            message: 'Add trusted suppliers to issue quotations and purchase orders.',
+            actionLabel: 'New vendor',
             actionIcon: Icons.add,
-            onAction: canEdit
-                ? () => _open(InventoryRoutes.inventoryVendorForm)
-                : null,
+            onAction: () => _open(InventoryRoutes.inventoryVendorForm),
           );
 
     return Scaffold(
       appBar: AppBar(title: const Text('Vendors')),
-      floatingActionButton: canEdit && !context.isWide
+      floatingActionButton: !context.isWide
           ? FloatingActionButton.extended(
               onPressed: () => _open(InventoryRoutes.inventoryVendorForm),
               icon: const Icon(Icons.add_rounded),
@@ -150,17 +145,11 @@ class _VendorsPageState extends State<VendorsPage> {
                   '${InventoryRoutes.inventoryVendorDetail}?id=${vendor.id}',
                 ),
                 onReload: _load,
-                onCreate: canEdit
-                    ? () => _open(InventoryRoutes.inventoryVendorForm)
-                    : null,
-                onEdit: canEdit
-                    ? (vendor) => _open(
-                        '${InventoryRoutes.inventoryVendorForm}?id=${vendor.id}',
-                      )
-                    : null,
-                onToggleActive: canEdit
-                    ? (vendor) => toggleVendorActive(context, vendor)
-                    : null,
+                onCreate: () => _open(InventoryRoutes.inventoryVendorForm),
+                onEdit: (vendor) => _open(
+                  '${InventoryRoutes.inventoryVendorForm}?id=${vendor.id}',
+                ),
+                onToggleActive: (vendor) => toggleVendorActive(context, vendor),
               ),
             )
           : IcueCenteredBody(
@@ -298,37 +287,30 @@ class _VendorsPageState extends State<VendorsPage> {
                                 IcueAdaptiveColumn(
                                   label: '',
                                   width: 96,
-                                  cell: (context, vendor) => canEdit
-                                      ? Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            IconButton(
-                                              tooltip: 'Edit',
-                                              icon: const Icon(
-                                                Icons.edit_outlined,
-                                              ),
-                                              onPressed: () => _open(
-                                                '${InventoryRoutes.inventoryVendorForm}?id=${vendor.id}',
-                                              ),
-                                            ),
-                                            IconButton(
-                                              tooltip: vendor.active
-                                                  ? 'Deactivate'
-                                                  : 'Activate',
-                                              icon: Icon(
-                                                vendor.active
-                                                    ? Icons.toggle_on_rounded
-                                                    : Icons.toggle_off_rounded,
-                                              ),
-                                              onPressed: () =>
-                                                  toggleVendorActive(
-                                                    context,
-                                                    vendor,
-                                                  ),
-                                            ),
-                                          ],
-                                        )
-                                      : const SizedBox.shrink(),
+                                  cell: (context, vendor) => Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        tooltip: 'Edit',
+                                        icon: const Icon(Icons.edit_outlined),
+                                        onPressed: () => _open(
+                                          '${InventoryRoutes.inventoryVendorForm}?id=${vendor.id}',
+                                        ),
+                                      ),
+                                      IconButton(
+                                        tooltip: vendor.active
+                                            ? 'Deactivate'
+                                            : 'Activate',
+                                        icon: Icon(
+                                          vendor.active
+                                              ? Icons.toggle_on_rounded
+                                              : Icons.toggle_off_rounded,
+                                        ),
+                                        onPressed: () =>
+                                            toggleVendorActive(context, vendor),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ],
                               cardBuilder: (context, vendor) => Padding(
@@ -344,7 +326,6 @@ class _VendorsPageState extends State<VendorsPage> {
                                     for (final id in vendor.categoryIds)
                                       categoryName(id),
                                   ],
-                                  canEdit: canEdit,
                                   onTap: () => _open(
                                     '${InventoryRoutes.inventoryVendorDetail}?id=${vendor.id}',
                                   ),

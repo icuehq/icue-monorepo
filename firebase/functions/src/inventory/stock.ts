@@ -245,7 +245,7 @@ export class Stock {
       for (const alert of alerts) {
         if (!alert) continue;
         await enqueue(this.context, `inventory-${alert.slug}__${balance.id}__${this.date}`, {
-          to: { permission: 'inventory.stock.operate' },
+          to: { inventoryStaff: true },
           category: alert.category,
           title: alert.title,
           body: alert.body,

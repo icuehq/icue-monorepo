@@ -1,3 +1,4 @@
+import 'package:auth/auth.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
@@ -17,6 +18,9 @@ class StoresPage extends StatefulWidget {
 class _StoresPageState extends State<StoresPage> {
   String _searchQuery = '';
 
+  /// Manager display names by ID; Firestore keeps only the IDs.
+  Map<String, String> _managerNames = const {};
+
   @override
   void initState() {
     super.initState();
@@ -26,9 +30,38 @@ class _StoresPageState extends State<StoresPage> {
         await inventoryProvider.loadMasters();
       }
     });
+    _loadManagerNames();
+  }
+
+  Future<void> _loadManagerNames() async {
+    try {
+      final users = await context.read<AuthProvider>().usersByRole(
+        RoleIds.storeManager,
+      );
+      if (mounted) {
+        setState(
+          () => _managerNames = {
+            for (final user in users) '${user.id}': user.displayName,
+          },
+        );
+      }
+    } catch (_) {
+      // The list still works without names; managers show as "—".
+    }
   }
 
   Future<void> _toggleActive(BuildContext context, InventoryStore store) async {
+    final deactivating = store.active;
+    final confirmed = await IcueDialog.confirm(
+      context,
+      title: deactivating ? 'Deactivate store?' : 'Activate store?',
+      message: deactivating
+          ? '"${store.name}" will no longer be offered for new stock activity.'
+          : '"${store.name}" will be available for stock activity again.',
+      confirmLabel: deactivating ? 'Deactivate' : 'Activate',
+      destructive: deactivating,
+    );
+    if (!confirmed || !context.mounted) return;
     final inventoryProvider = context.read<InventoryProvider>();
     final success = await inventoryProvider.setStoreActive(
       store.id,
@@ -45,7 +78,7 @@ class _StoresPageState extends State<StoresPage> {
   @override
   Widget build(BuildContext context) {
     final inventoryProvider = context.watch<InventoryProvider>();
-    final canEdit = inventoryProvider.access.can('inventory.settings');
+    const canEdit = true;
     final allStores = inventoryProvider.stores;
     final wide = context.isWide;
 
@@ -74,6 +107,7 @@ class _StoresPageState extends State<StoresPage> {
               padding: const EdgeInsets.all(16),
               child: StoresTable(
                 stores: allStores,
+                managerNames: _managerNames,
                 canEdit: canEdit,
                 onToggleActive: (store) => _toggleActive(context, store),
               ),
@@ -113,6 +147,9 @@ class _StoresPageState extends State<StoresPage> {
                             itemCount: filteredStores.length,
                             itemBuilder: (context, index) => StoreCard(
                               store: filteredStores[index],
+                              managerName:
+                                  _managerNames[filteredStores[index]
+                                      .managerId],
                               canEdit: canEdit,
                               onEdit: (store) =>
                                   StoreDialog.show(context, store: store),

@@ -295,55 +295,19 @@ final inventoryReports = <ReportDef>[
   ),
 ];
 
-/// Dashboard tiles (FRS 10.1): key, label, permissions that can read the underlying records.
-const dashboardStats = <(String, String, List<String>)>[
-  ('items', 'Active items', ['inventory.items.view']),
-  (
-    'available',
-    'Available stock',
-    ['inventory.stock.view', 'inventory.reports.view'],
-  ),
-  ('value', 'Stock value', ['inventory.stock.view', 'inventory.reports.view']),
-  (
-    'low',
-    'Low-stock lines',
-    ['inventory.stock.view', 'inventory.reports.view'],
-  ),
-  (
-    'out',
-    'Out-of-stock lines',
-    ['inventory.stock.view', 'inventory.reports.view'],
-  ),
-  (
-    'expiring',
-    'Expiring in 30 days',
-    ['inventory.stock.view', 'inventory.reports.view'],
-  ),
-  (
-    'expired',
-    'Expired lines',
-    ['inventory.stock.view', 'inventory.reports.view'],
-  ),
-  (
-    'prs',
-    'Pending purchase requests',
-    ['inventory.purchaseRequest.approve', 'inventory.procure.operate'],
-  ),
-  (
-    'approvals',
-    'Pending approvals',
-    ['inventory.purchaseRequest.approve', 'inventory.issue.approve'],
-  ),
-  (
-    'pos',
-    'Open purchase orders',
-    ['inventory.procure.operate', 'inventory.reports.view'],
-  ),
-  (
-    'receipts',
-    'Pending goods receipts',
-    ['inventory.procure.operate', 'inventory.reports.view'],
-  ),
-  ('assets', 'Registered assets', ['inventory.assets.view']),
-  ('maint', 'Assets under maintenance', ['inventory.assets.view']),
+/// Dashboard tiles (FRS 10.1): key, label.
+const dashboardStats = <(String, String)>[
+  ('items', 'Active items'),
+  ('available', 'Available stock'),
+  ('value', 'Stock value'),
+  ('low', 'Low-stock lines'),
+  ('out', 'Out-of-stock lines'),
+  ('expiring', 'Expiring in 30 days'),
+  ('expired', 'Expired lines'),
+  ('prs', 'Pending purchase requests'),
+  ('approvals', 'Pending approvals'),
+  ('pos', 'Open purchase orders'),
+  ('receipts', 'Pending goods receipts'),
+  ('assets', 'Registered assets'),
+  ('maint', 'Assets under maintenance'),
 ];

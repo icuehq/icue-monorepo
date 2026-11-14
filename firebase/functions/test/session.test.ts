@@ -12,7 +12,7 @@ const access = (uid: string) =>
 describe('session', () => {
   beforeEach(clearFirestore);
 
-  it('syncs userAccess from claims, permissions from actionIds', async () => {
+  it('syncs userAccess from claims, Inventory access from the tile action', async () => {
     const result = await syncSession(db(), '1', {
       orgId: 8,
       zoneId: 147,
@@ -23,7 +23,7 @@ describe('session', () => {
       personErpId: 884,
     });
     expect(result).toEqual({
-      permissions: ['inventory.items.view', 'inventory.stock.view'],
+      inventoryAccess: true,
       scope: 'branch',
     });
     expect(await access('1')).toMatchObject({
@@ -34,23 +34,23 @@ describe('session', () => {
     });
   });
 
-  it('gives no permissions without actionIds', async () => {
+  it('gives no Inventory access without the tile action', async () => {
     expect(
       (await syncSession(db(), '1', { orgId: 8, zoneId: 147, branchId: 427, roleIds: [4] }))
-        .permissions,
-    ).toEqual([]);
+        .inventoryAccess,
+    ).toBe(false);
   });
 
-  it('gives parents no permissions, keeps wardStudentIds', async () => {
+  it('gives parents no Inventory access, keeps wardStudentIds', async () => {
     const result = await syncSession(db(), 'parent-1', {
       orgId: 8,
       zoneId: 147,
       branchId: 427,
-      actionIds: [312],
+      actionIds: [300],
       personType: 'parent',
       wardStudentIds: [5521],
     });
-    expect(result.permissions).toEqual([]);
+    expect(result.inventoryAccess).toBe(false);
     expect(await access('parent-1')).toMatchObject({ wardStudentIds: [5521], personErpId: null });
   });
 

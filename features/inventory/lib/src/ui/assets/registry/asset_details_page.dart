@@ -48,10 +48,6 @@ class _AssetDetailsPageState extends State<AssetDetailsPage> {
   }
 
   List<(String, Widget Function())> _actions(InventoryAsset asset) {
-    final manage = context.read<InventoryProvider>().access.can(
-      'inventory.assets.manage',
-    );
-    if (!manage) return const [];
     return [
       if (!asset.isRetired &&
           !asset.inMaintenance &&

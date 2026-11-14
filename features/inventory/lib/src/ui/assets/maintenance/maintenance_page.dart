@@ -145,9 +145,6 @@ class MaintenanceSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final maintenance = job;
     final assetsProvider = context.read<AssetsProvider>();
-    final manage = context.read<InventoryProvider>().access.can(
-      'inventory.assets.manage',
-    );
     Widget row(String currentValue, String? value) =>
         value == null || value.isEmpty
         ? const SizedBox.shrink()
@@ -182,7 +179,7 @@ class MaintenanceSheet extends StatelessWidget {
                 )
                 .join(', '),
           ),
-        if (manage && maintenance.isLive) ...[
+        if (maintenance.isLive) ...[
           const SizedBox(height: 12),
           Wrap(
             spacing: 8,

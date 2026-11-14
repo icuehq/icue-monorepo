@@ -155,9 +155,8 @@ class _PurchaseRequestPageState extends State<PurchaseRequestPage> {
     bool own,
     InventoryProvider inventoryProvider,
   ) {
-    final access = inventoryProvider.access;
     final List<Widget> buttons;
-    if (request.isPending && access.can('inventory.purchaseRequest.approve')) {
+    if (request.isPending && true) {
       buttons = [
         IcueButton(
           label: 'Reject',
@@ -224,7 +223,7 @@ class _PurchaseRequestPageState extends State<PurchaseRequestPage> {
           leadingIcon: Icons.send_rounded,
         ),
       ];
-    } else if (request.isOrderable && access.can('inventory.procure.operate')) {
+    } else if (request.isOrderable && true) {
       buttons = [
         IcueButton(
           label: 'Direct PO',

@@ -184,6 +184,7 @@ models:
         name: string
         description: string?
         location: string?
+        managerId: string
         active: { type: bool, key: status, notEquals: inactive }
   inventory_orders:
     OrderLine:

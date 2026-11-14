@@ -113,6 +113,7 @@ class InventoryStore {
     required this.name,
     this.description,
     this.location,
+    required this.managerId,
     required this.active,
   });
 
@@ -122,6 +123,7 @@ class InventoryStore {
         name: data['name'] as String? ?? '',
         description: data['description'] as String?,
         location: data['location'] as String?,
+        managerId: data['managerId'] as String? ?? '',
         active: data['status'] != 'inactive',
       );
 
@@ -129,5 +131,6 @@ class InventoryStore {
   final String name;
   final String? description;
   final String? location;
+  final String managerId;
   final bool active;
 }

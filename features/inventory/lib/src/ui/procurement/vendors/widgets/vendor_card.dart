@@ -5,7 +5,6 @@ class VendorCard extends StatelessWidget {
   const VendorCard({
     required this.vendor,
     required this.categoryNames,
-    required this.canEdit,
     required this.onEdit,
     required this.onToggleActive,
     required this.onTap,
@@ -14,7 +13,6 @@ class VendorCard extends StatelessWidget {
 
   final InventoryVendor vendor;
   final List<String> categoryNames;
-  final bool canEdit;
   final VoidCallback onEdit;
   final VoidCallback onToggleActive;
   final VoidCallback onTap;
@@ -106,47 +104,44 @@ class VendorCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                  if (canEdit)
-                    PopupMenuButton<String>(
-                      icon: const Icon(Icons.more_vert_rounded),
-                      onSelected: (value) {
-                        if (value == 'edit') {
-                          onEdit();
-                        } else if (value == 'toggle') {
-                          onToggleActive();
-                        }
-                      },
-                      itemBuilder: (_) => [
-                        const PopupMenuItem(
-                          value: 'edit',
-                          child: Row(
-                            children: [
-                              Icon(Icons.edit_outlined, size: 18),
-                              SizedBox(width: 8),
-                              Text('Edit Vendor'),
-                            ],
-                          ),
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_vert_rounded),
+                    onSelected: (value) {
+                      if (value == 'edit') {
+                        onEdit();
+                      } else if (value == 'toggle') {
+                        onToggleActive();
+                      }
+                    },
+                    itemBuilder: (_) => [
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: Row(
+                          children: [
+                            Icon(Icons.edit_outlined, size: 18),
+                            SizedBox(width: 8),
+                            Text('Edit Vendor'),
+                          ],
                         ),
-                        PopupMenuItem(
-                          value: 'toggle',
-                          child: Row(
-                            children: [
-                              Icon(
-                                vendor.active
-                                    ? Icons.block_rounded
-                                    : Icons.check_circle_outline_rounded,
-                                size: 18,
-                                color: vendor.active
-                                    ? Colors.red
-                                    : Colors.green,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(vendor.active ? 'Deactivate' : 'Activate'),
-                            ],
-                          ),
+                      ),
+                      PopupMenuItem(
+                        value: 'toggle',
+                        child: Row(
+                          children: [
+                            Icon(
+                              vendor.active
+                                  ? Icons.block_rounded
+                                  : Icons.check_circle_outline_rounded,
+                              size: 18,
+                              color: vendor.active ? Colors.red : Colors.green,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(vendor.active ? 'Deactivate' : 'Activate'),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
 

@@ -38,26 +38,13 @@ describe('assets and maintenance', () => {
 
   beforeEach(async () => {
     await clearFirestore();
-    const permissionsList = (permissions: string[]) => ({
-      permissions,
-      personErpId: 5,
-    });
-    await db()
-      .doc(`${BRANCH}/userAccess/1`)
-      .set(permissionsList(['inventory.settings', 'inventory.items.manage']));
-    await db()
-      .doc(`${BRANCH}/userAccess/asset`)
-      .set(permissionsList(['inventory.assets.manage']));
-    await db()
-      .doc(`${BRANCH}/userAccess/both`)
-      .set(permissionsList(['inventory.assets.manage', 'inventory.stock.operate']));
+    const access = { personErpId: 5 };
+    await db().doc(`${BRANCH}/userAccess/1`).set(access);
+    await db().doc(`${BRANCH}/userAccess/asset`).set(access);
+    await db().doc(`${BRANCH}/userAccess/both`).set(access);
     await run(masters.seedDefaults, {}, '1');
     const category = (
-      await run(
-        masters.categoryUpsert,
-        { name: 'General', suggestedTracking: 'quantity' },
-        '1',
-      )
+      await run(masters.categoryUpsert, { name: 'General', suggestedTracking: 'quantity' }, '1')
     ).id;
     const item = (itemCode: string, tracking: string) =>
       run(
@@ -94,17 +81,7 @@ describe('assets and maintenance', () => {
   });
 
   it('registration against a PO is capped at the accepted units and takes vendor and price from the order', async () => {
-    await db()
-      .doc(`${BRANCH}/userAccess/proc`)
-      .set({
-        permissions: [
-          'inventory.procure.operate',
-          'inventory.purchaseRequest.request',
-          'inventory.purchaseRequest.approve',
-          'inventory.stock.operate',
-          'inventory.vendors.manage',
-        ],
-      });
+    await db().doc(`${BRANCH}/userAccess/proc`).set({});
     const vendor = (await run(p.vendorUpsert, { code: 'V1', name: 'Acme' }, 'proc')).id;
     const purchaseRequest = await seedPurchaseRequest([
       { itemId: laptop, quantity: 3, estimatedPrice: 500 },

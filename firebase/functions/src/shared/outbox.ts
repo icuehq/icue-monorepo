@@ -8,7 +8,8 @@ import { serverTimestamp } from './firestore';
 
 export interface Recipients {
   uids?: string[];
-  permission?: string;
+  /** Staff who hold the Inventory tile (`userAccess.inventoryAccess`). */
+  inventoryStaff?: boolean;
   personErpIds?: number[];
   wardStudentIds?: number[];
 }
@@ -64,9 +65,9 @@ export async function resolveRecipients(
 ): Promise<string[]> {
   const access = db.collection(`${branchPath}/userAccess`);
   const uids = new Set(recipients.uids ?? []);
-  if (recipients.permission) {
+  if (recipients.inventoryStaff) {
     const holders = await access
-      .where('permissions', 'array-contains', recipients.permission)
+      .where('inventoryAccess', '==', true)
       .get();
     for (const holder of holders.docs) uids.add(holder.id);
   }

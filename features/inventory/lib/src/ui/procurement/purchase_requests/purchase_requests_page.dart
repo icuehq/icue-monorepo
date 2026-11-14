@@ -39,9 +39,7 @@ class _PurchaseRequestsPageState extends State<PurchaseRequestsPage> {
     }
     if (mounted) {
       // All statuses are fetched once; the chips filter (and count) them here.
-      await context.read<ProcurementProvider>().loadRequests(
-        inventoryProvider.access,
-      );
+      await context.read<ProcurementProvider>().loadRequests();
     }
     if (mounted) setState(() => _loaded = true);
   }
@@ -71,8 +69,6 @@ class _PurchaseRequestsPageState extends State<PurchaseRequestsPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final procurementProvider = context.watch<ProcurementProvider>();
-    final access = context.watch<InventoryProvider>().access;
-    final canRequest = access.can('inventory.purchaseRequest.request');
 
     final allRequests = procurementProvider.requests;
     final query = _searchController.text.trim().toLowerCase();
@@ -94,14 +90,11 @@ class _PurchaseRequestsPageState extends State<PurchaseRequestsPage> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Purchase Requests')),
-      floatingActionButton: canRequest
-          ? FloatingActionButton.extended(
-              onPressed: () =>
-                  _open(InventoryRoutes.inventoryPurchaseRequestForm),
-              icon: const Icon(Icons.add_rounded),
-              label: const Text('New Request'),
-            )
-          : null,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _open(InventoryRoutes.inventoryPurchaseRequestForm),
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('New Request'),
+      ),
       body: IcueCenteredBody(
         child: Column(
           children: [
@@ -191,10 +184,7 @@ class _PurchaseRequestsPageState extends State<PurchaseRequestsPage> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                failure ??
-                                    (canRequest
-                                        ? 'Raise a requisition to procure materials or assets for your branch.'
-                                        : 'Purchase requests will appear here once submitted.'),
+                                failure ?? 'Raise a requisition to procure materials or assets for your branch.',
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: theme.colorScheme.outline,
                                 ),
@@ -243,7 +233,6 @@ class _PurchaseRequestsPageState extends State<PurchaseRequestsPage> {
                             getItemName: procurementProvider.itemName,
                             nextAction: purchaseNextAction(
                               purchaseRequest,
-                              access,
                               procurementProvider.uid,
                             ),
                             onTap: () => _openRequest(purchaseRequest),

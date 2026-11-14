@@ -44,7 +44,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
   @override
   Widget build(BuildContext context) {
     final inventoryProvider = context.watch<InventoryProvider>();
-    final canEdit = inventoryProvider.access.can('inventory.settings');
+    const canEdit = true;
     final query = _searchController.text.trim().toLowerCase();
     final isSearching = query.isNotEmpty;
 

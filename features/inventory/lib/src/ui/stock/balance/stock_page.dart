@@ -64,9 +64,7 @@ class _StockPageState extends State<StockPage> {
   Widget build(BuildContext context) {
     final inventoryProvider = context.watch<InventoryProvider>();
     final stockProvider = context.watch<StockProvider>();
-    final access = inventoryProvider.access;
     final theme = Theme.of(context);
-    final canOperate = access.can('inventory.stock.operate');
     final wide = context.isWide;
 
     final activeStores = inventoryProvider.stores
@@ -96,7 +94,7 @@ class _StockPageState extends State<StockPage> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Store Stock')),
-      floatingActionButton: canOperate && !wide
+      floatingActionButton: !wide
           ? FloatingActionButton.extended(
               onPressed: () => _open(InventoryRoutes.inventoryReceive),
               icon: const Icon(Icons.add_rounded),
@@ -235,9 +233,7 @@ class _StockPageState extends State<StockPage> {
                     stockProvider: stockProvider,
                     stores: activeStores,
                     onOpen: _actions,
-                    onReceive: canOperate
-                        ? () => _open(InventoryRoutes.inventoryReceive)
-                        : null,
+                    onReceive: () => _open(InventoryRoutes.inventoryReceive),
                   ),
                 ),
               )
@@ -381,7 +377,7 @@ class _StockPageState extends State<StockPage> {
                                             leadingIcon:
                                                 Icons.filter_alt_off_outlined,
                                           )
-                                        else if (canOperate)
+                                        else
                                           IcueButton(
                                             label: 'Receive stock',
                                             onPressed: () => _open(

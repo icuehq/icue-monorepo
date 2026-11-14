@@ -19,7 +19,6 @@ const amount = z.number().min(0).nullish();
 export const masters = {
   categoryUpsert: defineCallable({
     name: 'inventory.category.upsert',
-    permission: 'inventory.settings',
     input: z.object({
       id: id.optional(),
       name,
@@ -55,7 +54,6 @@ export const masters = {
 
   itemUpsert: defineCallable({
     name: 'inventory.item.upsert',
-    permission: 'inventory.items.manage',
     input: z.object({
       id: id.optional(),
       name,
@@ -128,7 +126,6 @@ export const masters = {
   /** Adds the FRS default categories and units that do not exist yet. Safe to repeat. */
   seedDefaults: defineCallable({
     name: 'inventory.seedDefaults',
-    permission: 'inventory.settings',
     input: z.object({}),
     handler: async (context) => {
       const now = serverTimestamp();

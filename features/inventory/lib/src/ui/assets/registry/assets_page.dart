@@ -65,9 +65,6 @@ class _AssetsPageState extends State<AssetsPage> {
   @override
   Widget build(BuildContext context) {
     final assetsProvider = context.watch<AssetsProvider>();
-    final manage = context.read<InventoryProvider>().access.can(
-      'inventory.assets.manage',
-    );
     final currentValue = _search.toLowerCase();
     final shown = [
       for (final asset in assetsProvider.assets)
@@ -89,7 +86,7 @@ class _AssetsPageState extends State<AssetsPage> {
           ),
         ],
       ),
-      floatingActionButton: manage && !context.isWide
+      floatingActionButton: !context.isWide
           ? FloatingActionButton.extended(
               icon: const Icon(Icons.add),
               label: const Text('Register'),
@@ -103,7 +100,7 @@ class _AssetsPageState extends State<AssetsPage> {
                 assetsProvider: assetsProvider,
                 onOpen: _open,
                 onReload: _load,
-                onRegister: manage ? _register : null,
+                onRegister: _register,
                 onMaintenance: () =>
                     context.push(InventoryRoutes.inventoryMaintenance),
               ),

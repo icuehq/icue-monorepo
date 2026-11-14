@@ -29,7 +29,7 @@ class _UnitsPageState extends State<UnitsPage> {
   @override
   Widget build(BuildContext context) {
     final inventoryProvider = context.watch<InventoryProvider>();
-    final canEdit = inventoryProvider.access.can('inventory.settings');
+    const canEdit = true;
     final allUnits = inventoryProvider.units;
     final wide = context.isWide;
     final filteredUnits = [
@@ -155,8 +155,7 @@ class _EmptyUnitsView extends StatelessWidget {
                 children: [
                   IcueSeedDefaultsButton<InventoryProvider>(
                     label: 'Add default units',
-                    canSeed: (provider) =>
-                        provider.access.can('inventory.settings'),
+                    canSeed: (provider) => true,
                     seed: (provider) => provider.seedDefaults(),
                   ),
                   IcueButton(

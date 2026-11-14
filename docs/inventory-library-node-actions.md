@@ -2,8 +2,8 @@
 
 For `/v1.0/getActionsByRole` (same shape as Fleet, Drop Boarding, etc.). Node is the
 source of truth: the app shows tiles from this response, and `/v1.0/firebaseToken`
-sends the same action `Id`s to Firebase as a claim (`actionIds`), where each Id maps
-to one permission. Rules and Cloud Functions enforce that permission server-side.
+sends the same action `Id`s to Firebase as a claim (`actionIds`). Rules and Cloud
+Functions only check that the caller is non-parent staff of the branch.
 
 ## What Node must do
 
@@ -18,53 +18,21 @@ to one permission. Rules and Cloud Functions enforce that permission server-side
 
 ## Actions
 
-`Permission` is the Firebase permission the action grants; it is for our mapping,
-not a field Node needs to return. `RouteState` values are suggestions, but fix them
-once chosen.
+`RouteState` values are suggestions, but fix them once chosen.
 
 ### Top-level
 
-| Name | DisplayName | RouteState | Permission |
-| --- | --- | --- | --- |
-| Inventory - Admin App | Inventory | `layout.inventory` | none (shows the tile) |
-| Library - Admin App | Library | `layout.Library` | none (shows the tile) |
-
-### Inventory sub-actions (children of Inventory)
-
-| DisplayName | RouteState | Permission |
+| Name | DisplayName | RouteState |
 | --- | --- | --- |
-| Inventory Settings | `layout.inventory.settings` | `inventory.settings` |
-| Manage Items | `layout.inventory.items.manage` | `inventory.items.manage` |
-| View Items | `layout.inventory.items.view` | `inventory.items.view` |
-| View Stock | `layout.inventory.stock.view` | `inventory.stock.view` |
-| Operate Stock | `layout.inventory.stock.operate` | `inventory.stock.operate` |
-| Request Issue | `layout.inventory.issue.request` | `inventory.issue.request` |
-| Approve Issue | `layout.inventory.issue.approve` | `inventory.issue.approve` |
-| Approve Stock Adjustment | `layout.inventory.adjustment.approve` | `inventory.adjustment.approve` |
-| Request Purchase | `layout.inventory.purchaserequest.request` | `inventory.purchaseRequest.request` |
-| Approve Purchase | `layout.inventory.purchaserequest.approve` | `inventory.purchaseRequest.approve` |
-| Procurement | `layout.inventory.procure.operate` | `inventory.procure.operate` |
-| Manage Vendors | `layout.inventory.vendors.manage` | `inventory.vendors.manage` |
-| Manage Assets | `layout.inventory.assets.manage` | `inventory.assets.manage` |
-| View Assets | `layout.inventory.assets.view` | `inventory.assets.view` |
-| Inventory Reports | `layout.inventory.reports.view` | `inventory.reports.view` |
+| Inventory - Admin App | Inventory | `layout.inventory` |
+| Library - Admin App | Library | `layout.Library` |
 
-### Library
+Node has no sub-actions for either module. Holding the tile is the only gate: any
+staff user with it may use every screen and action of that module. Firebase treats
+action Id **300** as the Inventory tile (`INVENTORY_ACTION_ID` in `session.ts`).
 
-Node has no Library sub-actions. Every staff user holds all `library.*` permissions
-(granted in `permissionsFromActions`); the Library tile is the only gate.
+## Suggested default grants
 
-## Suggested default grants (FRS §12)
-
-| Role | Inventory | Library |
-| --- | --- | --- |
-| Admin | all | all |
-| Principal | View Items, View Stock, Approve Issue, Approve Stock Adjustment, Approve Purchase, View Assets, Inventory Reports | none |
-| Inventory Manager | all except the two Approve (Issue, Purchase) | none |
-| Storekeeper | View Items, View Stock, Operate Stock, Request Issue, Request Purchase, Manage Assets, View Assets | none |
-| Procurement | View Items, View Stock, Request Purchase, Procurement, Manage Vendors, View Assets | none |
-| Librarian | none | all |
-| Teacher | Request Issue, Request Purchase, View Assets | none |
-
-Granting any child without its parent shows nothing; the parent must be granted
-for the tile to appear.
+Grant the Inventory tile to Admin, Principal, Inventory Manager, Storekeeper,
+Procurement and any Teacher who raises requests; grant the Library tile to Admin and
+Librarian.

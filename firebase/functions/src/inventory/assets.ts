@@ -119,7 +119,6 @@ export const assets = {
   /** One asset, or `quantity` identical ones (no serial number) per call; the document ID is the asset ID and doubles as its barcode value. */
   register: defineCallable({
     name: 'inventory.asset.register',
-    permission: 'inventory.assets.manage',
     input: z.object({
       itemId: id,
       storeId: id,
@@ -233,7 +232,6 @@ export const assets = {
 
   assign: defineCallable({
     name: 'inventory.asset.assign',
-    permission: 'inventory.assets.manage',
     input: assignee.extend({ id, condition: condition.optional() }),
     handler: async (context, i) => {
       const { ref, asset } = await loadAsset(context, i.id);
@@ -263,7 +261,6 @@ export const assets = {
   /** Custody moves to another person or department; the previous assignment is closed and kept. */
   transfer: defineCallable({
     name: 'inventory.asset.transfer',
-    permission: 'inventory.assets.manage',
     input: assignee.extend({ id, condition: condition.optional() }),
     handler: async (context, i) => {
       const { ref, asset } = await loadAsset(context, i.id);
@@ -295,7 +292,6 @@ export const assets = {
   /** Back to the store; a damaged return makes the asset `damaged` until its condition is reviewed. */
   return: defineCallable({
     name: 'inventory.asset.return',
-    permission: 'inventory.assets.manage',
     input: z.object({ id, condition, location: text(120), remarks: optionalText }),
     handler: async (context, i) => {
       const { ref, asset } = await loadAsset(context, i.id);
@@ -327,7 +323,6 @@ export const assets = {
    */
   setCondition: defineCallable({
     name: 'inventory.asset.setCondition',
-    permission: 'inventory.assets.manage',
     input: z.object({
       id,
       condition,
@@ -369,7 +364,6 @@ export const assets = {
   /** Assigns (or clears with `null`) the RFID tag. A tag belongs to one asset; scans resolve it by equality on `rfidTag`. */
   setRfid: defineCallable({
     name: 'inventory.asset.setRfid',
-    permission: 'inventory.assets.manage',
     input: z.object({ id, rfidTag: z.string().trim().min(1).max(64).nullable() }),
     handler: async (context, i) => {
       const { ref, asset } = await loadAsset(context, i.id);
@@ -392,7 +386,6 @@ export const assets = {
   /** Retire an unused asset, then optionally mark it disposed. Neither can be assigned again. */
   retire: defineCallable({
     name: 'inventory.asset.retire',
-    permission: 'inventory.assets.manage',
     input: z.object({
       id,
       status: z.enum(['retired', 'disposed']),
@@ -431,7 +424,6 @@ export const maintenance = {
   /** Reports a fault (no `id`) or edits a live job. Raising one puts the asset `under_maintenance`. */
   save: defineCallable({
     name: 'inventory.maintenance.save',
-    permission: 'inventory.assets.manage',
     input: z.object({
       id: id.optional(),
       assetId: id,
@@ -515,7 +507,6 @@ export const maintenance = {
    */
   setStatus: defineCallable({
     name: 'inventory.maintenance.setStatus',
-    permission: 'inventory.assets.manage',
     input: z.object({
       id,
       status: z.enum(['assigned', 'in_progress', 'waiting_for_parts', 'completed', 'cancelled']),
@@ -543,8 +534,6 @@ export const maintenance = {
 
       const used = [];
       if (i.parts.length) {
-        if (!context.access.permissions.includes('inventory.stock.operate'))
-          throw failed('Drawing parts needs stock access');
         const stock = new Stock(context);
         for (const part of i.parts) {
           await stock.store(part.storeId);

@@ -14,7 +14,7 @@ async function user(
   await db()
     .doc(`${BRANCH}/userAccess/${uid}`)
     .set({
-      permissions: [],
+      inventoryAccess: false,
       personErpId: null,
       wardStudentIds: [],
       ...access,
@@ -42,18 +42,18 @@ function fakeSend(sent: TokenMessage[], dead = new Set<string>()) {
 describe('outbox', () => {
   beforeEach(async () => {
     await clearFirestore();
-    await user('1', { permissions: ['inventory.stock.operate'] }, ['t1']);
-    await user('2', { permissions: ['inventory.stock.operate'] }, ['t2']);
-    await user('3', { permissions: ['inventory.stock.operate'] }, ['t3', 'dead'], {
+    await user('1', { inventoryAccess: true }, ['t1']);
+    await user('2', { inventoryAccess: true }, ['t2']);
+    await user('3', { inventoryAccess: true }, ['t3', 'dead'], {
       'inventory.lowStock': false,
     });
     await user('4', { personErpId: 884 }, ['t4'], { 'inventory.lowStock': true });
     await user('parent-1', { personType: 'parent', wardStudentIds: [5521] }, ['t5']);
   });
 
-  it('resolves recipients by permission, personErpId and wardStudentIds', async () => {
+  it('resolves recipients by Inventory access, personErpId and wardStudentIds', async () => {
     const result = (to: object) => resolveRecipients(db(), BRANCH, to).then((ids) => ids.sort());
-    expect(await result({ permission: 'inventory.stock.operate' })).toEqual(['1', '2', '3']);
+    expect(await result({ inventoryStaff: true })).toEqual(['1', '2', '3']);
     expect(await result({ personErpIds: [884] })).toEqual(['4']);
     expect(await result({ wardStudentIds: [5521, 9] })).toEqual(['parent-1']);
     expect(await result({ uids: ['x'], personErpIds: [884] })).toEqual(['4', 'x']);
@@ -62,7 +62,7 @@ describe('outbox', () => {
   it('delivers once: inbox copy per recipient, push unless muted, dead tokens removed', async () => {
     const ref = db().doc(`${BRANCH}/outbox/low__b1`);
     await ref.set({
-      to: { permission: 'inventory.stock.operate', personErpIds: [884] },
+      to: { inventoryStaff: true, personErpIds: [884] },
       category: 'inventory.lowStock',
       title: 'Low stock',
       body: 'Pens',

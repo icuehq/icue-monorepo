@@ -23,22 +23,9 @@ const code = (promise: Promise<unknown>) =>
 describe('RFID', () => {
   beforeEach(async () => {
     await clearFirestore();
-    const permissionsList = (permissions: string[]) => ({
-      permissions,
-      personErpId: 5,
-    });
-    await db()
-      .doc(`${BRANCH}/userAccess/1`)
-      .set(
-        permissionsList([
-          'inventory.settings',
-          'inventory.items.manage',
-          'inventory.assets.manage',
-        ]),
-      );
-    await db()
-      .doc(`${BRANCH}/userAccess/none`)
-      .set(permissionsList(['inventory.stock.view']));
+    const access = { personErpId: 5 };
+    await db().doc(`${BRANCH}/userAccess/1`).set(access);
+    await db().doc(`${BRANCH}/userAccess/none`).set(access);
     await run(masters.seedDefaults, {});
   });
 

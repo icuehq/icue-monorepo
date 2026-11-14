@@ -5,7 +5,6 @@ import { branchPath, claimsBranch } from './shared/branch';
 import type { TokenClaims } from './shared/callable';
 import { logged } from './shared/errors';
 import { serverTimestamp } from './shared/firestore';
-import { permissionsFromActions } from './shared/permissions';
 
 const numbers = (value: unknown): number[] =>
   Array.isArray(value) ? value.map(Number).filter(Number.isFinite) : [];
@@ -51,13 +50,16 @@ export const token = onCall((request) =>
   ),
 );
 
+/** Node action Id of the Inventory tile; holding it is the only Inventory gate. */
+const INVENTORY_ACTION_ID = 300;
+
 /** Writes `<branch>/userAccess/{uid}` from the custom-token claims (architecture §3.2); permissions come from `actionIds`. */
 export async function syncSession(db: Firestore, uid: string, token: TokenClaims) {
   const branch = branchPath(claimsBranch(token));
   const roleIds = numbers(token.roleIds);
   const personType = typeof token.personType === 'string' ? token.personType : null;
   const access = {
-    permissions: personType === 'parent' ? [] : permissionsFromActions(token.actionIds),
+    inventoryAccess: personType !== 'parent' && numbers(token.actionIds).includes(INVENTORY_ACTION_ID),
     scope: typeof token.scope === 'string' ? token.scope : 'branch',
     roleIds,
     personType,
@@ -65,7 +67,7 @@ export async function syncSession(db: Firestore, uid: string, token: TokenClaims
     wardStudentIds: numbers(token.wardStudentIds),
   };
   await db.doc(`${branch}/userAccess/${uid}`).set({ ...access, updatedAt: serverTimestamp() });
-  return { permissions: access.permissions, scope: access.scope };
+  return { inventoryAccess: access.inventoryAccess, scope: access.scope };
 }
 
 export const sync = onCall((request) =>

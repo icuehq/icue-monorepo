@@ -53,7 +53,6 @@ class _InventoryOverviewPageState extends State<InventoryOverviewPage> {
   @override
   Widget build(BuildContext context) {
     final inventoryProvider = context.watch<InventoryProvider>();
-    final access = inventoryProvider.access;
     final wide = context.isWide;
 
     final filter = SizedBox(
@@ -88,10 +87,8 @@ class _InventoryOverviewPageState extends State<InventoryOverviewPage> {
       body: StreamBuilder<Map<String, num?>>(
         stream: _stats,
         builder: (context, snapshot) {
-          // Figures a role may not read are left out.
           final stats = <String, num?>{
-            for (final (key, _, permissions) in dashboardStats)
-              if (permissions.any(access.can)) key: snapshot.data?[key],
+            for (final (key, _) in dashboardStats) key: snapshot.data?[key],
           };
           return IcueCenteredBody(
             child: ListView(
@@ -100,7 +97,7 @@ class _InventoryOverviewPageState extends State<InventoryOverviewPage> {
                 if (wide)
                   Row(
                     children: [
-                      Expanded(child: OverviewQuickActions(access: access)),
+                      const Expanded(child: OverviewQuickActions()),
                       const SizedBox(width: 16),
                       filter,
                     ],
@@ -108,7 +105,7 @@ class _InventoryOverviewPageState extends State<InventoryOverviewPage> {
                 else ...[
                   filter,
                   const SizedBox(height: 12),
-                  OverviewQuickActions(access: access),
+                  const OverviewQuickActions(),
                 ],
                 const SizedBox(height: 20),
                 if (snapshot.hasError)

@@ -4,7 +4,6 @@ import { runCallable, type CallableDef } from '../src/shared/callable';
 import { clearFirestore, db } from './setup';
 
 const BRANCH = 'orgs/8/zones/147/branches/427';
-const ALL = ['inventory.settings', 'inventory.items.manage'];
 let requestSequence = 0;
 
 const run = (definition: CallableDef<any, any>, data: Record<string, unknown>, uid = '1') =>
@@ -23,10 +22,7 @@ describe('inventory masters', () => {
   let category: string;
   beforeEach(async () => {
     await clearFirestore();
-    await db().doc(`${BRANCH}/userAccess/1`).set({ permissions: ALL });
-    await db()
-      .doc(`${BRANCH}/userAccess/2`)
-      .set({ permissions: ['inventory.items.view'] });
+    await db().doc(`${BRANCH}/userAccess/1`).set({});
     await run(masters.seedDefaults, {});
     category = (
       await run(masters.categoryUpsert, {
@@ -43,12 +39,6 @@ describe('inventory masters', () => {
     expect(await count('inventoryCategories')).toBe(15);
     expect(await count('inventoryUnits')).toBe(12);
     expect(await run(masters.seedDefaults, {})).toEqual({ categories: 0, units: 0 });
-  });
-
-  it('requires permission', async () => {
-    await expect(
-      run(masters.categoryUpsert, { name: 'X', suggestedTracking: 'quantity' }, '2'),
-    ).rejects.toMatchObject({ code: 'permission-denied' });
   });
 
   it('keeps subcategories to one level', async () => {
@@ -94,7 +84,7 @@ describe('inventory masters', () => {
       run(masters.itemUpsert, {
         id,
         ...item,
-          categoryId: category,
+        categoryId: category,
         tracking: 'quantity',
       }),
     ).rejects.toMatchObject({ code: 'failed-precondition' });

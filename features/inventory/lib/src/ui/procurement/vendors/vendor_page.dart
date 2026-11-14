@@ -46,7 +46,6 @@ class _VendorPageState extends State<VendorPage> {
   Widget build(BuildContext context) {
     final procurementProvider = context.watch<ProcurementProvider>();
     final inventoryProvider = context.watch<InventoryProvider>();
-    final canEdit = inventoryProvider.access.can('inventory.vendors.manage');
     final vendor = procurementProvider.vendors
         .where((candidate) => candidate.id == widget.vendorId)
         .firstOrNull;
@@ -86,11 +85,7 @@ class _VendorPageState extends State<VendorPage> {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final twoColumns = constraints.maxWidth >= 900;
-            final header = _Header(
-              vendor: vendor,
-              canEdit: canEdit,
-              onEdit: () => _edit(vendor),
-            );
+            final header = _Header(vendor: vendor, onEdit: () => _edit(vendor));
             final contact = _ContactCard(vendor: vendor);
             final business = _BusinessCard(vendor: vendor);
             final categories = _CategoriesCard(names: categoryNames);
@@ -132,14 +127,9 @@ class _VendorPageState extends State<VendorPage> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({
-    required this.vendor,
-    required this.canEdit,
-    required this.onEdit,
-  });
+  const _Header({required this.vendor, required this.onEdit});
 
   final InventoryVendor vendor;
-  final bool canEdit;
   final VoidCallback onEdit;
 
   @override
@@ -161,27 +151,26 @@ class _Header extends StatelessWidget {
               color: theme.colorScheme.error,
             ),
           ),
-        if (canEdit)
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              IcueButton(
-                label: 'Edit',
-                onPressed: onEdit,
-                variant: IcueButtonVariant.outline,
-                leadingIcon: Icons.edit_outlined,
-              ),
-              IcueButton(
-                label: vendor.active ? 'Deactivate' : 'Activate',
-                onPressed: () => toggleVendorActive(context, vendor),
-                variant: IcueButtonVariant.outline,
-                leadingIcon: vendor.active
-                    ? Icons.block_rounded
-                    : Icons.check_circle_outline_rounded,
-              ),
-            ],
-          ),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            IcueButton(
+              label: 'Edit',
+              onPressed: onEdit,
+              variant: IcueButtonVariant.outline,
+              leadingIcon: Icons.edit_outlined,
+            ),
+            IcueButton(
+              label: vendor.active ? 'Deactivate' : 'Activate',
+              onPressed: () => toggleVendorActive(context, vendor),
+              variant: IcueButtonVariant.outline,
+              leadingIcon: vendor.active
+                  ? Icons.block_rounded
+                  : Icons.check_circle_outline_rounded,
+            ),
+          ],
+        ),
       ],
     );
   }

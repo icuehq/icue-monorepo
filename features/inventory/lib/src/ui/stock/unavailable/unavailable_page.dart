@@ -44,9 +44,7 @@ class _UnavailablePageState extends State<UnavailablePage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final stockProvider = context.watch<StockProvider>();
-    final operate = context.watch<InventoryProvider>().access.can(
-      'inventory.stock.operate',
-    );
+    const operate = true;
 
     String storeName(String id) =>
         stockProvider.allStores

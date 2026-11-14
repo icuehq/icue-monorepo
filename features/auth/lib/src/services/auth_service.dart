@@ -10,7 +10,6 @@ import 'package:auth/src/models/person_types.dart';
 import 'package:auth/src/models/role_actions.dart';
 import 'package:auth/src/models/role_users.dart';
 import 'package:auth/src/models/user_info.dart';
-import 'package:auth/src/services/test_role_actions.dart';
 import 'package:auth/src/storage/session_token_provider.dart';
 import 'package:auth/src/storage/user_local_storage.dart';
 import 'package:crypto/crypto.dart';
@@ -218,17 +217,17 @@ class AuthService {
     final response = await apiClient.post<dynamic>('/v1.0/getActionsByRole');
 
     if (response.statusCode == 202) {
-      final actions = withTestRoleActions(<RoleActions>[]);
+      const actions = <RoleActions>[];
       await userLocalStorage.saveRoleActions(actions);
       return actions;
     }
 
     final dynamic data = response.data;
     if (data is! List) {
-      return withTestRoleActions(<RoleActions>[]);
+      return <RoleActions>[];
     }
 
-    final actions = withTestRoleActions([
+    final actions = [
       for (final item
           in data.cast<Map<String, dynamic>>().toList()..sort(
             (a, b) => ((a['TabOrder'] ?? 0) as num).compareTo(
@@ -236,7 +235,7 @@ class AuthService {
             ),
           ))
         RoleActions.fromJson(item),
-    ]);
+    ];
 
     await userLocalStorage.saveRoleActions(actions);
     return actions;

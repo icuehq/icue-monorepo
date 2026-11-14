@@ -5,7 +5,6 @@ import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/assets/shared/asset_ui.dart';
 import 'package:inventory/src/ui/stock/shared/item_picker.dart';
 import 'package:inventory/src/ui/stock/shared/stock_ui.dart';
-import 'package:provider/provider.dart';
 
 /// Moves a maintenance request to [status]; completing records the repair cost, and parts drawn from a store.
 class MaintenanceUpdateDialog extends StatefulWidget {
@@ -213,15 +212,12 @@ class _MaintenanceUpdateDialogState extends State<MaintenanceUpdateDialog> {
                   onPressed: () => setState(() => _parts.remove(part)),
                 ),
               ),
-            if (context.read<InventoryProvider>().access.can(
-              'inventory.stock.operate',
-            ))
-              IcueButton(
-                label: 'Add part from store',
-                onPressed: _addPart,
-                variant: IcueButtonVariant.ghost,
-                leadingIcon: Icons.add,
-              ),
+            IcueButton(
+              label: 'Add part from store',
+              onPressed: _addPart,
+              variant: IcueButtonVariant.ghost,
+              leadingIcon: Icons.add,
+            ),
           ],
           const SizedBox(height: 16),
           IcueButton(

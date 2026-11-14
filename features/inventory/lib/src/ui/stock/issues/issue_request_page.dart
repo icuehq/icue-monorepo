@@ -63,9 +63,7 @@ class _IssueRequestPageState extends State<IssueRequestPage> {
       });
     }
     final showIssues =
-        !request.isPending &&
-        request.status != 'rejected' &&
-        inventoryProvider.access.can('inventory.stock.operate');
+        !request.isPending && request.status != 'rejected' && true;
     final issues = showIssues
         ? await stockProvider.issuesOf(request)
         : <InventoryIssue>[];
@@ -318,8 +316,8 @@ class _IssueRequestPageState extends State<IssueRequestPage> {
     if (mounted) await _load();
   }
 
-  Widget? _actionBar(InventoryIssueRequest request, ModuleAccess access) {
-    if (request.isPending && access.can('inventory.issue.approve')) {
+  Widget? _actionBar(InventoryIssueRequest request) {
+    if (request.isPending && true) {
       return _ActionBar(
         children: [
           IcueButton(
@@ -334,7 +332,7 @@ class _IssueRequestPageState extends State<IssueRequestPage> {
         ],
       );
     }
-    if (request.isIssuable && access.can('inventory.stock.operate')) {
+    if (request.isIssuable && true) {
       return _ActionBar(
         children: [
           IcueButton(
@@ -352,7 +350,6 @@ class _IssueRequestPageState extends State<IssueRequestPage> {
   Widget build(BuildContext context) {
     final stockProvider = context.watch<StockProvider>();
     final inventoryProvider = context.watch<InventoryProvider>();
-    final access = inventoryProvider.access;
     final request = _request;
 
     final Widget body;
@@ -386,10 +383,8 @@ class _IssueRequestPageState extends State<IssueRequestPage> {
               .firstOrNull
               ?.name ??
           request.storeId;
-      final deciding =
-          request.isPending && access.can('inventory.issue.approve');
-      final issuing =
-          request.isIssuable && access.can('inventory.stock.operate');
+      final deciding = request.isPending && true;
+      final issuing = request.isIssuable && true;
       body = RefreshIndicator(
         onRefresh: _load,
         child: ListView(
@@ -449,9 +444,7 @@ class _IssueRequestPageState extends State<IssueRequestPage> {
               onPressed: _busy ? null : () => _end(request, cancel: true),
               variant: IcueButtonVariant.ghost,
             ),
-          if (request != null &&
-              request.isIssuable &&
-              access.can('inventory.stock.operate'))
+          if (request != null && request.isIssuable && true)
             IcueButton(
               label: 'Close request',
               onPressed: _busy ? null : () => _end(request, cancel: false),
@@ -460,7 +453,7 @@ class _IssueRequestPageState extends State<IssueRequestPage> {
         ],
       ),
       body: IcueCenteredBody(maxWidth: 900, child: body),
-      bottomNavigationBar: request == null ? null : _actionBar(request, access),
+      bottomNavigationBar: request == null ? null : _actionBar(request),
     );
   }
 }

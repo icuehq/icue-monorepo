@@ -44,17 +44,10 @@ class ProcurementService {
   Future<void> setVendorActive(String id, {required bool active}) =>
       setMasterActive('inventoryVendors', id, active: active);
 
-  /// Approvers and procurement see the branch's requests; everyone else their own.
-  Future<List<InventoryPurchaseRequest>> requests(
-    ModuleAccess access, {
-    String? status,
-  }) async {
+  /// The branch's purchase requests, newest first.
+  Future<List<InventoryPurchaseRequest>> requests({String? status}) async {
     final collection = await branchCollection('inventoryPurchaseRequests');
-    final wide =
-        access.can('inventory.purchaseRequest.approve') ||
-        access.can('inventory.procure.operate');
     Query<Map<String, dynamic>> q = collection;
-    if (!wide) q = q.where('createdBy', isEqualTo: uid);
     if (status != null) q = q.where('status', isEqualTo: status);
     final snapshot = await q
         .orderBy('createdAt', descending: true)

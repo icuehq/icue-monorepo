@@ -13,14 +13,13 @@ const def: CallableDef<
   { number: string; id: string }
 > = {
   name: 'test.create',
-  permission: 'inventory.items.manage',
   input: z.object({ code: z.string().min(1), fail: z.boolean().optional() }),
   handler: async (context, input) => {
     const ref = context.doc(`inventoryItems/${input.code}`);
     await claimUniqueKey(context, 'item', input.code, ref.path);
     const documentNumber = await nextNumber(context, 'PR');
     await enqueue(context, 'created__1', {
-      to: { permission: 'inventory.items.view' },
+      to: { inventoryStaff: true },
       category: 'test',
       title: 't',
       body: 'b',
@@ -52,7 +51,6 @@ async function grant(uid: string, access: Record<string, unknown>) {
   await db()
     .doc(`${BRANCH}/userAccess/${uid}`)
     .set({
-      permissions: ['inventory.items.manage'],
       ...access,
     });
 }
@@ -63,7 +61,7 @@ describe('runCallable', () => {
     await grant('1', {});
   });
 
-  it('rejects unauthenticated, parents, unsynced users, missing permission', async () => {
+  it('rejects unauthenticated, parents, unsynced users', async () => {
     await expect(call({}, null)).rejects.toMatchObject({ code: 'unauthenticated' });
     await expect(
       call(
@@ -72,8 +70,6 @@ describe('runCallable', () => {
       ),
     ).rejects.toMatchObject({ code: 'permission-denied' });
     await expect(call({}, staff('2'))).rejects.toMatchObject({ code: 'failed-precondition' });
-    await grant('3', { permissions: ['inventory.items.view'] });
-    await expect(call({}, staff('3'))).rejects.toMatchObject({ code: 'permission-denied' });
   });
 
   it('works only in the branch of the token', async () => {

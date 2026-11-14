@@ -6,7 +6,8 @@ import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
 
 let env;
 const staff = { orgId: 8, zoneId: 147, branchId: 427, personType: 'staff', personErpId: 884 };
-const db = (uid, claims = staff) => env.authenticatedContext(uid, claims).firestore();
+const parent = { orgId: 8, zoneId: 147, branchId: 427, personType: 'parent', wardStudentIds: [501] };
+const db = (uid, claims = uid.startsWith('nostaff') ? parent : staff) => env.authenticatedContext(uid, claims).firestore();
 const anon = () => env.unauthenticatedContext().firestore();
 
 beforeAll(async () => {
@@ -69,13 +70,13 @@ describe('school data', () => {
   it('counters: any user holding a permission may bump them, nobody else', async () => {
     await assertSucceeds(setDoc(doc(db('1'), 'orgs/8/zones/147/branches/427/counters/PR_2026-27'), { next: 1 }));
     await assertSucceeds(getDoc(doc(db('1'), 'orgs/8/zones/147/branches/427/counters/PR_2026-27')));
-    await assertFails(setDoc(doc(db('2'), 'orgs/8/zones/147/branches/427/counters/PR_2026-27'), { next: 9 }));
+    await assertFails(setDoc(doc(db('2', parent), 'orgs/8/zones/147/branches/427/counters/PR_2026-27'), { next: 9 }));
     await assertFails(setDoc(doc(db('1', { ...staff, branchId: 428 }), 'orgs/8/zones/147/branches/427/counters/PR_2026-27'), { next: 9 }));
  });
 
   it('module collections: no client writes, no reads without a rule', async () => {
-    await assertFails(setDoc(doc(db('1'), 'orgs/8/zones/147/branches/427/inventoryBalances/b1'), {}));
-    await assertFails(getDoc(doc(db('1'), 'orgs/8/zones/147/branches/427/inventoryBalances/b1')));
+    await assertFails(setDoc(doc(db('1', parent), 'orgs/8/zones/147/branches/427/inventoryBalances/b1'), {}));
+    await assertFails(getDoc(doc(db('1', parent), 'orgs/8/zones/147/branches/427/inventoryBalances/b1')));
  });
 });
 
@@ -93,9 +94,9 @@ describe('inventory masters', () => {
   it('categories, units, items, variants: readable with inv.items.view, never writable', async () => {
     for (const documentPath of ['inventoryCategories/a', 'inventoryUnits/a', 'inventoryItems/a', 'inventoryItems/a/variants/v']) {
       await assertSucceeds(getDoc(doc(db('1'), `orgs/8/zones/147/branches/427/${documentPath}`)));
-      await assertFails(getDoc(doc(db('2'), `orgs/8/zones/147/branches/427/${documentPath}`)));
+      await assertFails(getDoc(doc(db('2', parent), `orgs/8/zones/147/branches/427/${documentPath}`)));
       await assertFails(getDoc(doc(db('1', { ...staff, branchId: 428 }), `orgs/8/zones/147/branches/427/${documentPath}`)));
-      await assertFails(setDoc(doc(db('1'), `orgs/8/zones/147/branches/427/${documentPath}`), { name: 'x' }));
+      await assertFails(setDoc(doc(db('1', parent), `orgs/8/zones/147/branches/427/${documentPath}`), { name: 'x' }));
    }
  });
 
@@ -121,12 +122,11 @@ describe('inventory masters', () => {
       await assertSucceeds(setDoc(doc(db(uid), path), { code: 'x', name: 'x' }));
       await assertSucceeds(updateDoc(doc(db(uid), path), { status: 'inactive' }));
       // Inventory masters need the permission; Library ones need any non-parent staff.
-      const outsider = documentPath.startsWith('librar') ? db('p', { orgId: 8, zoneId: 147, branchId: 427, personType: 'parent' }) : db('1');
+      const outsider = db('nostaff-p');
       await assertFails(updateDoc(doc(outsider, path), { name: 'y' }));
       await assertFails(setDoc(doc(db(uid, { ...staff, branchId: 428 }), path), { name: 'z' }));
       await assertSucceeds(deleteDoc(doc(db(uid), path)));
    }
-    await assertFails(setDoc(doc(db('m1'), 'orgs/8/zones/147/branches/427/inventoryUnits/box'), { name: 'x' }));
  });
 
   it('library categories: only two levels', async () => {
@@ -140,10 +140,10 @@ describe('inventory masters', () => {
 
   it('stores: school-wide reads for stock viewers and settings users', async () => {
     await assertSucceeds(getDoc(doc(db('3'), 'orgs/8/zones/147/branches/427/inventoryStores/s31')));
-    await assertFails(getDoc(doc(db('1'), 'orgs/8/zones/147/branches/427/inventoryStores/s31')));
+    await assertFails(getDoc(doc(db('1', parent), 'orgs/8/zones/147/branches/427/inventoryStores/s31')));
     await assertFails(getDoc(doc(db('3', { ...staff, branchId: 428 }), 'orgs/8/zones/147/branches/427/inventoryStores/s31')));
     await assertSucceeds(getDocs(collection(db('3'), 'orgs/8/zones/147/branches/427/inventoryStores')));
-    await assertFails(setDoc(doc(db('1'), 'orgs/8/zones/147/branches/427/inventoryStores/s31'), {}));
+    await assertFails(setDoc(doc(db('1', parent), 'orgs/8/zones/147/branches/427/inventoryStores/s31'), {}));
  });
 });
 
@@ -174,9 +174,9 @@ describe('inventory stock', () => {
   it('balances, ledger and documents: stock viewers only, never writable', async () => {
     for (const collectionName of STOCK) {
       await assertSucceeds(getDoc(doc(db('view'), `orgs/8/zones/147/branches/427/${collectionName}/a31`)));
-      await assertFails(getDoc(doc(db('req'), `orgs/8/zones/147/branches/427/${collectionName}/a31`)));
+      await assertFails(getDoc(doc(db('req', parent), `orgs/8/zones/147/branches/427/${collectionName}/a31`)));
       await assertFails(getDoc(doc(db('view', { ...staff, branchId: 428 }), `orgs/8/zones/147/branches/427/${collectionName}/a31`)));
-      await assertFails(setDoc(doc(db('view'), `orgs/8/zones/147/branches/427/${collectionName}/a31`), {}));
+      await assertFails(setDoc(doc(db('view', parent), `orgs/8/zones/147/branches/427/${collectionName}/a31`), {}));
    }
     await assertSucceeds(getDocs(collection(db('view'), 'orgs/8/zones/147/branches/427/inventoryBalances')));
  });
@@ -186,14 +186,14 @@ describe('inventory stock', () => {
     for (const collectionName of ['inventoryReceipts', 'inventoryMovements']) {
       await assertSucceeds(write('op', `${collectionName}/n1`, { createdBy: 'op' }));
       await assertFails(write('op', `${collectionName}/n3`, { createdBy: 'someone' }));
-      await assertFails(write('view', `${collectionName}/n4`, { createdBy: 'view' }));
+      await assertFails(write('nostaff-view', `${collectionName}/n4`, { createdBy: 'nostaff-view' }));
       await assertFails(write('op', `${collectionName}/a31`, { createdBy: 'op' }));
    }
     await assertFails(setDoc(doc(db('op'), 'orgs/8/zones/147/branches/427/inventoryReceipts/n5'), { createdBy: 'op' })); // unstamped
     await assertSucceeds(write('op', 'inventoryBalances/a31', {}));
-    await assertFails(write('view', 'inventoryBalances/a31', {}));
+    await assertFails(write('nostaff-view', 'inventoryBalances/a31', {}));
     await assertSucceeds(write('op', 'inventoryIssues/n1', { createdBy: 'op' }));
-    await assertFails(write('view', 'inventoryIssues/n3', { createdBy: 'view' }));
+    await assertFails(write('nostaff-view', 'inventoryIssues/n3', { createdBy: 'nostaff-view' }));
  });
 
   it('acknowledge issue: operators fill the empty acknowledgement once', async () => {
@@ -210,10 +210,10 @@ describe('inventory stock', () => {
     const write = (user, path, data) => setDoc(doc(db(user), `orgs/8/zones/147/branches/427/${path}`), { ...mark(user), ...data });
     for (const collectionName of ['inventoryReturns', 'inventoryAdjustments', 'inventoryUnavailableStock']) {
       await assertSucceeds(write('op', `${collectionName}/n1`, { createdBy: 'op' }));
-      await assertFails(write('view', `${collectionName}/n3`, { createdBy: 'view' }));
+      await assertFails(write('nostaff-view', `${collectionName}/n3`, { createdBy: 'nostaff-view' }));
    }
     const update = (user, data) => updateDoc(doc(db(user), 'orgs/8/zones/147/branches/427/inventoryIssues/a31'), { ...mark(user), ...data });
-    await assertFails(update('view', { lineItems: [], updatedAt: 1 }));
+    await assertFails(update('nostaff-view', { lineItems: [], updatedAt: 1 }));
     await assertSucceeds(update('op', { lineItems: [], updatedAt: 1 }));
  });
 
@@ -223,7 +223,7 @@ describe('inventory stock', () => {
     );
     const resolve = (user, data, path = 'inventoryUnavailableStock/u1') => updateDoc(doc(db(user), `orgs/8/zones/147/branches/427/${path}`), { ...mark(user), ...data });
     const resolution = { status: 'resolved', resolution: 'dispose', resolutionNote: null, resolvedAt: 1, resolvedBy: 'op', updatedAt: 1 };
-    await assertFails(resolve('view', resolution));
+    await assertFails(resolve('nostaff-view', resolution));
     await assertFails(resolve('op', { ...resolution, quantity: 0 }));
     await assertSucceeds(resolve('op', resolution));
     await assertFails(resolve('op', resolution));
@@ -235,7 +235,7 @@ describe('inventory stock', () => {
       updateDoc(doc(context.firestore(), 'orgs/8/zones/147/branches/427/inventoryIssueRequests/r1'), { status: 'approved' }),
     );
     const issued = { status: 'issued', lineItems: [], updatedAt: 1 };
-    await assertFails(issue('view', issued));
+    await assertFails(issue('nostaff-view', issued));
     await assertFails(issue('op', { ...issued, createdBy: 'op' }));
     await assertFails(issue('op', { ...issued, status: 'approved' }));
     await assertSucceeds(issue('op', issued));
@@ -267,7 +267,7 @@ describe('inventory stock', () => {
     await assertSucceeds(getDoc(doc(db('req'), 'orgs/8/zones/147/branches/427/inventoryIssueRequests/r1')));
     await assertSucceeds(getDoc(doc(db('apr'), 'orgs/8/zones/147/branches/427/inventoryIssueRequests/r1')));
     await assertSucceeds(getDoc(doc(db('view'), 'orgs/8/zones/147/branches/427/inventoryIssueRequests/r1')));
-    await assertFails(getDoc(doc(db('2'), 'orgs/8/zones/147/branches/427/inventoryIssueRequests/r1')));
+    await assertFails(getDoc(doc(db('2', parent), 'orgs/8/zones/147/branches/427/inventoryIssueRequests/r1')));
     await assertSucceeds(getDocs(query(collection(db('req'), 'orgs/8/zones/147/branches/427/inventoryIssueRequests'), where('createdBy', '==', 'req'))));
     await assertFails(setDoc(doc(db('req'), 'orgs/8/zones/147/branches/427/inventoryIssueRequests/r1'), { status: 'approved' }));
  });
@@ -277,7 +277,7 @@ describe('inventory stock', () => {
     await env.withSecurityRulesDisabled((context) => setDoc(doc(context.firestore(), stats), { items: 1 }));
     await assertSucceeds(getDoc(doc(db('view'), stats)));
     await assertSucceeds(getDoc(doc(db('apr'), stats)));
-    await assertFails(getDoc(doc(db('req'), stats)));
+    await assertFails(getDoc(doc(db('req', parent), stats)));
     await assertFails(setDoc(doc(db('view'), stats), { items: 2 }));
     await assertFails(setDoc(doc(db('op'), stats), { items: 2 }));
  });
@@ -289,7 +289,6 @@ describe('inventory stock', () => {
 });
 
 describe('library (staff gate)', () => {
-  const parent = { orgId: 8, zoneId: 147, branchId: 427, personType: 'parent', wardStudentIds: [501] };
   beforeEach(() =>
     env.withSecurityRulesDisabled(async (context) => {
       const firestore = context.firestore();
@@ -495,7 +494,7 @@ describe('storage', () => {
 
   it('reads need same school and module view permission', async () => {
     await assertSucceeds(getBytes(ref(storageFor('1'), path)));
-    await assertFails(getBytes(ref(storageFor('2'), path)));
+    await assertFails(getBytes(ref(storageFor('nostaff', parent), path)));
     await assertFails(getBytes(ref(storageFor('1', { ...staff, branchId: 428 }), path)));
     await assertFails(getBytes(ref(env.unauthenticatedContext().storage(), path)));
  });
@@ -525,7 +524,7 @@ describe('procurement (Inv-3)', () => {
     await assertSucceeds(readPurchaseRequest('parent-req'));
     await assertSucceeds(readPurchaseRequest('parent-apr'));
     await assertSucceeds(readPurchaseRequest('proc'));
-    await assertFails(readPurchaseRequest('ven'));
+    await assertFails(readPurchaseRequest('nostaff-ven'));
     await assertFails(getDoc(doc(db('parent-apr', { ...staff, branchId: 428 }), 'orgs/8/zones/147/branches/427/inventoryPurchaseRequests/pr1')));
     await assertSucceeds(getDocs(query(collection(db('parent-req'), 'orgs/8/zones/147/branches/427/inventoryPurchaseRequests'), where('createdBy', '==', 'parent-req'))));
     await assertSucceeds(setDoc(doc(db('parent-req'), 'orgs/8/zones/147/branches/427/inventoryPurchaseRequests/pr1'), { ...mark('parent-req'), status: 'approved' }));
@@ -536,9 +535,9 @@ describe('procurement (Inv-3)', () => {
   it('vendors: vendor managers write, procurement reads; requesters can browse items', async () => {
     await assertSucceeds(getDoc(doc(db('ven'), 'orgs/8/zones/147/branches/427/inventoryVendors/v1')));
     await assertSucceeds(getDoc(doc(db('proc'), 'orgs/8/zones/147/branches/427/inventoryVendors/v1')));
-    await assertFails(getDoc(doc(db('parent-req'), 'orgs/8/zones/147/branches/427/inventoryVendors/v1')));
+    await assertFails(getDoc(doc(db('parent-req', parent), 'orgs/8/zones/147/branches/427/inventoryVendors/v1')));
     await assertSucceeds(setDoc(doc(db('ven'), 'orgs/8/zones/147/branches/427/inventoryVendors/v1'), { name: 'x' }));
-    await assertFails(setDoc(doc(db('proc'), 'orgs/8/zones/147/branches/427/inventoryVendors/v1'), { name: 'x' }));
+    await assertFails(setDoc(doc(db('proc', parent), 'orgs/8/zones/147/branches/427/inventoryVendors/v1'), { name: 'x' }));
     await assertSucceeds(getDoc(doc(db('parent-req'), 'orgs/8/zones/147/branches/427/inventoryItems/i')));
  });
 });
@@ -561,18 +560,18 @@ describe('quotations and purchase orders (Inv-4)', () => {
   it('procurement reads; others and writes are denied', async () => {
     for (const path of ['inventoryQuotations/q1', 'inventoryPurchaseOrders/po1', 'inventoryPurchaseOrders/po1/revisions/r1']) {
       await assertSucceeds(getDoc(doc(db('proc'), `orgs/8/zones/147/branches/427/${path}`)));
-      await assertFails(getDoc(doc(db('parent-apr'), `orgs/8/zones/147/branches/427/${path}`)));
+      await assertFails(getDoc(doc(db('parent-apr', parent), `orgs/8/zones/147/branches/427/${path}`)));
    }
     await assertFails(setDoc(doc(db('proc'), 'orgs/8/zones/147/branches/427/inventoryPurchaseOrders/po1'), { status: 'issued' }));
  });
 
   it('invoices follow procurement; receiving staff read orders due', async () => {
     await assertSucceeds(getDoc(doc(db('proc'), 'orgs/8/zones/147/branches/427/inventoryInvoices/i1')));
-    await assertFails(getDoc(doc(db('store'), 'orgs/8/zones/147/branches/427/inventoryInvoices/i1')));
+    await assertFails(getDoc(doc(db('store', parent), 'orgs/8/zones/147/branches/427/inventoryInvoices/i1')));
     await assertSucceeds(setDoc(doc(db('proc'), 'orgs/8/zones/147/branches/427/inventoryInvoices/i1'), { ...mark('proc'), paymentStatus: 'paid' }));
     await assertFails(setDoc(doc(db('2'), 'orgs/8/zones/147/branches/427/inventoryInvoices/i1'), { paymentStatus: 'paid' }));
     await assertSucceeds(getDoc(doc(db('store'), 'orgs/8/zones/147/branches/427/inventoryPurchaseOrders/po1')));
-    await assertFails(getDoc(doc(db('store'), 'orgs/8/zones/147/branches/427/inventoryQuotations/q1')));
+    await assertFails(getDoc(doc(db('store', parent), 'orgs/8/zones/147/branches/427/inventoryQuotations/q1')));
  });
 });
 
@@ -581,7 +580,7 @@ describe('assets and maintenance (Inv-6)', () => {
     env.withSecurityRulesDisabled(async (context) => {
       const firestore = context.firestore();
       const access = (permissions) => ({ permissions });
-      await setDoc(doc(firestore, 'orgs/8/zones/147/branches/427/userAccess/parent-view'), access(['inventory.assets.view']));
+      await setDoc(doc(firestore, 'orgs/8/zones/147/branches/427/userAccess/view'), access(['inventory.assets.view']));
       await setDoc(doc(firestore, 'orgs/8/zones/147/branches/427/userAccess/none'), access(['inventory.stock.view']));
       await setDoc(doc(firestore, 'orgs/8/zones/147/branches/427/inventoryAssets/a1'), { status: 'available' });
       await setDoc(doc(firestore, 'orgs/8/zones/147/branches/427/inventoryAssets/a1/history/h1'), { type: 'registered' });
@@ -592,18 +591,18 @@ describe('assets and maintenance (Inv-6)', () => {
 
   it('asset viewers read; others and every write are denied', async () => {
     for (const path of ['inventoryAssets/a1', 'inventoryAssets/a1/history/h1', 'inventoryMaintenanceJobs/m1']) {
-      await assertSucceeds(getDoc(doc(db('parent-view'), `orgs/8/zones/147/branches/427/${path}`)));
+      await assertSucceeds(getDoc(doc(db('view'), `orgs/8/zones/147/branches/427/${path}`)));
    }
-    await assertSucceeds(getDoc(doc(db('parent-view'), 'orgs/8/zones/147/branches/427/inventoryAssetAssignments/g1')));
-    await assertFails(getDoc(doc(db('none'), 'orgs/8/zones/147/branches/427/inventoryAssets/a1')));
-    await assertFails(setDoc(doc(db('parent-view'), 'orgs/8/zones/147/branches/427/inventoryAssets/a1'), { status: 'lost' }));
-    await assertFails(setDoc(doc(db('parent-view'), 'orgs/8/zones/147/branches/427/inventoryMaintenanceJobs/m1'), { cost: 0 }));
+    await assertSucceeds(getDoc(doc(db('view'), 'orgs/8/zones/147/branches/427/inventoryAssetAssignments/g1')));
+    await assertFails(getDoc(doc(db('none', parent), 'orgs/8/zones/147/branches/427/inventoryAssets/a1')));
+    await assertFails(setDoc(doc(db('nostaff-view'), 'orgs/8/zones/147/branches/427/inventoryAssets/a1'), { status: 'lost' }));
+    await assertFails(setDoc(doc(db('nostaff-view'), 'orgs/8/zones/147/branches/427/inventoryMaintenanceJobs/m1'), { cost: 0 }));
  });
 
   it('a custodian reads their own assignment only', async () => {
     await assertSucceeds(getDoc(doc(db('none'), 'orgs/8/zones/147/branches/427/inventoryAssetAssignments/g1'))); // personErpId 884
-    await assertFails(getDoc(doc(db('none', { orgId: 8, zoneId: 147, branchId: 427, personType: 'staff', personErpId: 1 }), 'orgs/8/zones/147/branches/427/inventoryAssetAssignments/g1')));
-    await assertFails(getDoc(doc(db('none'), 'orgs/8/zones/147/branches/427/inventoryAssets/a1')));
+    await assertFails(getDoc(doc(db('nostaff-none', { orgId: 8, zoneId: 147, branchId: 427, personType: 'parent', personErpId: 1 }), 'orgs/8/zones/147/branches/427/inventoryAssetAssignments/g1')));
+    await assertFails(getDoc(doc(db('nostaff-none'), 'orgs/8/zones/147/branches/427/inventoryAssets/a1')));
  });
 });
 
@@ -623,7 +622,7 @@ describe('reports (Inv-7)', () => {
   it('report viewers read the branch records of every report collection and the vendors', async () => {
     await assertSucceeds(getDoc(doc(db('rep'), 'orgs/8/zones/147/branches/427/inventoryPurchaseOrders/po1')));
     await assertSucceeds(getDoc(doc(db('rep'), 'orgs/8/zones/147/branches/427/inventoryVendors/ven1')));
-    await assertFails(getDoc(doc(db('stock'), 'orgs/8/zones/147/branches/427/inventoryPurchaseOrders/po1')));
+    await assertFails(getDoc(doc(db('stock', parent), 'orgs/8/zones/147/branches/427/inventoryPurchaseOrders/po1')));
  });
 });
 

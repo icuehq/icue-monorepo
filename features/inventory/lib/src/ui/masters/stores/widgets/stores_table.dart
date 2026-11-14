@@ -7,12 +7,14 @@ import 'package:inventory/src/ui/masters/stores/widgets/store_dialog.dart';
 class StoresTable extends StatelessWidget {
   const StoresTable({
     required this.stores,
+    required this.managerNames,
     required this.canEdit,
     required this.onToggleActive,
     super.key,
   });
 
   final List<InventoryStore> stores;
+  final Map<String, String> managerNames;
   final bool canEdit;
   final void Function(InventoryStore store) onToggleActive;
 
@@ -23,9 +25,9 @@ class StoresTable extends StatelessWidget {
       items: stores,
       rowKey: (store) => store.id,
       rowLabel: (store) => store.name,
-      searchHint: 'Search name, location or description...',
+      searchHint: 'Search name, manager, location or description...',
       searchText: (store) =>
-          '${store.name} ${store.location ?? ''} ${store.description ?? ''}',
+          '${store.name} ${managerNames[store.managerId] ?? ''} ${store.location ?? ''} ${store.description ?? ''}',
       onRowTap: canEdit
           ? (store) => StoreDialog.show(context, store: store)
           : null,
@@ -86,6 +88,15 @@ class StoresTable extends StatelessWidget {
           cellBuilder: (context, store) => IcueTableCellText(
             store.name,
             leading: store.active ? null : const IcueInactiveBadge(),
+          ),
+        ),
+        IcueTableColumn(
+          id: 'manager',
+          label: 'Manager',
+          flex: 2,
+          cellBuilder: (context, store) => IcueTableCellText(
+            managerNames[store.managerId] ?? '—',
+            style: IcueTableStyle.of(context).secondary,
           ),
         ),
         IcueTableColumn(

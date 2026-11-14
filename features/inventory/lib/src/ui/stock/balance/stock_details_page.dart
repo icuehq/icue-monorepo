@@ -43,7 +43,6 @@ class _StockDetailsPageState extends State<StockDetailsPage> {
       );
     }
     final item = stockProvider.items[balance.itemId];
-    final operate = inventoryProvider.access.can('inventory.stock.operate');
     final unit = item?.stockUnit ?? '';
     String quantity(double value) => unit.isEmpty
         ? value.toQuantityText()
@@ -151,7 +150,7 @@ class _StockDetailsPageState extends State<StockDetailsPage> {
                     ),
                 ],
               ),
-              if (operate) ...[
+              ...[
                 const SizedBox(height: 16),
                 Wrap(
                   spacing: 8,

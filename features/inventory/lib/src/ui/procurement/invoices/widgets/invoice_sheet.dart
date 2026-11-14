@@ -34,9 +34,7 @@ class InvoiceSheet extends StatelessWidget {
     final theme = Theme.of(context);
     final i = invoice;
     final procurementProvider = context.read<ProcurementProvider>();
-    final canOperate = context.read<InventoryProvider>().access.can(
-      'inventory.procure.operate',
-    );
+    const canOperate = true;
     final today = todayIST();
     final status = i.statusOn(today);
     final isOverdue = status == 'overdue';

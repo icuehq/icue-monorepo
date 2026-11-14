@@ -15,7 +15,6 @@ import {
 export const procurement = {
   vendorUpsert: defineCallable({
     name: 'inventory.vendor.upsert',
-    permission: 'inventory.vendors.manage',
     input: z.object({
       id: id.optional(),
       code: code.optional(),

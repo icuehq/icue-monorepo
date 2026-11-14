@@ -15,15 +15,6 @@ class InventoryService {
     ];
   }
 
-  Future<ModuleAccess> access() async {
-    // branchCollection waits for the sign-in, so read the user after it.
-    final collection = await branchCollection('userAccess');
-    final doc = await collection
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .get();
-    return ModuleAccess.fromMap(doc.data() ?? {});
-  }
-
   Future<List<InventoryCategory>> categories() async =>
       (await _all('inventoryCategories', InventoryCategory.fromMap))..sort(
         (left, right) =>

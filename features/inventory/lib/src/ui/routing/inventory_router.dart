@@ -36,7 +36,6 @@ import 'package:inventory/src/ui/stock/issues/issue_return_page.dart';
 import 'package:inventory/src/ui/stock/receive/receive_page.dart';
 import 'package:inventory/src/ui/stock/unavailable/unavailable_page.dart';
 import 'package:inventory/src/ui/stock/unavailable/unavailable_resolve_page.dart';
-import 'package:provider/provider.dart';
 
 /// Inventory screens as go_router routes, inside a shell that adds side navigation on wide screens.
 List<RouteBase> inventoryRoutes() => [
@@ -45,12 +44,7 @@ List<RouteBase> inventoryRoutes() => [
       title: 'Inventory',
       homePath: InventoryRoutes.inventory,
       location: state.uri.path,
-      destinations: [
-        for (final entry in inventoryEntries(
-          context.watch<InventoryProvider>().access,
-        ))
-          entry.destination,
-      ],
+      destinations: [for (final entry in inventoryEntries()) entry.destination],
       child: child,
     ),
     routes: _inventoryPages,

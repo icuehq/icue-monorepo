@@ -19,7 +19,7 @@ async function expire(
   today: string,
 ): Promise<void> {
   await db.runTransaction(async (transaction) => {
-    const context = new CallableContext(transaction, branchPath, 'system', { permissions: [] });
+    const context = new CallableContext(transaction, branchPath, 'system', {});
     const snapshot = await transaction.get(context.doc(`inventoryBalances/${balanceId}`));
     const balance = snapshot.data();
     if (
@@ -51,7 +51,7 @@ async function expire(
       referenceId,
     });
     await enqueue(context, `inventory-stock-expired__${balanceId}__${today}`, {
-      to: { permission: 'inventory.stock.operate' },
+      to: { inventoryStaff: true },
       category: 'inventory.expiry',
       title: 'Stock expired',
       body: `${item.name}${balance.batchNumber ? ` (batch ${balance.batchNumber})` : ''}: ${quantity} moved to expired.`,
@@ -87,7 +87,7 @@ export async function runDailyInventory(branchPath: string, today = todayIST()):
   }
   for (const [storeId, { batchCount: count }] of byStore) {
     await post(db, branchPath, `inventory-near-expiry__${storeId}__${week}`, {
-      to: { permission: 'inventory.stock.operate' },
+      to: { inventoryStaff: true },
       category: 'inventory.expiry',
       title: 'Stock nearing expiry',
       body: `${count} batch(es) expire within ${NEAR_DAYS} days.`,
@@ -102,7 +102,7 @@ export async function runDailyInventory(branchPath: string, today = todayIST()):
   for (const snapshot of overdue.docs) {
     const purchaseOrder = snapshot.data();
     await post(db, branchPath, `inventory-purchase-order-overdue__${snapshot.id}__${week}`, {
-      to: { permission: 'inventory.procure.operate' },
+      to: { inventoryStaff: true },
       category: 'inventory.purchaseOrder',
       title: 'Delivery overdue',
       body: `${purchaseOrder.number} was due ${timestampDay(purchaseOrder.expectedDate)}.`,
@@ -122,7 +122,7 @@ export async function runDailyInventory(branchPath: string, today = todayIST()):
       branchPath,
       `inventory-warranty-ending__${snapshot.id}__${timestampDay(asset.warranty.end)}`,
       {
-        to: { permission: 'inventory.assets.manage' },
+        to: { inventoryStaff: true },
         category: 'inventory.asset',
         title: 'Warranty ending',
         body: `${asset.name}: warranty ends ${timestampDay(asset.warranty.end)}.`,
@@ -143,7 +143,7 @@ export async function runDailyInventory(branchPath: string, today = todayIST()):
       branchPath,
       `inventory-maintenance-due__${snapshot.id}__${timestampDay(asset.nextServiceDate)}`,
       {
-        to: { permission: 'inventory.assets.manage' },
+        to: { inventoryStaff: true },
         category: 'inventory.asset',
         title: 'Maintenance due',
         body: `${asset.name}: service due ${timestampDay(asset.nextServiceDate)}.`,

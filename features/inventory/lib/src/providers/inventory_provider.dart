@@ -10,7 +10,6 @@ class InventoryProvider extends ChangeNotifier implements ErrorReporting {
 
   final InventoryService _service;
 
-  ModuleAccess access = const ModuleAccess();
   List<InventoryCategory> categories = [];
   List<InventoryUnit> units = [];
   List<InventoryStore> stores = [];
@@ -43,7 +42,6 @@ class InventoryProvider extends ChangeNotifier implements ErrorReporting {
     errorMessage = null;
     notifyListeners();
     try {
-      access = await _service.access();
       final masterLists = await Future.wait([
         _service.categories(),
         _service.units(),

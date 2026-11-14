@@ -9,7 +9,6 @@ import { z } from 'zod';
 import { branchPath, claimsBranch } from './branch';
 import { invalidInput, logged } from './errors';
 import { serverTimestamp } from './firestore';
-import type { Permission } from './permissions';
 
 export interface TokenClaims {
   orgId?: unknown;
@@ -19,7 +18,6 @@ export interface TokenClaims {
   [key: string]: unknown;
 }
 export interface UserAccess {
-  permissions: string[];
   personErpId?: number;
 }
 
@@ -88,8 +86,6 @@ export class CallableContext {
 
 export interface CallableDef<S extends z.ZodType, R> {
   name: string;
-  /** Omitted for Library: its Node tile is the only gate (any signed-in staff user). */
-  permission?: Permission;
   input: S;
   handler: (context: CallableContext, input: z.infer<S>) => Promise<R>;
 }
@@ -105,11 +101,6 @@ function signedInStaff(auth: Auth): { uid: string; branchPath: string } {
       'Your account can view information but cannot make changes.',
     );
   return { uid: auth.uid, branchPath: branchPath(claimsBranch(auth.token)) };
-}
-
-function requirePermission(permission: Permission | undefined, access: UserAccess): void {
-  if (permission && !access.permissions?.includes(permission))
-    throw new HttpsError('permission-denied', 'You do not have permission to do this.');
 }
 
 /** Any callable definition, for lists of differently-typed callables. */
@@ -171,7 +162,6 @@ async function runCallableUnlogged<S extends z.ZodType, R>(
         'Your session is still being set up. Please sign in again.',
       );
     const access = accessSnap.data() as UserAccess;
-    requirePermission(def.permission, access);
 
     const context = new CallableContext(transaction, branch, uid, access);
 

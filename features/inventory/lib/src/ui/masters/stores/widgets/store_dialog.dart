@@ -1,3 +1,4 @@
+import 'package:auth/auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
@@ -24,10 +25,34 @@ class _StoreDialogState extends State<StoreDialog> {
     text: widget.store?.description,
   );
   late final _location = TextEditingController(text: widget.store?.location);
+  List<RoleUser> _managers = const [];
+  bool _loadingManagers = true;
+  late String? _managerId = widget.store?.managerId;
   int _nextSample = 0;
   bool _busy = false;
   bool _submitted = false;
   String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadManagers();
+  }
+
+  Future<void> _loadManagers() async {
+    try {
+      final users = await context.read<AuthProvider>().usersByRole(
+        RoleIds.storeManager,
+      );
+      if (mounted) setState(() => _managers = users);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _errorMessage = 'Could not load the list of managers');
+      }
+    } finally {
+      if (mounted) setState(() => _loadingManagers = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -72,6 +97,7 @@ class _StoreDialogState extends State<StoreDialog> {
         'name': _name.text.trim(),
         'description': blankToNull(_description),
         'location': blankToNull(_location),
+        'managerId': _managerId,
       }),
     );
     if (mounted && !saved) {
@@ -191,6 +217,26 @@ class _StoreDialogState extends State<StoreDialog> {
                 label: 'Store name *',
                 hintText: 'e.g. Central Science Lab Store',
                 icon: Icons.badge_outlined,
+              ),
+              IcueDropdown<String?>(
+                value: _managers.any((user) => '${user.id}' == _managerId)
+                    ? _managerId
+                    : null,
+                items: [
+                  for (final user in _managers)
+                    DropdownMenuItem(
+                      value: '${user.id}',
+                      child: Text(user.displayName),
+                    ),
+                ],
+                onChanged: _loadingManagers
+                    ? null
+                    : (value) => setState(() => _managerId = value),
+                validator: (value) =>
+                    value == null ? 'Please select a store manager' : null,
+                label: 'Store manager *',
+                hintText: _loadingManagers ? 'Loading…' : null,
+                icon: Icons.person_outline_rounded,
               ),
               IcueTextField(
                 controller: _location,

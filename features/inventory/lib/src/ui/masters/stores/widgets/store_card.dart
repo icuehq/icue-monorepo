@@ -31,12 +31,14 @@ class StoreCard extends StatelessWidget {
   const StoreCard({
     super.key,
     required this.store,
+    required this.managerName,
     required this.canEdit,
     required this.onEdit,
     required this.onToggleActive,
   });
 
   final InventoryStore store;
+  final String? managerName;
   final bool canEdit;
   final ValueChanged<InventoryStore> onEdit;
   final ValueChanged<InventoryStore> onToggleActive;
@@ -166,6 +168,12 @@ class StoreCard extends StatelessWidget {
               runSpacing: 6,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
+                if (managerName != null)
+                  _metaPill(
+                    context,
+                    Icons.person_outline_rounded,
+                    managerName!,
+                  ),
                 if (store.location != null && store.location!.trim().isNotEmpty)
                   _metaPill(
                     context,

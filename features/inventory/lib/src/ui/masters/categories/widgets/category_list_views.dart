@@ -141,8 +141,7 @@ class CategoryEmptyState extends StatelessWidget {
               children: [
                 IcueSeedDefaultsButton<InventoryProvider>(
                   label: 'Add default categories & units',
-                  canSeed: (provider) =>
-                      provider.access.can('inventory.settings'),
+                  canSeed: (provider) => true,
                   seed: (provider) => provider.seedDefaults(),
                 ),
                 if (canEdit)

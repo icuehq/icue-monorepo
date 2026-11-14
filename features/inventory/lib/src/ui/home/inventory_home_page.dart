@@ -24,9 +24,8 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
   @override
   Widget build(BuildContext context) {
     final inventoryProvider = context.watch<InventoryProvider>();
-    final access = inventoryProvider.access;
     final visibleTiles = [
-      for (final entry in inventoryEntries(access))
+      for (final entry in inventoryEntries())
         if (entry.path != InventoryRoutes.inventory) entry,
     ];
 

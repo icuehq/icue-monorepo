@@ -15,7 +15,7 @@ This document decides *how* the FRS is built. Functional behaviour stays defined
 | D1 | Node issues a **Firebase custom token** after its own login; Flutter calls `signInWithCustomToken`. No second login. |
 | D2 | Tenant = the **branch**: every branch behaves like its own school, so all data lives under `orgs/{orgId}/zones/{zoneId}/branches/{branchId}` (Node `OrganizationId` → `ZoneId` → `BranchId`). The token is issued for one active branch; a zone or corporate user switches branch by exchanging the token again. There is no `campusId`. |
 | D3 | Roles come from Node. A Firestore permission map (role → permissions) per school makes the §12 matrix configurable. |
-| D4 | **All writes go through callable Cloud Functions** (Admin SDK, transactions). Security Rules are read-only for clients, with one exception: the code-keyed masters (inventory categories, units, stores, items, variants, vendors; library libraries and categories) and inventory purchase requests, quotations and invoices (`ProcurementWrites`): plain client CRUD guarded only by the managing permission, no validation, audit log, `requestId`, approver notification or branch check beyond the path match in rules; `counters` is client-writable for any user holding a permission (PR/QT numbering). |
+| D4 | **All writes go through callable Cloud Functions** (Admin SDK, transactions). Security Rules are read-only for clients, with one exception: the code-keyed masters (inventory categories, units, stores, items, variants, vendors; library libraries and categories) and inventory purchase requests, quotations and invoices (`ProcurementWrites`): plain client CRUD guarded only by the non-parent staff check, no validation, audit log, `requestId`, approver notification or branch check beyond the path match in rules; `counters` is client-writable for any non-parent staff user (PR/QT numbering). |
 | D5 | Every transaction is an **append-only movement/event** plus a **balance/status** update in the same Firestore transaction. |
 | D6 | Every mutating callable takes a client-generated `requestId`; replays return the first result (idempotency). |
 | D7 | ERP records (students, staff, departments, roles, academic years) are fetched from **Node APIs by the client** and stored in Firestore **as IDs only**. Functions never call Node. |
@@ -68,28 +68,14 @@ Flutter ──signInWithCustomToken──▶ Firebase Auth ──▶ ID token (c
 
 ### 3.1 Permissions
 
-Fixed permission keys (code), configurable role mapping (data):
-
-| Key | Default roles (FRS §12) |
-| --- | --- |
-| `inventory.settings` | Admin, Inventory Manager |
-| `inventory.items.manage` / `inventory.items.view` | Admin, Inv. Mgr / + Principal, Storekeeper, Procurement |
-| `inventory.stock.view` / `inventory.stock.operate` | as above / Admin, Inv. Mgr, Storekeeper |
-| `inventory.issue.request` / `inventory.issue.approve` | + Teacher / Principal (configurable) |
-| `inventory.purchaseRequest.request` / `inventory.purchaseRequest.approve` | + Teacher, Storekeeper, Procurement / Principal |
-| `inventory.adjustment.approve` | Admin, Principal, Inv. Mgr |
-| `inventory.procure.operate` | Admin, Inv. Mgr, Procurement |
-| `inventory.vendors.manage` | Admin, Inv. Mgr, Procurement |
-| `inventory.assets.manage` / `inventory.assets.view` | Admin, Inv. Mgr, Storekeeper / + Teacher, Principal |
-| `inventory.reports.view` | Admin, Principal, Inv. Mgr |
-| Library | No sub-permissions: the Library tile from Node is the only gate; any non-parent staff user of the branch may do everything (rules and callables check `personType != parent`) |
+Inventory and Library have no sub-permissions: the module's tile from Node (Inventory action 300, Library) is the only gate. Any non-parent staff user of the branch may do everything in a module; rules and callables check `personType != parent` (`staff()` in `firestore.rules` and `storage.rules`). `userAccess.inventoryAccess` (true for non-parent staff holding action 300) only selects who receives Inventory notifications.
 
 Own records (teacher's loans, parent's wardStudentIds) need no permission; they are matched by `personErpId` / `wardStudentIds`. Parents (`personType == parent`) are **read-only**: no callable accepts a parent caller, and rules grant them reads on own-ward records only.
 
-### 3.2 Where permissions are stored
+### 3.2 Where access is stored
 
-- Permissions are not stored per school: Node's `getActionsByRole` Ids reach Functions as the `actionIds` token claim and map to permission keys in code (`ACTION_PERMISSIONS`); see `docs/inventory-library-node-actions.md`.
-- `orgs/{orgId}/zones/{zoneId}/branches/{branchId}/userAccess/{uid}` — resolved `{ permissions: [...], scope, roleIds, personType, personErpId, wardStudentIds, updatedAt }` (`roleIds` for recompute, `personErpId`/`wardStudentIds` for notification recipients). Written by the `session.sync` callable after every sign-in (permission changes in Node apply at the next token exchange).
+- Access is not stored per school: Node's `getActionsByRole` Ids reach Functions as the `actionIds` token claim; see `docs/inventory-library-node-actions.md`.
+- `orgs/{orgId}/zones/{zoneId}/branches/{branchId}/userAccess/{uid}` — resolved `{ inventoryAccess, scope, roleIds, personType, personErpId, wardStudentIds, updatedAt }` (`roleIds` for recompute, `personErpId`/`wardStudentIds` for notification recipients). Written by the `session.sync` callable after every sign-in (permission changes in Node apply at the next token exchange).
 
 Rules read one `userAccess` doc per request (`get()` is cached within a request). Functions read the same doc, so rules and Functions can never disagree.
 
@@ -177,7 +163,7 @@ Parents and teachers read `libraryLoans`, `libraryFines`, `libraryReservations`,
 
 TypeScript, Node 22, `firebase-functions` v2, region `asia-south1`, input validation with `zod`. Every callable follows one wrapper:
 
-1. Require auth; load `userAccess`; check permission (the branch comes from the token).
+1. Require auth and a non-parent caller; load `userAccess` (the branch comes from the token).
 2. Validate input.
 3. Check `requests/{requestId}`; return stored result if present.
 4. Run one Firestore transaction: read state → enforce rules → write documents, movements, audit log, outbox entries, `requests/{requestId}`.
@@ -260,7 +246,7 @@ These are enforced in Functions transactions and covered by unit tests.
 
 ### 7.1 Outbox
 
-Business transactions write `outbox/{eventKey}` docs inside the same transaction, e.g. `lowstock__{balanceId}__{yyyy-mm-dd}`, `overdue__{loanId}__{yyyy-mm-dd}`, `pr_decided__{purchaseRequestId}`. Because the key is deterministic, an existing event is skipped (read in the transaction, not `create`, which would abort the business write) → no repeated messages (FRS 23). Delivery creates `notifications/{eventKey__uid}` once per recipient, so retries never double-send. `outboxSend` resolves recipients (by permission within the branch, or member/requester), loads tokens and sends via `sendEach`.
+Business transactions write `outbox/{eventKey}` docs inside the same transaction, e.g. `lowstock__{balanceId}__{yyyy-mm-dd}`, `overdue__{loanId}__{yyyy-mm-dd}`, `pr_decided__{purchaseRequestId}`. Because the key is deterministic, an existing event is skipped (read in the transaction, not `create`, which would abort the business write) → no repeated messages (FRS 23). Delivery creates `notifications/{eventKey__uid}` once per recipient, so retries never double-send. `outboxSend` resolves recipients (Inventory staff of the branch, or member/requester), loads tokens and sends via `sendEach`.
 
 Recipients:
 
@@ -327,7 +313,7 @@ service cloud.firestore {
 
 ### 8.2 Storage
 
-Paths: `orgs/{orgId}/zones/{zoneId}/branches/{branchId}/{module}/{collection}/{docId}/{file}`. Rules: `orgId`/`zoneId`/`branchId` claim match, module permission via `firestore.get` of `userAccess`, max 10 MB, content types image/*, application/pdf, spreadsheet types. Uploads are only allowed to a path that `files.getUploadPath` has registered in a pending-upload doc; the owning callable then links the file to its record. Until that callable exists (first phase with uploads), Storage writes are denied.
+Paths: `orgs/{orgId}/zones/{zoneId}/branches/{branchId}/{module}/{collection}/{docId}/{file}`. Rules: `orgId`/`zoneId`/`branchId` claim match, non-parent staff, max 10 MB, content types image/*, application/pdf, spreadsheet types. Uploads are only allowed to a path that `files.getUploadPath` has registered in a pending-upload doc; the owning callable then links the file to its record. Until that callable exists (first phase with uploads), Storage writes are denied.
 
 Ceiling: file read access is per-module, not per-record. Per-record checks would need signed URLs from a Function; add if a record-level leak matters.
 

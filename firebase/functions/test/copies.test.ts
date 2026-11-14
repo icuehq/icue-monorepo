@@ -38,9 +38,7 @@ describe('library copies and books', () => {
   beforeEach(async () => {
     await clearFirestore();
     barcodeSequence = 0;
-    await db().doc(`${BRANCH}/userAccess/1`).set({
-      permissions: [],
-    });
+    await db().doc(`${BRANCH}/userAccess/1`).set({});
     const category = (await seedLibraryCategory({ name: 'General' })).id;
     title = (
       await seedLibraryTitle({
