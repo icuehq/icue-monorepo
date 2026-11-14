@@ -20,9 +20,6 @@ class LibraryNames {
 typedef LibraryReportCol = ReportColumn<LibraryNames>;
 
 /// How a report's rows are built from the loans of the chosen period.
-/// KPI counts of the loans report across every matching loan, not just the loaded page.
-typedef LoanReportCounts = ({int returned, int active, int overdueOrLost});
-
 enum LibraryReportKind {
   /// One row per loan issued in the range.
   loans,
@@ -165,9 +162,14 @@ Map<String, num> overviewFigures(
         .where((entry) => entry.key.compareTo(today) < 0)
         .fold<num>(0, (total, entry) => total + (entry.value as num)),
     'pending': figure('activeLoans'),
+    'loans': figure('loans'),
+    'returnedLoans': figure('returnedLoans'),
+    'lostLoans': figure('lostLoans'),
     'students': figure('students'),
     'teachers': figure('teachers'),
     'fines': figure('outstandingFines'),
+    'collectedFines': figure('collectedFines'),
+    'waivedFines': figure('waivedFines'),
   };
 }
 

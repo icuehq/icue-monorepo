@@ -413,20 +413,6 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "outstanding",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "libraryFines",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
           "fieldPath": "type",
           "order": "ASCENDING"
         },

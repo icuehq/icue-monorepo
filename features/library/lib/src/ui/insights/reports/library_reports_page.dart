@@ -21,6 +21,7 @@ class _LibraryReportsPageState extends State<LibraryReportsPage> {
   late DateTimeRange _range = calculateRangeForPreset(_datePreset);
   String? _status;
   String? _libraryId;
+  late final Stream<Map<String, num?>> _figures;
   Future<void> _load() async {
     final library = context.read<LibraryProvider>();
     if (library.libraries.isEmpty) await library.loadMasters();
@@ -39,6 +40,7 @@ class _LibraryReportsPageState extends State<LibraryReportsPage> {
   @override
   void initState() {
     super.initState();
+    _figures = context.read<LibraryProvider>().watchDashboard();
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
@@ -152,13 +154,13 @@ class _LibraryReportsPageState extends State<LibraryReportsPage> {
       ),
       body: IcueCenteredBody(
         maxWidth: double.infinity,
-        child: Builder(
-          builder: (context) {
+        child: StreamBuilder<Map<String, num?>>(
+          stream: _figures,
+          builder: (context, snapshot) {
             final kpis = LibraryReportKpis(
               kind: _def.kind,
               rows: library.reportRows,
-              loanTotal: pager.total,
-              loanCounts: library.reportLoanCounts,
+              figures: snapshot.data,
             );
             final table = LibraryReportTable(
               header: header,
@@ -174,7 +176,6 @@ class _LibraryReportsPageState extends State<LibraryReportsPage> {
                     IcueTableFilterOption('dateRange', 'All'),
                     IcueTableFilterOption('student', 'By Student'),
                     IcueTableFilterOption('staff', 'By Staff'),
-                    IcueTableFilterOption('monthly', 'By Month'),
                   ],
                   value: _def.key,
                   onChanged: (reportKey) {

@@ -109,10 +109,6 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   bool get finesFiltered =>
       fineSearch.isNotEmpty || fineStatus != null || fineType != null;
 
-  /// Amounts across every fine the filters match (not just the loaded page).
-  ({double outstanding, double paid, double waived})? fineTotals;
-  int _fineTotalsLoad = 0;
-
   /// Lost and damaged incidents, newest first, filtered in Firestore by the fields below.
   late final incidents = _pager<LibraryIncident>();
 
@@ -356,7 +352,6 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
       type: fineType,
       search: fineSearch,
     );
-    unawaited(_loadFineTotals(query));
     await fines.loadQuery(
       query,
       (document) => LibraryFine.fromMap(document.id, document.data()!),
@@ -369,26 +364,6 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     fineType = null;
     fineSearch = '';
     return loadFines();
-  }
-
-  Future<void> _loadFineTotals(Query<Map<String, dynamic>> query) async {
-    final load = ++_fineTotalsLoad;
-    fineTotals = null;
-    notifyListeners();
-    try {
-      final snapshot = await query
-          .aggregate(sum('outstanding'), sum('paid'), sum('waived'))
-          .get();
-      if (load != _fineTotalsLoad) return;
-      fineTotals = (
-        outstanding: snapshot.getSum('outstanding') ?? 0,
-        paid: snapshot.getSum('paid') ?? 0,
-        waived: snapshot.getSum('waived') ?? 0,
-      );
-      notifyListeners();
-    } catch (_) {
-      // The list reports the same query's error; the totals just stay blank.
-    }
   }
 
   /// Loads the first page of incidents for the current filters.
@@ -613,11 +588,9 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   /// True when the summary report stopped at [LibraryService.loanLimit] loans.
   bool reportCapped = false;
 
-  /// The loans report, newest first, paged in Firestore; [reportLoanCounts] are its KPIs.
+  /// The loans report, newest first, paged in Firestore.
   late final reportLoans = _pager<ReportRow>();
-  LoanReportCounts? reportLoanCounts;
   Query<Map<String, dynamic>>? _reportLoansQuery;
-  int _reportLoad = 0;
   final Map<String, LibraryBook> _titles = {};
   bool insightsLoading = false;
 
@@ -672,22 +645,6 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
         reportCapped = report.capped;
       });
     }
-    final load = ++_reportLoad;
-    reportLoanCounts = null;
-    unawaited(
-      _service
-          .reportLoanCounts(
-            from: from,
-            to: to,
-            library: library,
-            status: status,
-          )
-          .then((counts) {
-            if (load != _reportLoad) return;
-            reportLoanCounts = counts;
-            notifyListeners();
-          }, onError: (Object _) {}),
-    );
     final query = _reportLoansQuery = await _service.reportLoansQuery(
       from: from,
       to: to,

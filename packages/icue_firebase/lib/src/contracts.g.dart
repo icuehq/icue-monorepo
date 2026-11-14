@@ -249,9 +249,14 @@ abstract final class LibraryStatsTotalsFields {
   static const lost = 'lost';
   static const damaged = 'damaged';
   static const outOfCirculation = 'outOfCirculation';
+  static const loans = 'loans';
+  static const returnedLoans = 'returnedLoans';
+  static const lostLoans = 'lostLoans';
   static const activeLoans = 'activeLoans';
   static const dueOn = 'dueOn';
   static const outstandingFines = 'outstandingFines';
+  static const collectedFines = 'collectedFines';
+  static const waivedFines = 'waivedFines';
   static const titles = 'titles';
   static const students = 'students';
   static const teachers = 'teachers';

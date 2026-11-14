@@ -84,9 +84,14 @@ documents:
       lost: int
       damaged: int
       outOfCirculation: int
+      loans: int
+      returnedLoans: int
+      lostLoans: int
       activeLoans: int
       dueOn: map<int>
       outstandingFines: double
+      collectedFines: double
+      waivedFines: double
       titles: int
       students: int
       teachers: int

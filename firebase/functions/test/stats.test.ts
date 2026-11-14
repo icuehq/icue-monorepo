@@ -37,6 +37,8 @@ describe('library analytics summary', () => {
     });
     await record('libraryLoans', renewed, { ...renewed, status: 'returned' });
     expect(await read('overall')).toMatchObject({
+      loans: 1,
+      returnedLoans: 1,
       activeLoans: 0,
       dueOn: { '2999-02-01': 0 },
       libraries: { main: { activeLoans: 0 } },
@@ -57,8 +59,13 @@ describe('library analytics summary', () => {
       status: 'partially_paid',
       outstanding: 30,
       paid: 20,
+      waived: 5,
     });
-    expect((await read('overall'))?.libraries.main.outstandingFines).toBe(30);
+    expect((await read('overall'))?.libraries.main).toMatchObject({
+      outstandingFines: 30,
+      collectedFines: 20,
+      waivedFines: 5,
+    });
     expect(await read(`day_${today}`)).toMatchObject({ finesRaised: 50, finesCollected: 20 });
   });
 

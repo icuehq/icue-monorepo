@@ -384,14 +384,21 @@ class LibraryService {
 
   /// Live dashboard figures for the branch (or one [library]), from the analytics summary the audit triggers keep
   /// (`libraryStats/overall`). A summary nothing has written yet reads as zeros.
-  Stream<Map<String, num?>> dashboard({SchoolLibrary? library}) async* {
-    final summary = (await branchCollection(Collections.libraryStats))
-        .doc('overall');
-    yield* summary.snapshots().map(
-      (snapshot) =>
-          overviewFigures(snapshot.data(), library?.id, today: todayIST()),
-    );
-  }
+  Stream<Map<String, num?>> dashboard({SchoolLibrary? library}) =>
+      // Multi-listener: a rebuilt page subscribes again, which an `async*` stream would refuse.
+      Stream.multi((controller) async {
+        StreamSubscription<Object?>? subscription;
+        controller.onCancel = () => subscription?.cancel();
+        final summary = (await branchCollection(Collections.libraryStats))
+            .doc('overall');
+        if (controller.isClosed) return;
+        subscription = summary.snapshots().listen(
+          (snapshot) => controller.add(
+            overviewFigures(snapshot.data(), library?.id, today: todayIST()),
+          ),
+          onError: controller.addError,
+        );
+      });
 
   /// Titles by ID (for report cells).
   Future<Map<String, LibraryBook>> titlesByIds(Iterable<String> ids) async => {
@@ -422,34 +429,6 @@ class LibraryService {
     var query = await _loansBetween(library, 'issuedDate', from, to);
     if (status != null) query = query.where('status', isEqualTo: status);
     return query.orderBy('issuedDate', descending: true);
-  }
-
-  /// KPI counts of the loans report; a [status] filter leaves the other statuses at zero.
-  Future<LoanReportCounts> reportLoanCounts({
-    required DateTime from,
-    required DateTime to,
-    SchoolLibrary? library,
-    String? status,
-  }) async {
-    final base = await _loansBetween(library, 'issuedDate', from, to);
-    Future<int> count(Query<Map<String, dynamic>> query) async =>
-        (await query.count().get()).count ?? 0;
-    Future<int> inStatus(String value, [String? dueBefore]) async {
-      if (status != null && status != value) return 0;
-      var query = base.where('status', isEqualTo: value);
-      if (dueBefore != null) {
-        query = query.where('dueDate', isLessThan: dayTimestamp(dueBefore));
-      }
-      return count(query);
-    }
-
-    final [returned, active, lost, overdue] = await Future.wait([
-      inStatus('returned'),
-      inStatus('active'),
-      inStatus('lost'),
-      inStatus('active', todayIST()),
-    ]);
-    return (returned: returned, active: active, overdueOrLost: overdue + lost);
   }
 
   /// Up to [loanLimit] loans in the range, newest first; `capped` when the limit cut some off.

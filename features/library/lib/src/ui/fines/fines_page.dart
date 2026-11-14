@@ -19,10 +19,12 @@ class FinesPage extends StatefulWidget {
 
 class _FinesPageState extends State<FinesPage> {
   late final TextEditingController _searchController;
+  late final Stream<Map<String, num?>> _figures;
 
   @override
   void initState() {
     super.initState();
+    _figures = context.read<LibraryProvider>().watchDashboard();
     _searchController = TextEditingController(
       text: context.read<LibraryProvider>().fineSearch,
     );
@@ -65,8 +67,6 @@ class _FinesPageState extends State<FinesPage> {
 
   Widget _summaryBar(BuildContext context) {
     final theme = Theme.of(context);
-    final totals = context.watch<LibraryProvider>().fineTotals;
-
     Widget metricItem(String label, String value, Color color, IconData icon) {
       return Expanded(
         child: Container(
@@ -120,32 +120,40 @@ class _FinesPageState extends State<FinesPage> {
       );
     }
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
-      child: Row(
-        children: [
-          metricItem(
-            'Outstanding',
-            totals?.outstanding.toRupees() ?? '…',
-            theme.colorScheme.error,
-            Icons.pending_actions_rounded,
+    return StreamBuilder<Map<String, num?>>(
+      stream: _figures,
+      builder: (context, snapshot) {
+        final totals = snapshot.data;
+        String rupees(String key) =>
+            totals == null ? '…' : (totals[key] ?? 0).toRupees();
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+          child: Row(
+            children: [
+              metricItem(
+                'Outstanding',
+                rupees('fines'),
+                theme.colorScheme.error,
+                Icons.pending_actions_rounded,
+              ),
+              const SizedBox(width: 10),
+              metricItem(
+                'Collected',
+                rupees('collectedFines'),
+                Colors.green.shade700,
+                Icons.check_circle_outline_rounded,
+              ),
+              const SizedBox(width: 10),
+              metricItem(
+                'Waived',
+                rupees('waivedFines'),
+                Colors.blueGrey.shade700,
+                Icons.handshake_outlined,
+              ),
+            ],
           ),
-          const SizedBox(width: 10),
-          metricItem(
-            'Collected',
-            totals?.paid.toRupees() ?? '…',
-            Colors.green.shade700,
-            Icons.check_circle_outline_rounded,
-          ),
-          const SizedBox(width: 10),
-          metricItem(
-            'Waived',
-            totals?.waived.toRupees() ?? '…',
-            Colors.blueGrey.shade700,
-            Icons.handshake_outlined,
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 

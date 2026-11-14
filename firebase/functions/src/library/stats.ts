@@ -77,6 +77,9 @@ export function deltas(collection: string, { before, after }: Change) {
         );
         break;
       case 'libraryLoans':
+        overall.add('loans', sign, data.libraryId);
+        if (data.status === LoanStatus.returned) overall.add('returnedLoans', sign, data.libraryId);
+        if (data.status === LoanStatus.lost) overall.add('lostLoans', sign, data.libraryId);
         if (data.status !== LoanStatus.active) break;
         overall.add('activeLoans', sign, data.libraryId);
         overall.add(`dueOn.${timestampDay(data.dueDate)}`, sign, data.libraryId);
@@ -84,6 +87,8 @@ export function deltas(collection: string, { before, after }: Change) {
       case 'libraryFines':
         if (OPEN_FINE.includes(data.status))
           overall.add('outstandingFines', sign * (data.outstanding ?? 0), data.libraryId);
+        overall.add('collectedFines', sign * (data.paid ?? 0), data.libraryId);
+        overall.add('waivedFines', sign * (data.waived ?? 0), data.libraryId);
         break;
       case 'libraryMembers':
         overall.add(data.memberType === 'EMPLOYEE' ? 'teachers' : 'students', sign);

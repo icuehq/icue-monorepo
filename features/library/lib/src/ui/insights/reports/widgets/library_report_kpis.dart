@@ -26,8 +26,7 @@ class LibraryReportKpis extends StatelessWidget {
   const LibraryReportKpis({
     required this.kind,
     required this.rows,
-    this.loanTotal,
-    this.loanCounts,
+    this.figures,
     super.key,
   });
 
@@ -36,42 +35,40 @@ class LibraryReportKpis extends StatelessWidget {
   /// Summary report rows (monthly, student, staff).
   final List<Map<String, dynamic>> rows;
 
-  /// Loans report figures over every matching loan; null while they load.
-  final int? loanTotal;
-  final LoanReportCounts? loanCounts;
+  /// Branch-wide overview figures (never filtered); the loans report's cards read these.
+  final Map<String, num?>? figures;
 
-  List<_KpiMetric> _metricsForLoans() {
-    final total = loanTotal;
-    final counts = loanCounts;
-    String figure(int? value) => value?.toString() ?? '…';
-    final returnRate = total == null || counts == null || total == 0
-        ? 0
-        : (counts.returned / total * 100).round();
-    final overdueOrLostCount = counts?.overdueOrLost ?? 0;
+  List<_KpiMetric> _metricsForLoans(Map<String, num?>? counts) {
+    String figure(String key) => counts == null ? '…' : '${counts[key] ?? 0}';
+    final total = counts?['loans'] ?? 0;
+    final returned = counts?['returnedLoans'] ?? 0;
+    final returnRate = total == 0 ? 0 : (returned / total * 100).round();
+    final overdueOrLostCount =
+        (counts?['overdue'] ?? 0) + (counts?['lostLoans'] ?? 0);
 
     return [
       _KpiMetric(
         label: 'Total Issues',
-        value: figure(total),
+        value: figure('loans'),
         icon: Icons.auto_stories_outlined,
-        badge: 'In selected period',
+        badge: 'All time',
       ),
       _KpiMetric(
         label: 'Returned Books',
-        value: figure(counts?.returned),
+        value: figure('returnedLoans'),
         icon: Icons.check_circle_outline_rounded,
         badge: '$returnRate% return rate',
         isSuccess: returnRate >= 70,
       ),
       _KpiMetric(
         label: 'Currently Active',
-        value: figure(counts?.active),
+        value: figure('pending'),
         icon: Icons.menu_book_rounded,
         badge: 'With borrowers',
       ),
       _KpiMetric(
         label: 'Overdue / Lost',
-        value: figure(counts?.overdueOrLost),
+        value: counts == null ? '…' : '$overdueOrLostCount',
         icon: Icons.warning_amber_rounded,
         badge: overdueOrLostCount > 0 ? 'Requires action' : 'None overdue',
         isAlert: overdueOrLostCount > 0,
@@ -276,13 +273,15 @@ class LibraryReportKpis extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final metrics = switch (kind) {
-      LibraryReportKind.loans => _metricsForLoans(),
+    return _cards(context, switch (kind) {
+      LibraryReportKind.loans => _metricsForLoans(figures),
       LibraryReportKind.monthly => _metricsForMonthly(),
       LibraryReportKind.student => _metricsForMembers('Student'),
       LibraryReportKind.staff => _metricsForMembers('Staff'),
-    };
+    });
+  }
 
+  Widget _cards(BuildContext context, List<_KpiMetric> metrics) {
     if (context.isWide) {
       return Row(
         children: [

@@ -202,9 +202,14 @@ export interface LibraryStatsTotals {
   lost: number;
   damaged: number;
   outOfCirculation: number;
+  loans: number;
+  returnedLoans: number;
+  lostLoans: number;
   activeLoans: number;
   dueOn: Record<string, number>;
   outstandingFines: number;
+  collectedFines: number;
+  waivedFines: number;
   titles: number;
   students: number;
   teachers: number;
