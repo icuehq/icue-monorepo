@@ -15,7 +15,7 @@ Future<bool> assetSubmit(
   final result = await call(assetsProvider);
   if (!context.mounted) return result != null;
   if (result == null) {
-    showMessage(context, assetsProvider.errorMessage ?? 'Could not save');
+    IcueToast.error(context, assetsProvider.errorMessage ?? 'Could not save');
     return false;
   }
   final number = result['number'];

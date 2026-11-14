@@ -127,10 +127,10 @@ class _IncidentDialogState extends State<IncidentDialog> {
     if (!mounted) return;
     if (result) {
       navigator.pop();
-      showMessage(context, 'Incident resolved');
+      IcueToast.success(context, 'Incident resolved');
     } else {
       setState(() => _busy = false);
-      showMessage(
+      IcueToast.error(
         context,
         libraryProvider.errorMessage ?? 'Failed to resolve incident',
       );

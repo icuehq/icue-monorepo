@@ -98,7 +98,7 @@ class _LibraryReportsPageState extends State<LibraryReportsPage> {
             [for (final column in _def.cols) column.cell(row, names)],
         ];
       } catch (error) {
-        if (mounted) showMessage(context, callableErrorMessage(error));
+        if (mounted) IcueToast.error(context, callableErrorMessage(error));
         return;
       }
     }
@@ -106,16 +106,10 @@ class _LibraryReportsPageState extends State<LibraryReportsPage> {
     final saved = await saveCsvFile('${_def.key}-report.csv', csv);
 
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          saved
-              ? 'Downloaded ${rows.length} ${rows.length == 1 ? 'row' : 'rows'} as CSV${rows.length >= LibraryService.loanLimit ? '. The limit was reached; choose a shorter period for the rest.' : ''}'
-              : 'Download cancelled',
-        ),
-        duration: const Duration(seconds: 3),
-        behavior: SnackBarBehavior.floating,
-      ),
+    if (!saved) return IcueToast.info(context, 'Download cancelled');
+    IcueToast.success(
+      context,
+      'Downloaded ${rows.length} ${rows.length == 1 ? 'row' : 'rows'} as CSV${rows.length >= LibraryService.loanLimit ? '. The limit was reached; choose a shorter period for the rest.' : ''}',
     );
   }
 

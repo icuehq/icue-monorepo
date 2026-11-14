@@ -164,30 +164,55 @@ class LibraryService {
     (item) => item.name,
   );
 
-  /// Members by ERP ID. [memberType] is `student` or `teacher`; a [search] is an exact ERP ID and ignores the filters.
+  /// Members by ERP ID, narrowed by the filters. [memberType] is `student` or `teacher`.
   Future<Query<Map<String, dynamic>>> membersQuery({
     String? memberType,
     bool? blocked,
     bool onLoan = false,
-    String search = '',
   }) async {
     Query<Map<String, dynamic>> query = await branchCollection(
       'libraryMembers',
     );
-    if (search.isNotEmpty) {
-      query = query.where('personErpId', isEqualTo: int.tryParse(search) ?? -1);
-    } else {
-      if (memberType != null) {
-        query = query.where('memberType', isEqualTo: memberType);
-      }
-      if (blocked != null) query = query.where('blocked', isEqualTo: blocked);
-      if (onLoan) {
-        query = query
-            .where('activeLoans', isGreaterThan: 0)
-            .orderBy('activeLoans');
-      }
+    if (memberType != null) {
+      query = query.where('memberType', isEqualTo: memberType);
+    }
+    if (blocked != null) query = query.where('blocked', isEqualTo: blocked);
+    if (onLoan) {
+      query = query
+          .where('activeLoans', isGreaterThan: 0)
+          .orderBy('activeLoans');
     }
     return query.orderBy('personErpId');
+  }
+
+  /// Members whose name or admission number matches [query] (whole words or typed prefixes), by ERP ID,
+  /// narrowed by the same filters (`search` database, web only, then the members from Firestore).
+  Future<({List<LibraryMember> items, bool hasMore})> searchMembers(
+    String query, {
+    String? memberType,
+    bool? blocked,
+    bool onLoan = false,
+    int offset = 0,
+    int limit = 25,
+  }) async {
+    final page = await searchMirror(
+      'libraryMembers',
+      query,
+      sortField: 'personErpId',
+      equals: {
+        'memberType': ?memberType,
+        'blocked': ?blocked,
+        if (onLoan) 'onLoan': true,
+      },
+      offset: offset,
+      limit: limit,
+    );
+    final ids = [for (final row in page.rows) row.id];
+    final found = {
+      for (final document in await _byIds('libraryMembers', ids))
+        document.id: LibraryMember.fromMap(document.id, document.data()),
+    };
+    return (items: [for (final id in ids) ?found[id]], hasMore: page.hasMore);
   }
 
   /// One member by ERP ID (the member document ID).

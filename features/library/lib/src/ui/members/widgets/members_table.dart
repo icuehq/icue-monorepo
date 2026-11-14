@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:icue_firebase/icue_firebase.dart' show textSearchSupported;
 import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/shared/library_member_cell.dart';
 import 'package:school_library/src/ui/shared/library_status_chip.dart';
 
-/// Wide-screen members as an [IcueTable]. Search and every filter are Firestore
-/// queries (the provider reloads); pages come from its pager.
+/// Wide-screen members as an [IcueTable]. Filters are Firestore queries and search is
+/// the `search` mirror, web only (the provider reloads); pages come from its pager.
 class MembersTable extends StatelessWidget {
   const MembersTable({required this.onToggleBlock, super.key});
 
@@ -26,13 +27,15 @@ class MembersTable extends StatelessWidget {
       status: IcueTableStatus.pager(pager),
       onRetry: pager.retry,
       pagination: IcueTablePagination.pager(pager),
-      searchHint: 'ERP ID',
+      searchHint: 'Name or adm. no.',
       initialSearch: provider.memberSearch,
       searchDebounce: const Duration(milliseconds: 400),
-      onSearchChanged: (query) {
-        provider.memberSearch = query.trim();
-        provider.loadMembers();
-      },
+      onSearchChanged: textSearchSupported
+          ? (query) {
+              provider.memberSearch = query.trim();
+              provider.loadMembers();
+            }
+          : null,
       filters: [
         IcueTableFilter(
           id: 'kind',

@@ -50,7 +50,7 @@ class _LoanDialogState extends State<LoanDialog> {
       navigator.pop();
     } else {
       setState(() => _busy = false);
-      showMessage(context, libraryProvider.errorMessage ?? 'Failed');
+      IcueToast.error(context, libraryProvider.errorMessage ?? 'Failed');
     }
     return isSuccess;
   }

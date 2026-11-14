@@ -89,7 +89,7 @@ class _QuotationsPageState extends State<QuotationsPage> {
     });
     if (!mounted) return;
     if (result == null) {
-      showMessage(
+      IcueToast.error(
         context,
         procurementProvider.errorMessage ?? 'Could not select quotation',
       );
@@ -125,7 +125,7 @@ class _QuotationsPageState extends State<QuotationsPage> {
     });
     if (!mounted) return;
     if (result == null) {
-      showMessage(
+      IcueToast.error(
         context,
         procurementProvider.errorMessage ?? 'Could not record quotation',
       );

@@ -58,7 +58,7 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   /// Only members with books out.
   bool memberOnLoan = false;
 
-  /// Exact ERP ID; overrides the other filters.
+  /// Words of the member's name or admission number (web only), within the filters.
   String memberSearch = '';
 
   bool get membersFiltered =>
@@ -243,17 +243,24 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   }
 
   /// Loads the first page of members for the current filters.
-  Future<void> loadMembers() async {
-    await members.loadQuery(
-      await _service.membersQuery(
-        memberType: memberKind.memberType,
-        blocked: memberBlocked,
-        onLoan: memberOnLoan,
-        search: memberSearch,
-      ),
-      (document) => LibraryMember.fromMap(document.id, document.data()!),
-    );
-  }
+  Future<void> loadMembers() => _loadSearchable(
+    members,
+    memberSearch,
+    (query, {required offset, required limit}) => _service.searchMembers(
+      query,
+      memberType: memberKind.memberType,
+      blocked: memberBlocked,
+      onLoan: memberOnLoan,
+      offset: offset,
+      limit: limit,
+    ),
+    () => _service.membersQuery(
+      memberType: memberKind.memberType,
+      blocked: memberBlocked,
+      onLoan: memberOnLoan,
+    ),
+    (document) => LibraryMember.fromMap(document.id, document.data()!),
+  );
 
   /// Clears every members filter and reloads.
   Future<void> clearMemberFilters() {

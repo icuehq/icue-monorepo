@@ -95,3 +95,21 @@ export const projectIncident = (incident: DocumentData) =>
   Object.fromEntries(INCIDENT_ROW.map((field) => [field, incident[field] ?? null]));
 
 export const syncIncidentSearch = syncTrigger(INCIDENTS, projectIncident);
+
+/**
+ * Members search mirror: whole words or typed prefixes of the member's name or admission number. `onLoan`
+ * is flattened from `activeLoans` because the mirror filters only by equality.
+ */
+const MEMBERS = 'libraryMembers';
+
+export const projectMember = (member: DocumentData) => ({
+  name: member.name ?? null,
+  admissionNumber: member.admissionNumber ?? null,
+  personErpId: member.personErpId ?? null,
+  memberType: member.memberType ?? null,
+  blocked: member.blocked ?? false,
+  onLoan: (member.activeLoans ?? 0) > 0,
+  prefixText: prefixText(member.name ?? '', member.admissionNumber ?? ''),
+});
+
+export const syncMemberSearch = syncTrigger(MEMBERS, projectMember);

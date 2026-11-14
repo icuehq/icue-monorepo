@@ -41,7 +41,10 @@ class _AssetsPageState extends State<AssetsPage> {
     final asset = await assetsProvider.findByCode(code);
     if (!mounted) return;
     if (asset == null) {
-      showMessage(context, assetsProvider.errorMessage ?? 'No asset "$code"');
+      IcueToast.error(
+        context,
+        assetsProvider.errorMessage ?? 'No asset "$code"',
+      );
       return;
     }
     await _open(asset);

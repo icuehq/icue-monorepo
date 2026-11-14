@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:icue_firebase/icue_firebase.dart' show textSearchSupported;
 import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
@@ -88,7 +89,7 @@ class _MembersPageState extends State<MembersPage> {
       reason: reason,
     );
     if (!saved && mounted) {
-      showMessage(context, libraryProvider.errorMessage ?? 'Failed');
+      IcueToast.error(context, libraryProvider.errorMessage ?? 'Failed');
     }
   }
 
@@ -127,39 +128,40 @@ class _MembersPageState extends State<MembersPage> {
                     child: Row(
                       children: [
                         kindSelector,
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextField(
-                            controller: _searchController,
-                            decoration: InputDecoration(
-                              hintText: 'ERP ID',
-                              prefixIcon: const Icon(Icons.search, size: 18),
-                              isDense: true,
-                              filled: true,
-                              fillColor: theme
-                                  .colorScheme
-                                  .surfaceContainerHighest
-                                  .withValues(alpha: 0.35),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 8,
+                        if (textSearchSupported) ...[
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextField(
+                              controller: _searchController,
+                              decoration: InputDecoration(
+                                hintText: 'Name or adm. no.',
+                                prefixIcon: const Icon(Icons.search, size: 18),
+                                isDense: true,
+                                filled: true,
+                                fillColor: theme
+                                    .colorScheme
+                                    .surfaceContainerHighest
+                                    .withValues(alpha: 0.35),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 8,
+                                ),
+                                suffixIcon:
+                                    libraryProvider.memberSearch.isNotEmpty
+                                    ? IconButton(
+                                        icon: const Icon(Icons.clear, size: 16),
+                                        onPressed: () {
+                                          _searchController.clear();
+                                          _search('');
+                                        },
+                                      )
+                                    : null,
                               ),
-                              suffixIcon:
-                                  libraryProvider.memberSearch.isNotEmpty
-                                  ? IconButton(
-                                      icon: const Icon(Icons.clear, size: 16),
-                                      onPressed: () {
-                                        _searchController.clear();
-                                        _search('');
-                                      },
-                                    )
-                                  : null,
+                              textInputAction: TextInputAction.search,
+                              onSubmitted: _search,
                             ),
-                            keyboardType: TextInputType.number,
-                            textInputAction: TextInputAction.search,
-                            onSubmitted: _search,
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ),

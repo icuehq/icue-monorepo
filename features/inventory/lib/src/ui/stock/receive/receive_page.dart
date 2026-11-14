@@ -51,7 +51,7 @@ class _ReceivePageState extends State<ReceivePage> {
         .where((item) => item.active && item.tracking != Tracking.asset)
         .take(3);
     if (store == null || items.isEmpty) {
-      return showMessage(
+      return IcueToast.error(
         context,
         inventory.errorMessage ?? 'No active store or stock item found',
       );

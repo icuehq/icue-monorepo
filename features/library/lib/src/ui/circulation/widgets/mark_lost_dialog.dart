@@ -38,7 +38,7 @@ class _MarkLostDialogState extends State<MarkLostDialog> {
     if (chargeText.isNotEmpty) {
       charge = double.tryParse(chargeText);
       if (charge == null || charge < 0) {
-        showMessage(context, 'Enter a valid replacement amount');
+        IcueToast.warning(context, 'Enter a valid replacement amount');
         return;
       }
     }
@@ -51,6 +51,7 @@ class _MarkLostDialogState extends State<MarkLostDialog> {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final loan = widget.loan;
+    final member = loan.memberName ?? 'the member';
 
     return IcueDialog(
       title: 'Mark Book Lost',
@@ -59,32 +60,45 @@ class _MarkLostDialogState extends State<MarkLostDialog> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Mark "${loan.bookLabel}" (${loan.barcode}) as lost for ${loan.memberLabel}?',
-            style: theme.textTheme.bodyMedium,
-          ),
-          const SizedBox(height: 12),
           Container(
-            padding: const EdgeInsets.all(10),
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: colors.errorContainer,
-              borderRadius: BorderRadius.circular(8),
+              color: colors.surfaceContainerHighest.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: Row(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.info_outline_rounded, size: 16, color: colors.error),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'This will charge ${loan.memberLabel} a replacement fine.',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: colors.onErrorContainer,
-                    ),
+                Text(
+                  loan.bookTitle ?? 'This book',
+                  style: theme.textTheme.titleSmall,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Borrowed by $member',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colors.onSurfaceVariant,
                   ),
                 ),
               ],
             ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.info_outline_rounded, size: 18, color: colors.error),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '$member will be charged a replacement fine for this book.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colors.error,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 14),
           IcueTextField(

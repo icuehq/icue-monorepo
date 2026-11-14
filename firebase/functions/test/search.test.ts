@@ -1,7 +1,7 @@
 import { Timestamp } from 'firebase-admin/firestore';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { applyItemChange } from '../src/inventory/search';
-import { prefixText, projectCatalogue, projectIncident } from '../src/library/search';
+import { prefixText, projectCatalogue, projectIncident, projectMember } from '../src/library/search';
 import { searchDb } from '../src/shared/searchMirror';
 import { clearFirestore } from './setup';
 
@@ -67,6 +67,30 @@ describe('incident search projection', () => {
       createdAt,
     });
     expect(projectIncident({ status: 'open', type: 'damaged' }).memberName).toBeNull();
+  });
+});
+
+describe('member search projection', () => {
+  it('keeps the search text and list filters, with onLoan flattened', () => {
+    expect(
+      projectMember({
+        name: 'Nidhi Reddy',
+        admissionNumber: 'TNX005',
+        personErpId: 7,
+        memberType: 'STUDENT',
+        blocked: false,
+        activeLoans: 2,
+        classId: 3,
+      }),
+    ).toEqual({
+      name: 'Nidhi Reddy',
+      admissionNumber: 'TNX005',
+      personErpId: 7,
+      memberType: 'STUDENT',
+      blocked: false,
+      onLoan: true,
+      prefixText: 'nid nidh red redd tnx tnx0 tnx00',
+    });
   });
 });
 

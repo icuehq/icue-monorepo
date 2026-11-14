@@ -1,6 +1,6 @@
 /**
- * One-off backfill of the `search` database: copies the existing inventory items, library catalogue, loans
- * and incidents of every branch (or one) into the text-search mirror. The `sync*Search` triggers only mirror
+ * One-off backfill of the `search` database: copies the existing inventory items, library catalogue, loans,
+ * incidents and members of every branch (or one) into the text-search mirror. The `sync*Search` triggers only mirror
  * documents written after they were deployed. Reuses the triggers' own projections and `applyChange`, so a
  * backfilled document equals a live-mirrored one, and a document edited mid-run is never overwritten by an
  * older copy (each mirror row carries the source document's update time). Not a Cloud Function: run it by hand.
@@ -13,7 +13,7 @@
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { projectItem } from '../src/inventory/search';
-import { projectCatalogue, projectIncident, projectLoan } from '../src/library/search';
+import { projectCatalogue, projectIncident, projectLoan, projectMember } from '../src/library/search';
 import { applyChange } from '../src/shared/searchMirror';
 
 const args = process.argv.slice(2);
@@ -36,6 +36,7 @@ const MIRRORS = {
   libraryCatalogue: projectCatalogue,
   libraryLoans: projectLoan,
   libraryIncidents: projectIncident,
+  libraryMembers: projectMember,
 };
 
 async function main() {

@@ -76,14 +76,14 @@ class _CopyDialogState extends State<CopyDialog> {
       navigator.pop();
     } else {
       setState(() => _busy = false);
-      showMessage(context, libraryProvider.errorMessage ?? 'Failed');
+      IcueToast.error(context, libraryProvider.errorMessage ?? 'Failed');
     }
   }
 
   Future<void> _save() async {
     final statusChanged = _status != widget.copy.status;
     if (statusChanged && _needsReason && _statusReason.text.trim().isEmpty) {
-      showMessage(
+      IcueToast.warning(
         context,
         'Please enter a reason for marking as ${humanizeStatus(_status).toLowerCase()}',
       );

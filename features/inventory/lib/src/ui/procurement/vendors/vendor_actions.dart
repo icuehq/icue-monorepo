@@ -27,7 +27,7 @@ Future<void> toggleVendorActive(
   );
   if (!context.mounted) return;
   if (result == null) {
-    return showMessage(
+    return IcueToast.error(
       context,
       procurementProvider.errorMessage ?? 'Could not update the vendor',
     );

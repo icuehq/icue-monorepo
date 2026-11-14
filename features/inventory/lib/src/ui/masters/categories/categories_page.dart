@@ -239,7 +239,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
               active: !category.active,
             ) &&
             context.mounted) {
-          showMessage(context, inventoryProvider.errorMessage ?? 'Failed');
+          IcueToast.error(context, inventoryProvider.errorMessage ?? 'Failed');
         }
     }
   }

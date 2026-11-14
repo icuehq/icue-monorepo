@@ -19,7 +19,10 @@ Future<bool> procSubmit(
   final result = await call(procurementProvider);
   if (!context.mounted) return result != null;
   if (result == null) {
-    showMessage(context, procurementProvider.errorMessage ?? 'Could not save');
+    IcueToast.error(
+      context,
+      procurementProvider.errorMessage ?? 'Could not save',
+    );
     return false;
   }
   final number = result['number'];

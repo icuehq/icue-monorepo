@@ -141,7 +141,7 @@ class _VendorFormPageState extends State<VendorFormPage> {
     if (!mounted) return;
     if (saved == null) {
       setState(() => _busy = false);
-      return showMessage(
+      return IcueToast.error(
         context,
         procurementProvider.errorMessage ?? 'Could not save',
       );

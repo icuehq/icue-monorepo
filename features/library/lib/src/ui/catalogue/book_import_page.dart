@@ -42,9 +42,7 @@ class _BookImportPageState extends State<BookImportPage> {
     if (saved && mounted) _toast('Template downloaded');
   }
 
-  void _toast(String message) => ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
-  );
+  void _toast(String message) => IcueToast.success(context, message);
 
   void _reset() {
     setState(() {

@@ -49,13 +49,13 @@ class _BookScanDialogState extends State<BookScanDialog> {
     if (!mounted) return;
     if (isSuccess) {
       navigator.pop(false);
-      showMessage(
+      IcueToast.success(
         context,
         'Loan for ${widget.book?.title ?? widget.copy.barcode} renewed successfully.',
       );
     } else {
       setState(() => _busy = false);
-      showMessage(
+      IcueToast.error(
         context,
         libraryProvider.errorMessage ?? 'Failed to renew loan',
       );

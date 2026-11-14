@@ -4,11 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:icue_firebase/icue_firebase.dart' show ErrorReporting;
 import 'package:provider/provider.dart';
 
-void showMessage(BuildContext context, String message) {
-  ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(message)));
-}
+void showMessage(BuildContext context, String message) =>
+    IcueToast.info(context, message);
 
 /// Runs [save]; closes the sheet or page on success, else shows the error of provider [P].
 Future<bool> submitAndClose<P extends ErrorReporting>(
@@ -22,7 +19,7 @@ Future<bool> submitAndClose<P extends ErrorReporting>(
   if (saved) {
     navigator.pop();
   } else {
-    showMessage(context, provider.errorMessage ?? 'Could not save');
+    IcueToast.error(context, provider.errorMessage ?? 'Could not save');
   }
   return saved;
 }
@@ -168,7 +165,7 @@ class IcueSeedDefaultsButton<P extends ErrorReporting> extends StatelessWidget {
       onPressed: () async {
         final seeded = await seed(provider);
         if (context.mounted && !seeded) {
-          showMessage(context, provider.errorMessage ?? 'Failed');
+          IcueToast.error(context, provider.errorMessage ?? 'Failed');
         }
       },
       leadingIcon: Icons.auto_fix_high_rounded,

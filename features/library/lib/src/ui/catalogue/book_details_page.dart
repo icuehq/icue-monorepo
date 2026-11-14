@@ -101,7 +101,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                 )) {
                   await _load();
                 } else if (context.mounted) {
-                  showMessage(
+                  IcueToast.error(
                     context,
                     libraryProvider.errorMessage ?? 'Failed',
                   );

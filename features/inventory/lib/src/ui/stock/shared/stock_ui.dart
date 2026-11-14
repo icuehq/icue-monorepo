@@ -15,7 +15,7 @@ Future<bool> stockSubmit(
   final result = await call(stockProvider);
   if (!context.mounted) return result != null;
   if (result == null) {
-    showMessage(context, stockProvider.errorMessage ?? 'Could not save');
+    IcueToast.error(context, stockProvider.errorMessage ?? 'Could not save');
     return false;
   }
   final number = result['number'];

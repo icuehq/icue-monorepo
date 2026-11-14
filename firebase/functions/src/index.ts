@@ -26,7 +26,12 @@ export {
   statsInventoryBalances,
   statsInventoryItems,
 } from './inventory/stats';
-export { syncCatalogueSearch, syncIncidentSearch, syncLoanSearch } from './library/search';
+export {
+  syncCatalogueSearch,
+  syncIncidentSearch,
+  syncLoanSearch,
+  syncMemberSearch,
+} from './library/search';
 export { outboxSend } from './shared/outbox';
 export { dailyInventory } from './inventory/daily';
 export { dailyLibrary } from './library/daily';

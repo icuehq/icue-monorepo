@@ -124,10 +124,7 @@ class _Header extends StatelessWidget {
     icon: Icons.devices_other_outlined,
     trailing: StatusChip(asset.status),
     children: [
-      SelectableText(
-        asset.id,
-        style: Theme.of(context).textTheme.titleMedium,
-      ),
+      SelectableText(asset.id, style: Theme.of(context).textTheme.titleMedium),
       Wrap(
         spacing: 8,
         runSpacing: 8,

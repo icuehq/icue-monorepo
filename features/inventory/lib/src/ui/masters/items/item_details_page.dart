@@ -345,7 +345,7 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
                           )) {
                             await _load();
                           } else if (context.mounted) {
-                            showMessage(
+                            IcueToast.error(
                               context,
                               inventoryProvider.errorMessage ?? 'Failed',
                             );

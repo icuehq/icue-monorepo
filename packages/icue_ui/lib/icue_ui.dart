@@ -29,6 +29,8 @@ export 'src/widgets/icue_dropdown.dart';
 export 'src/widgets/icue_empty_state.dart';
 export 'src/widgets/icue_skeleton.dart';
 export 'src/widgets/icue_status_pill.dart';
+export 'src/widgets/icue_toast.dart';
+export 'src/widgets/icue_toast_queue.dart';
 export 'src/widgets/icue_form_helpers.dart';
 export 'src/widgets/icue_form_section_card.dart';
 export 'src/widgets/icue_kpi_card.dart';

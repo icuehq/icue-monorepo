@@ -35,7 +35,7 @@ class _StoresPageState extends State<StoresPage> {
       active: !store.active,
     );
     if (!success && context.mounted) {
-      showMessage(
+      IcueToast.error(
         context,
         inventoryProvider.errorMessage ?? 'Failed to update store status',
       );

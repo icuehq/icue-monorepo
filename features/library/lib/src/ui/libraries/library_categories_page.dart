@@ -62,7 +62,10 @@ class _LibraryCategoriesPageState extends State<LibraryCategoriesPage> {
       active: !category.active,
     );
     if (!success && mounted) {
-      showMessage(context, provider.errorMessage ?? 'Could not update status');
+      IcueToast.error(
+        context,
+        provider.errorMessage ?? 'Could not update status',
+      );
     }
   }
 

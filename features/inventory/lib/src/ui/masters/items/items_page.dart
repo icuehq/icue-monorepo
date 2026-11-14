@@ -54,7 +54,7 @@ class _ItemsPageState extends State<ItemsPage> {
       active: !item.active,
     );
     if (!success && mounted) {
-      showMessage(
+      IcueToast.error(
         context,
         inventoryProvider.errorMessage ?? 'Failed to update item status',
       );

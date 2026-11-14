@@ -159,11 +159,7 @@ class MaintenanceSheet extends StatelessWidget {
         Text(maintenance.number, style: Theme.of(context).textTheme.titleLarge),
         Row(
           children: [
-            Expanded(
-              child: Text(
-                maintenance.assetName,
-              ),
-            ),
+            Expanded(child: Text(maintenance.assetName)),
             StatusChip(maintenance.status),
           ],
         ),

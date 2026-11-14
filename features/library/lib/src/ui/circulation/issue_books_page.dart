@@ -78,11 +78,7 @@ class _IssueBooksPageState extends State<IssueBooksPage> {
     }
   }
 
-  void _notify(String message) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
-  }
+  void _notify(String message) => IcueToast.warning(context, message);
 
   /// Looks the barcode up and queues it; nothing is issued until the button.
   Future<void> _scan(String rawCode) async {

@@ -69,7 +69,7 @@ class _LibrariesPageState extends State<LibrariesPage> {
       active: !library.active,
     );
     if (!success && context.mounted) {
-      showMessage(
+      IcueToast.error(
         context,
         libraryProvider.errorMessage ?? 'Failed to update library status',
       );

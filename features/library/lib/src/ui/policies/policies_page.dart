@@ -32,7 +32,7 @@ class PoliciesPage extends StatelessWidget {
           active: !policy.active,
         ) &&
         context.mounted) {
-      showMessage(context, libraryProvider.errorMessage ?? 'Failed');
+      IcueToast.error(context, libraryProvider.errorMessage ?? 'Failed');
     }
   }
 
@@ -65,7 +65,7 @@ class PoliciesPage extends StatelessWidget {
               onAddDefault: () async {
                 if (!await libraryProvider.seedDefaultPolicies() &&
                     context.mounted) {
-                  showMessage(
+                  IcueToast.error(
                     context,
                     libraryProvider.errorMessage ?? 'Failed',
                   );
