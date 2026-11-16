@@ -168,7 +168,6 @@ const manualCopyStatuses = [
   CopyStatus.available,
   CopyStatus.underMaintenance,
   CopyStatus.damaged,
-  CopyStatus.lost,
   CopyStatus.withdrawn,
 ];
 

@@ -298,7 +298,7 @@ service cloud.firestore {
       allow update: if staff(orgId, zoneId, branchId) && stamped() && inLibrary(orgId, zoneId, branchId, resource.data.get('libraryId', ''))
         && request.resource.data.lastWrite.action in ['libraryCopy.update', 'libraryCopy.status']
         && (request.resource.data.lastWrite.action == 'libraryCopy.update'
-          || request.resource.data.status in ['available', 'under_maintenance', 'damaged', 'lost', 'withdrawn']);
+          || request.resource.data.status in ['available', 'under_maintenance', 'damaged', 'withdrawn']);
     }
     // Circulation moves a copy between shelf, loan, damaged and lost (LoanWrites); nothing else changes.
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/libraryCopies/{barcode} {

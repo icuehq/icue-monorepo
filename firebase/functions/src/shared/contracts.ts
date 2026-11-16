@@ -123,7 +123,7 @@ export const cancellablePurchaseRequestStatuses = [PurchaseRequestStatus.draft, 
 export const orderablePurchaseRequestStatuses = [PurchaseRequestStatus.approved, PurchaseRequestStatus.partiallyOrdered] as const;
 
 /** Statuses a librarian may set by hand; issued belongs to circulation. */
-export const manualCopyStatuses = [CopyStatus.available, CopyStatus.underMaintenance, CopyStatus.damaged, CopyStatus.lost, CopyStatus.withdrawn] as const;
+export const manualCopyStatuses = [CopyStatus.available, CopyStatus.underMaintenance, CopyStatus.damaged, CopyStatus.withdrawn] as const;
 
 /** A copy in these never becomes available again by hand. */
 export const terminalCopyStatuses = [CopyStatus.lost, CopyStatus.withdrawn] as const;

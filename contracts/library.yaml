@@ -24,7 +24,7 @@ constants:
   manualCopyStatuses:
     doc: Statuses a librarian may set by hand; issued belongs to circulation.
     enum: CopyStatus
-    values: [available, under_maintenance, damaged, lost, withdrawn]
+    values: [available, under_maintenance, damaged, withdrawn]
   terminalCopyStatuses:
     doc: A copy in these never becomes available again by hand.
     enum: CopyStatus

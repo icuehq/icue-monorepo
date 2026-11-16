@@ -461,8 +461,8 @@ class LoanWrites {
     });
   }
 
-  /// Hand-set status of a copy from book details. Damaged and lost also open an incident (no loan, no
-  /// member, no fine) so the copy shows under Lost & Damaged. Lost and withdrawn are final.
+  /// Hand-set status of a copy from book details. Damaged also opens an incident (no loan, no member, no
+  /// fine) so the copy shows under Lost & Damaged. Lost happens only through a loan (mark lost); withdrawn is final.
   Future<void> setCopyStatus(String id, String status, String? reason) async {
     if (!manualCopyStatuses.contains(status)) writeFail('Invalid status');
     final trimmed = reason?.trim();
@@ -491,20 +491,20 @@ class LoanWrites {
         'updatedAt': FieldValue.serverTimestamp(),
         'lastWrite': writeStamp('libraryCopy.status', trimmed),
       });
-      if (status == CopyStatus.damaged || status == CopyStatus.lost) {
+      if (status == CopyStatus.damaged) {
         transaction.set(
           incidents.doc(),
           _newIncident(
-            type: status,
+            type: 'damaged',
             copy: copy,
             barcode: id,
             bookTitle: title?['title'] as String?,
             member: null,
             loanId: null,
-            severity: status == CopyStatus.damaged ? 'moderate' : null,
+            severity: 'moderate',
             description: trimmed,
             charge: 0,
-            repairStatus: status == CopyStatus.damaged ? 'none' : null,
+            repairStatus: 'none',
           ),
         );
       }
