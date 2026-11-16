@@ -378,7 +378,8 @@ class LibraryService {
           );
   }
 
-  /// Fines, newest first. A [search] is an exact fine ID or accession number and ignores the filters.
+  /// Fines, newest first. A [search] is an exact fine ID or accession number and ignores the other
+  /// filters, but a librarian still finds only fines of their own libraries.
   Future<Query<Map<String, dynamic>>> finesQuery({
     String? libraryId,
     String? status,
@@ -395,6 +396,7 @@ class LibraryService {
           Filter('barcode', whereIn: terms),
         ),
       );
+      if (_restricted) query = query.where('libraryId', isEqualTo: libraryId);
     } else {
       if (libraryId != null) {
         query = query.where('libraryId', isEqualTo: libraryId);
