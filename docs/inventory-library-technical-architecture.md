@@ -115,7 +115,7 @@ Common fields on every document: `createdAt`, `createdBy` (uid), `updatedAt`, `s
 
 | Collection | Key fields | Notes |
 | --- | --- | --- |
-| `inventoryCategories` | name, parentId, suggestedTracking, status | Subcategory = `parentId` set |
+| `inventoryCategories` | name, parentId, status | Subcategory = `parentId` set |
 | `inventoryUnits` | code, name | Defaults seeded (FRS 10.4) |
 | `inventoryItems` | name, categoryId, subcategoryId, stockUnit, purchaseUnits `[{unit, factor}]`, tracking `quantity | batch | asset`, variantAttrs, minLevel, reorderLevel, defaultPrice, preferredVendorId, defaultLocation, imagePath | `categoryHistory` via audit log |
 | `inventoryItems/{id}/variants` | attrs `{size, color}`, sku, status | Uniforms etc. |

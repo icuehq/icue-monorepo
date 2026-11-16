@@ -46,13 +46,20 @@ class StoreDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final stores = context
-        .watch<InventoryProvider>()
-        .stores
+    final inventoryProvider = context.watch<InventoryProvider>();
+    final stores = inventoryProvider.stores
         .where(
           (store) => (store.active || store.id == value) && store.id != exclude,
         )
         .toList();
+    // A store manager with a single store has nothing to choose: assign it and show no dropdown.
+    if (inventoryProvider.restricted && stores.length == 1) {
+      final only = stores.single.id;
+      if (enabled && value != only) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => onChanged(only));
+      }
+      return const SizedBox.shrink();
+    }
     return DropdownButtonFormField<String>(
       initialValue: stores.any((store) => store.id == value) ? value : null,
       isExpanded: true,

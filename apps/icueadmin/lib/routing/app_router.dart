@@ -111,7 +111,8 @@ String? handleAuthRedirect({
       : isStoreManager
       ? InventoryRoutes.inventory
       : null;
-  if (isLoginRoute || (landing != null && matchedLocation == AppRoutes.dashboard)) {
+  if (isLoginRoute ||
+      (landing != null && matchedLocation == AppRoutes.dashboard)) {
     return landing ?? AppRoutes.dashboard;
   }
 

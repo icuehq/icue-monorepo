@@ -9,7 +9,6 @@ class InventoryCategory {
     this.description,
     this.parentId,
     required this.storeId,
-    required this.suggestedTracking,
     required this.active,
   });
 
@@ -20,7 +19,6 @@ class InventoryCategory {
         description: data['description'] as String?,
         parentId: data['parentId'] as String?,
         storeId: data['storeId'] as String? ?? '',
-        suggestedTracking: Tracking.parse(data['suggestedTracking']),
         active: data['status'] != 'inactive',
       );
 
@@ -29,7 +27,6 @@ class InventoryCategory {
   final String? description;
   final String? parentId;
   final String storeId;
-  final Tracking suggestedTracking;
   final bool active;
 }
 

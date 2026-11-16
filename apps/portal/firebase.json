@@ -23,20 +23,11 @@
         ]
       },
       {
-        "source": "**/*.@(js|css|wasm|mjs)",
+        "source": "**/*.@(js|css|wasm|mjs|json)",
         "headers": [
           {
             "key": "Cache-Control",
-            "value": "no-cache, no-store, must-revalidate"
-          }
-        ]
-      },
-      {
-        "source": "@(index.html|flutter_bootstrap.js|flutter_service_worker.js|version.json|main.dart.js|main.dart.wasm)",
-        "headers": [
-          {
-            "key": "Cache-Control",
-            "value": "no-cache, no-store, must-revalidate"
+            "value": "no-cache"
           }
         ]
       }

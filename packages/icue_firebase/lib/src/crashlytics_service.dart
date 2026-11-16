@@ -14,15 +14,11 @@ class CrashlyticsService {
 
   FirebaseCrashlytics get _c => FirebaseCrashlytics.instance;
 
-  /// Web uses the Firebase JS SDK (preview): only uncaught and handled errors
-  /// are reported; user keys, logs and non-fatals from [recordError] are not.
-  static const _supported = !kIsWeb;
-
   /// Hooks global error handlers. Call once, after Firebase is initialized.
   /// Collection is on in every build mode, so debug errors reach the project's Crashlytics too.
   Future<void> init() async {
     if (kIsWeb) {
-      // Preview JS SDK: a load failure must never block app startup.
+      // A load failure must never block app startup.
       try {
         await initWebCrashlytics();
       } on Object catch (error) {
@@ -66,7 +62,16 @@ class CrashlyticsService {
     String? branchId,
     String? schoolName,
   }) {
-    if (!_supported) return;
+    if (kIsWeb) {
+      setWebUser(
+        id: id,
+        organizationId: organizationId,
+        zoneId: zoneId,
+        branchId: branchId,
+        schoolName: schoolName,
+      );
+      return;
+    }
     _c.setUserIdentifier(id ?? '');
     _c.setCustomKey('organizationId', organizationId ?? '');
     _c.setCustomKey('zoneId', zoneId ?? '');
@@ -76,21 +81,38 @@ class CrashlyticsService {
 
   void clearUser() => setUser();
 
+  void setCustomKey(String key, String value) {
+    if (kIsWeb) {
+      setWebCustomKey(key, value);
+      return;
+    }
+    _c.setCustomKey(key, value);
+  }
+
   /// Records a handled error as non-fatal.
-  void recordError(
+  Future<void> recordError(
     Object error,
     StackTrace? stack, {
     String? reason,
     List<Object> information = const [],
-  }) {
+  }) async {
     if (kIsWeb) {
-      recordWebError(error, stack);
+      recordWebError(error, stack, reason: reason, information: information);
       return;
     }
-    _c.recordError(error, stack, reason: reason, information: information);
+    await _c.recordError(
+      error,
+      stack,
+      reason: reason,
+      information: information,
+    );
   }
 
   void log(String message) {
-    if (_supported) _c.log(message);
+    if (kIsWeb) {
+      logWeb(message);
+      return;
+    }
+    _c.log(message);
   }
 }

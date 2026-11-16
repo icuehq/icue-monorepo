@@ -45,9 +45,8 @@ describe('assets and maintenance', () => {
     store = (await seedStore({ name: 'Main' })).id;
     await db().collection(`${BRANCH}/inventoryUnits`).add({ storeId: store, name: 'pcs' });
     await run(masters.seedDefaults, {}, '1');
-    const category = (
-      await run(masters.categoryUpsert, { storeId: store, name: 'General', suggestedTracking: 'quantity' }, '1')
-    ).id;
+    const category = (await run(masters.categoryUpsert, { storeId: store, name: 'General' }, '1'))
+      .id;
     const item = (itemCode: string, tracking: string) =>
       run(
         masters.itemUpsert,

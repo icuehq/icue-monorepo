@@ -2,47 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 
-class TrackingBadge extends StatelessWidget {
-  const TrackingBadge({super.key, required this.tracking});
-
-  final Tracking tracking;
-
-  @override
-  Widget build(BuildContext context) {
-    final (IconData icon, Color color) = switch (tracking) {
-      Tracking.quantity => (
-        Icons.format_list_numbered_rounded,
-        Colors.blue.shade700,
-      ),
-      Tracking.batch => (Icons.layers_outlined, Colors.amber.shade800),
-      Tracking.asset => (Icons.qr_code_2_rounded, Colors.purple.shade700),
-    };
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withValues(alpha: 0.25)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: color),
-          const SizedBox(width: 4),
-          Text(
-            tracking.label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class CategoryCard extends StatefulWidget {
   const CategoryCard({
     super.key,
@@ -153,7 +112,6 @@ class _CategoryCardState extends State<CategoryCard> {
                           runSpacing: 4,
                           crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
-                            TrackingBadge(tracking: category.suggestedTracking),
                             if (hasSubs)
                               Container(
                                 padding: const EdgeInsets.symmetric(
@@ -320,14 +278,6 @@ class _SubcategoryRow extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 3),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 4,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    TrackingBadge(tracking: category.suggestedTracking),
-                  ],
-                ),
                 if (category.description != null &&
                     category.description!.trim().isNotEmpty) ...[
                   const SizedBox(height: 3),

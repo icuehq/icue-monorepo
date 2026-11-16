@@ -25,7 +25,6 @@ export const masters = {
       name,
       description: optionalText,
       parentId: id.nullish(),
-      suggestedTracking: tracking,
     }),
     handler: (context, i) =>
       saveMaster(context, {
@@ -57,7 +56,6 @@ export const masters = {
             name: i.name,
             description: i.description ?? null,
             parentId: i.parentId ?? null,
-            suggestedTracking: i.suggestedTracking,
           };
         },
       }),
@@ -91,8 +89,7 @@ export const masters = {
             'Category',
             before?.categoryId === i.categoryId,
           );
-          if (category.storeId !== i.storeId)
-            throw failed('The category belongs to another store');
+          if (category.storeId !== i.storeId) throw failed('The category belongs to another store');
           if (before && before.storeId !== i.storeId)
             throw failed('An item cannot move to another store');
           if (category.parentId)
@@ -170,7 +167,6 @@ export const masters = {
             name: category.name,
             description: null,
             parentId: null,
-            suggestedTracking: category.tracking,
             status: 'active',
             createdAt: now,
             createdBy: context.uid,

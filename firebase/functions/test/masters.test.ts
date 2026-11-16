@@ -32,7 +32,6 @@ describe('inventory masters', () => {
       await run(masters.categoryUpsert, {
         storeId: store,
         name: 'General',
-        suggestedTracking: 'quantity',
       })
     ).id;
   });
@@ -56,7 +55,6 @@ describe('inventory masters', () => {
         storeId: other,
         name: 'Sub',
         parentId: category,
-        suggestedTracking: 'quantity',
       }),
     ).rejects.toMatchObject({ code: 'failed-precondition' });
   });
@@ -66,14 +64,12 @@ describe('inventory masters', () => {
       storeId: store,
       name: 'Sub',
       parentId: category,
-      suggestedTracking: 'quantity',
     });
     await expect(
       run(masters.categoryUpsert, {
         storeId: store,
         name: 'SubSub',
         parentId: sub.id,
-        suggestedTracking: 'quantity',
       }),
     ).rejects.toMatchObject({ code: 'failed-precondition' });
   });

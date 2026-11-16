@@ -35,8 +35,6 @@ class _CategoryDialogState extends State<CategoryDialog> {
   late String? _storeId =
       widget.category?.storeId ??
       context.read<InventoryProvider>().category(widget.parentId)?.storeId;
-  late Tracking _tracking =
-      widget.category?.suggestedTracking ?? Tracking.quantity;
   int _nextSample = 0;
   bool _busy = false;
   bool _submitted = false;
@@ -63,7 +61,6 @@ class _CategoryDialogState extends State<CategoryDialog> {
       setState(() {
         _name.text = sample.name;
         _description.text = sample.description;
-        _tracking = sample.tracking;
       });
       return;
     }
@@ -102,7 +99,6 @@ class _CategoryDialogState extends State<CategoryDialog> {
         'description': blankToNull(_description),
         'parentId': _parentId,
         if (category == null) 'storeId': _storeId,
-        'suggestedTracking': _tracking.name,
       }),
     );
     if (mounted && !saved) {
@@ -170,7 +166,7 @@ class _CategoryDialogState extends State<CategoryDialog> {
                     const SizedBox(height: 3),
                     Text(
                       editing
-                          ? 'Update the name, parent and tracking.'
+                          ? 'Update the name and parent.'
                           : 'Group items under a category.',
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
@@ -265,21 +261,6 @@ class _CategoryDialogState extends State<CategoryDialog> {
                 label: 'Parent category',
                 icon: Icons.account_tree_outlined,
               ),
-              IcueDropdown<Tracking>(
-                value: _tracking,
-                items: [
-                  for (final tracking in Tracking.values)
-                    DropdownMenuItem(
-                      value: tracking,
-                      child: Text(tracking.label),
-                    ),
-                ],
-                onChanged: (tracking) {
-                  if (tracking != null) setState(() => _tracking = tracking);
-                },
-                label: 'Usually looked after as *',
-                icon: Icons.track_changes_outlined,
-              ),
               IcueTextField(
                 controller: _description,
                 maxLines: 3,
@@ -317,31 +298,16 @@ class _CategoryDialogState extends State<CategoryDialog> {
   }
 }
 
-const _sampleCategories =
-    <({String name, String description, Tracking tracking})>[
-      (
-        name: 'Stationery',
-        description: 'Paper, pens, files and office supplies.',
-        tracking: Tracking.quantity,
-      ),
-      (
-        name: 'Laboratory Chemicals',
-        description: 'Reagents and consumables with batch and expiry dates.',
-        tracking: Tracking.batch,
-      ),
-      (
-        name: 'Sports Equipment',
-        description: 'Balls, nets, kits and training gear.',
-        tracking: Tracking.quantity,
-      ),
-      (
-        name: 'IT Hardware',
-        description: 'Computers, projectors and peripherals.',
-        tracking: Tracking.asset,
-      ),
-      (
-        name: 'Cleaning Supplies',
-        description: 'Consumables for housekeeping.',
-        tracking: Tracking.quantity,
-      ),
-    ];
+const _sampleCategories = <({String name, String description})>[
+  (name: 'Stationery', description: 'Paper, pens, files and office supplies.'),
+  (
+    name: 'Laboratory Chemicals',
+    description: 'Reagents and consumables with batch and expiry dates.',
+  ),
+  (
+    name: 'Sports Equipment',
+    description: 'Balls, nets, kits and training gear.',
+  ),
+  (name: 'IT Hardware', description: 'Computers, projectors and peripherals.'),
+  (name: 'Cleaning Supplies', description: 'Consumables for housekeeping.'),
+];

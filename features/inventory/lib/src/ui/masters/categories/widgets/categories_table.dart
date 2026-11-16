@@ -74,16 +74,6 @@ class CategoriesTable extends StatelessWidget {
           matches: (category, optionId) =>
               (optionId == 'active') == category.active,
         ),
-        IcueClientFilter<InventoryCategory>(
-          id: 'tracking',
-          label: 'Looked after as',
-          options: [
-            for (final tracking in Tracking.values)
-              IcueTableFilterOption(tracking.name, tracking.label),
-          ],
-          matches: (category, optionId) =>
-              category.suggestedTracking.name == optionId,
-        ),
       ],
       rowActions: (category) => [
         IcueTableRowAction(
@@ -156,14 +146,6 @@ class CategoriesTable extends StatelessWidget {
           flex: 2,
           cellBuilder: (context, category) => IcueTableCellText(
             byId[category.parentId]?.name ?? '—',
-            style: IcueTableStyle.of(context).secondary,
-          ),
-        ),
-        IcueTableColumn(
-          id: 'tracking',
-          label: 'Looked after as',
-          cellBuilder: (context, category) => IcueTableCellText(
-            category.suggestedTracking.label,
             style: IcueTableStyle.of(context).secondary,
           ),
         ),

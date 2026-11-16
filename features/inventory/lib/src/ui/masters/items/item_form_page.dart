@@ -92,7 +92,7 @@ class _ItemFormPageState extends State<ItemFormPage> {
         _categoryId = category.id;
         _subcategoryId = null;
         _stockUnit = unit.name;
-        _tracking = sample.tracking ?? category.suggestedTracking;
+        _tracking = sample.tracking ?? Tracking.quantity;
       });
       return;
     }
@@ -170,10 +170,6 @@ class _ItemFormPageState extends State<ItemFormPage> {
           onChanged: (value) => setState(() {
             _categoryId = value;
             _subcategoryId = null;
-            final suggested = inventoryProvider
-                .category(value)
-                ?.suggestedTracking;
-            if (!editing && suggested != null) _tracking = suggested;
           }),
           label: 'Category *',
           icon: Icons.category_outlined,

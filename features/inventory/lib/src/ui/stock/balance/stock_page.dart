@@ -127,7 +127,9 @@ class _StockPageState extends State<StockPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (!wide)
+                      if (!wide &&
+                          !(inventoryProvider.restricted &&
+                              activeStores.length == 1))
                         Row(
                           children: [
                             Icon(

@@ -20,6 +20,21 @@ Future<void> main() async {
   await initFirebase(firebaseOptionsFor(environment));
   await configureDependencies(environment.name);
   getIt<ApiClient>().source = 'web';
+  // Forward unexpected API failures to Crashlytics as non-fatals.
+  getIt<ApiClient>().onLogCrash =
+      (path, error, stack, {fatal = false, message}) {
+        final dio = error is DioException ? error : null;
+        CrashlyticsService.instance.recordError(
+          error,
+          stack,
+          reason: 'API ${dio?.requestOptions.method ?? ''} $path: $message',
+          information: [
+            'status: ${dio?.response?.statusCode}',
+            'type: ${dio?.type.name}',
+            'url: ${dio?.requestOptions.uri}',
+          ],
+        );
+      };
   // Hive must be open before AuthProvider restores the session from it.
   await getIt<StorageService>().init();
   await getIt<UserLocalStorage>().init();
@@ -44,19 +59,34 @@ class _PortalAppState extends State<PortalApp> {
   void initState() {
     super.initState();
     _userId = widget.authProvider.user?.id;
-    widget.authProvider.addListener(_resetOnUserChange);
+    _updateCrashlyticsUser();
+    widget.authProvider.addListener(_onAuthChanged);
   }
 
-  /// Library keeps per-session state, so drop it when the user changes.
-  void _resetOnUserChange() {
-    final id = widget.authProvider.user?.id;
-    if (id != _userId) _libraryProvider.clearSession();
-    _userId = id;
+  void _onAuthChanged() {
+    final user = widget.authProvider.user;
+    if (user?.id != _userId) {
+      _libraryProvider.clearSession();
+      _userId = user?.id;
+    }
+    _updateCrashlyticsUser();
+  }
+
+  void _updateCrashlyticsUser() {
+    final user = widget.authProvider.user;
+    final branch = widget.authProvider.selectedBranch;
+    CrashlyticsService.instance.setUser(
+      id: user == null ? null : '${user.id}',
+      organizationId: user == null ? null : '${user.organizationId}',
+      zoneId: user == null ? null : '${user.zoneId}',
+      branchId: user == null ? null : '${branch?.id ?? user.branchId}',
+      schoolName: branch?.schoolName ?? user?.schoolName,
+    );
   }
 
   @override
   void dispose() {
-    widget.authProvider.removeListener(_resetOnUserChange);
+    widget.authProvider.removeListener(_onAuthChanged);
     _router.dispose();
     super.dispose();
   }
