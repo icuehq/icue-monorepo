@@ -1,45 +1,17 @@
 import 'package:auth/auth.dart';
+import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
-import 'package:inventory/src/ui/assets/maintenance/maintenance_page.dart';
-import 'package:inventory/src/ui/assets/registry/asset_details_page.dart';
-import 'package:inventory/src/ui/assets/registry/asset_form_page.dart';
-import 'package:inventory/src/ui/assets/registry/assets_page.dart';
-import 'package:inventory/src/ui/insights/overview/inventory_overview_page.dart';
-import 'package:inventory/src/ui/insights/reports/report_page.dart';
-import 'package:inventory/src/ui/insights/reports/reports_page.dart';
-import 'package:inventory/src/ui/masters/categories/categories_page.dart';
-import 'package:inventory/src/ui/masters/items/item_details_page.dart';
-import 'package:inventory/src/ui/masters/items/item_form_page.dart';
-import 'package:inventory/src/ui/masters/items/items_page.dart';
-import 'package:inventory/src/ui/masters/stores/stores_page.dart';
-import 'package:inventory/src/ui/masters/units/units_page.dart';
-import 'package:inventory/src/ui/procurement/invoices/invoices_page.dart';
-import 'package:inventory/src/ui/procurement/purchase_orders/purchase_order_form_page.dart';
-import 'package:inventory/src/ui/procurement/purchase_orders/purchase_order_page.dart';
-import 'package:inventory/src/ui/procurement/purchase_orders/purchase_order_receive_page.dart';
-import 'package:inventory/src/ui/procurement/purchase_orders/purchase_orders_page.dart';
-import 'package:inventory/src/ui/procurement/purchase_requests/purchase_request_form_page.dart';
-import 'package:inventory/src/ui/procurement/purchase_requests/purchase_request_page.dart';
-import 'package:inventory/src/ui/procurement/purchase_requests/purchase_requests_page.dart';
-import 'package:inventory/src/ui/procurement/quotations/quotation_form_page.dart';
-import 'package:inventory/src/ui/procurement/quotations/quotations_page.dart';
-import 'package:inventory/src/ui/procurement/vendors/vendor_form_page.dart';
-import 'package:inventory/src/ui/procurement/vendors/vendor_page.dart';
-import 'package:inventory/src/ui/procurement/vendors/vendors_page.dart';
 import 'package:inventory/src/ui/routing/inventory_destinations.dart';
-import 'package:inventory/src/ui/stock/balance/stock_details_page.dart';
-import 'package:inventory/src/ui/stock/balance/stock_page.dart';
-import 'package:inventory/src/ui/stock/issues/issue_request_page.dart';
-import 'package:inventory/src/ui/stock/issues/issue_requests_page.dart';
-import 'package:inventory/src/ui/stock/issues/issue_return_page.dart';
-import 'package:inventory/src/ui/stock/receive/receive_page.dart';
-import 'package:inventory/src/ui/stock/unavailable/unavailable_page.dart';
-import 'package:inventory/src/ui/stock/unavailable/unavailable_resolve_page.dart';
+import 'package:inventory/src/ui/routing/inventory_pages.dart'
+    deferred as pages;
 import 'package:inventory/src/ui/widgets/no_store_assigned_gate.dart';
 import 'package:inventory/src/ui/widgets/store_manager_logout_button.dart';
 import 'package:provider/provider.dart';
+
+Widget _inventoryPage(WidgetBuilder builder) =>
+    IcueDeferred(load: pages.loadLibrary, builder: builder);
 
 /// Inventory screens as go_router routes, inside a shell that adds side navigation on wide screens.
 List<RouteBase> inventoryRoutes() => [
@@ -69,140 +41,169 @@ final _inventoryPages = <RouteBase>[
   GoRoute(
     path: InventoryRoutes.inventory,
     name: InventoryRoutes.inventoryName,
-    builder: (context, state) => const InventoryLanding(),
+    builder: (context, state) =>
+        _inventoryPage((_) => pages.InventoryLanding()),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryCategories,
     name: InventoryRoutes.inventoryCategoriesName,
-    builder: (context, state) => const CategoriesPage(),
+    builder: (context, state) => _inventoryPage((_) => pages.CategoriesPage()),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryUnits,
     name: InventoryRoutes.inventoryUnitsName,
-    builder: (context, state) => const UnitsPage(),
+    builder: (context, state) => _inventoryPage((_) => pages.UnitsPage()),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryStores,
     name: InventoryRoutes.inventoryStoresName,
-    builder: (context, state) => const StoresPage(),
+    builder: (context, state) => _inventoryPage((_) => pages.StoresPage()),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryItems,
     name: InventoryRoutes.inventoryItemsName,
-    builder: (context, state) =>
-        ItemsPage(categoryId: state.uri.queryParameters['category']),
+    builder: (context, state) => _inventoryPage(
+      (_) => pages.ItemsPage(categoryId: state.uri.queryParameters['category']),
+    ),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryItemForm,
     name: InventoryRoutes.inventoryItemFormName,
-    builder: (context, state) =>
-        ItemFormPage(item: state.extra as InventoryItem?),
+    builder: (context, state) => _inventoryPage(
+      (_) => pages.ItemFormPage(item: state.extra as InventoryItem?),
+    ),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryItemDetails,
     name: InventoryRoutes.inventoryItemDetailsName,
-    builder: (context, state) =>
-        ItemDetailsPage(itemId: state.uri.queryParameters['id'] ?? ''),
+    builder: (context, state) => _inventoryPage(
+      (_) =>
+          pages.ItemDetailsPage(itemId: state.uri.queryParameters['id'] ?? ''),
+    ),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryStock,
     name: InventoryRoutes.inventoryStockName,
-    builder: (context, state) => const StockPage(),
+    builder: (context, state) => _inventoryPage((_) => pages.StockPage()),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryStockDetails,
     name: InventoryRoutes.inventoryStockDetailsName,
-    builder: (context, state) =>
-        StockDetailsPage(balanceId: state.uri.queryParameters['id'] ?? ''),
+    builder: (context, state) => _inventoryPage(
+      (_) => pages.StockDetailsPage(
+        balanceId: state.uri.queryParameters['id'] ?? '',
+      ),
+    ),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryReceive,
     name: InventoryRoutes.inventoryReceiveName,
-    builder: (context, state) =>
-        ReceivePage(storeId: state.uri.queryParameters['store']),
+    builder: (context, state) => _inventoryPage(
+      (_) => pages.ReceivePage(storeId: state.uri.queryParameters['store']),
+    ),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryRequests,
     name: InventoryRoutes.inventoryRequestsName,
-    builder: (context, state) => const IssueRequestsPage(),
+    builder: (context, state) =>
+        _inventoryPage((_) => pages.IssueRequestsPage()),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryRequestDetail,
     name: InventoryRoutes.inventoryRequestDetailName,
-    builder: (context, state) =>
-        IssueRequestPage(requestId: state.uri.queryParameters['id'] ?? ''),
+    builder: (context, state) => _inventoryPage(
+      (_) => pages.IssueRequestPage(
+        requestId: state.uri.queryParameters['id'] ?? '',
+      ),
+    ),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryIssueReturn,
     name: InventoryRoutes.inventoryIssueReturnName,
-    builder: (context, state) =>
-        IssueReturnPage(issue: state.extra! as InventoryIssue),
+    builder: (context, state) => _inventoryPage(
+      (_) => pages.IssueReturnPage(issue: state.extra! as InventoryIssue),
+    ),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryVendors,
     name: InventoryRoutes.inventoryVendorsName,
-    builder: (context, state) => const VendorsPage(),
+    builder: (context, state) => _inventoryPage((_) => pages.VendorsPage()),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryVendorDetail,
     name: InventoryRoutes.inventoryVendorDetailName,
-    builder: (context, state) =>
-        VendorPage(vendorId: state.uri.queryParameters['id'] ?? ''),
+    builder: (context, state) => _inventoryPage(
+      (_) => pages.VendorPage(vendorId: state.uri.queryParameters['id'] ?? ''),
+    ),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryVendorForm,
     name: InventoryRoutes.inventoryVendorFormName,
-    builder: (context, state) =>
-        VendorFormPage(vendorId: state.uri.queryParameters['id']),
+    builder: (context, state) => _inventoryPage(
+      (_) => pages.VendorFormPage(vendorId: state.uri.queryParameters['id']),
+    ),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryPurchaseRequests,
     name: InventoryRoutes.inventoryPurchaseRequestsName,
-    builder: (context, state) => const PurchaseRequestsPage(),
+    builder: (context, state) =>
+        _inventoryPage((_) => pages.PurchaseRequestsPage()),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryPurchaseRequestForm,
     name: InventoryRoutes.inventoryPurchaseRequestFormName,
-    builder: (context, state) => PurchaseRequestFormPage(
-      existing: state.extra as InventoryPurchaseRequest?,
+    builder: (context, state) => _inventoryPage(
+      (_) => pages.PurchaseRequestFormPage(
+        existing: state.extra as InventoryPurchaseRequest?,
+      ),
     ),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryPurchaseRequestDetail,
     name: InventoryRoutes.inventoryPurchaseRequestDetailName,
-    builder: (context, state) =>
-        PurchaseRequestPage(requestId: state.uri.queryParameters['id'] ?? ''),
+    builder: (context, state) => _inventoryPage(
+      (_) => pages.PurchaseRequestPage(
+        requestId: state.uri.queryParameters['id'] ?? '',
+      ),
+    ),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryQuotations,
     name: InventoryRoutes.inventoryQuotationsName,
-    builder: (context, state) =>
-        QuotationsPage(request: state.extra! as InventoryPurchaseRequest),
+    builder: (context, state) => _inventoryPage(
+      (_) => pages.QuotationsPage(
+        request: state.extra! as InventoryPurchaseRequest,
+      ),
+    ),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryQuotationForm,
     name: InventoryRoutes.inventoryQuotationFormName,
-    builder: (context, state) {
+    builder: (context, state) => _inventoryPage((_) {
       final (r, q) =
           state.extra! as (InventoryPurchaseRequest, InventoryQuotation?);
-      return QuotationFormPage(request: r, existing: q);
-    },
+      return pages.QuotationFormPage(request: r, existing: q);
+    }),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryPurchaseOrders,
     name: InventoryRoutes.inventoryPurchaseOrdersName,
-    builder: (context, state) => const PurchaseOrdersPage(),
+    builder: (context, state) =>
+        _inventoryPage((_) => pages.PurchaseOrdersPage()),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryPurchaseOrderDetail,
     name: InventoryRoutes.inventoryPurchaseOrderDetailName,
-    builder: (context, state) =>
-        PurchaseOrderPage(order: state.extra! as InventoryPurchaseOrder),
+    builder: (context, state) => _inventoryPage(
+      (_) => pages.PurchaseOrderPage(
+        order: state.extra! as InventoryPurchaseOrder,
+      ),
+    ),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryPurchaseOrderForm,
     name: InventoryRoutes.inventoryPurchaseOrderFormName,
-    builder: (context, state) {
+    builder: (context, state) => _inventoryPage((_) {
       final (r, q, o) =
           state.extra!
               as (
@@ -210,62 +211,72 @@ final _inventoryPages = <RouteBase>[
                 InventoryQuotation?,
                 InventoryPurchaseOrder?,
               );
-      return PurchaseOrderFormPage(request: r, quotation: q, existing: o);
-    },
+      return pages.PurchaseOrderFormPage(request: r, quotation: q, existing: o);
+    }),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryPoReceive,
     name: InventoryRoutes.inventoryPoReceiveName,
-    builder: (context, state) =>
-        PurchaseOrderReceivePage(order: state.extra! as InventoryPurchaseOrder),
+    builder: (context, state) => _inventoryPage(
+      (_) => pages.PurchaseOrderReceivePage(
+        order: state.extra! as InventoryPurchaseOrder,
+      ),
+    ),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryAssets,
     name: InventoryRoutes.inventoryAssetsName,
-    builder: (context, state) => const AssetsPage(),
+    builder: (context, state) => _inventoryPage((_) => pages.AssetsPage()),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryAssetDetails,
     name: InventoryRoutes.inventoryAssetDetailsName,
-    builder: (context, state) =>
-        AssetDetailsPage(assetId: state.uri.queryParameters['id'] ?? ''),
+    builder: (context, state) => _inventoryPage(
+      (_) => pages.AssetDetailsPage(
+        assetId: state.uri.queryParameters['id'] ?? '',
+      ),
+    ),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryAssetForm,
     name: InventoryRoutes.inventoryAssetFormName,
-    builder: (context, state) => const AssetFormPage(),
+    builder: (context, state) => _inventoryPage((_) => pages.AssetFormPage()),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryMaintenance,
     name: InventoryRoutes.inventoryMaintenanceName,
-    builder: (context, state) => const MaintenancePage(),
+    builder: (context, state) => _inventoryPage((_) => pages.MaintenancePage()),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryReports,
     name: InventoryRoutes.inventoryReportsName,
-    builder: (context, state) => const InventoryReportsPage(),
+    builder: (context, state) =>
+        _inventoryPage((_) => pages.InventoryReportsPage()),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryReport,
     name: InventoryRoutes.inventoryReportName,
-    builder: (context, state) =>
-        InventoryReportPage(def: state.extra! as ReportDef),
+    builder: (context, state) => _inventoryPage(
+      (_) => pages.InventoryReportPage(def: state.extra! as ReportDef),
+    ),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryInvoices,
     name: InventoryRoutes.inventoryInvoicesName,
-    builder: (context, state) => const InvoicesPage(),
+    builder: (context, state) => _inventoryPage((_) => pages.InvoicesPage()),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryUnavailable,
     name: InventoryRoutes.inventoryUnavailableName,
-    builder: (context, state) => const UnavailablePage(),
+    builder: (context, state) => _inventoryPage((_) => pages.UnavailablePage()),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryUnavailableResolve,
     name: InventoryRoutes.inventoryUnavailableResolveName,
-    builder: (context, state) => UnavailableResolvePage(
-      unavailableId: state.uri.queryParameters['id'] ?? '',
+    builder: (context, state) => _inventoryPage(
+      (_) => pages.UnavailableResolvePage(
+        unavailableId: state.uri.queryParameters['id'] ?? '',
+      ),
     ),
   ),
 ];

@@ -1,26 +1,18 @@
 import 'package:auth/auth.dart';
+import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
-import 'package:school_library/src/ui/catalogue/book_details_page.dart';
-import 'package:school_library/src/ui/catalogue/book_form_page.dart';
-import 'package:school_library/src/ui/catalogue/book_import_page.dart';
-import 'package:school_library/src/ui/catalogue/catalogue_page.dart';
-import 'package:school_library/src/ui/circulation/circulation_page.dart';
-import 'package:school_library/src/ui/circulation/issue_books_page.dart';
 import 'package:school_library/src/ui/circulation/widgets/scan_listener.dart';
-import 'package:school_library/src/ui/fines/fines_page.dart';
-import 'package:school_library/src/ui/incidents/incidents_page.dart';
-import 'package:school_library/src/ui/insights/overview/library_overview_page.dart';
-import 'package:school_library/src/ui/insights/reports/library_reports_page.dart';
-import 'package:school_library/src/ui/libraries/libraries_page.dart';
-import 'package:school_library/src/ui/libraries/library_categories_page.dart';
-import 'package:school_library/src/ui/members/members_page.dart';
-import 'package:school_library/src/ui/policies/policies_page.dart';
 import 'package:school_library/src/ui/routing/library_destinations.dart';
+import 'package:school_library/src/ui/routing/library_pages.dart'
+    deferred as pages;
 import 'package:school_library/src/ui/widgets/librarian_logout_button.dart';
 import 'package:school_library/src/ui/widgets/no_library_assigned_gate.dart';
+
+Widget _libraryPage(WidgetBuilder builder) =>
+    IcueDeferred(load: pages.loadLibrary, builder: builder);
 
 /// Library screens as go_router routes, inside a shell that adds side navigation on wide screens.
 List<RouteBase> libraryRoutes() => [
@@ -46,75 +38,84 @@ final _libraryPages = <RouteBase>[
   GoRoute(
     path: LibraryRoutes.library,
     name: LibraryRoutes.libraryName,
-    builder: (context, state) => const LibraryLanding(),
+    builder: (context, state) => _libraryPage((_) => pages.LibraryLanding()),
   ),
   GoRoute(
     path: LibraryRoutes.libraryList,
     name: LibraryRoutes.libraryListName,
-    builder: (context, state) => const LibrariesPage(),
+    builder: (context, state) => _libraryPage((_) => pages.LibrariesPage()),
   ),
   GoRoute(
     path: LibraryRoutes.libraryCategories,
     name: LibraryRoutes.libraryCategoriesName,
-    builder: (context, state) => const LibraryCategoriesPage(),
+    builder: (context, state) =>
+        _libraryPage((_) => pages.LibraryCategoriesPage()),
   ),
   GoRoute(
     path: LibraryRoutes.libraryCatalogue,
     name: LibraryRoutes.libraryCatalogueName,
-    builder: (context, state) =>
-        CataloguePage(categoryId: state.uri.queryParameters['category']),
+    builder: (context, state) => _libraryPage(
+      (_) => pages.CataloguePage(
+        categoryId: state.uri.queryParameters['category'],
+      ),
+    ),
   ),
   GoRoute(
     path: LibraryRoutes.libraryBookForm,
     name: LibraryRoutes.libraryBookFormName,
-    builder: (context, state) =>
-        BookFormPage(book: state.extra as LibraryBook?),
+    builder: (context, state) => _libraryPage(
+      (_) => pages.BookFormPage(book: state.extra as LibraryBook?),
+    ),
   ),
   GoRoute(
     path: LibraryRoutes.libraryBookImport,
     name: LibraryRoutes.libraryBookImportName,
-    builder: (context, state) => const BookImportPage(),
+    builder: (context, state) => _libraryPage((_) => pages.BookImportPage()),
   ),
   GoRoute(
     path: LibraryRoutes.libraryMembers,
     name: LibraryRoutes.libraryMembersName,
-    builder: (context, state) => const MembersPage(),
+    builder: (context, state) => _libraryPage((_) => pages.MembersPage()),
   ),
   GoRoute(
     path: LibraryRoutes.libraryCirculation,
     name: LibraryRoutes.libraryCirculationName,
-    builder: (context, state) => const CirculationPage(),
+    builder: (context, state) => _libraryPage((_) => pages.CirculationPage()),
   ),
   GoRoute(
     path: LibraryRoutes.libraryIssue,
     name: LibraryRoutes.libraryIssueName,
-    builder: (context, state) =>
-        IssueBooksPage(copy: state.extra as LibraryCopy?),
+    builder: (context, state) => _libraryPage(
+      (_) => pages.IssueBooksPage(copy: state.extra as LibraryCopy?),
+    ),
   ),
   GoRoute(
     path: LibraryRoutes.libraryFines,
     name: LibraryRoutes.libraryFinesName,
-    builder: (context, state) => const FinesPage(),
+    builder: (context, state) => _libraryPage((_) => pages.FinesPage()),
   ),
   GoRoute(
     path: LibraryRoutes.libraryIncidents,
     name: LibraryRoutes.libraryIncidentsName,
-    builder: (context, state) => const IncidentsPage(),
+    builder: (context, state) => _libraryPage((_) => pages.IncidentsPage()),
   ),
   GoRoute(
     path: LibraryRoutes.libraryReports,
     name: LibraryRoutes.libraryReportsName,
-    builder: (context, state) => const LibraryReportsPage(),
+    builder: (context, state) =>
+        _libraryPage((_) => pages.LibraryReportsPage()),
   ),
   GoRoute(
     path: LibraryRoutes.libraryPolicies,
     name: LibraryRoutes.libraryPoliciesName,
-    builder: (context, state) => const PoliciesPage(),
+    builder: (context, state) => _libraryPage((_) => pages.PoliciesPage()),
   ),
   GoRoute(
     path: LibraryRoutes.libraryBookDetails,
     name: LibraryRoutes.libraryBookDetailsName,
-    builder: (context, state) =>
-        BookDetailsPage(bookId: state.uri.queryParameters['id'] ?? ''),
+    builder: (context, state) => _libraryPage(
+      (_) =>
+          pages.BookDetailsPage(bookId: state.uri.queryParameters['id'] ?? ''),
+    ),
   ),
 ];

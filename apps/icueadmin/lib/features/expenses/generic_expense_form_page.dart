@@ -3,25 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:icueadmin/analytics/app_events.dart';
+import 'package:icueadmin/features/expenses/expense_args.dart';
 import 'package:icueadmin/features/expenses/widgets/expense_bill_section.dart';
 import 'package:icueadmin/routing/app_routes.dart';
 import 'package:provider/provider.dart';
-
-class GenericExpenseArgs {
-  const GenericExpenseArgs({
-    required this.expenseType,
-    required this.vehicleNumber,
-    this.fuelType,
-    this.fuelPrice,
-    this.mode,
-  });
-
-  final ExpenseType expenseType;
-  final String vehicleNumber;
-  final String? fuelType;
-  final String? fuelPrice;
-  final String? mode;
-}
 
 /// One form for battery, tyres, maintenance, salary and fuel-station
 /// expenses. The submitted keys are the legacy backend contract.

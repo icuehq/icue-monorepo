@@ -1,7 +1,7 @@
 import 'package:expenses/expenses.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:icueadmin/features/expenses/generic_expense_form_page.dart';
+import 'package:icueadmin/features/expenses/expense_args.dart';
 import 'package:icueadmin/features/expenses/widgets/fuel_mode_dialog.dart';
 import 'package:icueadmin/routing/app_routes.dart';
 import 'package:provider/provider.dart';

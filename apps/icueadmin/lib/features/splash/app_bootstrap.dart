@@ -33,11 +33,13 @@ class _AppBootstrapState extends State<AppBootstrap> {
   late Future<IcueConnectivityService> _init = _initialize();
 
   Future<IcueConnectivityService> _initialize() async {
-    await initFirebase(firebaseOptionsFor(widget.environment));
-    await configureDependencies(widget.environment.name);
-
     final connectivity = IcueConnectivityService();
-    await connectivity.init();
+    // Firebase, local storage and connectivity are independent: run together.
+    await Future.wait([
+      initFirebase(firebaseOptionsFor(widget.environment)),
+      _initLocalStorage(),
+      connectivity.init(),
+    ]);
     getIt<ApiClient>().isOnline = () => connectivity.isOnline;
 
     // Forward unexpected API failures to Crashlytics as non-fatals.
@@ -56,10 +58,6 @@ class _AppBootstrapState extends State<AppBootstrap> {
           );
         };
 
-    // Hive must be open before AuthProvider is created: it restores the
-    // session from it, so the router can pick login vs dashboard right away.
-    await getIt<StorageService>().init();
-    await getIt<UserLocalStorage>().init();
     getIt<AuthProvider>();
 
     await IcueAppUpdateService.checkForUpdate().timeout(
@@ -67,6 +65,14 @@ class _AppBootstrapState extends State<AppBootstrap> {
       onTimeout: () {},
     );
     return connectivity;
+  }
+
+  /// Hive must be open before AuthProvider is created: it restores the
+  /// session from it, so the router can pick login vs dashboard right away.
+  Future<void> _initLocalStorage() async {
+    await configureDependencies(widget.environment.name);
+    await getIt<StorageService>().init();
+    await getIt<UserLocalStorage>().init();
   }
 
   @override

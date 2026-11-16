@@ -3,17 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:icueadmin/analytics/app_events.dart';
+import 'package:icueadmin/features/expenses/expense_args.dart';
 import 'package:icueadmin/features/expenses/widgets/expense_bill_section.dart';
 import 'package:icueadmin/routing/app_routes.dart';
 import 'package:provider/provider.dart';
-
-class LooseFuelArgs {
-  const LooseFuelArgs({required this.expenseType, required this.storage});
-
-  /// The `loosefuel` expense type.
-  final ExpenseType expenseType;
-  final StorageItem storage;
-}
 
 /// Fuel drawn from a campus storage (tank/drum) during a self-filling session.
 class LooseFuelExpensePage extends StatefulWidget {

@@ -17,8 +17,16 @@ Future<void> main() async {
   usePathUrlStrategy();
   WidgetsFlutterBinding.ensureInitialized();
   final environment = ApiEnvironment.fromEnvironment();
-  await initFirebase(firebaseOptionsFor(environment));
-  await configureDependencies(environment.name);
+  // Firebase and local storage are independent: init them together.
+  await Future.wait([
+    initFirebase(firebaseOptionsFor(environment)),
+    () async {
+      await configureDependencies(environment.name);
+      // Hive must be open before AuthProvider restores the session from it.
+      await getIt<StorageService>().init();
+      await getIt<UserLocalStorage>().init();
+    }(),
+  ]);
   getIt<ApiClient>().source = 'web';
   // Forward unexpected API failures to Crashlytics as non-fatals.
   getIt<ApiClient>().onLogCrash =
@@ -35,9 +43,6 @@ Future<void> main() async {
           ],
         );
       };
-  // Hive must be open before AuthProvider restores the session from it.
-  await getIt<StorageService>().init();
-  await getIt<UserLocalStorage>().init();
   runApp(PortalApp(authProvider: getIt<AuthProvider>()));
 }
 
