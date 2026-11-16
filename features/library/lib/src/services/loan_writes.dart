@@ -195,6 +195,10 @@ class LoanWrites {
     final copyReference = await schoolDocument('libraryCopies', barcode);
     final earlierCopy = (await copyReference.get()).data();
     if (earlierCopy == null) writeFail('Copy not found', 'not-found');
+    if (earlierCopy['status'] != CopyStatus.available ||
+        earlierCopy['activeLoanId'] != null) {
+      writeFail('Copy is ${earlierCopy['status']}');
+    }
     final title = (await (await schoolDocument(
       'libraryCatalogue',
       earlierCopy['catalogueId'] as String,

@@ -28,9 +28,8 @@ const bookImportColumns = [
   BookImportColumn(
     'barcode',
     'Barcode',
-    'The copy\'s barcode / accession number. Different on every row.',
+    'The copy\'s barcode / accession number, different on every row. Leave empty and the system issues one.',
     'ACC-0001',
-    required: true,
   ),
   BookImportColumn(
     'title',
@@ -127,12 +126,16 @@ class BookImportCopy {
 
   /// Row number in the sheet (the header is row 1).
   final int line;
-  final String barcode;
+
+  /// Null when the sheet leaves it empty: the system issues one on import.
+  final String? barcode;
   final String libraryId;
   final String? shelf;
   final String condition;
   final double price;
   final String? date;
+
+  String get barcodeLabel => barcode ?? 'Auto';
 }
 
 /// A title and the copies the sheet lists for it (rows with the same title, first author,
@@ -158,7 +161,10 @@ class BookImportBook {
   List<Map<String, Object?>> get copyBatches {
     final byLibrary = <String, List<BookImportCopy>>{};
     for (final copy in copies) {
-      byLibrary.putIfAbsent(copy.libraryId, () => []).add(copy);
+      // Copies with a sheet barcode and copies awaiting a generated one go in separate calls.
+      byLibrary
+          .putIfAbsent('${copy.libraryId}|${copy.barcode != null}', () => [])
+          .add(copy);
     }
     return [
       for (final group in byLibrary.values)
@@ -168,7 +174,8 @@ class BookImportBook {
             return <String, Object?>{
               'libraryId': part.first.libraryId,
               'quantity': part.length,
-              'barcodes': [for (final copy in part) copy.barcode],
+              if (part.first.barcode != null)
+                'barcodes': [for (final copy in part) copy.barcode],
               'details': [
                 for (final copy in part)
                   {
@@ -369,7 +376,7 @@ BookImportPlan planBookImport(
 
     final barcode = value('barcode');
     if (barcode.isEmpty) {
-      errors.add('Barcode is required');
+      // Optional: the system issues a code on import.
     } else if (barcode.length > 64 || barcode.contains('/')) {
       errors.add('Barcode must be up to 64 characters without /');
     } else if (RegExp(r'^LB\d{6,}$', caseSensitive: false).hasMatch(barcode)) {
@@ -433,7 +440,7 @@ BookImportPlan planBookImport(
       issues.add(BookImportIssue(line, title, errors));
       continue;
     }
-    barcodeLines[barcode.toLowerCase()] = line;
+    if (barcode.isNotEmpty) barcodeLines[barcode.toLowerCase()] = line;
     String? orNull(String key) => value(key).isEmpty ? null : value(key);
     final group = books.putIfAbsent(
       identity,
@@ -461,7 +468,7 @@ BookImportPlan planBookImport(
     group.copies.add(
       BookImportCopy(
         line: line,
-        barcode: barcode,
+        barcode: barcode.isEmpty ? null : barcode,
         libraryId: lookups.libraryId,
         shelf: orNull('shelf'),
         condition: condition,

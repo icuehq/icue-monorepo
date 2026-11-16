@@ -19,10 +19,10 @@ class LibraryStatusChip extends StatelessWidget {
     return switch (status) {
       'available' ||
       'active' ||
-      'returned' ||
       'paid' ||
       'resolved' ||
       'on_time' => (Colors.green.shade700, Icons.check_circle_outline_rounded),
+      'returned' => (Colors.teal.shade700, Icons.assignment_return_outlined),
       'issued' || 'under_maintenance' || 'ready' => (
         Colors.blue.shade700,
         status == 'issued'

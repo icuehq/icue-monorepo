@@ -128,10 +128,7 @@ void main() {
       expect(errors[3], contains('also on row 2'));
       expect(errors[4], contains('Category differs from row 2'));
       expect(errors[5], allOf(contains('Price'), contains('Purchase Date')));
-      expect(
-        errors[6],
-        allOf(contains('Parent > Child'), contains('Barcode is required')),
-      );
+      expect(errors[6], contains('Parent > Child'));
       expect(errors[7], contains('reserved'));
     },
   );
@@ -152,6 +149,20 @@ void main() {
     expect(plan.issues, hasLength(1));
     expect(plan.issues.single.line, 3);
     expect(plan.issues.single.errors.single, contains('already exists'));
+  });
+
+  test('a blank barcode is allowed and imported in its own call', () {
+    final plan = _plan([
+      _row({'barcode': 'A1'}),
+      _row({'barcode': ''}),
+      _row({'barcode': ''}),
+    ]);
+    expect(plan.issues, isEmpty);
+    final batches = plan.books.single.copyBatches;
+    expect(batches, hasLength(2));
+    expect(batches.first['barcodes'], ['A1']);
+    expect(batches.last.containsKey('barcodes'), isFalse);
+    expect(batches.last['quantity'], 2);
   });
 
   test('dates in the common school formats', () {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
@@ -13,7 +14,7 @@ import 'package:school_library/src/ui/shared/person_picker.dart';
 class IssueBooksPage extends StatefulWidget {
   const IssueBooksPage({this.copy, super.key});
 
-  /// A book already scanned before the page opened; issued automatically once borrower is selected.
+  /// A book already scanned before the page opened; it waits in the queue until a borrower is selected.
   final LibraryCopy? copy;
 
   @override
@@ -84,11 +85,6 @@ class _IssueBooksPageState extends State<IssueBooksPage> {
   Future<void> _scan(String rawCode) async {
     final code = rawCode.trim();
     if (code.isEmpty || _busy) return;
-    if (_person == null) {
-      _notify('Select a borrower before scanning books');
-      return;
-    }
-
     final libraryProvider = context.read<LibraryProvider>();
     setState(() => _busy = true);
     try {
@@ -118,6 +114,23 @@ class _IssueBooksPageState extends State<IssueBooksPage> {
       copy.catalogueId,
     );
     if (!mounted) return;
+    if (copy.status != CopyStatus.available) {
+      setState(() {
+        _records.insert(
+          0,
+          IssueScanRecord(
+            barcode: copy.barcode,
+            success: false,
+            message: 'Copy is ${copy.status}',
+            timestamp: DateTime.now(),
+            title: book?.title ?? copy.barcode,
+            authors: book?.authors.join(', '),
+            copy: copy,
+          ),
+        );
+      });
+      return;
+    }
     setState(() {
       _queue.add(
         IssueScanRecord(
@@ -230,6 +243,18 @@ class _IssueBooksPageState extends State<IssueBooksPage> {
     );
   }
 
+  Widget _buildBooksCard(LibraryPerson? person) => IssueBooksCard(
+    person: person,
+    queue: _queue,
+    records: _records,
+    successfulCount: _successfulCount,
+    busy: _busy,
+    onScan: _scan,
+    onRemoveQueued: (record) => setState(() => _queue.remove(record)),
+    onIssue: _issueQueued,
+    onDone: () => Navigator.of(context).pop(),
+  );
+
   @override
   Widget build(BuildContext context) {
     final person = _person;
@@ -265,21 +290,7 @@ class _IssueBooksPageState extends State<IssueBooksPage> {
                   children: [
                     Expanded(flex: 5, child: _buildBorrowerCard(context)),
                     const SizedBox(width: 24),
-                    Expanded(
-                      flex: 7,
-                      child: IssueBooksCard(
-                        person: person,
-                        queue: _queue,
-                        records: _records,
-                        successfulCount: _successfulCount,
-                        busy: _busy,
-                        onScan: _scan,
-                        onRemoveQueued: (record) =>
-                            setState(() => _queue.remove(record)),
-                        onIssue: _issueQueued,
-                        onDone: () => Navigator.of(context).pop(),
-                      ),
-                    ),
+                    Expanded(flex: 7, child: _buildBooksCard(person)),
                   ],
                 )
               : Column(
@@ -287,18 +298,7 @@ class _IssueBooksPageState extends State<IssueBooksPage> {
                   children: [
                     _buildBorrowerCard(context),
                     const SizedBox(height: 16),
-                    IssueBooksCard(
-                      person: person,
-                      queue: _queue,
-                      records: _records,
-                      successfulCount: _successfulCount,
-                      busy: _busy,
-                      onScan: _scan,
-                      onRemoveQueued: (record) =>
-                          setState(() => _queue.remove(record)),
-                      onIssue: _issueQueued,
-                      onDone: () => Navigator.of(context).pop(),
-                    ),
+                    _buildBooksCard(person),
                   ],
                 ),
         ),

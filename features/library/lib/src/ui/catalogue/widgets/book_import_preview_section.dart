@@ -205,7 +205,7 @@ class BookImportPreviewSection extends StatelessWidget {
               final authors =
                   (book.book['authors'] as List<String>?)?.join(' ') ?? '';
               final barcodes = book.copies
-                  .map((copy) => copy.barcode)
+                  .map((copy) => copy.barcodeLabel)
                   .join(' ');
               return '${book.title} $authors $barcodes';
             },
@@ -293,9 +293,9 @@ class BookImportPreviewSection extends StatelessWidget {
                 id: 'barcodes',
                 label: 'Barcodes',
                 cellBuilder: (context, book) {
-                  final first = book.copies.first.barcode;
+                  final first = book.copies.first.barcodeLabel;
                   final label = book.copies.length > 1
-                      ? '$first … ${book.copies.last.barcode}'
+                      ? '$first … ${book.copies.last.barcodeLabel}'
                       : first;
                   return Text(
                     label,

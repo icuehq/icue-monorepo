@@ -50,8 +50,8 @@ class BookImportBookTile extends StatelessWidget {
 
     final subtitleText = switch (importResult) {
       null =>
-        '$copiesCount ${copiesCount == 1 ? 'copy' : 'copies'} · Barcodes: ${book.copies.first.barcode}'
-            '${copiesCount > 1 ? ' … ${book.copies.last.barcode}' : ''}',
+        '$copiesCount ${copiesCount == 1 ? 'copy' : 'copies'} · Barcodes: ${book.copies.first.barcodeLabel}'
+            '${copiesCount > 1 ? ' … ${book.copies.last.barcodeLabel}' : ''}',
       BookImportResult(:final error?) =>
         '${importResult.copiesAdded} of $copiesCount copies added. $error',
       _ =>

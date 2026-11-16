@@ -86,7 +86,7 @@ class _BookImportPageState extends State<BookImportPage> {
       plan = plan.withTakenBarcodes(
         await libraryProvider.service.existingBarcodes([
           for (final book in plan.books)
-            for (final copy in book.copies) copy.barcode,
+            for (final copy in book.copies) ?copy.barcode,
         ]),
       );
       setState(() {

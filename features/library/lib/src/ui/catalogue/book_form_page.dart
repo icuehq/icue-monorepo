@@ -92,7 +92,21 @@ class _BookFormPageState extends State<BookFormPage> {
     for (final controller in _identityFields) {
       controller.addListener(_checkDuplicate);
     }
-    unawaited(context.read<LibraryProvider>().loadStandards());
+    unawaited(_loadClasses());
+  }
+
+  /// A failed class load used to leave the picker silently empty; say why.
+  Future<void> _loadClasses() async {
+    final provider = context.read<LibraryProvider>();
+    await provider.loadStandards();
+    if (mounted &&
+        provider.standards.isEmpty &&
+        provider.errorMessage != null) {
+      IcueToast.error(
+        context,
+        'Classes could not be loaded: ${provider.errorMessage}',
+      );
+    }
   }
 
   @override

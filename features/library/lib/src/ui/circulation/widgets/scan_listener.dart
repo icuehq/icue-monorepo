@@ -10,7 +10,8 @@ import 'package:school_library/src/ui/circulation/widgets/loan_dialog.dart';
 /// Opens the circulation flow when the librarian scans a book anywhere in the Library screens.
 ///
 /// A keyboard-wedge scanner types the whole code within a few milliseconds and ends with Enter.
-/// Keys typed by hand are slower, and keys typed into a text field are left to that field.
+/// Keys typed by hand are slower, and keys typed into a text field are left to that field
+/// (except on a screen that sets [scanOverride]).
 class LibraryScanListener extends StatefulWidget {
   const LibraryScanListener({required this.child, super.key});
 
@@ -47,7 +48,10 @@ class _LibraryScanListenerState extends State<LibraryScanListener> {
   bool _onKey(KeyEvent event) {
     if (event is! KeyDownEvent || _handling || !mounted) return false;
     final focus = FocusManager.instance.primaryFocus?.context;
-    if (focus?.findAncestorWidgetOfExactType<EditableText>() != null) {
+    final field = focus?.findAncestorStateOfType<EditableTextState>();
+    // Issue Books takes scans itself, so a scan typed while one of its fields has focus counts too.
+    final inField = field != null && LibraryScanListener.scanOverride == null;
+    if (inField) {
       _code.clear();
       return false;
     }
@@ -56,6 +60,8 @@ class _LibraryScanListenerState extends State<LibraryScanListener> {
       final code = _code.toString();
       _code.clear();
       if (code.length < _minLength) return false;
+      // The scanner typed the code into the focused field; take it back out.
+      field?.widget.controller.clear();
       _handle(code);
       return true;
     }

@@ -31,14 +31,20 @@ class IcueMultiAutocomplete<T extends Object> extends StatelessWidget {
   Iterable<T> _matches(String text) {
     final query = text.trim().toLowerCase();
     return options.where(
-      (option) =>
-          (!multiple || !selected.contains(option)) &&
-          labelOf(option).toLowerCase().contains(query),
+      (option) => labelOf(option).toLowerCase().contains(query),
     );
   }
 
-  void _pick(T option) =>
-      onChanged(multiple ? [...selected, option] : [option]);
+  void _pick(T option) => onChanged(
+    !multiple
+        ? [option]
+        : selected.contains(option)
+        ? [
+            for (final other in selected)
+              if (other != option) other,
+          ]
+        : [...selected, option],
+  );
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
@@ -48,49 +54,50 @@ class IcueMultiAutocomplete<T extends Object> extends StatelessWidget {
       optionsBuilder: (value) => _matches(value.text),
       onSelected: _pick,
       fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
-        return TextField(
-          controller: controller,
-          focusNode: focusNode,
-          decoration:
-              icueInputDecoration(
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (selected.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: [
+                    for (final item in selected)
+                      InputChip(
+                        label: Text(labelOf(item)),
+                        visualDensity: VisualDensity.compact,
+                        onDeleted: () => onChanged([
+                          for (final other in selected)
+                            if (other != item) other,
+                        ]),
+                      ),
+                  ],
+                ),
+              ),
+            TextField(
+              controller: controller,
+              focusNode: focusNode,
+              decoration: icueInputDecoration(
                 label: label,
-                hintText: selected.isEmpty ? hintText : null,
+                hintText: hintText,
                 helperText: helperText,
                 icon: icon,
-              ).copyWith(
-                // The text is empty, so the label would sit over the chips.
-                floatingLabelBehavior: selected.isEmpty
-                    ? FloatingLabelBehavior.auto
-                    : FloatingLabelBehavior.always,
-                prefix: selected.isEmpty
-                    ? null
-                    : Wrap(
-                        spacing: 6,
-                        runSpacing: 4,
-                        children: [
-                          for (final item in selected)
-                            InputChip(
-                              label: Text(labelOf(item)),
-                              visualDensity: VisualDensity.compact,
-                              onDeleted: () => onChanged([
-                                for (final other in selected)
-                                  if (other != item) other,
-                              ]),
-                            ),
-                        ],
-                      ),
               ),
-          // Enter picks the first match.
-          onSubmitted: (_) {
-            final match = _matches(controller.text)
-                .where((option) => !multiple || !selected.contains(option))
-                .firstOrNull;
-            if (match != null) {
-              controller.clear();
-              _pick(match);
-              focusNode.requestFocus();
-            }
-          },
+              // Enter picks the first match.
+              onSubmitted: (_) {
+                final match = _matches(controller.text)
+                    .where((option) => !multiple || !selected.contains(option))
+                    .firstOrNull;
+                if (match != null) {
+                  controller.clear();
+                  _pick(match);
+                  focusNode.requestFocus();
+                }
+              },
+            ),
+          ],
         );
       },
       optionsViewBuilder: (context, onSelected, matches) => Align(

@@ -38,10 +38,7 @@ class IssueBooksCard extends StatelessWidget {
     return IssueStepCard(
       step: 2,
       title: 'Books to Issue',
-      subtitle: hasPerson
-          ? 'Scan or type book barcode'
-          : 'Select borrower to begin scanning',
-      active: hasPerson,
+      subtitle: 'Scan or type book barcode',
       trailing: successfulCount > 0
           ? Chip(
               label: Text('$successfulCount issued'),
@@ -56,9 +53,7 @@ class IssueBooksCard extends StatelessWidget {
       children: [
         IcueScanField(
           autofocus: hasPerson,
-          hint: hasPerson
-              ? 'Scan or type book barcode'
-              : 'Select borrower first to scan',
+          hint: 'Scan or type book barcode',
           onScan: onScan,
           clearOnScan: true,
         ),
@@ -75,9 +70,11 @@ class IssueBooksCard extends StatelessWidget {
         for (final record in queue)
           IssueScanItemCard(
             record: record,
+            person: person,
             onRemove: busy ? null : () => onRemoveQueued(record),
           ),
-        for (final record in records) IssueScanItemCard(record: record),
+        for (final record in records)
+          IssueScanItemCard(record: record, person: person),
         if (queue.isEmpty && records.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 36),
@@ -97,7 +94,7 @@ class IssueBooksCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  hasPerson ? 'Ready to scan books' : 'Select a borrower',
+                  'Ready to scan books',
                   style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
@@ -106,7 +103,7 @@ class IssueBooksCard extends StatelessWidget {
                 Text(
                   hasPerson
                       ? 'Use a barcode scanner, or type the code above and tap search.'
-                      : 'Choose a student or staff member to activate scanning.',
+                      : 'Scan books now and select the borrower before issuing, or the other way round.',
                   textAlign: TextAlign.center,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: colorScheme.onSurfaceVariant,

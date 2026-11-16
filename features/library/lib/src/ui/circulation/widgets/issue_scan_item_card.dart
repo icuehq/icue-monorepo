@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:school_library/school_library.dart';
 import 'package:school_library/src/ui/shared/library_status_chip.dart';
+import 'package:school_library/src/ui/shared/member_details.dart';
 
 /// One copy scan attempt in the current session.
 class IssueScanRecord {
@@ -28,9 +29,17 @@ class IssueScanRecord {
 
 /// Visual card representing one issued book, failed issue attempt, or pending pre-scanned book.
 class IssueScanItemCard extends StatelessWidget {
-  const IssueScanItemCard({required this.record, this.onRemove, super.key});
+  const IssueScanItemCard({
+    required this.record,
+    this.person,
+    this.onRemove,
+    super.key,
+  });
 
   final IssueScanRecord record;
+
+  /// The borrower: their class and admission number show under the title.
+  final LibraryPerson? person;
   final VoidCallback? onRemove;
 
   @override
@@ -114,6 +123,14 @@ class IssueScanItemCard extends StatelessWidget {
                           color: colorScheme.onSurfaceVariant,
                         ),
                       ),
+                    ),
+                  if (person case final person?)
+                    MemberDetailsLine(
+                      classId: person.classId,
+                      section: person.section,
+                      admissionNumber: person.admissionNumber,
+                      isEmployee: !person.isStudent,
+                      date: record.timestamp.toIndianTime().toNumericDate(),
                     ),
                   const SizedBox(height: 6),
                   Wrap(

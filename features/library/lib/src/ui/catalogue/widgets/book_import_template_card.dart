@@ -7,9 +7,10 @@ class BookImportTemplateCard extends StatelessWidget {
 
   final Future<void> Function(String format) onDownload;
 
-  static const _requiredColumns = ['Barcode', 'Title', 'Authors', 'Category'];
+  static const _requiredColumns = ['Title', 'Authors', 'Category'];
 
   static const _optionalColumns = [
+    'Barcode',
     'Shelf',
     'Condition',
     'Price',
@@ -35,7 +36,7 @@ class BookImportTemplateCard extends StatelessWidget {
       children: [
         Text(
           'Fill in book details using our official spreadsheet template. '
-          'Each row represents one physical copy with its unique barcode. '
+          'Each row represents one physical copy with its unique barcode (leave it empty to have the system issue one). '
           'Copies with matching title, first author, edition, publisher, and year '
           'are automatically grouped into one book catalogue record.',
           style: theme.textTheme.bodyMedium?.copyWith(
