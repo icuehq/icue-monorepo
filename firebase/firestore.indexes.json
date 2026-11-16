@@ -523,6 +523,79 @@
       "density": "SPARSE_ALL"
     },
     {
+      "collectionGroup": "libraryCatalogue",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "libraryIds",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "categoryId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "title",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "libraryCatalogue",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "libraryIds",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "title",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "libraryCatalogue",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "libraryIds",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "categoryId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "title",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
       "collectionGroup": "libraryFines",
       "queryScope": "COLLECTION",
       "fields": [

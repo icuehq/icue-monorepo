@@ -1,8 +1,11 @@
 library;
 
+import 'dart:async';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:icue_firebase/src/analytics_service.dart';
 import 'package:icue_firebase/src/crashlytics_service.dart';
 import 'package:icue_firebase/src/emulator.dart';
@@ -39,5 +42,8 @@ Future<void> initFirebase(FirebaseOptions options) async {
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   }
   await CrashlyticsService.instance.init();
-  await AnalyticsService.instance.init();
+  // Analytics isn't needed to render; set it up after the first frame.
+  WidgetsBinding.instance
+    ..addPostFrameCallback((_) => unawaited(AnalyticsService.instance.init()))
+    ..ensureVisualUpdate();
 }

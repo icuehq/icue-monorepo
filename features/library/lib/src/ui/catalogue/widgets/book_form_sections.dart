@@ -39,6 +39,9 @@ class BookBasicSection extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.authors,
+    required this.libraries,
+    required this.libraryId,
+    required this.onLibraryChanged,
     required this.categoryId,
     required this.categories,
     required this.categoryLabel,
@@ -49,6 +52,9 @@ class BookBasicSection extends StatelessWidget {
   final TextEditingController title;
   final TextEditingController subtitle;
   final TextEditingController authors;
+  final List<SchoolLibrary> libraries;
+  final String? libraryId;
+  final ValueChanged<String?> onLibraryChanged;
   final String? categoryId;
   final List<LibraryCategory> categories;
   final String Function(LibraryCategory category) categoryLabel;
@@ -59,6 +65,19 @@ class BookBasicSection extends StatelessWidget {
     title: 'Basic information',
     icon: Icons.auto_stories_outlined,
     children: [
+      // A single library is preselected by the form and needs no choice.
+      if (libraries.length > 1)
+        IcueDropdown<String>(
+          value: libraryId,
+          items: [
+            for (final library in libraries)
+              DropdownMenuItem(value: library.id, child: Text(library.name)),
+          ],
+          onChanged: onLibraryChanged,
+          validator: (value) => value == null ? 'Select a library' : null,
+          icon: Icons.local_library_outlined,
+          label: 'Library *',
+        ),
       IcueTextField(
         controller: title,
         maxLength: 200,

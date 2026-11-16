@@ -292,7 +292,7 @@ List<_Option> _options(bool damaged) => damaged
         ),
         (
           value: 'not_recovered',
-          label: 'Book is lost for good',
+          label: 'Book could not be recovered',
           hint: 'The lost book is removed and the member still has to pay the fine.',
         ),
       ];

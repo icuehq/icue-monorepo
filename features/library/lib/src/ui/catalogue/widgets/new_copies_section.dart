@@ -10,6 +10,7 @@ class NewCopiesSection extends StatefulWidget {
     required this.copies,
     required this.barcodes,
     required this.libraries,
+    this.showLibrary = true,
     required this.libraryId,
     required this.onLibraryChanged,
     required this.generate,
@@ -23,6 +24,9 @@ class NewCopiesSection extends StatefulWidget {
   /// One controller per copy, grown and shrunk here; the owner disposes them.
   final List<TextEditingController> barcodes;
   final List<SchoolLibrary> libraries;
+
+  /// False when the form already asks for the library elsewhere.
+  final bool showLibrary;
   final String? libraryId;
   final ValueChanged<String?> onLibraryChanged;
 
@@ -141,7 +145,7 @@ class _NewCopiesSectionState extends State<NewCopiesSection> {
             helperText: widget.allowNone ? '0 adds the title only' : null,
           ),
           // With a single library it is preselected by the form and needs no choice.
-          if (libraries.length != 1)
+          if (widget.showLibrary && libraries.length != 1)
             IcueDropdown<String>(
               value: widget.libraryId,
               items: [

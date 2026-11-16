@@ -129,7 +129,9 @@ class _BookFormPageState extends State<BookFormPage> {
     final hint = mock.categoryHint.toLowerCase();
     final category = provider.categories.where(
       (category) =>
-          category.active && category.name.toLowerCase().contains(hint),
+          category.active &&
+          category.libraryId == _libraryId &&
+          category.name.toLowerCase().contains(hint),
     );
     setState(() {
       _title.text = mock.title;
@@ -245,12 +247,16 @@ class _BookFormPageState extends State<BookFormPage> {
       for (final schoolLibrary in libraryProvider.libraries)
         if (schoolLibrary.active) schoolLibrary,
     ];
-    _libraryId ??= libraries.firstOrNull?.id;
-    // Inactive categories stay selectable only when the book already uses one.
+    // Editing keeps the library of the book's category; adding starts with the first one.
+    _libraryId ??=
+        libraryProvider.category(_existingBook?.categoryId)?.libraryId ??
+        libraries.firstOrNull?.id;
+    // Only the selected library's categories; inactive ones stay selectable only when the book already uses one.
     final categories = libraryProvider.categories
         .where(
           (category) =>
-              category.active || category.id == _existingBook?.categoryId,
+              category.libraryId == _libraryId &&
+              (category.active || category.id == _existingBook?.categoryId),
         )
         .toList();
 
@@ -259,6 +265,13 @@ class _BookFormPageState extends State<BookFormPage> {
         title: _title,
         subtitle: _subtitle,
         authors: _authors,
+        libraries: editing ? const [] : libraries,
+        libraryId: _libraryId,
+        onLibraryChanged: (value) => setState(() {
+          _libraryId = value;
+          _categoryId = null;
+          _dirty = true;
+        }),
         categoryId: _categoryId,
         categories: categories,
         categoryLabel: (category) => category.parentId == null
@@ -296,6 +309,7 @@ class _BookFormPageState extends State<BookFormPage> {
           libraries: libraries,
           libraryId: _libraryId,
           onLibraryChanged: (value) => setState(() => _libraryId = value),
+          showLibrary: false,
           generate: _generateBarcodes,
           onGenerateChanged: (value) =>
               setState(() => _generateBarcodes = value),

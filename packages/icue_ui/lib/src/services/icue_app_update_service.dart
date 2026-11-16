@@ -8,7 +8,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 /// Store-driven update prompts. Android uses Play in-app updates; iOS looks up
 /// the App Store listing and shows the native store sheet when it is newer.
-/// No-op in debug builds (and for builds not installed from the store).
+/// No-op in debug builds, on web, and for builds not installed from the store.
 class IcueAppUpdateService {
   const IcueAppUpdateService._();
 
@@ -17,7 +17,7 @@ class IcueAppUpdateService {
 
   /// Call once at startup. Never throws: a failed check must not affect the app.
   static Future<void> checkForUpdate() async {
-    if (kDebugMode) return;
+    if (kDebugMode || kIsWeb) return;
     try {
       if (Platform.isAndroid) {
         await _android();
