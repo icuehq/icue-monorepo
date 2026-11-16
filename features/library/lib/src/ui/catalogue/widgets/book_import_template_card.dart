@@ -7,13 +7,7 @@ class BookImportTemplateCard extends StatelessWidget {
 
   final Future<void> Function(String format) onDownload;
 
-  static const _requiredColumns = [
-    'Barcode',
-    'Title',
-    'Authors',
-    'Category',
-    'Library',
-  ];
+  static const _requiredColumns = ['Barcode', 'Title', 'Authors', 'Category'];
 
   static const _optionalColumns = [
     'Shelf',

@@ -28,6 +28,17 @@ class _BookImportPageState extends State<BookImportPage> {
   bool _finished = false;
   final _results = <int, BookImportResult>{};
 
+  /// The library every copy of this import goes into: the only one a user has, else the one chosen.
+  String? _libraryId;
+
+  List<SchoolLibrary> _activeLibraries(LibraryProvider libraryProvider) =>
+      libraryProvider.libraries.where((library) => library.active).toList();
+
+  String? _selectedLibraryId(LibraryProvider libraryProvider) {
+    final libraries = _activeLibraries(libraryProvider);
+    return libraries.length == 1 ? libraries.single.id : _libraryId;
+  }
+
   Future<void> _download(String format) async {
     final saved = format == 'xlsx'
         ? await saveFileBytes(
@@ -57,6 +68,8 @@ class _BookImportPageState extends State<BookImportPage> {
 
   Future<void> _choose() async {
     final libraryProvider = context.read<LibraryProvider>();
+    final libraryId = _selectedLibraryId(libraryProvider);
+    if (libraryId == null) return;
     final file = await pickSpreadsheet();
     if (file == null) return;
     if (libraryProvider.libraries.isEmpty ||
@@ -67,7 +80,7 @@ class _BookImportPageState extends State<BookImportPage> {
     try {
       var plan = planBookImport(
         readSheetRows(file.name, file.bytes),
-        _lookups(libraryProvider),
+        _lookups(libraryProvider, libraryId),
       );
       // Every check runs now, before anything is written.
       plan = plan.withTakenBarcodes(
@@ -100,28 +113,23 @@ class _BookImportPageState extends State<BookImportPage> {
     }
   }
 
-  BookImportLookups _lookups(LibraryProvider libraryProvider) {
+  BookImportLookups _lookups(
+    LibraryProvider libraryProvider,
+    String libraryId,
+  ) {
     final categoryIds = <String, String?>{};
-    void addCategory(String name, String id) =>
-        categoryIds[name.toLowerCase()] =
-            categoryIds.containsKey(name.toLowerCase()) ? null : id;
+    void add(String name, String id) => categoryIds[name.toLowerCase()] =
+        categoryIds.containsKey(name.toLowerCase()) ? null : id;
     for (final category in libraryProvider.categories.where(
-      (category) => category.active,
+      (category) => category.active && category.libraryId == libraryId,
     )) {
-      addCategory(category.name, category.id);
+      add(category.name, category.id);
       final parent = libraryProvider.category(category.parentId);
-      if (parent != null) {
-        addCategory('${parent.name} > ${category.name}', category.id);
-      }
+      if (parent != null) add('${parent.name} > ${category.name}', category.id);
     }
     return BookImportLookups(
+      libraryId: libraryId,
       categoryIds: categoryIds,
-      libraryIds: {
-        for (final library in libraryProvider.libraries.where(
-          (library) => library.active,
-        ))
-          library.name.toLowerCase(): library.id,
-      },
       classIds: {
         for (final standard in libraryProvider.standards)
           standard.name.toLowerCase(): standard.id,
@@ -166,12 +174,15 @@ class _BookImportPageState extends State<BookImportPage> {
         .length;
     final isWide = context.isWide;
 
+    final libraryProvider = context.watch<LibraryProvider>();
+    final libraries = _activeLibraries(libraryProvider);
     final templateCard = BookImportTemplateCard(onDownload: _download);
     final uploadCard = BookImportUploadCard(
       fileName: _fileName,
       problem: _problem,
       isImporting: _importing,
       onChoose: _choose,
+      enabled: _selectedLibraryId(libraryProvider) != null,
     );
 
     return Scaffold(
@@ -181,6 +192,33 @@ class _BookImportPageState extends State<BookImportPage> {
         child: ListView(
           padding: EdgeInsets.all(isWide ? 24 : 16),
           children: [
+            if (libraries.length > 1) ...[
+              IcueFormSectionCard(
+                title: 'Import into library',
+                icon: Icons.local_library_outlined,
+                children: [
+                  IcueDropdown<String>(
+                    value: _libraryId,
+                    items: [
+                      for (final library in libraries)
+                        DropdownMenuItem(
+                          value: library.id,
+                          child: Text(library.name),
+                        ),
+                    ],
+                    onChanged: _importing
+                        ? null
+                        : (value) {
+                            _reset();
+                            setState(() => _libraryId = value);
+                          },
+                    label: 'Library',
+                    hintText: 'Choose where these books go',
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+            ],
             if (isWide)
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,

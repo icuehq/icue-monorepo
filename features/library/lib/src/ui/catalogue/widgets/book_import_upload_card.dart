@@ -8,6 +8,7 @@ class BookImportUploadCard extends StatelessWidget {
     required this.problem,
     required this.isImporting,
     required this.onChoose,
+    this.enabled = true,
     super.key,
   });
 
@@ -15,6 +16,9 @@ class BookImportUploadCard extends StatelessWidget {
   final String? problem;
   final bool isImporting;
   final VoidCallback onChoose;
+
+  /// False until a library is chosen.
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +48,7 @@ class BookImportUploadCard extends StatelessWidget {
       children: [
         if (file == null)
           InkWell(
-            onTap: isImporting ? null : onChoose,
+            onTap: isImporting || !enabled ? null : onChoose,
             borderRadius: BorderRadius.circular(10),
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),

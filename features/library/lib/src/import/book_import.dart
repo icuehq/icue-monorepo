@@ -54,13 +54,6 @@ const bookImportColumns = [
     required: true,
   ),
   BookImportColumn(
-    'library',
-    'Library',
-    'Name of the library holding this copy.',
-    'Central Library',
-    required: true,
-  ),
-  BookImportColumn(
     'shelf',
     'Shelf',
     'Shelf or rack of the copy. Optional.',
@@ -223,17 +216,20 @@ class BookImportPlan {
   int get copyCount => books.fold(0, (sum, book) => sum + book.copies.length);
 }
 
-/// The Library's lists a sheet refers to by name.
+/// The lists a sheet refers to by name. Every copy goes into [libraryId], chosen before the upload, and
+/// only that library's categories count.
 class BookImportLookups {
   const BookImportLookups({
+    required this.libraryId,
     required this.categoryIds,
-    required this.libraryIds,
     required this.classIds,
   });
 
-  /// Lower-case category name (or `parent > child`) to ID; null when two categories share the name.
+  final String libraryId;
+
+  /// Lower-case category name (or `parent > child`) of the library to ID; null when two categories
+  /// share the name.
   final Map<String, String?> categoryIds;
-  final Map<String, String> libraryIds;
   final Map<String, int> classIds;
 }
 
@@ -347,23 +343,6 @@ BookImportPlan planBookImport(
       errors.add('Enter 1 to 10 authors');
     }
 
-    final categoryName = value('category')
-        .toLowerCase()
-        .replaceAll(RegExp(r'\s*>\s*'), ' > ');
-    String? categoryId;
-    if (categoryName.isEmpty) {
-      errors.add('Category is required');
-    } else if (!lookups.categoryIds.containsKey(categoryName)) {
-      errors.add('Category "${value('category')}" not found');
-    } else {
-      categoryId = lookups.categoryIds[categoryName];
-      if (categoryId == null) {
-        errors.add(
-          'Category "${value('category')}" exists under more than one parent; write Parent > Child',
-        );
-      }
-    }
-
     int? whole(String key, int min, int max) {
       final text = value(key);
       if (text.isEmpty) return null;
@@ -402,11 +381,21 @@ BookImportPlan planBookImport(
       }
     }
 
-    final libraryId = lookups.libraryIds[value('library').toLowerCase()];
-    if (value('library').isEmpty) {
-      errors.add('Library is required');
-    } else if (libraryId == null) {
-      errors.add('Library "${value('library')}" not found');
+    final categoryName = value('category')
+        .toLowerCase()
+        .replaceAll(RegExp(r'\s*>\s*'), ' > ');
+    String? categoryId;
+    if (categoryName.isEmpty) {
+      errors.add('Category is required');
+    } else if (!lookups.categoryIds.containsKey(categoryName)) {
+      errors.add('Category "${value('category')}" not found in this library');
+    } else {
+      categoryId = lookups.categoryIds[categoryName];
+      if (categoryId == null) {
+        errors.add(
+          'Category "${value('category')}" exists under more than one parent; write Parent > Child',
+        );
+      }
     }
 
     final condition = value('condition').isEmpty
@@ -473,7 +462,7 @@ BookImportPlan planBookImport(
       BookImportCopy(
         line: line,
         barcode: barcode,
-        libraryId: libraryId!,
+        libraryId: lookups.libraryId,
         shelf: orNull('shelf'),
         condition: condition,
         price: price!,
@@ -488,36 +477,39 @@ String _header(String key) =>
     bookImportColumns.firstWhere((column) => column.key == key).header;
 
 /// The empty import sheet: a header and example rows (the first two are copies of one book).
-List<List<String>> bookImportTemplateRows() => [
-  [
-    for (final column in bookImportColumns)
-      column.required ? '${column.header} *' : column.header,
-  ],
-  [for (final column in bookImportColumns) column.example],
-  [
-    for (final column in bookImportColumns)
-      column.key == 'barcode' ? 'ACC-0002' : column.example,
-  ],
-  [
-    for (final column in bookImportColumns)
-      switch (column.key) {
-        'barcode' => 'ACC-0003',
-        'title' => 'Malgudi Days',
-        'authors' => 'R. K. Narayan',
-        'category' => 'Fiction',
-        'condition' => 'fair',
-        'price' => '180',
-        'subtitle' => '',
-        'publisher' => 'Indian Thought',
-        'edition' => '',
-        'year' => '1982',
-        'pages' => '240',
-        'classes' => 'Class 6',
-        'keywords' => 'stories',
-        _ => column.example,
-      },
-  ],
-];
+List<List<String>> bookImportTemplateRows() {
+  const columns = bookImportColumns;
+  return [
+    [
+      for (final column in columns)
+        column.required ? '${column.header} *' : column.header,
+    ],
+    [for (final column in columns) column.example],
+    [
+      for (final column in columns)
+        column.key == 'barcode' ? 'ACC-0002' : column.example,
+    ],
+    [
+      for (final column in columns)
+        switch (column.key) {
+          'barcode' => 'ACC-0003',
+          'title' => 'Malgudi Days',
+          'authors' => 'R. K. Narayan',
+          'category' => 'Fiction',
+          'condition' => 'fair',
+          'price' => '180',
+          'subtitle' => '',
+          'publisher' => 'Indian Thought',
+          'edition' => '',
+          'year' => '1982',
+          'pages' => '240',
+          'classes' => 'Class 6',
+          'keywords' => 'stories',
+          _ => column.example,
+        },
+    ],
+  ];
+}
 
 /// What each column takes, for the Instructions sheet.
 List<List<String>> bookImportInstructionRows() => [
@@ -528,6 +520,9 @@ List<List<String>> bookImportInstructionRows() => [
   ['Notes'],
   [
     'One row per physical copy. Delete the example rows and keep the header row.',
+  ],
+  [
+    'Every copy goes into the library you choose on the import page, so there is no Library column. Category must be one of that library\'s categories.',
   ],
   [
     'Rows with the same Title, first Author, Edition, Publisher and Year are one book; its copies are grouped under it.',

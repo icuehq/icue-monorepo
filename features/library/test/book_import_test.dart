@@ -5,13 +5,13 @@ import 'package:school_library/src/import/book_import.dart';
 import 'package:school_library/src/import/spreadsheet.dart';
 
 const _lookups = BookImportLookups(
+  libraryId: 'l1',
   categoryIds: {
     'biography': 'c1',
     'fiction': 'c3',
     'science > physics': 'c2',
     'shared': null,
   },
-  libraryIds: {'central library': 'l1', 'junior library': 'l2'},
   classIds: {'class 6': 6, 'class 8': 8, 'class 9': 9},
 );
 
@@ -25,7 +25,6 @@ List<String> _row(Map<String, String> cells) => [
           'title': 'T',
           'authors': 'A',
           'category': 'Biography',
-          'library': 'Central Library',
           ...cells,
         }[column.key] ??
         '',
@@ -53,58 +52,58 @@ void main() {
     ]);
   });
 
-  test('copy rows are grouped into books, split by library and shelf', () {
-    final wings = {
-      'title': 'Wings of Fire',
-      'authors': 'Kalam; Tiwari',
-      'year': '1999',
-    };
-    final plan = _plan([
-      _row({
-        ...wings,
-        'barcode': 'A1',
+  test(
+    'copy rows are grouped into books, every copy goes into the chosen library',
+    () {
+      final wings = {
+        'title': 'Wings of Fire',
+        'authors': 'Kalam; Tiwari',
+        'year': '1999',
+      };
+      final plan = _plan([
+        _row({
+          ...wings,
+          'barcode': 'A1',
+          'shelf': 'B-1',
+          'price': '250',
+          'acquiredDate': '31/03/2024',
+        }),
+        _row({
+          ...wings,
+          'barcode': 'A2',
+          'title': 'wings  of fire',
+          'authors': 'KALAM',
+          'shelf': 'B-1',
+          'price': '250',
+          'acquiredDate': '31/03/2024',
+        }),
+        _row({...wings, 'barcode': 'A3'}),
+        _row({...wings, 'barcode': 'A4', 'year': '2005'}),
+        List.filled(_header.length, ''),
+      ]);
+      expect(plan.issues, isEmpty);
+      expect(
+        plan.books,
+        hasLength(2),
+      ); // 1999 and 2005 editions are different titles
+      final first = plan.books.first;
+      expect(first.copies, hasLength(3));
+      expect(first.book['authors'], ['Kalam', 'Tiwari']);
+      final batches = first.copyBatches;
+      expect(batches, hasLength(1));
+      expect(batches.single['libraryId'], 'l1');
+      expect(batches.single['barcodes'], ['A1', 'A2', 'A3']);
+      final details = batches.single['details']! as List<Map<String, Object?>>;
+      expect(details.first, {
         'shelf': 'B-1',
-        'price': '250',
-        'acquiredDate': '31/03/2024',
-      }),
-      _row({
-        ...wings,
-        'barcode': 'A2',
-        'title': 'wings  of fire',
-        'authors': 'KALAM',
-        'shelf': 'B-1',
-        'price': '250',
-        'acquiredDate': '31/03/2024',
-      }),
-      _row({...wings, 'barcode': 'A3', 'library': 'Junior Library'}),
-      _row({...wings, 'barcode': 'A4', 'year': '2005'}),
-      List.filled(_header.length, ''),
-    ]);
-    expect(plan.issues, isEmpty);
-    expect(
-      plan.books,
-      hasLength(2),
-    ); // 1999 and 2005 editions are different titles
-    final first = plan.books.first;
-    expect(first.copies, hasLength(3));
-    expect(first.book['authors'], ['Kalam', 'Tiwari']);
-    final batches = first.copyBatches;
-    expect(batches, hasLength(2)); // one call per library
-    expect(batches.first['barcodes'], ['A1', 'A2']);
-    expect(batches.first['quantity'], 2);
-    final details = batches.first['details']! as List<Map<String, Object?>>;
-    expect(details.first, {
-      'shelf': 'B-1',
-      'condition': 'good',
-      'price': 250.0,
-      'date': '2024-03-31',
-    });
-    expect(batches.last['libraryId'], 'l2');
-    final junior =
-        (batches.last['details']! as List<Map<String, Object?>>).single;
-    expect(junior.containsKey('date'), isFalse);
-    expect(junior['shelf'], isNull);
-  });
+        'condition': 'good',
+        'price': 250.0,
+        'date': '2024-03-31',
+      });
+      expect(details.last.containsKey('date'), isFalse);
+      expect(details.last['shelf'], isNull);
+    },
+  );
 
   test(
     'bad rows are reported and left out; good rows of the same book stay',
@@ -116,7 +115,6 @@ void main() {
         _row({
           'barcode': 'A3',
           'category': 'Nope',
-          'library': 'Nowhere',
           'price': 'abc',
           'acquiredDate': '31/02/2024',
         }),
@@ -129,15 +127,7 @@ void main() {
       };
       expect(errors[3], contains('also on row 2'));
       expect(errors[4], contains('Category differs from row 2'));
-      expect(
-        errors[5],
-        allOf(
-          contains('Category "Nope"'),
-          contains('Library "Nowhere"'),
-          contains('Price'),
-          contains('Purchase Date'),
-        ),
-      );
+      expect(errors[5], allOf(contains('Price'), contains('Purchase Date')));
       expect(
         errors[6],
         allOf(contains('Parent > Child'), contains('Barcode is required')),
