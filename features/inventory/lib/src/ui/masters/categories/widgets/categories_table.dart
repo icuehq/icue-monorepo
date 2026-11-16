@@ -76,7 +76,7 @@ class CategoriesTable extends StatelessWidget {
         ),
         IcueClientFilter<InventoryCategory>(
           id: 'tracking',
-          label: 'Tracking',
+          label: 'Looked after as',
           options: [
             for (final tracking in Tracking.values)
               IcueTableFilterOption(tracking.name, tracking.label),
@@ -161,7 +161,7 @@ class CategoriesTable extends StatelessWidget {
         ),
         IcueTableColumn(
           id: 'tracking',
-          label: 'Tracking',
+          label: 'Looked after as',
           cellBuilder: (context, category) => IcueTableCellText(
             category.suggestedTracking.label,
             style: IcueTableStyle.of(context).secondary,

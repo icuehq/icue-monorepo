@@ -147,7 +147,7 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
         _infoRow(
           context,
           icon: Icons.track_changes_outlined,
-          label: 'Tracking method',
+          label: 'How it is looked after',
           value: item.tracking.label,
           helper: switch (item.tracking) {
             Tracking.quantity =>

@@ -24,6 +24,9 @@ class InventoryProvider extends ChangeNotifier implements ErrorReporting {
   String itemSearch = '';
   String? itemCategoryId;
 
+  /// How many of each loaded item are in stock (by item ID); missing until loaded.
+  final Map<String, double> inStock = {};
+
   /// Restricts the loaded items to one store (set per load, e.g. by the item picker).
   String? itemStoreId;
   DocumentSnapshot<Map<String, dynamic>>? _cursor;
@@ -115,11 +118,23 @@ class InventoryProvider extends ChangeNotifier implements ErrorReporting {
         _searchOffset += page.items.length;
         hasMoreItems = page.hasMore;
       }
+      await _loadInStock();
     } catch (error) {
       errorMessage = callableErrorMessage(error);
     } finally {
       itemsLoading = false;
       notifyListeners();
+    }
+  }
+
+  /// Stock figures for the loaded items; the list works without them if this fails.
+  Future<void> _loadInStock() async {
+    final missing = items.where((item) => !inStock.containsKey(item.id));
+    if (missing.isEmpty) return;
+    try {
+      inStock.addAll(await _service.inStock(missing.toList()));
+    } catch (_) {
+      // Shown as "—".
     }
   }
 

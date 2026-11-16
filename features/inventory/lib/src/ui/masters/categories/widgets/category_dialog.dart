@@ -277,7 +277,7 @@ class _CategoryDialogState extends State<CategoryDialog> {
                 onChanged: (tracking) {
                   if (tracking != null) setState(() => _tracking = tracking);
                 },
-                label: 'Suggested tracking *',
+                label: 'Usually looked after as *',
                 icon: Icons.track_changes_outlined,
               ),
               IcueTextField(

@@ -202,7 +202,7 @@ class _ItemListState extends State<_ItemList> {
                 subtitle: inventoryProvider.category(item.categoryId)?.name,
                 trailing: [
                   if (item.stockUnit.isNotEmpty) item.stockUnit,
-                  if (item.tracking == Tracking.batch) 'Batch',
+                  if (item.tracking == Tracking.batch) 'Has expiry date',
                 ].join(' · '),
                 onTap: () =>
                     Navigator.of(context, rootNavigator: true).pop(item),

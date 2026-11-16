@@ -229,7 +229,7 @@ class _ItemFormPageState extends State<ItemFormPage> {
               DropdownMenuItem(value: tracking, child: Text(tracking.label)),
           ],
           onChanged: (tracking) => _tracking = tracking ?? _tracking,
-          label: 'Tracking method *',
+          label: 'How is it looked after? *',
           icon: Icons.track_changes_outlined,
         ),
       ],

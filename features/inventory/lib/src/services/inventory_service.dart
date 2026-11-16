@@ -79,6 +79,42 @@ class InventoryService {
     );
   }
 
+  /// How many of each item are in stock: the available balances of counted items, the assets still in use for individually tracked ones.
+  Future<Map<String, double>> inStock(Iterable<InventoryItem> items) async {
+    final totals = {for (final item in items) item.id: 0.0};
+    final counted = [
+      for (final item in items)
+        if (item.tracking != Tracking.asset) item.id,
+    ];
+    final tracked = [
+      for (final item in items)
+        if (item.tracking == Tracking.asset) item.id,
+    ];
+    for (var start = 0; start < counted.length; start += 30) {
+      final balances = await (await branchCollection('inventoryBalances'))
+          .where('itemId', whereIn: counted.skip(start).take(30).toList())
+          .get();
+      for (final balance in balances.docs) {
+        final data = balance.data();
+        totals[data['itemId'] as String] =
+            totals[data['itemId']]! + readDouble(data['quantityAvailable']);
+      }
+    }
+    for (var start = 0; start < tracked.length; start += 30) {
+      final assets = await (await branchCollection('inventoryAssets'))
+          .where('itemId', whereIn: tracked.skip(start).take(30).toList())
+          .get();
+      for (final asset in assets.docs) {
+        final data = asset.data();
+        if (data['status'] == 'retired' || data['status'] == 'disposed') {
+          continue;
+        }
+        totals[data['itemId'] as String] = totals[data['itemId']]! + 1;
+      }
+    }
+    return totals;
+  }
+
   Future<InventoryItem?> item(String id) async {
     final document = await (await branchCollection('inventoryItems'))
         .doc(id)

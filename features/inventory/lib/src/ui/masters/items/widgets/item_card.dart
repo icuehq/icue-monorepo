@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 
 Widget _itemMetaPill(BuildContext context, IconData icon, String text) {
@@ -31,6 +32,7 @@ class ItemCard extends StatelessWidget {
     super.key,
     required this.item,
     required this.categoryName,
+    this.inStock,
     required this.canEdit,
     required this.onTap,
     required this.onEdit,
@@ -39,6 +41,9 @@ class ItemCard extends StatelessWidget {
 
   final InventoryItem item;
   final String? categoryName;
+
+  /// How many are in stock, once known.
+  final double? inStock;
   final bool canEdit;
   final VoidCallback onTap;
   final ValueChanged<InventoryItem> onEdit;
@@ -208,8 +213,10 @@ class ItemCard extends StatelessWidget {
                     ),
                   _itemMetaPill(
                     context,
-                    Icons.straighten_outlined,
-                    item.stockUnit,
+                    Icons.inventory_outlined,
+                    inStock == null
+                        ? item.stockUnit
+                        : 'In stock: ${inStock!.toQuantityText()} ${item.stockUnit}',
                   ),
                   _itemMetaPill(
                     context,

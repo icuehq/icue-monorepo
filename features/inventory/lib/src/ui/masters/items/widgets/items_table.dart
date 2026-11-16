@@ -179,8 +179,32 @@ class _ItemsTableState extends State<ItemsTable> {
           ),
         ),
         IcueTableColumn(
+          id: 'inStock',
+          label: 'In stock',
+          cellBuilder: (context, item) {
+            final count = provider.inStock[item.id];
+            if (count == null) {
+              return IcueTableCellText(
+                '—',
+                style: IcueTableStyle.of(context).secondary,
+              );
+            }
+            final low =
+                item.reorderLevel != null && count <= item.reorderLevel!;
+            return IcueTableCellText(
+              '${count.toQuantityText()} ${item.stockUnit}',
+              style: low
+                  ? IcueTableStyle.of(context).secondary.copyWith(
+                      color: Theme.of(context).colorScheme.error,
+                      fontWeight: FontWeight.w600,
+                    )
+                  : null,
+            );
+          },
+        ),
+        IcueTableColumn(
           id: 'tracking',
-          label: 'Tracking',
+          label: 'Looked after as',
           hideBelowWidth: 900,
           cellBuilder: (context, item) => IcueTableCellText(
             item.tracking.label,

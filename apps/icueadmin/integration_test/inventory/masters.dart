@@ -108,7 +108,7 @@ Future<void> mastersSteps(WidgetTester tester) async {
       await tapText(tester, subcategory, index: 1);
     }
     if (tracking != null) {
-      await tapText(tester, 'Tracking method *');
+      await tapText(tester, 'How is it looked after? *');
       await tapText(tester, tracking, index: 1);
     }
     await fill(tester, 'Reorder level', reorder);
@@ -146,7 +146,7 @@ Future<void> mastersSteps(WidgetTester tester) async {
         code: 'LAP-DELL-15',
         name: 'Dell Latitude 15 Core i5 Laptop',
         category: 'IT equipment',
-        tracking: 'Individual asset',
+        tracking: 'Handed out and returned',
         reorder: '3',
         price: '45000.00',
       );

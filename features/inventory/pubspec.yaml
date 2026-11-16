@@ -7,10 +7,10 @@ environment:
   sdk: ^3.13.1
 
 dependencies:
-  flutter:
-    sdk: flutter
   api_client:
   auth:
+  flutter:
+    sdk: flutter
   go_router: ^18.1.1
   icue_firebase:
   icue_ui:

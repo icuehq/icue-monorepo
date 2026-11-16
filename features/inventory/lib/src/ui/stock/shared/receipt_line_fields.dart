@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/stock/shared/line_editor.dart';
@@ -16,6 +17,7 @@ class ReceiptLineFields extends StatelessWidget {
     final theme = Theme.of(context);
     final item = lineDraft.item;
     final unit = item.stockUnit;
+    final isAsset = item.tracking == Tracking.asset;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -28,9 +30,11 @@ class ReceiptLineFields extends StatelessWidget {
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
-                inputFormatters: quantityFormatters,
-                validator: validateQuantity,
-                label: 'Quantity',
+                inputFormatters: isAsset
+                    ? [FilteringTextInputFormatter.digitsOnly]
+                    : quantityFormatters,
+                validator: isAsset ? validateWholeQuantity : validateQuantity,
+                label: isAsset ? 'How many received' : 'Quantity',
                 hintText: '0',
                 icon: Icons.numbers_rounded,
                 suffixText: unit.isEmpty ? null : unit,
@@ -45,7 +49,9 @@ class ReceiptLineFields extends StatelessWidget {
                 ),
                 inputFormatters: amountFormatters,
                 validator: validateAmount,
-                label: 'Unit cost (optional)',
+                label: isAsset
+                    ? 'Cost of each (optional)'
+                    : 'Unit cost (optional)',
                 hintText: '0.00',
                 icon: Icons.currency_rupee_rounded,
                 helperText: unit.isEmpty ? 'Per unit' : 'Per $unit',
@@ -53,6 +59,19 @@ class ReceiptLineFields extends StatelessWidget {
             ),
           ],
         ),
+        if (isAsset) ...[
+          const SizedBox(height: 8),
+          IcueTextField(
+            controller: lineDraft.serials,
+            minLines: 2,
+            maxLines: 6,
+            keyboardType: TextInputType.multiline,
+            validator: (_) => validateSerials(lineDraft),
+            label: 'Serial numbers (optional)',
+            hintText: 'One per line. Leave blank if there are none.',
+            icon: Icons.qr_code_2_rounded,
+          ),
+        ],
         if (item.tracking == Tracking.batch) ...[
           const SizedBox(height: 8),
           Row(
@@ -125,4 +144,22 @@ class ReceiptLineFields extends StatelessWidget {
       ],
     );
   }
+}
+
+/// A whole number of 1 or more (assets are counted one by one).
+String? validateWholeQuantity(String? text) {
+  final value = int.tryParse((text ?? '').trim());
+  return value == null || value < 1 ? 'Enter a whole number' : null;
+}
+
+/// Serial numbers must be distinct and no more than the units received.
+String? validateSerials(LineDraft lineDraft) {
+  final serials = lineDraft.serialNumbers;
+  if (serials.toSet().length != serials.length) {
+    return 'The same serial number is listed twice';
+  }
+  final quantity = int.tryParse(lineDraft.quantity.text.trim()) ?? 0;
+  return serials.length > quantity
+      ? 'More serial numbers than the ${quantity == 1 ? '1 item' : '$quantity items'} received'
+      : null;
 }

@@ -135,22 +135,87 @@ class _ReceivePageState extends State<ReceivePage> {
       }
     }
     setState(() => _busy = true);
-    await stockSubmit(
-      context,
-      (stockProvider) => stockProvider.act('inventory-receipt-confirm', {
-        'storeId': _store,
-        'lineItems': [
-          for (final lineDraft in _lines)
-            lineDraft.toMap(
-              quantityKey: 'quantityAccepted',
-              batch: true,
-              receipt: true,
-            ),
-        ],
-      }, requestId: _requestId),
-      done: 'Stock received successfully',
-    );
+    final stockLines = [
+      for (final lineDraft in _lines)
+        if (lineDraft.item.tracking != Tracking.asset) lineDraft,
+    ];
+    final assetLines = [
+      for (final lineDraft in _lines)
+        if (lineDraft.item.tracking == Tracking.asset) lineDraft,
+    ];
+    final stockProvider = context.read<StockProvider>();
+    if (stockLines.isNotEmpty) {
+      final received = await stockSubmit(
+        context,
+        (stockProvider) => stockProvider.act('inventory-receipt-confirm', {
+          'storeId': _store,
+          'lineItems': [
+            for (final lineDraft in stockLines)
+              lineDraft.toMap(
+                quantityKey: 'quantityAccepted',
+                batch: true,
+                receipt: true,
+              ),
+          ],
+        }, requestId: _requestId),
+        close: assetLines.isEmpty,
+        done: 'Stock received successfully',
+      );
+      if (!received) return _finish();
+      for (final lineDraft in stockLines) {
+        _lines.remove(lineDraft);
+        lineDraft.dispose();
+      }
+    }
+    for (final lineDraft in assetLines) {
+      if (!await _registerAssets(stockProvider, lineDraft)) return _finish();
+      _lines.remove(lineDraft);
+      lineDraft.dispose();
+    }
+    if (assetLines.isEmpty) return _finish();
+    if (!mounted) return;
+    showMessage(context, 'Stock received successfully');
+    Navigator.of(context).pop();
+  }
+
+  void _finish() {
     if (mounted) setState(() => _busy = false);
+  }
+
+  /// Adds one record per received unit: those with a serial number first, the rest without.
+  Future<bool> _registerAssets(
+    StockProvider stockProvider,
+    LineDraft lineDraft,
+  ) async {
+    final serials = lineDraft.serialNumbers;
+    final price = double.tryParse(lineDraft.cost.text.trim());
+    Future<bool> register(String? serial, int units) async {
+      final result = await stockProvider.act('inventory-asset-register', {
+        'itemId': lineDraft.item.id,
+        'storeId': _store,
+        'quantity': units,
+        'serialNumber': serial,
+        'price': ?price,
+      }, requestId: newRequestId());
+      if (result != null || !mounted) return result != null;
+      IcueToast.error(
+        context,
+        stockProvider.errorMessage ?? 'Could not add ${lineDraft.item.name}',
+      );
+      return false;
+    }
+
+    // Units already added are taken off the line, so a retry does not add them twice.
+    for (final serial in serials) {
+      if (!await register(serial, 1)) return false;
+      lineDraft.serials.text = lineDraft.serialNumbers
+          .where((remaining) => remaining != serial)
+          .join('\n');
+      lineDraft.quantity.text =
+          '${int.parse(lineDraft.quantity.text.trim()) - 1}';
+    }
+    final remaining = int.parse(lineDraft.quantity.text.trim());
+    return remaining == 0 || await register(null, remaining);
   }
 
   @override

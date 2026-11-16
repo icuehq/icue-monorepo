@@ -16,8 +16,17 @@ class LineDraft {
   final expiry = TextEditingController();
   final cost = TextEditingController();
 
+  /// Serial numbers of received assets, one per line (optional).
+  final serials = TextEditingController();
+
+  /// The typed serial numbers.
+  List<String> get serialNumbers => [
+    for (final line in serials.text.split('\n'))
+      if (line.trim().isNotEmpty) line.trim(),
+  ];
+
   void dispose() {
-    for (final controller in [quantity, batchNumber, expiry, cost]) {
+    for (final controller in [quantity, batchNumber, expiry, cost, serials]) {
       controller.dispose();
     }
   }
@@ -72,7 +81,7 @@ class LineEditor extends StatelessWidget {
     if (storeRequired && storeId == null) {
       return showMessage(context, 'Select a store first');
     }
-    final picked = await pickItem(context, storeId: storeId);
+    final picked = await pickItem(context, storeId: storeId, assets: receipt);
     if (picked == null) return;
     final draft = LineDraft(picked.item, picked.variant);
     if (receipt &&
@@ -230,9 +239,16 @@ class _LineCard extends StatelessWidget {
                           ),
                         if (item.stockUnit.isNotEmpty)
                           _TagBadge(label: 'Unit: ${item.stockUnit}'),
+                        if (item.tracking == Tracking.asset)
+                          _TagBadge(
+                            label: 'Handed out & returned',
+                            color: theme.colorScheme.tertiary,
+                            backgroundColor: theme.colorScheme.tertiaryContainer
+                                .withValues(alpha: 0.35),
+                          ),
                         if (item.tracking == Tracking.batch)
                           _TagBadge(
-                            label: 'Batch tracked',
+                            label: 'Has expiry date',
                             color: theme.colorScheme.tertiary,
                             backgroundColor: theme.colorScheme.tertiaryContainer
                                 .withValues(alpha: 0.35),

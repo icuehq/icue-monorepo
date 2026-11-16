@@ -328,6 +328,7 @@ class _ItemsPageState extends State<ItemsPage> {
                                 ),
                                 child: ItemCard(
                                   item: item,
+                                  inStock: inventoryProvider.inStock[item.id],
                                   categoryName: inventoryProvider
                                       .category(item.categoryId)
                                       ?.name,
