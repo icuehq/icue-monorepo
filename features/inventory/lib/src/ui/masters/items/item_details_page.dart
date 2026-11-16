@@ -147,7 +147,7 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
         _infoRow(
           context,
           icon: Icons.track_changes_outlined,
-          label: 'How it is looked after',
+          label: 'Item type',
           value: item.tracking.label,
           helper: switch (item.tracking) {
             Tracking.quantity =>
@@ -257,9 +257,7 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
                           height: 48,
                           decoration: BoxDecoration(
                             color: item.active
-                                ? theme.colorScheme.primaryContainer.withValues(
-                                    alpha: 0.6,
-                                  )
+                                ? theme.colorScheme.primary
                                 : theme.colorScheme.surfaceContainerHighest,
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -267,7 +265,7 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
                             _trackingIcon(item.tracking),
                             size: 26,
                             color: item.active
-                                ? theme.colorScheme.primary
+                                ? Colors.white
                                 : theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
@@ -295,8 +293,7 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
                                     ),
                                     decoration: BoxDecoration(
                                       color: item.active
-                                          ? theme.colorScheme.primaryContainer
-                                                .withValues(alpha: 0.5)
+                                          ? theme.colorScheme.primary
                                           : theme.colorScheme.errorContainer
                                                 .withValues(alpha: 0.5),
                                       borderRadius: BorderRadius.circular(6),
@@ -306,7 +303,7 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
                                       style: theme.textTheme.labelSmall
                                           ?.copyWith(
                                             color: item.active
-                                                ? theme.colorScheme.primary
+                                                ? Colors.white
                                                 : theme.colorScheme.error,
                                             fontWeight: FontWeight.w600,
                                           ),

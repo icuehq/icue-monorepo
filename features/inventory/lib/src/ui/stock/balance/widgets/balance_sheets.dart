@@ -80,9 +80,7 @@ mixin _Submit<T extends _BalanceForm> on State<T> {
         ...key,
         ...extra,
       }, requestId: requestId);
-      if (row != null && stockProvider.store != null) {
-        await stockProvider.loadBalances(stockProvider.store!);
-      }
+      if (row != null) await stockProvider.reloadBalances();
       return row;
     });
   }
@@ -293,12 +291,8 @@ class _ReportState extends State<ReportStockForm> with _Submit {
             maxLines: 3,
             minLines: 2,
             textCapitalization: TextCapitalization.sentences,
-            validator: (value) {
-              final text = (value ?? '').trim();
-              if (text.isEmpty) return 'Add a short explanation';
-              if (text.length < 5) return 'Add a little more detail';
-              return null;
-            },
+            validator: (value) =>
+                (value ?? '').trim().isEmpty ? 'Add a short explanation' : null,
             label: 'What happened?',
             hintText: current.$3,
           ),

@@ -2,11 +2,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:icue_firebase/src/branch_data.dart';
-import 'package:icue_firebase/src/emulator.dart';
 
 /// Whether text search can run on this build. Firestore Enterprise search (Pipelines) is web-only in the
-/// SDK, and the emulator has no text index, so every other platform hides its search boxes.
-bool get textSearchSupported => kIsWeb && !usesEmulator;
+/// SDK; every other platform falls back to the client.
+bool get textSearchSupported => kIsWeb;
 
 /// The words of [query], lowercase. Punctuation is dropped so users cannot inject search operators (quotes, -, *, OR).
 @visibleForTesting

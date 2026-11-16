@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:icue_firebase/icue_firebase.dart' show textSearchSupported;
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
@@ -66,12 +65,10 @@ class _ItemsTableState extends State<ItemsTable> {
       onRetry: () => provider.loadItems(),
       searchHint: 'Search by item name...',
       initialSearch: provider.itemSearch,
-      onSearchChanged: textSearchSupported
-          ? (query) {
-              setState(() => _page = 0);
-              provider.loadItems(search: query);
-            }
-          : null,
+      onSearchChanged: (query) {
+        setState(() => _page = 0);
+        provider.loadItems(search: query);
+      },
       filters: [
         IcueTableFilter(
           id: 'category',
@@ -204,20 +201,10 @@ class _ItemsTableState extends State<ItemsTable> {
         ),
         IcueTableColumn(
           id: 'tracking',
-          label: 'Looked after as',
+          label: 'Item type',
           hideBelowWidth: 900,
           cellBuilder: (context, item) => IcueTableCellText(
             item.tracking.label,
-            style: IcueTableStyle.of(context).secondary,
-          ),
-        ),
-        IcueTableColumn(
-          id: 'price',
-          label: 'Default price',
-          alignment: Alignment.centerRight,
-          hideBelowWidth: 1000,
-          cellBuilder: (context, item) => IcueTableCellText(
-            item.defaultPrice?.toRupees() ?? '—',
             style: IcueTableStyle.of(context).secondary,
           ),
         ),

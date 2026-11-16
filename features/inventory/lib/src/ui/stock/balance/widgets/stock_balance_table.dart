@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:icue_firebase/icue_firebase.dart' show textSearchSupported;
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 
-/// Wide-screen stock balances of the selected store: an [IcueClientTable] over
-/// the balances loaded so far, with "Load more" while the store has more.
-class StockBalanceTable extends StatelessWidget {
+/// Wide-screen stock balances: an [IcueTable] fed by the provider's server-side
+/// store and low-stock filters, text search (web only) and cursor paging; it
+/// fetches the next batch when the user pages past the balances loaded so far.
+class StockBalanceTable extends StatefulWidget {
   const StockBalanceTable({
     required this.stockProvider,
     required this.stores,
@@ -21,8 +23,39 @@ class StockBalanceTable extends StatelessWidget {
   final VoidCallback? onReceive;
 
   @override
+  State<StockBalanceTable> createState() => _StockBalanceTableState();
+}
+
+class _StockBalanceTableState extends State<StockBalanceTable> {
+  int _pageSize = 25;
+  int _page = 0;
+
+  StockProvider get _provider => widget.stockProvider;
+
+  Future<void> _load({InventoryStore? store, String? search, bool? lowOnly}) {
+    setState(() => _page = 0);
+    return _provider.loadBalances(store, search: search, lowOnly: lowOnly);
+  }
+
+  Future<void> _next() async {
+    final loaded = _provider.balances.length;
+    if ((_page + 1) * _pageSize >= loaded) await _provider.loadMoreBalances();
+    if (!mounted) return;
+    if ((_page + 1) * _pageSize < _provider.balances.length) {
+      setState(() => _page++);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final stockProvider = _provider;
+    final stores = widget.stores;
+    final onReceive = widget.onReceive;
     final store = stockProvider.store;
+    final balances = stockProvider.balances;
+    final pageCount = (balances.length / _pageSize).ceil();
+    final page = pageCount == 0 ? 0 : _page.clamp(0, pageCount - 1);
+    final rows = balances.skip(page * _pageSize).take(_pageSize).toList();
     String unit(InventoryBalance balance) =>
         stockProvider.items[balance.itemId]?.stockUnit ?? '';
     final receiveAction = onReceive == null
@@ -33,64 +66,70 @@ class StockBalanceTable extends StatelessWidget {
             onPressed: onReceive,
           );
 
-    return IcueClientTable<InventoryBalance>(
+    return IcueTable<InventoryBalance>(
       title: 'Store stock',
-      items: stockProvider.balances,
+      rows: rows,
       rowKey: (balance) => balance.id,
       rowLabel: (balance) => stockProvider.itemName(balance.itemId),
       status: IcueTableStatus.of(
-        failed:
-            stockProvider.errorMessage != null &&
-            stockProvider.balances.isEmpty,
-        loading: stockProvider.isLoading && stockProvider.balances.isEmpty,
+        failed: stockProvider.errorMessage != null && balances.isEmpty,
+        loading: stockProvider.isLoading && balances.isEmpty,
       ),
       errorMessage: stockProvider.errorMessage,
-      onRetry: store == null ? null : () => stockProvider.loadBalances(store),
-      initialPageSize: 25,
-      searchHint: 'Search item or batch...',
-      searchText: (balance) =>
-          '${stockProvider.itemName(balance.itemId)} '
-          '${balance.batchNumber ?? ''}',
-      externalFilters: [
+      onRetry: !stockProvider.balancesLoaded
+          ? null
+          : () => stockProvider.loadBalances(store),
+      searchHint: 'Search by item name...',
+      initialSearch: stockProvider.balanceSearch,
+      onSearchChanged: textSearchSupported
+          ? (query) => _load(store: store, search: query)
+          : null,
+      filters: [
         IcueTableFilter(
           id: 'store',
           label: 'Store',
-          allowAll: false,
           options: [
             for (final store in stores)
               IcueTableFilterOption(store.id, store.name),
           ],
           value: store?.id,
-          onChanged: (id) {
-            final picked = stores.where((store) => store.id == id).firstOrNull;
-            if (picked != null) stockProvider.loadBalances(picked);
-          },
+          onChanged: (id) =>
+              _load(store: stores.where((store) => store.id == id).firstOrNull),
         ),
-      ],
-      filters: [
-        IcueClientFilter(
+        IcueTableFilter(
           id: 'level',
           label: 'Level',
           options: const [IcueTableFilterOption('low', 'Low stock')],
-          matches: (balance, _) => balance.isBelowReorderLevel,
+          value: stockProvider.lowOnly ? 'low' : null,
+          onChanged: (value) => _load(store: store, lowOnly: value == 'low'),
         ),
       ],
-      onRowTap: onOpen,
+      isFiltered:
+          stockProvider.balanceSearch.isNotEmpty || stockProvider.lowOnly,
+      onClearFilters: () => _load(store: store, search: '', lowOnly: false),
+      onRowTap: widget.onOpen,
       primaryAction: receiveAction,
-      secondaryAction: stockProvider.hasMoreBalances && store != null
-          ? IcueTableAction(
-              label: 'Load more',
-              icon: Icons.expand_more_rounded,
-              onPressed: () => stockProvider.loadBalances(store, more: true),
-            )
-          : null,
-      emptyTitle: store == null
-          ? 'No store selected'
-          : 'No stock in this store',
+      emptyTitle: 'No stock found',
       emptyMessage: store == null
-          ? 'Pick a store from the Store filter to view its balances.'
+          ? 'Receive items to see balances.'
           : 'Receive items into this store to see balances.',
-      emptyAction: store == null ? null : receiveAction,
+      emptyAction: receiveAction,
+      pagination: IcueTablePagination(
+        pageIndex: page,
+        pageSize: _pageSize,
+        itemCount: rows.length,
+        hasPrevious: page > 0,
+        hasNext:
+            (page + 1) * _pageSize < balances.length ||
+            stockProvider.hasMoreBalances,
+        isLoading: stockProvider.isLoading,
+        onPrevious: () => setState(() => _page = page - 1),
+        onNext: _next,
+        onPageSizeChanged: (size) => setState(() {
+          _pageSize = size;
+          _page = 0;
+        }),
+      ),
       columns: [
         IcueTableColumn(
           id: 'item',
@@ -98,9 +137,6 @@ class StockBalanceTable extends StatelessWidget {
           flex: 3,
           minWidth: 200,
           hideable: false,
-          sortable: true,
-          comparator: (balance) =>
-              stockProvider.itemName(balance.itemId).toLowerCase(),
           cellBuilder: (context, balance) => IcueTableCellText(
             stockProvider.itemName(balance.itemId),
             subtitle: balance.batchNumber == null
@@ -109,11 +145,22 @@ class StockBalanceTable extends StatelessWidget {
           ),
         ),
         IcueTableColumn(
+          id: 'store',
+          label: 'Store',
+          hideBelowWidth: 900,
+          cellBuilder: (context, balance) => IcueTableCellText(
+            stores
+                    .where((store) => store.id == balance.storeId)
+                    .firstOrNull
+                    ?.name ??
+                '—',
+            style: IcueTableStyle.of(context).secondary,
+          ),
+        ),
+        IcueTableColumn(
           id: 'available',
           label: 'Available',
           alignment: Alignment.centerRight,
-          sortable: true,
-          comparator: (balance) => balance.available,
           cellBuilder: (context, balance) => IcueTableCellText(
             '${balance.available.toQuantityText()} ${unit(balance)}',
             style: IcueTableStyle.of(context).numeric,
@@ -143,8 +190,6 @@ class StockBalanceTable extends StatelessWidget {
           id: 'value',
           label: 'Value',
           alignment: Alignment.centerRight,
-          sortable: true,
-          comparator: (balance) => balance.value,
           cellBuilder: (context, balance) => IcueTableCellText(
             balance.value.toRupees(),
             style: IcueTableStyle.of(context).numeric,

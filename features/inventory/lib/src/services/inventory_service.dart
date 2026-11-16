@@ -46,29 +46,40 @@ class InventoryService {
     ];
   }
 
+  /// [documents] newest first; a just-written one has no server time yet, so it sorts first.
+  List<QueryDocumentSnapshot<Map<String, dynamic>>> _newestFirst(
+    Iterable<QueryDocumentSnapshot<Map<String, dynamic>>> documents,
+  ) => [...documents]
+    ..sort((left, right) {
+      final leftAt = left.data()['createdAt'] as Timestamp?;
+      final rightAt = right.data()['createdAt'] as Timestamp?;
+      if (leftAt == null || rightAt == null) {
+        return leftAt == rightAt ? 0 : (leftAt == null ? -1 : 1);
+      }
+      return rightAt.compareTo(leftAt);
+    });
+
+  /// Categories newest first; search and filters run in the client.
   Future<List<InventoryCategory>> categories() async {
     final assigned = await assignedStoreIds();
+    final snapshot = await (await branchCollection('inventoryCategories'))
+        .get();
     return [
-      for (final category in await _all(
-        'inventoryCategories',
-        InventoryCategory.fromMap,
-      ))
-        if (assigned == null || assigned.contains(category.storeId)) category,
-    ]..sort(
-      (left, right) =>
-          left.name.toLowerCase().compareTo(right.name.toLowerCase()),
-    );
+      for (final document in _newestFirst(snapshot.docs))
+        if (assigned == null || assigned.contains(document.data()['storeId']))
+          InventoryCategory.fromMap(document.id, document.data()),
+    ];
   }
 
+  /// Units newest first; search and filters run in the client.
   Future<List<InventoryUnit>> units() async {
     final assigned = await assignedStoreIds();
+    final snapshot = await (await branchCollection('inventoryUnits')).get();
     return [
-      for (final unit in await _all('inventoryUnits', InventoryUnit.fromMap))
-        if (assigned == null || assigned.contains(unit.storeId)) unit,
-    ]..sort(
-      (left, right) =>
-          left.name.toLowerCase().compareTo(right.name.toLowerCase()),
-    );
+      for (final document in _newestFirst(snapshot.docs))
+        if (assigned == null || assigned.contains(document.data()['storeId']))
+          InventoryUnit.fromMap(document.id, document.data()),
+    ];
   }
 
   /// Stores of the branch; a store manager gets only their own.
@@ -80,18 +91,16 @@ class InventoryService {
                 : collection)
             .get();
     final stores = [
-      for (final document in snapshot.docs)
+      for (final document in _newestFirst(snapshot.docs))
         InventoryStore.fromMap(document.id, document.data()),
-    ]..sort((left, right) => left.name.compareTo(right.name));
+    ];
     if (_restricted) _assigned = stores;
     return stores;
   }
 
-  /// A page of items by name, optionally within [categoryId] (Firestore query).
-  Future<PagedResult<InventoryItem>> items({
+  Future<Query<Map<String, dynamic>>> _itemsQuery({
     String? categoryId,
     String? storeId,
-    DocumentSnapshot<Map<String, dynamic>>? after,
   }) async {
     Query<Map<String, dynamic>> query = await branchCollection(
       'inventoryItems',
@@ -101,25 +110,47 @@ class InventoryService {
     }
     final assigned = storeId != null ? [storeId] : await assignedStoreIds();
     if (assigned != null) query = inStores(query, assigned);
-    return fetchPage(
-      query.orderBy('name'),
-      (document) => InventoryItem.fromMap(document.id, document.data()!),
-      after: after,
-    );
+    return query.orderBy('createdAt', descending: true);
   }
 
-  /// Whole-word text search (`search` database, web only); rows carry the list fields only.
+  /// A page of items, newest first, optionally within [categoryId] (Firestore query).
+  Future<PagedResult<InventoryItem>> items({
+    String? categoryId,
+    String? storeId,
+    DocumentSnapshot<Map<String, dynamic>>? after,
+  }) async => fetchPage(
+    await _itemsQuery(categoryId: categoryId, storeId: storeId),
+    (document) => InventoryItem.fromMap(document.id, document.data()!),
+    after: after,
+  );
+
+  /// Text search: whole words and typed prefixes through the `search` database on web; elsewhere (no text search)
+  /// the items are read and matched by name in the client, so it fits a few thousand items.
   Future<({List<InventoryItem> items, bool hasMore})> searchItems(
     String query, {
     String? categoryId,
     int offset = 0,
     int limit = 25,
   }) async {
+    if (!textSearchSupported) {
+      final needle = query.trim().toLowerCase();
+      final snapshot = await (await _itemsQuery(categoryId: categoryId)).get();
+      final matches = [
+        for (final document in snapshot.docs)
+          if ('${document.data()['name']}'.toLowerCase().contains(needle))
+            InventoryItem.fromMap(document.id, document.data()),
+      ];
+      return (
+        items: matches.skip(offset).take(limit).toList(),
+        hasMore: matches.length > offset + limit,
+      );
+    }
     final assigned = await assignedStoreIds();
     final page = await searchMirror(
       'inventoryItems',
       query,
-      sortField: 'name',
+      sortField: 'createdAt',
+      descending: true,
       categoryIds: categoryId == null ? null : [categoryId],
       offset: offset,
       limit: limit,

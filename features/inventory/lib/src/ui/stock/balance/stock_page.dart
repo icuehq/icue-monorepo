@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_firebase/icue_firebase.dart' show textSearchSupported;
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/stock/balance/widgets/stock_balance_list.dart';
@@ -15,10 +16,11 @@ class StockPage extends StatefulWidget {
 }
 
 class _StockPageState extends State<StockPage> {
+  /// The phone dropdown's value for "All stores" (store IDs are Firestore IDs, never this).
+  static const _allStores = '*';
+
   final _searchController = TextEditingController();
   final _scroll = ScrollController();
-  var _query = '';
-  var _lowOnly = false;
 
   @override
   void initState() {
@@ -29,15 +31,14 @@ class _StockPageState extends State<StockPage> {
       if (inventoryProvider.stores.isEmpty) {
         await inventoryProvider.loadMasters();
       }
-      final first =
-          stock.store ??
-          inventoryProvider.stores.where((store) => store.active).firstOrNull;
+      if (stock.balancesLoaded) return;
+      final first = inventoryProvider.stores
+          .where((store) => store.active)
+          .firstOrNull;
       if (first != null) await stock.loadBalances(first);
     });
     _scroll.addListener(() {
-      if (_scroll.position.extentAfter < 300 && stock.store != null) {
-        stock.loadBalances(stock.store!, more: true);
-      }
+      if (_scroll.position.extentAfter < 300) stock.loadMoreBalances();
     });
   }
 
@@ -45,7 +46,7 @@ class _StockPageState extends State<StockPage> {
   Future<void> _open(String route) async {
     final stock = context.read<StockProvider>();
     await context.push(route);
-    if (mounted && stock.store != null) await stock.loadBalances(stock.store!);
+    if (mounted) await stock.reloadBalances();
   }
 
   @override
@@ -80,18 +81,6 @@ class _StockPageState extends State<StockPage> {
       (sum, balance) => sum + balance.value,
     );
 
-    final filteredRows = allRows.where((balance) {
-      final item = stockProvider.items[balance.itemId];
-      final name = (item?.name ?? balance.itemId).toLowerCase();
-      final batch = (balance.batchNumber ?? '').toLowerCase();
-
-      final matchesQuery =
-          _query.isEmpty || name.contains(_query) || batch.contains(_query);
-
-      final matchesLow = !_lowOnly || balance.isBelowReorderLevel;
-      return matchesQuery && matchesLow;
-    }).toList();
-
     return Scaffold(
       appBar: AppBar(title: const Text('Store Stock')),
       floatingActionButton: !wide
@@ -105,7 +94,7 @@ class _StockPageState extends State<StockPage> {
         child: Column(
           children: [
             // Store selector (phones) and summary bar
-            if (!wide || (stockProvider.store != null && allRows.isNotEmpty))
+            if (!wide || (stockProvider.balancesLoaded && allRows.isNotEmpty))
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
                 child: Container(
@@ -142,9 +131,22 @@ class _StockPageState extends State<StockPage> {
                               child: DropdownButtonHideUnderline(
                                 child: DropdownButton<String>(
                                   isExpanded: true,
-                                  value: stockProvider.store?.id,
+                                  value: stockProvider.balancesLoaded
+                                      ? (stockProvider.store?.id ?? _allStores)
+                                      : null,
                                   hint: const Text('Select a store'),
                                   items: [
+                                    if (activeStores.length > 1)
+                                      const DropdownMenuItem(
+                                        value: _allStores,
+                                        child: Text(
+                                          'All stores',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ),
                                     for (final store in activeStores)
                                       DropdownMenuItem(
                                         value: store.id,
@@ -159,17 +161,18 @@ class _StockPageState extends State<StockPage> {
                                   ],
                                   onChanged: (id) {
                                     if (id == null) return;
-                                    final store = activeStores.firstWhere(
-                                      (store) => store.id == id,
+                                    stockProvider.loadBalances(
+                                      activeStores
+                                          .where((store) => store.id == id)
+                                          .firstOrNull,
                                     );
-                                    stockProvider.loadBalances(store);
                                   },
                                 ),
                               ),
                             ),
                           ],
                         ),
-                      if (stockProvider.store != null &&
+                      if (stockProvider.balancesLoaded &&
                           allRows.isNotEmpty) ...[
                         if (!wide) const Divider(height: 12),
                         Row(
@@ -245,41 +248,49 @@ class _StockPageState extends State<StockPage> {
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 6),
                 child: Row(
                   children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _searchController,
-                        onChanged: (value) =>
-                            setState(() => _query = value.trim().toLowerCase()),
-                        decoration: InputDecoration(
-                          hintText: 'Search stock by item or batch…',
-                          prefixIcon: const Icon(Icons.search, size: 20),
-                          filled: true,
-                          fillColor: theme.colorScheme.surfaceContainerHighest
-                              .withValues(alpha: 0.35),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 10,
+                    if (textSearchSupported) ...[
+                      Expanded(
+                        child: TextField(
+                          controller: _searchController,
+                          textInputAction: TextInputAction.search,
+                          onSubmitted: (value) => stockProvider.loadBalances(
+                            stockProvider.store,
+                            search: value,
                           ),
-                          isDense: true,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide.none,
+                          decoration: InputDecoration(
+                            hintText: 'Search stock by item name…',
+                            prefixIcon: const Icon(Icons.search, size: 20),
+                            filled: true,
+                            fillColor: theme.colorScheme.surfaceContainerHighest
+                                .withValues(alpha: 0.35),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 10,
+                            ),
+                            isDense: true,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide.none,
+                            ),
+                            suffixIcon: stockProvider.balanceSearch.isNotEmpty
+                                ? IconButton(
+                                    icon: const Icon(Icons.clear, size: 18),
+                                    onPressed: () {
+                                      _searchController.clear();
+                                      stockProvider.loadBalances(
+                                        stockProvider.store,
+                                        search: '',
+                                      );
+                                    },
+                                  )
+                                : null,
                           ),
-                          suffixIcon: _query.isNotEmpty
-                              ? IconButton(
-                                  icon: const Icon(Icons.clear, size: 18),
-                                  onPressed: () {
-                                    _searchController.clear();
-                                    setState(() => _query = '');
-                                  },
-                                )
-                              : null,
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
+                      const SizedBox(width: 8),
+                    ],
                     FilterChip(
-                      avatar: _lowOnly
+                      avatar: stockProvider.lowOnly
                           ? const Icon(
                               Icons.warning_amber_rounded,
                               size: 16,
@@ -289,10 +300,13 @@ class _StockPageState extends State<StockPage> {
                       label: Text(
                         lowStockCount > 0 ? 'Low ($lowStockCount)' : 'Low',
                       ),
-                      selected: _lowOnly,
+                      selected: stockProvider.lowOnly,
                       showCheckmark: false,
                       visualDensity: VisualDensity.compact,
-                      onSelected: (value) => setState(() => _lowOnly = value),
+                      onSelected: (value) => stockProvider.loadBalances(
+                        stockProvider.store,
+                        lowOnly: value,
+                      ),
                     ),
                   ],
                 ),
@@ -302,11 +316,9 @@ class _StockPageState extends State<StockPage> {
               Expanded(
                 child: RefreshIndicator(
                   onRefresh: () async {
-                    if (stockProvider.store != null) {
-                      await stockProvider.loadBalances(stockProvider.store!);
-                    }
+                    await stockProvider.reloadBalances();
                   },
-                  child: filteredRows.isEmpty
+                  child: allRows.isEmpty
                       ? Center(
                           child: stockProvider.isLoading
                               ? const CircularProgressIndicator()
@@ -339,9 +351,12 @@ class _StockPageState extends State<StockPage> {
                                         ),
                                         const SizedBox(height: 16),
                                         Text(
-                                          stockProvider.store == null
+                                          !stockProvider.balancesLoaded
                                               ? 'No store selected'
-                                              : (_lowOnly || _query.isNotEmpty
+                                              : (stockProvider.lowOnly ||
+                                                        stockProvider
+                                                            .balanceSearch
+                                                            .isNotEmpty
                                                     ? 'No matching stock'
                                                     : 'No stock in this store'),
                                           style: theme.textTheme.titleMedium
@@ -351,9 +366,12 @@ class _StockPageState extends State<StockPage> {
                                         ),
                                         const SizedBox(height: 6),
                                         Text(
-                                          stockProvider.store == null
+                                          !stockProvider.balancesLoaded
                                               ? 'Select an active store above to view inventory balances.'
-                                              : (_lowOnly || _query.isNotEmpty
+                                              : (stockProvider.lowOnly ||
+                                                        stockProvider
+                                                            .balanceSearch
+                                                            .isNotEmpty
                                                     ? 'Try clearing the search query or low stock filter.'
                                                     : 'Receive items into this store to see balances.'),
                                           textAlign: TextAlign.center,
@@ -365,15 +383,19 @@ class _StockPageState extends State<StockPage> {
                                               ),
                                         ),
                                         const SizedBox(height: 18),
-                                        if (_lowOnly || _query.isNotEmpty)
+                                        if (stockProvider.lowOnly ||
+                                            stockProvider
+                                                .balanceSearch
+                                                .isNotEmpty)
                                           IcueButton(
                                             label: 'Reset filters',
                                             onPressed: () {
                                               _searchController.clear();
-                                              setState(() {
-                                                _query = '';
-                                                _lowOnly = false;
-                                              });
+                                              stockProvider.loadBalances(
+                                                stockProvider.store,
+                                                search: '',
+                                                lowOnly: false,
+                                              );
                                             },
                                             variant: IcueButtonVariant.outline,
                                             leadingIcon:
@@ -394,7 +416,7 @@ class _StockPageState extends State<StockPage> {
                         )
                       : StockBalanceList(
                           scroll: _scroll,
-                          rows: filteredRows,
+                          rows: allRows,
                           stockProvider: stockProvider,
                           onOpen: _actions,
                         ),

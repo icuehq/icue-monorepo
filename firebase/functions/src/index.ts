@@ -20,7 +20,7 @@ export {
   auditInventoryReturns,
   auditInventoryUnavailable,
 } from './inventory/audit';
-export { syncItemSearch } from './inventory/search';
+export { syncBalanceItemNames, syncBalanceSearch, syncItemSearch } from './inventory/search';
 export {
   statsInventoryAssets,
   statsInventoryBalances,

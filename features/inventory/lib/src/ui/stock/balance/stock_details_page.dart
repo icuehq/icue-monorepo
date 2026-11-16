@@ -43,6 +43,10 @@ class _StockDetailsPageState extends State<StockDetailsPage> {
       );
     }
     final item = stockProvider.items[balance.itemId];
+    final storeName = inventoryProvider.stores
+        .where((store) => store.id == balance.storeId)
+        .firstOrNull
+        ?.name;
     final unit = item?.stockUnit ?? '';
     String quantity(double value) => unit.isEmpty
         ? value.toQuantityText()
@@ -63,8 +67,8 @@ class _StockDetailsPageState extends State<StockDetailsPage> {
         inventoryProvider.category(item?.categoryId)?.name ?? '—',
       ),
       _InfoRow('Unit', item?.stockUnit ?? '—'),
-      _InfoRow('Tracking', item?.tracking.label ?? '—'),
-      _InfoRow('Store', stockProvider.store?.name ?? '—'),
+      _InfoRow('Item type', item?.tracking.label ?? '—'),
+      _InfoRow('Store', storeName ?? '—'),
       if (balance.variantId != null) _InfoRow('Variant', balance.variantId!),
       if (balance.batchNumber != null)
         _InfoRow('Batch number', balance.batchNumber!),
@@ -112,7 +116,7 @@ class _StockDetailsPageState extends State<StockDetailsPage> {
                         const SizedBox(height: 4),
                         Text(
                           [
-                            ?stockProvider.store?.name,
+                            ?storeName,
                             if (balance.batchNumber != null)
                               'Batch ${balance.batchNumber}',
                           ].join(' · '),

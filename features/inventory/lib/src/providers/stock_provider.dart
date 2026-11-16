@@ -18,7 +18,14 @@ class StockProvider extends LoadingProvider {
   /// Item names for every id seen in a list (balances, requests…).
   final Map<String, InventoryItem> items = {};
 
+  /// The store whose balances are shown; null means all stores (once [balancesLoaded]).
   InventoryStore? store;
+  bool balancesLoaded = false;
+
+  /// Server-side filters of the balances: text search (web only) and low stock.
+  String balanceSearch = '';
+  bool lowOnly = false;
+  int _searchOffset = 0;
   final List<InventoryBalance> balances = [];
   bool hasMoreBalances = false;
   DocumentSnapshot<Map<String, dynamic>>? _cursor;
@@ -36,7 +43,15 @@ class StockProvider extends LoadingProvider {
       ),
     ),
   );
-  List<InventoryUnavailable> unavailable = [];
+
+  /// Damaged / expired stock (all statuses at first): server-side status filter, item-name search, paging.
+  late final unavailableRecords = ListState<InventoryUnavailable>(
+    query: _service.unavailableQuery,
+    fromDocument: (document) =>
+        InventoryUnavailable.fromMap(document.id, document.data()!),
+    onChange: notifyListeners,
+    afterPage: (records) => _names(records.map((record) => record.itemId)),
+  );
   List<InventoryStore> allStores = [];
 
   String get uid => _service.uid;
@@ -70,21 +85,59 @@ class StockProvider extends LoadingProvider {
 
   var _balancesLoad = 0;
 
-  Future<void> loadBalances(InventoryStore store, {bool more = false}) async {
+  /// Reloads the shown store's balances (or all stores'), once they have been loaded.
+  Future<void> reloadBalances() async {
+    if (balancesLoaded) await loadBalances(store);
+  }
+
+  Future<void> loadMoreBalances() async {
+    if (balancesLoaded) await loadBalances(store, more: true);
+  }
+
+  /// Loads the balances of [store] (null: every store's), keeping the current search and low-stock filters unless given.
+  Future<void> loadBalances(
+    InventoryStore? store, {
+    bool more = false,
+    String? search,
+    bool? lowOnly,
+  }) async {
     if (more && (isLoading || !hasMoreBalances)) return;
     final load = ++_balancesLoad;
     if (!more) {
       this.store = store;
+      balancesLoaded = true;
+      balanceSearch = search?.trim() ?? balanceSearch;
+      this.lowOnly = lowOnly ?? this.lowOnly;
       _cursor = null;
+      _searchOffset = 0;
     }
+    final query = balanceSearch;
     await _load(() async {
-      final page = await _service.balances(store, after: _cursor);
+      final List<InventoryBalance> rows;
+      if (query.isEmpty) {
+        final page = await _service.balances(
+          this.store,
+          lowOnly: this.lowOnly,
+          after: _cursor,
+        );
+        _cursor = page.cursor;
+        hasMoreBalances = page.hasMore;
+        rows = page.items;
+      } else {
+        final page = await _service.searchBalances(
+          query,
+          store: this.store,
+          lowOnly: this.lowOnly,
+          offset: _searchOffset,
+        );
+        _searchOffset += page.balances.length;
+        hasMoreBalances = page.hasMore;
+        rows = page.balances;
+      }
       if (load != _balancesLoad) return;
       if (!more) balances.clear();
-      balances.addAll(page.items);
-      _cursor = page.cursor;
-      hasMoreBalances = page.hasMore;
-      await _names(page.items.map((balance) => balance.itemId));
+      balances.addAll(rows);
+      await _names(rows.map((balance) => balance.itemId));
     });
   }
 
@@ -116,11 +169,6 @@ class StockProvider extends LoadingProvider {
     InventoryIssueRequest issueRequest,
   ) async =>
       (await _load(() => _service.issuesOf(issueRequest), quiet: true)) ?? [];
-
-  Future<void> loadUnavailable() => _load(() async {
-    unavailable = await _service.unavailable();
-    await _names(unavailable.map((unavailable) => unavailable.itemId));
-  });
 
   /// Runs a client write (Receive Stock) or else a callable; returns its result (`id`, `number`) or null with [errorMessage] set.
   Future<Map<String, dynamic>?> act(

@@ -1,74 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
+import 'package:inventory/src/providers/list_state.dart';
+import 'package:inventory/src/ui/shared/widgets/paged_list_table.dart';
 
-/// Wide-screen damaged / expired stock: an [IcueClientTable] over the loaded
-/// records. Rows the user may resolve open the resolve screen.
+/// Wide-screen damaged / expired stock over the provider's [ListState]: status filter,
+/// item-name search and paging are server queries. Rows the user may resolve open the resolve screen.
 class UnavailableTable extends StatelessWidget {
   const UnavailableTable({
-    required this.records,
-    required this.loading,
-    required this.errorMessage,
+    required this.state,
+    required this.statuses,
     required this.itemName,
     required this.storeName,
     required this.canOperate,
     required this.onResolve,
-    required this.onRetry,
     super.key,
   });
 
-  final List<InventoryUnavailable> records;
-  final bool loading;
-  final String? errorMessage;
+  final ListState<InventoryUnavailable> state;
+  final Map<String, String> statuses;
   final String Function(String itemId) itemName;
   final String Function(String storeId) storeName;
   final bool canOperate;
   final void Function(InventoryUnavailable record) onResolve;
-  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
     bool canResolve(InventoryUnavailable record) =>
         canOperate && record.status != 'resolved';
-    return IcueClientTable<InventoryUnavailable>(
+    return PagedListTable<InventoryUnavailable>(
       title: 'Damaged / expired stock',
-      items: records,
+      state: state,
+      statuses: statuses,
+      searchHint: 'Item name',
       rowKey: (record) => record.id,
       rowLabel: (record) => itemName(record.itemId),
-      status: IcueTableStatus.of(
-        failed: errorMessage != null && records.isEmpty,
-        loading: loading,
-      ),
-      errorMessage: errorMessage,
-      onRetry: onRetry,
-      initialPageSize: 25,
-      searchHint: 'Search item, store or batch...',
-      searchText: (record) =>
-          '${itemName(record.itemId)} ${storeName(record.storeId)} '
-          '${record.batchNumber ?? ''}',
-      filters: [
-        IcueClientFilter(
-          id: 'status',
-          label: 'Status',
-          options: const [
-            IcueTableFilterOption('open', 'Open'),
-            IcueTableFilterOption('in_repair', 'In repair'),
-            IcueTableFilterOption('resolved', 'Resolved'),
-          ],
-          matches: (record, status) => record.status == status,
-        ),
-      ],
-      rowActions: (record) => canResolve(record)
-          ? [
-              IcueTableRowAction(
-                label: 'Resolve',
-                icon: Icons.build_outlined,
-                inline: true,
-                onPressed: onResolve,
-              ),
-            ]
-          : const [],
-      emptyTitle: 'No damaged or expired items',
+      onOpen: (record) {
+        if (canResolve(record)) onResolve(record);
+      },
       emptyMessage: 'Quarantined or damaged stock recorded during receipt, returns or audits appears here.',
       columns: [
         IcueTableColumn(
@@ -77,8 +46,6 @@ class UnavailableTable extends StatelessWidget {
           flex: 3,
           minWidth: 200,
           hideable: false,
-          sortable: true,
-          comparator: (record) => itemName(record.itemId).toLowerCase(),
           cellBuilder: (context, record) => IcueTableCellText(
             itemName(record.itemId),
             subtitle: record.batchNumber == null
@@ -99,8 +66,6 @@ class UnavailableTable extends StatelessWidget {
           id: 'quantity',
           label: 'Quantity',
           alignment: Alignment.centerRight,
-          sortable: true,
-          comparator: (record) => record.quantity,
           cellBuilder: (context, record) => IcueTableCellText(
             record.quantity.toQuantityText(),
             style: IcueTableStyle.of(context).numeric,
@@ -128,9 +93,7 @@ class UnavailableTable extends StatelessWidget {
         IcueTableColumn(
           id: 'recorded',
           label: 'Recorded',
-          sortable: true,
           hideBelowWidth: 900,
-          comparator: (record) => record.createdAt ?? DateTime(0),
           cellBuilder: (context, record) => IcueTableCellText(
             record.createdAt?.toNumericDate() ?? '—',
             style: IcueTableStyle.of(context).numeric,

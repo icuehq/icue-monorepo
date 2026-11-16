@@ -31,7 +31,8 @@ create_index() {
   fi
 }
 
-create_index inventoryItems name code
+create_index inventoryItems name prefixText
+create_index inventoryBalances itemName prefixText
 create_index libraryCatalogue title subtitle authorsText publisher keywordsText prefixText
 create_index libraryLoans bookTitle memberName admissionNumber prefixText
 create_index libraryFines memberName admissionNumber bookTitle barcode prefixText

@@ -1,6 +1,6 @@
 import { Timestamp } from 'firebase-admin/firestore';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { applyItemChange } from '../src/inventory/search';
+import { applyItemChange, projectBalance } from '../src/inventory/search';
 import { prefixText, projectCatalogue, projectFine, projectIncident, projectMember } from '../src/library/search';
 import { searchDb } from '../src/shared/searchMirror';
 import { clearFirestore } from './setup';
@@ -31,6 +31,8 @@ describe('item search mirror', () => {
       status: 'active',
       stockUnit: 'pcs',
       tracking: 'quantity',
+      createdAt: null,
+      prefixText: 'blu',
       srcUpdatedAt: timestampAt(1),
     });
     await applyItemChange(BRANCH, 'i1', item('Blue Pen XL'), timestampAt(2));
@@ -43,6 +45,25 @@ describe('item search mirror', () => {
     await applyItemChange(BRANCH, 'i1', item('New name', 'A'), timestampAt(5));
     await applyItemChange(BRANCH, 'i1', item('Old name', 'A'), timestampAt(3));
     expect((await mirror().doc('i1').get()).data()?.name).toBe('New name');
+  });
+});
+
+describe('balance search projection', () => {
+  it('keeps the identity and filter fields with the item name', () => {
+    expect(
+      projectBalance(
+        { storeId: 's1', itemId: 'i1', batchNumber: 'B-7', isBelowReorderLevel: true, quantityAvailable: 4, value: 80 },
+        'Blue Pen',
+      ),
+    ).toEqual({
+      storeId: 's1',
+      itemId: 'i1',
+      variantId: null,
+      batchNumber: 'B-7',
+      isBelowReorderLevel: true,
+      itemName: 'Blue Pen',
+      prefixText: 'blu',
+    });
   });
 });
 
@@ -95,6 +116,7 @@ describe('member search projection', () => {
       memberType: 'STUDENT',
       libraryIds: ['main'],
       blocked: false,
+      createdAt: null,
       onLoan: true,
       prefixText: 'nid nidh red redd tnx tnx0 tnx00',
     });

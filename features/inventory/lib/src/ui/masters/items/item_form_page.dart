@@ -202,7 +202,7 @@ class _ItemFormPageState extends State<ItemFormPage> {
       ],
     );
     final stock = IcueFormSectionCard(
-      title: 'Stock & tracking',
+      title: 'Stock',
       icon: Icons.tune_outlined,
       children: [
         IcueDropdown<String>(
@@ -225,7 +225,7 @@ class _ItemFormPageState extends State<ItemFormPage> {
               DropdownMenuItem(value: tracking, child: Text(tracking.label)),
           ],
           onChanged: (tracking) => _tracking = tracking ?? _tracking,
-          label: 'How is it looked after? *',
+          label: 'Item type *',
           icon: Icons.track_changes_outlined,
         ),
       ],

@@ -48,6 +48,17 @@ class _ItemsPageState extends State<ItemsPage> {
   }
 
   Future<void> _toggleActive(InventoryItem item) async {
+    final deactivating = item.active;
+    final confirmed = await IcueDialog.confirm(
+      context,
+      title: deactivating ? 'Deactivate item?' : 'Activate item?',
+      message: deactivating
+          ? '"${item.name}" will no longer be offered for new stock activity.'
+          : '"${item.name}" will be available for stock activity again.',
+      confirmLabel: deactivating ? 'Deactivate' : 'Activate',
+      destructive: deactivating,
+    );
+    if (!confirmed || !mounted) return;
     final inventoryProvider = context.read<InventoryProvider>();
     final success = await inventoryProvider.setItemActive(
       item.id,
@@ -312,7 +323,7 @@ class _ItemsPageState extends State<ItemsPage> {
                                   (item) => item.stockUnit,
                                 ),
                                 IcueAdaptiveColumn.text(
-                                  'Tracking',
+                                  'Item type',
                                   (item) => item.tracking.label,
                                 ),
                                 IcueAdaptiveColumn(

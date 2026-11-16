@@ -2,9 +2,9 @@ export 'inventory_masters.g.dart';
 
 /// Tracking method of an item (FRS 10.3).
 enum Tracking {
-  quantity('Used up'),
-  batch('Used up, with expiry date'),
-  asset('Handed out and returned');
+  quantity('Quantity'),
+  batch('Batch'),
+  asset('Asset');
 
   const Tracking(this.label);
 

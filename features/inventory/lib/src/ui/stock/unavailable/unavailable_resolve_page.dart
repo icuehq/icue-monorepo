@@ -131,7 +131,7 @@ class _UnavailableResolvePageState extends State<UnavailableResolvePage> {
   @override
   Widget build(BuildContext context) {
     final stockProvider = context.watch<StockProvider>();
-    final item = stockProvider.unavailable
+    final item = stockProvider.unavailableRecords.pager.items
         .where((entry) => entry.id == widget.unavailableId)
         .firstOrNull;
     if (item == null) {
