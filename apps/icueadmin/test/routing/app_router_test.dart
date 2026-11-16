@@ -21,6 +21,20 @@ void main() {
       }
     });
 
+    test('store manager is sent to inventory from login and dashboard', () {
+      for (final from in [AppRoutes.login, AppRoutes.dashboard]) {
+        expect(
+          handleAuthRedirect(
+            isAuthenticated: true,
+            needsBranchSelection: false,
+            isStoreManager: true,
+            matchedLocation: from,
+          ),
+          InventoryRoutes.inventory,
+        );
+      }
+    });
+
     test('redirects unauthenticated to login', () {
       expect(
         handleAuthRedirect(

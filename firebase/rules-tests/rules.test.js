@@ -655,3 +655,59 @@ describe('library scope: a librarian works only in their assigned libraries', ()
     await assertFails(updateDoc(doc(db('4301', librarian), `${base}/libraryLoans/theirs`), { status: 'returned', lastWrite: mark('libraryLoan.return') }));
   });
 });
+
+describe('inventory scope: a store manager works only in their assigned stores', () => {
+  const base = 'orgs/8/zones/147/branches/427';
+  const manager = { ...staff, roleIds: [44], personErpId: 4401 };
+  const admin = { ...staff, roleIds: [4, 44], personErpId: 1 };
+  const mark = (user) => ({ by: user, at: serverTimestamp(), action: 'inventoryIssue.create' });
+  beforeEach(() =>
+    env.withSecurityRulesDisabled(async (context) => {
+      const firestore = context.firestore();
+      await setDoc(doc(firestore, `${base}/inventoryStores/lab`), { status: 'active', managerId: '4401' });
+      await setDoc(doc(firestore, `${base}/inventoryStores/sports`), { status: 'active', managerId: '4402' });
+      await setDoc(doc(firestore, `${base}/inventoryItems/pen`), { storeId: 'lab', name: 'Pen' });
+      await setDoc(doc(firestore, `${base}/inventoryItems/ball`), { storeId: 'sports', name: 'Ball' });
+      await setDoc(doc(firestore, `${base}/inventoryBalances/mine`), { storeId: 'lab' });
+      await setDoc(doc(firestore, `${base}/inventoryBalances/theirs`), { storeId: 'sports' });
+      await setDoc(doc(firestore, `${base}/inventoryIssueRequests/mine`), { storeId: 'lab', status: 'pending', createdBy: 'req' });
+      await setDoc(doc(firestore, `${base}/inventoryIssueRequests/theirs`), { storeId: 'sports', status: 'pending', createdBy: 'req' });
+    }),
+  );
+
+  it('reads only their own stores (the query filters on managerId); admins read all', async () => {
+    await assertSucceeds(getDocs(query(collection(db('4401', manager), `${base}/inventoryStores`), where('managerId', '==', '4401'))));
+    await assertFails(getDocs(collection(db('4401', manager), `${base}/inventoryStores`)));
+    await assertFails(getDoc(doc(db('4401', manager), `${base}/inventoryStores/sports`)));
+    await assertSucceeds(getDocs(collection(db('1', admin), `${base}/inventoryStores`)));
+  });
+
+  it('cannot create or edit a store; edits items only in their own store', async () => {
+    await assertFails(setDoc(doc(db('4401', manager), `${base}/inventoryStores/new`), { name: 'x', managerId: '4401' }));
+    await assertSucceeds(setDoc(doc(db('1', admin), `${base}/inventoryStores/new`), { name: 'x', managerId: '4401' }));
+    await assertFails(updateDoc(doc(db('4401', manager), `${base}/inventoryStores/lab`), { name: 'x' }));
+    await assertSucceeds(updateDoc(doc(db('1', admin), `${base}/inventoryStores/lab`), { name: 'x' }));
+    await assertSucceeds(updateDoc(doc(db('4401', manager), `${base}/inventoryItems/pen`), { name: 'Pencil' }));
+    await assertFails(updateDoc(doc(db('4401', manager), `${base}/inventoryItems/ball`), { name: 'Bat' }));
+    await assertFails(setDoc(doc(db('4401', manager), `${base}/inventoryItems/new`), { storeId: 'sports', name: 'Bat' }));
+    await assertSucceeds(setDoc(doc(db('4401', manager), `${base}/inventoryItems/new`), { storeId: 'lab', name: 'Ink' }));
+  });
+
+  it('moves stock only in their own store', async () => {
+    await assertSucceeds(updateDoc(doc(db('4401', manager), `${base}/inventoryBalances/mine`), { quantity: 1 }));
+    await assertFails(updateDoc(doc(db('4401', manager), `${base}/inventoryBalances/theirs`), { quantity: 1 }));
+    await assertFails(updateDoc(doc(db('4401', manager), `${base}/inventoryBalances/mine`), { storeId: 'sports' }));
+    const receipt = (store) => ({ storeId: store, createdBy: '4401', lastWrite: mark('4401') });
+    await assertSucceeds(setDoc(doc(db('4401', manager), `${base}/inventoryReceipts/r1`), receipt('lab')));
+    await assertFails(setDoc(doc(db('4401', manager), `${base}/inventoryReceipts/r2`), receipt('sports')));
+    await assertSucceeds(setDoc(doc(db('1', admin), `${base}/inventoryReceipts/r3`), { ...receipt('sports'), createdBy: '1', lastWrite: mark('1') }));
+  });
+
+  it('decides issue requests only for their own store', async () => {
+    const decide = (id) => updateDoc(doc(db('4401', manager), `${base}/inventoryIssueRequests/${id}`), {
+      status: 'approved', approval: { performedBy: '4401' }, lastWrite: mark('4401'), updatedAt: serverTimestamp(),
+    });
+    await assertSucceeds(decide('mine'));
+    await assertFails(decide('theirs'));
+  });
+});

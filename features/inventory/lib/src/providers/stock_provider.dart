@@ -114,7 +114,6 @@ class StockProvider extends ChangeNotifier {
   }
 
   Future<void> loadAllStores() async {
-    if (allStores.isNotEmpty) return;
     await _load(() async => allStores = await _service.allStores());
   }
 

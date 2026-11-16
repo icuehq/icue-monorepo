@@ -89,6 +89,7 @@ String? handleAuthRedirect({
   required bool needsBranchSelection,
   required String matchedLocation,
   bool isLibrarian = false,
+  bool isStoreManager = false,
 }) {
   final isLoginRoute = matchedLocation == AppRoutes.login;
   final isBranchesRoute = matchedLocation == AppRoutes.branches;
@@ -104,9 +105,14 @@ String? handleAuthRedirect({
   }
 
   // 3. Authenticated users should not stay on the login screen; librarians
-  // land in the library module instead of the dashboard.
-  if (isLoginRoute || (isLibrarian && matchedLocation == AppRoutes.dashboard)) {
-    return isLibrarian ? LibraryRoutes.library : AppRoutes.dashboard;
+  // land in the library module and store managers in inventory instead of the dashboard.
+  final landing = isLibrarian
+      ? LibraryRoutes.library
+      : isStoreManager
+      ? InventoryRoutes.inventory
+      : null;
+  if (isLoginRoute || (landing != null && matchedLocation == AppRoutes.dashboard)) {
+    return landing ?? AppRoutes.dashboard;
   }
 
   return null;
@@ -128,6 +134,7 @@ GoRouter createRouter({
       isAuthenticated: authProvider.isAuthenticated,
       needsBranchSelection: authProvider.needsBranchSelection,
       isLibrarian: authProvider.isLibrarian,
+      isStoreManager: authProvider.isAssignedStoresOnly,
       matchedLocation: state.matchedLocation,
     ),
     routes: [

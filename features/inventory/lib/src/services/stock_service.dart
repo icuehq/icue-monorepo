@@ -2,10 +2,16 @@ import 'package:icue_firebase/icue_firebase.dart';
 import 'package:injectable/injectable.dart';
 import 'package:inventory/src/models/inventory_masters.dart';
 import 'package:inventory/src/models/inventory_stock.dart';
+import 'package:inventory/src/services/inventory_service.dart';
 
 /// Stock (Inv-2): reads from Firestore, every write is a callable.
 @lazySingleton
 class StockService {
+  StockService(this._inventory);
+
+  /// Knows which stores a store manager works in.
+  final InventoryService _inventory;
+
   String get uid => FirebaseAuth.instance.currentUser!.uid;
 
   Future<PagedResult<InventoryBalance>> balances(
@@ -37,6 +43,8 @@ class StockService {
     Query<Map<String, dynamic>> query = await branchCollection(
       'inventoryIssueRequests',
     );
+    final assigned = await _inventory.assignedStoreIds();
+    if (assigned != null) query = _inventory.inStores(query, assigned);
     if (status != null) query = query.where('status', isEqualTo: status);
     final snapshot = await query
         .orderBy('createdAt', descending: true)
@@ -69,8 +77,11 @@ class StockService {
   }
 
   Future<List<InventoryUnavailable>> unavailable() async {
-    final snapshot = await (await branchCollection('inventoryUnavailableStock'))
-        .where('status', whereIn: ['open', 'in_repair'])
+    var query = (await branchCollection('inventoryUnavailableStock'))
+        .where('status', whereIn: ['open', 'in_repair']);
+    final assigned = await _inventory.assignedStoreIds();
+    if (assigned != null) query = _inventory.inStores(query, assigned);
+    final snapshot = await query
         .orderBy('createdAt', descending: true)
         .limit(100)
         .get();
@@ -80,14 +91,8 @@ class StockService {
     ];
   }
 
-  /// Every store of the branch.
-  Future<List<InventoryStore>> allStores() async {
-    final snapshot = await (await branchCollection('inventoryStores')).get();
-    return [
-      for (final document in snapshot.docs)
-        InventoryStore.fromMap(document.id, document.data()),
-    ]..sort((left, right) => left.name.compareTo(right.name));
-  }
+  /// Every store the user may see: all of the branch, or a store manager's own.
+  Future<List<InventoryStore>> allStores() => _inventory.stores();
 
   /// Item docs by id (30 per Firestore `in` query).
   Future<Map<String, InventoryItem>> itemsByIds(Iterable<String> ids) async {

@@ -80,7 +80,8 @@ class _StoresPageState extends State<StoresPage> {
   @override
   Widget build(BuildContext context) {
     final inventoryProvider = context.watch<InventoryProvider>();
-    const canEdit = true;
+    // Store managers see their stores but cannot add or change them.
+    final canEdit = !context.read<AuthProvider>().isAssignedStoresOnly;
     final allStores = inventoryProvider.stores;
     final wide = context.isWide;
 

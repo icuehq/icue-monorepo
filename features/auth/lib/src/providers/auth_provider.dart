@@ -71,10 +71,18 @@ class AuthProvider extends ChangeNotifier {
       user?.roles.any((role) => role.name.toLowerCase() == 'librarian') ??
       false;
 
+  bool get _isBranchAdmin =>
+      user?.roles.any((role) => role.name == 'Branch_Admin') ?? false;
+
   /// A librarian who is not a branch admin works only in the libraries assigned to them.
-  bool get isAssignedLibrariesOnly =>
-      isLibrarian &&
-      !(user?.roles.any((role) => role.name == 'Branch_Admin') ?? false);
+  bool get isAssignedLibrariesOnly => isLibrarian && !_isBranchAdmin;
+
+  /// Whether the signed-in user is a Store Manager (lands in the inventory module).
+  bool get isStoreManager =>
+      user?.roles.any((role) => role.id == RoleIds.storeManager) ?? false;
+
+  /// A store manager who is not a branch admin works only in the stores assigned to them.
+  bool get isAssignedStoresOnly => isStoreManager && !_isBranchAdmin;
 
   /// Whether user must pick a branch before continuing to the main dashboard.
   bool get needsBranchSelection {

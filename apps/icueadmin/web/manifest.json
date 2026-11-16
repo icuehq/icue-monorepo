@@ -1,18 +1,28 @@
 {
-    "name": "icueadmin",
-    "short_name": "icueadmin",
+    "name": "iCue Admin",
+    "short_name": "iCue Admin",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#FFFFFF",
+    "theme_color": "#13967E",
+    "description": "All-in-one school administration platform for fleet tracking, driver management, student attendance, inventory, library, and campus operations.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
         {
-            "src": "icons/favicon.ico",
-            "sizes": "16x16 32x32",
+            "src": "favicon.ico",
+            "sizes": "16x16 32x32 48x48",
             "type": "image/x-icon"
+        },
+        {
+            "src": "favicon.png",
+            "sizes": "32x32",
+            "type": "image/png"
+        },
+        {
+            "src": "apple-touch-icon.png",
+            "sizes": "180x180",
+            "type": "image/png"
         },
         {
             "src": "icons/icon-192.png",

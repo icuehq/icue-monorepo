@@ -1,3 +1,4 @@
+import 'package:auth/auth.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
@@ -36,17 +37,30 @@ import 'package:inventory/src/ui/stock/issues/issue_return_page.dart';
 import 'package:inventory/src/ui/stock/receive/receive_page.dart';
 import 'package:inventory/src/ui/stock/unavailable/unavailable_page.dart';
 import 'package:inventory/src/ui/stock/unavailable/unavailable_resolve_page.dart';
+import 'package:inventory/src/ui/widgets/no_store_assigned_gate.dart';
+import 'package:inventory/src/ui/widgets/store_manager_logout_button.dart';
+import 'package:provider/provider.dart';
 
 /// Inventory screens as go_router routes, inside a shell that adds side navigation on wide screens.
 List<RouteBase> inventoryRoutes() => [
   ShellRoute(
-    builder: (context, state, child) => IcueModuleShell(
-      title: 'Inventory',
-      homePath: InventoryRoutes.inventory,
-      location: state.uri.path,
-      destinations: [for (final entry in inventoryEntries()) entry.destination],
-      child: child,
-    ),
+    builder: (context, state, child) {
+      final storeManager = context.read<AuthProvider>().isAssignedStoresOnly;
+      return NoStoreAssignedGate(
+        child: IcueModuleShell(
+          title: 'Inventory',
+          homePath: InventoryRoutes.inventory,
+          // Store managers live in this module; there is no dashboard to go back to.
+          exitPath: storeManager ? null : '/',
+          location: state.uri.path,
+          footer: const StoreManagerLogoutButton(expanded: true),
+          destinations: [
+            for (final entry in inventoryEntries()) entry.destination,
+          ],
+          child: child,
+        ),
+      );
+    },
     routes: _inventoryPages,
   ),
 ];

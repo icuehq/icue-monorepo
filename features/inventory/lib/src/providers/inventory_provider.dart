@@ -39,6 +39,26 @@ class InventoryProvider extends ChangeNotifier implements ErrorReporting {
     return null;
   }
 
+  String? _scopedUserId;
+
+  /// Restricts the module to the stores assigned to [userId] (a store manager); set by the app on every sign-in.
+  void scopeTo({required String? userId, required bool restricted}) {
+    if (userId == _scopedUserId && restricted == _service.restricted) return;
+    _scopedUserId = userId;
+    _service.scopeTo(userId: userId, restricted: restricted);
+    categories = [];
+    units = [];
+    stores = [];
+    items.clear();
+    notifyListeners();
+  }
+
+  /// A store manager never sees "All stores": the lists are always of their assigned stores.
+  bool get restricted => _service.restricted;
+
+  /// The Store filter is pointless with a single store.
+  bool get showStoreFilter => stores.length > 1;
+
   /// The store's name, or `null` when the store is unknown.
   String? storeName(String? id) {
     for (final store in stores) {

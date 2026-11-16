@@ -15,6 +15,8 @@ service cloud.firestore {
     function staff(orgId, zoneId, branchId) { return inBranch(orgId, zoneId, branchId) && request.auth.token.get('personType', '') != 'parent'; }
     // A librarian (Node role 43) who is not a branch admin (role 4) works only in the libraries assigned to them (`libraries/{id}.librarianId`).
     function assignedOnly() { let roles = request.auth.token.get('roleIds', []); return 43 in roles && !(4 in roles); }
+    // A store manager (Node role 44) who is not a branch admin (role 4) works only in the stores assigned to them (`inventoryStores/{id}.managerId`).
+    function storeOnly() { let roles = request.auth.token.get('roleIds', []); return 44 in roles && !(4 in roles); }
     function topLevelCategory(data) { return !('parentId' in data) || data.parentId == null; }
     function own() {
       return resource.data.personErpId == request.auth.token.get('personErpId', null)
@@ -45,16 +47,16 @@ service cloud.firestore {
     // Masters are plain client CRUD for the users who manage them (no field validation, no audit log).
     // Creates are keyed by the lowercased code, so an existing code cannot be recreated.
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryCategories/{id} {
-      allow write: if staff(orgId, zoneId, branchId);
+      allow write: if staff(orgId, zoneId, branchId) && inStore(orgId, zoneId, branchId, masterStore());
     }
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryUnits/{id} {
-      allow write: if staff(orgId, zoneId, branchId);
+      allow write: if staff(orgId, zoneId, branchId) && inStore(orgId, zoneId, branchId, masterStore());
     }
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryStores/{id} {
-      allow write: if staff(orgId, zoneId, branchId);
+      allow write: if staff(orgId, zoneId, branchId) && !storeOnly();
     }
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryItems/{id} {
-      allow write: if staff(orgId, zoneId, branchId);
+      allow write: if staff(orgId, zoneId, branchId) && inStore(orgId, zoneId, branchId, masterStore());
     }
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryVendors/{id} {
       allow write: if staff(orgId, zoneId, branchId);
@@ -107,13 +109,15 @@ service cloud.firestore {
     }
 
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryItems/{itemId}/variants/{id} {
-      allow write: if staff(orgId, zoneId, branchId);
+      allow write: if staff(orgId, zoneId, branchId)
+        && inStore(orgId, zoneId, branchId, get(/databases/$(db)/documents/orgs/$(orgId)/zones/$(zoneId)/branches/$(branchId)/inventoryItems/$(itemId)).data.get('storeId', ''));
       allow read: if staff(orgId, zoneId, branchId);
     }
-    // Stores are readable branch-wide.
+    // Stores are readable branch-wide; a store manager reads only their own (the query must filter on managerId).
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryStores/{id} {
       allow read: if inBranch(orgId, zoneId, branchId)
-        && staff(orgId, zoneId, branchId);
+        && staff(orgId, zoneId, branchId)
+        && (!storeOnly() || resource.data.managerId == request.auth.uid);
     }
 
     // Stock (Inv-2): written only by Functions.
@@ -127,12 +131,14 @@ service cloud.firestore {
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/{coll}/{id} {
       allow create: if inBranch(orgId, zoneId, branchId) && coll in ['inventoryReceipts', 'inventoryIssues', 'inventoryReturns', 'inventoryAdjustments', 'inventoryUnavailableStock', 'inventoryMovements']
         && staff(orgId, zoneId, branchId)
+        && inStore(orgId, zoneId, branchId, request.resource.data.get('storeId', ''))
         && (coll == 'inventoryMovements' || stamped())
         && request.resource.data.createdBy == request.auth.uid;
     }
     // A return only moves an issue's returned quantities.
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryIssues/{id} {
       allow update: if inBranch(orgId, zoneId, branchId) && stamped() && staff(orgId, zoneId, branchId)
+        && inStore(orgId, zoneId, branchId, resource.data.get('storeId', ''))
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lineItems', 'lastWrite', 'updatedAt']);
     }
     // Acknowledging an issue only fills its empty acknowledgement.
@@ -143,8 +149,9 @@ service cloud.firestore {
         && request.resource.data.acknowledgement.performedBy == request.auth.uid;
     }
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryBalances/{id} {
-      allow create, update: if staff(orgId, zoneId, branchId)
-       ;
+      allow create: if staff(orgId, zoneId, branchId) && inStore(orgId, zoneId, branchId, request.resource.data.get('storeId', ''));
+      allow update: if staff(orgId, zoneId, branchId) && inStore(orgId, zoneId, branchId, resource.data.get('storeId', ''))
+        && inStore(orgId, zoneId, branchId, request.resource.data.get('storeId', ''));
     }
     // Submitting, approving/rejecting and issuing against an issue request, and acknowledging an issue, are client writes.
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryIssueRequests/{id} {
@@ -153,6 +160,7 @@ service cloud.firestore {
         && request.resource.data.status == 'pending';
       // Approve / reject: only while pending, by an approver, touching only the decision fields.
       allow update: if inBranch(orgId, zoneId, branchId) && stamped() && staff(orgId, zoneId, branchId)
+        && inStore(orgId, zoneId, branchId, resource.data.get('storeId', ''))
         && resource.data.status == 'pending'
         && request.resource.data.status in ['approved', 'rejected']
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'lineItems', 'approval', 'lastWrite', 'updatedAt'])
@@ -161,6 +169,7 @@ service cloud.firestore {
     // Issuing stock only moves an approved request's issued quantities and status.
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryIssueRequests/{id} {
       allow update: if inBranch(orgId, zoneId, branchId) && stamped() && staff(orgId, zoneId, branchId)
+        && inStore(orgId, zoneId, branchId, resource.data.get('storeId', ''))
         && resource.data.status in ['approved', 'partially_issued']
         && request.resource.data.status in ['partially_issued', 'issued']
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'lineItems', 'lastWrite', 'updatedAt']);
@@ -171,7 +180,7 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'closure', 'lastWrite', 'updatedAt'])
         && request.resource.data.closure.performedBy == request.auth.uid
         && ((resource.data.createdBy == request.auth.uid && resource.data.status == 'pending' && request.resource.data.status == 'cancelled')
-          || (staff(orgId, zoneId, branchId)
+          || (staff(orgId, zoneId, branchId) && inStore(orgId, zoneId, branchId, resource.data.get('storeId', ''))
             && resource.data.status in ['approved', 'partially_issued'] && request.resource.data.status == 'closed'));
     }
     // Requesters see their own requests; approvers and stock users see all of them.
@@ -182,6 +191,7 @@ service cloud.firestore {
     // Resolving an unavailable-stock entry: restore, repair or write off, by a stock operator.
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryUnavailableStock/{id} {
       allow update: if inBranch(orgId, zoneId, branchId) && stamped() && staff(orgId, zoneId, branchId)
+        && inStore(orgId, zoneId, branchId, resource.data.get('storeId', ''))
         && resource.data.status in ['open', 'in_repair']
         && request.resource.data.status in ['in_repair', 'resolved']
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'resolution', 'resolutionNote', 'resolvedAt', 'resolvedBy', 'lastWrite', 'updatedAt']);
@@ -262,6 +272,15 @@ service cloud.firestore {
     function inLibrary(orgId, zoneId, branchId, libraryId) {
       return !assignedOnly() || libraryOf(orgId, zoneId, branchId, libraryId).librarianId == request.auth.uid;
     }
+    function storeOf(orgId, zoneId, branchId, storeId) {
+      return get(/databases/$(db)/documents/orgs/$(orgId)/zones/$(zoneId)/branches/$(branchId)/inventoryStores/$(storeId)).data;
+    }
+    // Writes in a store: admins anywhere, a store manager only in their own.
+    function inStore(orgId, zoneId, branchId, storeId) {
+      return !storeOnly() || storeOf(orgId, zoneId, branchId, storeId).managerId == request.auth.uid;
+    }
+    // The store of a master document: the new one on create, the existing one on update and delete (it never changes).
+    function masterStore() { return resource == null ? request.resource.data.get('storeId', '') : resource.data.get('storeId', ''); }
     // Title keys: created before a title takes its identity, deleted when it changes. An existing key cannot be overwritten.
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/uniqueKeys/{key} {
       allow get: if staff(orgId, zoneId, branchId) && key.matches('libraryTitle_.*');

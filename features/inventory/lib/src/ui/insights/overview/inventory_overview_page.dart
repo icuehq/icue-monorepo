@@ -34,6 +34,11 @@ class _InventoryOverviewPageState extends State<InventoryOverviewPage> {
     final inventoryProvider = context.read<InventoryProvider>();
     if (inventoryProvider.stores.isEmpty) await inventoryProvider.loadMasters();
     if (!mounted) return;
+    // A store manager has no "All stores" figure: it is always one of their stores.
+    if (inventoryProvider.restricted &&
+        !inventoryProvider.stores.any((store) => store.id == _storeId)) {
+      _storeId = inventoryProvider.stores.firstOrNull?.id;
+    }
     final store = inventoryProvider.stores
         .where((currentStore) => currentStore.id == _storeId)
         .firstOrNull;
@@ -66,7 +71,8 @@ class _InventoryOverviewPageState extends State<InventoryOverviewPage> {
           isDense: true,
         ),
         items: [
-          const DropdownMenuItem(child: Text('All stores')),
+          if (!inventoryProvider.restricted)
+            const DropdownMenuItem(child: Text('All stores')),
           for (final store in inventoryProvider.stores.where(
             (store) => store.active,
           ))
@@ -82,6 +88,8 @@ class _InventoryOverviewPageState extends State<InventoryOverviewPage> {
       ),
     );
 
+    final showFilter =
+        !inventoryProvider.restricted || inventoryProvider.showStoreFilter;
     return Scaffold(
       appBar: AppBar(title: const Text('Overview')),
       body: StreamBuilder<Map<String, num?>>(
@@ -99,12 +107,11 @@ class _InventoryOverviewPageState extends State<InventoryOverviewPage> {
                     children: [
                       const Expanded(child: OverviewQuickActions()),
                       const SizedBox(width: 16),
-                      filter,
+                      if (showFilter) filter,
                     ],
                   )
                 else ...[
-                  filter,
-                  const SizedBox(height: 12),
+                  if (showFilter) ...[filter, const SizedBox(height: 12)],
                   const OverviewQuickActions(),
                 ],
                 const SizedBox(height: 20),

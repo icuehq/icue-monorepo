@@ -143,6 +143,10 @@ class _IcueAdminAppState extends State<IcueAdminApp> {
       userId: user?.id.toString(),
       restricted: _authProvider.isAssignedLibrariesOnly,
     );
+    _inventoryProvider.scopeTo(
+      userId: user?.id.toString(),
+      restricted: _authProvider.isAssignedStoresOnly,
+    );
     final branch = _authProvider.selectedBranch;
     if (user?.id != _trackedUserId ||
         (branch != null && branch.id != _trackedBranchId)) {

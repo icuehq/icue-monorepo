@@ -5,6 +5,37 @@ import 'package:inventory/src/models/inventory_masters.dart';
 /// Inventory masters: reads and master writes go to Firestore; defaults seed through a callable.
 @lazySingleton
 class InventoryService {
+  // A store manager works only in the stores assigned to them (`inventoryStores/{id}.managerId`); everyone else sees all.
+  String? _userId;
+  bool _restricted = false;
+  List<InventoryStore>? _assigned;
+
+  /// Set on sign-in. A [restricted] user reads only stores whose manager is [userId], and every list is
+  /// narrowed to those stores.
+  void scopeTo({required String? userId, required bool restricted}) {
+    _userId = userId;
+    _restricted = restricted;
+    _assigned = null;
+  }
+
+  bool get restricted => _restricted;
+
+  /// The IDs of the stores a restricted user works in; null for everyone else (no narrowing).
+  Future<List<String>?> assignedStoreIds() async => _restricted
+      ? [for (final store in _assigned ?? await stores()) store.id]
+      : null;
+
+  /// `storeId` equals or is one of [ids] (Firestore allows 30 values); a user with no store matches nothing.
+  Query<Map<String, dynamic>> inStores(
+    Query<Map<String, dynamic>> query,
+    List<String> ids,
+  ) => ids.length == 1
+      ? query.where('storeId', isEqualTo: ids.single)
+      : query.where(
+          'storeId',
+          whereIn: ids.isEmpty ? ['-'] : ids.take(30).toList(),
+        );
+
   Future<List<T>> _all<T>(
     String path,
     T Function(String id, Map<String, dynamic> data) parse,
@@ -15,25 +46,45 @@ class InventoryService {
     ];
   }
 
-  Future<List<InventoryCategory>> categories() async =>
-      (await _all('inventoryCategories', InventoryCategory.fromMap))..sort(
-        (left, right) =>
-            left.name.toLowerCase().compareTo(right.name.toLowerCase()),
-      );
-
-  Future<List<InventoryUnit>> units() async =>
-      (await _all('inventoryUnits', InventoryUnit.fromMap))..sort(
-        (left, right) =>
-            left.name.toLowerCase().compareTo(right.name.toLowerCase()),
-      );
-
-  /// Stores of the branch.
-  Future<List<InventoryStore>> stores() async {
-    final snapshot = await (await branchCollection('inventoryStores')).get();
+  Future<List<InventoryCategory>> categories() async {
+    final assigned = await assignedStoreIds();
     return [
+      for (final category in await _all(
+        'inventoryCategories',
+        InventoryCategory.fromMap,
+      ))
+        if (assigned == null || assigned.contains(category.storeId)) category,
+    ]..sort(
+      (left, right) =>
+          left.name.toLowerCase().compareTo(right.name.toLowerCase()),
+    );
+  }
+
+  Future<List<InventoryUnit>> units() async {
+    final assigned = await assignedStoreIds();
+    return [
+      for (final unit in await _all('inventoryUnits', InventoryUnit.fromMap))
+        if (assigned == null || assigned.contains(unit.storeId)) unit,
+    ]..sort(
+      (left, right) =>
+          left.name.toLowerCase().compareTo(right.name.toLowerCase()),
+    );
+  }
+
+  /// Stores of the branch; a store manager gets only their own.
+  Future<List<InventoryStore>> stores() async {
+    final collection = await branchCollection('inventoryStores');
+    final snapshot =
+        await (_restricted
+                ? collection.where('managerId', isEqualTo: _userId)
+                : collection)
+            .get();
+    final stores = [
       for (final document in snapshot.docs)
         InventoryStore.fromMap(document.id, document.data()),
     ]..sort((left, right) => left.name.compareTo(right.name));
+    if (_restricted) _assigned = stores;
+    return stores;
   }
 
   /// A page of items by name, optionally within [categoryId] (Firestore query).
@@ -48,7 +99,8 @@ class InventoryService {
     if (categoryId != null) {
       query = query.where('categoryId', isEqualTo: categoryId);
     }
-    if (storeId != null) query = query.where('storeId', isEqualTo: storeId);
+    final assigned = storeId != null ? [storeId] : await assignedStoreIds();
+    if (assigned != null) query = inStores(query, assigned);
     return fetchPage(
       query.orderBy('name'),
       (document) => InventoryItem.fromMap(document.id, document.data()!),
@@ -63,6 +115,7 @@ class InventoryService {
     int offset = 0,
     int limit = 25,
   }) async {
+    final assigned = await assignedStoreIds();
     final page = await searchMirror(
       'inventoryItems',
       query,
@@ -73,7 +126,9 @@ class InventoryService {
     );
     return (
       items: [
-        for (final row in page.rows) InventoryItem.fromMap(row.id, row.data),
+        for (final row in page.rows)
+          if (assigned == null || assigned.contains(row.data['storeId']))
+            InventoryItem.fromMap(row.id, row.data),
       ],
       hasMore: page.hasMore,
     );
