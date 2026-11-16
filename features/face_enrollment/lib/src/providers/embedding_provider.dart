@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 
@@ -71,11 +72,13 @@ class EmbeddingProvider extends ChangeNotifier {
       _isDownloading = false;
       _scanStatusText = 'Download failed. Use camera or gallery.';
       notifyListeners();
-      CrashlyticsService.instance.recordError(
-        e,
-        stack,
-        reason: 'Student photo download failed for student $studentId',
-        information: ['photoUrl: $photoUrl'],
+      unawaited(
+        CrashlyticsService.instance.recordError(
+          e,
+          stack,
+          reason: 'Student photo download failed for student $studentId',
+          information: ['photoUrl: $photoUrl'],
+        ),
       );
       rethrow;
     }
@@ -159,11 +162,13 @@ class EmbeddingProvider extends ChangeNotifier {
       _isScanning = false;
       _scanStatusText = 'Extraction failed: $e';
       notifyListeners();
-      CrashlyticsService.instance.recordError(
-        e,
-        stack,
-        reason: 'Face embedding extraction failed for $_localImagePath',
-        information: ['imageSource: $_imageSource'],
+      unawaited(
+        CrashlyticsService.instance.recordError(
+          e,
+          stack,
+          reason: 'Face embedding extraction failed for $_localImagePath',
+          information: ['imageSource: $_imageSource'],
+        ),
       );
       rethrow;
     }

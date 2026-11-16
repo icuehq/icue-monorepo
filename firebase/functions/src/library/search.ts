@@ -18,6 +18,7 @@ const ROW = [
   'copyCount',
   'availableCopies',
   'status',
+  'createdAt',
 ] as const;
 /** The text index covers title, subtitle, authorsText, publisher, keywordsText and prefixText (`firebase/scripts/create-search-index.sh`). */
 
@@ -56,7 +57,7 @@ export const syncCatalogueSearch = syncTrigger(COLL, projectCatalogue);
 const LOANS = 'libraryLoans';
 const LOAN_TEXT = ['bookTitle', 'memberName', 'admissionNumber'];
 
-const LOAN_ROW = [...LOAN_TEXT, 'libraryId', 'status', 'dueDate'];
+const LOAN_ROW = [...LOAN_TEXT, 'libraryId', 'status', 'dueDate', 'issuedDate'];
 
 /** The [row] fields of [document] plus `prefixText` of its [text] fields, so a half-typed word matches. */
 const mirrorRow = (document: DocumentData, row: string[], text: string[]) => ({
@@ -98,6 +99,7 @@ export const projectMember = (member: DocumentData) => ({
   memberType: member.memberType ?? null,
   libraryIds: member.libraryIds ?? [],
   blocked: member.blocked ?? false,
+  createdAt: member.createdAt ?? null,
   onLoan: (member.activeLoans ?? 0) > 0,
   prefixText: prefixText(member.name ?? '', member.admissionNumber ?? ''),
 });

@@ -63,19 +63,28 @@ class LibraryService {
 
   Future<List<SchoolLibrary>> libraries() async {
     if (!_restricted) {
-      return _sortedByName(
+      return _sortedNewest(
         'libraries',
         SchoolLibrary.fromMap,
+        (item) => item.createdAt,
         (item) => item.name,
       );
     }
     final snapshot = await (await branchCollection('libraries'))
         .where('librarianId', isEqualTo: _userId)
         .get();
-    return _assigned = [
-      for (final document in snapshot.docs)
-        SchoolLibrary.fromMap(document.id, document.data()),
-    ]..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    return _assigned =
+        [
+          for (final document in snapshot.docs)
+            SchoolLibrary.fromMap(document.id, document.data()),
+        ]..sort((a, b) {
+          final newest = (b.createdAt ?? DateTime(0)).compareTo(
+            a.createdAt ?? DateTime(0),
+          );
+          return newest != 0
+              ? newest
+              : a.name.toLowerCase().compareTo(b.name.toLowerCase());
+        });
   }
 
   /// [selected], or for a restricted user the first assigned library; with none assigned a library that matches nothing.
@@ -94,9 +103,10 @@ class LibraryService {
 
   /// A librarian sees only the categories of the libraries assigned to them.
   Future<List<LibraryCategory>> categories() async {
-    final categories = await _sortedByName(
+    final categories = await _sortedNewest(
       'libraryCategories',
       LibraryCategory.fromMap,
+      (item) => item.createdAt,
       (item) => item.name,
     );
     if (!_restricted) return categories;
@@ -107,17 +117,23 @@ class LibraryService {
     ];
   }
 
-  Future<List<T>> _sortedByName<T>(
+  /// Newest first; items without a creation time (older records) follow, by name.
+  Future<List<T>> _sortedNewest<T>(
     String path,
     T Function(String id, Map<String, dynamic> data) parse,
+    DateTime? Function(T item) createdAt,
     String Function(T item) name,
   ) async => (await _all(path, parse))
-    ..sort(
-      (left, right) =>
-          name(left).toLowerCase().compareTo(name(right).toLowerCase()),
-    );
+    ..sort((left, right) {
+      final newest = (createdAt(right) ?? DateTime(0)).compareTo(
+        createdAt(left) ?? DateTime(0),
+      );
+      return newest != 0
+          ? newest
+          : name(left).toLowerCase().compareTo(name(right).toLowerCase());
+    });
 
-  /// Titles ordered by title, optionally within [categoryIds] (a category and its subcategories),
+  /// Titles, newest first, optionally within [categoryIds] (a category and its subcategories),
   /// meant for class [classId] and with [status] (`active`/`inactive`); page it with `FirestorePager`.
   Future<Query<Map<String, dynamic>>> booksQuery({
     String? libraryId,
@@ -142,7 +158,7 @@ class LibraryService {
     if (status != null) {
       query = query.where('status', isEqualTo: status);
     }
-    return query.orderBy('title');
+    return query.orderBy('createdAt', descending: true);
   }
 
   /// Whole-word search by title, author, publisher or keyword (`search` database, web only).
@@ -159,7 +175,8 @@ class LibraryService {
     final page = await searchMirror(
       'libraryCatalogue',
       query,
-      sortField: 'title',
+      sortField: 'createdAt',
+      descending: true,
       categoryIds: categoryIds,
       arrayHas: {'classIds': ?classId, 'libraryIds': ?libraryId},
       equals: {'status': ?status},
@@ -185,7 +202,12 @@ class LibraryService {
     return [
       for (final document in snapshot.docs)
         LibraryCopy.fromMap(document.id, document.data()),
-    ]..sort((left, right) => left.barcode.compareTo(right.barcode));
+    ]..sort((left, right) {
+      final newest = (right.createdAt ?? DateTime(0)).compareTo(
+        left.createdAt ?? DateTime(0),
+      );
+      return newest != 0 ? newest : left.barcode.compareTo(right.barcode);
+    });
   }
 
   /// A copy by barcode (its document ID).
@@ -220,9 +242,10 @@ class LibraryService {
 
   /// A librarian sees only the policies of the libraries assigned to them.
   Future<List<LibraryPolicy>> policies() async {
-    final policies = await _sortedByName(
+    final policies = await _sortedNewest(
       'libraryBorrowingPolicies',
       LibraryPolicy.fromMap,
+      (item) => item.createdAt,
       (item) => item.name,
     );
     if (!_restricted) return policies;
@@ -233,7 +256,7 @@ class LibraryService {
     ];
   }
 
-  /// Members by ERP ID, narrowed by the filters. [memberType] is `student` or `teacher`.
+  /// Members, newest first, narrowed by the filters. [memberType] is `student` or `teacher`.
   Future<Query<Map<String, dynamic>>> membersQuery({
     String? libraryId,
     String? memberType,
@@ -256,7 +279,7 @@ class LibraryService {
           .where('activeLoans', isGreaterThan: 0)
           .orderBy('activeLoans');
     }
-    return query.orderBy('personErpId');
+    return query.orderBy('createdAt', descending: true);
   }
 
   /// Members whose name or admission number matches [query] (whole words or typed prefixes), by ERP ID,
@@ -274,7 +297,8 @@ class LibraryService {
     final page = await searchMirror(
       'libraryMembers',
       query,
-      sortField: 'personErpId',
+      sortField: 'createdAt',
+      descending: true,
       arrayHas: {'libraryIds': ?libraryId},
       equals: {
         'memberType': ?memberType,
@@ -296,7 +320,7 @@ class LibraryService {
   Future<LibraryMember?> member(int personErpId) =>
       _one('libraryMembers', '$personErpId', LibraryMember.fromMap);
 
-  /// Active loans by due date, narrowed by the Issued Books filters; page it with `FirestorePager`.
+  /// Active loans, newest issue first, narrowed by the Issued Books filters; page it with `FirestorePager`.
   Future<Query<Map<String, dynamic>>> activeLoansQuery({
     SchoolLibrary? library,
     int? classId,
@@ -335,11 +359,16 @@ class LibraryService {
         isLessThanOrEqualTo: dayTimestamp(issued.end.toApiDate()),
       );
     }
-    return query.orderBy('dueDate');
+    // An overdue filter is a range on dueDate, which Firestore needs as the first order.
+    return due == LoanDueFilter.overdue
+        ? query
+              .orderBy('dueDate', descending: true)
+              .orderBy('issuedDate', descending: true)
+        : query.orderBy('issuedDate', descending: true);
   }
 
   /// Active loans whose book title, member name or admission number holds every word of [query],
-  /// earliest due first (`search` database, web only, then the loans themselves from Firestore).
+  /// newest issue first (`search` database, web only, then the loans themselves from Firestore).
   Future<({List<LibraryLoan> items, bool hasMore})> searchLoans(
     String query, {
     String? libraryId,
@@ -350,7 +379,8 @@ class LibraryService {
     final page = await searchMirror(
       'libraryLoans',
       query,
-      sortField: 'dueDate',
+      sortField: 'issuedDate',
+      descending: true,
       equals: {'status': 'active', 'libraryId': ?libraryId},
       offset: offset,
       limit: limit,

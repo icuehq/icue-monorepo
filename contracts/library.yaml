@@ -135,6 +135,7 @@ models:
         price: double
         acquiredDate: day?
         remarks: string?
+        createdAt: timestamp?
   library_fines:
     LibraryFineWaiver:
       fields:
@@ -239,6 +240,7 @@ models:
         hours: string?
         librarianId: string?
         active: { type: bool, key: status, notEquals: inactive }
+        createdAt: timestamp?
     LibraryCategory:
       id: id
       fields:
@@ -247,6 +249,7 @@ models:
         description: string?
         parentId: string?
         active: { type: bool, key: status, notEquals: inactive }
+        createdAt: timestamp?
     LibraryBook:
       doc: "A catalogue title (FRS 11.4). classIds are ERP class ids the book is meant for (no sections); empty means a general book for any class. libraryIds are the libraries holding copies (kept by the stats trigger with holdings, as are copyCount, all copies, and availableCopies, those on the shelf). Search rows carry only the list fields, so the detail-only ones (description, pages, class number, keywords) are empty there."
       id: id
@@ -285,6 +288,7 @@ models:
         maxFine: double?
         categoryIds: list<string>
         active: { type: bool, key: status, notEquals: inactive }
+        createdAt: timestamp?
     LibraryMember:
       doc: "A student or employee (staff) who has borrowed (FRS 11.7). Created on first use from the ERP details; the ERP stays the source of truth."
       id: id

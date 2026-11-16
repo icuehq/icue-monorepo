@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:face_enrollment/src/models/student.dart';
@@ -205,15 +206,17 @@ class StudentProvider extends ChangeNotifier {
         debugPrint('Failed to process student ${student.name}: $e');
         logFailure('${student.name} (id ${student.id}): ${describeError(e)}');
         batch.record(succeeded: 0, failed: 1);
-        CrashlyticsService.instance.recordError(
-          e,
-          stack,
-          reason:
-              'Batch face embedding extraction failed for student ${student.id}',
-          information: [
-            'studentId: ${student.id}',
-            'admissionNumber: ${student.admissionNumber}',
-          ],
+        unawaited(
+          CrashlyticsService.instance.recordError(
+            e,
+            stack,
+            reason:
+                'Batch face embedding extraction failed for student ${student.id}',
+            information: [
+              'studentId: ${student.id}',
+              'admissionNumber: ${student.admissionNumber}',
+            ],
+          ),
         );
       } finally {
         await _deleteQuietly(path);
