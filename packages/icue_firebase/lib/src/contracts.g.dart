@@ -215,6 +215,7 @@ abstract final class LibraryLoanFields {
   static const policySnapshot = 'policySnapshot';
   static const status = 'status';
   static const issuedBy = 'issuedBy';
+  static const createdAt = 'createdAt';
   static const returnedDate = 'returnedDate';
   static const condition = 'condition';
   static const overdueDays = 'overdueDays';

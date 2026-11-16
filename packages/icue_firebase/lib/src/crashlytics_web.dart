@@ -4,7 +4,7 @@ import 'dart:js_interop_unsafe';
 import 'package:firebase_core/firebase_core.dart';
 
 /// Firebase JS SDK that ships Crashlytics for web.
-const _sdk = 'https://www.gstatic.com/firebasejs/13.2.0';
+const _sdk = 'https://www.gstatic.com/firebasejs/13.3.0';
 
 JSObject? _crashlytics;
 JSObject? _module;

@@ -52,6 +52,7 @@ documents:
       policySnapshot: LoanPolicySnapshot
       status: LoanStatus
       issuedBy: string
+      createdAt: timestamp?
       returnedDate: timestamp?
       condition: string?
       overdueDays: int?

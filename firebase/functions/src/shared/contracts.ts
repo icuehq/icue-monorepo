@@ -168,6 +168,7 @@ export interface LibraryLoan {
   policySnapshot: LoanPolicySnapshot;
   status: LoanStatus;
   issuedBy: string;
+  createdAt?: Timestamp | null;
   returnedDate?: Timestamp | null;
   condition?: string | null;
   overdueDays?: number | null;

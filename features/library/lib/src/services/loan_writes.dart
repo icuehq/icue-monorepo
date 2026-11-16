@@ -260,6 +260,7 @@ class LoanWrites {
           },
           'status': LoanStatus.active,
           'issuedBy': _uid,
+          'createdAt': FieldValue.serverTimestamp(),
           'lastWrite': writeStamp('libraryLoan.issue'),
         })
         ..update(copyReference, {
