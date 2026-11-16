@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
@@ -65,7 +66,8 @@ class _PersonPickerState extends State<PersonPicker> {
       } else {
         _choose(person);
       }
-    } catch (error) {
+    } catch (error, stack) {
+      logError(error, stack, 'Looking up a person');
       if (!mounted) return;
       setState(() => _error = 'Could not look up: $error');
       _focusNode.requestFocus();

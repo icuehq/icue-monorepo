@@ -87,20 +87,20 @@ melos:
       run: cd firebase/functions && npm ci && npm test && cd ../rules-tests && npm ci && npm test
 
     build:web:dev:
-      description: Build icueadmin web app for dev.
-      run: cd apps/icueadmin && flutter build web --wasm --no-web-resources-cdn --dart-define=ENV=dev
+      description: Build all web apps (icueadmin, portal) for dev.
+      run: for app in icueadmin portal; do (cd apps/$app && flutter build web --wasm --no-web-resources-cdn --dart-define=ENV=dev) || exit 1; done
 
     build:web:prod:
-      description: Build icueadmin web app for prod.
-      run: cd apps/icueadmin && flutter build web --wasm --no-web-resources-cdn --dart-define=ENV=prod
+      description: Build all web apps (icueadmin, portal) for prod.
+      run: for app in icueadmin portal; do (cd apps/$app && flutter build web --wasm --no-web-resources-cdn --dart-define=ENV=prod) || exit 1; done
 
     deploy:web:dev:
-      description: Build and deploy icueadmin web app to the dev Firebase project (icueadmin-dev).
-      run: cd apps/icueadmin && flutter build web --wasm --no-web-resources-cdn --dart-define=ENV=dev && firebase deploy --only hosting --project dev
+      description: Build and deploy all web apps (icueadmin, portal) to the dev Firebase project (icueadmin-dev).
+      run: for app in icueadmin portal; do (cd apps/$app && flutter build web --wasm --no-web-resources-cdn --dart-define=ENV=dev && firebase deploy --only hosting --project dev) || exit 1; done
 
     deploy:web:prod:
-      description: Build and deploy icueadmin web app to the prod Firebase project (icueadmin).
-      run: cd apps/icueadmin && flutter build web --wasm --no-web-resources-cdn --dart-define=ENV=prod && firebase deploy --only hosting --project prod
+      description: Build and deploy all web apps (icueadmin, portal) to the prod Firebase project (icueadmin).
+      run: for app in icueadmin portal; do (cd apps/$app && flutter build web --wasm --no-web-resources-cdn --dart-define=ENV=prod && firebase deploy --only hosting --project prod) || exit 1; done
 
     emulators:
       description: Start Firebase emulators; loads and saves firebase/.emulator-data (Ctrl-C saves).

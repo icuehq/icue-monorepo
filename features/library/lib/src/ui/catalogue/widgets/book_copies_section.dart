@@ -34,7 +34,8 @@ class _BookCopiesSectionState extends State<BookCopiesSection> {
         widget.book.id,
       );
       if (mounted) setState(() => _copies = copies);
-    } catch (error) {
+    } catch (error, stack) {
+      logError(error, stack, 'Loading copies');
       if (mounted) setState(() => _error = error.toString());
     }
   }

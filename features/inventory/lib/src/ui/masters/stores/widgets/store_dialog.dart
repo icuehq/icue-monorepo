@@ -1,6 +1,7 @@
 import 'package:auth/auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:provider/provider.dart';
@@ -45,7 +46,8 @@ class _StoreDialogState extends State<StoreDialog> {
         RoleIds.storeManager,
       );
       if (mounted) setState(() => _managers = users);
-    } catch (_) {
+    } catch (error, stack) {
+      logError(error, stack, 'Loading managers');
       if (mounted) {
         setState(() => _errorMessage = 'Could not load the list of managers');
       }

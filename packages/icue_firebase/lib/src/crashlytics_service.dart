@@ -19,10 +19,9 @@ class CrashlyticsService {
   static const _supported = !kIsWeb;
 
   /// Hooks global error handlers. Call once, after Firebase is initialized.
-  /// Collection is on in release builds only.
+  /// Collection is on in every build mode, so debug errors reach the project's Crashlytics too.
   Future<void> init() async {
     if (kIsWeb) {
-      if (kDebugMode) return;
       // Preview JS SDK: a load failure must never block app startup.
       try {
         await initWebCrashlytics();
@@ -40,7 +39,7 @@ class CrashlyticsService {
       };
       return;
     }
-    await _c.setCrashlyticsCollectionEnabled(!kDebugMode);
+    await _c.setCrashlyticsCollectionEnabled(true);
     FlutterError.onError = _c.recordFlutterFatalError;
     PlatformDispatcher.instance.onError = (error, stack) {
       _c.recordError(error, stack, fatal: true);

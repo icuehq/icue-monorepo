@@ -1,5 +1,6 @@
 import 'package:auth/auth.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
@@ -42,7 +43,8 @@ class _AddLibraryDialogState extends State<AddLibraryDialog> {
         RoleIds.librarian,
       );
       if (mounted) setState(() => _librarians = users);
-    } catch (_) {
+    } catch (error, stack) {
+      logError(error, stack, 'Loading librarians');
       if (mounted) {
         setState(() => _errorMessage = 'Could not load the list of librarians');
       }

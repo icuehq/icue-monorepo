@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'package:icue_firebase/src/error_log.dart';
 
 /// Fetches one page: Firestore sources start after [after], offset-based
 /// sources (search callables) skip [offset] rows.
@@ -56,11 +57,16 @@ class FirestorePager<T> extends ChangeNotifier {
     // Page moves within this source keep its count; only a newer load drops it.
     final load = ++_loadGeneration;
     if (count != null) {
-      count().then((value) {
-        if (load != _loadGeneration) return;
-        total = value;
-        notifyListeners();
-      }, onError: (Object _) {});
+      count().then(
+        (value) {
+          if (load != _loadGeneration) return;
+          total = value;
+          notifyListeners();
+        },
+        onError: (Object error, StackTrace stack) {
+          logError(error, stack, 'Counting rows');
+        },
+      );
     }
     return _go(0);
   }
@@ -118,7 +124,8 @@ class FirestorePager<T> extends ChangeNotifier {
       }
       if (_starts.length > page + 1) _starts.length = page + 1;
       _starts.add(result.cursor);
-    } catch (caught) {
+    } catch (caught, stack) {
+      logError(caught, stack, 'Loading a page');
       if (generation != _generation) return;
       error = caught;
       _failed = () => _go(page, append: append);

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:icue_firebase/src/error_log.dart';
 
 String? _branchUid;
 String? _branchPath;
@@ -38,7 +39,8 @@ Future<String> branchPath() async {
   // Right after login the Firebase sign-in is still running (it signs out first); wait for it.
   try {
     await _signIn;
-  } catch (_) {
+  } catch (error, stack) {
+    logError(error, stack, 'Firebase sign-in');
     // A failed sign-in surfaces below as "Not signed in".
   }
   // On web `currentUser` is null until Firebase Auth restores the session, so wait for the first auth state.
@@ -134,11 +136,15 @@ Map<String, Object?> writeStamp(String action, [String? reason]) => {
 };
 
 /// The message to show for a failed call: the server's message for a callable error, else the error text.
-String callableErrorMessage(Object error) => switch (error) {
-  FirebaseFunctionsException(:final message, :final code) => message ?? code,
-  FirebaseException(:final message, :final code) => message ?? code,
-  _ => _plainText(error.toString()),
-};
+/// Every call site is a `catch`, so it also logs the error ([logError]).
+String callableErrorMessage(Object error, [StackTrace? stack]) {
+  logError(error, stack);
+  return switch (error) {
+    FirebaseFunctionsException(:final message, :final code) => message ?? code,
+    FirebaseException(:final message, :final code) => message ?? code,
+    _ => _plainText(error.toString()),
+  };
+}
 
 /// A Firestore error that crossed a transaction (web) arrives as text such as
 /// `Error: Dart exception: [cloud_firestore/failed-precondition] Member is blocked`; keep only the message.

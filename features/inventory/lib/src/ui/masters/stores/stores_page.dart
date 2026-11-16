@@ -1,5 +1,6 @@
 import 'package:auth/auth.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/masters/stores/widgets/store_card.dart';
@@ -45,7 +46,8 @@ class _StoresPageState extends State<StoresPage> {
           },
         );
       }
-    } catch (_) {
+    } catch (error, stack) {
+      logError(error, stack, 'Loading manager names');
       // The list still works without names; managers show as "—".
     }
   }

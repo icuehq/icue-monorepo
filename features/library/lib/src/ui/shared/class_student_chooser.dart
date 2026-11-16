@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:icue_firebase/icue_firebase.dart';
 import 'package:provider/provider.dart';
 import 'package:routes/routes.dart';
 import 'package:school_library/school_library.dart';
@@ -48,7 +49,8 @@ class _ClassStudentChooserState extends State<ClassStudentChooser> {
     });
     try {
       await load();
-    } catch (error) {
+    } catch (error, stack) {
+      logError(error, stack, 'Loading classes and students');
       if (mounted) setState(() => _error = 'Could not load: $error');
     } finally {
       if (mounted) setState(() => _loading = false);

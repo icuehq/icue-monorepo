@@ -133,7 +133,8 @@ class InventoryProvider extends ChangeNotifier implements ErrorReporting {
     if (missing.isEmpty) return;
     try {
       inStock.addAll(await _service.inStock(missing.toList()));
-    } catch (_) {
+    } catch (error, stack) {
+      logError(error, stack, 'Loading stock figures');
       // Shown as "—".
     }
   }

@@ -1,5 +1,6 @@
 import 'package:auth/auth.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
@@ -50,7 +51,8 @@ class _LibrariesPageState extends State<LibrariesPage> {
           },
         );
       }
-    } catch (_) {
+    } catch (error, stack) {
+      logError(error, stack, 'Loading librarian names');
       // The list still works without names; librarians show as "—".
     }
   }
