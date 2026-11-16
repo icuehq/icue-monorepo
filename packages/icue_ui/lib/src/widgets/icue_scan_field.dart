@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:icue_ui/src/widgets/icue_button.dart';
 
 /// One scan input (architecture §11): type or use a USB / Bluetooth scanner or RFID reader in
 /// keyboard-wedge mode (Enter submits), or type a code and tap the search button.
@@ -46,21 +47,28 @@ class _ScanFieldState extends State<IcueScanField> {
   }
 
   @override
-  Widget build(BuildContext context) => TextField(
-    controller: _controller,
-    focusNode: _focusNode,
-    autofocus: widget.autofocus,
-    textInputAction: TextInputAction.search,
-    decoration: InputDecoration(
-      hintText: widget.hint,
-      prefixIcon: const Icon(Icons.qr_code_scanner),
-      suffixIcon: IconButton(
-        tooltip: 'Search',
-        icon: const Icon(Icons.search),
+  Widget build(BuildContext context) => Row(
+    children: [
+      Expanded(
+        child: TextField(
+          controller: _controller,
+          focusNode: _focusNode,
+          autofocus: widget.autofocus,
+          textInputAction: TextInputAction.search,
+          decoration: InputDecoration(
+            hintText: widget.hint,
+            prefixIcon: const Icon(Icons.qr_code_scanner),
+          ),
+          onChanged: widget.onChanged,
+          onSubmitted: _submit,
+        ),
+      ),
+      const SizedBox(width: 8),
+      IcueButton(
+        label: 'Search',
+        leadingIcon: Icons.search,
         onPressed: () => _submit(_controller.text),
       ),
-    ),
-    onChanged: widget.onChanged,
-    onSubmitted: _submit,
+    ],
   );
 }

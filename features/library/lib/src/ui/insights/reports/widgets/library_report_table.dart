@@ -105,12 +105,7 @@ class LibraryReportTable extends StatelessWidget {
             id: '$index',
             label: header[index],
             sortable: pagination == null,
-            flex: _wide.contains(headerName) ? 2.5 : 1,
-            minWidth: _wide.contains(headerName)
-                ? 200
-                : numeric
-                ? 90
-                : 120,
+            flex: _wide.contains(headerName) ? 1 : 1,
             alignment: numeric ? Alignment.centerRight : Alignment.centerLeft,
             comparator: (row) => allNumbers
                 ? double.parse(row[index])

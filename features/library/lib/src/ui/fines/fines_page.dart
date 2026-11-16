@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:icue_firebase/icue_firebase.dart' show textSearchSupported;
 import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
@@ -224,38 +225,42 @@ class _FinesPageState extends State<FinesPage> {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        SizedBox(
-                          width: 220,
-                          child: TextField(
-                            controller: _searchController,
-                            decoration: InputDecoration(
-                              hintText: 'Fine # or accession no.',
-                              prefixIcon: const Icon(Icons.search, size: 18),
-                              isDense: true,
-                              filled: true,
-                              fillColor: theme
-                                  .colorScheme
-                                  .surfaceContainerHighest
-                                  .withValues(alpha: 0.35),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 8,
+                        if (textSearchSupported) ...[
+                          const SizedBox(width: 12),
+                          SizedBox(
+                            width: 220,
+                            child: TextField(
+                              controller: _searchController,
+                              decoration: InputDecoration(
+                                hintText:
+                                    'Member, adm. no., book or accession no.',
+                                prefixIcon: const Icon(Icons.search, size: 18),
+                                isDense: true,
+                                filled: true,
+                                fillColor: theme
+                                    .colorScheme
+                                    .surfaceContainerHighest
+                                    .withValues(alpha: 0.35),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 8,
+                                ),
+                                suffixIcon:
+                                    libraryProvider.fineSearch.isNotEmpty
+                                    ? IconButton(
+                                        icon: const Icon(Icons.clear, size: 16),
+                                        onPressed: () {
+                                          _searchController.clear();
+                                          _search('');
+                                        },
+                                      )
+                                    : null,
                               ),
-                              suffixIcon: libraryProvider.fineSearch.isNotEmpty
-                                  ? IconButton(
-                                      icon: const Icon(Icons.clear, size: 16),
-                                      onPressed: () {
-                                        _searchController.clear();
-                                        _search('');
-                                      },
-                                    )
-                                  : null,
+                              textInputAction: TextInputAction.search,
+                              onSubmitted: _search,
                             ),
-                            textInputAction: TextInputAction.search,
-                            onSubmitted: _search,
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ),

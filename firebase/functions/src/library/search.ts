@@ -1,5 +1,7 @@
 import { type DocumentData, type Firestore, type Timestamp } from 'firebase-admin/firestore';
-import { applyChange, syncTrigger } from '../shared/searchMirror';
+import { applyChange, prefixText, syncTrigger } from '../shared/searchMirror';
+
+export { prefixText };
 
 /** Catalogue search mirror (FRS 11.4): same pattern as inventory items (architecture §10). */
 const COLL = 'libraryCatalogue';
@@ -13,33 +15,14 @@ const ROW = [
   'categoryId',
   'classIds',
   'libraryIds',
+  'copyCount',
+  'availableCopies',
   'status',
 ] as const;
 /** The text index covers title, subtitle, authorsText, publisher, keywordsText and prefixText (`firebase/scripts/create-search-index.sh`). */
 
 const projectRow = (catalogueDocument: DocumentData) =>
   Object.fromEntries(ROW.map((field) => [field, catalogueDocument[field] ?? null]));
-
-const MIN_PREFIX = 3;
-
-/**
- * Every prefix of at least [MIN_PREFIX] letters of each word, so a half-typed word matches: the text index
- * only matches whole words. 'Marigold' gives 'mar mari marig marigo marigol' (the full word is indexed already).
- */
-export const prefixText = (...texts: string[]) =>
-  [
-    ...new Set(
-      texts
-        .join(' ')
-        .toLowerCase()
-        .split(/[^\p{L}\p{N}]+/u)
-        .flatMap((word) =>
-          Array.from({ length: Math.max(0, word.length - MIN_PREFIX) }, (_, index) =>
-            word.slice(0, MIN_PREFIX + index),
-          ),
-        ),
-    ),
-  ].join(' ');
 
 /** The list-row fields plus flat text copies of the array fields, which the text index needs. */
 export const projectCatalogue = (catalogueDocument: DocumentData) => {
@@ -73,10 +56,15 @@ export const syncCatalogueSearch = syncTrigger(COLL, projectCatalogue);
 const LOANS = 'libraryLoans';
 const LOAN_TEXT = ['bookTitle', 'memberName', 'admissionNumber'];
 
-const LOAN_ROW = [...LOAN_TEXT, 'status', 'dueDate'];
+const LOAN_ROW = [...LOAN_TEXT, 'libraryId', 'status', 'dueDate'];
 
-export const projectLoan = (loan: DocumentData) =>
-  Object.fromEntries(LOAN_ROW.map((field) => [field, loan[field] ?? null]));
+/** The [row] fields of [document] plus `prefixText` of its [text] fields, so a half-typed word matches. */
+const mirrorRow = (document: DocumentData, row: string[], text: string[]) => ({
+  ...Object.fromEntries(row.map((field) => [field, document[field] ?? null])),
+  prefixText: prefixText(...text.map((field) => document[field] ?? '')),
+});
+
+export const projectLoan = (loan: DocumentData) => mirrorRow(loan, LOAN_ROW, LOAN_TEXT);
 
 export const applyLoanChange = (
   branchPath: string,
@@ -90,10 +78,10 @@ export const syncLoanSearch = syncTrigger(LOANS, projectLoan);
 
 /** Lost & Damaged search mirror (incidents): whole words of the book title, member name or admission number. */
 const INCIDENTS = 'libraryIncidents';
-const INCIDENT_ROW = [...LOAN_TEXT, 'status', 'type', 'createdAt'];
+const INCIDENT_ROW = [...LOAN_TEXT, 'libraryId', 'status', 'type', 'createdAt'];
 
 export const projectIncident = (incident: DocumentData) =>
-  Object.fromEntries(INCIDENT_ROW.map((field) => [field, incident[field] ?? null]));
+  mirrorRow(incident, INCIDENT_ROW, LOAN_TEXT);
 
 export const syncIncidentSearch = syncTrigger(INCIDENTS, projectIncident);
 
@@ -108,9 +96,19 @@ export const projectMember = (member: DocumentData) => ({
   admissionNumber: member.admissionNumber ?? null,
   personErpId: member.personErpId ?? null,
   memberType: member.memberType ?? null,
+  libraryIds: member.libraryIds ?? [],
   blocked: member.blocked ?? false,
   onLoan: (member.activeLoans ?? 0) > 0,
   prefixText: prefixText(member.name ?? '', member.admissionNumber ?? ''),
 });
 
 export const syncLibraryMemberSearch = syncTrigger(MEMBERS, projectMember);
+
+/** Fines search mirror: whole words or typed prefixes of the member name, admission number, book title or accession no. */
+const FINES = 'libraryFines';
+const FINE_TEXT = ['memberName', 'admissionNumber', 'bookTitle', 'barcode'];
+const FINE_ROW = [...FINE_TEXT, 'libraryId', 'status', 'type', 'createdAt'];
+
+export const projectFine = (fine: DocumentData) => mirrorRow(fine, FINE_ROW, FINE_TEXT);
+
+export const syncFineSearch = syncTrigger(FINES, projectFine);

@@ -378,33 +378,49 @@ class LibraryService {
           );
   }
 
-  /// Fines, newest first. A [search] is an exact fine ID or accession number and ignores the other
-  /// filters, but a librarian still finds only fines of their own libraries.
+  /// Fines, newest first.
   Future<Query<Map<String, dynamic>>> finesQuery({
     String? libraryId,
     String? status,
     String? type,
-    String search = '',
   }) async {
     libraryId = await _scopedLibraryId(libraryId);
     Query<Map<String, dynamic>> query = await branchCollection('libraryFines');
-    if (search.isNotEmpty) {
-      final terms = {search, search.toUpperCase()}.toList();
-      query = query.where(
-        Filter.or(
-          Filter(FieldPath.documentId, whereIn: terms),
-          Filter('barcode', whereIn: terms),
-        ),
-      );
-      if (_restricted) query = query.where('libraryId', isEqualTo: libraryId);
-    } else {
-      if (libraryId != null) {
-        query = query.where('libraryId', isEqualTo: libraryId);
-      }
-      if (status != null) query = query.where('status', isEqualTo: status);
-      if (type != null) query = query.where('type', isEqualTo: type);
+    if (libraryId != null) {
+      query = query.where('libraryId', isEqualTo: libraryId);
     }
+    if (status != null) query = query.where('status', isEqualTo: status);
+    if (type != null) query = query.where('type', isEqualTo: type);
     return query.orderBy('createdAt', descending: true);
+  }
+
+  /// Fines whose member name, admission number, book title or accession number matches [query]
+  /// (whole words or typed prefixes), newest first, narrowed by the same filters
+  /// (`search` database, web only, then the fines themselves from Firestore).
+  Future<({List<LibraryFine> items, bool hasMore})> searchFines(
+    String query, {
+    String? libraryId,
+    String? status,
+    String? type,
+    int offset = 0,
+    int limit = 25,
+  }) async {
+    libraryId = await _scopedLibraryId(libraryId);
+    final page = await searchMirror(
+      'libraryFines',
+      query,
+      sortField: 'createdAt',
+      descending: true,
+      equals: {'libraryId': ?libraryId, 'status': ?status, 'type': ?type},
+      offset: offset,
+      limit: limit,
+    );
+    final ids = [for (final row in page.rows) row.id];
+    final found = {
+      for (final document in await _byIds('libraryFines', ids))
+        document.id: LibraryFine.fromMap(document.id, document.data()),
+    };
+    return (items: [for (final id in ids) ?found[id]], hasMore: page.hasMore);
   }
 
   /// Fines of one member that are not yet settled, newest first.

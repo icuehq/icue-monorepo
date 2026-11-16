@@ -27,7 +27,7 @@ class MemberNoResultsState extends StatelessWidget {
     title: searchQuery.isEmpty
         ? 'No members match these filters'
         : 'No member with ERP ID "$searchQuery"',
-    message: 'Search by the exact ERP ID, or clear the filters.',
+    message: 'Try another name or admission number, or clear the filters.',
     onAction: onClear,
   );
 }

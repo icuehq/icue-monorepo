@@ -83,26 +83,29 @@ class _LibraryReportsPageState extends State<LibraryReportsPage> {
     if (picked != null) _onRangeChanged(picked);
   }
 
-  Future<void> _exportCsv(List<String> header, List<List<String>> rows) async {
+  Future<void> _exportCsv() async {
     final library = context.read<LibraryProvider>();
-    if (_def.kind == LibraryReportKind.loans) {
+    final names = LibraryNames(
+      title: library.titleName,
+      library: library.libraryName,
+      classLabel: library.classLabel,
+    );
+    final List<Map<String, dynamic>> source;
+    try {
       // The table holds one page; export every matching loan.
-      final names = LibraryNames(
-        title: library.titleName,
-        library: library.libraryName,
-        classLabel: library.classLabel,
-      );
-      try {
-        rows = [
-          for (final row in await library.exportReportLoans())
-            [for (final column in _def.cols) column.cell(row, names)],
-        ];
-      } catch (error) {
-        if (mounted) IcueToast.error(context, callableErrorMessage(error));
-        return;
-      }
+      source = _def.kind == LibraryReportKind.loans
+          ? await library.exportReportLoans()
+          : library.reportRows;
+    } catch (error) {
+      if (mounted) IcueToast.error(context, callableErrorMessage(error));
+      return;
     }
-    final csv = toCsv(header, rows);
+    final columns = _def.exportCols;
+    final rows = [
+      for (final row in source)
+        [for (final column in columns) column.cell(row, names)],
+    ];
+    final csv = toCsv([for (final column in columns) column.label], rows);
     final saved = await saveCsvFile('${_def.key}-report.csv', csv);
 
     if (!mounted) return;
@@ -241,7 +244,7 @@ class _LibraryReportsPageState extends State<LibraryReportsPage> {
               errorMessage: paged
                   ? (pager.error == null ? null : library.errorMessage)
                   : library.errorMessage,
-              onExport: rows.isEmpty ? null : () => _exportCsv(header, rows),
+              onExport: rows.isEmpty ? null : _exportCsv,
               count: pager.total ?? pager.items.length,
               onRetry: pager.retry,
               pagination: paged ? IcueTablePagination.pager(pager) : null,

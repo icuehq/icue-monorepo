@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:icue_firebase/icue_firebase.dart' show textSearchSupported;
 import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
@@ -35,13 +36,15 @@ class FinesTable extends StatelessWidget {
       onRetry: pager.retry,
       pagination: IcueTablePagination.pager(pager),
       onRowTap: onOpen,
-      searchHint: 'Fine # or accession no.',
+      searchHint: 'Member, adm. no., book or accession no.',
       initialSearch: provider.fineSearch,
       searchDebounce: const Duration(milliseconds: 400),
-      onSearchChanged: (query) {
-        provider.fineSearch = query.trim();
-        provider.loadFines();
-      },
+      onSearchChanged: textSearchSupported
+          ? (query) {
+              provider.fineSearch = query.trim();
+              provider.loadFines();
+            }
+          : null,
       filters: [
         ...libraryTableFilter(provider.libraries, provider.fineLibraryId, (
           value,

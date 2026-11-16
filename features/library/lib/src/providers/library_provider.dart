@@ -254,35 +254,26 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
     if (libraryId != null) bookClassId = null;
     bookStatus = clearStatus ? null : (status ?? bookStatus);
     final categoryIds = categoryScope(bookCategoryId);
-    final query = bookSearch;
-    if (query.isEmpty) {
-      await books.loadQuery(
-        await _service.booksQuery(
-          libraryId: bookLibraryId,
-          categoryIds: categoryIds,
-          classId: bookClassId,
-          status: bookStatus,
-        ),
-        (document) => LibraryBook.fromMap(document.id, document.data()!),
-      );
-    } else {
-      await books.load(({
-        required after,
-        required offset,
-        required limit,
-      }) async {
-        final page = await _service.searchBooks(
-          query,
-          libraryId: bookLibraryId,
-          categoryIds: categoryIds,
-          classId: bookClassId,
-          status: bookStatus,
-          offset: offset,
-          limit: limit,
-        );
-        return PagedResult(page.items, null, hasMore: page.hasMore);
-      });
-    }
+    await _loadSearchable(
+      books,
+      bookSearch,
+      (query, {required offset, required limit}) => _service.searchBooks(
+        query,
+        libraryId: bookLibraryId,
+        categoryIds: categoryIds,
+        classId: bookClassId,
+        status: bookStatus,
+        offset: offset,
+        limit: limit,
+      ),
+      () => _service.booksQuery(
+        libraryId: bookLibraryId,
+        categoryIds: categoryIds,
+        classId: bookClassId,
+        status: bookStatus,
+      ),
+      (document) => LibraryBook.fromMap(document.id, document.data()!),
+    );
   }
 
   /// Loads the first page of members for the current filters.
@@ -405,18 +396,24 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   }
 
   /// Loads the first page of fines and their totals for the current filters.
-  Future<void> loadFines() async {
-    final query = await _service.finesQuery(
+  Future<void> loadFines() => _loadSearchable(
+    fines,
+    fineSearch,
+    (query, {required offset, required limit}) => _service.searchFines(
+      query,
       libraryId: fineLibraryId,
       status: fineStatus,
       type: fineType,
-      search: fineSearch,
-    );
-    await fines.loadQuery(
-      query,
-      (document) => LibraryFine.fromMap(document.id, document.data()!),
-    );
-  }
+      offset: offset,
+      limit: limit,
+    ),
+    () => _service.finesQuery(
+      libraryId: fineLibraryId,
+      status: fineStatus,
+      type: fineType,
+    ),
+    (document) => LibraryFine.fromMap(document.id, document.data()!),
+  );
 
   /// Clears every fines filter and reloads.
   Future<void> clearFineFilters() {

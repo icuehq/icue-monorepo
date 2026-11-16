@@ -52,6 +52,22 @@ class LibraryReportDef {
 
   /// Loan status choices offered to the user (loans report only).
   final List<String> statuses;
+
+  /// Columns for CSV export: the on-screen Member column becomes Member, Class and Section.
+  List<LibraryReportCol> get exportCols => [
+    for (final column in cols)
+      if (column.label == 'Member') ...[
+        LibraryReportCol('Member', (m, _) => _memberLabel(m)),
+        LibraryReportCol(
+          'Class',
+          (m, names) => _memberClassId(m) == null
+              ? ''
+              : names.classLabel(_memberClassId(m), null),
+        ),
+        LibraryReportCol('Section', (m, _) => readString(m['memberSection'])),
+      ] else
+        column,
+  ];
 }
 
 LibraryReportCol _text(String label, String field) =>
@@ -67,11 +83,18 @@ LibraryReportCol _count(String label, String field) => LibraryReportCol(
 /// Member name with class and section (students) or `Employee` (staff) on a second line.
 const employeeLabel = 'Employee';
 
-LibraryReportCol _member() => LibraryReportCol('Member', (m, names) {
+String _memberLabel(Map<String, dynamic> m) {
   final name = readString(m['memberName']);
-  final label = name.isEmpty ? '#${m['personErpId']}' : name;
+  return name.isEmpty ? '#${m['personErpId']}' : name;
+}
+
+int? _memberClassId(Map<String, dynamic> m) =>
+    (m['memberClassId'] as num?)?.toInt();
+
+LibraryReportCol _member() => LibraryReportCol('Member', (m, names) {
+  final label = _memberLabel(m);
   if (m['memberType'] == 'EMPLOYEE') return '$label\n$employeeLabel';
-  final classId = (m['memberClassId'] as num?)?.toInt();
+  final classId = _memberClassId(m);
   if (classId == null) return label;
   return '$label\n${names.classLabel(classId, readString(m['memberSection']))}';
 });

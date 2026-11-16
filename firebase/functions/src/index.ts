@@ -28,6 +28,7 @@ export {
 } from './inventory/stats';
 export {
   syncCatalogueSearch,
+  syncFineSearch,
   syncIncidentSearch,
   syncLoanSearch,
   syncLibraryMemberSearch,

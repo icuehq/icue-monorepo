@@ -118,19 +118,30 @@ export function deltas(collection: string, { before, after }: Change) {
   return { overall, daily };
 }
 
-/** Copies a copy write adds to or takes from each catalogue title in each library: `{catalogueId: {libraryId: n}}`. */
+/**
+ * What a copy write adds to or takes from each catalogue title: copies per library (`libraries`), all copies
+ * (`copies`) and copies on the shelf (`available`): `{catalogueId: {...}}`.
+ */
 function holdingMoves({ before, after }: Change) {
-  const moves: Record<string, Counts> = {};
+  const moves: Record<string, { libraries: Counts; copies: number; available: number }> = {};
   for (const [copy, sign] of [
     [after, 1],
     [before, -1],
-  ] as const)
-    if (copy) bump((moves[copy.catalogueId] ??= {}), copy.libraryId, sign);
+  ] as const) {
+    if (!copy) continue;
+    const move = (moves[copy.catalogueId] ??= { libraries: {}, copies: 0, available: 0 });
+    bump(move.libraries, copy.libraryId, sign);
+    move.copies += sign;
+    if (copy.status === 'available') move.available += sign;
+  }
   return Object.entries(moves)
-    .map(
-      ([id, libraries]) => [id, Object.entries(libraries).filter(([, amount]) => amount)] as const,
-    )
-    .filter(([, libraries]) => libraries.length);
+    .map(([id, move]) => ({
+      id,
+      libraries: Object.entries(move.libraries).filter(([, amount]) => amount),
+      copies: move.copies,
+      available: move.available,
+    }))
+    .filter((move) => move.libraries.length || move.copies || move.available);
 }
 
 /** Applies a write's effect on the analytics summary. Collections the summary ignores cost nothing. */
@@ -142,7 +153,7 @@ export async function recordStats(collection: string, change: Change): Promise<v
 
   const db = getFirestore();
   const stats = db.collection(`${change.branchPath}/libraryStats`);
-  const titleRefs = moves.map(([id]) => db.doc(`${change.branchPath}/libraryCatalogue/${id}`));
+  const titleRefs = moves.map(({ id }) => db.doc(`${change.branchPath}/libraryCatalogue/${id}`));
   const memberRef = loan && db.doc(`${change.branchPath}/libraryMembers/${loan.personErpId}`);
 
   await db.runTransaction(async (transaction) => {
@@ -157,7 +168,7 @@ export async function recordStats(collection: string, change: Change): Promise<v
       if (!title.exists) return;
       const holdings: Counts = { ...(title.data()?.holdings ?? {}) };
       const update: Record<string, unknown> = {};
-      for (const [libraryId, amount] of moves[index][1]) {
+      for (const [libraryId, amount] of moves[index].libraries) {
         const held = holdings[libraryId] ?? 0;
         holdings[libraryId] = held + amount;
         update[`holdings.${libraryId}`] = held + amount;
@@ -167,6 +178,9 @@ export async function recordStats(collection: string, change: Change): Promise<v
       }
       // `libraryIds` lists the libraries holding copies, so the catalogue can be filtered by library.
       // Set whole: a copy moved between libraries changes two at once, and one field takes one operation.
+      const { copies, available } = moves[index];
+      if (copies) update.copyCount = FieldValue.increment(copies);
+      if (available) update.availableCopies = FieldValue.increment(available);
       update.libraryIds = Object.keys(holdings).filter((libraryId) => holdings[libraryId] > 0);
       transaction.update(title.ref, update);
     });

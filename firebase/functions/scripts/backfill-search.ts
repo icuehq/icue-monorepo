@@ -13,7 +13,7 @@
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { projectItem } from '../src/inventory/search';
-import { projectCatalogue, projectIncident, projectLoan, projectMember } from '../src/library/search';
+import { projectCatalogue, projectFine, projectIncident, projectLoan, projectMember } from '../src/library/search';
 import { applyChange } from '../src/shared/searchMirror';
 
 const args = process.argv.slice(2);
@@ -35,6 +35,7 @@ const MIRRORS = {
   inventoryItems: projectItem,
   libraryCatalogue: projectCatalogue,
   libraryLoans: projectLoan,
+  libraryFines: projectFine,
   libraryIncidents: projectIncident,
   libraryMembers: projectMember,
 };

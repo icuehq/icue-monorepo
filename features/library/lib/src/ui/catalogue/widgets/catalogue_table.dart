@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_firebase/icue_firebase.dart' show textSearchSupported;
 import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
@@ -49,7 +50,9 @@ class CatalogueTable extends StatelessWidget {
       searchHint: 'Search title, author, or publisher...',
       initialSearch: provider.bookSearch,
       searchDebounce: const Duration(milliseconds: 400),
-      onSearchChanged: (query) => provider.loadBooks(search: query.trim()),
+      onSearchChanged: textSearchSupported
+          ? (query) => provider.loadBooks(search: query.trim())
+          : null,
       filters: [
         ...libraryTableFilter(
           provider.libraries,
@@ -156,15 +159,6 @@ class CatalogueTable extends StatelessWidget {
           ),
         ),
         IcueTableColumn(
-          id: 'author',
-          label: 'Author',
-          flex: 2,
-          cellBuilder: (context, book) => IcueTableCellText(
-            book.authorLine.isEmpty ? '—' : book.authorLine,
-            style: IcueTableStyle.of(context).secondary,
-          ),
-        ),
-        IcueTableColumn(
           id: 'classes',
           label: 'Classes',
           hideBelowWidth: 1000,
@@ -185,21 +179,13 @@ class CatalogueTable extends StatelessWidget {
           ),
         ),
         IcueTableColumn(
-          id: 'publisher',
-          label: 'Publisher',
-          flex: 2,
-          hideBelowWidth: 1100,
-          cellBuilder: (context, book) {
-            final publisher = book.publisher ?? '';
-            final year = book.year == null ? '' : '${book.year}';
-            return IcueTableCellText(
-              [
-                publisher,
-                year,
-              ].where((part) => part.isNotEmpty).join(' · ').ifEmpty('—'),
-              style: IcueTableStyle.of(context).secondary,
-            );
-          },
+          id: 'copies',
+          label: 'Copies available',
+          width: 160,
+          cellBuilder: (context, book) => IcueTableCellText(
+            '${book.availableCopies} of ${book.copyCount}',
+            style: IcueTableStyle.of(context).secondary,
+          ),
         ),
         IcueTableColumn(
           id: 'status',
@@ -211,8 +197,4 @@ class CatalogueTable extends StatelessWidget {
       ],
     );
   }
-}
-
-extension on String {
-  String ifEmpty(String fallback) => isEmpty ? fallback : this;
 }

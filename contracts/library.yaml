@@ -248,7 +248,7 @@ models:
         parentId: string?
         active: { type: bool, key: status, notEquals: inactive }
     LibraryBook:
-      doc: "A catalogue title (FRS 11.4). classIds are ERP class ids the book is meant for (no sections); empty means a general book for any class. libraryIds are the libraries holding copies (kept by the stats trigger with holdings). Search rows carry only the list fields, so the detail-only ones (description, pages, class number, keywords) are empty there."
+      doc: "A catalogue title (FRS 11.4). classIds are ERP class ids the book is meant for (no sections); empty means a general book for any class. libraryIds are the libraries holding copies (kept by the stats trigger with holdings, as are copyCount, all copies, and availableCopies, those on the shelf). Search rows carry only the list fields, so the detail-only ones (description, pages, class number, keywords) are empty there."
       id: id
       fields:
         title: string
@@ -261,6 +261,8 @@ models:
         categoryId: string
         classIds: list<int>
         libraryIds: list<string>
+        copyCount: { type: int, default: 0 }
+        availableCopies: { type: int, default: 0 }
         description: string?
         pages: int?
         shelf: string?

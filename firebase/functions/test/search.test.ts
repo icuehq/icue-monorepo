@@ -1,7 +1,7 @@
 import { Timestamp } from 'firebase-admin/firestore';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { applyItemChange } from '../src/inventory/search';
-import { prefixText, projectCatalogue, projectIncident, projectMember } from '../src/library/search';
+import { prefixText, projectCatalogue, projectFine, projectIncident, projectMember } from '../src/library/search';
 import { searchDb } from '../src/shared/searchMirror';
 import { clearFirestore } from './setup';
 
@@ -54,6 +54,7 @@ describe('incident search projection', () => {
         bookTitle: 'Wings of Fire',
         memberName: 'Asha Rao',
         admissionNumber: 'A-101',
+        libraryId: 'main',
         status: 'open',
         type: 'lost',
         createdAt,
@@ -64,9 +65,11 @@ describe('incident search projection', () => {
       bookTitle: 'Wings of Fire',
       memberName: 'Asha Rao',
       admissionNumber: 'A-101',
+      libraryId: 'main',
       status: 'open',
       type: 'lost',
       createdAt,
+      prefixText: 'win wing fir ash',
     });
     expect(projectIncident({ status: 'open', type: 'damaged' }).memberName).toBeNull();
   });
@@ -80,6 +83,7 @@ describe('member search projection', () => {
         admissionNumber: 'TNX005',
         personErpId: 7,
         memberType: 'STUDENT',
+        libraryIds: ['main'],
         blocked: false,
         activeLoans: 2,
         classId: 3,
@@ -89,6 +93,7 @@ describe('member search projection', () => {
       admissionNumber: 'TNX005',
       personErpId: 7,
       memberType: 'STUDENT',
+      libraryIds: ['main'],
       blocked: false,
       onLoan: true,
       prefixText: 'nid nidh red redd tnx tnx0 tnx00',
@@ -110,5 +115,32 @@ describe('catalogue prefix text', () => {
       keywords: ['flowers'],
     });
     expect(text.split(' ')).toEqual(expect.arrayContaining(['mari', 'tag', 'flow']));
+  });
+});
+
+describe('fine search projection', () => {
+  it('keeps the search text and list filters and adds typed prefixes', () => {
+    expect(
+      projectFine({
+        memberName: 'Asha Rao',
+        admissionNumber: 'TNX005',
+        bookTitle: 'Wings',
+        barcode: 'ACC1001',
+        libraryId: 'main',
+        status: 'outstanding',
+        type: 'overdue',
+        amount: 50,
+      }),
+    ).toEqual({
+      memberName: 'Asha Rao',
+      admissionNumber: 'TNX005',
+      bookTitle: 'Wings',
+      barcode: 'ACC1001',
+      libraryId: 'main',
+      status: 'outstanding',
+      type: 'overdue',
+      createdAt: null,
+      prefixText: 'ash tnx tnx0 tnx00 win wing acc acc1 acc10 acc100',
+    });
   });
 });

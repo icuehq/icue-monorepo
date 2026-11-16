@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icue_firebase/icue_firebase.dart' show textSearchSupported;
 import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
@@ -60,10 +61,12 @@ class LoansTable extends StatelessWidget {
       searchHint: 'Book title, member name or admission no.',
       initialSearch: provider.loanSearch,
       searchDebounce: const Duration(milliseconds: 400),
-      onSearchChanged: (query) {
-        provider.loanSearch = query.trim();
-        provider.loadLoans();
-      },
+      onSearchChanged: textSearchSupported
+          ? (query) {
+              provider.loanSearch = query.trim();
+              provider.loadLoans();
+            }
+          : null,
       filters: [
         ...libraryTableFilter(provider.libraries, provider.loanLibraryId, (
           value,

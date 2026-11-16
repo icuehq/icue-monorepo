@@ -58,3 +58,24 @@ export const syncTrigger = (collection: string, project: (data: DocumentData) =>
       event.data?.after.updateTime,
     );
   });
+
+const MIN_PREFIX = 3;
+
+/**
+ * Every prefix of at least [MIN_PREFIX] letters of each word, so a half-typed word matches: the text index
+ * only matches whole words. 'Marigold' gives 'mar mari marig marigo marigol' (the full word is indexed already).
+ */
+export const prefixText = (...texts: string[]) =>
+  [
+    ...new Set(
+      texts
+        .join(' ')
+        .toLowerCase()
+        .split(/[^\p{L}\p{N}]+/u)
+        .flatMap((word) =>
+          Array.from({ length: Math.max(0, word.length - MIN_PREFIX) }, (_, index) =>
+            word.slice(0, MIN_PREFIX + index),
+          ),
+        ),
+    ),
+  ].join(' ');

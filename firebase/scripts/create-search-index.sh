@@ -33,6 +33,7 @@ create_index() {
 
 create_index inventoryItems name code
 create_index libraryCatalogue title subtitle authorsText publisher keywordsText prefixText
-create_index libraryLoans bookTitle memberName admissionNumber
-create_index libraryIncidents bookTitle memberName admissionNumber
+create_index libraryLoans bookTitle memberName admissionNumber prefixText
+create_index libraryFines memberName admissionNumber bookTitle barcode prefixText
+create_index libraryIncidents bookTitle memberName admissionNumber prefixText
 create_index libraryMembers name admissionNumber prefixText

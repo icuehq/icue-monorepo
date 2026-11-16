@@ -58,7 +58,7 @@ class LibraryCategory {
   final bool active;
 }
 
-/// A catalogue title (FRS 11.4). classIds are ERP class ids the book is meant for (no sections); empty means a general book for any class. libraryIds are the libraries holding copies (kept by the stats trigger with holdings). Search rows carry only the list fields, so the detail-only ones (description, pages, class number, keywords) are empty there.
+/// A catalogue title (FRS 11.4). classIds are ERP class ids the book is meant for (no sections); empty means a general book for any class. libraryIds are the libraries holding copies (kept by the stats trigger with holdings, as are copyCount, all copies, and availableCopies, those on the shelf). Search rows carry only the list fields, so the detail-only ones (description, pages, class number, keywords) are empty there.
 class LibraryBook {
   const LibraryBook({
     required this.id,
@@ -72,6 +72,8 @@ class LibraryBook {
     required this.categoryId,
     required this.classIds,
     required this.libraryIds,
+    required this.copyCount,
+    required this.availableCopies,
     this.description,
     this.pages,
     this.shelf,
@@ -94,6 +96,8 @@ class LibraryBook {
           for (final number in readList<num>(data['classIds'])) number.toInt(),
         ],
         libraryIds: readList<String>(data['libraryIds']),
+        copyCount: (data['copyCount'] as num? ?? 0).toInt(),
+        availableCopies: (data['availableCopies'] as num? ?? 0).toInt(),
         description: data['description'] as String?,
         pages: (data['pages'] as num?)?.toInt(),
         shelf: data['shelf'] as String?,
@@ -112,6 +116,8 @@ class LibraryBook {
   final String categoryId;
   final List<int> classIds;
   final List<String> libraryIds;
+  final int copyCount;
+  final int availableCopies;
   final String? description;
   final int? pages;
   final String? shelf;
