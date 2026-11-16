@@ -20,6 +20,7 @@ import 'package:school_library/src/ui/members/members_page.dart';
 import 'package:school_library/src/ui/policies/policies_page.dart';
 import 'package:school_library/src/ui/routing/library_destinations.dart';
 import 'package:school_library/src/ui/widgets/librarian_logout_button.dart';
+import 'package:school_library/src/ui/widgets/no_library_assigned_gate.dart';
 
 /// Library screens as go_router routes, inside a shell that adds side navigation on wide screens.
 List<RouteBase> libraryRoutes() => [
@@ -35,7 +36,7 @@ List<RouteBase> libraryRoutes() => [
         destinations: libraryNavigation,
         child: child,
       );
-      return LibraryScanListener(child: shell);
+      return NoLibraryAssignedGate(child: LibraryScanListener(child: shell));
     },
     routes: _libraryPages,
   ),

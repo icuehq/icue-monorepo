@@ -3,11 +3,12 @@ import 'package:school_library/src/models/library_incidents.g.dart';
 export 'library_incidents.g.dart';
 
 String incidentResolutionLabel(String? value) => switch (value) {
+  'found' => 'Book found',
+  'replaced' => 'New book given',
+  'not_recovered' => 'Lost for good',
   'repaired' => 'Repaired',
-  'replaced' => 'Replaced',
-  'written_off' => 'Written off',
-  'charged' => 'Penalty charged',
-  'dismissed' => 'Dismissed',
+  'written_off' => 'Cannot be repaired',
+  'no_damage' => 'Book was fine',
   _ => value ?? '–',
 };
 

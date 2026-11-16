@@ -125,14 +125,14 @@ class LibraryService {
     int? classId,
     String? status,
   }) async {
-    libraryId = await _scopedLibraryId(libraryId);
+    // Firestore allows one array-contains per query: a class filter replaces the librarian's implicit library scope.
+    if (classId == null) libraryId = await _scopedLibraryId(libraryId);
     Query<Map<String, dynamic>> query = await branchCollection(
       'libraryCatalogue',
     );
     if (categoryIds != null) {
       query = query.where('categoryId', whereIn: categoryIds);
     }
-    // Firestore allows one array-contains per query, so the provider never sends both a library and a class.
     if (libraryId != null) {
       query = query.where('libraryIds', arrayContains: libraryId);
     }

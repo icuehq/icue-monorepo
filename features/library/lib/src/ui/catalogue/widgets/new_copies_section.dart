@@ -100,12 +100,20 @@ class _NewCopiesSectionState extends State<NewCopiesSection> {
       ? Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(child: fields[0]),
-            const SizedBox(width: 14),
-            Expanded(child: fields[1]),
+            for (final (index, field) in fields.indexed) ...[
+              if (index > 0) const SizedBox(width: 14),
+              Expanded(child: field),
+            ],
           ],
         )
-      : Column(children: [fields[0], const SizedBox(height: 14), fields[1]]);
+      : Column(
+          children: [
+            for (final (index, field) in fields.indexed) ...[
+              if (index > 0) const SizedBox(height: 14),
+              field,
+            ],
+          ],
+        );
 
   @override
   Widget build(BuildContext context) {

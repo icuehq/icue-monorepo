@@ -10,31 +10,34 @@ class IncidentDialog extends StatefulWidget {
 
   final LibraryIncident incident;
 
+  @override
+  State<IncidentDialog> createState() => _IncidentDialogState();
+
   static Future<void> show(BuildContext context, LibraryIncident incident) =>
       showDialog<void>(
         context: context,
         builder: (_) => IncidentDialog(incident: incident),
       );
-
-  @override
-  State<IncidentDialog> createState() => _IncidentDialogState();
 }
 
 class _IncidentDialogState extends State<IncidentDialog> {
   bool _busy = false;
 
   Future<void> _resolve() async {
-    final damaged = widget.incident.type == 'damaged';
-    var resolution = damaged ? 'repaired' : 'replaced';
+    final incident = widget.incident;
+    final damaged = incident.type == 'damaged';
+    var resolution = damaged ? 'repaired' : 'found';
     final repairCostController = TextEditingController();
-    final chargeController = TextEditingController();
+    final chargeController = TextEditingController(
+      text: incident.charge > 0 ? incident.charge.toString() : '',
+    );
     final remarksController = TextEditingController();
 
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => StatefulBuilder(
         builder: (context, setDialogState) => IcueDialog(
-          title: 'Resolve incident',
+          title: 'Close this case',
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -42,32 +45,23 @@ class _IncidentDialogState extends State<IncidentDialog> {
               IcueDropdown<String>(
                 value: resolution,
                 items: [
-                  if (damaged)
-                    const DropdownMenuItem(
-                      value: 'repaired',
-                      child: Text('Repaired (return to shelf)'),
+                  for (final option in _options(damaged))
+                    DropdownMenuItem(
+                      value: option.value,
+                      child: Text(option.label),
                     ),
-                  const DropdownMenuItem(
-                    value: 'replaced',
-                    child: Text('Replaced'),
-                  ),
-                  const DropdownMenuItem(
-                    value: 'written_off',
-                    child: Text('Written off (withdraw copy)'),
-                  ),
-                  const DropdownMenuItem(
-                    value: 'charged',
-                    child: Text('Charged penalty'),
-                  ),
-                  const DropdownMenuItem(
-                    value: 'dismissed',
-                    child: Text('Dismissed'),
-                  ),
                 ],
                 onChanged: (value) {
                   if (value != null) setDialogState(() => resolution = value);
                 },
-                label: 'Resolution',
+                label: 'What happened?',
+              ),
+              const SizedBox(height: 4),
+              Text(
+                _options(damaged)
+                    .firstWhere((option) => option.value == resolution)
+                    .hint,
+                style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 8),
               if (resolution == 'repaired')
@@ -79,21 +73,21 @@ class _IncidentDialogState extends State<IncidentDialog> {
                   label: 'Repair cost (₹)',
                   hintText: 'Optional',
                 ),
-              if (widget.incident.personErpId != null) ...[
+              if (damaged && incident.personErpId != null) ...[
                 const SizedBox(height: 8),
                 IcueTextField(
                   controller: chargeController,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
-                  label: 'Fine / penalty charge (₹)',
-                  hintText: 'Optional additional penalty',
+                  label: 'Total charge to member (₹)',
+                  hintText: 'Raise to fine the difference',
                 ),
               ],
               const SizedBox(height: 8),
               IcueTextField(
                 controller: remarksController,
-                label: 'Resolution remarks',
+                label: 'Note (optional)',
               ),
             ],
           ),
@@ -112,7 +106,9 @@ class _IncidentDialogState extends State<IncidentDialog> {
 
     if (ok != true || !mounted) return;
     final repairCost = double.tryParse(repairCostController.text.trim());
-    final charge = double.tryParse(chargeController.text.trim());
+    final charge = damaged
+        ? double.tryParse(chargeController.text.trim())
+        : null;
 
     setState(() => _busy = true);
     final libraryProvider = context.read<LibraryProvider>();
@@ -127,7 +123,7 @@ class _IncidentDialogState extends State<IncidentDialog> {
     if (!mounted) return;
     if (result) {
       navigator.pop();
-      IcueToast.success(context, 'Incident resolved');
+      IcueToast.success(context, 'Case closed');
     } else {
       setState(() => _busy = false);
       IcueToast.error(
@@ -170,11 +166,13 @@ class _IncidentDialogState extends State<IncidentDialog> {
         if (incident.description != null && incident.description!.isNotEmpty)
           _Field('Description', incident.description!),
         if (incident.charge > 0) _Field('Charge', incident.charge.toRupees()),
+        if (incident.type == 'lost' && incident.loanId != null)
+          _LostFine(incident.loanId!),
         if (incident.repairCost != null)
           _Field('Repair cost', incident.repairCost!.toRupees()),
         if (!incident.isOpen) ...[
           const Divider(height: 24),
-          _Field('Resolution', incidentResolutionLabel(incident.resolution)),
+          _Field('Outcome', incidentResolutionLabel(incident.resolution)),
           if (incident.resolutionRemarks != null)
             _Field('Remarks', incident.resolutionRemarks!),
         ],
@@ -194,7 +192,7 @@ class _IncidentDialogState extends State<IncidentDialog> {
       secondaryAction: incident.isOpen ? closeAction : null,
       primaryAction: incident.isOpen
           ? IcueDialogAction(
-              label: 'Resolve incident',
+              label: 'Close case',
               isLoading: _busy,
               onPressed: _busy ? null : _resolve,
             )
@@ -239,3 +237,62 @@ class _Field extends StatelessWidget {
     );
   }
 }
+
+/// Status of the replacement fine raised when the loan was marked lost.
+class _LostFine extends StatelessWidget {
+  const _LostFine(this.loanId);
+
+  final String loanId;
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<LibraryFine?>(
+    future: context.read<LibraryProvider>().service.fine('${loanId}__lost'),
+    builder: (context, snapshot) {
+      final fine = snapshot.data;
+      if (fine == null) return const SizedBox.shrink();
+      return _Field(
+        'Fine',
+        '${fine.amount.toRupees()} (${humanizeStatus(fine.status)}'
+            '${fine.outstanding > 0 ? ', ${fine.outstanding.toRupees()} due' : ''})',
+      );
+    },
+  );
+}
+
+typedef _Option = ({String value, String label, String hint});
+
+List<_Option> _options(bool damaged) => damaged
+    ? const [
+        (
+          value: 'repaired',
+          label: 'Book was repaired',
+          hint: 'The book goes back on the shelf.',
+        ),
+        (
+          value: 'written_off',
+          label: 'Book cannot be repaired',
+          hint: 'The book is removed from the library.',
+        ),
+        (
+          value: 'no_damage',
+          label: 'Book is actually fine',
+          hint: 'The book goes back on the shelf.',
+        ),
+      ]
+    : const [
+        (
+          value: 'found',
+          label: 'Book was found',
+          hint: 'The book goes back on the shelf and the fine is cancelled.',
+        ),
+        (
+          value: 'replaced',
+          label: 'Member gave a new book',
+          hint: 'The lost book is removed and the fine is cancelled.',
+        ),
+        (
+          value: 'not_recovered',
+          label: 'Book is lost for good',
+          hint: 'The lost book is removed and the member still has to pay the fine.',
+        ),
+      ];

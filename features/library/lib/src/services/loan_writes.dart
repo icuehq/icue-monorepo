@@ -553,8 +553,11 @@ class LoanWrites {
     });
   }
 
-  /// Resolves an open incident. Repaired or dismissed copies go back to the shelf (a dismissed lost copy's fine is waived); written-off, replaced and paid-for lost copies are withdrawn. A higher [charge] fines the
-  /// difference.
+  /// Resolves an open incident by what became of the copy. Lost: `found` (back on the shelf, the
+  /// replacement fine is waived), `replaced` (copy withdrawn, fine waived: the member gave a book instead
+  /// of money), `not_recovered` (copy withdrawn, fine stays). Damaged: `repaired` and `no_damage` (back on
+  /// the shelf), `written_off` (withdrawn). A damaged incident's [charge] is its new total; a higher one
+  /// fines the difference. A lost incident's charge is its fine and is never changed here.
   Future<void> resolveIncident({
     required String id,
     required String resolution,
@@ -562,25 +565,20 @@ class LoanWrites {
     double? charge,
     String? remarks,
   }) async {
-    const resolutions = [
-      'repaired',
-      'replaced',
-      'written_off',
-      'charged',
-      'dismissed',
-    ];
-    if (!resolutions.contains(resolution)) writeFail('Invalid resolution');
+    const lostResolutions = ['found', 'replaced', 'not_recovered'];
+    const damagedResolutions = ['repaired', 'written_off', 'no_damage'];
     final incidentReference = await schoolDocument('libraryIncidents', id);
     final earlier = (await incidentReference.get()).data();
     if (earlier == null) writeFail('Incident not found', 'not-found');
     if (earlier['status'] != 'open') {
       writeFail('Incident is already ${earlier['status']}');
     }
-    if (resolution == 'repaired' && earlier['type'] != 'damaged') {
-      writeFail('Only a damaged copy can be repaired');
+    final lost = earlier['type'] == 'lost';
+    if (!(lost ? lostResolutions : damagedResolutions).contains(resolution)) {
+      writeFail('Invalid resolution');
     }
     final earlierCharge = (earlier['charge'] as num? ?? 0).toDouble();
-    final newCharge = charge ?? earlierCharge;
+    final newCharge = lost ? earlierCharge : (charge ?? earlierCharge);
     if (newCharge < earlierCharge) {
       writeFail('Charge cannot be lowered on resolve; waive the fine instead');
     }
@@ -598,9 +596,6 @@ class LoanWrites {
       }
       final copy = (await transaction.get(copyReference)).data();
       if (copy == null) writeFail('Copy not found', 'not-found');
-      if (resolution == 'repaired' && incident['type'] != 'damaged') {
-        writeFail('Only a damaged copy can be repaired');
-      }
       final memberReference = difference > 0 && personErpId != null
           ? await _memberReference(personErpId)
           : null;
@@ -608,21 +603,17 @@ class LoanWrites {
           ? null
           : (await transaction.get(memberReference)).data();
       var repairStatus = incident['repairStatus'];
-      if (resolution == 'repaired' || resolution == 'dismissed') {
+      if (resolution == 'found' ||
+          resolution == 'repaired' ||
+          resolution == 'no_damage') {
         if (resolution == 'repaired') repairStatus = 'repaired';
         if (copy['status'] == CopyStatus.damaged ||
             copy['status'] == CopyStatus.lost) {
           _release(transaction, copyReference);
         }
-      } else if (resolution == 'written_off') {
-        repairStatus = 'writeoff';
-        transaction.update(copyReference, {
-          'status': CopyStatus.withdrawn,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-      } else if (resolution == 'replaced' ||
-          (resolution == 'charged' && copy['status'] == CopyStatus.lost)) {
-        // A replaced or paid-for lost copy is gone for good; a replacement comes in as a new book entry.
+      } else {
+        if (resolution == 'written_off') repairStatus = 'writeoff';
+        // A replacement comes in as a new book entry, so the old copy is gone for good.
         transaction.update(copyReference, {
           'status': CopyStatus.withdrawn,
           'updatedAt': FieldValue.serverTimestamp(),
@@ -656,13 +647,18 @@ class LoanWrites {
         'lastWrite': writeStamp('libraryIncident.resolve', remarks),
       });
     });
-    if (resolution == 'dismissed' && earlier['type'] == 'lost') {
-      await _waiveLostFine(earlier['loanId'] as String?);
+    if (resolution == 'found' || resolution == 'replaced') {
+      await _waiveLostFine(
+        earlier['loanId'] as String?,
+        resolution == 'found'
+            ? 'Lost copy found'
+            : 'Lost copy replaced by member',
+      );
     }
   }
 
-  /// A lost copy that turned up was never lost: its replacement fine on loan [loanId] is waived in full.
-  Future<void> _waiveLostFine(String? loanId) async {
+  /// Waives the whole replacement fine on loan [loanId] once its lost copy is found or replaced.
+  Future<void> _waiveLostFine(String? loanId, String reason) async {
     if (loanId == null) return;
     final fineReference = await schoolDocument(
       'libraryFines',
@@ -680,13 +676,13 @@ class LoanWrites {
           ...((fine['waivers'] as List?) ?? const []),
           {
             'amount': outstanding,
-            'reason': 'Lost copy found: incident dismissed',
+            'reason': reason,
             'performedBy': _uid,
             'performedAt': Timestamp.now(),
           },
         ],
         'updatedAt': FieldValue.serverTimestamp(),
-        'lastWrite': writeStamp('libraryFine.waive', 'Lost copy found'),
+        'lastWrite': writeStamp('libraryFine.waive', reason),
       });
     });
   }
