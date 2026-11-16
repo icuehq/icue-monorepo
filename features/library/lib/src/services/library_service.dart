@@ -364,7 +364,10 @@ class LibraryService {
         ? query
               .orderBy('dueDate', descending: true)
               .orderBy('issuedDate', descending: true)
-        : query.orderBy('issuedDate', descending: true);
+              .orderBy('createdAt', descending: true)
+        : query
+              .orderBy('issuedDate', descending: true)
+              .orderBy('createdAt', descending: true);
   }
 
   /// Active loans whose book title, member name or admission number holds every word of [query],
