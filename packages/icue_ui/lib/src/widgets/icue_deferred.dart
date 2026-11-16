@@ -14,10 +14,17 @@ class IcueDeferred extends StatefulWidget {
 }
 
 class _IcueDeferredState extends State<IcueDeferred> {
-  late Future<void> _loading = widget.load();
+  // Libraries already downloaded: build the page at once instead of showing
+  // the spinner for a frame on every navigation (that was the "flash").
+  static final _loaded = <Future<void> Function()>{};
+
+  late Future<void> _loading = widget.load().then(
+    (_) => _loaded.add(widget.load),
+  );
 
   @override
   Widget build(BuildContext context) {
+    if (_loaded.contains(widget.load)) return widget.builder(context);
     return FutureBuilder<void>(
       future: _loading,
       builder: (context, snapshot) {
