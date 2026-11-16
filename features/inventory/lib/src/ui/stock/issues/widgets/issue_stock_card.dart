@@ -59,7 +59,6 @@ class IssueStockCard extends StatelessWidget {
           else
             PersonSearchField(
               label: 'Issue to',
-              hint: 'Search by name or enter an ID…',
               onSelected: (person) => onRecipient(person.id),
             ),
           const SizedBox(height: 14),

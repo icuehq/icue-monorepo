@@ -1,52 +1,45 @@
-import 'package:flutter/foundation.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:injectable/injectable.dart';
 import 'package:inventory/src/models/inventory_assets.dart';
 import 'package:inventory/src/models/inventory_masters.dart';
+import 'package:inventory/src/providers/list_state.dart';
+import 'package:inventory/src/providers/loading_provider.dart';
 import 'package:inventory/src/services/assets_service.dart';
 import 'package:inventory/src/services/stock_service.dart';
 
 /// Assets and maintenance. Needs `InventoryProvider.loadMasters()` first (access, stores).
 @lazySingleton
-class AssetsProvider extends ChangeNotifier {
+class AssetsProvider extends LoadingProvider {
   AssetsProvider(this._service, this._stock);
 
   final AssetsService _service;
   final StockService _stock;
 
-  List<InventoryAsset> assets = [];
-  List<InventoryMaintenance> maintenance = [];
+  /// Assets and maintenance jobs: server-side status filter, search, paging.
+  late final assetList = ListState<InventoryAsset>(
+    query: _service.assetsQuery,
+    fromDocument: (document) =>
+        InventoryAsset.fromMap(document.id, document.data()!),
+    onChange: notifyListeners,
+    afterPage: (assets) => loadItemNames(assets.map((asset) => asset.itemId)),
+  );
+  late final maintenanceList = ListState<InventoryMaintenance>(
+    query: _service.maintenanceQuery,
+    fromDocument: (document) =>
+        InventoryMaintenance.fromMap(document.id, document.data()!),
+    onChange: notifyListeners,
+    afterPage: (jobs) => loadItemNames(
+      jobs.expand((job) => job.parts.map((partUsed) => partUsed.itemId)),
+    ),
+  );
   List<InventoryAssignment> assignments = [];
   List<AssetEvent> history = [];
   final Map<String, InventoryItem> items = {};
-  String? errorMessage;
-  bool isLoading = false;
 
   String itemName(String id) => items[id]?.name ?? id;
 
-  Future<void> _load(Future<void> Function() body) async {
-    isLoading = true;
-    errorMessage = null;
-    notifyListeners();
-    try {
-      await body();
-    } catch (error) {
-      errorMessage = callableErrorMessage(error);
-    } finally {
-      isLoading = false;
-      notifyListeners();
-    }
-  }
-
-  Future<void> loadAssets({String? status}) =>
-      _load(() async => assets = await _service.assets(status: status));
-
-  Future<void> loadMaintenance({String? status}) => _load(() async {
-    maintenance = await _service.maintenance(status: status);
-  });
-
   /// Custody records and timeline of one asset.
-  Future<void> loadDetail(String assetId) => _load(() async {
+  Future<void> loadDetail(String assetId) => load(() async {
     final masterLists = await Future.wait([
       _service.assignments(assetId),
       _service.history(assetId),

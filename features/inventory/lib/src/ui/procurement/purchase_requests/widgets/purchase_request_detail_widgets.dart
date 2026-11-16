@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
-import 'package:inventory/src/ui/procurement/purchase_requests/purchase_request_rules.dart';
+import 'package:inventory/src/ui/shared/widgets/inventory_status_chip.dart';
 
 class PurchaseSection extends StatelessWidget {
   const PurchaseSection({
@@ -88,7 +88,7 @@ class PurchaseSummary extends StatelessWidget {
 
     return PurchaseSection(
       title: request.number,
-      trailing: PurchaseStatusPill(request.status),
+      trailing: InventoryStatusChip(request.status),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -119,7 +119,7 @@ class PurchaseSummary extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: purchaseStatusColor(request.status)
+                color: inventoryStatusColor(request.status)
                     .withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),

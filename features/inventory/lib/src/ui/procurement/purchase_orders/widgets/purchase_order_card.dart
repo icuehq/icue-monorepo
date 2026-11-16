@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
+import 'package:inventory/src/ui/shared/widgets/inventory_status_chip.dart';
 
 class PurchaseOrderCard extends StatelessWidget {
   const PurchaseOrderCard({
@@ -214,56 +215,12 @@ class PurchaseOrderCard extends StatelessWidget {
   }
 
   _StatusConfig _getStatusConfig(String status) {
-    switch (status) {
-      case 'issued':
-        return _StatusConfig(
-          label: 'Issued',
-          foreground: Colors.blue[800]!,
-          background: Colors.blue.withValues(alpha: 0.15),
-        );
-      case 'acknowledged':
-        return _StatusConfig(
-          label: 'Acknowledged',
-          foreground: Colors.teal[800]!,
-          background: Colors.teal.withValues(alpha: 0.15),
-        );
-      case 'partially_received':
-        return _StatusConfig(
-          label: 'Partially Received',
-          foreground: Colors.purple[800]!,
-          background: Colors.purple.withValues(alpha: 0.15),
-        );
-      case 'fully_received':
-        return _StatusConfig(
-          label: 'Fully Received',
-          foreground: Colors.green[800]!,
-          background: Colors.green.withValues(alpha: 0.15),
-        );
-      case 'closed':
-        return _StatusConfig(
-          label: 'Closed',
-          foreground: Colors.blueGrey[800]!,
-          background: Colors.blueGrey.withValues(alpha: 0.15),
-        );
-      case 'cancelled':
-        return _StatusConfig(
-          label: 'Cancelled',
-          foreground: Colors.red[800]!,
-          background: Colors.red.withValues(alpha: 0.15),
-        );
-      case 'draft':
-        return _StatusConfig(
-          label: 'Draft',
-          foreground: Colors.amber[900]!,
-          background: Colors.amber.withValues(alpha: 0.15),
-        );
-      default:
-        return _StatusConfig(
-          label: humanizeStatus(status),
-          foreground: Colors.grey[800]!,
-          background: Colors.grey.withValues(alpha: 0.15),
-        );
-    }
+    final color = inventoryStatusColor(status);
+    return _StatusConfig(
+      label: inventoryStatusLabel(status),
+      foreground: color,
+      background: color.withValues(alpha: 0.15),
+    );
   }
 }
 

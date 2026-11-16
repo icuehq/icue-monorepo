@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
+import 'package:inventory/src/ui/procurement/vendors/widgets/sample_vendors.dart';
 import 'package:provider/provider.dart';
 
 final _emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
@@ -155,7 +156,7 @@ class _VendorFormPageState extends State<VendorFormPage> {
 
   /// Fills the form with the next sample vendor (debug builds only).
   void _fillSample() {
-    final sample = _sampleVendors[_nextSample++ % _sampleVendors.length];
+    final sample = sampleVendors[_nextSample++ % sampleVendors.length];
     final categories = context.read<InventoryProvider>().topCategories;
     setState(() {
       _dirty = true;
@@ -437,66 +438,3 @@ class _VendorFormPageState extends State<VendorFormPage> {
     );
   }
 }
-
-const _sampleVendors = [
-  (
-    name: 'Apex Office Supplies Pvt Ltd',
-    contact: 'Rahul Mehta',
-    phone: '+91 98765 43210',
-    email: 'sales@apexsupplies.in',
-    website: 'www.apexsupplies.in',
-    address: '12, Industrial Estate, Peenya, Bengaluru 560058',
-    tax: '29AAAAA0000A1Z5',
-    remarks: 'Net 30 payment terms. Delivers within 3 days.',
-  ),
-  (
-    name: 'Sri Lakshmi Stationers',
-    contact: 'Lakshmi Narayan',
-    phone: '+91 91234 56780',
-    email: 'orders@srilakshmistationers.com',
-    website: 'www.srilakshmistationers.com',
-    address: '45, Main Bazaar, Tirupati, Andhra Pradesh 517501',
-    tax: '37BBBBB1111B1Z2',
-    remarks: 'Bulk discounts on notebooks and registers.',
-  ),
-  (
-    name: 'TechNova Computers',
-    contact: 'Anita Rao',
-    phone: '+91 99887 76655',
-    email: 'support@technova.co.in',
-    website: 'technova.co.in',
-    address: '8, Tech Park Road, Hitech City, Hyderabad 500081',
-    tax: '36CCCCC2222C1Z8',
-    remarks: 'Authorised reseller; 1-year onsite warranty.',
-  ),
-  (
-    name: 'GreenLeaf Sports & Lab Equipments',
-    contact: 'Imran Sheikh',
-    phone: '+91 90000 11122',
-    email: 'info@greenleafequip.com',
-    website: 'www.greenleafequip.com',
-    address: '22, Sports Complex Lane, Pune, Maharashtra 411001',
-    tax: '27DDDDD3333D1Z4',
-    remarks: 'Science lab kits and playground equipment.',
-  ),
-  (
-    name: 'Bharat Furniture Works',
-    contact: 'Suresh Kumar',
-    phone: '+91 97000 22233',
-    email: 'bharatfurniture@gmail.com',
-    website: 'www.bharatfurniture.in',
-    address: '5, Carpenter Street, Vijayawada, Andhra Pradesh 520001',
-    tax: '37EEEEE4444E1Z6',
-    remarks: 'Custom desks and benches; 2-week lead time.',
-  ),
-  (
-    name: 'CleanPro Housekeeping Supplies',
-    contact: 'Divya Reddy',
-    phone: '+91 98450 33344',
-    email: 'divya@cleanpro.in',
-    website: 'www.cleanpro.in',
-    address: '31, Mall Road, Chennai, Tamil Nadu 600001',
-    tax: '33FFFFF5555F1Z1',
-    remarks: 'Monthly consumables contract available.',
-  ),
-];

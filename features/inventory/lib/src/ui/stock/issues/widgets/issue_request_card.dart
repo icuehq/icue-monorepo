@@ -1,24 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
-
-Color _statusColor(String status) => switch (status) {
-  'approved' => Colors.blue.shade700,
-  'partially_issued' => Colors.purple.shade700,
-  'issued' => Colors.green.shade700,
-  'rejected' => Colors.red.shade700,
-  'cancelled' || 'closed' => Colors.grey.shade700,
-  _ => Colors.orange.shade800,
-};
-
-Color _statusBgColor(String status) => switch (status) {
-  'approved' => Colors.blue.withValues(alpha: 0.12),
-  'partially_issued' => Colors.purple.withValues(alpha: 0.12),
-  'issued' => Colors.green.withValues(alpha: 0.12),
-  'rejected' => Colors.red.withValues(alpha: 0.12),
-  'cancelled' || 'closed' => Colors.grey.withValues(alpha: 0.12),
-  _ => Colors.orange.withValues(alpha: 0.12),
-};
+import 'package:inventory/src/ui/shared/widgets/inventory_status_chip.dart';
 
 IconData _statusIcon(String status) => switch (status) {
   'approved' => Icons.check_circle_outline,
@@ -46,8 +29,9 @@ class IssueRequestCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final statusColor = _statusColor(request.status);
-    final statusBg = _statusBgColor(request.status);
+    final statusColor = inventoryStatusColor(request.status);
+    final statusBg = inventoryStatusColor(request.status)
+        .withValues(alpha: 0.12);
     final itemsCount = request.lineItems.length;
 
     return Card(

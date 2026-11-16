@@ -169,7 +169,6 @@ class _IssueReturnPageState extends State<IssueReturnPage> {
                     )
                   : PersonSearchField(
                       label: 'Staff member',
-                      hint: 'Search by name or enter an ID…',
                       onSelected: (person) =>
                           setState(() => _returnedBy = person.id),
                     ),

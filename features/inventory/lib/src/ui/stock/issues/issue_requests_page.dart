@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
+import 'package:inventory/src/ui/shared/widgets/inventory_status_chip.dart';
+import 'package:inventory/src/ui/shared/widgets/paged_list_page.dart';
+import 'package:inventory/src/ui/shared/widgets/paged_list_table.dart';
 import 'package:inventory/src/ui/stock/issues/widgets/issue_request_card.dart';
-import 'package:inventory/src/ui/stock/issues/widgets/issue_requests_table.dart';
 import 'package:provider/provider.dart';
 
-/// Issue requests (FRS 10.8): the branch's requests for approvers and storekeepers.
+/// Issue requests of the branch (approvers and stock users), or of the store manager's stores.
 class IssueRequestsPage extends StatefulWidget {
   const IssueRequestsPage({super.key});
 
@@ -15,24 +17,26 @@ class IssueRequestsPage extends StatefulWidget {
 }
 
 class _IssueRequestsPageState extends State<IssueRequestsPage> {
-  String? _status;
+  static const _statuses = {
+    'pending': 'Pending',
+    'approved': 'Approved',
+    'partially_issued': 'Partially issued',
+    'issued': 'Issued',
+    'rejected': 'Rejected',
+    'cancelled': 'Cancelled',
+    'closed': 'Closed',
+  };
 
-  /// False until the first fetch ends, so stale rows from an earlier visit never flash.
-  var _loaded = false;
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+  }
 
   Future<void> _load() async {
     final inventoryProvider = context.read<InventoryProvider>();
     if (inventoryProvider.stores.isEmpty) await inventoryProvider.loadMasters();
-    if (mounted) {
-      await context.read<StockProvider>().loadRequests(status: _status);
-    }
-    if (mounted) setState(() => _loaded = true);
-  }
-
-  void _filter(String? status) {
-    if (status == _status) return;
-    setState(() => _status = status);
-    _load();
+    if (mounted) await context.read<StockProvider>().issueRequests.load();
   }
 
   Future<void> _open(InventoryIssueRequest request) async {
@@ -43,17 +47,9 @@ class _IssueRequestsPageState extends State<IssueRequestsPage> {
   }
 
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
-  }
-
-  @override
   Widget build(BuildContext context) {
     final stockProvider = context.watch<StockProvider>();
     final inventoryProvider = context.watch<InventoryProvider>();
-    final theme = Theme.of(context);
-
     String storeName(String storeId) =>
         inventoryProvider.stores
             .where((store) => store.id == storeId)
@@ -61,189 +57,76 @@ class _IssueRequestsPageState extends State<IssueRequestsPage> {
             ?.name ??
         storeId;
 
-    final statuses = <(String?, String)>[
-      (null, 'All'),
-      ('pending', 'Pending'),
-      ('approved', 'Approved'),
-      ('partially_issued', 'Partially issued'),
-      ('issued', 'Issued'),
-      ('rejected', 'Rejected'),
-      ('cancelled', 'Cancelled'),
-      ('closed', 'Closed'),
-    ];
-
-    return Scaffold(
-      appBar: AppBar(title: const Text('Issue Requests')),
-      body: context.isWide
-          ? Padding(
-              padding: const EdgeInsets.all(16),
-              child: IssueRequestsTable(
-                requests: _loaded ? stockProvider.requests : const [],
-                loading: !_loaded || stockProvider.isLoading,
-                errorMessage: stockProvider.errorMessage,
-                status: _status,
-                statuses: statuses,
-                onStatusChanged: _filter,
-                storeName: storeName,
-                onOpen: _open,
-                onRetry: _load,
-              ),
-            )
-          : IcueCenteredBody(
-              maxWidth: 900,
-              child: Column(
-                children: [
-                  // Horizontal Status Filter Chips
-                  SizedBox(
-                    height: 44,
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 4,
-                      ),
-                      children: [
-                        for (final (key, label) in statuses)
-                          Padding(
-                            padding: const EdgeInsets.only(right: 6),
-                            child: FilterChip(
-                              label: Text(label),
-                              selected: _status == key,
-                              showCheckmark: false,
-                              visualDensity: VisualDensity.compact,
-                              onSelected: (_) => _filter(key),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-                    child: Row(
-                      children: [
-                        Text(
-                          !_loaded || stockProvider.isLoading
-                              ? 'Loading requests…'
-                              : '${stockProvider.requests.length} '
-                                    '${_status == null ? '' : '${humanizeStatus(_status!).toLowerCase()} '}'
-                                    'request${stockProvider.requests.length == 1 ? '' : 's'}',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: RefreshIndicator(
-                      onRefresh: _load,
-                      child: !_loaded || stockProvider.requests.isEmpty
-                          ? Center(
-                              child: !_loaded || stockProvider.isLoading
-                                  ? const CircularProgressIndicator()
-                                  : SingleChildScrollView(
-                                      physics:
-                                          const AlwaysScrollableScrollPhysics(),
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(32),
-                                        child: Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Container(
-                                              width: 72,
-                                              height: 72,
-                                              decoration: BoxDecoration(
-                                                color: theme
-                                                    .colorScheme
-                                                    .surfaceContainerHighest
-                                                    .withValues(alpha: 0.5),
-                                                shape: BoxShape.circle,
-                                              ),
-                                              child: Icon(
-                                                Icons.outbox_rounded,
-                                                size: 36,
-                                                color: theme
-                                                    .colorScheme
-                                                    .onSurfaceVariant,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 16),
-                                            Text(
-                                              stockProvider.errorMessage != null
-                                                  ? 'Could not load requests'
-                                                  : _status != null
-                                                  ? 'No ${humanizeStatus(_status!).toLowerCase()} requests'
-                                                  : 'No issue requests',
-                                              style: theme.textTheme.titleMedium
-                                                  ?.copyWith(
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                            ),
-                                            const SizedBox(height: 6),
-                                            Text(
-                                              stockProvider.errorMessage ??
-                                                  (_status != null
-                                                      ? 'There are currently no requests with this status filter.'
-                                                      : 'Requests raised by staff in your branch appear here.'),
-                                              textAlign: TextAlign.center,
-                                              style: theme.textTheme.bodySmall
-                                                  ?.copyWith(
-                                                    color: theme
-                                                        .colorScheme
-                                                        .onSurfaceVariant,
-                                                  ),
-                                            ),
-                                            const SizedBox(height: 18),
-                                            if (stockProvider.errorMessage !=
-                                                null)
-                                              IcueButton(
-                                                label: 'Try again',
-                                                onPressed: _load,
-                                                variant:
-                                                    IcueButtonVariant.outline,
-                                                leadingIcon: Icons.refresh,
-                                              )
-                                            else if (_status != null)
-                                              IcueButton(
-                                                label: 'Show all requests',
-                                                onPressed: () => _filter(null),
-                                                variant:
-                                                    IcueButtonVariant.outline,
-                                                leadingIcon: Icons
-                                                    .filter_alt_off_outlined,
-                                              ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                            )
-                          : IcueAdaptiveCardList(
-                              itemCount: stockProvider.requests.length,
-                              itemBuilder: (context, index) => Padding(
-                                padding: const EdgeInsets.fromLTRB(
-                                  16,
-                                  4,
-                                  16,
-                                  4,
-                                ),
-                                child: IssueRequestCard(
-                                  request: stockProvider.requests[index],
-                                  storeName: storeName(
-                                    stockProvider.requests[index].storeId,
-                                  ),
-                                  itemName: stockProvider.itemName,
-                                  onTap: () =>
-                                      _open(stockProvider.requests[index]),
-                                ),
-                              ),
-                            ),
-                    ),
-                  ),
-                ],
-              ),
+    return PagedListPage<InventoryIssueRequest>(
+      title: 'Issue Requests',
+      state: stockProvider.issueRequests,
+      statuses: _statuses,
+      searchHint: 'Search by request number…',
+      emptyIcon: Icons.assignment_outlined,
+      emptyMessage: 'Requests raised by staff in your branch appear here.',
+      onRefresh: _load,
+      itemCard: (context, request) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        child: IssueRequestCard(
+          request: request,
+          storeName: storeName(request.storeId),
+          itemName: stockProvider.itemName,
+          onTap: () => _open(request),
+        ),
+      ),
+      table: PagedListTable<InventoryIssueRequest>(
+        title: 'Issue requests',
+        state: stockProvider.issueRequests,
+        statuses: _statuses,
+        searchHint: 'Request number',
+        rowKey: (request) => request.id,
+        rowLabel: (request) => request.number,
+        onOpen: _open,
+        emptyMessage: 'Requests raised by staff in your branch appear here.',
+        columns: [
+          IcueTableColumn(
+            id: 'number',
+            label: 'Request',
+            cellBuilder: (context, request) =>
+                IcueTableCellText(request.number),
+          ),
+          IcueTableColumn(
+            id: 'purpose',
+            label: 'Purpose',
+            flex: 3,
+            cellBuilder: (context, request) => IcueTableCellText(
+              request.purpose,
+              style: IcueTableStyle.of(context).secondary,
             ),
+          ),
+          IcueTableColumn(
+            id: 'store',
+            label: 'Store',
+            flex: 2,
+            cellBuilder: (context, request) => IcueTableCellText(
+              storeName(request.storeId),
+              style: IcueTableStyle.of(context).secondary,
+            ),
+          ),
+          IcueTableColumn(
+            id: 'raised',
+            label: 'Raised',
+            cellBuilder: (context, request) => IcueTableCellText(
+              request.createdAt?.toNumericDate() ?? '—',
+              style: IcueTableStyle.of(context).numeric,
+            ),
+          ),
+          IcueTableColumn(
+            id: 'status',
+            label: 'Status',
+            minWidth: 130,
+            cellBuilder: (context, request) => Align(
+              alignment: Alignment.centerLeft,
+              child: InventoryStatusChip(request.status),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

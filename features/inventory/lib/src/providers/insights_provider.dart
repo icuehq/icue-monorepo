@@ -1,14 +1,14 @@
-import 'package:flutter/foundation.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:injectable/injectable.dart';
 import 'package:inventory/src/models/inventory_insights.dart';
 import 'package:inventory/src/models/inventory_masters.dart';
+import 'package:inventory/src/providers/loading_provider.dart';
 import 'package:inventory/src/services/insights_service.dart';
 import 'package:inventory/src/services/stock_service.dart';
 
 /// Dashboard and reports. Needs `InventoryProvider.loadMasters()` first (access, stores).
 @lazySingleton
-class InsightsProvider extends ChangeNotifier {
+class InsightsProvider extends LoadingProvider {
   InsightsProvider(this._service, this._stock);
 
   final InsightsService _service;
@@ -16,24 +16,8 @@ class InsightsProvider extends ChangeNotifier {
 
   List<ReportRow> rows = [];
   final Map<String, InventoryItem> items = {};
-  String? errorMessage;
-  bool isLoading = false;
 
   String itemName(Object? id) => items[id]?.name ?? '$id';
-
-  Future<void> _load(Future<void> Function() body) async {
-    isLoading = true;
-    errorMessage = null;
-    notifyListeners();
-    try {
-      await body();
-    } catch (error) {
-      errorMessage = callableErrorMessage(error);
-    } finally {
-      isLoading = false;
-      notifyListeners();
-    }
-  }
 
   Future<void> _names(Iterable<Object?> itemIds) async {
     final need = {
@@ -53,7 +37,7 @@ class InsightsProvider extends ChangeNotifier {
     DateTime? from,
     DateTime? to,
     String? status,
-  }) => _load(() async {
+  }) => load(() async {
     rows = await _service.report(def, from: from, to: to, status: status);
     await _names(rows.map((row) => row['itemId']));
     if (def.collection == 'inventoryBalances') {

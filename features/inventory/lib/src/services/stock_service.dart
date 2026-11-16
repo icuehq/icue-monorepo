@@ -2,6 +2,7 @@ import 'package:icue_firebase/icue_firebase.dart';
 import 'package:injectable/injectable.dart';
 import 'package:inventory/src/models/inventory_masters.dart';
 import 'package:inventory/src/models/inventory_stock.dart';
+import 'package:inventory/src/providers/list_state.dart';
 import 'package:inventory/src/services/inventory_service.dart';
 
 /// Stock (Inv-2): reads from Firestore, every write is a callable.
@@ -38,22 +39,12 @@ class StockService {
     ];
   }
 
-  /// The branch's issue requests (approvers, stock users).
-  Future<List<InventoryIssueRequest>> requests({String? status}) async {
-    Query<Map<String, dynamic>> query = await branchCollection(
-      'inventoryIssueRequests',
-    );
+  /// The branch's issue requests (approvers, stock users): [status] filter, request-number prefix [search].
+  Future<ListQuery> requestsQuery(String? status, String search) async {
+    ListQuery query = await branchCollection('inventoryIssueRequests');
     final assigned = await _inventory.assignedStoreIds();
     if (assigned != null) query = _inventory.inStores(query, assigned);
-    if (status != null) query = query.where('status', isEqualTo: status);
-    final snapshot = await query
-        .orderBy('createdAt', descending: true)
-        .limit(50)
-        .get();
-    return [
-      for (final document in snapshot.docs)
-        InventoryIssueRequest.fromMap(document.id, document.data()),
-    ];
+    return filteredQuery(query, status: status, search: search);
   }
 
   Future<InventoryIssueRequest?> requestById(String id) async {

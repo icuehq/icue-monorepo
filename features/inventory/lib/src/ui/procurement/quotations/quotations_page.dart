@@ -22,7 +22,7 @@ class _QuotationsPageState extends State<QuotationsPage> {
   Future<void> _load() async {
     final procurementProvider = context.read<ProcurementProvider>();
     await procurementProvider.loadQuotations(widget.request.id);
-    await procurementProvider.loadOrders();
+    await procurementProvider.loadQuotationOrders();
   }
 
   @override

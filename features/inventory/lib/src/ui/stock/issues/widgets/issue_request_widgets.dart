@@ -1,39 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
+import 'package:inventory/src/ui/shared/widgets/inventory_status_chip.dart';
 import 'package:inventory/src/ui/shared/widgets/person_search_field.dart';
-
-Color issueStatusColor(String status) => switch (status) {
-  'approved' => Colors.blue.shade700,
-  'partially_issued' => Colors.purple.shade700,
-  'issued' => Colors.green.shade700,
-  'rejected' => Colors.red.shade700,
-  'cancelled' || 'closed' => Colors.grey.shade700,
-  _ => Colors.orange.shade800,
-};
-
-class IssueStatusPill extends StatelessWidget {
-  const IssueStatusPill(this.status, {super.key});
-
-  final String status;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = issueStatusColor(status);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        humanizeStatus(status),
-        style: Theme.of(context).textTheme.labelSmall
-            ?.copyWith(color: color, fontWeight: FontWeight.w700),
-      ),
-    );
-  }
-}
 
 /// Section container shared by the request screen's blocks.
 class IssueSection extends StatelessWidget {
@@ -173,7 +142,7 @@ class IssueSummary extends StatelessWidget {
 
     return IssueSection(
       title: request.number,
-      trailing: IssueStatusPill(request.status),
+      trailing: InventoryStatusChip(request.status),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

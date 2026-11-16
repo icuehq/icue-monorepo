@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
+import 'package:inventory/src/ui/shared/widgets/inventory_status_chip.dart';
 
 class PurchaseRequestCard extends StatelessWidget {
   const PurchaseRequestCard({
@@ -209,62 +210,12 @@ class PurchaseRequestCard extends StatelessWidget {
   );
 
   _BadgeConfig _getStatusConfig(String status) {
-    switch (status) {
-      case 'pending':
-        return _BadgeConfig(
-          label: 'Pending',
-          foreground: Colors.amber[900]!,
-          background: Colors.amber.withValues(alpha: 0.15),
-        );
-      case 'approved':
-        return _BadgeConfig(
-          label: 'Approved',
-          foreground: Colors.green[800]!,
-          background: Colors.green.withValues(alpha: 0.15),
-        );
-      case 'partially_ordered':
-        return _BadgeConfig(
-          label: 'Partially Ordered',
-          foreground: Colors.purple[800]!,
-          background: Colors.purple.withValues(alpha: 0.15),
-        );
-      case 'ordered':
-        return _BadgeConfig(
-          label: 'Ordered',
-          foreground: Colors.blue[800]!,
-          background: Colors.blue.withValues(alpha: 0.15),
-        );
-      case 'revision_requested':
-        return _BadgeConfig(
-          label: 'Returned',
-          foreground: Colors.orange[900]!,
-          background: Colors.orange.withValues(alpha: 0.15),
-        );
-      case 'rejected':
-        return _BadgeConfig(
-          label: 'Rejected',
-          foreground: Colors.red[800]!,
-          background: Colors.red.withValues(alpha: 0.15),
-        );
-      case 'draft':
-        return _BadgeConfig(
-          label: 'Draft',
-          foreground: Colors.blueGrey[800]!,
-          background: Colors.blueGrey.withValues(alpha: 0.15),
-        );
-      case 'cancelled':
-        return _BadgeConfig(
-          label: 'Cancelled',
-          foreground: Colors.grey[700]!,
-          background: Colors.grey.withValues(alpha: 0.15),
-        );
-      default:
-        return _BadgeConfig(
-          label: humanizeStatus(status),
-          foreground: Colors.grey[800]!,
-          background: Colors.grey.withValues(alpha: 0.15),
-        );
-    }
+    final color = inventoryStatusColor(status);
+    return _BadgeConfig(
+      label: inventoryStatusLabel(status),
+      foreground: color,
+      background: color.withValues(alpha: 0.15),
+    );
   }
 
   _BadgeConfig _getPriorityConfig(String priority) {

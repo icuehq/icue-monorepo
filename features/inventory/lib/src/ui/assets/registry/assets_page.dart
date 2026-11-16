@@ -1,10 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icue_firebase/icue_firebase.dart' show AssetStatus;
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
-import 'package:inventory/src/ui/assets/registry/widgets/assets_table.dart';
-import 'package:inventory/src/ui/assets/shared/asset_ui.dart';
+import 'package:inventory/src/ui/shared/widgets/inventory_status_chip.dart';
+import 'package:inventory/src/ui/shared/widgets/paged_list_page.dart';
+import 'package:inventory/src/ui/shared/widgets/paged_list_table.dart';
 import 'package:provider/provider.dart';
 
 /// Asset register (FRS 10.19) of the branch.
@@ -16,23 +19,39 @@ class AssetsPage extends StatefulWidget {
 }
 
 class _AssetsPageState extends State<AssetsPage> {
-  String? _status;
-  var _search = '';
+  static final _statuses = {
+    for (final status in AssetStatus.values) status: humanizeStatus(status),
+  };
+
+  Timer? _debounce;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    super.dispose();
+  }
 
   Future<void> _load() async {
     final inventoryProvider = context.read<InventoryProvider>();
     if (inventoryProvider.categories.isEmpty) {
       await inventoryProvider.loadMasters();
     }
-    if (mounted) {
-      await context.read<AssetsProvider>().loadAssets(status: _status);
-    }
+    if (mounted) await context.read<AssetsProvider>().assetList.load();
   }
 
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+  /// Typing searches by asset name (prefix, as written) after a short pause.
+  void _typed(String value) {
+    _debounce?.cancel();
+    _debounce = Timer(
+      const Duration(milliseconds: 400),
+      () => context.read<AssetsProvider>().assetList.setSearch(value),
+    );
   }
 
   /// A scan opens the asset with that ID or RFID tag, even outside the loaded list.
@@ -65,128 +84,120 @@ class _AssetsPageState extends State<AssetsPage> {
   @override
   Widget build(BuildContext context) {
     final assetsProvider = context.watch<AssetsProvider>();
-    final currentValue = _search.toLowerCase();
-    final shown = [
-      for (final asset in assetsProvider.assets)
-        if (currentValue.isEmpty ||
-            asset.id.toLowerCase().contains(currentValue) ||
-            asset.name.toLowerCase().contains(currentValue) ||
-            (asset.serialNumber ?? '').toLowerCase().contains(currentValue) ||
-            (asset.rfidTag ?? '').toLowerCase().contains(currentValue))
-          asset,
-    ];
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Assets'),
-        actions: [
-          IconButton(
-            tooltip: 'Maintenance',
-            icon: const Icon(Icons.build_circle_outlined),
-            onPressed: () => context.push(InventoryRoutes.inventoryMaintenance),
+    return PagedListPage<InventoryAsset>(
+      title: 'Assets',
+      state: assetsProvider.assetList,
+      statuses: _statuses,
+      emptyIcon: Icons.inventory_2_outlined,
+      emptyMessage: 'Register an asset to track who has it and its condition.',
+      onRefresh: _load,
+      actions: [
+        IconButton(
+          tooltip: 'Maintenance',
+          icon: const Icon(Icons.build_circle_outlined),
+          onPressed: () => context.push(InventoryRoutes.inventoryMaintenance),
+        ),
+      ],
+      floatingActionButton: FloatingActionButton.extended(
+        icon: const Icon(Icons.add),
+        label: const Text('Register'),
+        onPressed: _register,
+      ),
+      header: IcueScanField(
+        hint: 'Search by name, or scan asset ID or tag',
+        onChanged: _typed,
+        onScan: _scanned,
+      ),
+      itemCard: (context, asset) => ListTile(
+        title: Text(asset.name),
+        subtitle: Text(
+          '${asset.id}${asset.assignedTo == null ? '' : ' · ${asset.assignedTo!.label}'}'
+          '${asset.location == null ? '' : ' · ${asset.location}'}',
+        ),
+        trailing: InventoryStatusChip(asset.status),
+        onTap: () => _open(asset),
+      ),
+      table: PagedListTable<InventoryAsset>(
+        title: 'Assets',
+        state: assetsProvider.assetList,
+        statuses: _statuses,
+        searchHint: 'Asset name (starts with)',
+        rowKey: (asset) => asset.id,
+        rowLabel: (asset) => asset.name,
+        onOpen: _open,
+        emptyMessage:
+            'Register an asset to track who has it and its condition.',
+        primaryAction: IcueTableAction(
+          label: 'Register',
+          icon: Icons.add_rounded,
+          onPressed: _register,
+        ),
+        secondaryAction: IcueTableAction(
+          label: 'Maintenance',
+          icon: Icons.build_circle_outlined,
+          onPressed: () => context.push(InventoryRoutes.inventoryMaintenance),
+        ),
+        columns: [
+          IcueTableColumn(
+            id: 'name',
+            label: 'Asset',
+            flex: 3,
+            minWidth: 200,
+            cellBuilder: (context, asset) => IcueTableCellText(
+              asset.name,
+              subtitle: [
+                asset.make,
+                asset.model,
+              ].whereType<String>().where((part) => part.isNotEmpty).join(' '),
+            ),
+          ),
+          IcueTableColumn(
+            id: 'id',
+            label: 'ID',
+            flex: 2,
+            cellBuilder: (context, asset) =>
+                IcueTableCellText(asset.id, subtitle: asset.serialNumber),
+          ),
+          IcueTableColumn(
+            id: 'assignedTo',
+            label: 'Assigned to',
+            flex: 2,
+            hideBelowWidth: 900,
+            cellBuilder: (context, asset) => IcueTableCellText(
+              asset.assignedTo?.label ?? '—',
+              style: IcueTableStyle.of(context).secondary,
+            ),
+          ),
+          IcueTableColumn(
+            id: 'location',
+            label: 'Location',
+            flex: 2,
+            hideBelowWidth: 1000,
+            cellBuilder: (context, asset) => IcueTableCellText(
+              asset.location ?? '—',
+              style: IcueTableStyle.of(context).secondary,
+            ),
+          ),
+          IcueTableColumn(
+            id: 'condition',
+            label: 'Condition',
+            hideBelowWidth: 1100,
+            cellBuilder: (context, asset) => IcueTableCellText(
+              humanizeStatus(asset.condition),
+              style: IcueTableStyle.of(context).secondary,
+            ),
+          ),
+          IcueTableColumn(
+            id: 'status',
+            label: 'Status',
+            cellBuilder: (context, asset) => IcueStatusPill(
+              label: humanizeStatus(asset.status),
+              color: inventoryStatusColor(asset.status),
+              compact: true,
+            ),
           ),
         ],
       ),
-      floatingActionButton: !context.isWide
-          ? FloatingActionButton.extended(
-              icon: const Icon(Icons.add),
-              label: const Text('Register'),
-              onPressed: _register,
-            )
-          : null,
-      body: context.isWide
-          ? Padding(
-              padding: const EdgeInsets.all(16),
-              child: AssetsTable(
-                assetsProvider: assetsProvider,
-                onOpen: _open,
-                onReload: _load,
-                onRegister: _register,
-                onMaintenance: () =>
-                    context.push(InventoryRoutes.inventoryMaintenance),
-              ),
-            )
-          : IcueCenteredBody(
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                    child: Column(
-                      children: [
-                        IcueScanField(
-                          hint: 'Search or scan asset ID, tag, name or serial',
-                          onChanged: (value) =>
-                              setState(() => _search = value.trim()),
-                          onScan: _scanned,
-                        ),
-                        DropdownButton<String?>(
-                          isExpanded: true,
-                          value: _status,
-                          items: [
-                            const DropdownMenuItem(child: Text('All statuses')),
-                            for (final status in AssetStatus.values)
-                              DropdownMenuItem(
-                                value: status,
-                                child: Text(humanizeStatus(status)),
-                              ),
-                          ],
-                          onChanged: (value) {
-                            _status = value;
-                            _load();
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: shown.isEmpty
-                        ? Center(
-                            child: assetsProvider.isLoading
-                                ? const CircularProgressIndicator()
-                                : Text(
-                                    assetsProvider.errorMessage ?? 'No assets',
-                                  ),
-                          )
-                        : IcueAdaptiveList<InventoryAsset>(
-                            items: shown,
-                            onTap: _open,
-                            columns: [
-                              IcueAdaptiveColumn.text(
-                                'Asset',
-                                (asset) => asset.name,
-                                flex: 2,
-                              ),
-                              IcueAdaptiveColumn.text(
-                                'ID',
-                                (asset) => asset.id,
-                              ),
-                              IcueAdaptiveColumn.text(
-                                'Assigned to',
-                                (asset) => asset.assignedTo?.label ?? '—',
-                              ),
-                              IcueAdaptiveColumn.text(
-                                'Location',
-                                (asset) => asset.location ?? '—',
-                              ),
-                              IcueAdaptiveColumn(
-                                label: 'Status',
-                                cell: (context, asset) =>
-                                    StatusChip(asset.status),
-                              ),
-                            ],
-                            cardBuilder: (context, asset) => ListTile(
-                              title: Text(asset.name),
-                              subtitle: Text(
-                                '${asset.id}${asset.assignedTo == null ? '' : ' · ${asset.assignedTo!.label}'}'
-                                '${asset.location == null ? '' : ' · ${asset.location}'}',
-                              ),
-                              trailing: StatusChip(asset.status),
-                              onTap: () => _open(asset),
-                            ),
-                          ),
-                  ),
-                ],
-              ),
-            ),
     );
   }
 }

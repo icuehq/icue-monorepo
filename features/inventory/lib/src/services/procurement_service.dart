@@ -1,8 +1,10 @@
 import 'package:icue_firebase/icue_firebase.dart';
+import 'package:icue_ui/icue_ui.dart' show todayIST;
 import 'package:injectable/injectable.dart';
 import 'package:inventory/src/models/inventory_orders.dart';
 import 'package:inventory/src/models/inventory_procurement.dart';
 import 'package:inventory/src/models/inventory_receiving.dart';
+import 'package:inventory/src/providers/list_state.dart';
 
 /// Vendors and purchase requests (Inv-3): reads and vendor writes go to Firestore; request, quotation and invoice writes are `ProcurementWrites`.
 @lazySingleton
@@ -44,20 +46,13 @@ class ProcurementService {
   Future<void> setVendorActive(String id, {required bool active}) =>
       setMasterActive('inventoryVendors', id, active: active);
 
-  /// The branch's purchase requests, newest first.
-  Future<List<InventoryPurchaseRequest>> requests({String? status}) async {
-    final collection = await branchCollection('inventoryPurchaseRequests');
-    Query<Map<String, dynamic>> q = collection;
-    if (status != null) q = q.where('status', isEqualTo: status);
-    final snapshot = await q
-        .orderBy('createdAt', descending: true)
-        .limit(50)
-        .get();
-    return [
-      for (final document in snapshot.docs)
-        InventoryPurchaseRequest.fromMap(document.id, document.data()),
-    ];
-  }
+  /// The branch's purchase requests: [status] filter, request-number prefix [search].
+  Future<ListQuery> requestsQuery(String? status, String search) async =>
+      filteredQuery(
+        await branchCollection('inventoryPurchaseRequests'),
+        status: status,
+        search: search,
+      );
 
   /// Quotations of one request (equality query; sorted by the caller).
   Future<List<InventoryQuotation>> quotations(String purchaseRequestId) async {
@@ -70,14 +65,21 @@ class ProcurementService {
     ];
   }
 
-  Future<List<InventoryPurchaseOrder>> orders({String? status}) async {
-    Query<Map<String, dynamic>> q = await branchCollection(
-      'inventoryPurchaseOrders',
-    );
-    if (status != null) q = q.where('status', isEqualTo: status);
-    final snapshot = await q
-        .orderBy('createdAt', descending: true)
-        .limit(50)
+  /// Purchase orders for the list: [status] filter, PO-number prefix [search].
+  Future<ListQuery> ordersQuery(String? status, String search) async =>
+      filteredQuery(
+        await branchCollection('inventoryPurchaseOrders'),
+        status: status,
+        search: search,
+      );
+
+  /// Orders raised from any of [quotationIds] (at most 30 per Firestore `whereIn`).
+  Future<List<InventoryPurchaseOrder>> ordersOfQuotations(
+    List<String> quotationIds,
+  ) async {
+    if (quotationIds.isEmpty) return const [];
+    final snapshot = await (await branchCollection('inventoryPurchaseOrders'))
+        .where('quotationId', whereIn: quotationIds.take(30).toList())
         .get();
     return [
       for (final document in snapshot.docs)
@@ -125,5 +127,25 @@ class ProcurementService {
       for (final document in snapshot.docs)
         InventoryInvoice.fromMap(document.id, document.data()),
     ];
+  }
+
+  /// Invoices for the list: payment [status] (or `overdue`: unpaid past due date, no
+  /// search) and invoice-number prefix [search] as typed.
+  Future<ListQuery> invoicesQuery(String? status, String search) async {
+    final collection = await branchCollection('inventoryInvoices');
+    if (status == 'overdue') {
+      return collection
+          .where('paymentStatus', whereIn: const ['unpaid', 'partially_paid'])
+          .where('dueDate', isLessThan: dayTimestamp(todayIST()))
+          .orderBy('dueDate');
+    }
+    return filteredQuery(
+      collection,
+      status: status,
+      statusField: 'paymentStatus',
+      search: search,
+      searchField: 'invoiceNumber',
+      upperCase: false,
+    );
   }
 }

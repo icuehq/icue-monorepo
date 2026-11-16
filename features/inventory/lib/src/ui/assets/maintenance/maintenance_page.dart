@@ -4,7 +4,9 @@ import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/assets/maintenance/widgets/maintenance_dialog.dart';
 import 'package:inventory/src/ui/assets/maintenance/widgets/maintenance_update_dialog.dart';
-import 'package:inventory/src/ui/assets/shared/asset_ui.dart';
+import 'package:inventory/src/ui/shared/widgets/inventory_status_chip.dart';
+import 'package:inventory/src/ui/shared/widgets/paged_list_page.dart';
+import 'package:inventory/src/ui/shared/widgets/paged_list_table.dart';
 import 'package:provider/provider.dart';
 
 /// Maintenance requests (FRS 10.20). Faults are reported from an asset; this lists and moves them on.
@@ -16,27 +18,23 @@ class MaintenancePage extends StatefulWidget {
 }
 
 class _MaintenancePageState extends State<MaintenancePage> {
-  String? _status;
+  static final _statuses = {
+    for (final status in MaintenanceStatus.values)
+      status: humanizeStatus(status),
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+  }
 
   Future<void> _load() async {
     final inventoryProvider = context.read<InventoryProvider>();
     if (inventoryProvider.categories.isEmpty) {
       await inventoryProvider.loadMasters();
     }
-    if (!mounted) return;
-    final assetsProvider = context.read<AssetsProvider>();
-    await assetsProvider.loadMaintenance(status: _status);
-    await assetsProvider.loadItemNames(
-      assetsProvider.maintenance.expand(
-        (maintenance) => maintenance.parts.map((partUsed) => partUsed.itemId),
-      ),
-    );
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+    if (mounted) await context.read<AssetsProvider>().maintenanceList.load();
   }
 
   Future<void> _open(InventoryMaintenance job) async {
@@ -47,83 +45,70 @@ class _MaintenancePageState extends State<MaintenancePage> {
   @override
   Widget build(BuildContext context) {
     final assetsProvider = context.watch<AssetsProvider>();
-    return Scaffold(
-      appBar: AppBar(title: const Text('Maintenance')),
-      body: IcueCenteredBody(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: DropdownButton<String?>(
-                isExpanded: true,
-                value: _status,
-                items: [
-                  const DropdownMenuItem(child: Text('All statuses')),
-                  for (final status in MaintenanceStatus.values)
-                    DropdownMenuItem(
-                      value: status,
-                      child: Text(humanizeStatus(status)),
-                    ),
-                ],
-                onChanged: (value) {
-                  _status = value;
-                  _load();
-                },
-              ),
-            ),
-            Expanded(
-              child: assetsProvider.maintenance.isEmpty
-                  ? Center(
-                      child: assetsProvider.isLoading
-                          ? const CircularProgressIndicator()
-                          : Text(
-                              assetsProvider.errorMessage ??
-                                  'No maintenance requests',
-                            ),
-                    )
-                  : IcueAdaptiveList<InventoryMaintenance>(
-                      items: assetsProvider.maintenance,
-                      onTap: _open,
-                      columns: [
-                        IcueAdaptiveColumn.text('Request', (job) => job.number),
-                        IcueAdaptiveColumn.text(
-                          'Asset',
-                          (job) => job.assetName,
-                          flex: 2,
-                        ),
-                        IcueAdaptiveColumn.text(
-                          'Issue',
-                          (job) => job.issue,
-                          flex: 3,
-                        ),
-                        IcueAdaptiveColumn.text(
-                          'Priority',
-                          (job) => humanizeStatus(job.priority),
-                        ),
-                        IcueAdaptiveColumn.text(
-                          'Reported',
-                          (job) => job.reportedDate.toDisplayDay(),
-                        ),
-                        IcueAdaptiveColumn(
-                          label: 'Status',
-                          cell: (context, job) => StatusChip(job.status),
-                        ),
-                      ],
-                      cardBuilder: (context, maintenance) => ListTile(
-                        title: Text(
-                          '${maintenance.number} · ${maintenance.assetName}',
-                        ),
-                        subtitle: Text(
-                          '${maintenance.issue}\n${maintenance.assetName} · ${humanizeStatus(maintenance.priority)} priority · ${maintenance.reportedDate.toDisplayDay()}',
-                        ),
-                        isThreeLine: true,
-                        trailing: StatusChip(maintenance.status),
-                        onTap: () => _open(maintenance),
-                      ),
-                    ),
-            ),
-          ],
+    return PagedListPage<InventoryMaintenance>(
+      title: 'Maintenance',
+      state: assetsProvider.maintenanceList,
+      statuses: _statuses,
+      searchHint: 'Search by request number…',
+      emptyIcon: Icons.build_circle_outlined,
+      emptyMessage: 'Faults reported from an asset appear here.',
+      onRefresh: _load,
+      itemCard: (context, job) => ListTile(
+        title: Text('${job.number} · ${job.assetName}'),
+        subtitle: Text(
+          '${job.issue}\n${job.assetName} · ${humanizeStatus(job.priority)} priority · ${job.reportedDate.toDisplayDay()}',
         ),
+        isThreeLine: true,
+        trailing: InventoryStatusChip(job.status),
+        onTap: () => _open(job),
+      ),
+      table: PagedListTable<InventoryMaintenance>(
+        title: 'Maintenance',
+        state: assetsProvider.maintenanceList,
+        statuses: _statuses,
+        searchHint: 'Request number, e.g. MNT/2025-26',
+        rowKey: (job) => job.id,
+        rowLabel: (job) => job.number,
+        onOpen: _open,
+        emptyMessage: 'Faults reported from an asset appear here.',
+        columns: [
+          IcueTableColumn(
+            id: 'number',
+            label: 'Request',
+            cellBuilder: (context, job) => IcueTableCellText(job.number),
+          ),
+          IcueTableColumn(
+            id: 'asset',
+            label: 'Asset',
+            flex: 2,
+            cellBuilder: (context, job) => IcueTableCellText(job.assetName),
+          ),
+          IcueTableColumn(
+            id: 'issue',
+            label: 'Issue',
+            flex: 3,
+            cellBuilder: (context, job) => IcueTableCellText(job.issue),
+          ),
+          IcueTableColumn(
+            id: 'priority',
+            label: 'Priority',
+            hideBelowWidth: 900,
+            cellBuilder: (context, job) =>
+                IcueTableCellText(humanizeStatus(job.priority)),
+          ),
+          IcueTableColumn(
+            id: 'reported',
+            label: 'Reported',
+            hideBelowWidth: 900,
+            cellBuilder: (context, job) =>
+                IcueTableCellText(job.reportedDate.toDisplayDay()),
+          ),
+          IcueTableColumn(
+            id: 'status',
+            label: 'Status',
+            cellBuilder: (context, job) => InventoryStatusChip(job.status),
+          ),
+        ],
       ),
     );
   }
@@ -157,7 +142,7 @@ class MaintenanceSheet extends StatelessWidget {
         Row(
           children: [
             Expanded(child: Text(maintenance.assetName)),
-            StatusChip(maintenance.status),
+            InventoryStatusChip(maintenance.status),
           ],
         ),
         const SizedBox(height: 8),

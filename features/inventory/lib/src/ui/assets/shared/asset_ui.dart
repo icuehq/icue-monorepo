@@ -58,25 +58,3 @@ IcueDropdown<String> labelled(
 String _title(String value) => value
     .replaceAll('_', ' ')
     .replaceRange(0, 1, value.substring(0, 1).toUpperCase());
-
-Color statusColor(String value) => switch (value) {
-  'available' || 'completed' => Colors.green,
-  'assigned' || 'in_progress' => Colors.blue,
-  'under_maintenance' || 'under_repair' || 'waiting_for_parts' => Colors.orange,
-  'lost' || 'damaged' || 'urgent' => Colors.red,
-  _ => Colors.grey,
-};
-
-class StatusChip extends StatelessWidget {
-  const StatusChip(this.status, {super.key});
-
-  final String status;
-
-  @override
-  Widget build(BuildContext context) => Chip(
-    label: Text(_title(status)),
-    visualDensity: VisualDensity.compact,
-    side: BorderSide(color: statusColor(status)),
-    backgroundColor: statusColor(status).withValues(alpha: 0.12),
-  );
-}

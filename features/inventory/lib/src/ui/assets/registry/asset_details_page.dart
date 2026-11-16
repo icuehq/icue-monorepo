@@ -3,7 +3,7 @@ import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/assets/registry/widgets/asset_action_dialog.dart';
 import 'package:inventory/src/ui/assets/registry/widgets/asset_label.dart';
-import 'package:inventory/src/ui/assets/shared/asset_ui.dart';
+import 'package:inventory/src/ui/shared/widgets/inventory_status_chip.dart';
 import 'package:provider/provider.dart';
 
 /// One asset on its own page: details, the actions allowed in its current status, custody history and timeline (FRS 10.19).
@@ -118,7 +118,7 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) => IcueFormSectionCard(
     title: asset.name,
     icon: Icons.devices_other_outlined,
-    trailing: StatusChip(asset.status),
+    trailing: InventoryStatusChip(asset.status),
     children: [
       SelectableText(asset.id, style: Theme.of(context).textTheme.titleMedium),
       Wrap(

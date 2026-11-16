@@ -1,6 +1,7 @@
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:injectable/injectable.dart';
 import 'package:inventory/src/models/inventory_assets.dart';
+import 'package:inventory/src/providers/list_state.dart';
 import 'package:inventory/src/services/inventory_service.dart';
 
 /// Assets and maintenance (Inv-6): reads from Firestore, writes are callables (see `StockService.call`).
@@ -11,21 +12,18 @@ class AssetsService {
   /// Knows which stores a store manager works in.
   final InventoryService _inventory;
 
-  Future<List<InventoryAsset>> assets({String? status}) async {
-    Query<Map<String, dynamic>> query = await branchCollection(
-      'inventoryAssets',
-    );
+  /// Assets: [status] filter, name prefix [search] as typed.
+  Future<ListQuery> assetsQuery(String? status, String search) async {
+    ListQuery query = await branchCollection('inventoryAssets');
     final assigned = await _inventory.assignedStoreIds();
     if (assigned != null) query = _inventory.inStores(query, assigned);
-    if (status != null) query = query.where('status', isEqualTo: status);
-    final snapshot = await query
-        .orderBy('createdAt', descending: true)
-        .limit(200)
-        .get();
-    return [
-      for (final document in snapshot.docs)
-        InventoryAsset.fromMap(document.id, document.data()),
-    ];
+    return filteredQuery(
+      query,
+      status: status,
+      search: search,
+      searchField: 'name',
+      upperCase: false,
+    );
   }
 
   Future<InventoryAsset?> asset(String id) async {
@@ -75,22 +73,11 @@ class AssetsService {
     ];
   }
 
-  Future<List<InventoryMaintenance>> maintenance({
-    String? status,
-    String? assetId,
-  }) async {
-    Query<Map<String, dynamic>> query = await branchCollection(
-      'inventoryMaintenanceJobs',
-    );
-    if (status != null) query = query.where('status', isEqualTo: status);
-    if (assetId != null) query = query.where('assetId', isEqualTo: assetId);
-    final snapshot = await query
-        .orderBy('createdAt', descending: true)
-        .limit(100)
-        .get();
-    return [
-      for (final document in snapshot.docs)
-        InventoryMaintenance.fromMap(document.id, document.data()),
-    ];
-  }
+  /// Maintenance jobs: [status] filter, job-number prefix [search].
+  Future<ListQuery> maintenanceQuery(String? status, String search) async =>
+      filteredQuery(
+        await branchCollection('inventoryMaintenanceJobs'),
+        status: status,
+        search: search,
+      );
 }

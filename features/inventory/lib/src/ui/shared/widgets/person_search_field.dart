@@ -1,41 +1,21 @@
 import 'package:flutter/material.dart';
 
-// TODO: Connect to Node ERP staff lookup endpoint when available.
+/// A person picked by ERP ID.
 class StaffOption {
-  const StaffOption({
-    required this.id,
-    required this.name,
-    required this.department,
-  });
+  const StaffOption({required this.id});
 
   final int id;
-  final String name;
-  final String department;
 }
 
-// TODO: Replace with live API search once the Node ERP endpoint is ready.
-const List<StaffOption> _sampleStaffList = [
-  StaffOption(id: 101, name: 'John Doe', department: 'Operations'),
-  StaffOption(id: 102, name: 'Sarah Smith', department: 'Science'),
-  StaffOption(id: 103, name: 'Michael Brown', department: 'Sports'),
-  StaffOption(id: 104, name: 'Emily Davis', department: 'Administration'),
-  StaffOption(id: 105, name: 'David Wilson', department: 'Logistics'),
-];
+String staffDisplayName(int staffId) => 'Staff #$staffId';
 
-String staffDisplayName(int staffId) {
-  for (final staff in _sampleStaffList) {
-    if (staff.id == staffId) return '${staff.name} (#$staffId)';
-  }
-  return 'Staff #$staffId';
-}
-
-/// Name/department/ID search over ERP people. A typed number is always
-/// accepted as an ID so people missing from the lookup can still be chosen.
+/// Picks a person by ERP ID. Node has no staff lookup yet, so names cannot be searched;
+/// ponytail: swap for a name search (like Library's person picker) when that endpoint exists.
 class PersonSearchField extends StatefulWidget {
   const PersonSearchField({
     required this.label,
     required this.onSelected,
-    this.hint = 'Search by name or ID…',
+    this.hint = 'Enter the ERP ID',
     this.exclude = const {},
     this.clearOnSelect = false,
     super.key,
@@ -52,54 +32,48 @@ class PersonSearchField extends StatefulWidget {
 }
 
 class _PersonSearchFieldState extends State<PersonSearchField> {
-  TextEditingController? _controller;
+  final _controller = TextEditingController();
+  String? _error;
 
-  Iterable<StaffOption> _search(String query) {
-    final trimmed = query.trim().toLowerCase();
-    if (trimmed.isEmpty) return const [];
-    final matches = _sampleStaffList.where((staff) {
-      return !widget.exclude.contains(staff.id) &&
-          (staff.name.toLowerCase().contains(trimmed) ||
-              staff.department.toLowerCase().contains(trimmed) ||
-              staff.id.toString().contains(trimmed));
-    }).toList();
-    final numericId = int.tryParse(trimmed);
-    if (numericId != null &&
-        !widget.exclude.contains(numericId) &&
-        !matches.any((staff) => staff.id == numericId)) {
-      matches.add(
-        StaffOption(id: numericId, name: 'ID #$numericId', department: 'ERP'),
-      );
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final id = int.tryParse(_controller.text.trim());
+    if (id == null || id <= 0) {
+      setState(() => _error = 'Enter a numeric ERP ID');
+      return;
     }
-    return matches;
+    if (widget.exclude.contains(id)) {
+      setState(() => _error = 'Already added');
+      return;
+    }
+    setState(() => _error = null);
+    widget.onSelected(StaffOption(id: id));
+    if (widget.clearOnSelect) _controller.clear();
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Autocomplete<StaffOption>(
-      displayStringForOption: (staff) =>
-          '${staff.name} · ${staff.department} (#${staff.id})',
-      optionsBuilder: (value) => _search(value.text),
-      onSelected: (staff) {
-        widget.onSelected(staff);
-        if (widget.clearOnSelect) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _controller?.clear();
-          });
-        }
-      },
-      fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-        _controller = controller;
-        return TextField(
-          controller: controller,
-          focusNode: focusNode,
-          decoration: InputDecoration(
-            labelText: widget.label,
-            hintText: widget.hint,
-            prefixIcon: const Icon(Icons.person_search_outlined, size: 20),
-          ),
-        );
-      },
-    );
-  }
+  Widget build(BuildContext context) => TextField(
+    controller: _controller,
+    keyboardType: TextInputType.number,
+    textInputAction: TextInputAction.done,
+    onSubmitted: (_) => _submit(),
+    decoration: InputDecoration(
+      labelText: widget.label,
+      hintText: widget.hint,
+      helperText:
+          'Name search needs the staff directory, which is not connected yet.',
+      errorText: _error,
+      prefixIcon: const Icon(Icons.badge_outlined, size: 20),
+      suffixIcon: IconButton(
+        tooltip: 'Add',
+        icon: const Icon(Icons.check_rounded),
+        onPressed: _submit,
+      ),
+    ),
+  );
 }
