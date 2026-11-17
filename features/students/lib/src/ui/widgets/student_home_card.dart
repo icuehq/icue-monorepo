@@ -22,6 +22,7 @@ class StudentHomeCard extends StatelessWidget {
         trailing: auth.students.length == 1
             ? null
             : ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(minimumSize: Size.zero),
                 onPressed: () =>
                     context.push(StudentsRoutes.studentsList, extra: true),
                 icon: const Icon(Icons.person, size: 30),

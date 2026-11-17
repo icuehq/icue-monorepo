@@ -78,7 +78,10 @@ class _StudentsListPageState extends State<StudentsListPage> {
                       student: student,
                       trailing:
                           _selecting && auth.selectedStudent?.id == student.id
-                          ? const CircularProgressIndicator()
+                          ? const SizedBox.square(
+                              dimension: 24,
+                              child: CircularProgressIndicator(strokeWidth: 3),
+                            )
                           : const Icon(Icons.arrow_forward_ios_rounded),
                       onTap: _selecting ? null : () => _select(student),
                     ),

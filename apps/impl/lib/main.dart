@@ -150,7 +150,9 @@ class _ParentAppState extends State<ParentApp> {
         ChangeNotifierProvider<ParentGatePassProvider>.value(
           value: getIt<ParentGatePassProvider>(),
         ),
-        Provider<IcueConnectivityService>.value(value: widget.connectivity),
+        ChangeNotifierProvider<IcueConnectivityService>.value(
+          value: widget.connectivity,
+        ),
       ],
       child: ValueListenableBuilder<Locale>(
         valueListenable: _locale,
