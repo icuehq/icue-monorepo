@@ -35,6 +35,7 @@ class AssetsProvider extends LoadingProvider {
       jobs.expand((job) => job.parts.map((partUsed) => partUsed.itemId)),
     ),
   );
+
   /// The asset list's Store filter; null shows every visible store.
   String? storeId;
 

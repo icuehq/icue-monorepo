@@ -26,9 +26,9 @@ must be listed under `workspace:` and use `resolution: workspace`.
 
 - `apps/icueadmin` — the production admin app (go_router, provider, get_it). Screens live in `lib/features/<name>/`, routing in `lib/routing/`, DI bootstrap in `lib/di/`.
 - `apps/super_admin` — Android super-admin app (student face enrollment/identification; password login via `AuthProvider.loginWithPassword`, `dev`/`prod` flavors). Mounts `features/face_enrollment`.
-- `apps/impl` — scaffold only; do not build features here.
-- `features/<name>` — one package per business domain (auth, drivers, vehicles, routes, announcements, expenses, logbook, reports, gatepass, tracking, drop_boarding, attendance, face_enrollment). Each has `models/`, `services/`, `providers/`, `di/` under `lib/src/` and exports its public API from `lib/<name>.dart`.
-- `packages/api_client` — HTTP client, interceptors, errors, `ApiEnvironment`. `packages/local_storage`, `packages/icue_ui` (the single shared UI package: theme, fonts, widgets, tables, layouts, formatting helpers and UI services), `packages/icue_firebase`, `packages/icue_face_sdk` (native Android/iOS plugin).
+- `apps/impl` — the parent (student/guardian) app, migrating from the legacy `impl` project in phases (`docs/impl-migration-plan.md`); `dev`/`prod` flavors, REST only (no Firestore), sends `Source=parentapp` via `ParentTokenProvider`; Maps, location-API and signing keys come from the environment, never git (`apps/impl/README.md`). Feature UI that needs strings uses `packages/parent_l10n` (en/es), never app-local ARBs.
+- `features/<name>` — one package per business domain (auth, drivers, vehicles, routes, announcements, expenses, logbook, reports, gatepass, tracking, drop_boarding, attendance, face_enrollment, students, parent_transport, safehands, school_connect, mess_meals). Each has `models/`, `services/`, `providers/`, `di/` under `lib/src/` and exports its public API from `lib/<name>.dart`.
+- `packages/api_client` — HTTP client, interceptors, errors, `ApiEnvironment`. `packages/local_storage`, `packages/icue_ui` (the single shared UI package: theme, fonts, widgets, tables, layouts, formatting helpers and UI services), `packages/icue_firebase`, `packages/icue_face_sdk` (native Android/iOS plugin), `packages/parent_l10n` (parent-app strings, `ParentLocalizations`), `packages/icue_webview` (`IcueWebViewPage`, the only package depending on `flutter_inappwebview`).
 
 ## Architecture rules
 

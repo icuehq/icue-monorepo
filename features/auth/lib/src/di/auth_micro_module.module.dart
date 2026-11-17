@@ -9,7 +9,12 @@ import 'dart:async' as _i687;
 
 import 'package:api_client/api_client.dart' as _i633;
 import 'package:auth/src/providers/auth_provider.dart' as _i44;
+import 'package:auth/src/providers/parent_auth_provider.dart' as _i590;
 import 'package:auth/src/services/auth_service.dart' as _i822;
+import 'package:auth/src/services/parent_auth_service.dart' as _i123;
+import 'package:auth/src/services/parent_device_info.dart' as _i793;
+import 'package:auth/src/storage/parent_session_storage.dart' as _i202;
+import 'package:auth/src/storage/parent_token_provider.dart' as _i1031;
 import 'package:auth/src/storage/session_token_provider.dart' as _i516;
 import 'package:auth/src/storage/user_local_storage.dart' as _i578;
 import 'package:injectable/injectable.dart' as _i526;
@@ -20,8 +25,27 @@ class AuthPackageModule extends _i526.MicroPackageModule {
   @override
   _i687.FutureOr<void> init(_i526.GetItHelper gh) {
     final authModule = _$AuthModule();
+    gh.lazySingleton<_i793.ParentDeviceInfo>(() => _i793.ParentDeviceInfo());
+    gh.lazySingleton<_i123.ParentAuthService>(
+      () => _i123.ParentAuthService(
+        gh<_i633.ApiClient>(),
+        gh<_i793.ParentDeviceInfo>(),
+      ),
+    );
+    gh.lazySingleton<_i202.ParentSessionStorage>(
+      () => _i202.ParentSessionStorage(gh<_i486.StorageService>()),
+    );
     gh.lazySingleton<_i578.UserLocalStorage>(
       () => _i578.UserLocalStorage(gh<_i486.StorageService>()),
+    );
+    gh.lazySingleton<_i590.ParentAuthProvider>(
+      () => _i590.ParentAuthProvider(
+        gh<_i123.ParentAuthService>(),
+        gh<_i202.ParentSessionStorage>(),
+      ),
+    );
+    gh.lazySingleton<_i1031.ParentTokenProvider>(
+      () => _i1031.ParentTokenProvider(gh<_i202.ParentSessionStorage>()),
     );
     gh.lazySingleton<_i516.SessionTokenProvider>(
       () => _i516.SessionTokenProvider(gh<_i578.UserLocalStorage>()),

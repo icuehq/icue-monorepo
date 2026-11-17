@@ -27,6 +27,29 @@ void main() {
       expect(client.dio.options.baseUrl, equals('https://itraxpro.com/api'));
     });
 
+    test('shows errors through a callback assigned after construction', () {
+      final client = ApiClient();
+      final shown = <String>[];
+      client.onShowErrorMessage = shown.add;
+      final interceptor = client.dio.interceptors
+          .whereType<ErrorInterceptor>()
+          .single;
+      final options = RequestOptions(path: '/api/v1.0/getThing');
+      interceptor.onError(
+        DioException(
+          requestOptions: options,
+          response: Response<dynamic>(
+            requestOptions: options,
+            statusCode: 400,
+            data: <String, dynamic>{'message': 'Nope'},
+          ),
+          type: DioExceptionType.badResponse,
+        ),
+        _TestErrorHandler((_) {}),
+      );
+      expect(shown, ['Nope']);
+    });
+
     test('initializes with explicit prod environment', () {
       final client = ApiClient(environment: ApiEnvironment.prod);
       expect(client.environment, equals(ApiEnvironment.prod));

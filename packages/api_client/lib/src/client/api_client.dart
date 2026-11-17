@@ -92,7 +92,8 @@ class ApiClient {
           );
           onLogCrash?.call(path, error, stack, fatal: fatal, message: message);
         },
-        onShowErrorMessage: onShowErrorMessage,
+        // Read at call time so apps can assign the field after construction.
+        onShowErrorMessage: (message) => onShowErrorMessage?.call(message),
         onSessionExpired: expireSession,
       ),
     );

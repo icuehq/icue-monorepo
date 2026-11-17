@@ -20,7 +20,7 @@ dependencies:
   printing: ^5.14.2
   provider: ^6.1.2
   routes:
-  xml: ^7.1.0
+  xml: ^7.0.0
 
 dev_dependencies:
   build_runner: ^2.4.13

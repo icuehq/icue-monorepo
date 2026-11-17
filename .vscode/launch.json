@@ -138,6 +138,32 @@
       ]
     },
     {
+      "name": "impl [Dev + Emulators · Android]",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "apps/impl",
+      "program": "lib/main.dart",
+      "args": [
+        "--flavor",
+        "dev",
+        "--dart-define=ENV=dev",
+        "--dart-define=FIREBASE_EMULATOR=10.0.2.2"
+      ]
+    },
+    {
+      "name": "impl [Dev + Emulators · iOS]",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "apps/impl",
+      "program": "lib/main.dart",
+      "args": [
+        "--flavor",
+        "dev",
+        "--dart-define=ENV=dev",
+        "--dart-define=FIREBASE_EMULATOR=127.0.0.1"
+      ]
+    },
+    {
       "name": "impl [Prod]",
       "request": "launch",
       "type": "dart",

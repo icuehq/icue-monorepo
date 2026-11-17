@@ -46,3 +46,12 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Signing/encryption secrets: never commit
+*.pem
+pepk.jar
+*.pepk
+*.jks
+
+# Google Maps key for the iOS build (MAPS_API_KEY=...)
+ios/Flutter/Secrets.xcconfig

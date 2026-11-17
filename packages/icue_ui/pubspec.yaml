@@ -27,6 +27,7 @@ dev_dependencies:
 flutter:
   assets:
     - assets/dashboard/
+    - assets/brand/
   fonts:
     - family: Montserrat
       fonts:

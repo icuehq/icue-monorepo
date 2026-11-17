@@ -1,121 +1,172 @@
+import 'dart:async';
+
+import 'package:announcements/announcements.dart';
+import 'package:api_client/api_client.dart';
+import 'package:auth/auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:gatepass/gatepass.dart';
+import 'package:go_router/go_router.dart';
+import 'package:icue_firebase/icue_firebase.dart';
+import 'package:icue_ui/icue_ui.dart';
+import 'package:impl/bootstrap/app_bootstrap.dart';
+import 'package:impl/di/injection.dart';
+import 'package:impl/notifications/notification_tap.dart';
+import 'package:impl/routing/app_router.dart';
+import 'package:mess_meals/mess_meals.dart';
+import 'package:parent_l10n/parent_l10n.dart';
+import 'package:parent_transport/parent_transport.dart';
+import 'package:provider/provider.dart';
+import 'package:safehands/safehands.dart';
+import 'package:school_connect/school_connect.dart';
+import 'package:students/students.dart';
 
 void main() {
-  runApp(const MyApp());
+  WidgetsFlutterBinding.ensureInitialized();
+  unawaited(SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge));
+  final environment = ApiEnvironment.fromEnvironment();
+  runApp(
+    AppBootstrap(
+      environment: environment,
+      builder: (connectivity) =>
+          ParentApp(environment: environment, connectivity: connectivity),
+    ),
+  );
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class ParentApp extends StatefulWidget {
+  const ParentApp({
+    required this.environment,
+    required this.connectivity,
+    super.key,
+  });
 
-  // This widget is the root of your application.
+  final ApiEnvironment environment;
+  final IcueConnectivityService connectivity;
+
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+  State<ParentApp> createState() => _ParentAppState();
+}
+
+class _ParentAppState extends State<ParentApp> {
+  final _auth = getIt<ParentAuthProvider>();
+  final _students = getIt<ParentStudentsProvider>();
+  final _locale = ValueNotifier<Locale>(const Locale('en'));
+  late final GoRouter _router = createRouter(auth: _auth, locale: _locale);
+  StreamSubscription<String>? _tokenSub;
+  int? _trackedParentId;
+
+  @override
+  void initState() {
+    super.initState();
+    _trackedParentId = _auth.parentId;
+    _auth.addListener(_onAuthChanged);
+    _onAuthChanged();
+    unawaited(NotificationService.instance.init(onTap: _onNotificationTap));
+    _tokenSub = NotificationService.instance.onTokenRefresh.listen(
+      _auth.registerPushToken,
     );
+    if (_auth.isSignedIn) unawaited(_registerPushToken());
   }
-}
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+  /// Switches to the student the push is about, then opens its screen.
+  Future<void> _onNotificationTap(Map<String, dynamic> data) async {
+    final tap = parseNotificationTap(data);
+    if (tap == null || !_auth.isSignedIn) return;
+    final student = _auth.students
+        .where((s) => s.id == tap.studentId)
+        .firstOrNull;
+    if (student == null) return;
+    _students.reset();
+    await _auth.selectStudent(student);
+    if (await _students.loadRoleActions(student.id)) _router.go(tap.path);
+  }
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
+  Future<void> _registerPushToken() async {
+    final token = await NotificationService.instance.token;
+    if (token != null) await _auth.registerPushToken(token);
+  }
 
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+  /// Tags crash reports and analytics with the parent; clears them on logout.
+  void _onAuthChanged() {
+    final parentId = _auth.parentId;
+    final signedIn = _auth.isSignedIn;
+    final id = signedIn && parentId != null ? '$parentId' : null;
+    CrashlyticsService.instance.setUser(id: id);
+    AnalyticsService.instance.setUser(id: id);
+    if (signedIn && parentId != _trackedParentId) {
+      AnalyticsService.instance.logLogin('otp');
+      unawaited(_registerPushToken());
+    }
+    if (!signedIn) _students.reset();
+    _trackedParentId = signedIn ? parentId : null;
+  }
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
+  void dispose() {
+    _auth.removeListener(_onAuthChanged);
+    unawaited(_tokenSub?.cancel());
+    _router.dispose();
+    _locale.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: .center,
-          children: [
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider<ParentAuthProvider>.value(value: _auth),
+        ChangeNotifierProvider<ParentStudentsProvider>.value(value: _students),
+        ChangeNotifierProvider<ParentAnnouncementsProvider>.value(
+          value: getIt<ParentAnnouncementsProvider>(),
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
+        ChangeNotifierProvider<ParentTrackingProvider>.value(
+          value: getIt<ParentTrackingProvider>(),
+        ),
+        ChangeNotifierProvider<RouteNotificationsProvider>.value(
+          value: getIt<RouteNotificationsProvider>(),
+        ),
+        ChangeNotifierProvider<ParentVehiclesProvider>.value(
+          value: getIt<ParentVehiclesProvider>(),
+        ),
+        ChangeNotifierProvider<TransportAttendanceProvider>.value(
+          value: getIt<TransportAttendanceProvider>(),
+        ),
+        ChangeNotifierProvider<ComplaintsProvider>.value(
+          value: getIt<ComplaintsProvider>(),
+        ),
+        ChangeNotifierProvider<EventsProvider>.value(
+          value: getIt<EventsProvider>(),
+        ),
+        ChangeNotifierProvider<MealsProvider>.value(
+          value: getIt<MealsProvider>(),
+        ),
+        ChangeNotifierProvider<SafeHandsProvider>.value(
+          value: getIt<SafeHandsProvider>(),
+        ),
+        ChangeNotifierProvider<EscortProvider>.value(
+          value: getIt<EscortProvider>(),
+        ),
+        ChangeNotifierProvider<ParentGatePassProvider>.value(
+          value: getIt<ParentGatePassProvider>(),
+        ),
+        Provider<IcueConnectivityService>.value(value: widget.connectivity),
+      ],
+      child: ValueListenableBuilder<Locale>(
+        valueListenable: _locale,
+        builder: (context, locale, _) => MaterialApp.router(
+          title: 'iCue Parent',
+          debugShowCheckedModeBanner: false,
+          theme: IcueTheme.forEnvironment(isProd: widget.environment.isProd),
+          routerConfig: _router,
+          locale: locale,
+          localizationsDelegates: ParentLocalizations.localizationsDelegates,
+          supportedLocales: ParentLocalizations.supportedLocales,
+          builder: (context, child) => IcueConnectivityBanner(
+            service: widget.connectivity,
+            child: child ?? const SizedBox.shrink(),
+          ),
+        ),
       ),
     );
   }

@@ -14,6 +14,8 @@ workspace:
   - packages/local_storage
   - packages/icue_face_sdk
   - packages/icue_firebase
+  - packages/parent_l10n
+  - packages/icue_webview
   - features/auth
   - features/drivers
   - features/vehicles
@@ -29,6 +31,11 @@ workspace:
   - features/inventory
   - features/library
   - features/face_enrollment
+  - features/students
+  - features/parent_transport
+  - features/safehands
+  - features/school_connect
+  - features/mess_meals
 
 dev_dependencies:
   melos: ^8.9.0

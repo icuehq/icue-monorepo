@@ -2,6 +2,7 @@ library;
 
 export 'package:dio/dio.dart'
     show
+        BaseOptions,
         CancelToken,
         Dio,
         DioException,
