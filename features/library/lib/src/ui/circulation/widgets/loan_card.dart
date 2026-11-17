@@ -163,7 +163,7 @@ class LoanCard extends StatelessWidget {
               ),
               LibraryMetaPill(
                 Icons.event_outlined,
-                'Due ${loan.dueDate.toDisplayDay()}',
+                'Due ${loan.dueLabelOn(today)}',
                 tone: LibraryPillTone.error,
               ),
               if (loan.renewals > 0)

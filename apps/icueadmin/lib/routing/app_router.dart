@@ -109,6 +109,11 @@ GoRouter createRouter({
         name: AppRoutes.branchesName,
         builder: (context, state) => const BranchesPage(),
       ),
+      GoRoute(
+        path: AppRoutes.requestItem,
+        name: AppRoutes.requestItemName,
+        builder: (context, state) => _adminPage((_) => pages.RequestItemPage()),
+      ),
       ...inventoryRoutes(),
       ...libraryRoutes(),
       GoRoute(

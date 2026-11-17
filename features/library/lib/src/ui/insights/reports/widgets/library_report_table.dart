@@ -82,6 +82,14 @@ class LibraryReportTable extends StatelessWidget {
       );
     }
     final tokens = IcueTableStyle.of(context);
+    if (headerName == 'due' && cell.contains('\n')) {
+      final lines = cell.split('\n');
+      return IcueTableCellText(
+        lines.first,
+        subtitle: lines.last,
+        style: tokens.secondary,
+      );
+    }
     return IcueTableCellText(
       cell.isEmpty ? '—' : cell,
       style: tokens.secondary,

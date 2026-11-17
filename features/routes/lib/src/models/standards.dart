@@ -1,3 +1,6 @@
+import 'package:flutter/foundation.dart';
+
+@immutable
 class Section {
   const Section({required this.id, required this.name});
 
@@ -8,8 +11,17 @@ class Section {
   final String name;
 
   Map<String, dynamic> toJson() => {'Id': id, 'Name': name};
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Section && runtimeType == other.runtimeType && id == other.id;
+
+  @override
+  int get hashCode => id.hashCode;
 }
 
+@immutable
 class Standards {
   const Standards({
     required this.id,
@@ -46,4 +58,12 @@ class Standards {
     'StandardType': standardType,
     'Sections': sections.map((x) => x.toJson()).toList(),
   };
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Standards && runtimeType == other.runtimeType && id == other.id;
+
+  @override
+  int get hashCode => id.hashCode;
 }

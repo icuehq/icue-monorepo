@@ -33,6 +33,10 @@ class IssueRequestCard extends StatelessWidget {
     final statusBg = inventoryStatusColor(request.status)
         .withValues(alpha: 0.12);
     final itemsCount = request.lineItems.length;
+    final primaryTitle = request.lineItems.isEmpty
+        ? (request.purpose.isNotEmpty ? request.purpose : 'Issue Request')
+        : itemName(request.lineItems.first.itemId);
+    final extraItemsText = itemsCount > 1 ? ' (+${itemsCount - 1} more)' : '';
 
     return Card(
       elevation: 0,
@@ -75,17 +79,42 @@ class IssueRequestCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Expanded(
-                              child: Text(
-                                request.number,
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 15,
-                                  fontFamily: 'monospace',
-                                ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '$primaryTitle$extraItemsText',
+                                    style: theme.textTheme.titleMedium
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 15,
+                                        ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  if (request.purpose.isNotEmpty &&
+                                      request.lineItems.isNotEmpty) ...[
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      request.purpose,
+                                      style: theme.textTheme.bodyMedium
+                                          ?.copyWith(
+                                            color: theme
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ],
                               ),
                             ),
+                            const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 8,
@@ -105,16 +134,9 @@ class IssueRequestCard extends StatelessWidget {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          request.purpose,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
                         if (request.destination != null &&
                             request.destination!.isNotEmpty) ...[
-                          const SizedBox(height: 2),
+                          const SizedBox(height: 4),
                           Row(
                             children: [
                               Icon(
@@ -123,10 +145,14 @@ class IssueRequestCard extends StatelessWidget {
                                 color: theme.colorScheme.onSurfaceVariant,
                               ),
                               const SizedBox(width: 3),
-                              Text(
-                                request.destination!,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
+                              Expanded(
+                                child: Text(
+                                  request.destination!,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ],
@@ -203,12 +229,31 @@ class IssueRequestCard extends StatelessWidget {
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                   const SizedBox(width: 4),
-                  Text(
-                    storeName,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                  Flexible(
+                    child: Text(
+                      storeName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ),
+                  if (request.createdAt != null) ...[
+                    const SizedBox(width: 12),
+                    Icon(
+                      Icons.calendar_today_outlined,
+                      size: 13,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      request.createdAt!.toNumericDate(),
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                   const Spacer(),
                   Icon(
                     Icons.chevron_right_rounded,

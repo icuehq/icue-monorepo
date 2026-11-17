@@ -219,49 +219,52 @@ class _BookImportPageState extends State<BookImportPage> {
               ),
               const SizedBox(height: 16),
             ],
-            if (isWide)
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: templateCard),
-                  const SizedBox(width: 16),
-                  Expanded(child: uploadCard),
-                ],
-              )
-            else ...[
-              templateCard,
-              uploadCard,
-            ],
-            if (plan != null &&
-                (plan.books.isNotEmpty || plan.issues.isNotEmpty)) ...[
-              const SizedBox(height: 16),
-              IcueFormSectionCard(
-                title: '3. Review and import',
-                icon: Icons.fact_check_outlined,
-                children: [
-                  BookImportSummaryCards(
-                    plan: plan,
-                    resultsCount: _results.length,
-                    failedCount: failed,
-                    isFinished: _finished,
-                    isImporting: _importing,
-                  ),
-                  const SizedBox(height: 16),
-                  if (plan.issues.isNotEmpty)
-                    BookImportIssuesCard(issues: plan.issues)
-                  else
-                    BookImportPreviewSection(
+            // With several libraries, nothing else shows until one is chosen.
+            if (libraries.length < 2 || _libraryId != null) ...[
+              if (isWide)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: templateCard),
+                    const SizedBox(width: 16),
+                    Expanded(child: uploadCard),
+                  ],
+                )
+              else ...[
+                templateCard,
+                uploadCard,
+              ],
+              if (plan != null &&
+                  (plan.books.isNotEmpty || plan.issues.isNotEmpty)) ...[
+                const SizedBox(height: 16),
+                IcueFormSectionCard(
+                  title: '3. Review and import',
+                  icon: Icons.fact_check_outlined,
+                  children: [
+                    BookImportSummaryCards(
                       plan: plan,
-                      results: _results,
-                      isImporting: _importing,
-                      isFinished: _finished,
+                      resultsCount: _results.length,
                       failedCount: failed,
-                      copiesAdded: _copiesAdded,
-                      onImport: _import,
-                      onReset: _reset,
+                      isFinished: _finished,
+                      isImporting: _importing,
                     ),
-                ],
-              ),
+                    const SizedBox(height: 16),
+                    if (plan.issues.isNotEmpty)
+                      BookImportIssuesCard(issues: plan.issues)
+                    else
+                      BookImportPreviewSection(
+                        plan: plan,
+                        results: _results,
+                        isImporting: _importing,
+                        isFinished: _finished,
+                        failedCount: failed,
+                        copiesAdded: _copiesAdded,
+                        onImport: _import,
+                        onReset: _reset,
+                      ),
+                  ],
+                ),
+              ],
             ],
           ],
         ),

@@ -3,7 +3,7 @@ import 'package:inventory/src/services/issue_writes.dart';
 import 'package:inventory/src/services/receiving_writes.dart';
 import 'package:inventory/src/services/return_writes.dart';
 
-/// Client-side stock writes, routed to [ReceivingWrites], [IssueWrites], [ReturnWrites] and [AdjustmentWrites]: Receive Stock (`inventory-receipt-confirm`), receiving goods against a purchase order (`inventory-purchaseOrder-receive`), issue request approve/reject, issuing stock (`inventory-issue-create`) confirming an issue's receipt returns against an issue requesting, stock adjustments and unavailable stock.
+/// Client-side stock writes, routed to [ReceivingWrites], [IssueWrites], [ReturnWrites] and [AdjustmentWrites]: Receive Stock (`inventory-receipt-confirm`), receiving goods against a purchase order (`inventory-purchaseOrder-receive`), issue request submit/approve/reject, issuing stock (`inventory-issue-create`) confirming an issue's receipt returns against an issue requesting, stock adjustments and unavailable stock.
 ///
 /// One Firestore transaction writes the receipt, its balances, the ledger rows
 /// and the GRN counter (Receive Stock writes only the balances). Business checks live here and in `firestore.rules`
@@ -15,6 +15,7 @@ class StockWrites {
   static const names = {
     'inventory-receipt-confirm',
     'inventory-purchaseOrder-receive',
+    'inventory-issueRequest-submit',
     'inventory-issueRequest-decide',
     'inventory-issueRequest-cancel',
     'inventory-issueRequest-close',
@@ -37,6 +38,7 @@ class StockWrites {
   ) => switch (name) {
     'inventory-receipt-confirm' => _receiving.confirmReceipt(data),
     'inventory-purchaseOrder-receive' => _receiving.receivePurchaseOrder(data),
+    'inventory-issueRequest-submit' => _issues.submitIssueRequest(data),
     'inventory-issueRequest-decide' => _issues.decideIssueRequest(data),
     'inventory-issueRequest-cancel' => _issues.endIssueRequest(
       data,

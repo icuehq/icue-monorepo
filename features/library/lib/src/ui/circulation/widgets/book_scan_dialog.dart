@@ -190,7 +190,7 @@ class _BookScanDialogState extends State<BookScanDialog> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Issued ${loan.issuedDate.toDisplayDay()} · due ${loan.dueDate.toDisplayDay()} · ${loan.renewals}/${loan.maxRenewals} renewals used',
+                        'Issued ${loan.issuedDate.toDisplayDay()} · due ${loan.dueLabelOn(todayIST())} · ${loan.renewals}/${loan.maxRenewals} renewals used',
                         style: theme.textTheme.bodySmall,
                       ),
                     ],

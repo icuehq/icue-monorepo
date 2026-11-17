@@ -46,6 +46,43 @@ class _IssueRequestsPageState extends State<IssueRequestsPage> {
     if (mounted) await _load();
   }
 
+  Widget _buildItemCell(
+    BuildContext context,
+    InventoryIssueRequest request,
+    StockProvider stockProvider,
+  ) {
+    if (request.lineItems.isEmpty) {
+      return const IcueTableCellText('—');
+    }
+
+    final firstLine = request.lineItems.first;
+    final firstName = stockProvider.itemName(firstLine.itemId);
+    final firstQuantity = firstLine.requested.toQuantityText();
+    final totalLines = request.lineItems.length;
+
+    if (totalLines == 1) {
+      return IcueTableCellText(firstName, subtitle: '$firstQuantity requested');
+    }
+
+    final remainingCount = totalLines - 1;
+    final summaryTooltip = request.lineItems
+        .map(
+          (requestLine) =>
+              '${stockProvider.itemName(requestLine.itemId)} × ${requestLine.requested.toQuantityText()}',
+        )
+        .join(', ');
+
+    return Tooltip(
+      message: summaryTooltip,
+      waitDuration: const Duration(milliseconds: 400),
+      child: IcueTableCellText(
+        '$firstName × $firstQuantity',
+        subtitle:
+            '+ $remainingCount more item${remainingCount == 1 ? '' : 's'}',
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final stockProvider = context.watch<StockProvider>();
@@ -80,22 +117,40 @@ class _IssueRequestsPageState extends State<IssueRequestsPage> {
         statuses: _statuses,
         searchHint: 'Request number',
         rowKey: (request) => request.id,
-        rowLabel: (request) => request.number,
+        rowLabel: (request) {
+          if (request.lineItems.isEmpty) return request.number;
+          final firstName = stockProvider.itemName(
+            request.lineItems.first.itemId,
+          );
+          final extra = request.lineItems.length - 1;
+          return extra > 0 ? '$firstName and $extra other items' : firstName;
+        },
         onOpen: _open,
         emptyMessage: 'Requests raised by staff in your branch appear here.',
+        secondaryAction: IcueTableAction(
+          label: 'Refresh',
+          icon: Icons.refresh_rounded,
+          onPressed: _load,
+        ),
         columns: [
           IcueTableColumn(
-            id: 'number',
-            label: 'Request',
+            id: 'item',
+            label: 'Item name',
+            flex: 3,
+            minWidth: 180,
             cellBuilder: (context, request) =>
-                IcueTableCellText(request.number),
+                _buildItemCell(context, request, stockProvider),
           ),
           IcueTableColumn(
             id: 'purpose',
             label: 'Purpose',
-            flex: 3,
+            flex: 2,
+            minWidth: 140,
             cellBuilder: (context, request) => IcueTableCellText(
-              request.purpose,
+              request.purpose.isEmpty ? '—' : request.purpose,
+              subtitle: request.destination?.isNotEmpty == true
+                  ? request.destination
+                  : null,
               style: IcueTableStyle.of(context).secondary,
             ),
           ),
@@ -103,6 +158,8 @@ class _IssueRequestsPageState extends State<IssueRequestsPage> {
             id: 'store',
             label: 'Store',
             flex: 2,
+            minWidth: 120,
+            hideBelowWidth: 900,
             cellBuilder: (context, request) => IcueTableCellText(
               storeName(request.storeId),
               style: IcueTableStyle.of(context).secondary,
@@ -111,6 +168,8 @@ class _IssueRequestsPageState extends State<IssueRequestsPage> {
           IcueTableColumn(
             id: 'raised',
             label: 'Raised',
+            minWidth: 110,
+            hideBelowWidth: 780,
             cellBuilder: (context, request) => IcueTableCellText(
               request.createdAt?.toNumericDate() ?? '—',
               style: IcueTableStyle.of(context).numeric,

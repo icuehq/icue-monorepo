@@ -4,6 +4,24 @@ import 'package:school_library/src/models/library_loans.g.dart';
 
 export 'library_loans.g.dart';
 
+/// `05 Mar 2025 · 3 days left` (or `due today` / `N days overdue`) for [dueDate] (`yyyy-MM-dd`) as of [today];
+/// the date alone once the loan is closed.
+String dueLabel(
+  String dueDate, {
+  required bool isActive,
+  required String today,
+  String separator = ' · ',
+}) {
+  final date = dueDate.toDisplayDay();
+  if (!isActive) return date;
+  final left = DateTime.parse('${dueDate}T00:00:00Z')
+      .difference(DateTime.parse('${today}T00:00:00Z'))
+      .inDays;
+  if (left == 0) return '$date${separator}due today';
+  final days = left.abs();
+  return '$date$separator$days ${days == 1 ? 'day' : 'days'} ${left > 0 ? 'left' : 'overdue'}';
+}
+
 extension LibraryLoanMembers on LibraryLoan {
   bool get isActive => status == 'active';
   bool get canRenew => isActive && renewals < maxRenewals;
@@ -21,6 +39,10 @@ extension LibraryLoanMembers on LibraryLoan {
         .difference(DateTime.parse('${dueDate}T00:00:00Z'))
         .inDays;
   }
+
+  /// Due date plus days remaining as of [today]; see [dueLabel].
+  String dueLabelOn(String today) =>
+      dueLabel(dueDate, isActive: isActive, today: today);
 
   /// Fine the return will raise as of [today] (`LoanWrites.returnLoan`): per day or flat after the grace days, capped.
   double fineOn(String today) {

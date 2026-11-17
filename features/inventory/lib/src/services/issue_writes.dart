@@ -2,8 +2,92 @@ import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/src/services/stock_support.dart';
 
-/// Issue requests (decide, cancel, close), issuing stock and acknowledging an issue.
+/// Issue requests (submit, decide, cancel, close), issuing stock and acknowledging an issue.
 class IssueWrites with StockSupport {
+  /// Raises a pending issue request for items of one store; approvers decide it on the Requests screen.
+  Future<Map<String, dynamic>> submitIssueRequest(
+    Map<String, Object?> data,
+  ) async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final storeId = data['storeId']! as String;
+    final purpose = blankToNullText(data['purpose']);
+    if (purpose == null) failWith('Enter the purpose of the request');
+    final lines = [
+      for (final line in (data['lineItems']! as List))
+        Map<String, dynamic>.from(line as Map),
+    ];
+    if (lines.isEmpty) failWith('Add at least one item');
+    final lineKeys = {
+      for (final line in lines)
+        '${line['itemId']}__${line['variantId'] ?? '-'}',
+    };
+    if (lineKeys.length != lines.length) {
+      failWith('Each item (and variant) may appear once');
+    }
+    for (final line in lines) {
+      if ((line['quantity'] as num) <= 0) {
+        failWith('Enter a quantity for every item');
+      }
+    }
+
+    final financialYear = currentFinancialYear;
+    final counterRef = await branchDoc('counters/IR_$financialYear');
+    final requestRef = (await branchCollection('inventoryIssueRequests')).doc();
+    final number = await FirebaseFirestore.instance.runTransaction((
+      transaction,
+    ) async {
+      final store = (await transaction.get(
+        await branchDoc('inventoryStores/$storeId'),
+      )).data();
+      if (store == null) failWith('Store not found');
+      if (store['status'] != 'active') failWith('Store is inactive');
+      for (final line in lines) {
+        final item = await activeStockItem(
+          transaction,
+          line['itemId'] as String,
+          line['variantId'] as String?,
+          assetOk: true,
+        );
+        if (item['storeId'] != storeId) {
+          failWith('${item['name']} does not belong to this store');
+        }
+      }
+      final next =
+          ((await transaction.get(counterRef)).data()?['next'] as num? ?? 0)
+              .toInt() +
+          1;
+      final requestNumber =
+          'IR/$financialYear/${next.toString().padLeft(6, '0')}';
+      transaction.set(counterRef, {
+        'next': next,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      transaction.set(requestRef, {
+        'number': requestNumber,
+        'storeId': storeId,
+        'purpose': purpose,
+        'destination': blankToNullText(data['destination']),
+        'status': 'pending',
+        'createdBy': uid,
+        'lineItems': [
+          for (final line in lines)
+            {
+              'itemId': line['itemId'],
+              'variantId': line['variantId'],
+              'quantityRequested': line['quantity'],
+              'quantityApproved': null,
+              'quantityIssued': 0,
+            },
+        ],
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+        'lastWrite': writeStamp('inventoryIssueRequest.submit'),
+      });
+      return requestNumber;
+    });
+    return {'id': requestRef.id, 'number': number};
+  }
+
   Future<Map<String, dynamic>> decideIssueRequest(
     Map<String, Object?> data,
   ) async {
@@ -30,13 +114,19 @@ class IssueWrites with StockSupport {
         if (approved > requested) {
           failWith('Approved quantity exceeds the request');
         }
-        if (approved > 0 &&
-            approved >
-                await availableStock(
-                  current['storeId'] as String,
-                  line['itemId'] as String,
-                  line['variantId'] as String?,
-                )) {
+        final storeId = current['storeId'] as String;
+        final itemId = line['itemId'] as String;
+        final item = (await (await branchDoc(
+          'inventoryItems/$itemId',
+        )).get()).data();
+        final available = item?['tracking'] == 'asset'
+            ? await availableAssets(storeId, itemId)
+            : await availableStock(
+                storeId,
+                itemId,
+                line['variantId'] as String?,
+              );
+        if (approved > 0 && approved > available) {
           failWith('Approved quantity exceeds available stock');
         }
         approvedLines.add({...line, 'quantityApproved': approved});

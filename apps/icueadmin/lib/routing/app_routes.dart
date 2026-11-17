@@ -8,6 +8,9 @@ abstract final class AppRoutes {
   static const String login = '/login';
   static const String loginName = 'login';
 
+  static const String requestItem = '/request-item';
+  static const String requestItemName = 'request-item';
+
   static const String branches = '/branches';
   static const String branchesName = 'branches';
 

@@ -29,6 +29,8 @@ const Map<String, String> _iconsMap = {
   'layout.attendance': 'assets/dashboard/attendance.png',
   'layout.inventory': 'packages/inventory/assets/dashboard/inventory.png',
   'layout.Library': 'packages/school_library/assets/dashboard/library.png',
+  'layout.request_items':
+      'packages/inventory/assets/dashboard/inventory-issue-requests.png',
 };
 
 /// Backend `routeState` id -> app route path. Unknown ids fall through to
@@ -49,6 +51,7 @@ const Map<String, String> dashboardRoutePaths = {
   'layout.attendance': AppRoutes.attendance,
   'layout.inventory': InventoryRoutes.inventory,
   'layout.Library': LibraryRoutes.library,
+  'layout.request_items': AppRoutes.requestItem,
 };
 
 class DashboardPage extends StatefulWidget {
@@ -149,7 +152,6 @@ class _DashboardPageState extends State<DashboardPage> {
                   itemBuilder: (context, index) {
                     final item = actions[index];
                     final iconPath = _iconsMap[item.routeState];
-
                     return OptionCardTile(
                       title: item.displayName,
                       iconAsset: iconPath,

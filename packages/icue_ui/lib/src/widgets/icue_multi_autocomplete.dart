@@ -1,10 +1,10 @@
-import 'package:icue_ui/src/widgets/icue_text_field.dart';
 import 'package:flutter/material.dart';
+import 'package:icue_ui/src/widgets/icue_text_field.dart';
 
 /// Pick items by typing: chosen ones show as removable chips, the rest are
 /// suggested (all of them while the box is empty), built on [RawAutocomplete].
 /// With `multiple: false` picking an item replaces the current one.
-class IcueMultiAutocomplete<T extends Object> extends StatelessWidget {
+class IcueMultiAutocomplete<T extends Object> extends StatefulWidget {
   const IcueMultiAutocomplete({
     required this.options,
     required this.selected,
@@ -28,27 +28,77 @@ class IcueMultiAutocomplete<T extends Object> extends StatelessWidget {
   final String? helperText;
   final IconData? icon;
 
-  Iterable<T> _matches(String text) {
-    final query = text.trim().toLowerCase();
-    return options.where(
-      (option) => labelOf(option).toLowerCase().contains(query),
+  @override
+  State<IcueMultiAutocomplete<T>> createState() =>
+      _IcueMultiAutocompleteState<T>();
+}
+
+class _IcueMultiAutocompleteState<T extends Object>
+    extends State<IcueMultiAutocomplete<T>> {
+  late final FocusNode _focusNode = FocusNode()..addListener(_onFocusChange);
+  late final TextEditingController _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _focusNode.removeListener(_onFocusChange);
+    _focusNode.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onFocusChange() {
+    if (_focusNode.hasFocus) {
+      _triggerOptions();
+    }
+  }
+
+  void _triggerOptions() {
+    _controller.value = TextEditingValue(
+      text: _controller.text,
+      selection: _controller.selection,
     );
   }
 
-  void _pick(T option) => onChanged(
-    !multiple
-        ? [option]
-        : selected.contains(option)
-        ? [
-            for (final other in selected)
-              if (other != option) other,
-          ]
-        : [...selected, option],
-  );
+  @override
+  void didUpdateWidget(IcueMultiAutocomplete<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.options != widget.options ||
+        oldWidget.options.length != widget.options.length) {
+      if (_focusNode.hasFocus) {
+        _triggerOptions();
+      }
+    }
+  }
+
+  Iterable<T> _matches(String text) {
+    final query = text.trim().toLowerCase();
+    return widget.options.where(
+      (option) => widget.labelOf(option).toLowerCase().contains(query),
+    );
+  }
+
+  void _pick(T option) {
+    widget.onChanged(
+      !widget.multiple
+          ? [option]
+          : widget.selected.contains(option)
+          ? [
+              for (final other in widget.selected)
+                if (other != option) other,
+            ]
+          : [...widget.selected, option],
+    );
+    if (_focusNode.canRequestFocus) {
+      _focusNode.requestFocus();
+    }
+  }
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) => RawAutocomplete<T>(
+      key: ValueKey(widget.options.length),
+      focusNode: _focusNode,
+      textEditingController: _controller,
       // Empty so a picked item leaves the box clear; the chip shows it.
       displayStringForOption: (_) => '',
       optionsBuilder: (value) => _matches(value.text),
@@ -57,38 +107,23 @@ class IcueMultiAutocomplete<T extends Object> extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (selected.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Wrap(
-                  spacing: 6,
-                  runSpacing: 4,
-                  children: [
-                    for (final item in selected)
-                      InputChip(
-                        label: Text(labelOf(item)),
-                        visualDensity: VisualDensity.compact,
-                        onDeleted: () => onChanged([
-                          for (final other in selected)
-                            if (other != item) other,
-                        ]),
-                      ),
-                  ],
-                ),
-              ),
             TextField(
               controller: controller,
               focusNode: focusNode,
+              onTap: _triggerOptions,
               decoration: icueInputDecoration(
-                label: label,
-                hintText: hintText,
-                helperText: helperText,
-                icon: icon,
+                label: widget.label,
+                hintText: widget.hintText,
+                helperText: widget.helperText,
+                icon: widget.icon,
               ),
               // Enter picks the first match.
               onSubmitted: (_) {
                 final match = _matches(controller.text)
-                    .where((option) => !multiple || !selected.contains(option))
+                    .where(
+                      (option) =>
+                          !widget.multiple || !widget.selected.contains(option),
+                    )
                     .firstOrNull;
                 if (match != null) {
                   controller.clear();
@@ -97,6 +132,25 @@ class IcueMultiAutocomplete<T extends Object> extends StatelessWidget {
                 }
               },
             ),
+            if (widget.selected.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: [
+                    for (final item in widget.selected)
+                      InputChip(
+                        label: Text(widget.labelOf(item)),
+                        visualDensity: VisualDensity.compact,
+                        onDeleted: () => widget.onChanged([
+                          for (final other in widget.selected)
+                            if (other != item) other,
+                        ]),
+                      ),
+                  ],
+                ),
+              ),
           ],
         );
       },
@@ -118,23 +172,23 @@ class IcueMultiAutocomplete<T extends Object> extends StatelessWidget {
                 shrinkWrap: true,
                 children: [
                   for (final option in matches)
-                    if (multiple)
+                    if (widget.multiple)
                       // Bypasses onSelected, which would close the menu; ExcludeFocus
                       // keeps the text field focused so the menu stays open.
                       ExcludeFocus(
                         child: CheckboxListTile(
                           dense: true,
                           controlAffinity: ListTileControlAffinity.leading,
-                          value: selected.contains(option),
-                          title: Text(labelOf(option)),
+                          value: widget.selected.contains(option),
+                          title: Text(widget.labelOf(option)),
                           onChanged: (_) => _pick(option),
                         ),
                       )
                     else
                       ListTile(
                         dense: true,
-                        selected: selected.contains(option),
-                        title: Text(labelOf(option)),
+                        selected: widget.selected.contains(option),
+                        title: Text(widget.labelOf(option)),
                         onTap: () => onSelected(option),
                       ),
                 ],

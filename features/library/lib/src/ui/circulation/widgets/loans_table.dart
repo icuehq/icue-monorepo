@@ -186,7 +186,7 @@ class LoansTable extends StatelessWidget {
           id: 'due',
           label: 'Due',
           cellBuilder: (context, loan) => IcueTableCellText(
-            loan.dueDate.toDisplayDay(),
+            loan.dueLabelOn(today),
             style: IcueTableStyle.of(context).secondary,
           ),
         ),

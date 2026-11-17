@@ -3,6 +3,7 @@
 import 'package:icue_firebase/icue_firebase.dart'
     show ReportColumn, readDay, readNumber, readString;
 import 'package:icue_ui/icue_ui.dart';
+import 'package:school_library/src/models/library_loans.dart' show dueLabel;
 
 /// Resolves IDs to display names for report cells.
 class LibraryNames {
@@ -129,7 +130,15 @@ final libraryReports = <LibraryReportDef>[
       ),
       LibraryReportCol('Library', (m, names) => names.library(m['libraryId'])),
       _day('Issued', 'issuedDate'),
-      _day('Due', 'dueDate'),
+      LibraryReportCol(
+        'Due',
+        (m, _) => dueLabel(
+          readDay(m['dueDate']),
+          isActive: m['status'] == 'active',
+          today: todayIST(),
+          separator: '\n',
+        ),
+      ),
       _day('Returned', 'returnedDate'),
       _text('Status', 'status'),
     ],

@@ -100,7 +100,7 @@ class LoanDetailsCard extends StatelessWidget {
                 colors,
                 Icons.event_rounded,
                 'Due date',
-                loan.dueDate.toDisplayDay(),
+                loan.dueLabelOn(todayIST()),
                 valueColor: isOverdue ? colors.error : null,
                 fontWeight: isOverdue ? FontWeight.w700 : null,
               ),

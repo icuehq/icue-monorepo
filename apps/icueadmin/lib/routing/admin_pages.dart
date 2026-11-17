@@ -39,6 +39,7 @@ export 'package:icueadmin/features/reports/fuel_report_page.dart';
 export 'package:icueadmin/features/reports/mileage_report_page.dart';
 export 'package:icueadmin/features/reports/over_speed_report_page.dart';
 export 'package:icueadmin/features/reports/reports_page.dart';
+export 'package:icueadmin/features/request_item/request_item_page.dart';
 export 'package:icueadmin/features/routes/manage_routes_page.dart';
 export 'package:icueadmin/features/routes/route_time_change_page.dart';
 export 'package:icueadmin/features/routes/student_route_change_page.dart';

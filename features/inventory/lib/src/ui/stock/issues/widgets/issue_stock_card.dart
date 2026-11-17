@@ -4,16 +4,12 @@ import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/shared/widgets/person_search_field.dart';
 import 'package:inventory/src/ui/stock/issues/widgets/issue_request_widgets.dart';
 
-/// Storekeeper step: who receives the stock and how much of each approved line leaves now.
+/// Storekeeper step: how much of each approved line leaves now to the requester.
 class IssueStockCard extends StatelessWidget {
   const IssueStockCard({
     required this.request,
     required this.itemName,
     required this.quantityControllers,
-    required this.recipientType,
-    required this.recipientId,
-    required this.onRecipientType,
-    required this.onRecipient,
     super.key,
   });
 
@@ -22,45 +18,24 @@ class IssueStockCard extends StatelessWidget {
 
   /// One controller per request line, holding the quantity to issue now.
   final List<TextEditingController> quantityControllers;
-  final String recipientType;
-  final int? recipientId;
-  final ValueChanged<String> onRecipientType;
-  final ValueChanged<int?> onRecipient;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final recipient = recipientId;
+    final requesterId = int.tryParse(request.createdBy);
     return IssueSection(
       title: 'Issue stock',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SegmentedButton<String>(
-            showSelectedIcon: false,
-            segments: const [
-              ButtonSegment(value: 'staff', label: Text('Staff')),
-              ButtonSegment(value: 'student', label: Text('Student')),
-              ButtonSegment(value: 'department', label: Text('Department')),
-            ],
-            selected: {recipientType},
-            onSelectionChanged: (selection) => onRecipientType(selection.first),
-          ),
-          const SizedBox(height: 12),
-          if (recipient != null)
-            InputChip(
-              avatar: const Icon(Icons.person_rounded, size: 18),
-              label: Text(
-                '${recipientType == 'staff' ? staffDisplayName(recipient) : '$recipientType #$recipient'}'
-                '${recipient.toString() == request.createdBy ? ' · requester' : ''}',
-              ),
-              onDeleted: () => onRecipient(null),
-            )
-          else
-            PersonSearchField(
-              label: 'Issue to',
-              onSelected: (person) => onRecipient(person.id),
+          Chip(
+            avatar: const Icon(Icons.person_rounded, size: 18),
+            label: Text(
+              requesterId == null
+                  ? 'Staff #${request.createdBy} · requester'
+                  : '${staffDisplayName(requesterId)} · requester',
             ),
+          ),
           const SizedBox(height: 14),
           Text(
             'Quantity to issue now',

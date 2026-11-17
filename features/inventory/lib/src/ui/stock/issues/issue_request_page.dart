@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
-import 'package:inventory/src/ui/stock/issues/widgets/issuance_card.dart';
 import 'package:inventory/src/ui/stock/issues/widgets/issue_request_widgets.dart';
 import 'package:inventory/src/ui/stock/issues/widgets/issue_stock_card.dart';
 import 'package:inventory/src/ui/stock/shared/stock_ui.dart';
 import 'package:provider/provider.dart';
 
-/// One issue request (FRS 10.8): approve / reject, issue, confirm receipt and return, all on one screen.
+/// One issue request (FRS 10.8): approve / reject, and issue stock.
 class IssueRequestPage extends StatefulWidget {
   const IssueRequestPage({required this.requestId, super.key});
 
@@ -21,15 +19,12 @@ class IssueRequestPage extends StatefulWidget {
 
 class _IssueRequestPageState extends State<IssueRequestPage> {
   InventoryIssueRequest? _request;
-  var _issues = <InventoryIssue>[];
   var _loading = true;
   var _busy = false;
   String? _loadError;
 
   var _approved = <TextEditingController>[];
   var _issueNow = <TextEditingController>[];
-  var _recipientType = 'staff';
-  int? _recipientId;
   var _issueKey = newRequestId();
 
   @override
@@ -62,16 +57,9 @@ class _IssueRequestPageState extends State<IssueRequestPage> {
         _loadError = stockProvider.errorMessage ?? 'Request not found';
       });
     }
-    final showIssues =
-        !request.isPending && request.status != 'rejected' && true;
-    final issues = showIssues
-        ? await stockProvider.issuesOf(request)
-        : <InventoryIssue>[];
-    if (!mounted) return;
     final replaced = [..._approved, ..._issueNow];
     setState(() {
       _request = request;
-      _issues = issues;
       _loading = false;
       _loadError = null;
       _approved = [
@@ -87,7 +75,6 @@ class _IssueRequestPageState extends State<IssueRequestPage> {
             )).toQuantityText(),
           ),
       ];
-      _recipientId ??= int.tryParse(request.createdBy);
     });
     // Disposed after the rebuild, so no field still points at them.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -236,9 +223,9 @@ class _IssueRequestPageState extends State<IssueRequestPage> {
   }
 
   Future<void> _issue(InventoryIssueRequest request) async {
-    final recipientId = _recipientId;
+    final recipientId = int.tryParse(request.createdBy);
     if (recipientId == null) {
-      return showMessage(context, 'Choose who receives the items');
+      return showMessage(context, 'Requester not found');
     }
     final lineItems = <Map<String, Object?>>[];
     for (final (index, line) in request.lineItems.indexed) {
@@ -268,7 +255,7 @@ class _IssueRequestPageState extends State<IssueRequestPage> {
         context,
         (stockProvider) => stockProvider.act('inventory-issue-create', {
           'issueRequestId': request.id,
-          'recipient': {'type': _recipientType, 'personErpId': recipientId},
+          'recipient': {'type': 'staff', 'personErpId': recipientId},
           'lineItems': lineItems,
         }, requestId: _issueKey),
         close: false,
@@ -278,42 +265,6 @@ class _IssueRequestPageState extends State<IssueRequestPage> {
       if (succeeded) _issueKey = newRequestId();
       return succeeded;
     });
-  }
-
-  Future<void> _confirmReceipt(InventoryIssue issue) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirm receipt'),
-        content: Text('Confirm the recipient received ${issue.number}?'),
-        actions: [
-          IcueButton(
-            label: 'Cancel',
-            onPressed: () => Navigator.pop(context, false),
-            variant: IcueButtonVariant.ghost,
-          ),
-          IcueButton(
-            label: 'Confirm',
-            onPressed: () => Navigator.pop(context, true),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) return;
-    await _run(
-      () => stockSubmit(
-        context,
-        (stockProvider) =>
-            stockProvider.act('inventory-issue-acknowledge', {'id': issue.id}),
-        close: false,
-        done: 'Receipt confirmed',
-      ),
-    );
-  }
-
-  Future<void> _return(InventoryIssue issue) async {
-    await context.push(InventoryRoutes.inventoryIssueReturn, extra: issue);
-    if (mounted) await _load();
   }
 
   Widget? _actionBar(InventoryIssueRequest request) {
@@ -401,31 +352,6 @@ class _IssueRequestPageState extends State<IssueRequestPage> {
                 request: request,
                 itemName: stockProvider.itemName,
                 quantityControllers: _issueNow,
-                recipientType: _recipientType,
-                recipientId: _recipientId,
-                onRecipientType: (type) => setState(() {
-                  _recipientType = type;
-                  _recipientId = type == 'staff'
-                      ? int.tryParse(request.createdBy)
-                      : null;
-                }),
-                onRecipient: (id) => setState(() => _recipientId = id),
-              ),
-            if (_issues.isNotEmpty)
-              IssueSection(
-                title: 'Issuances (${_issues.length})',
-                child: Column(
-                  children: [
-                    for (final issue in _issues)
-                      IssuanceCard(
-                        issue: issue,
-                        itemName: stockProvider.itemName,
-                        busy: _busy,
-                        onConfirmReceipt: () => _confirmReceipt(issue),
-                        onReturn: () => _return(issue),
-                      ),
-                  ],
-                ),
               ),
           ],
         ),

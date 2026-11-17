@@ -164,7 +164,7 @@ class _LoanTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${loan.memberType == 'EMPLOYEE' ? 'Employee · ' : ''}Due ${loan.dueDate.toDisplayDay()}',
+                      '${loan.memberType == 'EMPLOYEE' ? 'Employee · ' : ''}Due ${loan.dueLabelOn(today)}',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                         fontSize: 11,

@@ -28,6 +28,7 @@ mixin StockSupport {
     String itemId,
     String? variantId, {
     bool inactiveOk = false,
+    bool assetOk = false,
   }) async {
     final item = (await transaction.get(
       await branchDoc('inventoryItems/$itemId'),
@@ -37,7 +38,7 @@ mixin StockSupport {
     if (!inactiveOk && item['status'] != 'active') {
       failWith('$name is inactive');
     }
-    if (item['tracking'] == 'asset') {
+    if (!assetOk && item['tracking'] == 'asset') {
       failWith('$name is an individual asset; assets are managed separately');
     }
     final hasVariants =
@@ -59,6 +60,22 @@ mixin StockSupport {
 
   String get currentFinancialYear =>
       DateTime.now().toIndianTime().financialYear;
+
+  /// Assets of an item that are available (not assigned, in maintenance or retired) in a store.
+  Future<double> availableAssets(String storeId, String itemId) async {
+    try {
+      final snapshot = await (await branchCollection('inventoryAssets'))
+          .where('storeId', isEqualTo: storeId)
+          .where('itemId', isEqualTo: itemId)
+          .where('status', isEqualTo: 'available')
+          .count()
+          .get();
+      return (snapshot.count ?? 0).toDouble();
+    } on FirebaseException catch (error) {
+      if (error.code == 'permission-denied') return double.infinity;
+      rethrow;
+    }
+  }
 
   /// Issuable (non-expired) stock of an item in a store. Issuance re-checks it, so an
   /// approver who may not read balances (`inventory.stock.view`) is not blocked here.

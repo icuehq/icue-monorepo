@@ -126,6 +126,7 @@ void main() {
       expect(AppRoutes.repairsExpense, '/repairs-expenses');
       expect(AppRoutes.trackBus, '/track-vehicle');
       expect(AppRoutes.gatePass, '/gate-pass');
+      expect(AppRoutes.requestItem, '/request-item');
       expect(InventoryRoutes.inventory, '/inventory');
       expect(LibraryRoutes.library, '/library');
     });
@@ -141,7 +142,7 @@ void main() {
     });
 
     test('every dashboard backend id maps to a layout-free path', () {
-      expect(dashboardRoutePaths, hasLength(15));
+      expect(dashboardRoutePaths, hasLength(16));
       for (final path in dashboardRoutePaths.values) {
         expect(path, startsWith('/'));
         expect(path, isNot(contains('layout')));
