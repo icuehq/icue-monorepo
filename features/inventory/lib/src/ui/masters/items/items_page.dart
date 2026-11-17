@@ -81,7 +81,9 @@ class _ItemsPageState extends State<ItemsPage> {
     const canEdit = true;
     final searching = inventoryProvider.itemSearch.trim().isNotEmpty;
     final selectedCategory = inventoryProvider.itemCategoryId;
-    final hasFilter = searching || selectedCategory != null;
+    final selectedStore = inventoryProvider.itemStoreId;
+    final hasFilter =
+        searching || selectedCategory != null || selectedStore != null;
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -109,8 +111,10 @@ class _ItemsPageState extends State<ItemsPage> {
                     child: TextField(
                       controller: _search,
                       textInputAction: TextInputAction.search,
-                      onSubmitted: (value) =>
-                          inventoryProvider.loadItems(search: value),
+                      onSubmitted: (value) => inventoryProvider.loadItems(
+                        search: value,
+                        storeId: selectedStore,
+                      ),
                       decoration: InputDecoration(
                         hintText: 'Search by item name…',
                         prefixIcon: const Icon(Icons.search, size: 20),
@@ -131,7 +135,10 @@ class _ItemsPageState extends State<ItemsPage> {
                                 icon: const Icon(Icons.clear, size: 18),
                                 onPressed: () {
                                   _search.clear();
-                                  inventoryProvider.loadItems(search: '');
+                                  inventoryProvider.loadItems(
+                                    search: '',
+                                    storeId: selectedStore,
+                                  );
                                 },
                               )
                             : null,
@@ -153,6 +160,7 @@ class _ItemsPageState extends State<ItemsPage> {
                             visualDensity: VisualDensity.compact,
                             onSelected: (_) => inventoryProvider.loadItems(
                               clearCategory: true,
+                              storeId: selectedStore,
                             ),
                           ),
                         ),
@@ -166,12 +174,46 @@ class _ItemsPageState extends State<ItemsPage> {
                               visualDensity: VisualDensity.compact,
                               onSelected: (_) => inventoryProvider.loadItems(
                                 categoryId: category.id,
+                                storeId: selectedStore,
                               ),
                             ),
                           ),
                       ],
                     ),
                   ),
+                  if (inventoryProvider.showStoreFilter)
+                    SizedBox(
+                      height: 38,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(right: 6),
+                            child: FilterChip(
+                              label: const Text('All stores'),
+                              selected: selectedStore == null,
+                              showCheckmark: false,
+                              visualDensity: VisualDensity.compact,
+                              onSelected: (_) => inventoryProvider.loadItems(),
+                            ),
+                          ),
+                          for (final store in inventoryProvider.stores)
+                            Padding(
+                              padding: const EdgeInsets.only(right: 6),
+                              child: FilterChip(
+                                label: Text(store.name),
+                                selected: selectedStore == store.id,
+                                showCheckmark: false,
+                                visualDensity: VisualDensity.compact,
+                                onSelected: (_) => inventoryProvider.loadItems(
+                                  storeId: store.id,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
                     child: Row(
@@ -214,6 +256,7 @@ class _ItemsPageState extends State<ItemsPage> {
                       onRefresh: () => inventoryProvider.loadItems(
                         search: _search.text.trim(),
                         categoryId: selectedCategory,
+                        storeId: selectedStore,
                       ),
                       child: inventoryProvider.items.isEmpty
                           ? Center(

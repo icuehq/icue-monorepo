@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/assets/registry/widgets/asset_action_dialog.dart';
-import 'package:inventory/src/ui/assets/registry/widgets/asset_label.dart';
-import 'package:inventory/src/ui/shared/widgets/inventory_status_chip.dart';
+import 'package:inventory/src/ui/assets/registry/widgets/asset_custody_card.dart';
+import 'package:inventory/src/ui/assets/registry/widgets/asset_details_header.dart';
+import 'package:inventory/src/ui/assets/registry/widgets/asset_specs_card.dart';
+import 'package:inventory/src/ui/assets/registry/widgets/asset_stat_tile.dart';
 import 'package:provider/provider.dart';
 
-/// One asset on its own page: details, the actions allowed in its current status, custody history and timeline (FRS 10.19).
+/// One asset on its own page: details, actions, custody history and timeline (FRS 10.19).
 class AssetDetailsPage extends StatefulWidget {
   const AssetDetailsPage({required this.assetId, super.key});
 
@@ -47,249 +49,205 @@ class _AssetDetailsPageState extends State<AssetDetailsPage> {
     if (mounted) await _load();
   }
 
-  List<(String, Widget Function())> _actions(InventoryAsset asset) {
-    return [
-      if (!asset.isRetired &&
-          !asset.inMaintenance &&
-          asset.status == 'assigned') ...[
-        (
-          'Transfer',
-          () => AssetActionDialog(asset: asset, action: AssetAction.transfer),
-        ),
-        (
-          'Return',
-          () => AssetActionDialog(asset: asset, action: AssetAction.giveBack),
-        ),
-      ],
-      if (!asset.isRetired)
-        (
-          'Condition',
-          () => AssetActionDialog(asset: asset, action: AssetAction.condition),
-        ),
-    ];
-  }
+  List<(String, IconData, Widget Function())> _actions(
+    InventoryAsset asset,
+  ) => [
+    if (!asset.isRetired && !asset.inMaintenance && asset.status == 'available')
+      (
+        'Assign',
+        Icons.person_add_alt_1_outlined,
+        () => AssetActionDialog(asset: asset, action: AssetAction.assign),
+      ),
+    if (!asset.isRetired &&
+        !asset.inMaintenance &&
+        asset.status == 'assigned') ...[
+      (
+        'Transfer',
+        Icons.swap_horiz_rounded,
+        () => AssetActionDialog(asset: asset, action: AssetAction.transfer),
+      ),
+      (
+        'Return',
+        Icons.assignment_return_outlined,
+        () => AssetActionDialog(asset: asset, action: AssetAction.giveBack),
+      ),
+    ],
+    if (!asset.isRetired)
+      (
+        'Condition',
+        Icons.fact_check_outlined,
+        () => AssetActionDialog(asset: asset, action: AssetAction.condition),
+      ),
+    if (!asset.isRetired && !asset.inMaintenance && asset.status != 'assigned')
+      (
+        'Retire',
+        Icons.archive_outlined,
+        () => AssetActionDialog(asset: asset, action: AssetAction.retire),
+      ),
+  ];
 
   @override
   Widget build(BuildContext context) {
     final asset = _asset;
     final assetsProvider = context.watch<AssetsProvider>();
+    final inventoryProvider = context.watch<InventoryProvider>();
+
+    if (asset == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Asset details')),
+        body: Center(
+          child: _loaded
+              ? Text(assetsProvider.errorMessage ?? 'Asset not found')
+              : const CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    final itemName = assetsProvider.items[asset.itemId]?.name;
+    final store = inventoryProvider.stores
+        .where((entry) => entry.id == asset.storeId)
+        .firstOrNull;
+    final actions = _actions(asset);
+
     return Scaffold(
-      appBar: AppBar(title: Text(asset?.name ?? 'Asset')),
-      body: asset == null
-          ? Center(
-              child: _loaded
-                  ? Text(assetsProvider.errorMessage ?? 'Asset not found')
-                  : const CircularProgressIndicator(),
-            )
-          : IcueCenteredBody(
-              child: RefreshIndicator(
-                onRefresh: _load,
-                child: ListView(
-                  padding: EdgeInsets.all(context.isWide ? 24 : 16),
-                  children: [
-                    _Header(
-                      asset: asset,
-                      actions: _actions(asset),
-                      onAct: _act,
-                    ),
-                    _DetailsCard(asset: asset),
-                    _CustodyCard(assetsProvider: assetsProvider),
-                    _HistoryCard(assetsProvider: assetsProvider),
-                  ],
-                ),
-              ),
-            ),
-    );
-  }
-}
-
-class _Header extends StatelessWidget {
-  const _Header({
-    required this.asset,
-    required this.actions,
-    required this.onAct,
-  });
-
-  final InventoryAsset asset;
-  final List<(String, Widget Function())> actions;
-  final Future<void> Function(Widget Function() form) onAct;
-
-  @override
-  Widget build(BuildContext context) => IcueFormSectionCard(
-    title: asset.name,
-    icon: Icons.devices_other_outlined,
-    trailing: InventoryStatusChip(asset.status),
-    children: [
-      SelectableText(asset.id, style: Theme.of(context).textTheme.titleMedium),
-      Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          for (final (label, form) in actions)
-            IcueButton(
-              label: label,
-              onPressed: () => onAct(form),
-              variant: IcueButtonVariant.outline,
-            ),
-          IcueButton(
-            label: 'Label',
-            onPressed: () => shareAssetLabel(asset),
-            variant: IcueButtonVariant.outline,
-            leadingIcon: Icons.print_outlined,
+      appBar: AppBar(
+        title: Text(asset.name.isNotEmpty ? asset.name : 'Asset details'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded),
+            tooltip: 'Refresh',
+            onPressed: _load,
           ),
         ],
       ),
-    ],
-  );
-}
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.maxWidth;
+          final isTwoColumn = width >= 960;
+          final padding = width >= 900 ? 24.0 : 16.0;
+          final statColumns = width >= 1200 ? 6 : (width >= 640 ? 3 : 2);
+          final statTileWidth =
+              (width - (padding * 2) - (12 * (statColumns - 1))) / statColumns;
 
-class _DetailsCard extends StatelessWidget {
-  const _DetailsCard({required this.asset});
+          final statTiles = [
+            (
+              'Status',
+              humanizeStatus(asset.status),
+              Icons.info_outline_rounded,
+              asset.inMaintenance || asset.status == 'damaged',
+            ),
+            (
+              'Condition',
+              humanizeStatus(asset.condition),
+              Icons.verified_outlined,
+              asset.condition == 'damaged' || asset.condition == 'poor',
+            ),
+            (
+              'Custodian',
+              asset.assignedTo?.label ?? 'In Store',
+              Icons.person_outline_rounded,
+              false,
+            ),
+            ('Store', store?.name ?? '—', Icons.storefront_outlined, false),
+            (
+              'Asset Value',
+              asset.price?.toRupees() ?? '—',
+              Icons.payments_outlined,
+              false,
+            ),
+            (
+              'Next Service',
+              asset.nextServiceDate?.toDisplayDay() ?? 'None',
+              Icons.build_outlined,
+              false,
+            ),
+          ];
 
-  final InventoryAsset asset;
+          final headerCard = AssetDetailsHeader(
+            asset: asset,
+            itemName: itemName,
+            storeName: store?.name,
+            actions: actions,
+            onAct: _act,
+          );
 
-  @override
-  Widget build(BuildContext context) {
-    final assetsProvider = context.watch<AssetsProvider>();
-    final stores = context.watch<InventoryProvider>().stores;
-    final store = stores
-        .where((store) => store.id == asset.storeId)
-        .firstOrNull;
-    final fields = <(String, String?)>[
-      ('Item', assetsProvider.items[asset.itemId]?.name),
-      ('Store', store?.name),
-      ('Condition', humanizeStatus(asset.condition)),
-      ('Held by', asset.assignedTo?.label),
-      ('Location', asset.location),
-      ('Serial number', asset.serialNumber),
-      ('RFID tag', asset.rfidTag),
-      ('Make / model', [asset.make, asset.model].whereType<String>().join(' ')),
-      ('Purchased', asset.purchaseDate?.toDisplayDay()),
-      ('Price', asset.price?.toRupees()),
-      (
-        'Warranty',
-        asset.warrantyEnd == null
-            ? null
-            : '${asset.warrantyStart?.toDisplayDay() ?? ''} → '
-                  '${asset.warrantyEnd!.toDisplayDay()}',
-      ),
-      ('Next service', asset.nextServiceDate?.toDisplayDay()),
-    ];
-    return IcueFormSectionCard(
-      title: 'Details',
-      icon: Icons.info_outline_rounded,
-      children: [
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final width = constraints.maxWidth >= 520
-                ? (constraints.maxWidth - 16) / 2
-                : constraints.maxWidth;
-            return Wrap(
-              spacing: 16,
-              runSpacing: 14,
+          final specsCard = AssetSpecsCard(
+            asset: asset,
+            itemName: itemName,
+            storeName: store?.name,
+          );
+
+          final financialCard = AssetFinancialCard(asset: asset);
+
+          final custodyCard = AssetCustodyCard(
+            asset: asset,
+            assetsProvider: assetsProvider,
+          );
+
+          final historyCard = AssetHistoryCard(assetsProvider: assetsProvider);
+
+          return RefreshIndicator(
+            onRefresh: _load,
+            child: ListView(
+              padding: EdgeInsets.all(padding),
               children: [
-                for (final (label, value) in fields)
-                  if (value != null && value.trim().isNotEmpty)
-                    SizedBox(
-                      width: width,
-                      child: _Field(label: label, value: value),
-                    ),
+                headerCard,
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: [
+                    for (final (label, value, icon, highlight) in statTiles)
+                      AssetStatTile(
+                        width: statTileWidth,
+                        label: label,
+                        value: value,
+                        icon: icon,
+                        highlight: highlight,
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                if (isTwoColumn)
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        flex: 5,
+                        child: Column(
+                          children: [
+                            specsCard,
+                            const SizedBox(height: 16),
+                            financialCard,
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        flex: 6,
+                        child: Column(
+                          children: [
+                            custodyCard,
+                            const SizedBox(height: 16),
+                            historyCard,
+                          ],
+                        ),
+                      ),
+                    ],
+                  )
+                else ...[
+                  specsCard,
+                  const SizedBox(height: 16),
+                  financialCard,
+                  const SizedBox(height: 16),
+                  custodyCard,
+                  const SizedBox(height: 16),
+                  historyCard,
+                ],
               ],
-            );
-          },
-        ),
-      ],
+            ),
+          );
+        },
+      ),
     );
   }
-}
-
-class _Field extends StatelessWidget {
-  const _Field({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: theme.textTheme.labelMedium?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: 2),
-        SelectableText(value, style: theme.textTheme.bodyLarge),
-      ],
-    );
-  }
-}
-
-class _CustodyCard extends StatelessWidget {
-  const _CustodyCard({required this.assetsProvider});
-
-  final AssetsProvider assetsProvider;
-
-  @override
-  Widget build(BuildContext context) => IcueFormSectionCard(
-    title: 'Custody',
-    icon: Icons.person_outline_rounded,
-    children: [
-      if (assetsProvider.isLoading && assetsProvider.assignments.isEmpty)
-        const Center(child: CircularProgressIndicator())
-      else if (assetsProvider.assignments.isEmpty)
-        const Text('Never assigned')
-      else
-        for (final assignment in assetsProvider.assignments)
-          ListTile(
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            title: Text(assignment.assignee.label),
-            subtitle: Text(
-              '${assignment.assignedDate.toDisplayDay()} → ${assignment.returnedDate?.toDisplayDay() ?? 'now'}'
-              '${assignment.closedAs == null ? '' : ' · ${assignment.closedAs}'}'
-              '${assignment.conditionOut == null ? '' : ' · out ${assignment.conditionOut}'}'
-              '${assignment.conditionIn == null ? '' : ' · in ${assignment.conditionIn}'}'
-              '${assignment.acknowledged ? ' · acknowledged' : ''}',
-            ),
-          ),
-    ],
-  );
-}
-
-class _HistoryCard extends StatelessWidget {
-  const _HistoryCard({required this.assetsProvider});
-
-  final AssetsProvider assetsProvider;
-
-  @override
-  Widget build(BuildContext context) => IcueFormSectionCard(
-    title: 'History',
-    icon: Icons.history_rounded,
-    children: [
-      if (assetsProvider.isLoading && assetsProvider.history.isEmpty)
-        const Center(child: CircularProgressIndicator())
-      else if (assetsProvider.history.isEmpty)
-        const Text('No history yet')
-      else
-        for (final assetEvent in assetsProvider.history)
-          ListTile(
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            title: Text(humanizeStatus(assetEvent.type.replaceAll('.', ' '))),
-            subtitle: Text(
-              [
-                    assetEvent.performedAt?.toLocal().toNumericDateTime(),
-                    assetEvent.detail,
-                  ]
-                  .whereType<String>()
-                  .where((value) => value.isNotEmpty)
-                  .join(' · '),
-            ),
-          ),
-    ],
-  );
 }

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
+import 'package:inventory/src/ui/masters/items/widgets/item_info_row.dart';
+import 'package:inventory/src/ui/masters/items/widgets/item_stat_tile.dart';
 import 'package:provider/provider.dart';
 
 class ItemDetailsPage extends StatefulWidget {
@@ -15,6 +17,7 @@ class ItemDetailsPage extends StatefulWidget {
 
 class _ItemDetailsPageState extends State<ItemDetailsPage> {
   InventoryItem? _item;
+  List<InventoryVariant> _variants = [];
   bool _loaded = false;
 
   @override
@@ -25,12 +28,21 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
 
   Future<void> _load() async {
     final inventoryProvider = context.read<InventoryProvider>();
+    if (inventoryProvider.categories.isEmpty) {
+      await inventoryProvider.loadMasters();
+    }
     final item = await inventoryProvider.item(widget.itemId);
     if (!mounted) return;
     setState(() {
       _item = item;
       _loaded = true;
     });
+    if (item == null) return;
+    final procurement = context.read<ProcurementProvider>();
+    final variants = await inventoryProvider.variants(item.id);
+    await inventoryProvider.loadStockOf(item);
+    if (item.preferredVendorId != null) await procurement.ensureVendors();
+    if (mounted) setState(() => _variants = variants);
   }
 
   IconData _trackingIcon(Tracking tracking) => switch (tracking) {
@@ -39,71 +51,10 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
     Tracking.quantity => Icons.inventory_2_outlined,
   };
 
-  Widget _infoRow(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required String value,
-    String? helper,
-  }) {
-    final theme = Theme.of(context);
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 34,
-          height: 34,
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerHighest.withValues(
-              alpha: 0.5,
-            ),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(
-            icon,
-            size: 18,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                value,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              if (helper != null) ...[
-                const SizedBox(height: 1),
-                Text(
-                  helper,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant.withValues(
-                      alpha: 0.8,
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final inventoryProvider = context.watch<InventoryProvider>();
+    final procurement = context.watch<ProcurementProvider>();
     final theme = Theme.of(context);
     final item = _item;
     const canEdit = true;
@@ -125,89 +76,104 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
         : null;
     final reorder = item.reorderLevel;
     final price = item.defaultPrice;
+    final stock = inventoryProvider.inStock[item.id];
+    final low = stock != null && reorder != null && stock <= reorder;
+    final vendorId = item.preferredVendorId;
+    final wide = context.isWide;
 
-    final classification = IcueFormSectionCard(
-      title: 'Classification & units',
+    final stats = [
+      ItemStatTile(
+        label: 'In stock',
+        value: stock == null
+            ? '—'
+            : '${stock.toQuantityText()} ${item.stockUnit}',
+        caption: low ? 'Low stock' : null,
+        color: low ? theme.colorScheme.error : null,
+      ),
+      ItemStatTile(
+        label: 'Reorder level',
+        value: reorder == null
+            ? 'Not set'
+            : '${reorder.toQuantityText()} ${item.stockUnit}',
+      ),
+      ItemStatTile(
+        label: 'Default price',
+        value: price == null ? 'Not set' : price.toRupees(),
+        caption: price == null ? null : 'per ${item.stockUnit}',
+      ),
+    ];
+
+    final details = IcueFormSectionCard(
+      title: 'Item details',
       icon: Icons.category_outlined,
       children: [
-        _infoRow(
-          context,
+        ItemInfoRow(
+          icon: Icons.store_mall_directory_outlined,
+          label: 'Store',
+          value: inventoryProvider.storeName(item.storeId) ?? '—',
+        ),
+        ItemInfoRow(
           icon: Icons.folder_outlined,
           label: 'Category',
           value: category?.name ?? '—',
           helper: subcategory != null ? 'Sub: ${subcategory.name}' : null,
         ),
-        _infoRow(
-          context,
+        ItemInfoRow(
           icon: Icons.straighten_outlined,
           label: 'Stock unit',
           value: item.stockUnit,
-          helper: 'Base unit used for physical inventory and balances',
         ),
-        _infoRow(
-          context,
+        ItemInfoRow(
           icon: Icons.track_changes_outlined,
           label: 'Item type',
           value: item.tracking.label,
           helper: switch (item.tracking) {
-            Tracking.quantity =>
-              'Tracked in bulk quantities without serialization',
-            Tracking.batch => 'Tracked with batch numbers and expiration dates',
-            Tracking.asset => 'Tracked as individual serialized capital assets',
+            Tracking.quantity => 'Counted in bulk quantities',
+            Tracking.batch => 'Tracked by batch number and expiry date',
+            Tracking.asset => 'Tracked as individual assets',
           },
         ),
-      ],
-    );
-    final stockSection = IcueFormSectionCard(
-      title: 'Stock & pricing parameters',
-      icon: Icons.tune_outlined,
-      children: [
-        _infoRow(
-          context,
-          icon: Icons.refresh_outlined,
-          label: 'Reorder alert level',
-          value: reorder != null
-              ? '${reorder % 1 == 0 ? reorder.toInt() : reorder} ${item.stockUnit}'
-              : 'Not configured',
-          helper: reorder != null
-              ? 'Triggers restock alert when available stock is low'
-              : 'Configure in edit item to enable low-stock alerts',
-        ),
-        _infoRow(
-          context,
-          icon: Icons.payments_outlined,
-          label: 'Default purchase price',
-          value: price != null
-              ? '${price.toRupees()} / ${item.stockUnit}'
-              : 'Not configured',
-          helper: 'Estimated unit cost auto-filled on purchase requisitions',
-        ),
+        if (vendorId != null)
+          ItemInfoRow(
+            icon: Icons.local_shipping_outlined,
+            label: 'Preferred vendor',
+            value: procurement.vendorName(vendorId),
+          ),
       ],
     );
     final hasDescription =
         item.description != null && item.description!.trim().isNotEmpty;
     final description = hasDescription
         ? IcueFormSectionCard(
-            title: 'Description & specifications',
+            title: 'Description',
             icon: Icons.notes_outlined,
             children: [
               Text(
                 item.description!.trim(),
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  height: 1.5,
-                  color: theme.colorScheme.onSurface,
-                ),
+                style: theme.textTheme.bodyMedium?.copyWith(height: 1.5),
               ),
             ],
           )
         : null;
-    final wide = context.isWide;
-    final stockButton = IcueButton(
-      label: 'View stock levels in stores',
-      onPressed: () => context.push(InventoryRoutes.inventoryStock),
-      variant: IcueButtonVariant.outline,
-      leadingIcon: Icons.stacked_bar_chart_outlined,
-    );
+    final variantList = _variants.isEmpty
+        ? null
+        : IcueFormSectionCard(
+            title: 'Variants (${_variants.length})',
+            icon: Icons.style_outlined,
+            children: [
+              for (final variant in _variants)
+                ItemInfoRow(
+                  icon: Icons.sell_outlined,
+                  label: variant.sku,
+                  value: variant.attrs.isEmpty
+                      ? '—'
+                      : variant.attrs.entries
+                            .map((entry) => '${entry.key}: ${entry.value}')
+                            .join(', '),
+                  helper: variant.active ? null : 'Inactive',
+                ),
+            ],
+          );
 
     return Scaffold(
       appBar: AppBar(
@@ -231,7 +197,6 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
         child: ListView(
           padding: EdgeInsets.all(wide ? 24 : 16),
           children: [
-            // Hero Header Card
             Card(
               elevation: 0,
               margin: const EdgeInsets.only(bottom: 16),
@@ -243,14 +208,11 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
                   ),
                 ),
               ),
-              color: theme.colorScheme.surface,
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Container(
                           width: 48,
@@ -265,7 +227,7 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
                             _trackingIcon(item.tracking),
                             size: 26,
                             color: item.active
-                                ? Colors.white
+                                ? theme.colorScheme.onPrimary
                                 : theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
@@ -286,29 +248,19 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
                                 spacing: 8,
                                 runSpacing: 6,
                                 children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 3,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: item.active
-                                          ? theme.colorScheme.primary
-                                          : theme.colorScheme.errorContainer
-                                                .withValues(alpha: 0.5),
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: Text(
-                                      item.active ? 'Active' : 'Inactive',
-                                      style: theme.textTheme.labelSmall
-                                          ?.copyWith(
-                                            color: item.active
-                                                ? Colors.white
-                                                : theme.colorScheme.error,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                    ),
+                                  Chip(
+                                    label: Text(item.tracking.label),
+                                    visualDensity: VisualDensity.compact,
                                   ),
+                                  if (!item.active) const IcueInactiveBadge(),
+                                  if (low)
+                                    Chip(
+                                      label: const Text('Low stock'),
+                                      visualDensity: VisualDensity.compact,
+                                      labelStyle: TextStyle(
+                                        color: theme.colorScheme.error,
+                                      ),
+                                    ),
                                 ],
                               ),
                             ],
@@ -329,10 +281,6 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
                           item.active
                               ? 'Available for purchase requests and stock issuance'
                               : 'Hidden from new requests and purchases',
-                          style: TextStyle(
-                            color: theme.colorScheme.onSurfaceVariant,
-                            fontSize: 12,
-                          ),
                         ),
                         value: item.active,
                         onChanged: (value) async {
@@ -354,30 +302,39 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
                 ),
               ),
             ),
-
-            // Two columns from the wide breakpoint, stacked below it.
             if (wide)
               Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(child: classification),
-                  const SizedBox(width: 16),
-                  Expanded(child: stockSection),
+                  for (final tile in stats) ...[
+                    Expanded(child: tile),
+                    if (tile != stats.last) const SizedBox(width: 12),
+                  ],
                 ],
               )
-            else ...[
-              classification,
-              stockSection,
-            ],
-            ?description,
-
-            const SizedBox(height: 8),
-
-            // Action Buttons
-            if (wide)
-              Align(alignment: Alignment.centerLeft, child: stockButton)
             else
-              stockButton,
+              Column(
+                children: [
+                  for (final tile in stats)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: SizedBox(width: double.infinity, child: tile),
+                    ),
+                ],
+              ),
+            const SizedBox(height: 8),
+            details,
+            ?description,
+            ?variantList,
+            const SizedBox(height: 8),
+            Align(
+              alignment: wide ? Alignment.centerLeft : Alignment.center,
+              child: IcueButton(
+                label: 'View stock levels in stores',
+                onPressed: () => context.push(InventoryRoutes.inventoryStock),
+                variant: IcueButtonVariant.outline,
+                leadingIcon: Icons.stacked_bar_chart_outlined,
+              ),
+            ),
             const SizedBox(height: 24),
           ],
         ),

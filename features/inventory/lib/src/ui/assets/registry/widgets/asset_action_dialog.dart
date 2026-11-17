@@ -37,7 +37,6 @@ class _AssetActionDialogState extends State<AssetActionDialog> {
   final _form = GlobalKey<FormState>();
   final _requestId = newRequestId();
   final _erpId = TextEditingController();
-  final _location = TextEditingController();
   final _expected = TextEditingController();
   final _text = TextEditingController();
   var _type = 'staff';
@@ -52,7 +51,7 @@ class _AssetActionDialogState extends State<AssetActionDialog> {
 
   @override
   void dispose() {
-    for (final controller in [_erpId, _location, _expected, _text]) {
+    for (final controller in [_erpId, _expected, _text]) {
       controller.dispose();
     }
     super.dispose();
@@ -72,8 +71,6 @@ class _AssetActionDialogState extends State<AssetActionDialog> {
         'acknowledged': _ack,
       },
       if (_a != AssetAction.retire) 'condition': _condition,
-      if (_a != AssetAction.condition && _a != AssetAction.retire)
-        'location': opt(_location),
       if (_a == AssetAction.giveBack || _a == AssetAction.condition)
         'remarks': opt(_text),
       if (_a == AssetAction.condition) 'status': _status,
@@ -149,8 +146,6 @@ class _AssetActionDialogState extends State<AssetActionDialog> {
           _condition,
           (value) => setState(() => _condition = value!),
         ),
-      if (_a != AssetAction.condition && _a != AssetAction.retire)
-        IcueTextField(controller: _location, label: 'Location'),
       if (_a == AssetAction.condition)
         labelled(
           'Mark as (optional)',

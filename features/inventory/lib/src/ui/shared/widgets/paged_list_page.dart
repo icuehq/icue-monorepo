@@ -18,6 +18,7 @@ class PagedListPage<T> extends StatefulWidget {
     this.floatingActionButton,
     this.actions,
     this.header,
+    this.filterRow,
     super.key,
   });
 
@@ -37,6 +38,9 @@ class PagedListPage<T> extends StatefulWidget {
 
   /// Replaces the search box (e.g. a scan field that calls `state.setSearch`).
   final Widget? header;
+
+  /// Extra filter chips shown under the status chips.
+  final Widget? filterRow;
 
   @override
   State<PagedListPage<T>> createState() => _PagedListPageState<T>();
@@ -128,6 +132,10 @@ class _PagedListPageState<T> extends State<PagedListPage<T>> {
                       ],
                     ),
                   ),
+                  if (widget.filterRow != null) ...[
+                    const SizedBox(height: 4),
+                    widget.filterRow!,
+                  ],
                   const SizedBox(height: 8),
                   const Divider(height: 1),
                   Expanded(

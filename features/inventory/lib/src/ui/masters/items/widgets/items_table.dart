@@ -48,6 +48,7 @@ class _ItemsTableState extends State<ItemsTable> {
     final items = provider.items;
     final search = provider.itemSearch.trim();
     final categoryId = provider.itemCategoryId;
+    final storeId = provider.itemStoreId;
     final pageCount = (items.length / _pageSize).ceil();
     final page = pageCount == 0 ? 0 : _page.clamp(0, pageCount - 1);
     final rows = items.skip(page * _pageSize).take(_pageSize).toList();
@@ -62,12 +63,12 @@ class _ItemsTableState extends State<ItemsTable> {
         loading: provider.itemsLoading && items.isEmpty,
       ),
       errorMessage: provider.errorMessage,
-      onRetry: () => provider.loadItems(),
+      onRetry: () => provider.loadItems(storeId: storeId),
       searchHint: 'Search by item name...',
       initialSearch: provider.itemSearch,
       onSearchChanged: (query) {
         setState(() => _page = 0);
-        provider.loadItems(search: query);
+        provider.loadItems(search: query, storeId: storeId);
       },
       filters: [
         IcueTableFilter(
@@ -80,11 +81,29 @@ class _ItemsTableState extends State<ItemsTable> {
           value: categoryId,
           onChanged: (value) {
             setState(() => _page = 0);
-            provider.loadItems(categoryId: value, clearCategory: value == null);
+            provider.loadItems(
+              categoryId: value,
+              clearCategory: value == null,
+              storeId: storeId,
+            );
           },
         ),
+        if (provider.showStoreFilter)
+          IcueTableFilter(
+            id: 'store',
+            label: 'Store',
+            options: [
+              for (final store in provider.stores)
+                IcueTableFilterOption(store.id, store.name),
+            ],
+            value: storeId,
+            onChanged: (value) {
+              setState(() => _page = 0);
+              provider.loadItems(storeId: value);
+            },
+          ),
       ],
-      isFiltered: search.isNotEmpty || categoryId != null,
+      isFiltered: search.isNotEmpty || categoryId != null || storeId != null,
       onClearFilters: () {
         setState(() => _page = 0);
         provider.loadItems(search: '', clearCategory: true);

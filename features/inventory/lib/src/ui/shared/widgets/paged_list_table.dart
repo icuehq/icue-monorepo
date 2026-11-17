@@ -17,6 +17,9 @@ class PagedListTable<T> extends StatelessWidget {
     this.searchHint,
     this.primaryAction,
     this.secondaryAction,
+    this.extraFilters = const [],
+    this.extraFiltered = false,
+    this.onClearFilters,
     super.key,
   });
 
@@ -33,6 +36,12 @@ class PagedListTable<T> extends StatelessWidget {
   final String? searchHint;
   final IcueTableAction? primaryAction;
   final IcueTableAction? secondaryAction;
+
+  /// Filters beyond status (e.g. Store); [extraFiltered] says one is set and
+  /// [onClearFilters] (default: the state's) resets everything.
+  final List<IcueTableFilter> extraFilters;
+  final bool extraFiltered;
+  final Future<void> Function()? onClearFilters;
 
   @override
   Widget build(BuildContext context) {
@@ -62,9 +71,10 @@ class PagedListTable<T> extends StatelessWidget {
           value: state.status,
           onChanged: state.setStatus,
         ),
+        ...extraFilters,
       ],
-      isFiltered: state.filtered,
-      onClearFilters: state.clear,
+      isFiltered: state.filtered || extraFiltered,
+      onClearFilters: onClearFilters ?? state.clear,
       primaryAction: primaryAction,
       secondaryAction: secondaryAction,
       emptyTitle: 'No ${title.toLowerCase()}',

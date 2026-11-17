@@ -12,11 +12,20 @@ class AssetsService {
   /// Knows which stores a store manager works in.
   final InventoryService _inventory;
 
-  /// Assets: [status] filter, name prefix [search] as typed.
-  Future<ListQuery> assetsQuery(String? status, String search) async {
+  /// Assets: [status] filter, name prefix [search] as typed, one [storeId] when chosen.
+  Future<ListQuery> assetsQuery(
+    String? status,
+    String search, {
+    String? storeId,
+  }) async {
     ListQuery query = await branchCollection('inventoryAssets');
     final assigned = await _inventory.assignedStoreIds();
-    if (assigned != null) query = _inventory.inStores(query, assigned);
+    // A chosen store is one of the user's visible stores, so it replaces the assigned-stores narrowing.
+    if (storeId != null) {
+      query = query.where('storeId', isEqualTo: storeId);
+    } else if (assigned != null) {
+      query = _inventory.inStores(query, assigned);
+    }
     return filteredQuery(
       query,
       status: status,

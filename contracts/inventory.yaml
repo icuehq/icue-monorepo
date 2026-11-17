@@ -103,7 +103,6 @@ models:
         price: double?
         warrantyStart: { type: day?, key: warranty.start }
         warrantyEnd: { type: day?, key: warranty.end }
-        location: string?
         assignedTo: { type: AssetCustodian?, from: "AssetCustodian.from(data['assignedTo'])" }
         activeAssignmentId: string?
         activeMaintenanceId: string?
@@ -115,7 +114,6 @@ models:
       fields:
         assignee: { type: AssetCustodian, from: "AssetCustodian.from(data['assignee']) ?? const AssetCustodian('staff', 0)" }
         assignedDate: day
-        location: string?
         expectedReturn: day?
         conditionOut: string?
         conditionIn: string?

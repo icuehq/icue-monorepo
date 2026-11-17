@@ -161,6 +161,16 @@ class InventoryProvider extends ChangeNotifier implements ErrorReporting {
 
   Future<InventoryItem?> item(String id) => _service.item(id);
 
+  /// Refreshes the in-stock figure of one item (shown as "—" if it can't be read).
+  Future<void> loadStockOf(InventoryItem item) async {
+    try {
+      inStock.addAll(await _service.inStock([item]));
+      notifyListeners();
+    } catch (error, stack) {
+      logError(error, stack, 'Loading stock figure');
+    }
+  }
+
   Future<List<InventoryVariant>> variants(String itemId) =>
       _service.variants(itemId);
 

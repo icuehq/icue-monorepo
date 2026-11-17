@@ -56,7 +56,6 @@ function hist(
 
 const assignee = z.object({
   assignee: stockPerson,
-  location: text(120),
   expectedReturn: isoDate.nullish(),
   acknowledged: z.boolean().default(false),
   remarks: optionalText,
@@ -80,7 +79,6 @@ function openAssignment(
     assignee: i.assignee,
     // A department ID is not a person's ERP ID, so it never matches a user's own-record rule.
     personErpId: i.assignee.type === 'department' ? null : i.assignee.personErpId,
-    location: i.location ?? null,
     assignedDate: dayTimestamp(todayIST()),
     assignedAt: serverTimestamp(),
     assignedBy: context.uid,
@@ -134,7 +132,6 @@ export const assets = {
       warrantyStart: isoDate.nullish(),
       warrantyEnd: isoDate.nullish(),
       condition: condition.default('new'),
-      location: text(120),
     }),
     handler: async (context, i) => {
       const item = usable(
@@ -205,7 +202,6 @@ export const assets = {
           },
           condition: i.condition,
           storeId: i.storeId,
-          location: i.location ?? null,
           status: 'available',
           activeAssignmentId: null,
           assignedTo: null,
@@ -244,7 +240,6 @@ export const assets = {
         activeAssignmentId: aRef.id,
         assignedTo: i.assignee,
         condition,
-        location: i.location ?? asset.location,
         updatedAt: serverTimestamp(),
       });
       hist(context, ref, asset, 'assigned', { assignee: i.assignee, assignmentId: aRef.id });
@@ -275,7 +270,6 @@ export const assets = {
         activeAssignmentId: aRef.id,
         assignedTo: i.assignee,
         condition,
-        location: i.location ?? asset.location,
         updatedAt: serverTimestamp(),
       });
       hist(context, ref, asset, 'transferred', { from, to: i.assignee, assignmentId: aRef.id });
@@ -292,7 +286,7 @@ export const assets = {
   /** Back to the store; a damaged return makes the asset `damaged` until its condition is reviewed. */
   return: defineCallable({
     name: 'inventory.asset.return',
-    input: z.object({ id, condition, location: text(120), remarks: optionalText }),
+    input: z.object({ id, condition, remarks: optionalText }),
     handler: async (context, i) => {
       const { ref, asset } = await loadAsset(context, i.id);
       if (asset.status !== 'assigned') throw failed(`Asset is ${asset.status}`);
@@ -303,7 +297,6 @@ export const assets = {
         activeAssignmentId: null,
         assignedTo: null,
         condition: i.condition,
-        location: i.location ?? asset.location,
         updatedAt: serverTimestamp(),
       });
       hist(context, ref, asset, 'returned', { condition: i.condition, remarks: i.remarks ?? null });

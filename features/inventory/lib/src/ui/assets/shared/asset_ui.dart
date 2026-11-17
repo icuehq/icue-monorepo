@@ -45,6 +45,7 @@ IcueDropdown<String> labelled(
   String? value,
   ValueChanged<String?> onChanged, {
   String Function(String)? text,
+  IconData? icon,
 }) => IcueDropdown<String>(
   value: value,
   items: [
@@ -53,6 +54,7 @@ IcueDropdown<String> labelled(
   ],
   onChanged: onChanged,
   label: label,
+  icon: icon,
 );
 
 String _title(String value) => value

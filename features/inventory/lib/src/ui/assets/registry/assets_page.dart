@@ -84,6 +84,7 @@ class _AssetsPageState extends State<AssetsPage> {
   @override
   Widget build(BuildContext context) {
     final assetsProvider = context.watch<AssetsProvider>();
+    final inventoryProvider = context.watch<InventoryProvider>();
     return PagedListPage<InventoryAsset>(
       title: 'Assets',
       state: assetsProvider.assetList,
@@ -91,13 +92,29 @@ class _AssetsPageState extends State<AssetsPage> {
       emptyIcon: Icons.inventory_2_outlined,
       emptyMessage: 'Register an asset to track who has it and its condition.',
       onRefresh: _load,
-      actions: [
-        IconButton(
-          tooltip: 'Maintenance',
-          icon: const Icon(Icons.build_circle_outlined),
-          onPressed: () => context.push(InventoryRoutes.inventoryMaintenance),
-        ),
-      ],
+      filterRow: inventoryProvider.showStoreFilter
+          ? SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  for (final (id, name) in [
+                    (null, 'All stores'),
+                    for (final store in inventoryProvider.stores)
+                      (store.id, store.name),
+                  ])
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ChoiceChip(
+                        label: Text(name),
+                        selected: assetsProvider.storeId == id,
+                        onSelected: (_) => assetsProvider.setStore(id),
+                      ),
+                    ),
+                ],
+              ),
+            )
+          : null,
       floatingActionButton: FloatingActionButton.extended(
         icon: const Icon(Icons.add),
         label: const Text('Register'),
@@ -111,8 +128,7 @@ class _AssetsPageState extends State<AssetsPage> {
       itemCard: (context, asset) => ListTile(
         title: Text(asset.name),
         subtitle: Text(
-          '${asset.id}${asset.assignedTo == null ? '' : ' · ${asset.assignedTo!.label}'}'
-          '${asset.location == null ? '' : ' · ${asset.location}'}',
+          '${asset.id}${asset.assignedTo == null ? '' : ' · ${asset.assignedTo!.label}'}',
         ),
         trailing: InventoryStatusChip(asset.status),
         onTap: () => _open(asset),
@@ -132,11 +148,21 @@ class _AssetsPageState extends State<AssetsPage> {
           icon: Icons.add_rounded,
           onPressed: _register,
         ),
-        secondaryAction: IcueTableAction(
-          label: 'Maintenance',
-          icon: Icons.build_circle_outlined,
-          onPressed: () => context.push(InventoryRoutes.inventoryMaintenance),
-        ),
+        extraFilters: [
+          if (inventoryProvider.showStoreFilter)
+            IcueTableFilter(
+              id: 'store',
+              label: 'Store',
+              options: [
+                for (final store in inventoryProvider.stores)
+                  IcueTableFilterOption(store.id, store.name),
+              ],
+              value: assetsProvider.storeId,
+              onChanged: assetsProvider.setStore,
+            ),
+        ],
+        extraFiltered: assetsProvider.storeId != null,
+        onClearFilters: assetsProvider.clearFilters,
         columns: [
           IcueTableColumn(
             id: 'name',
@@ -165,16 +191,6 @@ class _AssetsPageState extends State<AssetsPage> {
             hideBelowWidth: 900,
             cellBuilder: (context, asset) => IcueTableCellText(
               asset.assignedTo?.label ?? '—',
-              style: IcueTableStyle.of(context).secondary,
-            ),
-          ),
-          IcueTableColumn(
-            id: 'location',
-            label: 'Location',
-            flex: 2,
-            hideBelowWidth: 1000,
-            cellBuilder: (context, asset) => IcueTableCellText(
-              asset.location ?? '—',
               style: IcueTableStyle.of(context).secondary,
             ),
           ),

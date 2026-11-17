@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:injectable/injectable.dart';
 import 'package:inventory/src/models/inventory_assets.dart';
@@ -17,7 +19,8 @@ class AssetsProvider extends LoadingProvider {
 
   /// Assets and maintenance jobs: server-side status filter, search, paging.
   late final assetList = ListState<InventoryAsset>(
-    query: _service.assetsQuery,
+    query: (status, search) =>
+        _service.assetsQuery(status, search, storeId: storeId),
     fromDocument: (document) =>
         InventoryAsset.fromMap(document.id, document.data()!),
     onChange: notifyListeners,
@@ -32,6 +35,19 @@ class AssetsProvider extends LoadingProvider {
       jobs.expand((job) => job.parts.map((partUsed) => partUsed.itemId)),
     ),
   );
+  /// The asset list's Store filter; null shows every visible store.
+  String? storeId;
+
+  Future<void> setStore(String? value) {
+    storeId = value;
+    return assetList.load();
+  }
+
+  Future<void> clearFilters() {
+    storeId = null;
+    return assetList.clear();
+  }
+
   List<InventoryAssignment> assignments = [];
   List<AssetEvent> history = [];
   final Map<String, InventoryItem> items = {};
@@ -82,7 +98,10 @@ class AssetsProvider extends LoadingProvider {
   }) async {
     errorMessage = null;
     try {
-      return await _stock.call(value, data, requestId: requestId);
+      final result = await _stock.call(value, data, requestId: requestId);
+      // Registering or changing an asset must show in the list without a page refresh.
+      unawaited(assetList.load());
+      return result;
     } catch (error) {
       errorMessage = callableErrorMessage(error);
       notifyListeners();

@@ -23,7 +23,6 @@ class InventoryAsset {
     this.price,
     this.warrantyStart,
     this.warrantyEnd,
-    this.location,
     this.assignedTo,
     this.activeAssignmentId,
     this.activeMaintenanceId,
@@ -48,7 +47,6 @@ class InventoryAsset {
         price: (data['price'] as num?)?.toDouble(),
         warrantyStart: readDayOrNull((data['warranty'] as Map?)?['start']),
         warrantyEnd: readDayOrNull((data['warranty'] as Map?)?['end']),
-        location: data['location'] as String?,
         assignedTo: AssetCustodian.from(data['assignedTo']),
         activeAssignmentId: data['activeAssignmentId'] as String?,
         activeMaintenanceId: data['activeMaintenanceId'] as String?,
@@ -71,7 +69,6 @@ class InventoryAsset {
   final double? price;
   final String? warrantyStart;
   final String? warrantyEnd;
-  final String? location;
   final AssetCustodian? assignedTo;
   final String? activeAssignmentId;
   final String? activeMaintenanceId;
@@ -85,7 +82,6 @@ class InventoryAssignment {
     required this.id,
     required this.assignee,
     required this.assignedDate,
-    this.location,
     this.expectedReturn,
     this.conditionOut,
     this.conditionIn,
@@ -101,7 +97,6 @@ class InventoryAssignment {
             AssetCustodian.from(data['assignee']) ??
             const AssetCustodian('staff', 0),
         assignedDate: readDay(data['assignedDate']),
-        location: data['location'] as String?,
         expectedReturn: readDayOrNull(data['expectedReturn']),
         conditionOut: data['conditionOut'] as String?,
         conditionIn: data['conditionIn'] as String?,
@@ -113,7 +108,6 @@ class InventoryAssignment {
   final String id;
   final AssetCustodian assignee;
   final String assignedDate;
-  final String? location;
   final String? expectedReturn;
   final String? conditionOut;
   final String? conditionIn;
