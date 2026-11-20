@@ -1,0 +1,31 @@
+name: icue_example
+description: "Example app demonstrating icue_sdk integration."
+
+publish_to: "none"
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.13.1
+
+resolution: workspace
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  icue_sdk:
+    path: ../
+  firebase_core: 5.0.0
+  firebase_messaging: 17.0.0
+  shared_preferences: ^2.3.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

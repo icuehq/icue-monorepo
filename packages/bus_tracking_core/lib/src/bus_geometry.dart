@@ -18,16 +18,21 @@ double distanceMeters(LatLng a, LatLng b) {
   return meters.isFinite ? meters : double.infinity;
 }
 
-/// Marker rotation in degrees [0, 360) for a bus driving from [start] to [end]
-/// (the bus icon points right, hence the +90).
-double busRotation(LatLng start, LatLng end) {
-  final lat1 = start.latitude * pi / 180;
-  final lat2 = end.latitude * pi / 180;
-  final dLng = (end.longitude - start.longitude) * pi / 180;
+/// True geographic bearing from [from] to [to] in degrees [0, 360); 0 = north,
+/// clockwise.
+double bearingDegrees(LatLng from, LatLng to) {
+  final lat1 = from.latitude * pi / 180;
+  final lat2 = to.latitude * pi / 180;
+  final dLng = (to.longitude - from.longitude) * pi / 180;
   final y = sin(dLng) * cos(lat2);
   final x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLng);
-  return (atan2(y, x) * 180 / pi + 90) % 360;
+  return (atan2(y, x) * 180 / pi + 360) % 360;
 }
+
+/// Marker rotation in degrees [0, 360) for a bus driving from [start] to [end]
+/// (the bus icon points right, hence the +90).
+double busRotation(LatLng start, LatLng end) =>
+    (bearingDegrees(start, end) + 90) % 360;
 
 /// Rotates from [start] to [end] by fraction [t] along the shorter way round.
 double interpolateRotation(double start, double end, double t) {
@@ -42,6 +47,20 @@ LatLng interpolateLatLng(LatLng start, LatLng end, double t) => LatLng(
   start.latitude + (end.latitude - start.latitude) * t,
   start.longitude + (end.longitude - start.longitude) * t,
 );
+
+/// Projects [from] forward by [meters] along [bearingDeg] (dead reckoning on a
+/// spherical earth).
+LatLng extrapolate(LatLng from, double bearingDeg, double meters) {
+  const earthRadius = 6371000.0;
+  final d = meters / earthRadius;
+  final b = bearingDeg * pi / 180;
+  final lat1 = from.latitude * pi / 180;
+  final lon1 = from.longitude * pi / 180;
+  final lat2 = asin(sin(lat1) * cos(d) + cos(lat1) * sin(d) * cos(b));
+  final lon2 =
+      lon1 + atan2(sin(b) * sin(d) * cos(lat1), cos(d) - sin(lat1) * sin(lat2));
+  return LatLng(lat2 * 180 / pi, lon2 * 180 / pi);
+}
 
 /// Snaps GPS fixes to the route polyline so the bus stays on the road.
 /// Remembers the last match so each search starts near it.

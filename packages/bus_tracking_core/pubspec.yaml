@@ -1,0 +1,21 @@
+name: bus_tracking_core
+description: Shared live bus tracking pieces (geometry, fix age, message dialog, info card) used by parent_transport and icue_sdk.
+version: 1.0.0
+homepage: https://icue.school
+publish_to: https://dart.cloudsmith.io/icue/icue-sdk/
+resolution: workspace
+
+environment:
+  sdk: ^3.13.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  google_maps_flutter: ">=2.5.0 <3.0.0"
+  intl: ">=0.18.0 <1.0.0"
+  url_launcher: ">=6.1.0 <7.0.0"
+
+dev_dependencies:
+  flutter_lints: ^6.0.0
+  flutter_test:
+    sdk: flutter

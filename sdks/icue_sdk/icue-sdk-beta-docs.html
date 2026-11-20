@@ -1,0 +1,4519 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <!-- Primary Meta Tags -->
+  <title>iCue SDK Beta Docs | Flutter School Bus Tracking v0.2</title>
+  <meta name="title" content="iCue SDK Beta Docs | Flutter School Bus Tracking v0.2" />
+  <meta name="description"
+    content="Official iCue Flutter SDK v0.2 beta docs. Integrate live school bus GPS tracking, smooth 60fps map movement, dynamic ETAs, and reliable FCM push notifications." />
+  <meta name="keywords"
+    content="iCue SDK beta, Flutter school bus tracking, real-time bus tracking SDK, Flutter GPS tracking, live transport tracking, school ERP SDK, Flutter Google Maps live tracking, FCM push notifications Flutter, school transport software" />
+  <meta name="author" content="iCue" />
+  <meta name="publisher" content="iCue" />
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+  <meta name="theme-color" content="#090d16" id="meta-theme-color" />
+  <link rel="canonical" href="https://www.icue.school/sdk-beta-docs" />
+
+  <!-- Favicon & App Icons -->
+  <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+  <link rel="apple-touch-icon" href="/logo.svg" />
+
+  <!-- Open Graph / Facebook / LinkedIn / WhatsApp -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://www.icue.school/sdk-beta-docs" />
+  <meta property="og:site_name" content="iCue" />
+  <meta property="og:title" content="iCue SDK Beta Documentation · Real-Time School Bus Tracking for Flutter" />
+  <meta property="og:description"
+    content="Pre-release documentation for iCue Flutter SDK (v0.2.0-beta.2). Plug-and-play real-time school bus tracking with 60fps smooth animations, dynamic ETAs, and FCM push notifications." />
+  <meta property="og:image" content="https://www.icue.school/images/icue-sdk-og.png" />
+  <meta property="og:image:secure_url" content="https://www.icue.school/images/icue-sdk-og.png" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="iCue SDK Beta Documentation · Flutter Real-Time School Bus Tracking Library" />
+  <meta property="og:locale" content="en_US" />
+
+  <!-- Twitter / X -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:url" content="https://www.icue.school/sdk-beta-docs" />
+  <meta name="twitter:title" content="iCue SDK Beta Documentation · Real-Time School Bus Tracking for Flutter" />
+  <meta name="twitter:description"
+    content="Pre-release documentation for iCue Flutter SDK (v0.2.0-beta.2). Plug-and-play real-time school bus tracking with 60fps smooth animations, dynamic ETAs, and FCM push notifications." />
+  <meta name="twitter:image" content="https://www.icue.school/images/icue-sdk-og.png" />
+  <meta name="twitter:image:alt" content="iCue SDK Beta Documentation · Flutter Real-Time School Bus Tracking Library" />
+
+  <!-- Schema.org JSON-LD Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "TechArticle",
+        "@id": "https://www.icue.school/sdk-beta-docs#article",
+        "isPartOf": {
+          "@type": "WebPage",
+          "@id": "https://www.icue.school/sdk-beta-docs"
+        },
+        "headline": "iCue Flutter SDK Beta Documentation (v0.2.0-beta.2) - Real-Time School Bus Tracking",
+        "description": "Pre-release developer documentation and API reference for iCue Flutter SDK v0.2.0-beta.2 featuring real-time GPS school bus tracking, live map streaming, and FCM push notifications.",
+        "image": "https://www.icue.school/images/icue-sdk-og.png",
+        "inLanguage": "en-US",
+        "publisher": {
+          "@type": "Organization",
+          "name": "iCue",
+          "url": "https://www.icue.school",
+          "logo": "https://www.icue.school/logo.svg"
+        },
+        "author": {
+          "@type": "Organization",
+          "name": "iCue Engineering",
+          "url": "https://www.icue.school"
+        },
+        "about": [
+          {
+            "@type": "SoftwareApplication",
+            "name": "iCue Flutter SDK Beta",
+            "operatingSystem": "Android 24+, iOS 12+",
+            "applicationCategory": "DeveloperApplication",
+            "softwareVersion": "v0.2.0-beta.2",
+            "programmingLanguage": "Dart"
+          }
+        ]
+      },
+      {
+        "@type": "BreadcrumbList",
+        "@id": "https://www.icue.school/sdk-beta-docs#breadcrumb",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Home",
+            "item": "https://www.icue.school"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Developer Docs",
+            "item": "https://www.icue.school/sdk-docs"
+          },
+          {
+            "@type": "ListItem",
+            "position": 3,
+            "name": "iCue Flutter SDK Beta (v0.2.0-beta.2)",
+            "item": "https://www.icue.school/sdk-beta-docs#overview"
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet" />
+
+  <!-- Immediate URL Normalizer & Theme Initializer -->
+  <script>
+    (function () {
+      if (window.location.pathname.endsWith("/icue-sdk-beta-docs.html")) {
+        window.location.replace("/sdk-beta-docs" + window.location.hash);
+        return;
+      }
+      const savedTheme = localStorage.getItem("icue-docs-theme");
+      const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      const theme = savedTheme ? savedTheme : (systemDark ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", theme);
+      const meta = document.getElementById("meta-theme-color");
+      if (meta) meta.setAttribute("content", theme === "dark" ? "#090d16" : "#ffffff");
+    })();
+  </script>
+
+  <style>
+    /* ══════════════════════════════════════════════════════════════════════════
+         DESIGN SYSTEM & CSS VARIABLES
+         ══════════════════════════════════════════════════════════════════════════ */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      /* Typography */
+      --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+      /* Layout Dimensions */
+      --sidebar-width: 272px;
+      --topbar-height: 64px;
+      --content-max-width: 1040px;
+
+      /* Brand Colors */
+      --brand-50: #ecfdf5;
+      --brand-100: #d1fae5;
+      --brand-200: #a7f3d0;
+      --brand-300: #6ee7b7;
+      --brand-400: #34d399;
+      --brand-500: #10b981;
+      --brand-600: #059669;
+      --brand-700: #047857;
+      --brand-800: #065f46;
+      --brand-900: #064e3b;
+      --brand-glow: rgba(16, 185, 129, 0.18);
+    }
+
+    /* ── Light Mode Palette ── */
+    html[data-theme="light"] {
+      --bg-page: #f8fafc;
+      --bg-surface: #ffffff;
+      --bg-surface-subtle: #f1f5f9;
+      --bg-surface-elevated: #ffffff;
+      --bg-sidebar: #ffffff;
+      --bg-sidebar-active: #ecfdf5;
+      --bg-topbar: rgba(255, 255, 255, 0.88);
+
+      --border-subtle: #f1f5f9;
+      --border-default: #e2e8f0;
+      --border-strong: #cbd5e1;
+
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #64748b;
+      --text-faint: #94a3b8;
+
+      --nav-text: #475569;
+      --nav-hover-bg: #f1f5f9;
+      --nav-hover-text: #0f172a;
+      --nav-active-bg: #ecfdf5;
+      --nav-active-text: #047857;
+      --nav-group: #94a3b8;
+
+      --card-bg: #ffffff;
+      --card-border: #e2e8f0;
+      --card-hover-border: #cbd5e1;
+      --card-hover-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
+
+      --code-bg: #0d131f;
+      --code-header: #151e30;
+      --code-border: #1e293b;
+      --code-inline-bg: #f1f5f9;
+      --code-inline-border: #e2e8f0;
+      --code-inline-text: #0f766e;
+
+      --hero-bg: linear-gradient(135deg, #091e17 0%, #063c2c 50%, #0c4a38 100%);
+      --hero-text: #ffffff;
+      --hero-subtext: #a7f3d0;
+      --hero-border: rgba(255, 255, 255, 0.1);
+
+      --callout-info-bg: #ecfdf5;
+      --callout-info-border: #a7f3d0;
+      --callout-info-text: #065f46;
+
+      --callout-warn-bg: #fffbeb;
+      --callout-warn-border: #fde68a;
+      --callout-warn-text: #92400e;
+
+      --callout-danger-bg: #fef2f2;
+      --callout-danger-border: #fecaca;
+      --callout-danger-text: #991b1b;
+
+      --table-header-bg: #f8fafc;
+      --table-row-hover: #f8fafc;
+      --table-border: #e2e8f0;
+
+      --badge-flutter-bg: #eff6ff;
+      --badge-flutter-text: #1d4ed8;
+      --badge-flutter-border: #bfdbfe;
+
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+      --shadow-lg: 0 12px 28px -6px rgba(0, 0, 0, 0.08), 0 8px 12px -4px rgba(0, 0, 0, 0.04);
+    }
+
+    /* ── Dark Mode Palette ── */
+    html[data-theme="dark"] {
+      --bg-page: #090d16;
+      --bg-surface: #0f1523;
+      --bg-surface-subtle: #141c2e;
+      --bg-surface-elevated: #182238;
+      --bg-sidebar: #0b101c;
+      --bg-sidebar-active: rgba(16, 185, 129, 0.12);
+      --bg-topbar: rgba(9, 13, 22, 0.85);
+
+      --border-subtle: #141c2e;
+      --border-default: #1e2a42;
+      --border-strong: #2c3c5e;
+
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --text-faint: #475569;
+
+      --nav-text: #94a3b8;
+      --nav-hover-bg: #141c2e;
+      --nav-hover-text: #f8fafc;
+      --nav-active-bg: rgba(16, 185, 129, 0.12);
+      --nav-active-text: #34d399;
+      --nav-group: #475569;
+
+      --card-bg: #0f1523;
+      --card-border: #1e2a42;
+      --card-hover-border: #2c3c5e;
+      --card-hover-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.4), 0 8px 12px -4px rgba(0, 0, 0, 0.3);
+
+      --code-bg: #060911;
+      --code-header: #0d1320;
+      --code-border: #1a2438;
+      --code-inline-bg: #141c2e;
+      --code-inline-border: #1e2a42;
+      --code-inline-text: #34d399;
+
+      --hero-bg: linear-gradient(135deg, #061511 0%, #062e22 55%, #0a3d2e 100%);
+      --hero-text: #ffffff;
+      --hero-subtext: #a7f3d0;
+      --hero-border: rgba(52, 211, 153, 0.18);
+
+      --callout-info-bg: rgba(16, 185, 129, 0.08);
+      --callout-info-border: rgba(16, 185, 129, 0.28);
+      --callout-info-text: #6ee7b7;
+
+      --callout-warn-bg: rgba(245, 158, 11, 0.08);
+      --callout-warn-border: rgba(245, 158, 11, 0.28);
+      --callout-warn-text: #fcd34d;
+
+      --callout-danger-bg: rgba(239, 68, 68, 0.08);
+      --callout-danger-border: rgba(239, 68, 68, 0.28);
+      --callout-danger-text: #fca5a5;
+
+      --table-header-bg: #0c1220;
+      --table-row-hover: #12192b;
+      --table-border: #1a2438;
+
+      --badge-flutter-bg: rgba(59, 130, 246, 0.12);
+      --badge-flutter-text: #60a5fa;
+      --badge-flutter-border: rgba(59, 130, 246, 0.25);
+
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.2);
+      --shadow-lg: 0 12px 28px -6px rgba(0, 0, 0, 0.5), 0 8px 12px -4px rgba(0, 0, 0, 0.3);
+    }
+
+    /* ══════════════════════════════════════════════════════════════════════════
+         GLOBAL STYLES & RESET
+         ══════════════════════════════════════════════════════════════════════════ */
+    html {
+      scroll-behavior: smooth;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-page);
+      color: var(--text-primary);
+      font-size: 15px;
+      line-height: 1.7;
+      letter-spacing: -0.01em;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    a {
+      color: var(--brand-600);
+      text-decoration: none;
+      transition: color 0.15s ease;
+    }
+
+    html[data-theme="dark"] a {
+      color: var(--brand-400);
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .skip-link {
+      position: fixed;
+      top: 12px;
+      left: 12px;
+      z-index: 9999;
+      transform: translateY(-200%);
+      background: var(--brand-600);
+      color: #ffffff;
+      padding: 8px 16px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 13px;
+      box-shadow: var(--shadow-lg);
+      transition: transform 0.2s ease;
+    }
+
+    .skip-link:focus {
+      transform: translateY(0);
+    }
+
+    /* ══════════════════════════════════════════════════════════════════════════
+         SIDEBAR NAVIGATION
+         ══════════════════════════════════════════════════════════════════════════ */
+    .sidebar {
+      width: var(--sidebar-width);
+      flex-shrink: 0;
+      background-color: var(--bg-sidebar);
+      border-right: 1px solid var(--border-default);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      overflow-x: hidden;
+      position: relative;
+      z-index: 100;
+      transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease, border-color 0.2s ease;
+    }
+
+    /* Top accent line */
+    .sidebar::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--brand-500), var(--brand-300));
+    }
+
+    .sidebar-header {
+      padding: 24px 20px 18px;
+      border-bottom: 1px solid var(--border-default);
+      flex-shrink: 0;
+    }
+
+    .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .logo-badge {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #10b981, #047857);
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      flex-shrink: 0;
+      box-shadow: 0 4px 12px var(--brand-glow);
+    }
+
+    .logo-meta {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .logo-title {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+      line-height: 1.2;
+    }
+
+    .logo-subtitle {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 500;
+      margin-top: 2px;
+    }
+
+    .badge-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .version-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      font-family: var(--font-mono);
+      color: var(--brand-600);
+      background: var(--brand-50);
+      border: 1px solid var(--brand-200);
+      padding: 3px 9px;
+      border-radius: 20px;
+    }
+
+    html[data-theme="dark"] .version-tag {
+      color: var(--brand-400);
+      background: rgba(16, 185, 129, 0.12);
+      border-color: rgba(16, 185, 129, 0.25);
+    }
+
+    .pulse-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: var(--brand-500);
+      box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+      animation: pulseAnimation 2s infinite;
+    }
+
+    @keyframes pulseAnimation {
+      0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+      }
+
+      70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+      }
+
+      100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+      }
+    }
+
+    .nav-container {
+      flex: 1;
+      padding: 16px 12px 28px;
+      overflow-y: auto;
+    }
+
+    .nav-group-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--nav-group);
+      padding: 16px 12px 6px;
+    }
+
+    .nav-group-title:first-child {
+      padding-top: 4px;
+    }
+
+    .nav-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      font-family: var(--font-sans);
+      font-size: 13.5px;
+      font-weight: 500;
+      color: var(--nav-text);
+      background: transparent;
+      border: none;
+      border-radius: 8px;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      position: relative;
+    }
+
+    .nav-btn:hover {
+      color: var(--nav-hover-text);
+      background-color: var(--nav-hover-bg);
+    }
+
+    .nav-btn.active {
+      color: var(--nav-active-text);
+      background-color: var(--nav-active-bg);
+      font-weight: 600;
+    }
+
+    .nav-btn.active::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 6px;
+      bottom: 6px;
+      width: 3px;
+      background: var(--brand-500);
+      border-radius: 0 3px 3px 0;
+    }
+
+    .nav-icon {
+      width: 22px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .sidebar-footer {
+      padding: 16px 20px;
+      border-top: 1px solid var(--border-default);
+      font-size: 11.5px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    /* ══════════════════════════════════════════════════════════════════════════
+         MAIN CONTENT AREA & TOPBAR
+         ══════════════════════════════════════════════════════════════════════════ */
+    .main-layout {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    .topbar {
+      height: var(--topbar-height);
+      background-color: var(--bg-topbar);
+      border-bottom: 1px solid var(--border-default);
+      padding: 0 36px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      z-index: 50;
+      transition: background-color 0.2s ease, border-color 0.2s ease;
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .hamburger-btn {
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 4px;
+      width: 36px;
+      height: 36px;
+      background: var(--bg-surface-subtle);
+      border: 1px solid var(--border-default);
+      border-radius: 8px;
+      cursor: pointer;
+      padding: 0;
+      flex-shrink: 0;
+    }
+
+    .hamburger-btn span {
+      display: block;
+      width: 18px;
+      height: 2px;
+      background: var(--text-secondary);
+      border-radius: 2px;
+    }
+
+    .breadcrumb-trail {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .breadcrumb-trail .crumb-root {
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    .breadcrumb-trail .crumb-sep {
+      color: var(--border-strong);
+      font-size: 11px;
+    }
+
+    .breadcrumb-trail .crumb-active {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .pill-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11.5px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 6px;
+      white-space: nowrap;
+    }
+
+    .pill-flutter {
+      background: var(--badge-flutter-bg);
+      color: var(--badge-flutter-text);
+      border: 1px solid var(--badge-flutter-border);
+    }
+
+    /* ── Version Selector ── */
+    .version-select-wrapper {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .version-select {
+      appearance: none;
+      -webkit-appearance: none;
+      background: var(--bg-surface-subtle);
+      color: var(--brand-600);
+      border: 1px solid var(--border-default);
+      border-radius: 8px;
+      padding: 5px 26px 5px 10px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      outline: none;
+      transition: all 0.15s ease;
+    }
+
+    html[data-theme="dark"] .version-select {
+      color: var(--brand-400);
+      background: var(--bg-surface);
+      border-color: var(--border-default);
+    }
+
+    .version-select:hover,
+    .version-select:focus {
+      border-color: var(--brand-500);
+      box-shadow: 0 0 0 3px var(--brand-glow);
+    }
+
+    .version-select-icon {
+      position: absolute;
+      right: 8px;
+      pointer-events: none;
+      font-size: 9px;
+      color: var(--text-muted);
+    }
+
+    /* ── Beta Notice Banner ── */
+    .beta-top-banner {
+      background: var(--callout-warn-bg);
+      border: 1px solid var(--callout-warn-border);
+      border-radius: 12px;
+      padding: 12px 18px;
+      margin-bottom: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      box-shadow: var(--shadow-sm);
+      animation: pageFade 0.3s ease-out;
+    }
+
+    .beta-banner-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      min-width: 240px;
+    }
+
+    .beta-pill-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10.5px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      background: #f59e0b;
+      color: #ffffff;
+      padding: 3px 8px;
+      border-radius: 6px;
+      flex-shrink: 0;
+    }
+
+    .beta-banner-text {
+      font-size: 13px;
+      color: var(--callout-warn-text);
+      line-height: 1.5;
+    }
+
+    .beta-banner-text strong {
+      font-weight: 700;
+    }
+
+    .beta-indicator-tag {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--callout-warn-text);
+      border: 1px solid var(--callout-warn-border);
+      white-space: nowrap;
+    }
+
+    /* ── Toast Modal Notification ── */
+    .toast-popup {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--bg-surface-elevated);
+      color: var(--text-primary);
+      border: 1px solid var(--border-strong);
+      border-radius: 12px;
+      padding: 16px 20px;
+      max-width: 380px;
+      box-shadow: var(--shadow-lg);
+      z-index: 1000;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      transform: translateY(120%);
+      opacity: 0;
+      pointer-events: none;
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+    }
+
+    .toast-popup.visible {
+      transform: translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .toast-popup-icon {
+      font-size: 20px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    .toast-popup-title {
+      font-size: 13.5px;
+      font-weight: 700;
+      margin-bottom: 3px;
+    }
+
+    .toast-popup-msg {
+      font-size: 12.5px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    .toast-close-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 16px;
+      padding: 0;
+      line-height: 1;
+      margin-left: auto;
+    }
+
+    /* ── Theme Switcher Toggle ── */
+    .theme-toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: var(--bg-surface-subtle);
+      border: 1px solid var(--border-default);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      padding: 0;
+    }
+
+    .theme-toggle-btn:hover {
+      background: var(--bg-surface-elevated);
+      color: var(--text-primary);
+      border-color: var(--border-strong);
+    }
+
+    .theme-icon-sun,
+    .theme-icon-moon {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      transition: transform 0.2s ease;
+    }
+
+    html[data-theme="dark"] .theme-icon-sun {
+      display: block;
+    }
+
+    html[data-theme="dark"] .theme-icon-moon {
+      display: none;
+    }
+
+    html[data-theme="light"] .theme-icon-sun {
+      display: none;
+    }
+
+    html[data-theme="light"] .theme-icon-moon {
+      display: block;
+    }
+
+    /* ══════════════════════════════════════════════════════════════════════════
+         CONTENT SCROLL AREA & ARTICLE PAGES
+         ══════════════════════════════════════════════════════════════════════════ */
+    .content-viewport {
+      flex: 1;
+      overflow-y: auto;
+      padding: 48px clamp(24px, 5vw, 64px) 96px;
+    }
+
+    .doc-article {
+      display: none;
+      max-width: var(--content-max-width);
+      margin: 0 auto;
+      animation: pageFade 0.2s ease-out;
+    }
+
+    .doc-article.active {
+      display: block;
+    }
+
+    @keyframes pageFade {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* ── Typography & Headers ── */
+    .page-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--brand-600);
+      margin-bottom: 10px;
+    }
+
+    html[data-theme="dark"] .page-kicker {
+      color: var(--brand-400);
+    }
+
+    .page-kicker-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: var(--brand-500);
+    }
+
+    h1.article-title {
+      font-size: clamp(30px, 3.8vw, 42px);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      color: var(--text-primary);
+      line-height: 1.15;
+      margin-bottom: 14px;
+    }
+
+    .article-lead {
+      font-size: 16.5px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      margin-bottom: 36px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border-default);
+      max-width: 72ch;
+    }
+
+    h2.section-header {
+      font-size: 21px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--text-primary);
+      margin: 44px 0 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    h2.section-header::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: var(--border-default);
+      margin-left: 8px;
+    }
+
+    h3.sub-header {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+      margin: 28px 0 10px;
+    }
+
+    p {
+      color: var(--text-secondary);
+      font-size: 15px;
+      line-height: 1.75;
+      margin-bottom: 14px;
+      max-width: 76ch;
+    }
+
+    /* ── Hero Banner ── */
+    .hero-box {
+      position: relative;
+      overflow: hidden;
+      background: var(--hero-bg);
+      color: var(--hero-text);
+      border-radius: 18px;
+      padding: 40px 36px;
+      margin-bottom: 36px;
+      border: 1px solid var(--hero-border);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .hero-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--hero-subtext);
+      margin-bottom: 14px;
+    }
+
+    .hero-box h1 {
+      font-size: clamp(28px, 4vw, 40px);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1.15;
+      margin-bottom: 14px;
+      max-width: 700px;
+      color: #ffffff;
+    }
+
+    .hero-box p {
+      font-size: 15.5px;
+      color: rgba(255, 255, 255, 0.85);
+      max-width: 660px;
+      margin-bottom: 24px;
+      line-height: 1.65;
+    }
+
+    .hero-metrics {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      overflow: hidden;
+      max-width: 740px;
+    }
+
+    .hero-metric-item {
+      padding: 14px 18px;
+      border-right: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .hero-metric-item:last-child {
+      border-right: none;
+    }
+
+    .hero-metric-item strong {
+      display: block;
+      font-size: 14px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .hero-metric-item span {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.65);
+    }
+
+    /* ── Cards & Grids ── */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin: 16px 0 32px;
+    }
+
+    .feature-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 22px;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .feature-card:hover {
+      border-color: var(--card-hover-border);
+      box-shadow: var(--card-hover-shadow);
+      transform: translateY(-2px);
+    }
+
+    .card-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      margin-bottom: 14px;
+    }
+
+    .feature-card h3,
+    .feature-card h4 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+
+    .feature-card p {
+      font-size: 13.5px;
+      color: var(--text-secondary);
+      margin-bottom: 0;
+      line-height: 1.6;
+    }
+
+    /* ── Sequential Step Stepper ── */
+    .stepper {
+      margin: 20px 0 32px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .step-item {
+      display: flex;
+      gap: 20px;
+      position: relative;
+      padding-bottom: 36px;
+    }
+
+    .step-item:last-child {
+      padding-bottom: 8px;
+    }
+
+    .step-item:not(:last-child)::before {
+      content: "";
+      position: absolute;
+      left: 17px;
+      top: 36px;
+      bottom: 0;
+      width: 2px;
+      background: var(--border-default);
+    }
+
+    .step-circle {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--bg-surface);
+      border: 2px solid var(--brand-500);
+      color: var(--brand-600);
+      font-size: 13px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      z-index: 2;
+      box-shadow: 0 0 0 4px var(--bg-page);
+    }
+
+    html[data-theme="dark"] .step-circle {
+      color: var(--brand-400);
+    }
+
+    .step-content {
+      flex: 1;
+      min-width: 0;
+      padding-top: 4px;
+    }
+
+    .step-content h3 {
+      font-size: 15.5px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+
+    /* ── Code Blocks ── */
+    .code-container {
+      background-color: var(--code-bg);
+      border: 1px solid var(--code-border);
+      border-radius: 12px;
+      margin: 14px 0 24px;
+      overflow: hidden;
+      box-shadow: var(--shadow-md);
+    }
+
+    .code-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      background-color: var(--code-header);
+      border-bottom: 1px solid var(--code-border);
+    }
+
+    .code-file-tag {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #94a3b8;
+    }
+
+    .code-lang-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--brand-500);
+    }
+
+    .copy-code-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-sans);
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #94a3b8;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+      padding: 4px 10px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .copy-code-btn:hover {
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .copy-code-btn.copied {
+      color: var(--brand-400);
+      border-color: rgba(52, 211, 153, 0.35);
+      background: rgba(16, 185, 129, 0.12);
+    }
+
+    pre {
+      padding: 18px 20px;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.75;
+      color: #e2e8f0;
+      tab-size: 2;
+    }
+
+    pre::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    pre::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 3px;
+    }
+
+    /* Syntax Highlights */
+    .kw {
+      color: #818cf8;
+      font-weight: 500;
+    }
+
+    .str {
+      color: #34d399;
+    }
+
+    .cm {
+      color: #64748b;
+      font-style: italic;
+    }
+
+    .fn {
+      color: #60a5fa;
+    }
+
+    .at {
+      color: #c084fc;
+    }
+
+    .num {
+      color: #fb923c;
+    }
+
+    .tag {
+      color: #38bdf8;
+    }
+
+    .attr {
+      color: #facc15;
+    }
+
+    /* Inline Code */
+    code {
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      font-weight: 500;
+      color: var(--code-inline-text);
+      background-color: var(--code-inline-bg);
+      border: 1px solid var(--code-inline-border);
+      border-radius: 5px;
+      padding: 2px 6px;
+      white-space: break-spaces;
+    }
+
+    /* ── Callouts ── */
+    .callout {
+      display: flex;
+      gap: 14px;
+      border-radius: 12px;
+      padding: 16px 18px;
+      margin: 18px 0 24px;
+      font-size: 14px;
+      line-height: 1.65;
+      align-items: flex-start;
+    }
+
+    .callout.info {
+      background-color: var(--callout-info-bg);
+      border: 1px solid var(--callout-info-border);
+      color: var(--callout-info-text);
+    }
+
+    .callout.warning {
+      background-color: var(--callout-warn-bg);
+      border: 1px solid var(--callout-warn-border);
+      color: var(--callout-warn-text);
+    }
+
+    .callout.danger {
+      background-color: var(--callout-danger-bg);
+      border: 1px solid var(--callout-danger-border);
+      color: var(--callout-danger-text);
+    }
+
+    .callout-icon-box {
+      font-size: 18px;
+      flex-shrink: 0;
+      line-height: 1;
+      margin-top: 2px;
+    }
+
+    .callout-body {
+      flex: 1;
+    }
+
+    .callout-body strong {
+      font-weight: 700;
+    }
+
+    /* ── Auth Alert Banner ── */
+    .auth-card {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: var(--callout-warn-bg);
+      border: 1px solid var(--callout-warn-border);
+      border-radius: 12px;
+      padding: 18px 20px;
+      margin: 0 0 28px;
+    }
+
+    .auth-icon-badge {
+      width: 42px;
+      height: 42px;
+      background: rgba(245, 158, 11, 0.16);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .auth-card-body {
+      flex: 1;
+    }
+
+    .auth-card-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--callout-warn-text);
+      margin-bottom: 2px;
+    }
+
+    .auth-card-text {
+      font-size: 13px;
+      color: var(--callout-warn-text);
+      margin-bottom: 0;
+      line-height: 1.5;
+      opacity: 0.9;
+    }
+
+    .auth-tag {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: rgba(245, 158, 11, 0.2);
+      color: var(--callout-warn-text);
+      border: 1px solid var(--callout-warn-border);
+      white-space: nowrap;
+    }
+
+    /* ── Tables ── */
+    .table-container {
+      background: var(--bg-surface);
+      border: 1px solid var(--table-border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin: 16px 0 32px;
+      box-shadow: var(--shadow-sm);
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+      min-width: 480px;
+    }
+
+    thead {
+      background: var(--table-header-bg);
+    }
+
+    th {
+      text-align: left;
+      padding: 13px 18px;
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--table-border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 14px 18px;
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--table-border);
+      vertical-align: top;
+      line-height: 1.6;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background-color: var(--table-row-hover);
+    }
+
+    td strong {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    /* ── Method & Property Signatures ── */
+    .signature-badge {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 8px;
+      background: var(--brand-50);
+      color: var(--brand-700);
+      border: 1px solid var(--brand-200);
+      margin-bottom: 12px;
+    }
+
+    html[data-theme="dark"] .signature-badge {
+      background: rgba(16, 185, 129, 0.12);
+      color: var(--brand-300);
+      border-color: rgba(16, 185, 129, 0.25);
+    }
+
+    /* ── Checklist ── */
+    .checklist-box {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin: 16px 0 28px;
+    }
+
+    .checklist-entry {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-size: 14px;
+      transition: border-color 0.15s ease;
+    }
+
+    .checklist-entry:hover {
+      border-color: var(--card-hover-border);
+    }
+
+    .check-pill {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      background: var(--brand-50);
+      border: 1px solid var(--brand-300);
+      color: var(--brand-600);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    html[data-theme="dark"] .check-pill {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--brand-400);
+    }
+
+    .checklist-text {
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .checklist-text strong {
+      color: var(--text-primary);
+    }
+
+    /* ── Contact and Support Card ── */
+    .contact-banner {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 24px;
+      margin: 18px 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .contact-banner-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .contact-avatar-circle {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--brand-500), var(--brand-700));
+      color: #ffffff;
+      font-size: 18px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 4px 12px var(--brand-glow);
+    }
+
+    .contact-banner-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 3px;
+    }
+
+    .contact-banner-sub {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .email-action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--brand-600);
+      color: #ffffff;
+      padding: 9px 18px;
+      border-radius: 8px;
+      font-size: 13.5px;
+      font-weight: 600;
+      text-decoration: none;
+      box-shadow: 0 2px 8px var(--brand-glow);
+      transition: all 0.15s ease;
+    }
+
+    .email-action-btn:hover {
+      background: var(--brand-500);
+      text-decoration: none;
+      transform: translateY(-1px);
+    }
+
+    /* ── Page Navigation Footer (Next / Previous) ── */
+    .page-footer-nav {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 64px;
+      padding-top: 28px;
+      border-top: 1px solid var(--border-default);
+    }
+
+    .nav-foot-btn {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .nav-foot-btn:hover {
+      border-color: var(--brand-500);
+      box-shadow: var(--shadow-md);
+      text-decoration: none;
+      transform: translateY(-2px);
+    }
+
+    .nav-foot-btn.prev {
+      text-align: left;
+    }
+
+    .nav-foot-btn.next {
+      text-align: right;
+      grid-column: 2;
+    }
+
+    .nav-foot-label {
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 4px;
+    }
+
+    .nav-foot-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--brand-600);
+    }
+
+    html[data-theme="dark"] .nav-foot-title {
+      color: var(--brand-400);
+    }
+
+    /* ══════════════════════════════════════════════════════════════════════════
+         LLM INTEGRATION & EXPORT STYLES
+         ══════════════════════════════════════════════════════════════════════════ */
+    .llm-copy-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 13px;
+      border-radius: 8px;
+      font-size: 12.5px;
+      font-weight: 600;
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.14), rgba(5, 150, 105, 0.22));
+      border: 1px solid rgba(16, 185, 129, 0.38);
+      color: var(--brand-400);
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      white-space: nowrap;
+    }
+
+    html[data-theme="light"] .llm-copy-btn {
+      background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+      border-color: #a7f3d0;
+      color: #047857;
+    }
+
+    .llm-copy-btn:hover {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.24), rgba(5, 150, 105, 0.35));
+      border-color: var(--brand-400);
+      transform: translateY(-1px);
+      box-shadow: 0 0 14px var(--brand-glow);
+    }
+
+    html[data-theme="light"] .llm-copy-btn:hover {
+      background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+      border-color: #34d399;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+    }
+
+    .llm-sparkle-icon {
+      color: var(--brand-400);
+      flex-shrink: 0;
+    }
+
+    html[data-theme="light"] .llm-sparkle-icon {
+      color: #059669;
+    }
+
+    .hero-llm-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 20px;
+      padding: 10px 18px;
+      border-radius: 9px;
+      font-size: 13px;
+      font-weight: 700;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      color: #ffffff;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      backdrop-filter: blur(8px);
+    }
+
+    .hero-llm-btn:hover {
+      background: rgba(255, 255, 255, 0.22);
+      border-color: rgba(255, 255, 255, 0.45);
+      transform: translateY(-1px);
+    }
+
+    /* Sidebar AI Button & Chips */
+    .nav-btn-ai {
+      position: relative;
+    }
+
+    .ai-chip {
+      margin-left: auto;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--brand-400);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    html[data-theme="light"] .ai-chip {
+      background: #ecfdf5;
+      color: #047857;
+      border-color: #a7f3d0;
+    }
+
+    .ai-chip-outline {
+      margin-left: auto;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 1px 5px;
+      border-radius: 4px;
+      color: var(--text-muted);
+      border: 1px solid var(--border-default);
+    }
+
+    /* Section-level LLM Button */
+    .article-header-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .article-header-meta .page-kicker {
+      margin-bottom: 0;
+    }
+
+    .section-llm-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      font-size: 11.5px;
+      font-weight: 600;
+      border-radius: 6px;
+      background: var(--bg-surface-subtle);
+      border: 1px solid var(--border-default);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .section-llm-btn:hover {
+      background: var(--bg-surface-elevated);
+      color: var(--text-primary);
+      border-color: var(--brand-400);
+    }
+
+    /* LLM Modal Overlay */
+    .llm-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(4, 7, 13, 0.72);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 2000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      transition: opacity 0.25s ease;
+    }
+
+    .llm-modal-overlay.open {
+      display: flex;
+      opacity: 1;
+    }
+
+    .llm-modal-dialog {
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-strong);
+      border-radius: 16px;
+      max-width: 680px;
+      width: 100%;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--shadow-lg), 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+      animation: modalSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      overflow: hidden;
+    }
+
+    @keyframes modalSlideUp {
+      from {
+        opacity: 0;
+        transform: translateY(16px) scale(0.98);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .llm-modal-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border-default);
+      background: var(--bg-surface);
+    }
+
+    .llm-modal-header-left {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+
+    .llm-modal-icon {
+      font-size: 24px;
+      line-height: 1;
+      padding: 10px;
+      border-radius: 10px;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      flex-shrink: 0;
+    }
+
+    .llm-modal-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .llm-modal-subtitle {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+
+    .llm-modal-close {
+      background: transparent;
+      border: none;
+      font-size: 18px;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .llm-modal-close:hover {
+      background: var(--bg-surface-subtle);
+      color: var(--text-primary);
+    }
+
+    .llm-modal-body {
+      padding: 20px 24px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .llm-option-card {
+      position: relative;
+      border: 1px solid var(--border-default);
+      border-radius: 12px;
+      padding: 18px;
+      background: var(--bg-surface);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      transition: all 0.2s ease;
+    }
+
+    .llm-option-card.highlighted {
+      border-color: rgba(16, 185, 129, 0.45);
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.06), transparent);
+    }
+
+    .llm-option-card:hover {
+      border-color: var(--brand-400);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .llm-option-badge {
+      position: absolute;
+      top: -9px;
+      right: 18px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--brand-500);
+      color: #ffffff;
+    }
+
+    .llm-option-content {
+      flex: 1;
+    }
+
+    .llm-option-title {
+      font-size: 14.5px;
+      font-weight: 700;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .llm-option-desc {
+      font-size: 12.5px;
+      color: var(--text-secondary);
+      line-height: 1.45;
+    }
+
+    .llm-primary-copy-btn,
+    .llm-secondary-copy-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .llm-primary-copy-btn {
+      background: var(--brand-500);
+      color: #ffffff;
+      border: none;
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+    }
+
+    .llm-primary-copy-btn:hover {
+      background: var(--brand-600);
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.45);
+      transform: translateY(-1px);
+    }
+
+    .llm-secondary-copy-btn {
+      background: var(--bg-surface-subtle);
+      border: 1px solid var(--border-default);
+      color: var(--text-primary);
+    }
+
+    .llm-secondary-copy-btn:hover {
+      background: var(--bg-surface-elevated);
+      border-color: var(--border-strong);
+      transform: translateY(-1px);
+    }
+
+    .llm-links-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      background: var(--bg-surface-subtle);
+      border: 1px solid var(--border-subtle);
+      font-size: 12.5px;
+      flex-wrap: wrap;
+    }
+
+    .llm-links-label {
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-right: 4px;
+    }
+
+    .llm-raw-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: var(--brand-600);
+      text-decoration: none;
+      font-weight: 600;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      transition: all 0.15s ease;
+    }
+
+    html[data-theme="dark"] .llm-raw-link {
+      color: var(--brand-400);
+    }
+
+    .llm-raw-link:hover {
+      border-color: var(--brand-400);
+      background: var(--bg-surface-elevated);
+    }
+
+    .llm-preview-details {
+      border: 1px solid var(--border-default);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--bg-surface);
+    }
+
+    .llm-preview-summary {
+      padding: 10px 14px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      user-select: none;
+    }
+
+    .llm-preview-summary:hover {
+      color: var(--text-primary);
+      background: var(--bg-surface-subtle);
+    }
+
+    .llm-preview-content {
+      padding: 12px 14px;
+      border-top: 1px solid var(--border-default);
+      background: var(--code-bg);
+      max-height: 180px;
+      overflow-y: auto;
+    }
+
+    .llm-preview-content pre {
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      color: #93c5fd;
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin: 0;
+    }
+
+    .llm-modal-footer {
+      padding: 14px 24px;
+      border-top: 1px solid var(--border-default);
+      background: var(--bg-surface);
+    }
+
+    .llm-footer-tip {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+
+    .llm-footer-tip strong {
+      color: var(--text-primary);
+    }
+
+    /* ══════════════════════════════════════════════════════════════════════════
+         MOBILE DRAWER & RESPONSIVENESS
+         ══════════════════════════════════════════════════════════════════════════ */
+    .mobile-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.55);
+      z-index: 90;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+    }
+
+    @media (max-width: 900px) {
+      .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        transform: translateX(-100%);
+        z-index: 100;
+        box-shadow: var(--shadow-lg);
+      }
+
+      .sidebar.open {
+        transform: translateX(0);
+      }
+
+      .mobile-overlay.open {
+        display: block;
+      }
+
+      .hamburger-btn {
+        display: flex;
+      }
+
+      .topbar {
+        padding: 0 20px;
+      }
+
+      .content-viewport {
+        padding: 32px 20px 80px;
+      }
+
+      .hero-metrics {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .hero-metric-item:nth-child(2) {
+        border-right: none;
+      }
+
+      .hero-metric-item:nth-child(3),
+      .hero-metric-item:nth-child(4) {
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+      }
+    }
+
+    @media (max-width: 600px) {
+      .card-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-box {
+        padding: 26px 20px;
+      }
+
+      .hero-metrics {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-metric-item {
+        border-right: none !important;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .hero-metric-item:first-child {
+        border-top: none;
+      }
+
+      .topbar-right .pill-badge {
+        display: none;
+      }
+
+      .page-footer-nav {
+        grid-template-columns: 1fr;
+      }
+
+      .nav-foot-btn.next {
+        grid-column: 1;
+      }
+
+      .llm-option-card {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .llm-primary-copy-btn,
+      .llm-secondary-copy-btn {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .topbar-right .llm-copy-btn span {
+        display: none;
+      }
+
+      .topbar-right .llm-copy-btn {
+        padding: 8px 10px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <a class="skip-link" href="#overview">Skip to documentation</a>
+
+  <!-- Mobile Drawer Overlay -->
+  <div class="mobile-overlay" id="mobile-overlay" onclick="closeSidebar()"></div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════════
+         SIDEBAR NAVIGATION
+         ══════════════════════════════════════════════════════════════════════════ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <a href="/" class="logo-row" style="text-decoration: none; color: inherit;" title="iCue Home">
+        <div class="logo-badge">iC</div>
+        <div class="logo-meta">
+          <div class="logo-title">iCue SDK</div>
+          <div class="logo-subtitle">Flutter Library (Beta)</div>
+        </div>
+      </a>
+      <div class="badge-row">
+        <div class="version-select-wrapper">
+          <select class="version-select" id="sidebar-version-select" onchange="onVersionChange(this.value)"
+            aria-label="Select SDK version">
+            <option value="beta" selected>v0.2.0-beta.2 (Beta)</option>
+            <option value="live">v0.1.0 (Live) ↗</option>
+          </select>
+          <span class="version-select-icon">▼</span>
+        </div>
+      </div>
+    </div>
+
+    <nav class="nav-container" role="navigation" aria-label="Documentation Navigation">
+      <div class="nav-group-title">Getting Started</div>
+      <button class="nav-btn active" onclick="show('overview', this)" id="nav-overview">
+        <span class="nav-icon">⚡</span>Overview
+      </button>
+      <button class="nav-btn" onclick="show('install', this)" id="nav-install">
+        <span class="nav-icon">📦</span>Installation
+      </button>
+
+      <div class="nav-group-title">Platform Setup</div>
+      <button class="nav-btn" onclick="show('android', this)" id="nav-android">
+        <span class="nav-icon">🤖</span>Android Setup
+      </button>
+      <button class="nav-btn" onclick="show('ios', this)" id="nav-ios">
+        <span class="nav-icon">🍎</span>iOS Setup
+      </button>
+
+      <div class="nav-group-title">Integration</div>
+      <button class="nav-btn" onclick="show('init', this)" id="nav-init">
+        <span class="nav-icon">🔧</span>Initialization
+      </button>
+      <button class="nav-btn" onclick="show('tracking', this)" id="nav-tracking">
+        <span class="nav-icon">📍</span>Live Tracking
+      </button>
+      <button class="nav-btn" onclick="show('notif', this)" id="nav-notif">
+        <span class="nav-icon">🔔</span>Push Notifications
+      </button>
+
+      <div class="nav-group-title">Reference</div>
+      <button class="nav-btn" onclick="show('api', this)" id="nav-api">
+        <span class="nav-icon">📚</span>API Reference
+      </button>
+      <button class="nav-btn" onclick="show('production', this)" id="nav-production">
+        <span class="nav-icon">🛡️</span>Production Readiness
+      </button>
+      <button class="nav-btn" onclick="show('trouble', this)" id="nav-trouble">
+        <span class="nav-icon">🔍</span>Troubleshooting
+      </button>
+
+      <div class="nav-group-title">Support</div>
+      <button class="nav-btn" onclick="show('support', this)" id="nav-support">
+        <span class="nav-icon">💬</span>Get Help
+      </button>
+
+      <div class="nav-group-title">AI &amp; Developer Tools</div>
+      <button class="nav-btn nav-btn-ai" onclick="openLlmModal()" id="nav-llm">
+        <span class="nav-icon">🤖</span>Copy for LLM
+        <span class="ai-chip">Prompt</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div><strong>iCue SDK Documentation</strong></div>
+      <div>© 2026 iCue · All rights reserved</div>
+    </div>
+  </aside>
+
+  <!-- ══════════════════════════════════════════════════════════════════════════
+         MAIN CONTENT VIEWPORT
+         ══════════════════════════════════════════════════════════════════════════ -->
+  <div class="main-layout">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="hamburger-btn" id="hamburger-btn" onclick="toggleSidebar()" aria-label="Toggle navigation menu">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+        <nav class="breadcrumb-trail" aria-label="Breadcrumb">
+          <a href="/" class="crumb-root" style="color: inherit; text-decoration: none;" title="iCue Home">iCue</a>
+          <span class="crumb-sep">›</span>
+          <a href="/sdk-docs" class="crumb-root" style="color: inherit; text-decoration: none;">SDK Docs</a>
+          <span class="crumb-sep">›</span>
+          <span class="crumb-active" id="breadcrumb-title">Overview</span>
+        </nav>
+      </div>
+
+        <div class="topbar-right">
+          <div class="version-select-wrapper">
+            <select
+              class="version-select"
+              id="topbar-version-select"
+              onchange="onVersionChange(this.value)"
+              aria-label="Select SDK version"
+            >
+              <option value="beta" selected>v0.2.0-beta.2 (Beta)</option>
+              <option value="live">v0.1.0 (Live) ↗</option>
+            </select>
+            <span class="version-select-icon">▼</span>
+          </div>
+          <span class="pill-badge pill-flutter">Flutter 3.10+ · Dart 3</span>
+          <button class="llm-copy-btn" id="topbar-llm-btn" onclick="openLlmModal()" aria-label="Copy SDK Prompt for LLM" title="Copy documentation context &amp; prompt for AI assistants (Cursor, Claude, ChatGPT)">
+            <svg class="llm-sparkle-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3z"></path>
+            </svg>
+            <span>Copy for LLM</span>
+          </button>
+          <button
+            class="theme-toggle-btn"
+            id="theme-toggle"
+            onclick="toggleTheme()"
+            aria-label="Toggle light or dark theme"
+            title="Toggle Light / Dark mode"
+          >
+            <!-- Sun Icon (shown in dark mode) -->
+            <svg class="theme-icon-sun" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+            <!-- Moon Icon (shown in light mode) -->
+            <svg class="theme-icon-moon" viewBox="0 0 24 24">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <main class="content-viewport" role="main">
+        <!-- ── Beta Release Notice Banner ── -->
+        <div class="beta-top-banner" id="beta-banner">
+          <div class="beta-banner-left">
+            <span class="beta-pill-badge">🧪 Beta Docs</span>
+            <div class="beta-banner-text">
+              You are viewing pre-release documentation for <strong>iCue SDK v0.2.0-beta.2 (Beta)</strong>.
+              For the live stable version, view the <a href="/sdk-docs" style="color: inherit; text-decoration: underline; font-weight: 700;">Live SDK Documentation (v0.1.0) ↗</a>.
+            </div>
+          </div>
+          <div class="beta-indicator-tag">Beta Active</div>
+        </div>
+      <!-- ════════════════ 01: OVERVIEW ════════════════ -->
+      <article id="overview" class="doc-article active" aria-label="Overview">
+        <div class="hero-box">
+          <div class="hero-tag">Official Integration Guide · SDK v0.2.0-beta.2</div>
+          <h1>Embed production-grade school bus tracking in Flutter.</h1>
+          <p>
+            iCue SDK provides an end-to-end live tracking experience with Google Maps UI,
+            smooth route animation, real-time ETA calculations, isolated session lifecycle, and
+            flexible push notifications behind a clean public API.
+          </p>
+          <div class="hero-metrics" aria-label="SDK Compatibility">
+            <div class="hero-metric-item">
+              <strong>Flutter 3.10+</strong>
+              <span>Framework constraint</span>
+            </div>
+            <div class="hero-metric-item">
+              <strong>Dart 3.0+</strong>
+              <span>Language baseline</span>
+            </div>
+            <div class="hero-metric-item">
+              <strong>Android 24+</strong>
+              <span>Min Android SDK</span>
+            </div>
+            <div class="hero-metric-item">
+              <strong>iOS 12+</strong>
+              <span>Min Deployment Target</span>
+            </div>
+          </div>
+          <button class="hero-llm-btn" onclick="openLlmModal()" title="Copy Full Beta Integration Prompt for LLMs">
+            <svg class="llm-sparkle-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3z"></path>
+            </svg>
+            <span>Copy Full Beta Prompt for LLM</span>
+          </button>
+        </div>
+
+        <div class="callout info">
+          <div class="callout-icon-box">💡</div>
+          <div class="callout-body">
+            <strong>Integration Contract:</strong> Initialize the SDK once (or on-demand during login),
+            provide the navigator key or observer to your <code>MaterialApp</code>, and launch tracking with
+            the student's unique <code>identificationNo</code>.
+          </div>
+        </div>
+
+        <h2 class="section-header">Core Capabilities</h2>
+        <div class="card-grid">
+          <div class="feature-card">
+            <div class="card-icon" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">🎬</div>
+            <h3>Smooth 60fps Animation</h3>
+            <p>Frame-independent vehicle motion interpolation and real-time bearing orientation on Google Maps.</p>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;">🛣️</div>
+            <h3>Intelligent Route Rendering</h3>
+            <p>Automatic polyline rendering, path-snapping to roads, and visual markers for stops and student points.
+            </p>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">⏱️</div>
+            <h3>Dynamic Real-Time ETA</h3>
+            <p>Continuous arrival time calculation for pickup and drop-off based on live bus telemetry.</p>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon" style="background: rgba(236, 72, 153, 0.15); color: #ec4899;">🔥</div>
+            <h3>Host-Friendly Firebase</h3>
+            <p>Reuses your app's existing default Firebase app or initializes on-demand without duplicate app conflicts.
+            </p>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon" style="background: rgba(139, 92, 246, 0.15); color: #8b5cf6;">🔄</div>
+            <h3>Isolated Session Handling</h3>
+            <p>Storage is namespaced per client. Student switches and tenant updates are handled safely without
+              collisions.</p>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">🔔</div>
+            <h3>Decoupled Push Notifications</h3>
+            <p>Opt-in contracts for disabled, host-managed, or SDK-managed FCM push with automatic live tracking
+              deep-links.</p>
+          </div>
+        </div>
+
+        <h2 class="section-header">Choose an Ownership Model</h2>
+        <p>The iCue SDK offers three distinct notification integration patterns to fit your application's architecture:
+        </p>
+        <div class="card-grid">
+          <div class="feature-card">
+            <h3>Tracking Only (Default)</h3>
+            <p>
+              <code>IcueNotifications.disabled()</code>: Pure bus tracking. Zero Firebase listeners, zero permission
+              prompts, zero push token registrations.
+            </p>
+          </div>
+          <div class="feature-card">
+            <h3>Host-Managed Notifications</h3>
+            <p>
+              <code>IcueNotifications.hostManaged(...)</code>: Host passes push tokens to
+              <code>IcueSdk.notifications.setToken</code> and forwards incoming payloads or handles custom routing.
+            </p>
+          </div>
+          <div class="feature-card">
+            <h3>SDK-Managed Firebase</h3>
+            <p>
+              <code>IcueNotifications.firebaseManaged(...)</code>: SDK directly listens to FCM streams, registers tokens
+              with the backend, and displays in-app banner overlays.
+            </p>
+          </div>
+          <div class="feature-card">
+            <h3>Multi-Student Push Support</h3>
+            <p>
+              Register notifications for multiple children simultaneously using
+              <code>IcueSdk.notifications.registerStudent(id)</code> with isolated backend routing.
+            </p>
+          </div>
+        </div>
+
+        <h2 class="section-header">Quick Start Workflow</h2>
+        <div class="stepper">
+          <div class="step-item">
+            <div class="step-circle">1</div>
+            <div class="step-content">
+              <h3>Authenticate &amp; Install</h3>
+              <p>Add your API token and install the package from the private Cloudsmith repository feed.</p>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-circle">2</div>
+            <div class="step-content">
+              <h3>Configure Platform Settings</h3>
+              <p>Add Google Maps API keys and optional push notification permissions for Android and iOS.</p>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-circle">3</div>
+            <div class="step-content">
+              <h3>Initialize the SDK</h3>
+              <p>Call <code>await IcueSdk.init(...)</code> and provide the root navigator key or observer.</p>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-circle">4</div>
+            <div class="step-content">
+              <h3>Launch Live Tracking</h3>
+              <p>Call <code>await IcueSdk.openLiveTracking(context, identificationNo: '...')</code> to open the tracking
+                screen.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="page-footer-nav">
+          <div></div>
+          <a class="nav-foot-btn next" onclick="show('install')">
+            <span class="nav-foot-label">Next Step →</span>
+            <span class="nav-foot-title">Installation Guide</span>
+          </a>
+        </div>
+      </article>
+
+      <!-- ════════════════ 02: INSTALLATION ════════════════ -->
+      <article id="install" class="doc-article" aria-label="Installation">
+        <div class="article-header-meta">
+          <div class="page-kicker">
+            <span class="page-kicker-dot"></span>Getting Started
+          </div>
+          <button class="section-llm-btn" onclick="copySectionForLlm('install')" title="Copy installation instructions for LLM">
+            <span>🤖 Copy for LLM</span>
+          </button>
+        </div>
+        <h1 class="article-title">Installation</h1>
+        <p class="article-lead">
+          Install version <code>0.2.0-beta.2</code> from the private iCue Cloudsmith repository.
+          The package requires Dart 3, Flutter 3.10+, and access to your organization's package feed.
+        </p>
+
+        <div class="auth-card">
+          <div class="auth-icon-badge">🔒</div>
+          <div class="auth-card-body">
+            <div class="auth-card-title">Authentication Required</div>
+            <div class="auth-card-text">
+              This is a private repository. Store your package token via Dart's secure credential manager;
+              never commit credentials to <code>pubspec.yaml</code>, source control, or public CI logs.
+            </div>
+          </div>
+          <span class="auth-tag">API Token</span>
+        </div>
+
+        <h2 class="section-header">Method 1: Using the Dart CLI (Recommended)</h2>
+
+        <h3 class="sub-header">Step 1 — Store your repository API token</h3>
+        <p>
+          Run this command once and paste your issued token at Dart's secure prompt to save it to your local machine:
+        </p>
+        <div class="code-container">
+          <div class="code-header">
+            <div class="code-file-tag">
+              <span class="code-lang-dot"></span>
+              <span>Terminal (bash)</span>
+            </div>
+            <button class="copy-code-btn" onclick="copyCode(this)">📋 Copy</button>
+          </div>
+          <pre><span class="fn">dart</span> pub token add https://dart.cloudsmith.io/icue/icue-sdk/</pre>
+        </div>
+
+        <div class="callout info">
+          <div class="callout-icon-box">⚙️</div>
+          <div class="callout-body">
+            <strong>CI/CD Pipelines:</strong> Store your token in your CI secrets manager and run:
+            <br />
+            <code>dart pub token add https://dart.cloudsmith.io/icue/icue-sdk/ --env-var ICUE_CLOUDSMITH_TOKEN</code>
+          </div>
+        </div>
+
+        <h3 class="sub-header">Step 2 — Add the package dependency</h3>
+        <p>Add the package from the hosted endpoint in a single command:</p>
+        <div class="code-container">
+          <div class="code-header">
+            <div class="code-file-tag">
+              <span class="code-lang-dot"></span>
+              <span>Terminal (bash)</span>
+            </div>
+            <button class="copy-code-btn" onclick="copyCode(this)">📋 Copy</button>
+          </div>
+          <pre><span class="fn">dart</span> pub add icue_sdk --hosted-url https://dart.cloudsmith.io/icue/icue-sdk/</pre>
+        </div>
+
+        <div class="contact-banner">
+          <div class="contact-banner-left">
+            <div class="contact-avatar-circle">🔑</div>
+            <div>
+              <div class="contact-banner-title">Need Repository Access?</div>
+              <div class="contact-banner-sub">Contact iCue support to request or rotate your organization's tokens.
+              </div>
+            </div>
+          </div>
+          <a href="mailto:chakri@thoughtniques.com?subject=iCue%20SDK%20Repository%20Access" class="email-action-btn">
+            chakri@thoughtniques.com
+          </a>
+        </div>
+
+        <h2 class="section-header">Method 2: Manual pubspec.yaml</h2>
+        <p>Alternatively, declare the hosted dependency manually in <code>pubspec.yaml</code>:</p>
+        <div class="code-container">
+          <div class="code-header">
+            <div class="code-file-tag">
+              <span class="code-lang-dot"></span>
+              <span>pubspec.yaml</span>
+            </div>
+            <button class="copy-code-btn" onclick="copyCode(this)">📋 Copy</button>
+          </div>
+          <pre><span class="attr">dependencies</span>:
+  <span class="attr">flutter</span>:
+    <span class="attr">sdk</span>: flutter
+  <span class="attr">icue_sdk</span>:
+    <span class="attr">hosted</span>:
+      <span class="attr">name</span>: icue_sdk
+      <span class="attr">url</span>: <span class="str">https://dart.cloudsmith.io/icue/icue-sdk/</span>
+    <span class="attr">version</span>: <span class="str">^0.2.0-beta.2</span></pre>
+        </div>
+
+        <div class="code-container">
+          <div class="code-header">
+            <div class="code-file-tag">
+              <span class="code-lang-dot"></span>
+              <span>Terminal (bash)</span>
+            </div>
+            <button class="copy-code-btn" onclick="copyCode(this)">📋 Copy</button>
+          </div>
+          <pre><span class="fn">flutter</span> pub get</pre>
+        </div>
+
+        <h2 class="section-header">Compatibility Matrix</h2>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Component</th>
+                <th>Requirement</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Dart SDK</strong></td>
+                <td><code>&gt;=3.0.0 &lt;4.0.0</code></td>
+                <td>Enforced by package SDK constraints.</td>
+              </tr>
+              <tr>
+                <td><strong>Flutter</strong></td>
+                <td><code>&gt;=3.10.0</code></td>
+                <td>Compatible with all modern stable Flutter releases.</td>
+              </tr>
+              <tr>
+                <td><strong>Android</strong></td>
+                <td>API Level 24+ (Android 7.0)</td>
+                <td>Requires Google Play Services on the target device.</td>
+              </tr>
+              <tr>
+                <td><strong>iOS</strong></td>
+                <td>iOS 12.0+ Deployment Target</td>
+                <td>Requires Google Maps SDK for iOS integration in AppDelegate.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="page-footer-nav">
+          <a class="nav-foot-btn prev" onclick="show('overview')">
+            <span class="nav-foot-label">← Previous</span>
+            <span class="nav-foot-title">Overview</span>
+          </a>
+          <a class="nav-foot-btn next" onclick="show('android')">
+            <span class="nav-foot-label">Next Step →</span>
+            <span class="nav-foot-title">Android Setup</span>
+          </a>
+        </div>
+      </article>
+
+      <!-- ════════════════ 03: ANDROID SETUP ════════════════ -->
+      <article id="android" class="doc-article" aria-label="Android Setup">
+        <div class="article-header-meta">
+          <div class="page-kicker">
+            <span class="page-kicker-dot"></span>Platform Setup
+          </div>
+          <button class="section-llm-btn" onclick="copySectionForLlm('android')" title="Copy Android setup for LLM">
+            <span>🤖 Copy for LLM</span>
+          </button>
+        </div>
+        <h1 class="article-title">Android Configuration</h1>
+        <p class="article-lead">
+          Configure permissions, Google Maps API keys, and minimum SDK version in your host Android application.
+        </p>
+
+        <div class="stepper">
+          <div class="step-item">
+            <div class="step-circle">1</div>
+            <div class="step-content">
+              <h3>Add Android Manifest Permissions</h3>
+              <p>
+                Open <code>android/app/src/main/AndroidManifest.xml</code> and ensure the following permissions are
+                present inside the root <code>&lt;manifest&gt;</code> tag:
+              </p>
+              <div class="code-container">
+                <div class="code-header">
+                  <div class="code-file-tag">
+                    <span class="code-lang-dot"></span>
+                    <span>AndroidManifest.xml</span>
+                  </div>
+                  <button class="copy-code-btn" onclick="copyCode(this)">📋 Copy</button>
+                </div>
+                <pre>&lt;<span class="tag">uses-permission</span> <span class="attr">android:name</span>=<span class="str">"android.permission.INTERNET"</span> /&gt;
+&lt;<span class="tag">uses-permission</span> <span class="attr">android:name</span>=<span class="str">"android.permission.POST_NOTIFICATIONS"</span> /&gt;</pre>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-item">
+            <div class="step-circle">2</div>
+            <div class="step-content">
+              <h3>Add Google Maps API Key</h3>
+              <p>
+                Inside the <code>&lt;application&gt;</code> tag of <code>AndroidManifest.xml</code>, insert your Google
+                Maps API key:
+              </p>
+              <div class="code-container">
+                <div class="code-header">
+                  <div class="code-file-tag">
+                    <span class="code-lang-dot"></span>
+                    <span>AndroidManifest.xml</span>
+                  </div>
+                  <button class="copy-code-btn" onclick="copyCode(this)">📋 Copy</button>
+                </div>
+                <pre>&lt;<span class="tag">meta-data</span>
+    <span class="attr">android:name</span>=<span class="str">"com.google.android.geo.API_KEY"</span>
+    <span class="attr">android:value</span>=<span class="str">"YOUR_GOOGLE_MAPS_API_KEY"</span> /&gt;</pre>
+              </div>
+              <div class="callout warning">
+                <div class="callout-icon-box">🔐</div>
+                <div class="callout-body">
+                  <strong>Key Security:</strong> Restrict this API key in the Google Cloud Console to your Android
+                  package name and SHA-1 signing certificate fingerprint.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-item">
+            <div class="step-circle">3</div>
+            <div class="step-content">
+              <h3>Set Minimum SDK Version</h3>
+              <p>
+                In <code>android/app/build.gradle</code> (or <code>build.gradle.kts</code>), verify that
+                <code>minSdkVersion</code> is at least 24:
+              </p>
+              <div class="code-container">
+                <div class="code-header">
+                  <div class="code-file-tag">
+                    <span class="code-lang-dot"></span>
+                    <span>android/app/build.gradle</span>
+                  </div>
+                  <button class="copy-code-btn" onclick="copyCode(this)">📋 Copy</button>
+                </div>
+                <pre><span class="fn">defaultConfig</span> {
+    <span class="attr">minSdkVersion</span> <span class="num">24</span>  <span class="cm">// Required minimum for iCue SDK</span>
+}</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="page-footer-nav">
+          <a class="nav-foot-btn prev" onclick="show('install')">
+            <span class="nav-foot-label">← Previous</span>
+            <span class="nav-foot-title">Installation</span>
+          </a>
+          <a class="nav-foot-btn next" onclick="show('ios')">
+            <span class="nav-foot-label">Next Step →</span>
+            <span class="nav-foot-title">iOS Setup</span>
+          </a>
+        </div>
+      </article>
+
+      <!-- ════════════════ 04: IOS SETUP ════════════════ -->
+      <article id="ios" class="doc-article" aria-label="iOS Setup">
+        <div class="article-header-meta">
+          <div class="page-kicker">
+            <span class="page-kicker-dot"></span>Platform Setup
+          </div>
+          <button class="section-llm-btn" onclick="copySectionForLlm('ios')" title="Copy iOS setup for LLM">
+            <span>🤖 Copy for LLM</span>
+          </button>
+        </div>
+        <h1 class="article-title">iOS Configuration</h1>
+        <p class="article-lead">
+          Configure Google Maps in your iOS Runner target. The SDK queries telemetry directly from the iCue API, so host
+          GPS permissions are not required.
+        </p>
+
+        <div class="stepper">
+          <div class="step-item">
+            <div class="step-circle">1</div>
+            <div class="step-content">
+              <h3>Initialize Google Maps in AppDelegate</h3>
+              <p>
+                In <code>ios/Runner/AppDelegate.swift</code>, import <code>GoogleMaps</code> and provide your API key
+                before the application finishes launching:
+              </p>
+              <div class="code-container">
+                <div class="code-header">
+                  <div class="code-file-tag">
+                    <span class="code-lang-dot"></span>
+                    <span>AppDelegate.swift</span>
+                  </div>
+                  <button class="copy-code-btn" onclick="copyCode(this)">📋 Copy</button>
+                </div>
+                <pre><span class="kw">import</span> UIKit
+<span class="kw">import</span> Flutter
+<span class="kw">import</span> GoogleMaps
+
+<span class="at">@UIApplicationMain</span>
+<span class="at">@objc</span> <span class="kw">class</span> <span class="fn">AppDelegate</span>: FlutterAppDelegate {
+  <span class="kw">override func</span> <span class="fn">application</span>(
+    <span class="kw">_</span> application: UIApplication,
+    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
+  ) -&gt; Bool {
+    <span class="fn">GMSServices.provideAPIKey</span>(<span class="str">"YOUR_GOOGLE_MAPS_API_KEY"</span>)
+    <span class="kw">return super</span>.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+}</pre>
+              </div>
+              <div class="callout warning">
+                <div class="callout-icon-box">🔐</div>
+                <div class="callout-body">
+                  <strong>Key Restriction:</strong> Restrict your iOS Maps API key in Google Cloud Console to your iOS
+                  bundle identifier.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="page-footer-nav">
+          <a class="nav-foot-btn prev" onclick="show('android')">
+            <span class="nav-foot-label">← Previous</span>
+            <span class="nav-foot-title">Android Setup</span>
+          </a>
+          <a class="nav-foot-btn next" onclick="show('init')">
+            <span class="nav-foot-label">Next Step →</span>
+            <span class="nav-foot-title">Initialization</span>
+          </a>
+        </div>
+      </article>
+
+      <!-- ════════════════ 05: INITIALIZATION ════════════════ -->
+      <article id="init" class="doc-article" aria-label="Initialization">
+        <div class="article-header-meta">
+          <div class="page-kicker">
+            <span class="page-kicker-dot"></span>Integration
+          </div>
+          <button class="section-llm-btn" onclick="copySectionForLlm('init')" title="Copy initialization code for LLM">
+            <span>🤖 Copy for LLM</span>
+          </button>
+        </div>
+        <h1 class="article-title">Initialization</h1>
+        <p class="article-lead">
+          The iCue SDK can be initialized at application startup or <strong>on-demand</strong> whenever the user
+          authenticates or navigates into the tracking feature.
+        </p>
+
+        <div class="stepper">
+          <div class="step-item">
+            <div class="step-circle">1</div>
+            <div class="step-content">
+              <h3>Initialize the SDK</h3>
+              <p>
+                Call <code>IcueSdk.init</code> and <strong>await</strong> completion. Initialization is transactional
+                and will automatically rollback on any configuration error:
+              </p>
+              <div class="code-container">
+                <div class="code-header">
+                  <div class="code-file-tag">
+                    <span class="code-lang-dot"></span>
+                    <span>lib/main.dart</span>
+                  </div>
+                  <button class="copy-code-btn" onclick="copyCode(this)">📋 Copy</button>
+                </div>
+                <pre><span class="kw">import</span> <span class="str">'package:icue_sdk/icue_sdk.dart'</span>;
+
+<span class="cm">// Initialize on app startup or dynamically when student signs in</span>
+<span class="kw">await</span> <span class="fn">IcueSdk.init</span>(
+  <span class="kw">const</span> <span class="fn">IcueSdkConfig</span>(
+    apiKey: <span class="str">'YOUR_API_KEY'</span>,
+    apiUser: <span class="str">'YOUR_API_USER'</span>,
+    env: <span class="fn">IcueEnvironment.prod</span>, <span class="cm">// Use IcueEnvironment.dev for testing</span>
+  ),
+);</pre>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-item">
+            <div class="step-circle">2</div>
+            <div class="step-content">
+              <h3>Register Navigator Key &amp; Observer</h3>
+              <p>
+                The SDK handles cold-start notification navigation automatically. Attach
+                <code>IcueSdk.navigatorKey</code> and <code>IcueNavigatorObserver</code> to your
+                <code>MaterialApp</code>:
+              </p>
+              <div class="code-container">
+                <div class="code-header">
+                  <div class="code-file-tag">
+                    <span class="code-lang-dot"></span>
+                    <span>lib/main.dart</span>
+                  </div>
+                  <button class="copy-code-btn" onclick="copyCode(this)">📋 Copy</button>
+                </div>
+                <pre><span class="fn">MaterialApp</span>(
+  navigatorKey: <span class="fn">IcueSdk.navigatorKey</span>,
+  navigatorObservers: [<span class="fn">IcueNavigatorObserver()</span>],
+  <span class="cm">// ... your existing app routes and configuration</span>
+);</pre>
+              </div>
+              <div class="callout info">
+                <div class="callout-icon-box">💡</div>
+                <div class="callout-body">
+                  <strong>Custom Navigator Key:</strong> If your app already owns a
+                  <code>GlobalKey&lt;NavigatorState&gt;</code>, register it with
+                  <code>IcueSdk.setNavigatorKey(myKey)</code> and pass that same key to <code>MaterialApp</code>.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-item">
+            <div class="step-circle">3</div>
+            <div class="step-content">
+              <h3>Dynamic Reconfiguration</h3>
+              <p>
+                To switch environments, update credentials, or change schools at runtime, call
+                <code>IcueSdk.reconfigure(newConfig)</code> or call <code>IcueSdk.init</code> with the updated settings.
+                Cached sessions are preserved safely unless tenant credentials change.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="page-footer-nav">
+          <a class="nav-foot-btn prev" onclick="show('ios')">
+            <span class="nav-foot-label">← Previous</span>
+            <span class="nav-foot-title">iOS Setup</span>
+          </a>
+          <a class="nav-foot-btn next" onclick="show('tracking')">
+            <span class="nav-foot-label">Next Step →</span>
+            <span class="nav-foot-title">Live Tracking</span>
+          </a>
+        </div>
+      </article>
+
+      <!-- ════════════════ 06: LIVE TRACKING ════════════════ -->
+      <article id="tracking" class="doc-article" aria-label="Live Tracking">
+        <div class="article-header-meta">
+          <div class="page-kicker">
+            <span class="page-kicker-dot"></span>Integration
+          </div>
+          <button class="section-llm-btn" onclick="copySectionForLlm('tracking')" title="Copy live tracking instructions for LLM">
+            <span>🤖 Copy for LLM</span>
+          </button>
+        </div>
+        <h1 class="article-title">Live Tracking</h1>
+        <p class="article-lead">
+          Open the real-time school bus live tracking screen for any student with a single method call.
+          The SDK handles map rendering, 60fps marker interpolation, and ETA updates internally.
+        </p>
+
+        <h2 class="section-header">Launching Tracking from a BuildContext</h2>
+        <p>
+          Pass a student identification number to <code>IcueSdk.openLiveTracking</code> from any mounted widget context.
+          The method returns a typed <code>IcueLaunchResult</code>:
+        </p>
+        <div class="code-container">
+          <div class="code-header">
+            <div class="code-file-tag">
+              <span class="code-lang-dot"></span>
+              <span>lib/screens/student_detail_page.dart</span>
+            </div>
+            <button class="copy-code-btn" onclick="copyCode(this)">📋 Copy</button>
+          </div>
+          <pre><span class="kw">final</span> result = <span class="kw">await</span> <span class="fn">IcueSdk.openLiveTracking</span>(
+  context,
+  identificationNo: <span class="str">'12345'</span>, <span class="cm">// Student identification number</span>
+);
+
+<span class="kw">if</span> (result.isFailure) {
+  <span class="fn">ScaffoldMessenger</span>.of(context).<span class="fn">showSnackBar</span>(
+    <span class="fn">SnackBar</span>(content: <span class="fn">Text</span>(result.errorMessage ?? <span class="str">'Unable to open live tracking'</span>)),
+  );
+}</pre>
+        </div>
+
+        <h2 class="section-header">Launching Tracking Without a Context</h2>
+        <p>
+          When responding to push notifications, deep links, or background tasks where a <code>BuildContext</code> is
+          not readily available, use <code>openLiveTrackingFromRoot</code>:
+        </p>
+        <div class="code-container">
+          <div class="code-header">
+            <div class="code-file-tag">
+              <span class="code-lang-dot"></span>
+              <span>lib/services/deep_link_service.dart</span>
+            </div>
+            <button class="copy-code-btn" onclick="copyCode(this)">📋 Copy</button>
+          </div>
+          <pre><span class="kw">final</span> result = <span class="kw">await</span> <span class="fn">IcueSdk.openLiveTrackingFromRoot</span>(
+  identificationNo: <span class="str">'12345'</span>,
+);
+<span class="cm">// If the root navigator is not yet mounted, the launch is buffered and replayed automatically.</span></pre>
+        </div>
+
+        <h2 class="section-header">Student Switching &amp; Session Cleanup</h2>
+        <p>
+          When a user logs out or switches profiles in your app, call <code>IcueSdk.logout()</code> to clear cached
+          student data and detach backend push associations:
+        </p>
+        <div class="code-container">
+          <div class="code-header">
+            <div class="code-file-tag">
+              <span class="code-lang-dot"></span>
+              <span>lib/services/auth_service.dart</span>
+            </div>
+            <button class="copy-code-btn" onclick="copyCode(this)">📋 Copy</button>
+          </div>
+          <pre><span class="kw">await</span> <span class="fn">IcueSdk.logout</span>();</pre>
+        </div>
+
+        <div class="callout info">
+          <div class="callout-icon-box">🛡️</div>
+          <div class="callout-body">
+            <strong>Token Safety:</strong> <code>IcueSdk.logout()</code> notifies the iCue backend
+            (<code>/v1.0/logout</code>) to remove student push subscriptions, but it <strong>never deletes the
+              underlying device FCM token</strong>. This ensures your host application push features continue working
+            uninterrupted.
+          </div>
+        </div>
+
+        <div class="page-footer-nav">
+          <a class="nav-foot-btn prev" onclick="show('init')">
+            <span class="nav-foot-label">← Previous</span>
+            <span class="nav-foot-title">Initialization</span>
+          </a>
+          <a class="nav-foot-btn next" onclick="show('notif')">
+            <span class="nav-foot-label">Next Step →</span>
+            <span class="nav-foot-title">Push Notifications</span>
+          </a>
+        </div>
+      </article>
+
+      <!-- ════════════════ 07: PUSH NOTIFICATIONS ════════════════ -->
+      <article id="notif" class="doc-article" aria-label="Push Notifications">
+        <div class="article-header-meta">
+          <div class="page-kicker">
+            <span class="page-kicker-dot"></span>Integration
+          </div>
+          <button class="section-llm-btn" onclick="copySectionForLlm('notif')" title="Copy push notifications setup for LLM">
+            <span>🤖 Copy for LLM</span>
+          </button>
+        </div>
+        <h1 class="article-title">Push Notifications</h1>
+        <p class="article-lead">
+          Configure Firebase Cloud Messaging so iCue can alert parents when the bus approaches and open live tracking
+          directly when the notification is tapped.
+        </p>
+
+        <div class="callout info">
+          <div class="callout-icon-box">🔔</div>
+          <div class="callout-body">
+            <strong>Default Firebase App Reuse:</strong> The SDK operates on the default Firebase app. If your host
+            application already configures Firebase, the SDK reuses it automatically without any extra initialization
+            steps.
+          </div>
+        </div>
+
+        <h2 class="section-header">Select Your Notification Contract</h2>
+        <p>Choose the notification contract that aligns with your app's push notification architecture:</p>
+        <div class="code-container">
+          <div class="code-header">
+            <div class="code-file-tag">
+              <span class="code-lang-dot"></span>
+              <span>lib/main.dart</span>
+            </div>
+            <button class="copy-code-btn" onclick="copyCode(this)">📋 Copy</button>
+          </div>
+          <pre><span class="cm">// MODE A: Tracking Only (Disabled push listeners)</span>
+<span class="kw">await</span> <span class="fn">IcueSdk.init</span>(
+  <span class="kw">const</span> <span class="fn">IcueSdkConfig</span>(
+    apiKey: <span class="str">'YOUR_API_KEY'</span>,
+    apiUser: <span class="str">'YOUR_API_USER'</span>,
+    notifications: <span class="fn">IcueNotifications.disabled()</span>,
+  ),
+);
+
+<span class="cm">// MODE B: Host-Managed (Host provides FCM token &amp; handles routing)</span>
+<span class="kw">await</span> <span class="fn">IcueSdk.init</span>(
+  <span class="fn">IcueSdkConfig</span>(
+    apiKey: <span class="str">'YOUR_API_KEY'</span>,
+    apiUser: <span class="str">'YOUR_API_USER'</span>,
+    notifications: <span class="fn">IcueNotifications.hostManaged</span>(
+      token: hostDeviceToken,
+      presentation: <span class="fn">IcueNotificationPresentation.sdkBanner</span>,
+      onNavigationIntent: (intent) {
+        <span class="cm">// Custom router integration</span>
+      },
+    ),
+  ),
+);
+
+<span class="cm">// MODE C: SDK-Managed Firebase (SDK manages FCM listeners &amp; tokens)</span>
+<span class="kw">await</span> <span class="fn">IcueSdk.init</span>(
+  <span class="fn">IcueSdkConfig</span>(
+    apiKey: <span class="str">'YOUR_API_KEY'</span>,
+    apiUser: <span class="str">'YOUR_API_USER'</span>,
+    notifications: <span class="fn">IcueNotifications.firebaseManaged</span>(
+      autoRequestPermission: <span class="kw">false</span>, <span class="cm">// Control permission timing manually</span>
+      presentation: <span class="fn">IcueNotificationPresentation.sdkBanner</span>,
+      firebaseOptions: <span class="fn">IcueFirebaseOptions.fromCredentials</span>(
+        android: <span class="kw">const</span> <span class="fn">IcuePlatformCredentials</span>(
+          apiKey: <span class="str">'AIza...'</span>,
+          appId: <span class="str">'1:123456789:android:...'</span>,
+          messagingSenderId: <span class="str">'123456789'</span>,
+          projectId: <span class="str">'your-firebase-project'</span>,
+        ),
+        ios: <span class="kw">const</span> <span class="fn">IcuePlatformCredentials</span>(
+          apiKey: <span class="str">'AIza...'</span>,
+          appId: <span class="str">'1:123456789:ios:...'</span>,
+          messagingSenderId: <span class="str">'123456789'</span>,
+          projectId: <span class="str">'your-firebase-project'</span>,
+          iosBundleId: <span class="str">'com.example.yourapp'</span>,
+        ),
+      ),
+    ),
+  ),
+);</pre>
+        </div>
+
+        <h2 class="section-header">Multi-Student Family Support</h2>
+        <p>
+          For apps managing multiple children simultaneously, register all student IDs so each child's bus notifications
+          reach the device:
+        </p>
+        <div class="code-container">
+          <div class="code-header">
+            <div class="code-file-tag">
+              <span class="code-lang-dot"></span>
+              <span>lib/services/family_notification_service.dart</span>
+            </div>
+            <button class="copy-code-btn" onclick="copyCode(this)">📋 Copy</button>
+          </div>
+          <pre><span class="cm">// Register multiple children for push alerts</span>
+<span class="kw">await</span> <span class="fn">IcueSdk.notifications.registerStudents</span>(
+  [<span class="str">'STUDENT_ID_1'</span>, <span class="str">'STUDENT_ID_2'</span>],
+  token: devicePushToken,
+);
+
+<span class="cm">// Query registered children</span>
+<span class="kw">final</span> registered = <span class="kw">await</span> <span class="fn">IcueSdk.notifications.getRegisteredStudents</span>();
+
+<span class="cm">// Unregister a single student</span>
+<span class="kw">await</span> <span class="fn">IcueSdk.notifications.unregisterStudent</span>(<span class="str">'STUDENT_ID_1'</span>);
+
+<span class="cm">// Unregister all students on account sign-out</span>
+<span class="kw">await</span> <span class="fn">IcueSdk.notifications.unregisterAllStudents</span>();
+
+<span class="cm">// Or perform full SDK sign-out (unregisters push tokens &amp; clears session)</span>
+<span class="kw">await</span> <span class="fn">IcueSdk.logout</span>();</pre>
+        </div>
+
+        <h2 class="section-header">Push Notification Lifecycle &amp; Sign-Out (Logout)</h2>
+        <p>
+          When a user signs out or switches accounts in your host application, invoke <code>IcueSdk.logout()</code> to unregister push
+          notification subscriptions on the iCue backend:
+        </p>
+        <div class="code-container">
+          <div class="code-header">
+            <div class="code-file-tag">
+              <span class="code-lang-dot"></span>
+              <span>lib/services/auth_service.dart</span>
+            </div>
+            <button class="copy-code-btn" onclick="copyCode(this)">📋 Copy</button>
+          </div>
+          <pre><span class="cm">// Option 1: Full SDK sign-out (unregisters push associations from iCue &amp; clears session cache)</span>
+<span class="kw">await</span> <span class="fn">IcueSdk.logout</span>();
+
+<span class="cm">// Option 2: Push unregistration only (keeps SDK session cache intact)</span>
+<span class="kw">await</span> <span class="fn">IcueSdk.notifications.unregisterToken</span>();</pre>
+        </div>
+
+        <div class="callout info">
+          <div class="callout-icon-box">🛡️</div>
+          <div class="callout-body">
+            <strong>FCM Token Safety:</strong> Calling <code>IcueSdk.logout()</code> or
+            <code>IcueSdk.notifications.unregisterToken()</code> tells the iCue backend (<code>/v1.0/logout</code>) to stop
+            dispatching alerts to this device, but <strong>never deletes or invalidates the underlying FCM/APNs token</strong> on
+            Firebase. All non-iCue push notifications in your host application remain fully active.
+          </div>
+        </div>
+
+        <h2 class="section-header">Notification Response Structure</h2>
+        <p>
+          Incoming push notifications from iCue deliver the following response map (accessed via
+          <code>RemoteMessage.data</code> or SDK notification streams):
+        </p>
+        <div class="code-container">
+          <div class="code-header">
+            <div class="code-file-tag">
+              <span class="code-lang-dot"></span>
+              <span>notification_response.json</span>
+            </div>
+            <button class="copy-code-btn" onclick="copyCode(this)">📋 Copy</button>
+          </div>
+          <pre>{
+  <span class="attr">"icon"</span>: <span class="str">"ic_launcher"</span>,
+  <span class="attr">"action"</span>: <span class="str">"Track"</span>,
+  <span class="attr">"Sound"</span>: <span class="str">"default"</span>,
+  <span class="attr">"body"</span>: <span class="str">"Dear Parent, R - 02 Pickup has been started."</span>,
+  <span class="attr">"title"</span>: <span class="str">"Naveen Aluri - Route has been started"</span>,
+  <span class="attr">"click_action"</span>: <span class="str">"0"</span>,
+  <span class="attr">"StudentName"</span>: <span class="str">"Naveen Aluri"</span>,
+  <span class="attr">"AdmissionNo"</span>: <span class="str">"7978"</span>,
+  <span class="attr">"StudentId"</span>: <span class="str">"108233"</span>
+}</pre>
+        </div>
+
+        <h2 class="section-header">Verification Checklist</h2>
+        <div class="checklist-box">
+          <div class="checklist-entry">
+            <div class="check-pill">✓</div>
+            <div class="checklist-text">
+              <strong>Preflight Diagnostics:</strong> <code>await IcueSdk.checkSetup()</code> reports
+              <code>isReady: true</code> with 0 configuration issues.
+            </div>
+          </div>
+          <div class="checklist-entry">
+            <div class="check-pill">✓</div>
+            <div class="checklist-text">
+              <strong>Tracking Launch:</strong> <code>openLiveTracking</code> returns
+              <code>IcueLaunchResult.success()</code>.
+            </div>
+          </div>
+          <div class="checklist-entry">
+            <div class="check-pill">✓</div>
+            <div class="checklist-text">
+              <strong>Token Synchronization:</strong> <code>IcueSdk.notifications.syncTokenWithBackend()</code> returns
+              <code>true</code>.
+            </div>
+          </div>
+          <div class="checklist-entry">
+            <div class="check-pill">✓</div>
+            <div class="checklist-text">
+              <strong>Notification Tap:</strong> Tapping a notification opens live tracking for the specific
+              <code>AdmissionNo</code> student.
+            </div>
+          </div>
+        </div>
+
+        <div class="page-footer-nav">
+          <a class="nav-foot-btn prev" onclick="show('tracking')">
+            <span class="nav-foot-label">← Previous</span>
+            <span class="nav-foot-title">Live Tracking</span>
+          </a>
+          <a class="nav-foot-btn next" onclick="show('api')">
+            <span class="nav-foot-label">Next Step →</span>
+            <span class="nav-foot-title">API Reference</span>
+          </a>
+        </div>
+      </article>
+
+      <!-- ════════════════ 08: API REFERENCE ════════════════ -->
+      <article id="api" class="doc-article" aria-label="API Reference">
+        <div class="article-header-meta">
+          <div class="page-kicker">
+            <span class="page-kicker-dot"></span>Reference
+          </div>
+          <button class="section-llm-btn" onclick="copySectionForLlm('api')" title="Copy API reference for LLM">
+            <span>🤖 Copy for LLM</span>
+          </button>
+        </div>
+        <h1 class="article-title">Configuration &amp; API Reference</h1>
+        <p class="article-lead">
+          The complete public API surface exported by <code>package:icue_sdk/icue_sdk.dart</code>.
+        </p>
+
+        <h2 class="section-header">IcueSdkConfig Properties</h2>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Property</th>
+                <th>Type &amp; Default</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>apiKey</code></td>
+                <td>Required <code>String</code></td>
+                <td>The organization integration API key.</td>
+              </tr>
+              <tr>
+                <td><code>apiUser</code></td>
+                <td>Required <code>String</code></td>
+                <td>Integration client identifier used for backend authentication and storage namespacing.</td>
+              </tr>
+              <tr>
+                <td><code>identificationNo</code></td>
+                <td><code>String?</code> (Optional)</td>
+                <td>Initial student identification number to pre-load.</td>
+              </tr>
+              <tr>
+                <td><code>env</code></td>
+                <td><code>IcueEnvironment.prod</code></td>
+                <td>Selects backend environment (<code>IcueEnvironment.prod</code> or <code>IcueEnvironment.dev</code>).
+                </td>
+              </tr>
+              <tr>
+                <td><code>restoreSession</code></td>
+                <td><code>false</code></td>
+                <td>Automatically restore the last active student session on app cold-start.</td>
+              </tr>
+              <tr>
+                <td><code>notifications</code></td>
+                <td><code>IcueNotifications.disabled()</code></td>
+                <td>Sealed notification contract (<code>disabled</code>, <code>hostManaged</code>, or
+                  <code>firebaseManaged</code>).</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2 class="section-header">Core SDK Lifecycle Methods (IcueSdk)</h2>
+        <div class="card-grid">
+          <div class="feature-card">
+            <span class="signature-badge">Future&lt;void&gt; IcueSdk.init(IcueSdkConfig)</span>
+            <h3>Transactional Initialization</h3>
+            <p>Initializes environment, dependencies, session persistence, and notification handlers with automatic
+              rollback on error.</p>
+          </div>
+          <div class="feature-card">
+            <span class="signature-badge">Future&lt;void&gt; IcueSdk.reconfigure(IcueSdkConfig)</span>
+            <h3>Dynamic Reconfiguration</h3>
+            <p>Updates credentials, environment, or notification settings at runtime without clearing active student
+              sessions.</p>
+          </div>
+          <div class="feature-card">
+            <span class="signature-badge">bool IcueSdk.isInitialized</span>
+            <h3>Initialization Status</h3>
+            <p>Synchronously returns whether the SDK is actively configured and ready to handle tracking requests.</p>
+          </div>
+          <div class="feature-card">
+            <span class="signature-badge">Future&lt;IcueLaunchResult&gt; IcueSdk.openLiveTracking(...)</span>
+            <h3>Open Live Tracking Screen</h3>
+            <p>Pushes the live tracking interface onto the navigation stack for the specified student identification
+              number.</p>
+          </div>
+          <div class="feature-card">
+            <span class="signature-badge">Future&lt;IcueLaunchResult&gt; IcueSdk.openLiveTrackingFromRoot(...)</span>
+            <h3>Root Navigator Launch</h3>
+            <p>Launches tracking via the root navigator without requiring a <code>BuildContext</code>, buffering if not
+              yet mounted.</p>
+          </div>
+          <div class="feature-card">
+            <span class="signature-badge">Future&lt;IcueSetupReport&gt; IcueSdk.checkSetup(...)</span>
+            <h3>Preflight Diagnostic Report</h3>
+            <p>Runs self-diagnostics verifying API credentials, session storage, navigator bindings, and push
+              notification readiness.</p>
+          </div>
+          <div class="feature-card">
+            <span class="signature-badge">Future&lt;void&gt; IcueSdk.logout()</span>
+            <h3>Session Logout</h3>
+            <p>Clears cached student session data and detaches backend push associations while keeping host FCM tokens
+              intact.</p>
+          </div>
+          <div class="feature-card">
+            <span class="signature-badge">Future&lt;void&gt; IcueSdk.setIdentificationNo(String)</span>
+            <h3>Set Active Student</h3>
+            <p>Manually sets the active student identification number and synchronizes push tokens with the backend.</p>
+          </div>
+        </div>
+
+        <h2 class="section-header">Notification Manager (IcueSdk.notifications)</h2>
+        <div class="card-grid">
+          <div class="feature-card">
+            <span class="signature-badge">Future&lt;void&gt; setToken(String token)</span>
+            <h3>Set Device Push Token</h3>
+            <p>Stores the push token and synchronizes it with the iCue backend for the active student.</p>
+          </div>
+          <div class="feature-card">
+            <span class="signature-badge">Future&lt;bool&gt; registerStudent(String studentId)</span>
+            <h3>Register Student Push</h3>
+            <p>Authenticates and registers push notifications on the backend for a specific student ID.</p>
+          </div>
+          <div class="feature-card">
+            <span class="signature-badge">Future&lt;bool&gt; registerStudents(List&lt;String&gt;)</span>
+            <h3>Batch Multi-Student Register</h3>
+            <p>Registers multiple student IDs sequentially for multi-child family applications.</p>
+          </div>
+          <div class="feature-card">
+            <span class="signature-badge">Future&lt;List&lt;String&gt;&gt; getRegisteredStudents()</span>
+            <h3>Query Registered Students</h3>
+            <p>Returns the list of student IDs currently registered for push notifications on this device.</p>
+          </div>
+          <div class="feature-card">
+            <span class="signature-badge">Future&lt;void&gt; handleMessage(dynamic payload)</span>
+            <h3>Unified Message Forwarding</h3>
+            <p>Forwards an incoming notification (accepts <code>RemoteMessage</code>, <code>IcueNotification</code>, or
+              <code>Map</code>) into presentation streams.</p>
+          </div>
+          <div class="feature-card">
+            <span class="signature-badge">Future&lt;void&gt; handleTap(dynamic payload)</span>
+            <h3>Notification Tap Handler</h3>
+            <p>Dispatches navigation intents and opens live tracking automatically when the user taps a notification.
+            </p>
+          </div>
+        </div>
+
+        <h2 class="section-header">Navigation &amp; Broadcast Streams</h2>
+        <div class="card-grid">
+          <div class="feature-card">
+            <span class="signature-badge">Stream&lt;IcueNotification&gt; onNotificationReceived</span>
+            <h3>Foreground Notification Stream</h3>
+            <p>Permanent broadcast stream of notifications received while the host app is running in foreground.</p>
+          </div>
+          <div class="feature-card">
+            <span class="signature-badge">Stream&lt;IcueNavigationIntent&gt; onNavigationIntent</span>
+            <h3>Navigation Intent Stream</h3>
+            <p>Broadcast stream emitted when notification taps require screen navigation, ideal for custom router apps.
+            </p>
+          </div>
+          <div class="feature-card">
+            <span class="signature-badge">Stream&lt;IcueNotification&gt; onNotificationTapped</span>
+            <h3>User Tap Interaction Stream</h3>
+            <p>Emitted whenever the user interacts with an in-app banner or system push notification.</p>
+          </div>
+          <div class="feature-card">
+            <span class="signature-badge">IcueNavigatorObserver</span>
+            <h3>Cold-Start Observer</h3>
+            <p>Install in <code>MaterialApp.navigatorObservers</code> to buffer and replay notification navigation when
+              app launches.</p>
+          </div>
+        </div>
+
+        <h2 class="section-header">Permissions &amp; Token Management</h2>
+        <div class="card-grid">
+          <div class="feature-card">
+            <span class="signature-badge">Future&lt;IcuePermissionStatus&gt; requestPermission()</span>
+            <h3>Request OS Permissions</h3>
+            <p>Prompts the host operating system for push notification permissions and returns the resulting
+              authorization status.</p>
+          </div>
+          <div class="feature-card">
+            <span class="signature-badge">Future&lt;IcuePermissionStatus&gt; permissionStatus</span>
+            <h3>Query Permission Status</h3>
+            <p>Queries current status (<code>authorized</code>, <code>provisional</code>, <code>denied</code>,
+              <code>notDetermined</code>, <code>unsupported</code>).</p>
+          </div>
+          <div class="feature-card">
+            <span class="signature-badge">Future&lt;bool&gt; isPermissionGranted</span>
+            <h3>Boolean Permission Check</h3>
+            <p>Returns <code>true</code> if notifications are authorized or provisional.</p>
+          </div>
+          <div class="feature-card">
+            <span class="signature-badge">Future&lt;void&gt; invalidateProviderToken()</span>
+            <h3>Invalidate FCM Provider Token</h3>
+            <p>Explicitly deletes the underlying device token from Firebase servers and clears local storage.</p>
+          </div>
+        </div>
+
+        <h2 class="section-header">Payload Utilities &amp; Message Helpers</h2>
+        <div class="card-grid">
+          <div class="feature-card">
+            <span class="signature-badge">bool IcueSdk.isIcueNotification(dynamic)</span>
+            <h3>Detect iCue Messages</h3>
+            <p>Checks if an incoming <code>RemoteMessage</code>, <code>IcueNotification</code>, or payload map belongs
+              to iCue.</p>
+          </div>
+          <div class="feature-card">
+            <span class="signature-badge">bool IcueSdk.isIcuePayload(Map?)</span>
+            <h3>Payload Structure Validation</h3>
+            <p>Validates whether a raw data map contains iCue provider keys (<code>AdmissionNo</code>,
+              <code>RouteTrackId</code>).</p>
+          </div>
+          <div class="feature-card">
+            <span class="signature-badge">String? IcueSdk.admissionNoFromPayload(Map)</span>
+            <h3>Extract Admission Number</h3>
+            <p>Safely extracts the student identification number from flat or nested notification data maps.</p>
+          </div>
+          <div class="feature-card">
+            <span class="signature-badge">Future&lt;void&gt; IcueSdk.handleBackgroundMessage(RemoteMessage)</span>
+            <h3>Background Isolate Handler</h3>
+            <p>Processes background FCM payloads forwarded from top-level background isolates.</p>
+          </div>
+        </div>
+
+        <h2 class="section-header">Data Models &amp; Type Hierarchy</h2>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Type / Class</th>
+                <th>Description &amp; Key Properties</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>IcueNotifications</code></td>
+                <td>
+                  Sealed push notification contract hierarchy:
+                  <br />• <code>IcueNotifications.disabled()</code>
+                  <br />• <code>IcueNotifications.hostManaged({token, presentation, onNavigationIntent, ...})</code>
+                  <br />•
+                  <code>IcueNotifications.firebaseManaged({firebaseOptions, autoRequestPermission, presentation, ...})</code>
+                </td>
+              </tr>
+              <tr>
+                <td><code>IcueLaunchResult</code></td>
+                <td>
+                  Sealed outcome returned by <code>openLiveTracking</code>:
+                  <br />• <code>IcueLaunchSuccess()</code> (<code>isSuccess: true</code>)
+                  <br />• <code>IcueLaunchBuffered({identificationNo})</code> (<code>isBuffered: true</code>)
+                  <br />• <code>IcueLaunchFailure({error})</code> (<code>isFailure: true</code>,
+                  <code>errorMessage</code>)
+                </td>
+              </tr>
+              <tr>
+                <td><code>IcueSetupReport</code></td>
+                <td>
+                  Diagnostic report returned by <code>checkSetup()</code> with <code>isReady</code>,
+                  <code>issues</code>, and <code>toDiagnosticSummary()</code> formatted output.
+                </td>
+              </tr>
+              <tr>
+                <td><code>IcueNotification</code></td>
+                <td>
+                  Pure-Dart notification model decoupled from Firebase: <code>title</code>, <code>body</code>,
+                  <code>admissionNo</code>, <code>action</code>, <code>data</code>, <code>messageId</code>,
+                  <code>sentTime</code>.
+                </td>
+              </tr>
+              <tr>
+                <td><code>IcueNavigationIntent</code></td>
+                <td>
+                  Typed navigation intent containing <code>identificationNo</code>, <code>notification</code>,
+                  <code>action</code>, and <code>extras</code> map.
+                </td>
+              </tr>
+              <tr>
+                <td><code>IcueNotificationPresentation</code></td>
+                <td>
+                  Foreground presentation modes: <code>sdkBanner</code> (in-app animated banner overlay),
+                  <code>system</code> (OS tray), <code>hostManaged</code>, <code>none</code>.
+                </td>
+              </tr>
+              <tr>
+                <td><code>IcuePlatformCredentials</code></td>
+                <td>
+                  Pure-Dart Firebase configuration model: <code>apiKey</code>, <code>appId</code>,
+                  <code>messagingSenderId</code>, <code>projectId</code>, <code>iosBundleId</code>.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2 class="section-header">Exception Hierarchy (IcueException)</h2>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Exception</th>
+                <th>Thrown When</th>
+                <th>Default Error Message</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>IcueNotInitializedException</code></td>
+                <td>An SDK feature is accessed before <code>IcueSdk.init(config)</code> has been called and awaited.
+                </td>
+                <td>
+                  <code>iCue SDK is not initialized. Await IcueSdk.init(config) before opening tracking or accessing features.</code>
+                </td>
+              </tr>
+              <tr>
+                <td><code>IcueInvalidStudentException</code></td>
+                <td>An empty or whitespace-only student identification number is passed to
+                  <code>openLiveTracking</code>.</td>
+                <td><code>Invalid or empty student identification number provided.</code></td>
+              </tr>
+              <tr>
+                <td><code>IcueNavigationException</code></td>
+                <td>Navigation fails due to an unmounted <code>BuildContext</code> or missing root navigator state.</td>
+                <td>
+                  <code>Navigator state or BuildContext is not mounted. Ensure MaterialApp has navigatorKey: IcueSdk.navigatorKey.</code>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2 class="section-header">Backend Environments &amp; Endpoints</h2>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Environment</th>
+                <th>Base URL</th>
+                <th>Target Use Case</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>IcueEnvironment.prod</code></td>
+                <td><code>https://icuepro.com/api</code></td>
+                <td>Production live school bus telemetry and production notification services.</td>
+              </tr>
+              <tr>
+                <td><code>IcueEnvironment.dev</code></td>
+                <td><code>https://itraxpro.com/api</code></td>
+                <td>Development, staging, and integration test servers.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2 class="section-header">Preflight Diagnostic Report Example</h2>
+        <p>Running <code>(await IcueSdk.checkSetup()).toDiagnosticSummary()</code> prints a structured table to console:
+        </p>
+        <div class="code-container">
+          <div class="code-header">
+            <div class="code-file-tag">
+              <span class="code-lang-dot"></span>
+              <span>Console Output</span>
+            </div>
+            <button class="copy-code-btn" onclick="copyCode(this)">📋 Copy</button>
+          </div>
+          <pre>┌────────────────────────────────────────────────────────┐
+│               iCue SDK Diagnostic Report               │
+├────────────────────────────────┬───────────────────────┤
+│ SDK Initialized                │ ✅ Yes                 │
+│ API Key Configured             │ ✅ Yes                 │
+│ API User Configured            │ ✅ Yes                 │
+│ Active Student ID              │ 12345                 │
+│ Session Authenticated          │ ✅ Authenticated       │
+│ Notification Mode              │ hostManaged           │
+│ Push Token Registered          │ ✅ Registered         │
+│ Navigator Key Bound            │ ✅ Bound               │
+│ Status                         │ 🚀 READY FOR TRACKING │
+└────────────────────────────────┴───────────────────────┘</pre>
+        </div>
+
+        <h2 class="section-header">Host-Owned Firebase Background Handlers</h2>
+        <p>If your application owns the top-level Firebase background messaging handler, delegate iCue payloads to the
+          SDK facade:</p>
+        <div class="code-container">
+          <div class="code-header">
+            <div class="code-file-tag">
+              <span class="code-lang-dot"></span>
+              <span>lib/main.dart</span>
+            </div>
+            <button class="copy-code-btn" onclick="copyCode(this)">📋 Copy</button>
+          </div>
+          <pre><span class="at">@pragma</span>(<span class="str">'vm:entry-point'</span>)
+<span class="kw">Future</span>&lt;<span class="kw">void</span>&gt; <span class="fn">firebaseMessagingBackgroundHandler</span>(<span class="fn">RemoteMessage</span> message) <span class="kw">async</span> {
+  <span class="kw">if</span> (<span class="fn">IcueSdk.isIcueNotification</span>(message)) {
+    <span class="kw">await</span> <span class="fn">IcueSdk.handleBackgroundMessage</span>(message);
+  }
+}
+
+<span class="cm">// When your host application receives a user tap on a notification:</span>
+<span class="kw">if</span> (<span class="fn">IcueSdk.isIcuePayload</span>(message.data)) {
+  <span class="kw">await</span> <span class="fn">IcueSdk.notifications.handleTap</span>(message, context: context);
+}</pre>
+        </div>
+
+        <div class="page-footer-nav">
+          <a class="nav-foot-btn prev" onclick="show('notif')">
+            <span class="nav-foot-label">← Previous</span>
+            <span class="nav-foot-title">Push Notifications</span>
+          </a>
+          <a class="nav-foot-btn next" onclick="show('production')">
+            <span class="nav-foot-label">Next Step →</span>
+            <span class="nav-foot-title">Production Readiness</span>
+          </a>
+        </div>
+      </article>
+
+      <!-- ════════════════ 09: PRODUCTION READINESS ════════════════ -->
+      <article id="production" class="doc-article" aria-label="Production Readiness">
+        <div class="article-header-meta">
+          <div class="page-kicker">
+            <span class="page-kicker-dot"></span>Operations
+          </div>
+          <button class="section-llm-btn" onclick="copySectionForLlm('production')" title="Copy production checklist for LLM">
+            <span>🤖 Copy for LLM</span>
+          </button>
+        </div>
+        <h1 class="article-title">Production Readiness</h1>
+        <p class="article-lead">
+          A comprehensive checklist for engineering, security, and QA teams prior to releasing an iCue-enabled app to
+          app stores.
+        </p>
+
+        <h2 class="section-header">Security &amp; API Key Isolation</h2>
+        <div class="card-grid">
+          <div class="feature-card">
+            <div class="card-icon" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">01</div>
+            <h3>Environment Separation</h3>
+            <p>Use distinct API credentials, Firebase projects, and Maps keys for development and production
+              environments.</p>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;">02</div>
+            <h3>Restricted Client Keys</h3>
+            <p>Restrict Google Maps API keys to your Android package name/SHA-1 and iOS bundle identifier in Google
+              Cloud Console.</p>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon" style="background: rgba(239, 68, 68, 0.15); color: #ef4444;">03</div>
+            <h3>Protect Server Secrets</h3>
+            <p>Never bundle private keys, service account JSON files, or repository tokens in client application
+              binaries.</p>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">04</div>
+            <h3>Sanitize Log Outputs</h3>
+            <p>Ensure sensitive student identifiers, auth tokens, or push tokens are omitted from public bug reports and
+              crash trackers.</p>
+          </div>
+        </div>
+
+        <h2 class="section-header">Go-Live Release Checklist</h2>
+        <div class="checklist-box">
+          <div class="checklist-entry">
+            <div class="check-pill">✓</div>
+            <div class="checklist-text">
+              <strong>Configuration Alignment:</strong> Production <code>apiKey</code>, <code>apiUser</code>,
+              environment, and bundle identifiers match production backend tenant setup.
+            </div>
+          </div>
+          <div class="checklist-entry">
+            <div class="check-pill">✓</div>
+            <div class="checklist-text">
+              <strong>Google Maps Billing:</strong> Google Maps SDK is enabled with active billing in Google Cloud
+              Console for both Android and iOS.
+            </div>
+          </div>
+          <div class="checklist-entry">
+            <div class="check-pill">✓</div>
+            <div class="checklist-text">
+              <strong>Navigation Observer:</strong> Exactly one <code>navigatorKey</code> is registered and
+              <code>IcueNavigatorObserver</code> is installed in <code>MaterialApp</code>.
+            </div>
+          </div>
+          <div class="checklist-entry">
+            <div class="check-pill">✓</div>
+            <div class="checklist-text">
+              <strong>Lifecycle Testing:</strong> Cold starts, app backgrounding, student switches, and push
+              notification tap routing have been verified on physical Android and iOS devices.
+            </div>
+          </div>
+          <div class="checklist-entry">
+            <div class="check-pill">✓</div>
+            <div class="checklist-text">
+              <strong>Quality Gates:</strong> <code>flutter analyze</code> and <code>flutter test</code> pass with zero
+              errors.
+            </div>
+          </div>
+        </div>
+
+        <div class="page-footer-nav">
+          <a class="nav-foot-btn prev" onclick="show('api')">
+            <span class="nav-foot-label">← Previous</span>
+            <span class="nav-foot-title">API Reference</span>
+          </a>
+          <a class="nav-foot-btn next" onclick="show('trouble')">
+            <span class="nav-foot-label">Next Step →</span>
+            <span class="nav-foot-title">Troubleshooting</span>
+          </a>
+        </div>
+      </article>
+
+      <!-- ════════════════ 10: TROUBLESHOOTING ════════════════ -->
+      <article id="trouble" class="doc-article" aria-label="Troubleshooting">
+        <div class="article-header-meta">
+          <div class="page-kicker">
+            <span class="page-kicker-dot"></span>Reference
+          </div>
+          <button class="section-llm-btn" onclick="copySectionForLlm('trouble')" title="Copy troubleshooting guide for LLM">
+            <span>🤖 Copy for LLM</span>
+          </button>
+        </div>
+        <h1 class="article-title">Troubleshooting</h1>
+        <p class="article-lead">
+          Common integration issues and how to resolve them quickly.
+        </p>
+
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Symptom</th>
+                <th>Root Cause &amp; Resolution</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>"No Config" in logs</strong></td>
+                <td>Ensure <code>IcueSdk.init</code> is called and <strong>awaited</strong> before invoking any live
+                  tracking or notification methods.</td>
+              </tr>
+              <tr>
+                <td><strong>Blank / gray map tiles</strong></td>
+                <td>Verify Google Maps SDK for Android / iOS is enabled in Google Cloud Console and billing is active on
+                  the linked cloud project.</td>
+              </tr>
+              <tr>
+                <td><strong>No vehicle location shown</strong></td>
+                <td>The SDK queries bus telemetry from the iCue API (device GPS permissions are not required). Confirm
+                  the bus is actively running on a route in the iCue portal.</td>
+              </tr>
+              <tr>
+                <td><strong>FCM token not registered</strong></td>
+                <td>Call <code>IcueSdk.notifications.syncTokenWithBackend()</code> or launch tracking for the student to
+                  synchronize device tokens with the backend.</td>
+              </tr>
+              <tr>
+                <td><strong>Notification tap does not open tracking</strong></td>
+                <td>Confirm <code>IcueSdk.navigatorKey</code> is assigned to <code>MaterialApp</code> and
+                  <code>IcueNavigatorObserver</code> is registered in <code>navigatorObservers</code>.</td>
+              </tr>
+              <tr>
+                <td><strong>iOS push notifications not arriving</strong></td>
+                <td>Confirm your APNs Authentication Key (.p8) is uploaded to Firebase Console and test on a real
+                  physical device (simulators do not support remote push).</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout info">
+          <div class="callout-icon-box">💬</div>
+          <div class="callout-body">
+            <strong>Need personalized assistance?</strong> Visit the <strong>Get Help</strong> section to contact the
+            iCue SDK engineering team.
+          </div>
+        </div>
+
+        <div class="page-footer-nav">
+          <a class="nav-foot-btn prev" onclick="show('production')">
+            <span class="nav-foot-label">← Previous</span>
+            <span class="nav-foot-title">Production Readiness</span>
+          </a>
+          <a class="nav-foot-btn next" onclick="show('support')">
+            <span class="nav-foot-label">Next Step →</span>
+            <span class="nav-foot-title">Get Help</span>
+          </a>
+        </div>
+      </article>
+
+      <!-- ════════════════ 11: SUPPORT ════════════════ -->
+      <article id="support" class="doc-article" aria-label="Support">
+        <div class="article-header-meta">
+          <div class="page-kicker">
+            <span class="page-kicker-dot"></span>Support
+          </div>
+          <button class="section-llm-btn" onclick="copySectionForLlm('support')" title="Copy support info for LLM">
+            <span>🤖 Copy for LLM</span>
+          </button>
+        </div>
+        <h1 class="article-title">Get Help &amp; Support</h1>
+        <p class="article-lead">
+          Official resources and direct contacts for iCue Flutter SDK developer support.
+        </p>
+
+        <div class="contact-banner">
+          <div class="contact-banner-left">
+            <div class="contact-avatar-circle">iC</div>
+            <div>
+              <div class="contact-banner-title">iCue Developer Support</div>
+              <div class="contact-banner-sub">SDK onboarding, API credentials, and production rollout assistance.</div>
+            </div>
+          </div>
+          <a href="mailto:chakri@thoughtniques.com" class="email-action-btn">
+            chakri@thoughtniques.com
+          </a>
+        </div>
+
+        <h2 class="section-header">Support Channels</h2>
+        <div class="card-grid">
+          <div class="feature-card">
+            <div class="card-icon" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">🔑</div>
+            <h3>API Keys &amp; Repository Access</h3>
+            <p>Request new organization API keys or rotate Cloudsmith repository tokens.</p>
+            <p style="margin-top: 10px;">
+              <a href="mailto:chakri@thoughtniques.com?subject=iCue%20SDK%20API%20Key%20Access">Contact support →</a>
+            </p>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;">🔧</div>
+            <h3>Integration Guidance</h3>
+            <p>Architecture reviews, custom router integration, and Firebase setup help.</p>
+            <p style="margin-top: 10px;">
+              <a href="mailto:chakri@thoughtniques.com?subject=iCue%20SDK%20Integration%20Guidance">Contact support
+                →</a>
+            </p>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon" style="background: rgba(239, 68, 68, 0.15); color: #ef4444;">🐛</div>
+            <h3>Bug Reports</h3>
+            <p>Report SDK issues with reproduction steps, platform details, and sanitized logs.</p>
+            <p style="margin-top: 10px;">
+              <a href="mailto:chakri@thoughtniques.com?subject=iCue%20SDK%20Bug%20Report">Report a bug →</a>
+            </p>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">🚀</div>
+            <h3>Feature Requests</h3>
+            <p>Suggest new capabilities, UI customizability, or event stream enhancements.</p>
+            <p style="margin-top: 10px;">
+              <a href="mailto:chakri@thoughtniques.com?subject=iCue%20SDK%20Feature%20Request">Send request →</a>
+            </p>
+          </div>
+        </div>
+
+        <div class="page-footer-nav">
+          <a class="nav-foot-btn prev" onclick="show('trouble')">
+            <span class="nav-foot-label">← Previous</span>
+            <span class="nav-foot-title">Troubleshooting</span>
+          </a>
+          <div></div>
+        </div>
+      </article>
+    </main>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════════
+         APPLICATION JAVASCRIPT
+         ══════════════════════════════════════════════════════════════════════════ -->
+  <script>
+    const pageTitles = {
+      overview: "Overview",
+      install: "Installation",
+      android: "Android Setup",
+      ios: "iOS Setup",
+      init: "Initialization",
+      tracking: "Live Tracking",
+      notif: "Push Notifications",
+      api: "API Reference",
+      production: "Production Readiness",
+      trouble: "Troubleshooting",
+      support: "Get Help",
+    };
+
+    /**
+     * Switch active documentation page
+     */
+    function show(id, btnElement, updateHash = true) {
+      const targetPage = document.getElementById(id);
+      const navBtn = btnElement || document.getElementById("nav-" + id);
+      if (!targetPage) return;
+
+      document.querySelectorAll(".doc-article").forEach((article) => {
+        article.classList.remove("active");
+      });
+      document.querySelectorAll(".nav-btn").forEach((btn) => {
+        btn.classList.remove("active");
+      });
+
+      targetPage.classList.add("active");
+      if (navBtn) navBtn.classList.add("active");
+
+      const sectionTitle = pageTitles[id] || id;
+      const titleEl = document.getElementById("breadcrumb-title");
+      if (titleEl) titleEl.textContent = sectionTitle;
+      document.title = `${sectionTitle} · iCue SDK Beta Docs`;
+
+      const viewport = document.querySelector(".content-viewport");
+      if (viewport) viewport.scrollTo({ top: 0, behavior: "smooth" });
+
+      if (updateHash) {
+        history.replaceState(null, "", "#" + id);
+      }
+
+      if (window.innerWidth <= 900) {
+        closeSidebar();
+      }
+    }
+
+    /**
+     * Theme Switcher (Light / Dark)
+     */
+    function toggleTheme() {
+      const currentTheme = document.documentElement.getAttribute("data-theme") || "dark";
+      const newTheme = currentTheme === "dark" ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", newTheme);
+      localStorage.setItem("icue-docs-theme", newTheme);
+
+      const metaTheme = document.getElementById("meta-theme-color");
+      if (metaTheme) {
+        metaTheme.setAttribute("content", newTheme === "dark" ? "#090d16" : "#ffffff");
+      }
+    }
+
+    /**
+     * 1-Click Code Copy helper
+     */
+    async function copyCode(button) {
+      const codeBlock = button.closest(".code-container");
+      if (!codeBlock) return;
+      const pre = codeBlock.querySelector("pre");
+      if (!pre) return;
+      const codeText = pre.textContent.trim();
+
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(codeText);
+        } else {
+          const textarea = document.createElement("textarea");
+          textarea.value = codeText;
+          textarea.style.position = "fixed";
+          textarea.style.opacity = "0";
+          document.body.appendChild(textarea);
+          textarea.select();
+          document.execCommand("copy");
+          textarea.remove();
+        }
+
+        button.textContent = "✓ Copied";
+        button.classList.add("copied");
+        setTimeout(() => {
+          button.textContent = "📋 Copy";
+          button.classList.remove("copied");
+        }, 2000);
+      } catch (_) {
+        button.textContent = "Failed";
+        setTimeout(() => {
+          button.textContent = "📋 Copy";
+        }, 2000);
+      }
+    }
+
+    /**
+     * Mobile Sidebar Toggle
+     */
+    function toggleSidebar() {
+      document.getElementById("sidebar").classList.toggle("open");
+      document.getElementById("mobile-overlay").classList.toggle("open");
+    }
+
+    function closeSidebar() {
+      document.getElementById("sidebar").classList.remove("open");
+      document.getElementById("mobile-overlay").classList.remove("open");
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // LLM PROMPT GENERATION & EXPORT LOGIC
+    // ══════════════════════════════════════════════════════════════════════════
+    const ICUE_BETA_LLM_PROMPT = `# System Context & Role
+You are a Principal Flutter Architect. Your task is to implement the modern \`icue_sdk\` (version ^0.2.0-beta.2) into a consumer Flutter parent application and provide expert diagnostic/troubleshooting guidance for any runtime errors.
+
+Official Documentation References:
+- Beta SDK Documentation: https://www.icue.school/sdk-beta-docs
+- Live SDK Documentation: https://www.icue.school/sdk-docs
+- Master AI Reference: https://www.icue.school/llms-full.txt
+- Package Repository: https://dart.cloudsmith.io/icue/icue-sdk/
+
+Note for LLMs: 'icue_sdk' is hosted on a private Cloudsmith registry and is not in public pub.dev. All classes, methods, and configurations are fully provided below.
+
+# 1. Package Dependency Setup
+Add to \`pubspec.yaml\`:
+\`\`\`yaml
+dependencies:
+  flutter:
+    sdk: flutter
+  icue_sdk:
+    hosted:
+      name: icue_sdk
+      url: https://dart.cloudsmith.io/icue/icue-sdk/
+    version: ^0.2.0-beta.2
+\`\`\`
+
+# 2. Android Configuration
+In \`android/app/src/main/AndroidManifest.xml\`:
+- Add inside \`<manifest>\`:
+  \`<uses-permission android:name="android.permission.INTERNET" />\`
+  \`<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\`
+- Add inside \`<application>\`:
+  \`<meta-data android:name="com.google.android.geo.API_KEY" android:value="YOUR_GOOGLE_MAPS_API_KEY" />\`
+- In \`android/app/build.gradle\`: \`minSdkVersion 24\`
+
+# 3. iOS Configuration
+In \`ios/Runner/AppDelegate.swift\`:
+\`\`\`swift
+import UIKit
+import Flutter
+import GoogleMaps
+
+@UIApplicationMain
+@objc class AppDelegate: FlutterAppDelegate {
+  override func application(
+    _ application: UIApplication,
+    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
+  ) -> Bool {
+    GMSServices.provideAPIKey("YOUR_GOOGLE_MAPS_API_KEY")
+    GeneratedPluginRegistrant.register(with: self)
+    return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+}
+\`\`\`
+
+# 4. Flutter Integration Code
+### A. Bind Navigator Key & Observer in \`lib/main.dart\`
+\`\`\`dart
+import 'package:flutter/material.dart';
+import 'package:icue_sdk/icue_sdk.dart';
+
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'School Transport App',
+      navigatorKey: IcueSdk.navigatorKey,
+      navigatorObservers: [IcueNavigatorObserver()],
+      home: const HomeScreen(),
+    );
+  }
+}
+\`\`\`
+
+### B. Flexible SDK Initialization (\`IcueSdkConfig\`)
+\`\`\`dart
+import 'package:icue_sdk/icue_sdk.dart';
+
+Future<void> initIcueSdk() async {
+  await IcueSdk.init(
+    const IcueSdkConfig(
+      apiKey: 'YOUR_ICUE_API_KEY',
+      apiUser: 'PARENT_OR_STUDENT_USER_ID',
+      env: IcueEnvironment.prod, // Or IcueEnvironment.dev for testing
+      notifications: IcueNotifications.disabled(), // Options: .disabled(), .hostManaged(...), .firebaseManaged(...)
+    ),
+  );
+}
+\`\`\`
+
+### C. Open Live Tracking Screen with Typed Outcome
+\`\`\`dart
+import 'package:flutter/material.dart';
+import 'package:icue_sdk/icue_sdk.dart';
+
+Future<void> launchBusTracking(BuildContext context, String studentId) async {
+  final result = await IcueSdk.openLiveTracking(
+    context,
+    identificationNo: studentId,
+  );
+
+  if (result.isSuccess) {
+    debugPrint('Tracking view launched');
+  } else if (result.isFailure) {
+    debugPrint('Error: \${result.errorMessage}');
+  }
+}
+\`\`\`
+
+### D. Diagnostic Preflight Check
+\`\`\`dart
+final report = await IcueSdk.checkSetup();
+if (!report.isReady) {
+  debugPrint('Setup issues found: \${report.issues}');
+}
+debugPrint(report.toDiagnosticSummary());
+\`\`\`
+
+### E. Multi-Student Push Notification Registration
+\`\`\`dart
+// Register multiple children for background notifications:
+await IcueSdk.notifications.registerStudents(['STU_001', 'STU_002'], token: fcmToken);
+
+// Query currently registered students:
+final registeredList = await IcueSdk.notifications.getRegisteredStudents();
+\`\`\`
+
+### F. Host-Managed Push Notification Handling
+\`\`\`dart
+// Background Handler in main.dart
+@pragma('vm:entry-point')
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  if (IcueSdk.isIcueNotification(message)) {
+    await IcueSdk.handleBackgroundMessage(message);
+  }
+}
+
+// Notification Tap Handler in Host App
+if (IcueSdk.isIcuePayload(message.data)) {
+  await IcueSdk.notifications.handleTap(message, context: context);
+}
+\`\`\`
+
+# 5. Architecture Context & Troubleshooting Matrix
+1. **Zero Parent GPS Permission**: Parent devices do NOT need \`ACCESS_FINE_LOCATION\`; live bus positions are polled every 5 seconds from the iCue Cloud API.
+2. **IcueNotInitializedException**: Ensure \`await IcueSdk.init(config)\` completes before calling \`openLiveTracking\`.
+3. **Blank Maps**: Ensure Google Maps SDK is enabled and billing is active in Google Cloud Console with correct SHA-1/Bundle ID restrictions.
+4. **Cold Start Taps**: \`IcueNavigatorObserver()\` automatically buffers and replays notification intents when the root navigator mounts.
+5. **Token Safety**: \`IcueSdk.logout()\` removes backend push bindings (\`/v1.0/logout\`) without deleting physical device FCM tokens.
+6. **Isolated Storage**: Storage keys are namespaced per client (\`icue_\${apiUser}_user_\${studentId}\`) to prevent tenant collisions across schools.
+`;
+
+    const ICUE_BETA_SECTIONS = {
+      overview: `# iCue Flutter SDK (v0.2.0-beta.2) - Overview\nNext-gen Flutter SDK for live school bus tracking with zero-implicit Firebase hooks, preflight diagnostics, and isolated sessions.\nRequires Flutter 3.10+, Dart 3.0+, Android 24+, iOS 12+.\nParent GPS permissions are not required (bus telemetry is queried via iCue API).`,
+      install: `# iCue Flutter SDK - Installation\nAdd to pubspec.yaml:\n\`\`\`yaml\nicue_sdk:\n  hosted:\n    name: icue_sdk\n    url: https://dart.cloudsmith.io/icue/icue-sdk/\n  version: ^0.2.0-beta.2\n\`\`\`\nAuthenticate: \`dart pub token add https://dart.cloudsmith.io/icue/icue-sdk/\``,
+      android: `# iCue Flutter SDK - Android Setup\n1. In AndroidManifest.xml add INTERNET & POST_NOTIFICATIONS permissions.\n2. Add Maps API key: com.google.android.geo.API_KEY\n3. Set minSdkVersion 24 in build.gradle.`,
+      ios: `# iCue Flutter SDK - iOS Setup\n1. In AppDelegate.swift initialize: GMSServices.provideAPIKey("YOUR_GOOGLE_MAPS_API_KEY")\n2. Enable Push Notifications in Xcode.\n3. Upload APNs .p8 key to Firebase Console.`,
+      init: `# iCue Flutter SDK - Initialization\n1. Initialize: await IcueSdk.init(const IcueSdkConfig(apiKey: 'KEY', apiUser: 'USER', env: IcueEnvironment.prod, notifications: IcueNotifications.disabled()));\n2. Bind Navigator: MaterialApp(navigatorKey: IcueSdk.navigatorKey, navigatorObservers: [IcueNavigatorObserver()]);`,
+      tracking: `# iCue Flutter SDK - Live Tracking\nOpen tracking view:\n\`\`\`dart\nfinal result = await IcueSdk.openLiveTracking(context, identificationNo: '12345');\n\`\`\``,
+      notif: `# iCue Flutter SDK - Push Notifications\nSupports multiple contracts: IcueNotifications.disabled(), IcueNotifications.hostManaged(), or IcueNotifications.firebaseManaged().\nMulti-student support with IcueSdk.notifications.registerStudents(['ID_1', 'ID_2']).`,
+      api: `# iCue Flutter SDK - API Reference\nClasses: IcueSdk, IcueSdkConfig, IcueNotifications, IcueLaunchResult, IcueSetupReport.\nExceptions: IcueNotInitializedException, IcueInvalidStudentException, IcueNavigationException.`,
+      production: `# iCue Flutter SDK - Production Readiness\n1. Verify Google Maps API key restrictions & billing.\n2. Bind IcueSdk.navigatorKey & IcueNavigatorObserver.\n3. Run preflight check: (await IcueSdk.checkSetup()).toDiagnosticSummary().`,
+      trouble: `# iCue Flutter SDK - Troubleshooting\n- "No Config" / IcueNotInitializedException: await IcueSdk.init before invoking methods.\n- Blank maps: check Google Maps API key & Cloud Console billing.\n- Diagnostic check: use await IcueSdk.checkSetup() to pinpoint errors.\n- Vehicle not moving: verify bus is active on route in admin portal.`,
+      support: `# iCue Flutter SDK - Support\nEmail: chakri@thoughtniques.com\nPhone/WhatsApp: +91 77999 20206`,
+    };
+
+    function getActiveSectionId() {
+      const active = document.querySelector(".doc-article.active");
+      return active ? active.id : "overview";
+    }
+
+    function openLlmModal() {
+      const modal = document.getElementById("llm-modal-overlay");
+      const activeId = getActiveSectionId();
+      const activeNameEl = document.getElementById("llm-modal-active-section-name");
+      const previewEl = document.getElementById("llm-prompt-preview-text");
+
+      if (activeNameEl) {
+        activeNameEl.textContent = pageTitles[activeId] || activeId;
+      }
+      if (previewEl) {
+        previewEl.textContent = ICUE_BETA_LLM_PROMPT;
+      }
+      if (modal) {
+        modal.classList.add("open");
+      }
+    }
+
+    function closeLlmModal() {
+      const modal = document.getElementById("llm-modal-overlay");
+      if (modal) modal.classList.remove("open");
+    }
+
+    function handleModalBackdropClick(e) {
+      if (e.target && e.target.id === "llm-modal-overlay") {
+        closeLlmModal();
+      }
+    }
+
+    async function writeClipboardText(text) {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        textarea.remove();
+      }
+    }
+
+    async function copyFullLlmPrompt() {
+      const btn = document.getElementById("btn-copy-full-prompt");
+      const topbarBtn = document.getElementById("topbar-llm-btn");
+      try {
+        await writeClipboardText(ICUE_BETA_LLM_PROMPT);
+        if (btn) btn.innerHTML = "✓ Copied!";
+        if (topbarBtn) topbarBtn.classList.add("copied");
+        showToast(
+          "✓ Copied Beta Prompt for LLMs",
+          "Full Beta SDK integration prompt copied to clipboard. Ready to paste into Claude, Cursor, or ChatGPT."
+        );
+        setTimeout(() => {
+          if (btn) btn.innerHTML = "📋 Copy Full Prompt";
+          if (topbarBtn) topbarBtn.classList.remove("copied");
+          closeLlmModal();
+        }, 1200);
+      } catch (err) {
+        if (btn) btn.textContent = "Copy Failed";
+        setTimeout(() => {
+          if (btn) btn.innerHTML = "📋 Copy Full Prompt";
+        }, 2000);
+      }
+    }
+
+    async function copyActiveSectionLlm() {
+      const activeId = getActiveSectionId();
+      await copySectionForLlm(activeId);
+      closeLlmModal();
+    }
+
+    async function copySectionForLlm(sectionId) {
+      const title = pageTitles[sectionId] || sectionId;
+      const sectionMarkdown = ICUE_BETA_SECTIONS[sectionId] || `# iCue SDK - ${title}`;
+      const fullContent = `# Context for AI/LLM\nYou are assisting with implementing the iCue Flutter SDK (v0.2.0-beta.2).\n\n${sectionMarkdown}`;
+
+      try {
+        await writeClipboardText(fullContent);
+        showToast(
+          `✓ Copied "${title}" for LLM`,
+          `Section documentation copied in Markdown format for LLM prompting.`
+        );
+      } catch (err) {
+        showToast("Copy Failed", "Please manually select and copy the text.");
+      }
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        closeSidebar();
+        closeLlmModal();
+      }
+    });
+
+    /**
+     * Version Switcher Handler
+     */
+    let toastTimer = null;
+    function onVersionChange(version) {
+      const sidebarSelect = document.getElementById("sidebar-version-select");
+      const topbarSelect = document.getElementById("topbar-version-select");
+      if (sidebarSelect) sidebarSelect.value = version;
+      if (topbarSelect) topbarSelect.value = version;
+
+      if (version === "live") {
+        showToast(
+          "Switching to Live Docs",
+          "Loading iCue Flutter SDK Live documentation (v0.1.0)..."
+        );
+        const targetHash = window.location.hash || "";
+        setTimeout(() => {
+          window.location.href = "/sdk-docs" + targetHash;
+        }, 300);
+      } else {
+        showToast(
+          "Beta SDK (v0.2.0-beta.2)",
+          "Currently viewing the active pre-release documentation for iCue Flutter SDK."
+        );
+      }
+    }
+
+    function showToast(title, message) {
+      const toast = document.getElementById("toast-popup");
+      if (!toast) return;
+      toast.querySelector(".toast-popup-title").innerHTML = title;
+      toast.querySelector(".toast-popup-msg").innerHTML = message;
+      toast.classList.add("visible");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        hideToast();
+      }, 5000);
+    }
+
+    function hideToast() {
+      const toast = document.getElementById("toast-popup");
+      if (toast) toast.classList.remove("visible");
+      clearTimeout(toastTimer);
+    }
+
+    // Handle Initial Route via Hash & Hash Changes
+    function handleHashRoute() {
+      const hash = window.location.hash.replace("#", "");
+      if (hash && pageTitles[hash]) {
+        show(hash, null, false);
+      }
+    }
+
+    handleHashRoute();
+    window.addEventListener("hashchange", handleHashRoute);
+  </script>
+
+  <!-- LLM Integration Modal -->
+  <div class="llm-modal-overlay" id="llm-modal-overlay" onclick="handleModalBackdropClick(event)">
+    <div class="llm-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="llm-modal-title">
+      <div class="llm-modal-header">
+        <div class="llm-modal-header-left">
+          <div class="llm-modal-icon">🤖</div>
+          <div>
+            <h2 class="llm-modal-title" id="llm-modal-title">Copy Documentation for LLMs</h2>
+            <p class="llm-modal-subtitle">Generate high-fidelity, hallucination-free prompts for Claude, Cursor, ChatGPT, and Copilot.</p>
+          </div>
+        </div>
+        <button class="llm-modal-close" onclick="closeLlmModal()" aria-label="Close modal">✕</button>
+      </div>
+
+      <div class="llm-modal-body">
+        <!-- Option 1: Full Prompt -->
+        <div class="llm-option-card highlighted">
+          <div class="llm-option-badge">Recommended</div>
+          <div class="llm-option-content">
+            <div class="llm-option-title">
+              <span>⚡</span>
+              <span>Full Beta SDK Integration Prompt</span>
+            </div>
+            <p class="llm-option-desc">
+              Copies system context, Cloudsmith setup, Android/iOS configs, IcueSdkConfig modes, preflight diagnostics, typed launch results, and host notification handlers.
+            </p>
+          </div>
+          <button class="llm-primary-copy-btn" id="btn-copy-full-prompt" onclick="copyFullLlmPrompt()">
+            <span>📋 Copy Full Prompt</span>
+          </button>
+        </div>
+
+        <!-- Option 2: Active Section Context -->
+        <div class="llm-option-card">
+          <div class="llm-option-content">
+            <div class="llm-option-title">
+              <span>📄</span>
+              <span>Active Section (<span id="llm-modal-active-section-name">Overview</span>)</span>
+            </div>
+            <p class="llm-option-desc">
+              Copies only the currently active documentation section formatted in Markdown for prompt context.
+            </p>
+          </div>
+          <button class="llm-secondary-copy-btn" id="btn-copy-section-prompt" onclick="copyActiveSectionLlm()">
+            <span>📋 Copy Section</span>
+          </button>
+        </div>
+
+        <!-- Collapsible Preview -->
+        <details class="llm-preview-details" id="llm-preview-details">
+          <summary class="llm-preview-summary">
+            <span>👁️ Preview Formatted Prompt</span>
+            <span class="summary-chevron">▼</span>
+          </summary>
+          <div class="llm-preview-content">
+            <pre id="llm-prompt-preview-text"><code>...</code></pre>
+          </div>
+        </details>
+      </div>
+
+      <div class="llm-modal-footer">
+        <div class="llm-footer-tip">
+          💡 <strong>Tip for Cursor / Claude / ChatGPT:</strong> Paste this prompt into your AI chat or Cursor <code>@docs</code>. Say <em>"Implement iCue live tracking and diagnostic report in my Flutter app."</em>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Modal Notification -->
+  <div class="toast-popup" id="toast-popup">
+    <div class="toast-popup-icon">ℹ️</div>
+    <div>
+      <div class="toast-popup-title">SDK Version Info</div>
+      <div class="toast-popup-msg">Information regarding SDK versioning.</div>
+    </div>
+    <button class="toast-close-btn" onclick="hideToast()" aria-label="Close notification">✕</button>
+  </div>
+</body>
+
+</html>

@@ -9,6 +9,7 @@ environment:
 dependencies:
   api_client:
   auth:
+  bus_tracking_core:
   flutter:
     sdk: flutter
   flutter_svg: ^2.2.1

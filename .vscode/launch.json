@@ -174,6 +174,13 @@
         "prod",
         "--dart-define=ENV=prod"
       ]
+    },
+    {
+      "name": "icue_sdk example",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "sdks/icue_sdk/example",
+      "program": "lib/main.dart"
     }
   ]
 }

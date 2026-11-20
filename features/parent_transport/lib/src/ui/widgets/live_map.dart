@@ -1,10 +1,10 @@
 import 'dart:async';
 
 import 'package:auth/auth.dart';
+import 'package:bus_tracking_core/bus_tracking_core.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:parent_l10n/parent_l10n.dart';
-import 'package:parent_transport/src/geo/bus_geometry.dart';
 import 'package:parent_transport/src/models/live_data.dart';
 
 const _assets = 'packages/parent_transport/assets';

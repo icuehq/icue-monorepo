@@ -1,15 +1,15 @@
 import 'dart:async';
 
 import 'package:auth/auth.dart';
+import 'package:bus_tracking_core/bus_tracking_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:go_router/go_router.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:parent_l10n/parent_l10n.dart';
 import 'package:parent_transport/src/providers/parent_tracking_provider.dart';
 import 'package:parent_transport/src/ui/widgets/live_map.dart';
 import 'package:parent_transport/src/ui/widgets/route_notifications_dialog.dart';
-import 'package:parent_transport/src/ui/widgets/tracking_info_card.dart';
-import 'package:parent_transport/src/ui/widgets/tracking_message_dialog.dart';
 import 'package:provider/provider.dart';
 
 const _pollInterval = Duration(seconds: 5);
@@ -85,7 +85,13 @@ class _TrackBusPageState extends State<TrackBusPage>
       showDialog<void>(
         context: context,
         barrierDismissible: false,
-        builder: (_) => TrackingMessageDialog(message: message),
+        builder: (_) => TrackingMessageDialog(
+          message: message,
+          onClose: (context) {
+            Navigator.of(context, rootNavigator: true).pop();
+            context.go('/');
+          },
+        ),
       );
     });
   }

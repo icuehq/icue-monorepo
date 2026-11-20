@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:api_client/api_client.dart';
 import 'package:auth/auth.dart';
+import 'package:bus_tracking_core/bus_tracking_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:injectable/injectable.dart';
-import 'package:intl/intl.dart';
 import 'package:parent_transport/src/models/live_data.dart';
 import 'package:parent_transport/src/models/live_track.dart';
 import 'package:parent_transport/src/models/route_coordinates.dart';
@@ -249,19 +249,5 @@ class ParentTrackingProvider extends ChangeNotifier {
   void dispose() {
     _auth.removeListener(_onAuthChanged);
     super.dispose();
-  }
-}
-
-/// Seconds between the bus's last fix and the server clock (`HH:mm:ss`);
-/// 999 when either cannot be read.
-int fixAgeSeconds(String coordinatesTime, String serverTime) {
-  try {
-    final format = DateFormat('HH:mm:ss');
-    return format
-        .parse(serverTime)
-        .difference(format.parse(coordinatesTime))
-        .inSeconds;
-  } on FormatException {
-    return 999;
   }
 }

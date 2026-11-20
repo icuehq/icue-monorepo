@@ -1,11 +1,8 @@
 import 'package:api_client/api_client.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:parent_transport/src/geo/bus_geometry.dart';
 import 'package:parent_transport/src/models/live_track.dart';
 import 'package:parent_transport/src/models/transport_record.dart';
 import 'package:parent_transport/src/models/vehicle_location.dart';
-import 'package:parent_transport/src/providers/parent_tracking_provider.dart';
 import 'package:parent_transport/src/services/parent_transport_service.dart';
 
 class _FakeApiClient extends Fake implements ApiClient {
@@ -32,33 +29,6 @@ class _FakeApiClient extends Fake implements ApiClient {
 }
 
 void main() {
-  group('bus geometry', () {
-    test('distance of one degree of latitude is about 111 km', () {
-      final d = distanceMeters(const LatLng(0, 0), const LatLng(1, 0));
-      expect(d, closeTo(111195, 200));
-    });
-
-    test('rotation takes the short way round 0/360', () {
-      expect(interpolateRotation(350, 10, 0.5), closeTo(0, 0.001));
-      expect(interpolateRotation(10, 350, 0.5), closeTo(0, 0.001));
-    });
-
-    test('snapper snaps near fixes and leaves far ones alone', () {
-      const line = [LatLng(0, 0), LatLng(0, 0.0005), LatLng(0, 0.001)];
-      final snapper = PolylineSnapper();
-      const near = LatLng(0.00001, 0.00051);
-      expect(snapper.snap(near, line), line[1]);
-      const far = LatLng(0.01, 0.0005);
-      expect(snapper.snap(far, line), far);
-      expect(snapper.snap(const LatLng(5, 5), const []), const LatLng(5, 5));
-    });
-  });
-
-  test('fixAgeSeconds reads HH:mm:ss and falls back to 999', () {
-    expect(fixAgeSeconds('10:00:00', '10:00:20'), 20);
-    expect(fixAgeSeconds('x', '10:00:20'), 999);
-  });
-
   test('VehicleLocation parses the first-load payload', () {
     final v = VehicleLocation.fromJson({
       'RouteDetailsId': 7,

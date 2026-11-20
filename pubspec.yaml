@@ -16,6 +16,7 @@ workspace:
   - packages/icue_firebase
   - packages/parent_l10n
   - packages/icue_webview
+  - packages/bus_tracking_core
   - features/auth
   - features/drivers
   - features/vehicles
@@ -36,6 +37,8 @@ workspace:
   - features/safehands
   - features/school_connect
   - features/mess_meals
+  - sdks/icue_sdk
+  - sdks/icue_sdk/example
 
 dev_dependencies:
   melos: ^8.9.0
