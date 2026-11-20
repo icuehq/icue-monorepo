@@ -402,7 +402,7 @@ Incoming push notifications from iCue deliver the following response map (access
 ## 🤝 Support
 
 - **Live SDK Documentation**: [https://www.icue.school/sdk-docs](https://www.icue.school/sdk-docs)
-- **Beta Integration Guide**: [icue-sdk-beta-docs.html](icue-sdk-beta-docs.html)
+- **Beta Integration Guide**: [https://www.icue.school/sdk-beta-docs](https://www.icue.school/sdk-beta-docs)
 - **Technical Support**: [chakri@thoughtniques.com](mailto:chakri@thoughtniques.com)
 - **Package Registry**: [Cloudsmith iCue-SDK](https://dart.cloudsmith.io/icue/icue-sdk/)
 

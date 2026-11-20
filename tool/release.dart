@@ -10,6 +10,7 @@
 //       --patch/--minor/--major the first beta of the next version
 //       (0.2.0-beta.2 --minor -> 0.3.0-beta.1; stable 0.2.0 needs the flag).
 // stable: promotes the current beta (0.2.0-beta.3 -> 0.2.0).
+// The SDK docs HTML lives in the icue-website repo (../icue-website/public).
 // Release notes come from -m, or from a "## Unreleased" section in CHANGELOG.md.
 import 'dart:io';
 
@@ -26,7 +27,8 @@ Never die(String message) {
   exit(1);
 }
 
-String _path(String relative) => '$root/$relative';
+String _path(String relative) =>
+    relative.startsWith('/') ? relative : '$root/$relative';
 
 String read(String relative) => File(_path(relative)).readAsStringSync();
 
@@ -170,8 +172,12 @@ Future<void> publishDryRun(String dir) async {
   }
 }
 
-const liveDocs = '$sdkDir/icue-sdk-docs.html';
-const betaDocs = '$sdkDir/icue-sdk-beta-docs.html';
+/// The SDK docs live in the icue-website repo (single source), expected next to
+/// this repo; override with ICUE_WEBSITE_DOCS_DIR.
+final docsDir =
+    Platform.environment['ICUE_WEBSITE_DOCS_DIR'] ?? '../icue-website/public';
+String get liveDocs => '$docsDir/icue-sdk-docs.html';
+String get betaDocs => '$docsDir/icue-sdk-beta-docs.html';
 
 /// The version a docs page declares in its structured data ("v0.1.0").
 String? docsVersion(String relative) =>
@@ -180,6 +186,14 @@ String? docsVersion(String relative) =>
 /// Swaps the versions shown in the two hand-written HTML docs. Only exact
 /// version strings are replaced; the page content stays manual.
 void updateDocs(Version next) {
+  if (!File(_path(liveDocs)).existsSync() ||
+      !File(_path(betaDocs)).existsSync()) {
+    stdout.writeln(
+      'NOTE: SDK docs not found in $docsDir; update icue-sdk-docs.html and '
+      'icue-sdk-beta-docs.html in icue-website by hand (or set ICUE_WEBSITE_DOCS_DIR).',
+    );
+    return;
+  }
   if (next.beta != null) {
     final old = docsVersion(betaDocs);
     if (old == null || old == '$next') return;
@@ -395,7 +409,8 @@ Future<void> main(List<String> args) async {
     published = true;
     originals.clear();
     stdout.writeln(
-      '\nPublished icue_sdk $next. Review and commit the changes: git diff',
+      '\nPublished icue_sdk $next. Review and commit the changes (git diff), '
+      'and commit the docs in icue-website if they changed.',
     );
   } finally {
     if (!published) _restore();

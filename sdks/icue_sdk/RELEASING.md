@@ -57,7 +57,9 @@ What it edits for you:
 - `sdks/icue_sdk/CHANGELOG.md`: a new `## <version>` section with the notes.
 - `sdks/icue_sdk/README.md`: version badge and the install snippet for the
   channel being released (beta pin, or stable `^X.Y.Z`).
-- `icue-sdk-docs.html` and `icue-sdk-beta-docs.html`: only the version strings.
+- The SDK docs pages `icue-sdk-docs.html` and `icue-sdk-beta-docs.html` in the
+  **icue-website** repo (`../icue-website/public`, or `ICUE_WEBSITE_DOCS_DIR`):
+  only the version strings.
   A beta swaps the beta version (and `vX.Y` in titles when the minor changes) in
   both pages; a stable swaps the live version (dropdown, hero tag, install
   snippet, structured data) in both pages. Exact strings only.
@@ -76,8 +78,9 @@ at the publish step; use the next version.
 `icue_sdk` depends on `bus_tracking_core`: when the SDK needs newer shared code,
 release with `--core`, otherwise installing the SDK fails.
 
-Not automated: the content of the HTML docs (new features, API changes,
-examples) and `PROJECT_CONTEXT.md`. Update those by hand before releasing.
+Not automated: the content of those docs (new features, API changes, examples)
+and `PROJECT_CONTEXT.md`. Update them by hand before releasing. The docs files
+are edited in the website repo, so commit and deploy them there too.
 
 ## Promote a beta to stable
 

@@ -28,6 +28,5 @@ doc/api/
 
 # Development scripts and internal documentation
 tool/
-icue-sdk-*.html
 PROJECT_CONTEXT.md
 RELEASING.md
