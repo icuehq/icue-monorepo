@@ -8,15 +8,10 @@ service cloud.firestore {
       return request.auth != null && string(request.auth.token.orgId) == orgId
         && string(request.auth.token.zoneId) == zoneId && string(request.auth.token.branchId) == branchId;
     }
-    function permissions(orgId, zoneId, branchId) {
-      return firestore.get(/databases/(default)/documents/orgs/$(orgId)/zones/$(zoneId)/branches/$(branchId)/userAccess/$(request.auth.uid)).data.permissions;
-    }
-    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryItems/{id} {
-      allow read: if inBranch(orgId, zoneId, branchId) && 'inventory.items.view' in permissions(orgId, zoneId, branchId);
-    }
-    // Library has no sub-permissions: any non-parent staff user of the branch (same as `(default)`).
+    // Inventory and Library have no sub-permissions: any non-parent staff user of the branch (same as `(default)`).
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/{coll}/{id} {
-      allow read: if coll in ['inventoryBalances', 'libraryCatalogue', 'libraryLoans', 'libraryFines', 'libraryIncidents', 'libraryMembers'] && inBranch(orgId, zoneId, branchId)
+      allow read: if coll in ['inventoryItems', 'inventoryBalances', 'libraryCatalogue', 'libraryLoans', 'libraryFines', 'libraryIncidents', 'libraryMembers']
+        && inBranch(orgId, zoneId, branchId)
         && request.auth.token.get('personType', '') != 'parent';
     }
   }
