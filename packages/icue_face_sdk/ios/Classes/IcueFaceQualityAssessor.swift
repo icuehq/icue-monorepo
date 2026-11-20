@@ -36,11 +36,11 @@ public class IcueFaceQualityAssessor {
             return IcueFaceQualityResult(status: .tooSmall, blurScore: 0.0, isValid: false)
         }
 
-        if face.hasHeadEulerAngleY && abs(face.headEulerAngleY) > MAX_YAW_ANGLE {
+        if face.hasHeadEulerAngleY && abs(Float(face.headEulerAngleY)) > MAX_YAW_ANGLE {
             return IcueFaceQualityResult(status: .extremePose, blurScore: 0.0, isValid: false)
         }
 
-        if face.hasHeadEulerAngleX && abs(face.headEulerAngleX) > MAX_PITCH_ANGLE {
+        if face.hasHeadEulerAngleX && abs(Float(face.headEulerAngleX)) > MAX_PITCH_ANGLE {
             return IcueFaceQualityResult(status: .extremePose, blurScore: 0.0, isValid: false)
         }
 

@@ -37,6 +37,7 @@ internal class IcueFaceCameraViewController: UIViewController, AVCaptureVideoDat
 
     private let overlayView = BoundingBoxOverlayView()
     private let statusPill = UILabel()
+    private let countLabel = UILabel()
     private let titleLabel = UILabel()
     private let subtitleLabel = UILabel()
     private let closeButton = UIButton(type: .system)
@@ -76,6 +77,7 @@ internal class IcueFaceCameraViewController: UIViewController, AVCaptureVideoDat
         let position: AVCaptureDevice.Position = (lens == "back") ? .back : .front
         guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: position) ??
                            AVCaptureDevice.default(for: .video) else {
+            statusPill.isHidden = false
             statusPill.text = "Camera device unavailable"
             return
         }
@@ -118,6 +120,7 @@ internal class IcueFaceCameraViewController: UIViewController, AVCaptureVideoDat
                 session.startRunning()
             }
         } catch {
+            statusPill.isHidden = false
             statusPill.text = "Failed to open camera: \(error.localizedDescription)"
         }
     }
@@ -148,9 +151,30 @@ internal class IcueFaceCameraViewController: UIViewController, AVCaptureVideoDat
         subtitleLabel.textColor = UIColor.lightGray
         subtitleLabel.font = UIFont.systemFont(ofSize: 11, weight: .regular)
 
-        let titleStack = UIStackView(arrangedSubviews: [titleLabel, subtitleLabel])
-        titleStack.axis = .vertical
-        titleStack.spacing = 2
+        // Live attendance shows its present count large in the header instead of the pill.
+        countLabel.isHidden = mode != .liveAttendance
+        if mode == .liveAttendance { updateAttendanceCount(present: 0, total: profiles.count) }
+
+        // Title + subtitle form one block; the count is centred on that block, right after it.
+        // The title wraps to two lines if the row is tight so the count never reaches the buttons.
+        titleLabel.numberOfLines = 2
+        titleLabel.lineBreakMode = .byWordWrapping
+        countLabel.setContentHuggingPriority(.required, for: .horizontal)
+        countLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
+
+        let textBlock = UIStackView(arrangedSubviews: [titleLabel, subtitleLabel])
+        textBlock.axis = .vertical
+        textBlock.spacing = 2
+        textBlock.setContentHuggingPriority(.required, for: .horizontal)
+        textBlock.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
+        let rowSpacer = UIView()
+        rowSpacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
+
+        let titleStack = UIStackView(arrangedSubviews: [textBlock, countLabel, rowSpacer])
+        titleStack.axis = .horizontal
+        titleStack.alignment = .center
+        titleStack.spacing = 12
         titleStack.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(titleStack)
 
@@ -185,6 +209,7 @@ internal class IcueFaceCameraViewController: UIViewController, AVCaptureVideoDat
         statusPill.clipsToBounds = true
         statusPill.translatesAutoresizingMaskIntoConstraints = false
         statusPill.text = getInitialStatusText()
+        statusPill.isHidden = mode == .liveAttendance
         view.addSubview(statusPill)
 
         // Action / Finish Button
@@ -230,8 +255,9 @@ internal class IcueFaceCameraViewController: UIViewController, AVCaptureVideoDat
             topScrim.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             topScrim.heightAnchor.constraint(equalToConstant: 140),
 
-            titleStack.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 12),
+            titleStack.centerYAnchor.constraint(equalTo: cameraFlipButton.centerYAnchor),
             titleStack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            titleStack.trailingAnchor.constraint(lessThanOrEqualTo: cameraFlipButton.leadingAnchor, constant: -12),
 
             cameraFlipButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 12),
             cameraFlipButton.trailingAnchor.constraint(equalTo: closeButton.leadingAnchor, constant: -10),
@@ -261,10 +287,20 @@ internal class IcueFaceCameraViewController: UIViewController, AVCaptureVideoDat
         ])
     }
 
+    private func updateAttendanceCount(present: Int, total: Int) {
+        countLabel.attributedText = NSAttributedString(
+            string: "\(present)/\(total)",
+            attributes: [
+                .font: UIFont.monospacedDigitSystemFont(ofSize: 28, weight: .heavy),
+                .foregroundColor: UIColor.white
+            ]
+        )
+    }
+
     private func getHeaderTitle() -> String {
         switch mode {
         case .capture: return "STUDENT ENROLLMENT"
-        case .liveAttendance: return "LIVE CLASS ATTENDANCE"
+        case .liveAttendance: return "TRANSPORT ATTENDANCE"
         case .multiPhotoAttendance: return "MULTI-GROUP ATTENDANCE"
         case .tracking: return "STUDENT ATTENDANCE SCAN"
         }
@@ -395,8 +431,7 @@ internal class IcueFaceCameraViewController: UIViewController, AVCaptureVideoDat
                         self.overlayView.update(boxes: boxes, frameSize: image.size)
                         let count = self.presentRecords.count
                         let total = self.profiles.count
-                        let pct = total > 0 ? Int((Double(count) / Double(total)) * 100) : 0
-                        self.statusPill.text = " LIVE ATTENDANCE • \(count)/\(total) PRESENT (\(pct)%) "
+                        self.updateAttendanceCount(present: count, total: total)
 
                         if self.autoFinish && count >= total && total > 0 {
                             self.finishAttendance()

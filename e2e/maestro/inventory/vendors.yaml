@@ -1,0 +1,50 @@
+# Guide 1.3.1-1.3.2 (vendors). Create steps are skipped when the vendor already exists.
+appId: com.thoughtniques.icueadmin.dev
+---
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Vendors
+- runFlow:
+    when:
+      notVisible: "Apex Educational.*"
+    commands:
+      - runFlow:
+          file: ../helpers/add-vendor.yaml
+          env:
+            NAME: Apex Educational Supplies Ltd.
+            CONTACT: Sunil Verma
+            PHONE: "9876543210"
+            EMAIL: sales@apexsupplies.com
+            GST: 29ABCDE1234F1Z5
+            ADDRESS: Plot 14, Industrial Estate, Bangalore
+            REMARKS: "Payment terms: Net 30 days"
+- assertVisible: "Apex Educational Supplies Ltd..*Sunil Verma.*9876543210.*sales@apexsupplies.com.*Stationery.*GST/Tax: 29ABCDE1234F1Z5"
+- runFlow:
+    when:
+      notVisible: "Global Tech.*"
+    commands:
+      - runFlow:
+          file: ../helpers/add-vendor.yaml
+          env:
+            NAME: Global Tech & Lab Instruments
+            CONTACT: Priya Nair
+            PHONE: "9845012345"
+            EMAIL: orders@globaltechlab.in
+            GST: ""
+            ADDRESS: ""
+            REMARKS: ""
+- assertVisible: "Global Tech & Lab Instruments.*Priya Nair.*9845012345.*orders@globaltechlab.in.*Stationery"
+
+# 1.3.3 invalid email and phone are rejected, nothing saved
+- tapOn: "New vendor"
+- tapOn: "Vendor name.*"
+- inputText: "Bad Vendor"
+- tapOn: "Phone"
+- inputText: "12"
+- tapOn: "Email"
+- inputText: "abc"
+- pressKey: Enter
+- tapOn: "Save vendor"
+- assertVisible: "Enter a valid email address"
+- assertVisible: "Enter a valid phone number"

@@ -1,0 +1,42 @@
+# Guide 1.3.14 (create PO from the selected Apex quote, saved as draft). Needs quotation-select.yaml first.
+# Skipped once a PO exists. Tax is entered as an amount, as in the guide.
+appId: com.thoughtniques.icueadmin.dev
+---
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Purchase orders
+- runFlow:
+    when:
+      notVisible: ".*PO/20.*"
+    commands:
+      - runFlow:
+          file: ../helpers/open-inventory-page.yaml
+          env:
+            PAGE: Purchase requests
+      - tapOn: "PR/.*"
+      - tapOn: "Quotations"
+      - scrollUntilVisible:
+          element: "Create PO from Quote"
+      - tapOn: "Create PO from Quote"
+      - assertVisible: "Supplier.*Apex Educational Supplies Ltd.*"
+      - assertVisible: "Ordered Items.*Subtotal ₹1,09,450.00.*"
+      - tapOn: "Tax"
+      - inputText: "19701"
+      - pressKey: Enter
+      - assertVisible: "Ordered Items.*Total ₹1,29,151.00.*"
+      - tapOn: "Expected Delivery Date.*"
+      - runFlow:
+          file: ../helpers/pick-date.yaml
+          env:
+            DAYS: "7"
+      - tapOn: "Terms and conditions"
+      - inputText: "Door delivery to Central Main Store"
+      - scrollUntilVisible:
+          element: "Save Draft PO"
+      - tapOn: "Save Draft PO"
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Purchase orders
+- assertVisible: ".*PO/.*Apex Educational.*Total: ₹1,29,151.00.*"

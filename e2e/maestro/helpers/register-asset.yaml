@@ -1,0 +1,31 @@
+# Register one laptop from the Assets page (already open), linked to the PO.
+# Env: NAME, SERIAL, STORE, LOCATION. Multi-line-free fields; Enter closes the keyboard so the button is reachable.
+appId: com.thoughtniques.icueadmin.dev
+---
+- tapOn: "Register"
+- tapOn: "Choose asset item.*"
+- tapOn: "Dell Latitude.*"
+- tapOn: "Store.*"
+- tapOn: ${STORE}
+- tapOn: "Purchase order.*"
+- tapOn: ".*PO/20.*"
+# the name is pre-filled with the item name: clear it first
+- tapOn: "Asset name"
+- eraseText: 80
+- inputText: ${NAME}
+- pressKey: Enter
+- tapOn: "Serial number"
+- inputText: ${SERIAL}
+- pressKey: Enter
+- tapOn: "Manufacturer"
+- inputText: "Dell"
+- pressKey: Enter
+- tapOn: "Model"
+- inputText: "Latitude 3520"
+- pressKey: Enter
+- tapOn: "Location.*"
+- inputText: ${LOCATION}
+- pressKey: Enter
+- scrollUntilVisible:
+    element: "Register asset"
+- tapOn: "Register asset"

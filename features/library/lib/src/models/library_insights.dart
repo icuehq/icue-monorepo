@@ -1,0 +1,222 @@
+// Library dashboard figures and loan reports. Display only; rules live in Firestore rules.
+
+import 'package:icue_firebase/icue_firebase.dart'
+    show ReportColumn, readDay, readNumber, readString;
+import 'package:icue_ui/icue_ui.dart';
+import 'package:school_library/src/models/library_loans.dart' show dueLabel;
+
+/// Resolves IDs to display names for report cells.
+class LibraryNames {
+  const LibraryNames({
+    required this.title,
+    required this.library,
+    required this.classLabel,
+  });
+
+  final String Function(Object? id) title;
+  final String Function(Object? id) library;
+  final String Function(int? classId, String? section) classLabel;
+}
+
+typedef LibraryReportCol = ReportColumn<LibraryNames>;
+
+/// How a report's rows are built from the loans of the chosen period.
+enum LibraryReportKind {
+  /// One row per loan issued in the range.
+  loans,
+
+  /// One row per month: books issued and returned.
+  monthly,
+
+  /// One row per student: loans in the range.
+  student,
+
+  /// One row per staff member (teacher): loans in the range.
+  staff,
+}
+
+class LibraryReportDef {
+  const LibraryReportDef(
+    this.key,
+    this.title,
+    this.blurb,
+    this.kind,
+    this.cols, {
+    this.statuses = const [],
+  });
+
+  final String key;
+  final String title;
+  final String blurb;
+  final LibraryReportKind kind;
+  final List<LibraryReportCol> cols;
+
+  /// Loan status choices offered to the user (loans report only).
+  final List<String> statuses;
+
+  /// Columns for CSV export: the on-screen Member column becomes Member, Class and Section.
+  List<LibraryReportCol> get exportCols => [
+    for (final column in cols)
+      if (column.label == 'Member') ...[
+        LibraryReportCol('Member', (m, _) => _memberLabel(m)),
+        LibraryReportCol(
+          'Class',
+          (m, names) => _memberClassId(m) == null
+              ? ''
+              : names.classLabel(_memberClassId(m), null),
+        ),
+        LibraryReportCol('Section', (m, _) => readString(m['memberSection'])),
+      ] else
+        column,
+  ];
+}
+
+LibraryReportCol _text(String label, String field) =>
+    LibraryReportCol(label, (m, _) => readString(m[field]));
+LibraryReportCol _day(String label, String field) =>
+    LibraryReportCol(label, (m, _) => readDay(m[field]).toDisplayDay());
+LibraryReportCol _count(String label, String field) => LibraryReportCol(
+  label,
+  (m, _) => readString(readNumber(m[field])),
+  sum: true,
+);
+
+/// Member name with class and section (students) or `Employee` (staff) on a second line.
+const employeeLabel = 'Employee';
+
+String _memberLabel(Map<String, dynamic> m) {
+  final name = readString(m['memberName']);
+  return name.isEmpty ? '#${m['personErpId']}' : name;
+}
+
+int? _memberClassId(Map<String, dynamic> m) =>
+    (m['memberClassId'] as num?)?.toInt();
+
+LibraryReportCol _member() => LibraryReportCol('Member', (m, names) {
+  final label = _memberLabel(m);
+  if (m['memberType'] == 'EMPLOYEE') return '$label\n$employeeLabel';
+  final classId = _memberClassId(m);
+  if (classId == null) return label;
+  return '$label\n${names.classLabel(classId, readString(m['memberSection']))}';
+});
+LibraryReportCol _month() => LibraryReportCol('Month', (m, _) {
+  final parts = readString(m['month']).split('-');
+  final date = DateTime(int.parse(parts[0]), int.parse(parts[1]));
+  return date.toDisplayDate().substring(3);
+});
+
+final _memberCols = [
+  _member(),
+  _text('Admission No.', 'admissionNumber'),
+  _count('Issued', 'issued'),
+  _count('Returned', 'returned'),
+  _count('Still out', 'active'),
+  _count('Overdue', 'overdue'),
+];
+
+/// The library reports.
+final libraryReports = <LibraryReportDef>[
+  LibraryReportDef(
+    'dateRange',
+    'Issues by date range',
+    'Every book issued between two dates',
+    LibraryReportKind.loans,
+    [
+      _member(),
+      _text('Admission No.', 'admissionNumber'),
+      LibraryReportCol(
+        'Title',
+        (data, names) => names.title(data['catalogueId']),
+      ),
+      LibraryReportCol('Library', (m, names) => names.library(m['libraryId'])),
+      _day('Issued', 'issuedDate'),
+      LibraryReportCol(
+        'Due',
+        (m, _) => dueLabel(
+          readDay(m['dueDate']),
+          isActive: m['status'] == 'active',
+          today: todayIST(),
+          separator: '\n',
+        ),
+      ),
+      _day('Returned', 'returnedDate'),
+      _text('Status', 'status'),
+    ],
+    statuses: ['active', 'returned', 'lost'],
+  ),
+  LibraryReportDef(
+    'monthly',
+    'Monthly issue & return',
+    'Books issued and returned each month',
+    LibraryReportKind.monthly,
+    [_month(), _count('Issued', 'issued'), _count('Returned', 'returned')],
+  ),
+  LibraryReportDef(
+    'student',
+    'Student-wise',
+    'Books borrowed by each student',
+    LibraryReportKind.student,
+    _memberCols,
+  ),
+  LibraryReportDef(
+    'staff',
+    'Staff-wise',
+    'Books borrowed by each staff member',
+    LibraryReportKind.staff,
+    _memberCols,
+  ),
+];
+
+/// Dashboard figures from the `libraryStats/overall` [summary] (LibraryStatsTotals): the branch's, or those of
+/// [libraryId] under `libraries`. Overdue is the active loans due before [today] (`yyyy-MM-dd`).
+Map<String, num> overviewFigures(
+  Map<String, dynamic>? summary,
+  String? libraryId, {
+  required String today,
+}) {
+  final branch = summary ?? const <String, dynamic>{};
+  final figures = libraryId == null
+      ? branch
+      : (branch['libraries'] as Map<String, dynamic>?)?[libraryId]
+                as Map<String, dynamic>? ??
+            const <String, dynamic>{};
+  num figure(String key) => figures[key] as num? ?? 0;
+  final dueOn = figures['dueOn'] as Map<String, dynamic>? ?? const {};
+  return {
+    'titles': figure('titles'),
+    'copies': figure('copies'),
+    'available': figure('available'),
+    'issued': figure('issued'),
+    'lost': figure('lost'),
+    'damaged': figure('damaged'),
+    'outOfCirculation': figure('outOfCirculation'),
+    'overdue': dueOn.entries
+        .where((entry) => entry.key.compareTo(today) < 0)
+        .fold<num>(0, (total, entry) => total + (entry.value as num)),
+    'pending': figure('activeLoans'),
+    'loans': figure('loans'),
+    'returnedLoans': figure('returnedLoans'),
+    'lostLoans': figure('lostLoans'),
+    'students': figure('students'),
+    'teachers': figure('teachers'),
+    'fines': figure('outstandingFines'),
+    'collectedFines': figure('collectedFines'),
+    'waivedFines': figure('waivedFines'),
+  };
+}
+
+/// Dashboard tiles (FRS 11.1): key and label.
+const libraryDashboardStats = <(String, String)>[
+  ('titles', 'Books'),
+  ('copies', 'Physical copies'),
+  ('available', 'Available copies'),
+  ('issued', 'Issued copies'),
+  ('overdue', 'Overdue books'),
+  ('lost', 'Lost books'),
+  ('damaged', 'Damaged books'),
+  ('outOfCirculation', 'Out of circulation'),
+  ('students', 'Student borrowers'),
+  ('teachers', 'Employee borrowers'),
+  ('pending', 'Pending returns'),
+  ('fines', 'Outstanding fines'),
+];

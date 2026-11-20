@@ -1,0 +1,48 @@
+# One Maestro process runs every flow in this order (the 11 s driver start-up is paid once, not per flow).
+# Flows depend on each other's data, so keep the order; a failure does not stop the later flows.
+flows:
+  - dashboard.yaml
+  - inventory/*.yaml
+executionOrder:
+  continueOnFailure: true
+  flowsOrder:
+    - dashboard
+    - categories
+    - units
+    - stores
+    - items
+    - stock-receive
+    - stock-receive-batch
+    - stock-receive-negative
+    - issue-request
+    - issue-approve
+    - issue-reject
+    - issue-stock
+    - issue-over-balance
+    - issue-receipt
+    - issue-return
+    - transfer-request
+    - transfer-dispatch
+    - transfer-receive
+    - stock-adjust
+    - unavailable-resolve
+    - unavailable-writeoff
+    - low-stock
+    - issue-fefo
+    - vendors
+    - purchase-request
+    - purchase-request-edit
+    - purchase-request-submit
+    - purchase-request-return
+    - purchase-request-approve
+    - quotations
+    - quotation-select
+    - purchase-order
+    - purchase-order-issue
+    - purchase-order-revise
+    - po-receive-partial
+    - po-receive-full
+    - vendor-invoice
+    - vendor-invoice-payment
+    - vendor-invoice-cancel
+    - asset-register

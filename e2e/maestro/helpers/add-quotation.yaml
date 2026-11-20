@@ -1,0 +1,34 @@
+# Record a quotation for the open PR's two lines (pen, laptop); the Quotations page is already open.
+# Env: VENDOR, REF, VALID_DAYS, LEAD_DAYS, PEN_PRICE, LAPTOP_PRICE. Unit price hints stay on filled fields,
+# so the pen is index 0 and the laptop index 1.
+appId: com.thoughtniques.icueadmin.dev
+---
+- tapOn: "New Quotation"
+- tapOn: "Select Vendor.*"
+- tapOn: ${VENDOR}
+- tapOn: "Vendor's quotation.*"
+- inputText: ${REF}
+- pressKey: Enter
+- tapOn: "Valid Until.*"
+- runFlow:
+    file: pick-date.yaml
+    env:
+      DAYS: ${VALID_DAYS}
+- tapOn: "Lead time.*"
+- inputText: ${LEAD_DAYS}
+- pressKey: Enter
+- tapOn:
+    text: "Unit price"
+    index: 0
+- eraseText: 10
+- inputText: ${PEN_PRICE}
+- pressKey: Enter
+- tapOn:
+    text: "Unit price"
+    index: 1
+- eraseText: 10
+- inputText: ${LAPTOP_PRICE}
+- pressKey: Enter
+- scrollUntilVisible:
+    element: "Record Quotation"
+- tapOn: "Record Quotation"

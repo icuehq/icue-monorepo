@@ -1,0 +1,19 @@
+# Open the PO's Record Invoice form and fill it (Purchase orders page already open). Env: NUMBER.
+# Invoice date defaults to today; due date is set to today + 30; both GRNs are linked.
+appId: com.thoughtniques.icueadmin.dev
+---
+- tapOn: ".*PO/20.*"
+- tapOn: "Record Invoice"
+- tapOn: "Vendor Invoice Number.*"
+- inputText: ${NUMBER}
+- pressKey: Enter
+- tapOn: "Due Date.*"
+- runFlow:
+    file: pick-date.yaml
+    env:
+      DAYS: "30"
+- tapOn: "GRN/.*DC-APEX-7741.*"
+- tapOn: "GRN/.*DC-APEX-7742.*"
+- scrollUntilVisible:
+    element: "Record Invoice"
+- tapOn: "Record Invoice"

@@ -1,0 +1,21 @@
+rules_version = '2';
+
+// Paths: orgs/{orgId}/zones/{zoneId}/branches/{branchId}/{module}/{collection}/{docId}/{file}.
+// Reads: same branch, any non-parent staff user. Ceiling: per-module, not per-record (architecture §8.2).
+// Writes: denied until `files-getUploadPath` registers pending uploads (first phase with uploads).
+service firebase.storage {
+  match /b/{bucket}/o {
+    function canView(orgId, zoneId, branchId) {
+      return request.auth != null
+        && string(request.auth.token.orgId) == orgId
+        && string(request.auth.token.zoneId) == zoneId
+        && string(request.auth.token.branchId) == branchId
+        && request.auth.token.get('personType', '') != 'parent';
+    }
+
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/{module}/{rest=**} {
+      allow read: if canView(orgId, zoneId, branchId);
+      allow write: if false;
+    }
+  }
+}

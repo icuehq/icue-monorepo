@@ -1,0 +1,33 @@
+# Guide 1.2.2 (receive batch stock). The guide receives both batches on one receipt; the flow uses one
+# receipt per batch because fields repeated on a multi-line form are not reliably addressable by text.
+# Each receipt runs only when its batch is not on the stock page yet.
+appId: com.thoughtniques.icueadmin.dev
+---
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Stock
+- runFlow:
+    when:
+      notVisible: ".*BATCH-M1.*"
+    commands:
+      - runFlow:
+          file: ../helpers/receive-batch.yaml
+          env:
+            REF: OP-2024-MILK-1
+            QTY: "20"
+            BATCH: BATCH-M1
+            DAYS: "5"
+- runFlow:
+    when:
+      notVisible: ".*BATCH-M2.*"
+    commands:
+      - runFlow:
+          file: ../helpers/receive-batch.yaml
+          env:
+            REF: OP-2024-MILK-2
+            QTY: "10"
+            BATCH: BATCH-M2
+            DAYS: "25"
+- assertVisible: ".*MILK-PAST-01.*Batch BATCH-M1.*20 pcs.*available.*"
+- assertVisible: ".*MILK-PAST-01.*Batch BATCH-M2.*10 pcs.*available.*"

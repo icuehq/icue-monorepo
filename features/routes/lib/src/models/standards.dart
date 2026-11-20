@@ -1,0 +1,69 @@
+import 'package:flutter/foundation.dart';
+
+@immutable
+class Section {
+  const Section({required this.id, required this.name});
+
+  factory Section.fromJson(Map<String, dynamic> json) =>
+      Section(id: json['Id'] as int? ?? 0, name: json['Name'] as String? ?? '');
+
+  final int id;
+  final String name;
+
+  Map<String, dynamic> toJson() => {'Id': id, 'Name': name};
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Section && runtimeType == other.runtimeType && id == other.id;
+
+  @override
+  int get hashCode => id.hashCode;
+}
+
+@immutable
+class Standards {
+  const Standards({
+    required this.id,
+    required this.name,
+    this.sections = const <Section>[],
+    this.standardType,
+  });
+
+  factory Standards.fromJson(Map<String, dynamic> json) => Standards(
+    id: json['Id'] as int? ?? 0,
+    name: json['Name'] as String? ?? '',
+    standardType: json['StandardType'] as String?,
+    sections: json['Sections'] is List
+        ? (json['Sections'] as List)
+              .whereType<Map<String, dynamic>>()
+              .map(Section.fromJson)
+              .toList()
+        : const <Section>[],
+  );
+
+  final int id;
+  final String name;
+  final String? standardType;
+  final List<Section> sections;
+
+  /// Node types each class `STUDENT`, `STAFF` or `NON_STAFF`; the last two list staff members.
+  bool get isStudent => standardType == 'STUDENT';
+
+  bool get isStaff => standardType == 'STAFF' || standardType == 'NON_STAFF';
+
+  Map<String, dynamic> toJson() => {
+    'Id': id,
+    'Name': name,
+    'StandardType': standardType,
+    'Sections': sections.map((x) => x.toJson()).toList(),
+  };
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Standards && runtimeType == other.runtimeType && id == other.id;
+
+  @override
+  int get hashCode => id.hashCode;
+}

@@ -1,0 +1,28 @@
+# Guide 1.2.8 (issue stock; recipient auto-fill). Needs issue-approve.yaml first.
+# Skipped once issued (the "Remaining … approved" card disappears). The requester is the signed-in user
+# (Staff #4093), not ERP 884 as in the guide.
+appId: com.thoughtniques.icueadmin.dev
+---
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Issue requests
+- tapOn: "ISR/.*Exam Hall Supplies for Midterms.*"
+- runFlow:
+    when:
+      visible: "Remaining 30 of 30 approved"
+    commands:
+      - scrollUntilVisible:
+          element: "Staff #.* · requester"
+      - assertVisible: "Staff #.* · requester"
+      - assertVisible: "Remaining 30 of 30 approved"
+      - tapOn: "Issue stock"
+- assertVisible: "ISR/.*Issued.*Exam Hall Supplies for Midterms.*"
+- scrollUntilVisible:
+    element: "Issuances.*ISS/.*"
+- assertVisible: "Issuances.*ISS/.*Ballpoint Pen.*30"
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Stock
+- assertVisible: ".*PEN-BLU-01.*70 pcs.*available.*"

@@ -1,0 +1,44 @@
+# Guide 1.3.4 (create purchase request as draft). Needs items.yaml first. Skipped once the PR exists.
+# The delivery campus field is hidden for a single-campus user. Hints stay on filled fields, so the second
+# line's fields are addressed with index: 1.
+appId: com.thoughtniques.icueadmin.dev
+---
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Purchase requests
+- runFlow:
+    when:
+      notVisible: "PR/.*"
+    commands:
+      - tapOn: "New request"
+      - tapOn: ".*Priority.*"
+      - tapOn: "High"
+      - tapOn: "Purpose.*"
+      - inputText: "Annual Examination & Office Supplies Requisition"
+      - pressKey: Enter
+      - tapOn: "Required by date.*"
+      - runFlow:
+          file: ../helpers/pick-date.yaml
+          env:
+            DAYS: "7"
+      - tapOn: "Add Item to Request"
+      - tapOn: "Ballpoint Pen.*"
+      - tapOn: "Quantity.*"
+      - inputText: "120"
+      - pressKey: Enter
+      - tapOn: "Add Item to Request"
+      - tapOn: "Dell Latitude.*"
+      - tapOn:
+          text: "Quantity.*"
+          index: 1
+      - inputText: "5"
+      - pressKey: Enter
+      - tapOn:
+          text: "Est. Unit Price.*"
+          index: 1
+      - eraseText: 8
+      - inputText: "55000"
+      - pressKey: Enter
+      - tapOn: "Save as Draft"
+- assertVisible: "PR/.*High.*Draft.*Annual Examination.*× 120.*× 5.*₹2,76,800.00.*"

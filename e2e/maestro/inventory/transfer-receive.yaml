@@ -1,0 +1,32 @@
+# Guide 1.2.16 (partial receipt with shortfall). Needs transfer-dispatch.yaml first.
+# Skipped once the transfer is received (the Confirm receipt button disappears).
+appId: com.thoughtniques.icueadmin.dev
+---
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Stock
+- tapOn: "Transfers"
+- tapOn: "TRF/.*"
+- runFlow:
+    when:
+      visible: "Confirm receipt"
+    commands:
+      # more than was sent is refused
+      - tapOn: "Receive now"
+      - eraseText: 5
+      - inputText: "25"
+      - pressKey: Enter
+      - tapOn: "Confirm receipt"
+      - assertVisible: ".*(at most|only|more than|exceed).*"
+      # 15 received, 5 short; close the transfer
+      - tapOn: "Receive now"
+      - eraseText: 5
+      - inputText: "15"
+      - pressKey: Enter
+      - tapOn: "Close transfer after this receipt.*"
+      - tapOn: "Confirm receipt"
+      # "Close with shortfall" is the dialog title; its confirm button is "Close transfer"
+      - tapOn: "Close transfer"
+- assertVisible: ".*Sent 20 · Received 15.*Shortfall 5.*"
+- assertNotVisible: "Confirm receipt"

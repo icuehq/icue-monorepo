@@ -1,0 +1,13 @@
+# Set the open Material date picker to today + DAYS (negative = past) via its text input mode, then OK.
+# Env: DAYS.
+appId: com.thoughtniques.icueadmin.dev
+---
+- runScript:
+    file: date.js
+    env:
+      DAYS: ${DAYS}
+- tapOn: "Switch to input"
+- tapOn: "Enter Date"
+- eraseText: 12
+- inputText: ${output.pickedDate}
+- tapOn: "OK"

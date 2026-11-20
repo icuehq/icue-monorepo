@@ -1,0 +1,43 @@
+# Guide 1.2.11 (return, usable/damaged split) and 1.2.12 (return beyond outstanding is blocked).
+# Needs issue-stock.yaml first. The return is skipped once the issuance shows "returned 15"; Enter closes the
+# keyboard so it does not cover the Record return button.
+appId: com.thoughtniques.icueadmin.dev
+---
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Issue requests
+- tapOn: "ISR/.*Exam Hall Supplies for Midterms.*"
+- scrollUntilVisible:
+    element: "Issuances.*ISS/.*"
+- runFlow:
+    when:
+      notVisible: "Issuances.*returned 15.*"
+    commands:
+      - tapOn: "Return items"
+      - assertVisible: ".*Ballpoint Pen.*30 to return"
+      - tapOn: "Usable"
+      - inputText: "10"
+      - tapOn: "Damaged"
+      - inputText: "5"
+      - pressKey: Enter
+      - tapOn: "Record return"
+- scrollUntilVisible:
+    element: "Issuances.*ISS/.*"
+- assertVisible: "Issuances.*returned 15.*"
+
+# 1.2.12 only 15 can still be returned
+- tapOn: "Return items"
+- assertVisible: ".*Ballpoint Pen.*15 to return"
+- tapOn: "Usable"
+- inputText: "20"
+- pressKey: Enter
+- tapOn: "Record return"
+- assertVisible: ".*only 15 can still be returned.*"
+
+# stock: only the 10 usable units returned to available (70 -> 80)
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Stock
+- assertVisible: ".*PEN-BLU-01.*80 pcs.*available.*"

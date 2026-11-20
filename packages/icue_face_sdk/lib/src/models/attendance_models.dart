@@ -59,12 +59,52 @@ class AttendanceRecord {
       Object.hash(personId, confidenceScore, boundingBox, sourceImagePath);
 }
 
+/// A face no roster student matched, with its embedding for enrolment or clustering.
+class UnrecognizedFace {
+  const UnrecognizedFace({
+    required this.embedding,
+    required this.score,
+    this.boundingBox,
+    required this.timestamp,
+  });
+
+  factory UnrecognizedFace.fromMap(Map<Object?, Object?> map) {
+    final rawBox = map['boundingBox'] as Map<Object?, Object?>?;
+    final rawTimestamp = map['timestampMillis'] as int?;
+    return UnrecognizedFace(
+      embedding: (map['embedding'] as List<Object?>? ?? const <Object?>[])
+          .map((value) => (value! as num).toDouble())
+          .toList(growable: false),
+      score: (map['score'] as num?)?.toDouble() ?? 0.0,
+      boundingBox: rawBox != null ? FaceBoundingBox.fromMap(rawBox) : null,
+      timestamp: rawTimestamp != null
+          ? DateTime.fromMillisecondsSinceEpoch(rawTimestamp)
+          : DateTime.now(),
+    );
+  }
+
+  final List<double> embedding;
+
+  /// Best similarity to any roster student (below the match threshold).
+  final double score;
+  final FaceBoundingBox? boundingBox;
+  final DateTime timestamp;
+
+  Map<String, Object?> toMap() => {
+    'embedding': embedding,
+    'score': score,
+    'boundingBox': boundingBox?.toMap(),
+    'timestampMillis': timestamp.millisecondsSinceEpoch,
+  };
+}
+
 /// Contains full results of a whole-class attendance session.
 class AttendanceResult {
   const AttendanceResult({
     required this.present,
     required this.absentPersonIds,
     required this.unrecognizedFaceCount,
+    this.unrecognizedFaces = const <UnrecognizedFace>[],
     required this.totalRosterCount,
     required this.sessionStartTime,
     required this.sessionEndTime,
@@ -109,6 +149,11 @@ class AttendanceResult {
       present: rawPresent.map(AttendanceRecord.fromMap).toList(growable: false),
       absentPersonIds: rawAbsent,
       unrecognizedFaceCount: map['unrecognizedFaceCount'] as int? ?? 0,
+      unrecognizedFaces:
+          (map['unrecognizedFaces'] as List<Object?>? ?? const <Object?>[])
+              .cast<Map<Object?, Object?>>()
+              .map(UnrecognizedFace.fromMap)
+              .toList(growable: false),
       totalRosterCount:
           map['totalRosterCount'] as int? ??
           (rawPresent.length + rawAbsent.length),
@@ -123,6 +168,7 @@ class AttendanceResult {
   final List<AttendanceRecord> present;
   final List<String> absentPersonIds;
   final int unrecognizedFaceCount;
+  final List<UnrecognizedFace> unrecognizedFaces;
   final int totalRosterCount;
   final DateTime sessionStartTime;
   final DateTime sessionEndTime;
@@ -137,6 +183,9 @@ class AttendanceResult {
     'present': present.map((e) => e.toMap()).toList(growable: false),
     'absentPersonIds': absentPersonIds,
     'unrecognizedFaceCount': unrecognizedFaceCount,
+    'unrecognizedFaces': unrecognizedFaces
+        .map((e) => e.toMap())
+        .toList(growable: false),
     'totalRosterCount': totalRosterCount,
     'sessionStartTimeMs': sessionStartTime.millisecondsSinceEpoch,
     'sessionEndTimeMs': sessionEndTime.millisecondsSinceEpoch,

@@ -1,0 +1,28 @@
+# Enter closes the keyboard: it otherwise covers the Approve button (hideKeyboard would pop the page).
+# Guide 1.2.6 (approve issue request). Needs issue-request.yaml first. Skipped when already approved
+# (the Approve button only exists while the request is Pending).
+appId: com.thoughtniques.icueadmin.dev
+---
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Issue requests
+- tapOn: "ISR/.*Exam Hall Supplies for Midterms.*"
+- runFlow:
+    when:
+      visible: "Approve"
+    commands:
+      # over-approval is blocked
+      - tapOn: ".*Approve quantity"
+      - eraseText: 5
+      - inputText: "31"
+      - pressKey: Enter
+      - tapOn: "Approve"
+      - assertVisible: ".*cannot approve more than.*"
+      # back to 30, approve
+      - tapOn: ".*Approve quantity"
+      - eraseText: 5
+      - inputText: "30"
+      - pressKey: Enter
+      - tapOn: "Approve"
+- assertVisible: ".*Approved 30 · Issued 0.*"

@@ -1,0 +1,35 @@
+# Guide 1.3.13 (select a quote; reason required). Needs quotations.yaml first.
+# Skipped once the Apex quote is selected. Global is listed first and Apex below it, so scroll to the end of
+# the list before addressing the Apex card's own button.
+appId: com.thoughtniques.icueadmin.dev
+---
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Purchase requests
+- tapOn: "PR/.*"
+- tapOn: "Quotations"
+- runFlow:
+    when:
+      notVisible: "Apex Educational.*SELECTED.*"
+    commands:
+      - swipe:
+          start: "50%,80%"
+          end: "50%,20%"
+      - swipe:
+          start: "50%,80%"
+          end: "50%,20%"
+      - tapOn:
+          text: "Select this Quote"
+          childOf:
+            text: "Apex Educational.*"
+      # empty reason is rejected
+      - tapOn: "Select Quotation"
+      - assertVisible: "A reason is required"
+      - tapOn: "Selection reason.*"
+      - inputText: "Shorter lead time of 5 days and local support warranty."
+      - tapOn: "Select Quotation"
+- assertVisible: ".*SELECTED.*"
+- assertVisible: ".*Reason: Shorter lead time of 5 days and local support warranty.*"
+- scrollUntilVisible:
+    element: "Create PO from Quote"

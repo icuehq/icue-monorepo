@@ -1,0 +1,18 @@
+rules_version = '2';
+
+// The `search` database is a Functions-written mirror (Admin SDK bypasses rules). Web clients read their own
+// branch's mirror directly (Firestore Pipelines text search); nobody writes.
+service cloud.firestore {
+  match /databases/{db}/documents {
+    function inBranch(orgId, zoneId, branchId) {
+      return request.auth != null && string(request.auth.token.orgId) == orgId
+        && string(request.auth.token.zoneId) == zoneId && string(request.auth.token.branchId) == branchId;
+    }
+    // Inventory and Library have no sub-permissions: any non-parent staff user of the branch (same as `(default)`).
+    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/{coll}/{id} {
+      allow read: if coll in ['inventoryItems', 'inventoryBalances', 'libraryCatalogue', 'libraryLoans', 'libraryFines', 'libraryIncidents', 'libraryMembers']
+        && inBranch(orgId, zoneId, branchId)
+        && request.auth.token.get('personType', '') != 'parent';
+    }
+  }
+}
