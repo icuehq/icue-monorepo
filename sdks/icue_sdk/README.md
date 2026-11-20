@@ -1,7 +1,7 @@
 # iCue SDK
 
 [![Version](https://img.shields.io/badge/version-0.2.0--beta.3-orange.svg)](https://dart.cloudsmith.io/icue/icue-sdk/)
-[![Flutter](https://img.shields.io/badge/flutter-3.10.0+-blue.svg)](https://flutter.dev)
+[![Flutter](https://img.shields.io/badge/flutter-3.24.0+-blue.svg)](https://flutter.dev)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 The **iCue SDK** is a production-ready Flutter library designed to integrate real-time school bus live tracking into your parent-facing applications. It provides a plug-and-play tracking module featuring smooth 60fps animations, intelligent polyline snapping, ETA estimations, and decoupled push notification management.

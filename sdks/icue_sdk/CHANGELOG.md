@@ -1,7 +1,13 @@
 ## 0.2.0-beta.3
 
-- What changed
-- Another change
+- **Version awareness**: Added `IcueSdk.version` and `IcueSdk.isBeta`. Beta builds log a warning when `IcueSdk.init` runs.
+- **Fixed**: The "Route not started" / "Route is Completed" dialog closed almost instantly when the OS had animations disabled. Its 5 second countdown now always runs.
+- **Fixed**: A GPS fix time that cannot be read is now treated as offline instead of fresh.
+- **Payload keys**: `IcueSdk.isIcuePayload`, `IcueSdk.admissionNoFromPayload` and `IcueNotification.fromMap` also accept `admissionNo`, `admission_no` and `StudentId`.
+- **Safer launches**: `openLiveTracking` and manual notification taps no longer use an unmounted `BuildContext`; they return an `IcueNavigationException` failure or ignore the context.
+- **Shared code**: Bus geometry, the route message dialog, the info card and the fix-age helper now come from the new `bus_tracking_core` package (installed automatically).
+- **Requirements**: Dart 3.5+ and Flutter 3.24+. Widened ranges for `device_info_plus` (<14), `package_info_plus` (<11), `firebase_core` (<6) and `firebase_messaging` (<18).
+- **Internal**: Code moved under `lib/src` (public API unchanged) and strict lints enabled.
 
 ## 0.2.0-beta.2
 
