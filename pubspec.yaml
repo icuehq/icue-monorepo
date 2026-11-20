@@ -112,6 +112,10 @@ melos:
       description: Build and deploy all web apps (icueadmin, portal) to the prod Firebase project (icueadmin).
       run: for app in icueadmin portal; do (cd apps/$app && flutter build web --wasm --no-web-resources-cdn --dart-define=ENV=prod && firebase deploy --only hosting --project prod) || exit 1; done
 
+    release:sdk:
+      description: "Release icue_sdk (and --core bus_tracking_core) to Cloudsmith. Usage: melos run release:sdk -- beta|stable [--patch|--minor|--major] [-m note]... [--core patch|minor|major] [--dry-run]"
+      run: dart tool/release.dart
+
     emulators:
       description: Start Firebase emulators; loads and saves firebase/.emulator-data (Ctrl-C saves).
       run: firebase/scripts/emulators.sh start standard

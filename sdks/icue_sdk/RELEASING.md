@@ -30,6 +30,13 @@ dart tool/release.dart beta -m "What changed" -m "Another change" --dry-run   # 
 dart tool/release.dart beta -m "What changed" -m "Another change"             # publish
 ```
 
+The same through melos (arguments go after `--`; melos drops quotes, so wrap a
+multi-word note in extra single quotes):
+
+```bash
+melos run release:sdk -- beta -m "'What changed'" --dry-run
+```
+
 It picks the next version, edits the files, validates, asks `[y/N]`, then
 publishes. `--dry-run` runs all the checks and prints every edit, then undoes
 them and uploads nothing.
