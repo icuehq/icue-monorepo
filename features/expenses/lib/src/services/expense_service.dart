@@ -17,7 +17,10 @@ class ExpenseService {
     final response = await _apiClient.post<dynamic>(
       '/v1.0/getExpenseTypeDetails',
     );
-    return parseList(response.data, ExpenseType.fromJson);
+    return _apiClient.parse(
+      response,
+      (payload) => parseList(payload, ExpenseType.fromJson),
+    );
   }
 
   /// Fetches primary expense categories.
@@ -25,12 +28,13 @@ class ExpenseService {
     final response = await _apiClient.post<dynamic>(
       '/v1.0/getExpenseCategories',
     );
-    final data = response.data;
-    if (data is Map<String, dynamic>) {
-      final parsed = ExpenseCategoryResponse.fromJson(data);
-      return parsed.record;
-    }
-    return <Detail>[];
+    return _apiClient.parse(response, (data) {
+      if (data is Map<String, dynamic>) {
+        final parsed = ExpenseCategoryResponse.fromJson(data);
+        return parsed.record;
+      }
+      return <Detail>[];
+    });
   }
 
   /// Fetches sub-categories for a chosen primary category ID.
@@ -39,14 +43,15 @@ class ExpenseService {
       '/v1.0/getExpenseSubCategories',
       data: {'CategoryId': categoryId},
     );
-    final data = response.data;
-    if (data is Map<String, dynamic>) {
-      final parsed = ExpenseCategoryResponse.fromJson(data);
-      final list = List<Detail>.from(parsed.record);
-      list.add(const Detail(id: 'others', name: 'Others'));
-      return list;
-    }
-    return <Detail>[];
+    return _apiClient.parse(response, (data) {
+      if (data is Map<String, dynamic>) {
+        final parsed = ExpenseCategoryResponse.fromJson(data);
+        final list = List<Detail>.from(parsed.record);
+        list.add(const Detail(id: 'others', name: 'Others'));
+        return list;
+      }
+      return <Detail>[];
+    });
   }
 
   /// Fetches fuel storage tanks and pumps for a given fuel type.
@@ -55,13 +60,14 @@ class ExpenseService {
       '/v1.0/getFuelStorages',
       data: {'FuelType': ?fuelType},
     );
-    final data = response.data;
-    if (data is Map<String, dynamic>) {
-      final parsed = FuelStorageResponse.fromJson(data);
-      // The server only wants storage filled when it says so.
-      return parsed.toFill ?? false ? parsed.data : <Storage>[];
-    }
-    return <Storage>[];
+    return _apiClient.parse(response, (data) {
+      if (data is Map<String, dynamic>) {
+        final parsed = FuelStorageResponse.fromJson(data);
+        // The server only wants storage filled when it says so.
+        return parsed.toFill ?? false ? parsed.data : <Storage>[];
+      }
+      return <Storage>[];
+    });
   }
 
   /// Updates start or end status for self-filling fuel pump.
@@ -105,10 +111,12 @@ class ExpenseService {
       data: FormData.fromMap(formMap),
     );
 
-    if (response.data is Map<String, dynamic>) {
-      return (response.data as Map<String, dynamic>)['err'] != true;
-    }
-    return response.statusCode == 200;
+    return _apiClient.parse(
+      response,
+      (data) => data is Map<String, dynamic>
+          ? data['err'] != true
+          : response.statusCode == 200,
+    );
   }
 
   /// Generates a reference number before submitting final expense details.
@@ -131,13 +139,15 @@ class ExpenseService {
       data: FormData.fromMap(map),
     );
 
-    if (response.data is Map<String, dynamic>) {
-      final resMap = response.data as Map<String, dynamic>;
-      if (resMap['err'] != true && resMap['data'] is Map<String, dynamic>) {
-        return resMap['data'] as Map<String, dynamic>;
+    return _apiClient.parse(response, (payload) {
+      if (payload is Map<String, dynamic>) {
+        final resMap = payload;
+        if (resMap['err'] != true && resMap['data'] is Map<String, dynamic>) {
+          return resMap['data'] as Map<String, dynamic>;
+        }
       }
-    }
-    return null;
+      return null;
+    });
   }
 
   /// Updates the per-litre price of [fuelType].
@@ -146,10 +156,12 @@ class ExpenseService {
       '/v1.0/updateFuelPrice',
       data: {'FuelType': fuelType, 'Price': price},
     );
-    if (response.data is Map<String, dynamic>) {
-      return (response.data as Map<String, dynamic>)['err'] != true;
-    }
-    return false;
+    return _apiClient.parse(response, (payload) {
+      if (payload is Map<String, dynamic>) {
+        return payload['err'] != true;
+      }
+      return false;
+    });
   }
 
   /// Generates a unique Bill Number if user left it blank.
@@ -162,10 +174,12 @@ class ExpenseService {
       data: {'InitiatedDate': billDate, 'InitiatedTime': timeStr},
     );
 
-    if (response.data is Map<String, dynamic>) {
-      return (response.data as Map<String, dynamic>)['BillNo'] as String?;
-    }
-    return null;
+    return _apiClient.parse(response, (payload) {
+      if (payload is Map<String, dynamic>) {
+        return payload['BillNo'] as String?;
+      }
+      return null;
+    });
   }
 
   /// Stores the full expense record.
@@ -228,9 +242,11 @@ class ExpenseService {
       data: FormData.fromMap(formDataMap),
     );
 
-    if (response.data is Map<String, dynamic>) {
-      return (response.data as Map<String, dynamic>)['err'] != true;
-    }
-    return response.statusCode == 200;
+    return _apiClient.parse(
+      response,
+      (data) => data is Map<String, dynamic>
+          ? data['err'] != true
+          : response.statusCode == 200,
+    );
   }
 }

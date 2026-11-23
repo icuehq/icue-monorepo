@@ -14,17 +14,23 @@ class DriverService {
   /// Fetches all drivers for the authenticated organization & branch.
   Future<List<Driver>> getDrivers() async {
     final response = await _apiClient.post<dynamic>('/v1.0/getDrivers');
-    return parseList(
-      response.data,
-      Driver.fromJson,
-      compare: (a, b) => a.firstName.compareTo(b.firstName),
+    return _apiClient.parse(
+      response,
+      (payload) => parseList(
+        payload,
+        Driver.fromJson,
+        compare: (a, b) => a.firstName.compareTo(b.firstName),
+      ),
     );
   }
 
   /// Fetches the selectable countries.
   Future<List<Place>> getCountries() async {
     final response = await _apiClient.get<dynamic>('/v1.0/getCountries');
-    return parseList(response.data, Place.fromJson);
+    return _apiClient.parse(
+      response,
+      (payload) => parseList(payload, Place.fromJson),
+    );
   }
 
   /// Fetches the states (child places) of [parentId].
@@ -33,7 +39,10 @@ class DriverService {
       '/v1.0/getChildPlaces',
       data: {'ParentId': parentId},
     );
-    return parseList(response.data, Place.fromJson);
+    return _apiClient.parse(
+      response,
+      (payload) => parseList(payload, Place.fromJson),
+    );
   }
 
   /// Creates a new driver record.
@@ -69,14 +78,15 @@ class DriverService {
         '/v1.0/getDriverDocs',
         data: {'Target': 'Driver', 'RecordId': driverId, 'Type': docType},
       );
-      if (response.data is Map<String, dynamic>) {
-        final docResponse = DriverDocumentResponse.fromJson(
-          response.data as Map<String, dynamic>,
-        );
-        return docResponse.docs;
-      }
-      return null;
-    } catch (_) {
+      return await _apiClient.parse(response, (payload) {
+        if (payload is Map<String, dynamic>) {
+          final docResponse = DriverDocumentResponse.fromJson(payload);
+          return docResponse.docs;
+        }
+        return null;
+      });
+    } catch (error, stack) {
+      reportError(error, stack, 'DriverService.getDriverDocs');
       // Per old app error rules, document lookups that fail or return 404 return null
       return null;
     }

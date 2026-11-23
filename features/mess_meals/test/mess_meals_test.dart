@@ -35,6 +35,10 @@ MessConfig _config({
 );
 
 class _FakeApiClient extends Fake implements ApiClient {
+  @override
+  T parse<T>(Response<dynamic> response, T Function(dynamic data) fromJson) =>
+      fromJson(response.data);
+
   int status = 200;
   dynamic body;
   String? lastPath;

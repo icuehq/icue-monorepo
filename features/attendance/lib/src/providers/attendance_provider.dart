@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:api_client/api_client.dart';
 import 'package:attendance/src/models/create_attendance.dart';
 import 'package:attendance/src/models/create_attendance_response.dart';
 import 'package:attendance/src/services/attendance_service.dart';
@@ -88,7 +89,8 @@ class AttendanceProvider extends ChangeNotifier {
       _ongoingAttendanceKey = null;
       _ongoingAttendance = null;
       return null;
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'AttendanceProvider.getOngoingAttendance');
       debugPrint('[AttendanceProvider] getOngoingAttendance error: $e');
       return null;
     } finally {
@@ -105,7 +107,8 @@ class AttendanceProvider extends ChangeNotifier {
       }
       _ongoingAttendanceKey = null;
       _ongoingAttendance = null;
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'AttendanceProvider.deleteOngoingAttendance');
       debugPrint('[AttendanceProvider] deleteOngoingAttendance error: $e');
     } finally {
       notifyListeners();
@@ -179,7 +182,8 @@ class AttendanceProvider extends ChangeNotifier {
         jsonEncode(attendance.toJson()),
       );
       _ongoingAttendance = attendance;
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'AttendanceProvider.updateAttendance');
       debugPrint('[AttendanceProvider] updateAttendance error: $e');
     } finally {
       notifyListeners();
@@ -259,7 +263,8 @@ class AttendanceProvider extends ChangeNotifier {
         jsonEncode(attendance.toJson()),
       );
       _ongoingAttendance = attendance;
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'AttendanceProvider.updateAttendanceBulk');
       debugPrint('[AttendanceProvider] updateAttendanceBulk error: $e');
     } finally {
       notifyListeners();
@@ -296,7 +301,8 @@ class AttendanceProvider extends ChangeNotifier {
         _ongoingAttendance = updated;
         notifyListeners();
       }
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'AttendanceProvider.toggleStudentAttendance');
       debugPrint('[AttendanceProvider] toggleStudentAttendance error: $e');
     }
   }
@@ -333,7 +339,8 @@ class AttendanceProvider extends ChangeNotifier {
       );
       _studentEmbeddings.addAll(embeddings);
       notifyListeners();
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'AttendanceProvider.fetchStudentEmbeddings');
       debugPrint('[AttendanceProvider] fetchStudentEmbeddings error: $e');
     }
   }
@@ -378,7 +385,8 @@ class AttendanceProvider extends ChangeNotifier {
         _errorMessage = response.message;
         return response;
       }
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'AttendanceProvider.submitActiveAttendance');
       _errorMessage = e.toString();
       return CreateAttendanceResponse(err: true, message: e.toString());
     } finally {

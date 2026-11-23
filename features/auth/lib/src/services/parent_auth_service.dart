@@ -28,10 +28,14 @@ class ParentAuthService {
     if (response.statusCode == 204) {
       return (result: ParentOtpResult.notRegistered, message: null);
     }
-    final data = response.data;
-    return (
-      result: ParentOtpResult.sent,
-      message: data is Map<String, dynamic> ? data['message'] as String? : null,
+    return _apiClient.parse(
+      response,
+      (data) => (
+        result: ParentOtpResult.sent,
+        message: data is Map<String, dynamic>
+            ? data['message'] as String?
+            : null,
+      ),
     );
   }
 
@@ -45,7 +49,10 @@ class ParentAuthService {
       },
       options: _noAuth,
     );
-    return ParentUser.fromJson(response.data as Map<String, dynamic>);
+    return _apiClient.parse(
+      response,
+      (payload) => ParentUser.fromJson(payload as Map<String, dynamic>),
+    );
   }
 
   /// Refreshes the student list and token.
@@ -61,7 +68,10 @@ class ParentAuthService {
         ..._deviceInfo.json,
       },
     );
-    return ParentUser.fromJson(response.data as Map<String, dynamic>);
+    return _apiClient.parse(
+      response,
+      (payload) => ParentUser.fromJson(payload as Map<String, dynamic>),
+    );
   }
 
   Future<void> updateRegistrationToken({

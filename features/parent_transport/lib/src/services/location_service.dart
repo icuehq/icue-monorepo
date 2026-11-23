@@ -50,7 +50,10 @@ class LocationService {
       data: <String, dynamic>{'route_id': '$routeId'},
       options: _plain,
     );
-    return ActiveRoute.fromJson(response.data as Map<String, dynamic>);
+    return _client.parse(
+      response,
+      (payload) => ActiveRoute.fromJson(payload as Map<String, dynamic>),
+    );
   }
 
   Future<LiveTrack> getLiveTrack(ActiveRoute route) async {
@@ -62,6 +65,9 @@ class LocationService {
       },
       options: _plain,
     );
-    return LiveTrack.fromJson(response.data as Map<String, dynamic>);
+    return _client.parse(
+      response,
+      (payload) => LiveTrack.fromJson(payload as Map<String, dynamic>),
+    );
   }
 }

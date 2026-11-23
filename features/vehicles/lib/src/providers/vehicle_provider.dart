@@ -35,7 +35,8 @@ class VehicleProvider extends ChangeNotifier {
 
     try {
       _vehicles = await _vehicleService.getVehicles();
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'VehicleProvider.fetchVehicles');
       _errorMessage = e.toString();
     } finally {
       _isLoading = false;
@@ -51,7 +52,8 @@ class VehicleProvider extends ChangeNotifier {
 
     try {
       _vehiclesData = await _vehicleService.getVehiclesData();
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'VehicleProvider.fetchVehiclesData');
       _errorMessage = e.toString();
     } finally {
       _isLoading = false;
@@ -67,7 +69,8 @@ class VehicleProvider extends ChangeNotifier {
 
     try {
       _vehicleDetails = await _vehicleService.getVehicleDetails(vehicleNumber);
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'VehicleProvider.fetchVehicleDetails');
       _errorMessage = e.toString();
     } finally {
       _isLoading = false;
@@ -85,7 +88,8 @@ class VehicleProvider extends ChangeNotifier {
       await _vehicleService.createVehicle(request);
       _vehiclesData = await _vehicleService.getVehiclesData();
       return true;
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'VehicleProvider.addVehicle');
       _errorMessage = e.toString();
       return false;
     } finally {
@@ -104,7 +108,8 @@ class VehicleProvider extends ChangeNotifier {
       await _vehicleService.updateVehicle(request);
       _vehiclesData = await _vehicleService.getVehiclesData();
       return true;
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'VehicleProvider.updateVehicle');
       _errorMessage = e.toString();
       return false;
     } finally {
@@ -124,7 +129,8 @@ class VehicleProvider extends ChangeNotifier {
       _vehiclesData.removeWhere((v) => v.id == vehicleId);
       _vehicles.removeWhere((v) => v.id == vehicleId);
       return true;
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'VehicleProvider.deleteVehicle');
       _errorMessage = e.toString();
       return false;
     } finally {
@@ -139,7 +145,8 @@ class VehicleProvider extends ChangeNotifier {
       final doc = await _vehicleService.getVehicleDocs(id: id, type: type);
       _vehicleDocs[type] = doc;
       notifyListeners();
-    } catch (_) {
+    } catch (error, stack) {
+      reportError(error, stack, 'VehicleProvider.fetchVehicleDoc');
       // Ignored fallback
     }
   }
@@ -157,7 +164,8 @@ class VehicleProvider extends ChangeNotifier {
       await _vehicleService.uploadVehicleDocs(formData);
       await fetchVehicleDoc(id: vehicleId, type: type);
       return true;
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'VehicleProvider.uploadVehicleDoc');
       _errorMessage = e.toString();
       return false;
     } finally {
@@ -178,7 +186,8 @@ class VehicleProvider extends ChangeNotifier {
       await _vehicleService.deleteVehicleDoc(id: vehicleId, type: type);
       _vehicleDocs.remove(type);
       return true;
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'VehicleProvider.deleteVehicleDoc');
       _errorMessage = e.toString();
       return false;
     } finally {

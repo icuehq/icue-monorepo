@@ -62,6 +62,10 @@ melos:
       description: Fail if the generated contract files are out of sync with contracts/*.yaml.
       run: dart run tool/gen_contracts.dart --check
 
+    errors:check:
+      description: Fail when a service reads response.data instead of apiClient.parse, or a catch neither logs nor rethrows (Crashlytics coverage).
+      run: node tool/check-errors.mjs
+
     naming:check:
       description: Fail on abbreviated names, module prefixes and uid prefixes in Inventory and Library code (docs/naming-map.md).
       run: node tool/check-naming.mjs

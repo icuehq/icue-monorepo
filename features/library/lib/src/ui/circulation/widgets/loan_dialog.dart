@@ -73,6 +73,7 @@ class _LoanDialogState extends State<LoanDialog> {
             .difference(DateTime.parse('${today}T00:00:00Z'))
             .inDays;
       } catch (_) {
+        // errors:ok an unparsable date falls back to 0 days.
         daysUntilDue = 0;
       }
     }

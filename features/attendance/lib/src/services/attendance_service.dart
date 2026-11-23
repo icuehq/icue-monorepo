@@ -32,13 +32,14 @@ class AttendanceService {
       },
     );
 
-    final data = response.data;
-    if (data is List) {
-      return data.isNotEmpty;
-    } else if (data is Map && data['err'] == true) {
-      return true; // Treat error response as potential collision
-    }
-    return false;
+    return _apiClient.parse(response, (data) {
+      if (data is List) {
+        return data.isNotEmpty;
+      } else if (data is Map && data['err'] == true) {
+        return true; // Treat error response as potential collision
+      }
+      return false;
+    });
   }
 
   /// Fetches registered MobileFaceNet embeddings for a list of students.
@@ -59,23 +60,24 @@ class AttendanceService {
     );
 
     final embeddings = <int, List<double>>{};
-    final data = response.data;
-    if (data is Map && data['data'] is List) {
-      final list = data['data'] as List;
-      for (final item in list) {
-        if (item is Map) {
-          final studentId = item['StudentId'] as int?;
-          final embeddingList = item['Embedding'] as List?;
-          if (studentId != null && embeddingList != null) {
-            embeddings[studentId] = embeddingList
-                .whereType<num>()
-                .map((e) => e.toDouble())
-                .toList();
+    return _apiClient.parse(response, (data) {
+      if (data is Map && data['data'] is List) {
+        final list = data['data'] as List;
+        for (final item in list) {
+          if (item is Map) {
+            final studentId = item['StudentId'] as int?;
+            final embeddingList = item['Embedding'] as List?;
+            if (studentId != null && embeddingList != null) {
+              embeddings[studentId] = embeddingList
+                  .whereType<num>()
+                  .map((e) => e.toDouble())
+                  .toList();
+            }
           }
         }
       }
-    }
-    return embeddings;
+      return embeddings;
+    });
   }
 
   /// Submits attendance records for a class section.
@@ -87,14 +89,15 @@ class AttendanceService {
       data: attendance.toJson(),
     );
 
-    final data = response.data;
-    if (data is Map<String, dynamic>) {
-      return CreateAttendanceResponse.fromJson(data);
-    }
-    return CreateAttendanceResponse(
-      err: response.statusCode != 200,
-      message: 'Unexpected server response',
-    );
+    return _apiClient.parse(response, (data) {
+      if (data is Map<String, dynamic>) {
+        return CreateAttendanceResponse.fromJson(data);
+      }
+      return CreateAttendanceResponse(
+        err: response.statusCode != 200,
+        message: 'Unexpected server response',
+      );
+    });
   }
 
   Uint8List _compressImageBytes(
@@ -111,7 +114,8 @@ class AttendanceService {
           : decoded;
 
       return Uint8List.fromList(img.encodeJpg(resized, quality: quality));
-    } catch (_) {
+    } catch (error, stack) {
+      reportError(error, stack, 'AttendanceService.getStudentEmbeddings');
       return inputBytes;
     }
   }
@@ -165,7 +169,8 @@ class AttendanceService {
       );
 
       return response.statusCode == 200;
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'AttendanceService.uploadAttendanceImages');
       debugPrint('[AttendanceService] uploadAttendanceImages error: $e');
       return false;
     }

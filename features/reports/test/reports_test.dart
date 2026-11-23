@@ -5,6 +5,10 @@ import 'package:icue_ui/icue_ui.dart';
 import 'package:reports/reports.dart';
 
 class MockApiClient extends Fake implements ApiClient {
+  @override
+  T parse<T>(Response<dynamic> response, T Function(dynamic data) fromJson) =>
+      fromJson(response.data);
+
   dynamic nextResponseData;
   String? lastPath;
   dynamic lastData;

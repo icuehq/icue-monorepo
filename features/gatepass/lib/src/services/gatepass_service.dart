@@ -16,14 +16,12 @@ class GatePassService {
       '/v1.0/getGatePassTypes',
       data: <String, dynamic>{},
     );
-
-    if (response.data is Map<String, dynamic>) {
-      final parsed = GatePassTypesResponse.fromJson(
-        response.data as Map<String, dynamic>,
-      );
-      return parsed.data;
-    }
-    return <GatePassType>[];
+    return _apiClient.parse(
+      response,
+      (data) => data is Map<String, dynamic>
+          ? GatePassTypesResponse.fromJson(data).data
+          : <GatePassType>[],
+    );
   }
 
   /// Fetches gate pass requests requested for a particular date (yyyy-MM-dd).
@@ -32,14 +30,12 @@ class GatePassService {
       '/v1.0/getRequestedGatePass',
       data: <String, dynamic>{'Date': date},
     );
-
-    if (response.data is Map<String, dynamic>) {
-      final parsed = GatePassRequestsResponse.fromJson(
-        response.data as Map<String, dynamic>,
-      );
-      return parsed.data;
-    }
-    return <GatePassRequest>[];
+    return _apiClient.parse(
+      response,
+      (data) => data is Map<String, dynamic>
+          ? GatePassRequestsResponse.fromJson(data).data
+          : <GatePassRequest>[],
+    );
   }
 
   /// Creates and issues a new gate pass for a person/student.
@@ -48,13 +44,7 @@ class GatePassService {
       '/v1.0/createGatePass',
       data: request.toJson(),
     );
-
-    if (response.data is Map<String, dynamic>) {
-      final map = response.data as Map<String, dynamic>;
-      final err = map['err'] as bool? ?? false;
-      return !err;
-    }
-    return true;
+    return _apiClient.parse(response, _succeeded);
   }
 
   /// Approves or rejects a pending gate pass request ('APPROVE' or 'REJECT').
@@ -73,12 +63,10 @@ class GatePassService {
         'Status': status,
       },
     );
-
-    if (response.data is Map<String, dynamic>) {
-      final map = response.data as Map<String, dynamic>;
-      final err = map['err'] as bool? ?? false;
-      return !err;
-    }
-    return true;
+    return _apiClient.parse(response, _succeeded);
   }
+
+  /// A body without an `err: true` flag counts as success.
+  static bool _succeeded(dynamic data) =>
+      data is! Map<String, dynamic> || !(data['err'] as bool? ?? false);
 }

@@ -24,9 +24,11 @@ class SafeHandsService {
         'AdmissionNumber': admissionNumber,
       },
     );
-    final list = response.data as List<dynamic>?;
-    final first = list?.firstOrNull as Map<String, dynamic>?;
-    return first == null ? null : SafeHandsPin.fromJson(first);
+    return _apiClient.parse(response, (payload) {
+      final list = payload as List<dynamic>?;
+      final first = list?.firstOrNull as Map<String, dynamic>?;
+      return first == null ? null : SafeHandsPin.fromJson(first);
+    });
   }
 
   /// The student's current PIN; null when none was generated (empty object).
@@ -35,8 +37,10 @@ class SafeHandsService {
       '/v1.0/GetSafeHandsTokenByStudent',
       data: <String, dynamic>{'StudentId': studentId},
     );
-    final data = response.data as Map<String, dynamic>?;
-    return data == null || data.isEmpty ? null : SafeHandsPin.fromJson(data);
+    return _apiClient.parse(response, (payload) {
+      final data = payload as Map<String, dynamic>?;
+      return data == null || data.isEmpty ? null : SafeHandsPin.fromJson(data);
+    });
   }
 
   Future<List<Escort>> getEscorts(int studentId) async {
@@ -44,10 +48,12 @@ class SafeHandsService {
       '/v1.0/getEscortPhotos',
       data: <String, dynamic>{'StudentId': studentId},
     );
-    final data = response.data as Map<String, dynamic>;
-    return (data['Photos'] as List<dynamic>? ?? <dynamic>[])
-        .map((e) => Escort.fromJson(e as Map<String, dynamic>))
-        .toList();
+    return _apiClient.parse(response, (payload) {
+      final data = payload as Map<String, dynamic>;
+      return (data['Photos'] as List<dynamic>? ?? <dynamic>[])
+          .map((e) => Escort.fromJson(e as Map<String, dynamic>))
+          .toList();
+    });
   }
 
   /// Uploads a new escort. `ok` is false when the server refused (`err: true`).
@@ -87,8 +93,10 @@ class SafeHandsService {
       '/v1.0/saveEscortPhoto',
       data: form,
     );
-    final data = response.data as Map<String, dynamic>;
-    return (ok: data['err'] == false, message: data['message'] as String?);
+    return _apiClient.parse(response, (payload) {
+      final data = payload as Map<String, dynamic>;
+      return (ok: data['err'] == false, message: data['message'] as String?);
+    });
   }
 
   Future<void> deleteEscort({required int studentId, required int escortId}) =>

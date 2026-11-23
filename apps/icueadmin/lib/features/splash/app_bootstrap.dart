@@ -32,7 +32,18 @@ class AppBootstrap extends StatefulWidget {
 class _AppBootstrapState extends State<AppBootstrap> {
   late Future<IcueConnectivityService> _init = _initialize();
 
+  /// Startup failures show the retry splash and are reported too.
   Future<IcueConnectivityService> _initialize() async {
+    errorReporter = logError;
+    try {
+      return await _start();
+    } catch (error, stack) {
+      reportError(error, stack, 'AppBootstrap.initialize');
+      rethrow;
+    }
+  }
+
+  Future<IcueConnectivityService> _start() async {
     final connectivity = IcueConnectivityService();
     // Firebase, local storage and connectivity are independent: run together.
     await Future.wait([
@@ -43,20 +54,7 @@ class _AppBootstrapState extends State<AppBootstrap> {
     getIt<ApiClient>().isOnline = () => connectivity.isOnline;
 
     // Forward unexpected API failures to Crashlytics as non-fatals.
-    getIt<ApiClient>().onLogCrash =
-        (path, error, stack, {fatal = false, message}) {
-          final dio = error is DioException ? error : null;
-          CrashlyticsService.instance.recordError(
-            error,
-            stack,
-            reason: 'API ${dio?.requestOptions.method ?? ''} $path: $message',
-            information: [
-              'status: ${dio?.response?.statusCode}',
-              'type: ${dio?.type.name}',
-              'url: ${dio?.requestOptions.uri}',
-            ],
-          );
-        };
+    getIt<ApiClient>().onLogCrash = reportApiError;
 
     getIt<AuthProvider>();
 

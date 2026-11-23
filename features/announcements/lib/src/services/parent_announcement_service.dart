@@ -13,8 +13,11 @@ class ParentAnnouncementService {
       '/v1.0/getAnnouncementsByStudent',
       data: <String, dynamic>{'StudentId': studentId},
     );
-    return (response.data as List<dynamic>)
-        .map((e) => ParentAnnouncement.fromJson(e as Map<String, dynamic>))
-        .toList();
+    return _apiClient.parse(
+      response,
+      (payload) => (payload as List<dynamic>)
+          .map((e) => ParentAnnouncement.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
   }
 }

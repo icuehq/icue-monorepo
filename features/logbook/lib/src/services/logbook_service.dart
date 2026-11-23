@@ -21,12 +21,12 @@ class LogBookService {
       '/v1.0/getVhComplaintsStats',
       data: {'PageNumber': page, 'PageSize': 10, 'CountsBy': countBy},
     );
-    if (response.data is Map<String, dynamic>) {
-      return ComplaintsDashboardResponse.fromJson(
-        response.data as Map<String, dynamic>,
-      );
-    }
-    return const ComplaintsDashboardResponse();
+    return _apiClient.parse(
+      response,
+      (data) => data is Map<String, dynamic>
+          ? ComplaintsDashboardResponse.fromJson(data)
+          : const ComplaintsDashboardResponse(),
+    );
   }
 
   /// Fetches a paginated list of complaints filtered by vehicle, status, or category.
@@ -50,12 +50,12 @@ class LogBookService {
         'PageSize': 10,
       },
     );
-    if (response.data is Map<String, dynamic>) {
-      return ComplaintDataResponse.fromJson(
-        response.data as Map<String, dynamic>,
-      );
-    }
-    return const ComplaintDataResponse();
+    return _apiClient.parse(
+      response,
+      (data) => data is Map<String, dynamic>
+          ? ComplaintDataResponse.fromJson(data)
+          : const ComplaintDataResponse(),
+    );
   }
 
   /// Fetches available complaint categories.
@@ -64,13 +64,12 @@ class LogBookService {
       '/v1.0/getVhComplaintCategories',
       data: {'IsActive': 'true'},
     );
-    if (response.data is Map<String, dynamic>) {
-      final parsed = ComplaintCategoriesResponse.fromJson(
-        response.data as Map<String, dynamic>,
-      );
-      return parsed.data;
-    }
-    return <ComplaintCategory>[];
+    return _apiClient.parse(
+      response,
+      (data) => data is Map<String, dynamic>
+          ? ComplaintCategoriesResponse.fromJson(data).data
+          : <ComplaintCategory>[],
+    );
   }
 
   /// Submits a new vehicle complaint.
@@ -95,10 +94,12 @@ class LogBookService {
       data: FormData.fromMap(formMap),
     );
 
-    if (response.data is Map<String, dynamic>) {
-      return (response.data as Map<String, dynamic>)['err'] != true;
-    }
-    return response.statusCode == 200;
+    return _apiClient.parse(
+      response,
+      (data) => data is Map<String, dynamic>
+          ? data['err'] != true
+          : response.statusCode == 200,
+    );
   }
 
   /// Updates complaint status or resolution details.
@@ -122,10 +123,12 @@ class LogBookService {
       data: FormData.fromMap(formMap),
     );
 
-    if (response.data is Map<String, dynamic>) {
-      return (response.data as Map<String, dynamic>)['err'] != true;
-    }
-    return response.statusCode == 200;
+    return _apiClient.parse(
+      response,
+      (data) => data is Map<String, dynamic>
+          ? data['err'] != true
+          : response.statusCode == 200,
+    );
   }
 
   /// Fetches list of inspectable vehicle cleaning parts (interior, exterior, tyres, glass).
@@ -134,13 +137,12 @@ class LogBookService {
       '/v1.0/getVhCleaningParts',
       data: {'IsActive': true},
     );
-    if (response.data is Map<String, dynamic>) {
-      final parsed = VehicleCleaningPartsResponse.fromJson(
-        response.data as Map<String, dynamic>,
-      );
-      return parsed.data;
-    }
-    return <CleaningPart>[];
+    return _apiClient.parse(
+      response,
+      (data) => data is Map<String, dynamic>
+          ? VehicleCleaningPartsResponse.fromJson(data).data
+          : <CleaningPart>[],
+    );
   }
 
   /// Submits batch cleaning inspection data for one or more vehicles.
@@ -152,23 +154,25 @@ class LogBookService {
       data: request.toJson(),
     );
 
-    if (response.data is Map<String, dynamic>) {
-      final map = response.data as Map<String, dynamic>;
-      final failedCount = (map['FailedCnt'] as num?)?.toInt() ?? 0;
-      final failedData = <String>[
-        for (final item in map['FailedData'] as List<dynamic>? ?? const [])
-          if (item is Map<String, dynamic>)
-            '${item['VehicleNo']} (${item['CleanedDate']}): ${item['Msg']}',
-      ];
+    return _apiClient.parse(response, (payload) {
+      if (payload is Map<String, dynamic>) {
+        final map = payload;
+        final failedCount = (map['FailedCnt'] as num?)?.toInt() ?? 0;
+        final failedData = <String>[
+          for (final item in map['FailedData'] as List<dynamic>? ?? const [])
+            if (item is Map<String, dynamic>)
+              '${item['VehicleNo']} (${item['CleanedDate']}): ${item['Msg']}',
+        ];
 
-      return CleaningSubmissionResult(
-        success: map['err'] != true,
-        failedCount: failedCount,
-        failedMessages: failedData,
-      );
-    }
+        return CleaningSubmissionResult(
+          success: map['err'] != true,
+          failedCount: failedCount,
+          failedMessages: failedData,
+        );
+      }
 
-    return CleaningSubmissionResult(success: response.statusCode == 200);
+      return CleaningSubmissionResult(success: response.statusCode == 200);
+    });
   }
 
   /// Submits an alcohol breathalyzer test for a driver.
@@ -194,10 +198,12 @@ class LogBookService {
       data: FormData.fromMap(formMap),
     );
 
-    if (response.data is Map<String, dynamic>) {
-      return (response.data as Map<String, dynamic>)['err'] != true;
-    }
-    return response.statusCode == 200;
+    return _apiClient.parse(
+      response,
+      (data) => data is Map<String, dynamic>
+          ? data['err'] != true
+          : response.statusCode == 200,
+    );
   }
 
   /// Fetches past alcohol breathalyzer tests.
@@ -210,11 +216,11 @@ class LogBookService {
       '/v2.0/getPrsnAlcoholTest',
       data: {'PageNumber': page, 'PageSize': pageSize, 'Search': ?search},
     );
-    if (response.data is Map<String, dynamic>) {
-      return AlcoholTestResponse.fromJson(
-        response.data as Map<String, dynamic>,
-      );
-    }
-    return const AlcoholTestResponse();
+    return _apiClient.parse(
+      response,
+      (data) => data is Map<String, dynamic>
+          ? AlcoholTestResponse.fromJson(data)
+          : const AlcoholTestResponse(),
+    );
   }
 }

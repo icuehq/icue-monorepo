@@ -14,6 +14,7 @@ Future<void> forEachConcurrently<T>(
       try {
         await action(item);
       } on Object catch (error, trace) {
+        // errors:ok the failure is kept and rethrown once every worker has stopped.
         failure ??= error;
         failureTrace ??= trace;
       }

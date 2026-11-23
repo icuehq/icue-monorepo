@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:api_client/api_client.dart';
 import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
 import 'package:tracking/src/models/fleet_status_report.dart';
@@ -35,7 +36,8 @@ class TrackingProvider extends ChangeNotifier {
 
     try {
       _fleetStatus = await _trackingService.getVehicleStartStatusReport();
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'TrackingProvider.fetchFleetStatus');
       _errorMessage = e.toString();
     } finally {
       _isLoading = false;
@@ -55,7 +57,8 @@ class TrackingProvider extends ChangeNotifier {
         routeNo: routeNo,
         mode: mode,
       );
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'TrackingProvider.resolveLiveTrackUrl');
       _errorMessage = e.toString();
       return null;
     }
@@ -86,7 +89,8 @@ class TrackingProvider extends ChangeNotifier {
     try {
       _fleetStatus = FleetStatusReport.fromJson(raw);
       notifyListeners();
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'TrackingProvider.updateFromSocket');
       debugPrint('[TrackingProvider] Failed to parse socket routeStats: $e');
     }
   }

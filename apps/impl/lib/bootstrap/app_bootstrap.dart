@@ -37,7 +37,18 @@ class AppBootstrap extends StatefulWidget {
 class _AppBootstrapState extends State<AppBootstrap> {
   late Future<IcueConnectivityService> _init = _initialize();
 
+  /// Startup failures show the retry splash and are reported too.
   Future<IcueConnectivityService> _initialize() async {
+    errorReporter = logError;
+    try {
+      return await _start();
+    } catch (error, stack) {
+      reportError(error, stack, 'AppBootstrap.initialize');
+      rethrow;
+    }
+  }
+
+  Future<IcueConnectivityService> _start() async {
     final connectivity = IcueConnectivityService();
     await Future.wait([
       initFirebase(firebaseOptionsFor(widget.environment)),
@@ -56,19 +67,7 @@ class _AppBootstrapState extends State<AppBootstrap> {
         if (overlay != null) IcueToast.error(overlay.context, message);
       }
       // Forward unexpected API failures to Crashlytics as non-fatals.
-      ..onLogCrash = (path, error, stack, {fatal = false, message}) {
-        final dio = error is DioException ? error : null;
-        CrashlyticsService.instance.recordError(
-          error,
-          stack,
-          reason: 'API ${dio?.requestOptions.method ?? ''} $path: $message',
-          information: [
-            'status: ${dio?.response?.statusCode}',
-            'type: ${dio?.type.name}',
-            'url: ${dio?.requestOptions.uri}',
-          ],
-        );
-      };
+      ..onLogCrash = reportApiError;
     // A 401 clears the session; the router then redirects to login.
     getIt<ParentTokenProvider>().onSessionExpired = () =>
         unawaited(getIt<ParentAuthProvider>().clearSession());

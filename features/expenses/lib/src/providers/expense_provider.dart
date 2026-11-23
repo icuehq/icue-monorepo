@@ -1,3 +1,4 @@
+import 'package:api_client/api_client.dart';
 import 'package:expenses/src/models/expense_requests.dart';
 import 'package:expenses/src/models/expense_type.dart';
 import 'package:expenses/src/models/fuel_storage.dart';
@@ -50,7 +51,8 @@ class ExpenseProvider extends ChangeNotifier {
 
     try {
       _expenseTypes = await _expenseService.getExpenseTypes();
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'ExpenseProvider.fetchExpenseTypes');
       _errorMessage = e.toString();
     } finally {
       _isLoading = false;
@@ -66,7 +68,8 @@ class ExpenseProvider extends ChangeNotifier {
 
     try {
       _categories = await _expenseService.getExpenseCategories();
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'ExpenseProvider.fetchExpenseCategories');
       _errorMessage = e.toString();
     } finally {
       _isLoading = false;
@@ -84,7 +87,8 @@ class ExpenseProvider extends ChangeNotifier {
       _subCategories = await _expenseService.getExpenseSubCategories(
         categoryId,
       );
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'ExpenseProvider.fetchExpenseSubCategories');
       _errorMessage = e.toString();
     } finally {
       _isLoading = false;
@@ -100,7 +104,8 @@ class ExpenseProvider extends ChangeNotifier {
 
     try {
       _fuelStorages = await _expenseService.getFuelStorages(fuelType);
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'ExpenseProvider.fetchFuelStorages');
       _errorMessage = e.toString();
     } finally {
       _isLoading = false;
@@ -120,7 +125,8 @@ class ExpenseProvider extends ChangeNotifier {
       }
       final success = await _expenseService.updateSelfFillingStatus(request);
       return success;
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'ExpenseProvider.updateSelfFillingStatus');
       _errorMessage = e.toString();
       return false;
     } finally {
@@ -145,7 +151,8 @@ class ExpenseProvider extends ChangeNotifier {
         }
       }
       return success;
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'ExpenseProvider.submitExpense');
       _errorMessage = e.toString();
       return false;
     } finally {
@@ -161,7 +168,8 @@ class ExpenseProvider extends ChangeNotifier {
       final ok = await _expenseService.updateFuelPrice(fuelType, price);
       if (!ok) _errorMessage = 'Failed to update fuel price';
       return ok;
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'ExpenseProvider.updateFuelPrice');
       _errorMessage = e.toString();
       return false;
     }

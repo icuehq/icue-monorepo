@@ -3,6 +3,10 @@ import 'package:expenses/expenses.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _RecordingApiClient extends Fake implements ApiClient {
+  @override
+  T parse<T>(Response<dynamic> response, T Function(dynamic data) fromJson) =>
+      fromJson(response.data);
+
   final calls = <String, Map<String, dynamic>>{};
 
   @override

@@ -1,5 +1,6 @@
 import 'dart:isolate';
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:icue_firebase/src/crashlytics_web_stub.dart'
@@ -22,6 +23,7 @@ class CrashlyticsService {
       try {
         await initWebCrashlytics();
       } on Object catch (error) {
+        // errors:ok Crashlytics itself is unavailable here, so the error cannot be reported to it.
         debugPrint('Web Crashlytics unavailable: $error');
         return;
       }
@@ -37,8 +39,10 @@ class CrashlyticsService {
     }
     await _c.setCrashlyticsCollectionEnabled(true);
     FlutterError.onError = _c.recordFlutterFatalError;
+    // An uncaught async error leaves the app running, so it is a non-fatal
+    // (fatal ones would lower the crash-free rate for errors users never saw).
     PlatformDispatcher.instance.onError = (error, stack) {
-      _c.recordError(error, stack, fatal: true);
+      _c.recordError(error, stack);
       return true;
     };
     // Errors thrown in other isolates.
@@ -96,6 +100,8 @@ class CrashlyticsService {
     String? reason,
     List<Object> information = const [],
   }) async {
+    // A startup failure can happen before Firebase is up.
+    if (Firebase.apps.isEmpty) return;
     if (kIsWeb) {
       recordWebError(error, stack, reason: reason, information: information);
       return;

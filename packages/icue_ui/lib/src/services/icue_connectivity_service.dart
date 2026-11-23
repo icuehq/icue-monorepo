@@ -23,6 +23,7 @@ class IcueConnectivityService extends ChangeNotifier {
     try {
       _update(await _connectivity.checkConnectivity());
     } catch (_) {
+      // errors:ok an unknown connectivity state is expected on some platforms.
       // Unknown state: stay optimistic rather than block the user.
     }
   }

@@ -565,6 +565,7 @@ class LibraryService {
           (snapshot) => controller.add(
             overviewFigures(snapshot.data(), scoped?.id, today: todayIST()),
           ),
+          // errors:ok the stream's listener receives the error and reports it.
           onError: controller.addError,
         );
       });

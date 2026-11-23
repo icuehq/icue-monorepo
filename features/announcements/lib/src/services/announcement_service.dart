@@ -13,21 +13,22 @@ class AnnouncementService {
   /// Fetches historical and active announcements.
   Future<List<Announcement>> getAnnouncements() async {
     final response = await _apiClient.post<dynamic>('/v1.0/getAnnouncements');
-    final data = response.data;
-    if (data is List) {
-      final list = data
-          .whereType<Map<String, dynamic>>()
-          .map(Announcement.fromJson)
-          .toList();
-      list.sort((a, b) {
-        if (a.createdDate == null && b.createdDate == null) return 0;
-        if (a.createdDate == null) return 1;
-        if (b.createdDate == null) return -1;
-        return b.createdDate!.compareTo(a.createdDate!);
-      });
-      return list;
-    }
-    return <Announcement>[];
+    return _apiClient.parse(response, (data) {
+      if (data is List) {
+        final list = data
+            .whereType<Map<String, dynamic>>()
+            .map(Announcement.fromJson)
+            .toList();
+        list.sort((a, b) {
+          if (a.createdDate == null && b.createdDate == null) return 0;
+          if (a.createdDate == null) return 1;
+          if (b.createdDate == null) return -1;
+          return b.createdDate!.compareTo(a.createdDate!);
+        });
+        return list;
+      }
+      return <Announcement>[];
+    });
   }
 
   /// Fetches predefined announcement title templates and appends the "Custom" title template.
@@ -35,25 +36,26 @@ class AnnouncementService {
     final response = await _apiClient.post<dynamic>(
       '/v1.0/getAnnouncementTitles',
     );
-    final data = response.data;
-    final List<AnnouncementTitle> titles = [];
-    if (data is Map<String, dynamic>) {
-      final parsed = AnnouncementTitlesResponse.fromJson(data);
-      titles.addAll(parsed.data);
-    }
+    return _apiClient.parse(response, (data) {
+      final List<AnnouncementTitle> titles = [];
+      if (data is Map<String, dynamic>) {
+        final parsed = AnnouncementTitlesResponse.fromJson(data);
+        titles.addAll(parsed.data);
+      }
 
-    if (!titles.any((t) => t.title == 'Custom')) {
-      titles.add(
-        const AnnouncementTitle(
-          type: 1000,
-          title: 'Custom',
-          descHeader: 'Custom',
-          descBody: 'Custom',
-          descFooter: 'Custom',
-        ),
-      );
-    }
-    return titles;
+      if (!titles.any((t) => t.title == 'Custom')) {
+        titles.add(
+          const AnnouncementTitle(
+            type: 1000,
+            title: 'Custom',
+            descHeader: 'Custom',
+            descBody: 'Custom',
+            descFooter: 'Custom',
+          ),
+        );
+      }
+      return titles;
+    });
   }
 
   /// Creates and broadcasts a fleet announcement.
@@ -64,9 +66,11 @@ class AnnouncementService {
       '/v1.0/createFleetAnnouncement',
       data: request.toJson(),
     );
-    if (response.data is Map<String, dynamic>) {
-      return (response.data as Map<String, dynamic>)['err'] != true;
-    }
-    return response.statusCode == 200;
+    return _apiClient.parse(
+      response,
+      (data) => data is Map<String, dynamic>
+          ? data['err'] != true
+          : response.statusCode == 200,
+    );
   }
 }

@@ -28,7 +28,10 @@ class StudentService {
         'PageSize': pageSize,
       },
     );
-    return StudentPage.fromJson(response.data!);
+    return _apiClient.parse(
+      response,
+      (payload) => StudentPage.fromJson(payload as Map<String, dynamic>),
+    );
   }
 
   /// Uploads [embeddings]; true when the server accepted them.
@@ -37,11 +40,12 @@ class StudentService {
       '/v2.0/updateStuEmbeddings',
       data: {'Embeddings': embeddings.map((e) => e.toJson()).toList()},
     );
-    final data = response.data;
-    if (data is! Map<String, dynamic>) return true;
-    return data['err'] == false ||
-        data['error'] == false ||
-        data['message'] == 'success';
+    return _apiClient.parse(response, (data) {
+      if (data is! Map<String, dynamic>) return true;
+      return data['err'] == false ||
+          data['error'] == false ||
+          data['message'] == 'success';
+    });
   }
 
   /// Server embeddings; [classIdFor] resolves a standard name to its class id.
@@ -56,25 +60,30 @@ class StudentService {
           'StudentIds': studentIds,
       },
     );
-    final body = response.data!;
-    if (body['err'] as bool) throw Exception(body['message']);
-    return (body['data'] as List<dynamic>).map((item) {
-      final map = item as Map<String, dynamic>;
-      return StudentEmbedding.fromJson({
-        ...map,
-        'ClassId': classIdFor(map['Standard'] as String),
-      });
-    }).toList();
+    return _apiClient.parse(response, (payload) {
+      final body = payload as Map<String, dynamic>;
+      if (body['err'] as bool) throw Exception(body['message']);
+      return (body['data'] as List<dynamic>).map((item) {
+        final map = item as Map<String, dynamic>;
+        return StudentEmbedding.fromJson({
+          ...map,
+          'ClassId': classIdFor(map['Standard'] as String),
+        });
+      }).toList();
+    });
   }
 
   /// STUDENT standards only.
   Future<List<Standard>> getStandards() async {
     final response = await _apiClient.post<List<dynamic>>('/v1.0/getStandards');
-    return response.data!
-        .cast<Map<String, dynamic>>()
-        .where((e) => e['StandardType'] == 'STUDENT')
-        .map(Standard.fromJson)
-        .toList();
+    return _apiClient.parse(
+      response,
+      (payload) => (payload as List<dynamic>)
+          .cast<Map<String, dynamic>>()
+          .where((e) => e['StandardType'] == 'STUDENT')
+          .map(Standard.fromJson)
+          .toList(),
+    );
   }
 
   /// Downloads [url] to a temp file and returns its path. The photo host is

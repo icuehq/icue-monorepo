@@ -152,7 +152,8 @@ class AuthProvider extends ChangeNotifier {
       loading = false;
       notifyListeners();
       return false;
-    } catch (_) {
+    } catch (error, stack) {
+      reportError(error, stack, 'AuthProvider.sendLoginOtp');
       _errorMessage =
           'Unable to send OTP. Please check your internet connection.';
       loading = false;
@@ -204,7 +205,8 @@ class AuthProvider extends ChangeNotifier {
       loading = false;
       notifyListeners();
       return false;
-    } catch (_) {
+    } catch (error, stack) {
+      reportError(error, stack, 'AuthProvider.login');
       _errorMessage = 'Unable to log in. Please check the OTP and try again.';
       loading = false;
       notifyListeners();
@@ -236,7 +238,8 @@ class AuthProvider extends ChangeNotifier {
           ? 'Invalid username or password.'
           : e.message;
       return false;
-    } catch (_) {
+    } catch (error, stack) {
+      reportError(error, stack, 'AuthProvider.loginWithPassword');
       _errorMessage = 'Unable to log in. Please try again.';
       return false;
     } finally {
@@ -261,7 +264,8 @@ class AuthProvider extends ChangeNotifier {
 
     try {
       roleActions = await _authService.getRoleActions();
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'AuthProvider.getRoleActions');
       // Keep cached role actions if available
       roleActions = _userLocalStorage.getRoleActions();
     } finally {
@@ -278,7 +282,8 @@ class AuthProvider extends ChangeNotifier {
     try {
       appSettings = await _authService.getAdminAppSettings();
       notifyListeners();
-    } catch (_) {
+    } catch (error, stack) {
+      reportError(error, stack, 'AuthProvider.getAdminAppSettings');
       // Keep the previous settings; callers fall back to permissive defaults.
     }
   }
@@ -290,7 +295,8 @@ class AuthProvider extends ChangeNotifier {
 
     try {
       branches = await _authService.getBranchesByZoneId();
-    } catch (_) {
+    } catch (error, stack) {
+      reportError(error, stack, 'AuthProvider.getBranchesByZoneId');
       branches = <Branch>[];
     } finally {
       loading = false;
@@ -321,7 +327,8 @@ class AuthProvider extends ChangeNotifier {
 
     try {
       personTypes = await _authService.getPersonTypes();
-    } catch (_) {
+    } catch (error, stack) {
+      reportError(error, stack, 'AuthProvider.getPersonTypes');
       personTypes = _userLocalStorage.getPersonTypes();
     } finally {
       loading = false;
@@ -338,7 +345,8 @@ class AuthProvider extends ChangeNotifier {
       assignedEntityClasses = await _authService.getAssignedEntities(
         forAttendance: forAttendance,
       );
-    } catch (_) {
+    } catch (error, stack) {
+      reportError(error, stack, 'AuthProvider.getAssignedEntities');
       assignedEntityClasses = <AssignedEntityClass>[];
     } finally {
       loading = false;

@@ -14,12 +14,14 @@ class StudentsService {
       '/v1.0/getActionsByRole',
       data: <String, dynamic>{'StudentId': studentId},
     );
-    final actions =
-        (response.data as List<dynamic>)
-            .map((e) => ParentRoleAction.fromJson(e as Map<String, dynamic>))
-            .toList()
-          ..sort((a, b) => a.tabOrder.compareTo(b.tabOrder));
-    return actions;
+    return _apiClient.parse(response, (payload) {
+      final actions =
+          (payload as List<dynamic>)
+              .map((e) => ParentRoleAction.fromJson(e as Map<String, dynamic>))
+              .toList()
+            ..sort((a, b) => a.tabOrder.compareTo(b.tabOrder));
+      return actions;
+    });
   }
 
   Future<StudentRouteDetails> getRouteDetails(int studentId) async {
@@ -27,7 +29,11 @@ class StudentsService {
       '/v1.0/getStuRtDetails',
       data: <String, dynamic>{'StudentId': studentId},
     );
-    return StudentRouteDetails.fromJson(response.data as Map<String, dynamic>);
+    return _apiClient.parse(
+      response,
+      (payload) =>
+          StudentRouteDetails.fromJson(payload as Map<String, dynamic>),
+    );
   }
 
   /// URL for a web link feature (e.g. mess), or null when the server has none.
@@ -36,7 +42,9 @@ class StudentsService {
       '/v1.0/getStuLinkUrl',
       data: <String, dynamic>{'StudentId': studentId, 'LinkType': linkType},
     );
-    final data = response.data as Map<String, dynamic>;
-    return data['err'] == false ? data['linkUrl'] as String? : null;
+    return _apiClient.parse(response, (payload) {
+      final data = payload as Map<String, dynamic>;
+      return data['err'] == false ? data['linkUrl'] as String? : null;
+    });
   }
 }

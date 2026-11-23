@@ -28,6 +28,7 @@ export 'src/di/api_client_micro_module.dart' show initMicroPackage;
 export 'src/di/api_client_micro_module.module.dart';
 export 'src/errors/api_exception.dart';
 export 'src/errors/error_helpers.dart';
+export 'src/errors/error_reporting.dart';
 export 'src/interceptors/auth_interceptor.dart';
 export 'src/interceptors/error_interceptor.dart';
 export 'src/interceptors/logging_interceptor.dart';

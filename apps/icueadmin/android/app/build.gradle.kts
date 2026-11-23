@@ -74,6 +74,10 @@ android {
 
     buildTypes {
         release {
+            configure<com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension> {
+                // Upload symbols so native crashes (e.g. the face SDK's ML code) are readable.
+                nativeSymbolUploadEnabled = true
+            }
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("release")
         }

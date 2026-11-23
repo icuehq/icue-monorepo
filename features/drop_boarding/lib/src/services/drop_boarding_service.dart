@@ -24,12 +24,12 @@ class DropBoardingService {
       },
     );
 
-    final data = response.data;
-    if (data is Map<String, dynamic>) {
-      final res = VehicleArrivalsResponse.fromJson(data);
-      return res.data;
-    }
-    return <VehicleArrival>[];
+    return _apiClient.parse(response, (data) {
+      if (data is Map<String, dynamic>) {
+        return VehicleArrivalsResponse.fromJson(data).data;
+      }
+      return <VehicleArrival>[];
+    });
   }
 
   /// Fetches available boarding zone types for the branch.
@@ -47,12 +47,12 @@ class DropBoardingService {
       },
     );
 
-    final data = response.data;
-    if (data is Map<String, dynamic>) {
-      final res = BoardingTypesResponse.fromJson(data);
-      return res.data;
-    }
-    return <BoardingType>[];
+    return _apiClient.parse(response, (data) {
+      if (data is Map<String, dynamic>) {
+        return BoardingTypesResponse.fromJson(data).data;
+      }
+      return <BoardingType>[];
+    });
   }
 
   /// Updates arrival or departure status for a collection of vehicle routes.

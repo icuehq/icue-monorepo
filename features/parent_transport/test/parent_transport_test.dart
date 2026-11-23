@@ -6,6 +6,10 @@ import 'package:parent_transport/src/models/vehicle_location.dart';
 import 'package:parent_transport/src/services/parent_transport_service.dart';
 
 class _FakeApiClient extends Fake implements ApiClient {
+  @override
+  T parse<T>(Response<dynamic> response, T Function(dynamic data) fromJson) =>
+      fromJson(response.data);
+
   int status = 200;
   dynamic body;
   Map<String, dynamic>? lastData;

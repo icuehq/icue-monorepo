@@ -1,3 +1,4 @@
+import 'package:api_client/api_client.dart';
 import 'package:flutter/foundation.dart';
 import 'package:gatepass/src/models/create_gatepass_request.dart';
 import 'package:gatepass/src/models/gatepass_request.dart';
@@ -39,7 +40,8 @@ class GatePassProvider extends ChangeNotifier {
 
     try {
       _gatepassTypes = await _gatePassService.getGatePassTypes();
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'GatePassProvider.fetchGatePassTypes');
       _errorMessage = e.toString();
     } finally {
       _isLoading = false;
@@ -57,7 +59,8 @@ class GatePassProvider extends ChangeNotifier {
     try {
       final dateStr = date.toUsDate();
       _requests = await _gatePassService.getGatePassRequests(dateStr);
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'GatePassProvider.fetchGatePassRequests');
       _errorMessage = e.toString();
     } finally {
       _isLoading = false;
@@ -74,7 +77,8 @@ class GatePassProvider extends ChangeNotifier {
     try {
       final success = await _gatePassService.issueGatePass(request);
       return success;
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'GatePassProvider.issueGatePass');
       _errorMessage = e.toString();
       return false;
     } finally {
@@ -105,7 +109,8 @@ class GatePassProvider extends ChangeNotifier {
         _requests.removeWhere((r) => r.id == id);
       }
       return success;
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'GatePassProvider.updateGatePassStatus');
       _errorMessage = e.toString();
       return false;
     } finally {

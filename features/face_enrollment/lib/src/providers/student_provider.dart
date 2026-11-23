@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:api_client/api_client.dart';
 import 'package:face_enrollment/src/models/student.dart';
 import 'package:face_enrollment/src/models/student_embedding.dart';
 import 'package:face_enrollment/src/providers/batch_progress.dart';
@@ -139,7 +140,12 @@ class StudentProvider extends ChangeNotifier {
         batch.say('Checking server for existing embeddings...');
         try {
           await _pullEmbeddings(studentIds: [for (final s in pending) s.id]);
-        } catch (e) {
+        } catch (e, stack) {
+          reportError(
+            e,
+            stack,
+            'StudentProvider.generateAndUploadBatchEmbeddings',
+          );
           debugPrint('Server embedding check failed: $e');
         }
         final stillPending = pending
@@ -150,7 +156,8 @@ class StudentProvider extends ChangeNotifier {
       }
 
       await _generateAndUpload(pending, classId);
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'StudentProvider.generateAndUploadBatchEmbeddings');
       batch.finish('Batch failed: ${describeError(e)}');
     }
   }
@@ -275,7 +282,8 @@ class StudentProvider extends ChangeNotifier {
           'temp_batch_student_${student.id}_photo.jpg',
         );
         return (path: path, error: null);
-      } catch (e) {
+      } catch (e, stack) {
+        reportError(e, stack, 'StudentProvider._generateAndUpload');
         lastError = e;
       }
     }
@@ -290,7 +298,8 @@ class StudentProvider extends ChangeNotifier {
       if (attempt > 0) await Future<void>.delayed(_retryDelay * attempt);
       try {
         return await _faceSdk.extractEmbedding(imagePath: path);
-      } catch (e) {
+      } catch (e, stack) {
+        reportError(e, stack, 'StudentProvider._extractWithRetry');
         lastError = e;
       }
     }
@@ -311,7 +320,8 @@ class StudentProvider extends ChangeNotifier {
         if (!await _studentService.updateStuEmbeddings(chunk)) {
           failed.addAll(chunk);
         }
-      } catch (e) {
+      } catch (e, stack) {
+        reportError(e, stack, 'StudentProvider._extractWithRetry');
         debugPrint('Embedding upload failed: $e');
         failed.addAll(chunk);
       }
@@ -323,7 +333,9 @@ class StudentProvider extends ChangeNotifier {
     try {
       final file = File(path);
       if (await file.exists()) await file.delete();
-    } catch (_) {}
+    } catch (error, stack) {
+      reportError(error, stack, 'StudentProvider._deleteQuietly');
+    }
   }
 
   void setClassId(int id) {
@@ -385,7 +397,8 @@ class StudentProvider extends ChangeNotifier {
       _isLoading = false;
       _isLoadingMore = false;
       notifyListeners();
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'StudentProvider.fetchStudents');
       _isLoading = false;
       _isLoadingMore = false;
       _errorMessage = describeError(e);
@@ -425,7 +438,8 @@ class StudentProvider extends ChangeNotifier {
       _isUploadingEmbedding = false;
       notifyListeners();
       return success;
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'StudentProvider.uploadStudentEmbedding');
       _isUploadingEmbedding = false;
       _embeddingUploadError = describeError(e);
       notifyListeners();
@@ -482,7 +496,8 @@ class StudentProvider extends ChangeNotifier {
         _classId = _standards.first.id;
       }
       notifyListeners();
-    } catch (error) {
+    } catch (error, stack) {
+      reportError(error, stack, 'StudentProvider.fetchStandards');
       debugPrint('[getStandards error]: $error');
     }
   }

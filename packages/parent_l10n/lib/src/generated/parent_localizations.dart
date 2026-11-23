@@ -434,12 +434,6 @@ abstract class ParentLocalizations {
   /// **'Securing your personal information is our priority.'**
   String get securingYourPersonalInformationIsOurPriority;
 
-  /// No description provided for @comingSoon.
-  ///
-  /// In en, this message translates to:
-  /// **'Coming Soon'**
-  String get comingSoon;
-
   /// No description provided for @payments.
   ///
   /// In en, this message translates to:
@@ -463,12 +457,6 @@ abstract class ParentLocalizations {
   /// In en, this message translates to:
   /// **'Test Page'**
   String get testPage;
-
-  /// No description provided for @goToHomePage.
-  ///
-  /// In en, this message translates to:
-  /// **'Go to Home Page'**
-  String get goToHomePage;
 
   /// No description provided for @instantMealPurchase.
   ///

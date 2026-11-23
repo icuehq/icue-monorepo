@@ -1,3 +1,4 @@
+import 'package:api_client/api_client.dart';
 import 'package:attendance/attendance.dart';
 import 'package:auth/auth.dart';
 import 'package:flutter/material.dart';
@@ -74,7 +75,8 @@ class _SdkAttendancePageState extends State<SdkAttendancePage> {
       } else {
         await _startMultiPhotoAttendance(autoLaunch: true);
       }
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, '_SdkAttendancePageState._initSdkAndFetch');
       if (!mounted) return;
       setState(() {
         _errorMessage = 'Failed to initialize Face Recognition: $e';
@@ -142,7 +144,8 @@ class _SdkAttendancePageState extends State<SdkAttendancePage> {
       if (result != null) {
         await _applyAttendanceResult(result);
       }
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, '_SdkAttendancePageState._startLiveAttendance');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error running live attendance: $e')),
@@ -191,7 +194,12 @@ class _SdkAttendancePageState extends State<SdkAttendancePage> {
       if (result != null) {
         await _applyAttendanceResult(result);
       }
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(
+        e,
+        stack,
+        '_SdkAttendancePageState._startMultiPhotoAttendance',
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error running photo attendance: $e')),

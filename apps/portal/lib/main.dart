@@ -17,32 +17,25 @@ Future<void> main() async {
   usePathUrlStrategy();
   WidgetsFlutterBinding.ensureInitialized();
   final environment = ApiEnvironment.fromEnvironment();
-  // Firebase and local storage are independent: init them together.
-  await Future.wait([
-    initFirebase(firebaseOptionsFor(environment)),
-    () async {
-      await configureDependencies(environment.name);
-      // Hive must be open before AuthProvider restores the session from it.
-      await getIt<StorageService>().init();
-      await getIt<UserLocalStorage>().init();
-    }(),
-  ]);
+  errorReporter = logError;
+  try {
+    // Firebase and local storage are independent: init them together.
+    await Future.wait([
+      initFirebase(firebaseOptionsFor(environment)),
+      () async {
+        await configureDependencies(environment.name);
+        // Hive must be open before AuthProvider restores the session from it.
+        await getIt<StorageService>().init();
+        await getIt<UserLocalStorage>().init();
+      }(),
+    ]);
+  } catch (error, stack) {
+    reportError(error, stack, 'Portal startup');
+    rethrow;
+  }
   getIt<ApiClient>().source = 'web';
   // Forward unexpected API failures to Crashlytics as non-fatals.
-  getIt<ApiClient>().onLogCrash =
-      (path, error, stack, {fatal = false, message}) {
-        final dio = error is DioException ? error : null;
-        CrashlyticsService.instance.recordError(
-          error,
-          stack,
-          reason: 'API ${dio?.requestOptions.method ?? ''} $path: $message',
-          information: [
-            'status: ${dio?.response?.statusCode}',
-            'type: ${dio?.type.name}',
-            'url: ${dio?.requestOptions.uri}',
-          ],
-        );
-      };
+  getIt<ApiClient>().onLogCrash = reportApiError;
   runApp(PortalApp(authProvider: getIt<AuthProvider>()));
 }
 

@@ -117,6 +117,37 @@ class ApiClient {
   /// validation/auth or connectivity) so apps can forward them to a crash reporter.
   CrashLoggerCallback? onLogCrash;
 
+  /// Runs [fromJson] on [response]'s body. A body that does not match the
+  /// expected shape (cast or format error) is reported through [onLogCrash]
+  /// with the endpoint path, shown like any other API failure, and thrown as
+  /// an [UnknownApiException]. Use it for every `response.data` conversion.
+  T parse<T>(Response<dynamic> response, T Function(dynamic data) fromJson) {
+    try {
+      return fromJson(response.data);
+    } catch (error, stack) {
+      final path = response.requestOptions.path;
+      log(
+        'PARSE ERROR in $path: $error',
+        name: 'ApiClient',
+        error: error,
+        stackTrace: stack,
+      );
+      onLogCrash?.call(
+        path,
+        error,
+        stack,
+        fatal: false,
+        message: 'Unexpected response format',
+      );
+      const fallback = UnknownApiException();
+      onShowErrorMessage?.call(fallback.message);
+      throw UnknownApiException(
+        statusCode: response.statusCode,
+        originalError: error,
+      );
+    }
+  }
+
   TokenProvider? _tokenProvider;
   late final AuthInterceptor _authInterceptor;
 

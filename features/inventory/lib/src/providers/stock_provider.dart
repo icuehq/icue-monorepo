@@ -57,26 +57,6 @@ class StockProvider extends LoadingProvider {
 
   String itemName(String id, [String? variantId]) => items[id]?.name ?? id;
 
-  /// [quiet] skips the loading notifications, for fetches triggered from a widget's build (FutureBuilder).
-  Future<T?> _load<T>(Future<T> Function() body, {bool quiet = false}) async {
-    if (!quiet) {
-      isLoading = true;
-      errorMessage = null;
-      notifyListeners();
-    }
-    try {
-      return await body();
-    } catch (error) {
-      errorMessage = callableErrorMessage(error);
-      return null;
-    } finally {
-      if (!quiet) {
-        isLoading = false;
-        notifyListeners();
-      }
-    }
-  }
-
   Future<void> _names(Iterable<String> ids) async {
     final need = ids.where((i) => !items.containsKey(i));
     if (need.isNotEmpty) items.addAll(await _service.itemsByIds(need));
@@ -111,7 +91,7 @@ class StockProvider extends LoadingProvider {
       _searchOffset = 0;
     }
     final query = balanceSearch;
-    await _load(() async {
+    await run(() async {
       final List<InventoryBalance> rows;
       if (query.isEmpty) {
         final page = await _service.balances(
@@ -141,11 +121,11 @@ class StockProvider extends LoadingProvider {
   }
 
   Future<List<InventoryMovement>> movements(InventoryBalance balance) async =>
-      (await _load(() => _service.movements(balance), quiet: true)) ?? [];
+      (await run(() => _service.movements(balance), quiet: true)) ?? [];
 
   /// One request, fresh from Firestore; also refreshes its row in [issueRequests].
   Future<InventoryIssueRequest?> loadRequest(String id) async {
-    final loaded = await _load(() async {
+    final loaded = await run(() async {
       final request = await _service.requestById(id);
       if (request == null) {
         errorMessage = 'Request not found';
@@ -161,13 +141,13 @@ class StockProvider extends LoadingProvider {
   }
 
   Future<void> loadAllStores() async {
-    await _load(() async => allStores = await _service.allStores());
+    await run(() async => allStores = await _service.allStores());
   }
 
   Future<List<InventoryIssue>> issuesOf(
     InventoryIssueRequest issueRequest,
   ) async =>
-      (await _load(() => _service.issuesOf(issueRequest), quiet: true)) ?? [];
+      (await run(() => _service.issuesOf(issueRequest), quiet: true)) ?? [];
 
   /// Runs a client write (Receive Stock) or else a callable; returns its result (`id`, `number`) or null with [errorMessage] set.
   Future<Map<String, dynamic>?> act(

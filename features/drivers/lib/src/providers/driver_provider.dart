@@ -31,7 +31,8 @@ class DriverProvider extends ChangeNotifier {
   Future<void> fetchCountries() async {
     try {
       _countries = await _driverService.getCountries();
-    } catch (_) {
+    } catch (error, stack) {
+      reportError(error, stack, 'DriverProvider.fetchCountries');
       // The form keeps working with an empty list.
     }
     notifyListeners();
@@ -41,7 +42,8 @@ class DriverProvider extends ChangeNotifier {
   Future<void> fetchPlaces(String countryId) async {
     try {
       _places = await _driverService.getChildPlaces(countryId);
-    } catch (_) {
+    } catch (error, stack) {
+      reportError(error, stack, 'DriverProvider.fetchPlaces');
       _places = <Place>[];
     }
     notifyListeners();
@@ -55,7 +57,8 @@ class DriverProvider extends ChangeNotifier {
 
     try {
       _drivers = await _driverService.getDrivers();
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'DriverProvider.fetchDrivers');
       _errorMessage = e.toString();
     } finally {
       _isLoading = false;
@@ -73,7 +76,8 @@ class DriverProvider extends ChangeNotifier {
       await _driverService.createDriver(request);
       _drivers = await _driverService.getDrivers();
       return true;
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'DriverProvider.addDriver');
       _errorMessage = e.toString();
       return false;
     } finally {
@@ -92,7 +96,8 @@ class DriverProvider extends ChangeNotifier {
       await _driverService.updateDriver(request);
       _drivers = await _driverService.getDrivers();
       return true;
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'DriverProvider.updateDriver');
       _errorMessage = e.toString();
       return false;
     } finally {
@@ -111,7 +116,8 @@ class DriverProvider extends ChangeNotifier {
       await _driverService.deleteDriver(driverId);
       _drivers.removeWhere((d) => d.id == driverId);
       return true;
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'DriverProvider.deleteDriver');
       _errorMessage = e.toString();
       return false;
     } finally {
@@ -126,7 +132,8 @@ class DriverProvider extends ChangeNotifier {
       final doc = await _driverService.getDriverDocs(driverId, docType);
       _driverDocs[docType] = doc;
       notifyListeners();
-    } catch (_) {
+    } catch (error, stack) {
+      reportError(error, stack, 'DriverProvider.fetchDriverDoc');
       // Ignored per document fallback rules
     }
   }
@@ -144,7 +151,8 @@ class DriverProvider extends ChangeNotifier {
       await _driverService.uploadDriverDocs(formData);
       await fetchDriverDoc(driverId, docType);
       return true;
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'DriverProvider.uploadDriverDoc');
       _errorMessage = e.toString();
       return false;
     } finally {
@@ -172,7 +180,8 @@ class DriverProvider extends ChangeNotifier {
       }
       _driverDocs.remove(docType);
       return true;
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'DriverProvider.deleteDriverDoc');
       _errorMessage = e.toString();
       return false;
     } finally {

@@ -2,6 +2,7 @@ import 'package:announcements/src/models/announcement.dart';
 import 'package:announcements/src/models/announcement_title.dart';
 import 'package:announcements/src/models/create_announcement_request.dart';
 import 'package:announcements/src/services/announcement_service.dart';
+import 'package:api_client/api_client.dart';
 import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
 
@@ -30,7 +31,8 @@ class AnnouncementsProvider extends ChangeNotifier {
 
     try {
       _announcements = await _announcementService.getAnnouncements();
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'AnnouncementsProvider.fetchAnnouncements');
       _errorMessage = e.toString();
     } finally {
       _isLoading = false;
@@ -46,7 +48,8 @@ class AnnouncementsProvider extends ChangeNotifier {
 
     try {
       _announcementTitles = await _announcementService.getAnnouncementTitles();
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'AnnouncementsProvider.fetchAnnouncementTitles');
       _errorMessage = e.toString();
     } finally {
       _isLoading = false;
@@ -68,7 +71,8 @@ class AnnouncementsProvider extends ChangeNotifier {
         _announcements = await _announcementService.getAnnouncements();
       }
       return success;
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'AnnouncementsProvider.postAnnouncement');
       _errorMessage = e.toString();
       return false;
     } finally {

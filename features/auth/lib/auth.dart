@@ -21,3 +21,4 @@ export 'src/storage/session_token_provider.dart';
 export 'src/storage/user_local_storage.dart';
 export 'src/ui/parent/parent_auth_routes.dart';
 export 'src/utils/indian_phone_validator.dart';
+export 'src/utils/report_api_error.dart';

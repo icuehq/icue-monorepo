@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:api_client/api_client.dart';
 import 'package:drop_boarding/src/models/boarding_type.dart';
 import 'package:drop_boarding/src/models/vehicle_arrival.dart';
 import 'package:drop_boarding/src/services/drop_boarding_service.dart';
@@ -68,7 +69,8 @@ class DropBoardingProvider extends ChangeNotifier {
 
       _vehicleArrivals = results[0] as List<VehicleArrival>;
       _dropRoutes = results[1] as List<Routee>;
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'DropBoardingProvider.fetchInitialData');
       _errorMessage = e.toString();
     } finally {
       _isLoading = false;
@@ -92,7 +94,8 @@ class DropBoardingProvider extends ChangeNotifier {
         branchId: branchId,
         organizationId: organizationId,
       );
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'DropBoardingProvider.fetchVehicleArrivals');
       _errorMessage = e.toString();
     } finally {
       _isLoading = false;
@@ -116,7 +119,8 @@ class DropBoardingProvider extends ChangeNotifier {
         branchId: branchId,
         organizationId: organizationId,
       );
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'DropBoardingProvider.fetchBoardingTypes');
       _errorMessage = e.toString();
     } finally {
       _isLoading = false;
@@ -173,7 +177,8 @@ class DropBoardingProvider extends ChangeNotifier {
         );
       }
       return success;
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'DropBoardingProvider.markVehiclesArrived');
       _errorMessage = e.toString();
       return false;
     } finally {
@@ -226,7 +231,8 @@ class DropBoardingProvider extends ChangeNotifier {
         );
       }
       return success;
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'DropBoardingProvider.markVehiclesLeft');
       _errorMessage = e.toString();
       return false;
     } finally {

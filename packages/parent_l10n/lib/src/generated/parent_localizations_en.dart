@@ -183,9 +183,6 @@ class ParentLocalizationsEn extends ParentLocalizations {
       'Securing your personal information is our priority.';
 
   @override
-  String get comingSoon => 'Coming Soon';
-
-  @override
   String get payments => 'Payments';
 
   @override
@@ -196,9 +193,6 @@ class ParentLocalizationsEn extends ParentLocalizations {
 
   @override
   String get testPage => 'Test Page';
-
-  @override
-  String get goToHomePage => 'Go to Home Page';
 
   @override
   String get instantMealPurchase => 'Instant Meal Purchase';

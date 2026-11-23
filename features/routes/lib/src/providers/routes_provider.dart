@@ -1,3 +1,4 @@
+import 'package:api_client/api_client.dart';
 import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
 import 'package:routes/src/models/route_change_requests.dart';
@@ -37,7 +38,8 @@ class RoutesProvider extends ChangeNotifier {
 
     try {
       _routes = await _routeService.getRoutesAndPoints(mode);
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'RoutesProvider.fetchRoutes');
       _errorMessage = e.toString();
     } finally {
       _isLoading = false;
@@ -53,7 +55,8 @@ class RoutesProvider extends ChangeNotifier {
 
     try {
       _standards = await _routeService.getStandards();
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'RoutesProvider.fetchStandards');
       _errorMessage = e.toString();
     } finally {
       _isLoading = false;
@@ -88,7 +91,8 @@ class RoutesProvider extends ChangeNotifier {
       } else {
         _hasNextPage = false;
       }
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'RoutesProvider.fetchStandards');
       _errorMessage = e.toString();
     } finally {
       _studentsLoading = false;
@@ -121,7 +125,8 @@ class RoutesProvider extends ChangeNotifier {
       _students.clear();
       _students.addAll(results);
       _hasNextPage = false;
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'RoutesProvider.fetchStandards');
       _errorMessage = e.toString();
     } finally {
       _studentsLoading = false;
@@ -140,7 +145,8 @@ class RoutesProvider extends ChangeNotifier {
         await fetchStudents(request.classId, request.sections);
       }
       return success;
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'RoutesProvider.changeRoute');
       _errorMessage = e.toString();
       return false;
     } finally {
@@ -160,7 +166,8 @@ class RoutesProvider extends ChangeNotifier {
         await fetchStudents(request.classId, request.sections);
       }
       return success;
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'RoutesProvider.changeBothRoutes');
       _errorMessage = e.toString();
       return false;
     } finally {
@@ -180,7 +187,8 @@ class RoutesProvider extends ChangeNotifier {
         await fetchRoutes(request.mode);
       }
       return success;
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'RoutesProvider.updateRouteTime');
       _errorMessage = e.toString();
       return false;
     } finally {

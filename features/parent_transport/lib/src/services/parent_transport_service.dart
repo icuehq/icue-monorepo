@@ -46,11 +46,13 @@ class ParentTransportService {
       },
     );
     if (response.statusCode == 204) return const VehicleLocationNone();
-    final data = response.data as Map<String, dynamic>?;
-    if (response.statusCode == 200 && data != null) {
-      return VehicleLocationData(VehicleLocation.fromJson(data));
-    }
-    return VehicleLocationRefused(data?['message'] as String?);
+    return _apiClient.parse(response, (payload) {
+      final data = payload as Map<String, dynamic>?;
+      if (response.statusCode == 200 && data != null) {
+        return VehicleLocationData(VehicleLocation.fromJson(data));
+      }
+      return VehicleLocationRefused(data?['message'] as String?);
+    });
   }
 
   /// True when the cached route is outdated (or the check failed to run).
@@ -67,7 +69,10 @@ class ParentTransportService {
         'TraceDate': traceDate,
       },
     );
-    return (response.data as Map<String, dynamic>)['ToUpdate'] == true;
+    return _apiClient.parse(
+      response,
+      (payload) => (payload as Map<String, dynamic>)['ToUpdate'] == true,
+    );
   }
 
   Future<RouteCoordinates> getRouteCoordinates({
@@ -81,7 +86,10 @@ class ParentTransportService {
         'RouteDetailsId': routeDetailsId,
       },
     );
-    return RouteCoordinates.fromJson(response.data as Map<String, dynamic>);
+    return _apiClient.parse(
+      response,
+      (payload) => RouteCoordinates.fromJson(payload as Map<String, dynamic>),
+    );
   }
 
   /// Connection statistics the school uses to monitor parent app usage.
@@ -110,14 +118,16 @@ class ParentTransportService {
       '/v1.0/getStuRtDetails',
       data: <String, dynamic>{'StudentId': studentId},
     );
-    final routes =
-        (response.data as Map<String, dynamic>)['Routes'] as List<dynamic>?;
-    final first = routes?.firstOrNull as Map<String, dynamic>?;
-    if (first == null) return null;
-    return (
-      routeId: (first['Id'] as num).toInt(),
-      mode: first['Mode'] as String?,
-    );
+    return _apiClient.parse(response, (payload) {
+      final routes =
+          (payload as Map<String, dynamic>)['Routes'] as List<dynamic>?;
+      final first = routes?.firstOrNull as Map<String, dynamic>?;
+      if (first == null) return null;
+      return (
+        routeId: (first['Id'] as num).toInt(),
+        mode: first['Mode'] as String?,
+      );
+    });
   }
 
   Future<List<RouteNotification>> getRouteNotifications({
@@ -131,10 +141,12 @@ class ParentTransportService {
         'RouteTrackId': routeTrackId,
       },
     );
-    final data = response.data as Map<String, dynamic>;
-    return (data['msgs'] as List<dynamic>? ?? <dynamic>[])
-        .map((e) => RouteNotification.fromJson(e as Map<String, dynamic>))
-        .toList();
+    return _apiClient.parse(response, (payload) {
+      final data = payload as Map<String, dynamic>;
+      return (data['msgs'] as List<dynamic>? ?? <dynamic>[])
+          .map((e) => RouteNotification.fromJson(e as Map<String, dynamic>))
+          .toList();
+    });
   }
 
   Future<List<TransportRecord>> getTransportRecords({
@@ -153,10 +165,12 @@ class ParentTransportService {
         'PageSize': 50,
       },
     );
-    final data = response.data as Map<String, dynamic>;
-    return (data['data'] as List<dynamic>? ?? <dynamic>[])
-        .map((e) => TransportRecord.fromJson(e as Map<String, dynamic>))
-        .toList();
+    return _apiClient.parse(response, (payload) {
+      final data = payload as Map<String, dynamic>;
+      return (data['data'] as List<dynamic>? ?? <dynamic>[])
+          .map((e) => TransportRecord.fromJson(e as Map<String, dynamic>))
+          .toList();
+    });
   }
 
   Future<List<StudentVehicle>> getStudentVehicles(StudentScope student) async {
@@ -164,10 +178,12 @@ class ParentTransportService {
       '/v2.0/getStudentVehicles',
       data: student.toJson(),
     );
-    final data = response.data as Map<String, dynamic>;
-    return (data['data'] as List<dynamic>? ?? <dynamic>[])
-        .map((e) => StudentVehicle.fromJson(e as Map<String, dynamic>))
-        .toList();
+    return _apiClient.parse(response, (payload) {
+      final data = payload as Map<String, dynamic>;
+      return (data['data'] as List<dynamic>? ?? <dynamic>[])
+          .map((e) => StudentVehicle.fromJson(e as Map<String, dynamic>))
+          .toList();
+    });
   }
 
   Future<void> saveStudentVehicle(

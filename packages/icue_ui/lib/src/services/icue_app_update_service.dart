@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:icue_firebase/icue_firebase.dart';
 import 'package:in_app_update_flutter/in_app_update_flutter.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -24,7 +25,8 @@ class IcueAppUpdateService {
       } else if (Platform.isIOS) {
         await _ios();
       }
-    } catch (e) {
+    } catch (e, stack) {
+      logError(e, stack, 'IcueAppUpdateService.checkForUpdate');
       debugPrint('In-app update check failed: $e');
     }
   }

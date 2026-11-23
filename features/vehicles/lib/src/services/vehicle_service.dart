@@ -16,20 +16,26 @@ class VehicleService {
     final response = await _apiClient.post<dynamic>(
       '/v1.0/getVehiclesNumbersByBranch',
     );
-    return parseList(
-      response.data,
-      Vehicle.fromJson,
-      compare: (a, b) => a.number.compareTo(b.number),
+    return _apiClient.parse(
+      response,
+      (payload) => parseList(
+        payload,
+        Vehicle.fromJson,
+        compare: (a, b) => a.number.compareTo(b.number),
+      ),
     );
   }
 
   /// Fetches full vehicle fleet data with compliance dates and driver associations.
   Future<List<VehicleData>> getVehiclesData() async {
     final response = await _apiClient.post<dynamic>('/v1.0/getVehicles');
-    return parseList(
-      response.data,
-      VehicleData.fromJson,
-      compare: (a, b) => a.number.compareTo(b.number),
+    return _apiClient.parse(
+      response,
+      (payload) => parseList(
+        payload,
+        VehicleData.fromJson,
+        compare: (a, b) => a.number.compareTo(b.number),
+      ),
     );
   }
 
@@ -39,10 +45,11 @@ class VehicleService {
       '/v1.0/getVehicleByNumber',
       data: {'Number': vehicleNumber},
     );
-    if (response.data is Map<String, dynamic>) {
-      return VehicleDetails.fromJson(response.data as Map<String, dynamic>);
-    }
-    return null;
+    return _apiClient.parse(
+      response,
+      (data) =>
+          data is Map<String, dynamic> ? VehicleDetails.fromJson(data) : null,
+    );
   }
 
   /// Creates a new vehicle in the fleet.
@@ -78,14 +85,15 @@ class VehicleService {
         '/v1.0/getVehicleDocs',
         data: {'Target': 'Vehicle', 'RecordId': id, 'Type': type},
       );
-      if (response.data is Map<String, dynamic>) {
-        final docsResponse = VehicleDocs.fromJson(
-          response.data as Map<String, dynamic>,
-        );
-        return docsResponse.docs;
-      }
-      return null;
-    } catch (_) {
+      return await _apiClient.parse(response, (payload) {
+        if (payload is Map<String, dynamic>) {
+          final docsResponse = VehicleDocs.fromJson(payload);
+          return docsResponse.docs;
+        }
+        return null;
+      });
+    } catch (error, stack) {
+      reportError(error, stack, 'VehicleService.getVehicleDocs');
       return null;
     }
   }
@@ -110,13 +118,14 @@ class VehicleService {
         '/v1.0/checkVehicleNumber',
         data: {'Number': number},
       );
-      if (response.data is Map<String, dynamic>) {
-        return (response.data as Map<String, dynamic>)['IsAlreadyRegistered']
-                as bool? ??
-            false;
-      }
-      return false;
-    } catch (_) {
+      return await _apiClient.parse(response, (payload) {
+        if (payload is Map<String, dynamic>) {
+          return payload['IsAlreadyRegistered'] as bool? ?? false;
+        }
+        return false;
+      });
+    } catch (error, stack) {
+      reportError(error, stack, 'VehicleService.checkVehicleNumber');
       return false;
     }
   }

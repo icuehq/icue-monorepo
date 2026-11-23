@@ -20,21 +20,9 @@ Future<void> main() async {
   try {
     await configureDependencies(environment.name);
 
+    errorReporter = logError;
     // Forward unexpected API failures to Crashlytics as non-fatals.
-    getIt<ApiClient>().onLogCrash =
-        (path, error, stack, {fatal = false, message}) {
-          final dio = error is DioException ? error : null;
-          CrashlyticsService.instance.recordError(
-            error,
-            stack,
-            reason: 'API ${dio?.requestOptions.method ?? ''} $path: $message',
-            information: [
-              'status: ${dio?.response?.statusCode}',
-              'type: ${dio?.type.name}',
-              'url: ${dio?.requestOptions.uri}',
-            ],
-          );
-        };
+    getIt<ApiClient>().onLogCrash = reportApiError;
 
     // Hive must be open before AuthProvider restores the session from it.
     await getIt<StorageService>().init();

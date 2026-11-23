@@ -78,6 +78,10 @@ android {
 
     buildTypes {
         release {
+            configure<com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension> {
+                // Upload symbols so native crashes (e.g. the face SDK's ML code) are readable.
+                nativeSymbolUploadEnabled = true
+            }
             signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             isShrinkResources = true

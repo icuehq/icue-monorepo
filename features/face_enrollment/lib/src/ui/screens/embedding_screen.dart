@@ -1,3 +1,4 @@
+import 'package:api_client/api_client.dart';
 import 'package:face_enrollment/src/models/student.dart';
 import 'package:face_enrollment/src/providers/embedding_provider.dart';
 import 'package:face_enrollment/src/providers/student_provider.dart';
@@ -50,7 +51,8 @@ class _EmbeddingScreenState extends State<EmbeddingScreen>
           photoUrl: widget.student.photoUrl,
           studentId: widget.student.id,
         )
-        .catchError((Object error) {
+        .catchError((Object error, StackTrace stack) {
+          reportError(error, stack, 'EmbeddingScreen.downloadStudentPhoto');
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -84,7 +86,8 @@ class _EmbeddingScreenState extends State<EmbeddingScreen>
   Future<void> _pickImage(ImageSource source) async {
     try {
       await _embeddingProvider.pickImage(source);
-    } catch (error) {
+    } catch (error, stack) {
+      reportError(error, stack, '_EmbeddingScreenState._pickImage');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -99,7 +102,8 @@ class _EmbeddingScreenState extends State<EmbeddingScreen>
   Future<void> _triggerScan() async {
     try {
       await _embeddingProvider.triggerScan();
-    } catch (error) {
+    } catch (error, stack) {
+      reportError(error, stack, '_EmbeddingScreenState._triggerScan');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

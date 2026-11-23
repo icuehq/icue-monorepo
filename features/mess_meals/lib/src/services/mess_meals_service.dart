@@ -37,19 +37,20 @@ class MessMealsService {
     bool quietRefusal = false,
   }) async {
     final response = await _apiClient.post<dynamic>(path, data: data);
-    final body = response.data;
-    if (response.statusCode == 200 && body is Map<String, dynamic>) {
-      return body;
-    }
-    if (!quietRefusal) {
-      final message = body is Map<String, dynamic>
-          ? body['message'] as String?
-          : null;
-      _apiClient.onShowErrorMessage?.call(
-        message ?? 'Something went wrong. Please try again later.',
-      );
-    }
-    return null;
+    return _apiClient.parse(response, (body) {
+      if (response.statusCode == 200 && body is Map<String, dynamic>) {
+        return body;
+      }
+      if (!quietRefusal) {
+        final message = body is Map<String, dynamic>
+            ? body['message'] as String?
+            : null;
+        _apiClient.onShowErrorMessage?.call(
+          message ?? 'Something went wrong. Please try again later.',
+        );
+      }
+      return null;
+    });
   }
 
   Future<StudentMessConfig?> getStudentMessConfig(ParentStudent s) async {

@@ -99,6 +99,7 @@ class _BookImportPageState extends State<BookImportPage> {
         _finished = false;
       });
     } on FormatException catch (error) {
+      // errors:ok a FormatException is the user's file being invalid, shown as the problem.
       setState(() {
         _fileName = file.name;
         _plan = null;

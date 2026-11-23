@@ -3,6 +3,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gatepass/gatepass.dart';
 
 class MockApiClient extends Fake implements ApiClient {
+  @override
+  T parse<T>(Response<dynamic> response, T Function(dynamic data) fromJson) =>
+      fromJson(response.data);
+
   dynamic nextResponseData;
   String? lastPath;
   dynamic lastData;

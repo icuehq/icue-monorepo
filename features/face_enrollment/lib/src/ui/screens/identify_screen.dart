@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:math';
 
+import 'package:api_client/api_client.dart';
 import 'package:face_enrollment/src/models/student.dart';
 import 'package:face_enrollment/src/providers/identify_provider.dart';
 import 'package:face_enrollment/src/providers/student_provider.dart';
@@ -105,7 +106,8 @@ class _IdentifyScreenState extends State<IdentifyScreen> {
               'Roster ready with ${_faceProfiles.length} registered students. Choose a scan mode.';
         }
       });
-    } catch (error) {
+    } catch (error, stack) {
+      reportError(error, stack, '_IdentifyScreenState._initAndLoadRoster');
       if (!mounted) return;
       setState(() {
         _isPreparing = false;
@@ -128,7 +130,8 @@ class _IdentifyScreenState extends State<IdentifyScreen> {
 
       await studentProvider.syncEmbeddingsFromServer();
       await _initAndLoadRoster();
-    } catch (error) {
+    } catch (error, stack) {
+      reportError(error, stack, '_IdentifyScreenState._handleSyncAndReload');
       if (mounted) {
         setState(() {
           _isPreparing = false;
@@ -168,7 +171,8 @@ class _IdentifyScreenState extends State<IdentifyScreen> {
       if (result != null) {
         _processAttendanceResult(result);
       }
-    } catch (error) {
+    } catch (error, stack) {
+      reportError(error, stack, '_IdentifyScreenState._startLiveAttendance');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -210,7 +214,12 @@ class _IdentifyScreenState extends State<IdentifyScreen> {
       if (result != null) {
         _processAttendanceResult(result);
       }
-    } catch (error) {
+    } catch (error, stack) {
+      reportError(
+        error,
+        stack,
+        '_IdentifyScreenState._startMultiPhotoAttendance',
+      );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -282,7 +291,8 @@ class _IdentifyScreenState extends State<IdentifyScreen> {
       );
 
       _processAttendanceResult(attendanceRes);
-    } catch (error) {
+    } catch (error, stack) {
+      reportError(error, stack, '_IdentifyScreenState._startSinglePhotoScan');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

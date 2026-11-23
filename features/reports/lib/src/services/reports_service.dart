@@ -29,16 +29,18 @@ class ReportsService {
       },
     );
 
-    if (response.data is List) {
-      final list = (response.data as List<dynamic>)
-          .whereType<Map<String, dynamic>>()
-          .map(FuelReport.fromJson)
-          .toList();
-      if (list.isNotEmpty) {
-        return list.first.fuelReadings;
+    return _apiClient.parse(response, (payload) {
+      if (payload is List) {
+        final list = payload
+            .whereType<Map<String, dynamic>>()
+            .map(FuelReport.fromJson)
+            .toList();
+        if (list.isNotEmpty) {
+          return list.first.fuelReadings;
+        }
       }
-    }
-    return <FuelReading>[];
+      return <FuelReading>[];
+    });
   }
 
   /// Fetches mileage report for a specific vehicle.
@@ -56,13 +58,15 @@ class ReportsService {
       },
     );
 
-    if (response.data is List) {
-      return (response.data as List<dynamic>)
-          .whereType<Map<String, dynamic>>()
-          .map(MileageReportItem.fromJson)
-          .toList();
-    }
-    return <MileageReportItem>[];
+    return _apiClient.parse(response, (payload) {
+      if (payload is List) {
+        return payload
+            .whereType<Map<String, dynamic>>()
+            .map(MileageReportItem.fromJson)
+            .toList();
+      }
+      return <MileageReportItem>[];
+    });
   }
 
   /// Fetches vehicle overspeed instances for a given speed limit.
@@ -83,30 +87,32 @@ class ReportsService {
     );
 
     final records = <OverSpeedRecord>[];
-    if (response.data is List) {
-      final reports = (response.data as List<dynamic>)
-          .whereType<Map<String, dynamic>>()
-          .map(OverSpeedReportItem.fromJson)
-          .toList();
+    return _apiClient.parse(response, (payload) {
+      if (payload is List) {
+        final reports = payload
+            .whereType<Map<String, dynamic>>()
+            .map(OverSpeedReportItem.fromJson)
+            .toList();
 
-      for (final report in reports) {
-        for (final item in report.overSpeedData) {
-          records.add(
-            OverSpeedRecord(
-              vehicleNumber: report.vehicleNumber,
-              mode: report.mode,
-              routeNo: report.routeNo,
-              averageSpeed: report.averageSpeed,
-              speed: item.speed,
-              gpsTime: DateTime.fromMillisecondsSinceEpoch(item.gpsTime),
-              driverName: report.driverName,
-              driverMobile: report.driverMobile,
-            ),
-          );
+        for (final report in reports) {
+          for (final item in report.overSpeedData) {
+            records.add(
+              OverSpeedRecord(
+                vehicleNumber: report.vehicleNumber,
+                mode: report.mode,
+                routeNo: report.routeNo,
+                averageSpeed: report.averageSpeed,
+                speed: item.speed,
+                gpsTime: DateTime.fromMillisecondsSinceEpoch(item.gpsTime),
+                driverName: report.driverName,
+                driverMobile: report.driverMobile,
+              ),
+            );
+          }
         }
       }
-    }
-    return records;
+      return records;
+    });
   }
 
   /// Fetches vehicle cleaning inspection report with pagination and date filter.
@@ -142,12 +148,12 @@ class ReportsService {
       data: payload,
     );
 
-    if (response.data is Map<String, dynamic>) {
-      return CleaningReportResponse.fromJson(
-        response.data as Map<String, dynamic>,
-      );
-    }
-    return const CleaningReportResponse();
+    return _apiClient.parse(
+      response,
+      (data) => data is Map<String, dynamic>
+          ? CleaningReportResponse.fromJson(data)
+          : const CleaningReportResponse(),
+    );
   }
 
   /// Fetches driver breathalyzer alcohol test report.
@@ -181,12 +187,12 @@ class ReportsService {
       data: payload,
     );
 
-    if (response.data is Map<String, dynamic>) {
-      return AlcoholReportResponse.fromJson(
-        response.data as Map<String, dynamic>,
-      );
-    }
-    return const AlcoholReportResponse();
+    return _apiClient.parse(
+      response,
+      (data) => data is Map<String, dynamic>
+          ? AlcoholReportResponse.fromJson(data)
+          : const AlcoholReportResponse(),
+    );
   }
 
   /// Fetches vehicle arrival times by trip mode and route.
@@ -222,11 +228,11 @@ class ReportsService {
       data: payload,
     );
 
-    if (response.data is Map<String, dynamic>) {
-      return ArrivalTimeReportResponse.fromJson(
-        response.data as Map<String, dynamic>,
-      );
-    }
-    return const ArrivalTimeReportResponse();
+    return _apiClient.parse(
+      response,
+      (data) => data is Map<String, dynamic>
+          ? ArrivalTimeReportResponse.fromJson(data)
+          : const ArrivalTimeReportResponse(),
+    );
   }
 }

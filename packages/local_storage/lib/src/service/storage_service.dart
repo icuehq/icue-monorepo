@@ -29,6 +29,7 @@ class StorageService {
       box = await Hive.openBox<T>(boxName);
       // ignore: avoid_catching_errors, Hive signals unreadable files with HiveError (an Error).
     } on HiveError catch (e) {
+      // errors:ok the storage package has no crash reporter, and callers fall back to defaults.
       // Stale file written by an older build (unknown typeId / corrupt):
       // unreadable cache, so drop it and start empty instead of crashing.
       debugPrint('Resetting unreadable box $boxName: $e');
@@ -67,6 +68,7 @@ class StorageService {
         _openBoxes[lower] = box;
         return box;
       } catch (_) {
+        // errors:ok the storage package has no crash reporter, and callers fall back to defaults.
         return null;
       }
     }
@@ -95,6 +97,7 @@ class StorageService {
       _openBoxes[lower] = box;
       return box.get(key, defaultValue: defaultValue);
     } catch (_) {
+      // errors:ok the storage package has no crash reporter, and callers fall back to defaults.
       return defaultValue;
     }
   }
@@ -124,6 +127,7 @@ class StorageService {
       _openBoxes[lower] = box;
       return box.values.toList();
     } catch (_) {
+      // errors:ok the storage package has no crash reporter, and callers fall back to defaults.
       return <T>[];
     }
   }
@@ -162,6 +166,7 @@ class StorageService {
       try {
         await clearBox(boxName);
       } catch (e) {
+        // errors:ok the storage package has no crash reporter, and callers fall back to defaults.
         debugPrint('Error clearing box $boxName: $e');
       }
     }

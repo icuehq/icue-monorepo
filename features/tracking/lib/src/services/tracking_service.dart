@@ -15,10 +15,12 @@ class TrackingService {
       data: <String, dynamic>{},
     );
 
-    if (response.data is Map<String, dynamic>) {
-      return FleetStatusReport.fromJson(response.data as Map<String, dynamic>);
-    }
-    return const FleetStatusReport();
+    return _apiClient.parse(
+      response,
+      (data) => data is Map<String, dynamic>
+          ? FleetStatusReport.fromJson(data)
+          : const FleetStatusReport(),
+    );
   }
 
   /// Fetches real-time web map tracking URL for a specific route run.
@@ -36,14 +38,16 @@ class TrackingService {
       },
     );
 
-    if (response.data is Map<String, dynamic>) {
-      final map = response.data as Map<String, dynamic>;
-      final err = map['err'] as bool? ?? false;
-      if (!err && map['data'] is Map<String, dynamic>) {
-        final data = map['data'] as Map<String, dynamic>;
-        return data['trackLink'] as String?;
+    return _apiClient.parse(response, (payload) {
+      if (payload is Map<String, dynamic>) {
+        final map = payload;
+        final err = map['err'] as bool? ?? false;
+        if (!err && map['data'] is Map<String, dynamic>) {
+          final data = map['data'] as Map<String, dynamic>;
+          return data['trackLink'] as String?;
+        }
       }
-    }
-    return null;
+      return null;
+    });
   }
 }

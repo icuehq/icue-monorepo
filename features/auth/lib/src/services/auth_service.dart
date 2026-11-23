@@ -34,14 +34,10 @@ class AuthService {
       options: Options(extra: <String, dynamic>{'no_auth': true}),
     );
 
-    final dynamic data = response.data;
-    if (data is! Map<String, dynamic>) {
-      throw const UnknownApiException(
-        message: 'Unable to process OTP response. Please try again.',
-      );
-    }
-
-    return OtpResponse.fromJson(data);
+    return apiClient.parse(
+      response,
+      (data) => OtpResponse.fromJson(data as Map<String, dynamic>),
+    );
   }
 
   /// Performs user login against [path] (`/v2.0/login` with an OTP, or
@@ -63,14 +59,10 @@ class AuthService {
       options: Options(extra: <String, dynamic>{'no_auth': true}),
     );
 
-    final dynamic data = response.data;
-    if (data is! Map<String, dynamic>) {
-      throw const UnknownApiException(
-        message: 'Unable to process login response. Please try again.',
-      );
-    }
-
-    final userInfo = UserInfo.fromJson(data);
+    final userInfo = apiClient.parse(
+      response,
+      (data) => UserInfo.fromJson(data as Map<String, dynamic>),
+    );
 
     if (userInfo.token.isNotEmpty) {
       tokenProvider.setToken(userInfo.token);
@@ -103,6 +95,7 @@ class AuthService {
           const Duration(seconds: 3),
           onTimeout: () => FirebaseAuth.instance.currentUser,
         )
+        // errors:ok a stale persisted user fails here; it counts as signed out.
         .then<User?>((user) => user, onError: (_) => null);
     if (!refresh && current?.uid == user.id.toString()) return true;
     return _firebaseSignIn ??= _exchangeFirebaseToken().whenComplete(
@@ -113,6 +106,7 @@ class AuthService {
   Future<bool> _exchangeFirebaseToken() async {
     try {
       final auth = FirebaseAuth.instance;
+      // errors:ok signing out first is best-effort; the exchange below reports its own failure.
       await auth.signOut().catchError((_) {});
       final token = usesEmulator
           ? await _emulatorToken()
@@ -123,7 +117,8 @@ class AuthService {
       if (name.isNotEmpty) await credential.user?.updateDisplayName(name);
       await callFunction('session-sync');
       return true;
-    } catch (error) {
+    } catch (error, stack) {
+      reportError(error, stack, 'AuthService._exchangeFirebaseToken');
       debugPrint('Firebase token exchange error: $error');
       return false;
     }
@@ -135,7 +130,8 @@ class AuthService {
     List<RoleActions> actions;
     try {
       actions = await getRoleActions();
-    } catch (_) {
+    } catch (error, stack) {
+      reportError(error, stack, 'AuthService._cloudFirebaseToken');
       actions = userLocalStorage.getRoleActions();
     }
     final branch = userLocalStorage.getSelectedBranch()?.id ?? user.branchId;
@@ -184,7 +180,8 @@ class AuthService {
     List<RoleActions> actions;
     try {
       actions = await getRoleActions();
-    } catch (_) {
+    } catch (error, stack) {
+      reportError(error, stack, 'AuthService._emulatorToken');
       actions = userLocalStorage.getRoleActions();
     }
     final branch = userLocalStorage.getSelectedBranch()?.id ?? user.branchId;
@@ -222,20 +219,21 @@ class AuthService {
       return actions;
     }
 
-    final dynamic data = response.data;
-    if (data is! List) {
-      return <RoleActions>[];
-    }
-
-    final actions = [
-      for (final item
-          in data.cast<Map<String, dynamic>>().toList()..sort(
-            (a, b) => ((a['TabOrder'] ?? 0) as num).compareTo(
-              (b['TabOrder'] ?? 0) as num,
-            ),
-          ))
-        RoleActions.fromJson(item),
-    ];
+    final actions = apiClient.parse(
+      response,
+      (data) => data is! List
+          ? null
+          : [
+              for (final item
+                  in data.cast<Map<String, dynamic>>().toList()..sort(
+                    (a, b) => ((a['TabOrder'] ?? 0) as num).compareTo(
+                      (b['TabOrder'] ?? 0) as num,
+                    ),
+                  ))
+                RoleActions.fromJson(item),
+            ],
+    );
+    if (actions == null) return <RoleActions>[];
 
     await userLocalStorage.saveRoleActions(actions);
     return actions;
@@ -249,37 +247,35 @@ class AuthService {
       '/v1.0/getUsersByRole',
       data: <String, dynamic>{'RoleId': roleId},
     );
-    final data = response.data;
-    final users = data is Map<String, dynamic> ? data['data'] : null;
-    if (users is! List) {
-      throw const UnknownApiException(
-        message: 'Unable to load users. Please try again.',
-      );
-    }
-    return [
-      for (final user in users.cast<Map<String, dynamic>>())
-        RoleUser.fromJson(user),
-    ];
+    return apiClient.parse(response, (data) {
+      final users = (data as Map<String, dynamic>)['data'] as List<dynamic>;
+      return [
+        for (final user in users.cast<Map<String, dynamic>>())
+          RoleUser.fromJson(user),
+      ];
+    });
   }
 
   /// Fetches the branch's admin app settings via `/v1.0/getAdminAppSettings`.
   Future<AppSettings?> getAdminAppSettings() async {
     final response = await apiClient.post<dynamic>('/v1.0/getAdminAppSettings');
-    final data = response.data;
-    return data is Map<String, dynamic> ? AppSettings.fromJson(data) : null;
+    return apiClient.parse(
+      response,
+      (data) =>
+          data is Map<String, dynamic> ? AppSettings.fromJson(data) : null,
+    );
   }
 
   /// Fetches branches for zonal admin/supervisor against `/v1.0/getBranchesByZoneId`.
   Future<List<Branch>> getBranchesByZoneId() async {
     final response = await apiClient.post<dynamic>('/v1.0/getBranchesByZoneId');
 
-    final dynamic data = response.data;
-    if (data is! Map<String, dynamic>) {
-      return <Branch>[];
-    }
-
-    final branchs = Branchs.fromJson(data);
-    return branchs.data;
+    return apiClient.parse(
+      response,
+      (data) => data is Map<String, dynamic>
+          ? Branchs.fromJson(data).data
+          : <Branch>[],
+    );
   }
 
   /// Fetches person categories against `/v1.0/getPersonTypes`.
@@ -291,12 +287,12 @@ class AuthService {
     }
 
     final response = await apiClient.post<dynamic>('/v1.0/getPersonTypes');
-    final dynamic data = response.data;
-    if (data is! Map<String, dynamic>) {
-      return <PersonType>[];
-    }
-
-    final personTypes = PersonTypes.fromJson(data);
+    final personTypes = apiClient.parse(
+      response,
+      (data) =>
+          data is Map<String, dynamic> ? PersonTypes.fromJson(data) : null,
+    );
+    if (personTypes == null) return <PersonType>[];
     await userLocalStorage.savePersonTypes(personTypes.data);
     return personTypes.data;
   }
@@ -307,12 +303,12 @@ class AuthService {
     bool forAttendance = false,
   }) async {
     final response = await apiClient.post<dynamic>('/v1.0/getAssignedEntities');
-    final dynamic data = response.data;
-    if (data is! Map<String, dynamic>) {
-      return <AssignedEntityClass>[];
-    }
-
-    final assignedEntities = AssignedEntities.fromJson(data);
+    final assignedEntities = apiClient.parse(
+      response,
+      (data) =>
+          data is Map<String, dynamic> ? AssignedEntities.fromJson(data) : null,
+    );
+    if (assignedEntities == null) return <AssignedEntityClass>[];
     final entities = assignedEntities.data;
     if (entities == null || entities.isEmpty) {
       return <AssignedEntityClass>[];
@@ -349,7 +345,8 @@ class AuthService {
         'updatedAt': FieldValue.serverTimestamp(),
       });
       await userLocalStorage.saveFcmToken(token);
-    } catch (_) {
+    } catch (error, stack) {
+      reportError(error, stack, 'AuthService.registerPushToken');
       // Retried on next launch/login since the token isn't stored.
     }
   }
@@ -369,11 +366,15 @@ class AuthService {
           'Id': user.id,
         },
       );
-    } catch (_) {}
+    } catch (error, stack) {
+      reportError(error, stack, 'AuthService._removePushToken');
+    }
     try {
       // Firestore writes queue forever when auth is invalid; never block logout on it.
       await _pushTokenDoc(token)?.delete().timeout(const Duration(seconds: 3));
-    } catch (_) {}
+    } catch (error, stack) {
+      reportError(error, stack, 'AuthService._removePushToken');
+    }
   }
 
   /// Logs out the user by notifying the server and clearing all Hive storage boxes.
@@ -381,7 +382,8 @@ class AuthService {
     await _removePushToken();
     try {
       await apiClient.post<dynamic>('/v1.0/logout');
-    } catch (_) {
+    } catch (error, stack) {
+      reportError(error, stack, 'AuthService.logout');
       // Best-effort server notification; always proceed to clear local storage
     } finally {
       await userLocalStorage.clearAll();

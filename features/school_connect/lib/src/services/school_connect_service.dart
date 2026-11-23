@@ -15,9 +15,12 @@ class SchoolConnectService {
       '/v1.0/getFeedbackComplaintTypes',
       data: <String, dynamic>{'StudentId': studentId},
     );
-    return (response.data as List<dynamic>)
-        .map((e) => ComplaintType.fromJson(e as Map<String, dynamic>))
-        .toList();
+    return _apiClient.parse(
+      response,
+      (payload) => (payload as List<dynamic>)
+          .map((e) => ComplaintType.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
   }
 
   Future<List<Complaint>> getComplaints({
@@ -32,9 +35,12 @@ class SchoolConnectService {
         'PrimayContact': primaryContact,
       },
     );
-    return (response.data as List<dynamic>)
-        .map((e) => Complaint.fromJson(e as Map<String, dynamic>))
-        .toList();
+    return _apiClient.parse(
+      response,
+      (payload) => (payload as List<dynamic>)
+          .map((e) => Complaint.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
   }
 
   Future<void> postComplaint({
@@ -67,10 +73,12 @@ class SchoolConnectService {
         'AdmissionNumber': admissionNumber,
       },
     );
-    final data = response.data as Map<String, dynamic>;
-    return (data['Events'] as List<dynamic>? ?? <dynamic>[])
-        .map((e) => SchoolEvent.fromJson(e as Map<String, dynamic>))
-        .toList();
+    return _apiClient.parse(response, (payload) {
+      final data = payload as Map<String, dynamic>;
+      return (data['Events'] as List<dynamic>? ?? <dynamic>[])
+          .map((e) => SchoolEvent.fromJson(e as Map<String, dynamic>))
+          .toList();
+    });
   }
 
   Future<String?> getEntryQrCode({
@@ -84,10 +92,11 @@ class SchoolConnectService {
         'AdmissionNumber': admissionNumber,
       },
     );
-    final data =
-        (response.data as Map<String, dynamic>)['data']
-            as Map<String, dynamic>?;
-    return data?['QRCode'] as String?;
+    return _apiClient.parse(response, (payload) {
+      final data =
+          (payload as Map<String, dynamic>)['data'] as Map<String, dynamic>?;
+      return data?['QRCode'] as String?;
+    });
   }
 
   Future<EventPaymentPage> getEventPayments({
@@ -105,6 +114,9 @@ class SchoolConnectService {
         'PageSize': pageSize,
       },
     );
-    return EventPaymentPage.fromJson(response.data as Map<String, dynamic>);
+    return _apiClient.parse(
+      response,
+      (payload) => EventPaymentPage.fromJson(payload as Map<String, dynamic>),
+    );
   }
 }

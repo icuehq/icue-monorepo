@@ -1,3 +1,4 @@
+import 'package:api_client/api_client.dart';
 import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
 import 'package:logbook/src/models/alcohol_test.dart';
@@ -75,7 +76,8 @@ class LogBookProvider extends ChangeNotifier {
         _stats = [..._stats, ...res.data];
       }
       _totalStats = res.total;
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'LogBookProvider.fetchComplaintsStats');
       _errorMessage = e.toString();
     } finally {
       _isLoading = false;
@@ -111,7 +113,8 @@ class LogBookProvider extends ChangeNotifier {
         _complaints = [..._complaints, ...res.data];
       }
       _totalComplaints = res.total;
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'LogBookProvider.fetchComplaints');
       _errorMessage = e.toString();
     } finally {
       _isLoading = false;
@@ -127,7 +130,8 @@ class LogBookProvider extends ChangeNotifier {
 
     try {
       _categories = await _logBookService.getComplaintCategories();
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'LogBookProvider.fetchComplaintCategories');
       _errorMessage = e.toString();
     } finally {
       _isLoading = false;
@@ -147,7 +151,8 @@ class LogBookProvider extends ChangeNotifier {
         await fetchComplaints();
       }
       return success;
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'LogBookProvider.createComplaint');
       _errorMessage = e.toString();
       return false;
     } finally {
@@ -168,7 +173,8 @@ class LogBookProvider extends ChangeNotifier {
         await fetchComplaints();
       }
       return success;
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'LogBookProvider.updateComplaint');
       _errorMessage = e.toString();
       return false;
     } finally {
@@ -185,7 +191,8 @@ class LogBookProvider extends ChangeNotifier {
 
     try {
       _cleaningParts = await _logBookService.getVehicleCleaningParts();
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'LogBookProvider.fetchCleaningParts');
       _errorMessage = e.toString();
     } finally {
       _isLoading = false;
@@ -204,7 +211,8 @@ class LogBookProvider extends ChangeNotifier {
     try {
       final result = await _logBookService.submitVehicleCleaning(request);
       return result;
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'LogBookProvider.fetchCleaningParts');
       _errorMessage = e.toString();
       return const CleaningSubmissionResult(success: false, failedCount: 1);
     } finally {
@@ -222,7 +230,8 @@ class LogBookProvider extends ChangeNotifier {
     try {
       final success = await _logBookService.submitAlcoholTest(request);
       return success;
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'LogBookProvider.submitAlcoholTest');
       _errorMessage = e.toString();
       return false;
     } finally {
@@ -248,7 +257,8 @@ class LogBookProvider extends ChangeNotifier {
         _alcoholTests = [..._alcoholTests, ...res.data];
       }
       _totalAlcoholTests = res.total;
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'LogBookProvider.fetchAlcoholTestReport');
       _errorMessage = e.toString();
     } finally {
       _isLoading = false;

@@ -16,8 +16,11 @@ class ParentGatePassService {
       '/v1.0/getGatePassTypes',
       data: <String, dynamic>{'StudentId': studentId},
     );
-    return GatePassTypesResponse.fromJson(response.data as Map<String, dynamic>)
-        .data;
+    return _apiClient.parse(
+      response,
+      (data) =>
+          GatePassTypesResponse.fromJson(data as Map<String, dynamic>).data,
+    );
   }
 
   /// Requests a gate pass for today; the server answers `err: true` with a message on refusal.
@@ -35,8 +38,10 @@ class ParentGatePassService {
         'GatePassType': category,
       },
     );
-    final data = response.data as Map<String, dynamic>?;
-    return (ok: data?['err'] != true, message: data?['message'] as String?);
+    return _apiClient.parse(response, (data) {
+      final map = data as Map<String, dynamic>?;
+      return (ok: map?['err'] != true, message: map?['message'] as String?);
+    });
   }
 
   Future<List<ParentGatePassRequest>> getRequests({
@@ -55,9 +60,11 @@ class ParentGatePassService {
         'PageSize': 50,
       },
     );
-    final data = response.data as Map<String, dynamic>;
-    return (data['data'] as List<dynamic>? ?? <dynamic>[])
-        .map((e) => ParentGatePassRequest.fromJson(e as Map<String, dynamic>))
-        .toList();
+    return _apiClient.parse(
+      response,
+      (data) => ((data as Map<String, dynamic>)['data'] as List<dynamic>? ?? [])
+          .map((e) => ParentGatePassRequest.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
   }
 }

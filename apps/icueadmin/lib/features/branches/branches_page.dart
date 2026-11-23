@@ -1,3 +1,4 @@
+import 'package:api_client/api_client.dart';
 import 'package:auth/auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -64,6 +65,7 @@ class _BranchesPageState extends State<BranchesPage> {
         context.go(AppRoutes.dashboard);
       }
     } catch (e, stackTrace) {
+      reportError(e, stackTrace, '_BranchesPageState._handleSelectBranch');
       debugPrint('Failed to select branch: $e\n$stackTrace');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

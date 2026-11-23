@@ -1,3 +1,4 @@
+import 'package:api_client/api_client.dart';
 import 'package:flutter/foundation.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:injectable/injectable.dart';
@@ -95,7 +96,8 @@ class ReportsProvider extends ChangeNotifier {
         month: month,
         year: year,
       );
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'ReportsProvider.fetchFuelReadings');
       _errorMessage = e.toString();
     } finally {
       _isLoading = false;
@@ -120,7 +122,8 @@ class ReportsProvider extends ChangeNotifier {
         month: month,
         year: year,
       );
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'ReportsProvider.fetchMileageReports');
       _errorMessage = e.toString();
     } finally {
       _isLoading = false;
@@ -147,7 +150,8 @@ class ReportsProvider extends ChangeNotifier {
         year: year,
         speedLimit: speedLimit,
       );
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'ReportsProvider.fetchOverSpeedReports');
       _errorMessage = e.toString();
     } finally {
       _isLoading = false;
@@ -192,7 +196,8 @@ class ReportsProvider extends ChangeNotifier {
       } else {
         _cleaningReports.addAll(res.data);
       }
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'ReportsProvider.fetchCleaningReport');
       _errorMessage = e.toString();
     } finally {
       _isLoading = false;
@@ -235,7 +240,8 @@ class ReportsProvider extends ChangeNotifier {
       } else {
         _alcoholTestReports.addAll(res.data);
       }
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'ReportsProvider.fetchAlcoholTestReport');
       _errorMessage = e.toString();
     } finally {
       _isLoading = false;
@@ -280,7 +286,8 @@ class ReportsProvider extends ChangeNotifier {
       } else {
         _arrivalTimeReports.addAll(res.data);
       }
-    } catch (e) {
+    } catch (e, stack) {
+      reportError(e, stack, 'ReportsProvider.fetchArrivalTimeReport');
       _errorMessage = e.toString();
     } finally {
       _isLoading = false;

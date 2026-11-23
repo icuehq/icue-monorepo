@@ -17,18 +17,22 @@ class RouteService {
       '/v1.0/getRoutesAndPoints',
       data: mode != null ? {'Mode': mode.label} : null,
     );
-    final data = response.data;
-    if (data is Map<String, dynamic>) {
-      final routesResponse = RoutesResponse.fromJson(data);
-      return routesResponse.routes;
-    }
-    return <Routee>[];
+    return _apiClient.parse(response, (data) {
+      if (data is Map<String, dynamic>) {
+        final routesResponse = RoutesResponse.fromJson(data);
+        return routesResponse.routes;
+      }
+      return <Routee>[];
+    });
   }
 
   /// Fetches standards and their sections.
   Future<List<Standards>> getStandards() async {
     final response = await _apiClient.post<dynamic>('/v1.0/getStandards');
-    return parseList(response.data, Standards.fromJson);
+    return _apiClient.parse(
+      response,
+      (payload) => parseList(payload, Standards.fromJson),
+    );
   }
 
   /// Fetches students for a specific class and sections with pagination.
@@ -46,11 +50,12 @@ class RouteService {
         'PageSize': 100,
       },
     );
-    final data = response.data;
-    if (data is List && data.isNotEmpty) {
-      return Student.fromJson(data.first as Map<String, dynamic>);
-    }
-    return const Student();
+    return _apiClient.parse(response, (data) {
+      if (data is List && data.isNotEmpty) {
+        return Student.fromJson(data.first as Map<String, dynamic>);
+      }
+      return const Student();
+    });
   }
 
   /// Students with minimal data (id, name, admission number, class, section, photo) for [classId]
@@ -64,21 +69,22 @@ class RouteService {
       '/v2.0/getStusBasicData',
       data: {'ClassId': classId, 'Section': ?section, 'Source': 'adminapp'},
     );
-    final body = response.data;
-    if (body is! Map<String, dynamic> || body['err'] == true) {
-      return (students: <StudentData>[], total: 0);
-    }
-    final metadata = body['metadata'];
-    return (
-      students: [
-        for (final row in body['data'] as List? ?? const <Object?>[])
-          if (row is Map<String, dynamic>)
-            StudentData.fromJson({...row, 'ClassId': classId}),
-      ],
-      total: metadata is Map<String, dynamic>
-          ? metadata['total'] as int? ?? 0
-          : 0,
-    );
+    return _apiClient.parse(response, (body) {
+      if (body is! Map<String, dynamic> || body['err'] == true) {
+        return (students: <StudentData>[], total: 0);
+      }
+      final metadata = body['metadata'];
+      return (
+        students: [
+          for (final row in body['data'] as List? ?? const <Object?>[])
+            if (row is Map<String, dynamic>)
+              StudentData.fromJson({...row, 'ClassId': classId}),
+        ],
+        total: metadata is Map<String, dynamic>
+            ? metadata['total'] as int? ?? 0
+            : 0,
+      );
+    });
   }
 
   /// Searches for students matching a query string.
@@ -91,20 +97,21 @@ class RouteService {
       '/v2.0/searchStudent',
       data: {'searchText': search, 'ClassId': ?classId, 'Sections': ?sections},
     );
-    final data = response.data;
-    if (data is List) {
-      final students = data
-          .whereType<Map<String, dynamic>>()
-          .map(StudentData.fromJson)
-          .toList();
-      students.sort((a, b) {
-        final rollA = int.tryParse(a.rollNo) ?? 0;
-        final rollB = int.tryParse(b.rollNo) ?? 0;
-        return rollA.compareTo(rollB);
-      });
-      return students;
-    }
-    return <StudentData>[];
+    return _apiClient.parse(response, (data) {
+      if (data is List) {
+        final students = data
+            .whereType<Map<String, dynamic>>()
+            .map(StudentData.fromJson)
+            .toList();
+        students.sort((a, b) {
+          final rollA = int.tryParse(a.rollNo) ?? 0;
+          final rollB = int.tryParse(b.rollNo) ?? 0;
+          return rollA.compareTo(rollB);
+        });
+        return students;
+      }
+      return <StudentData>[];
+    });
   }
 
   /// The student whose admission number or RFID is exactly [value], or null when Node reports `err: true`
@@ -114,9 +121,10 @@ class RouteService {
       '/v2.0/searchStuData',
       data: {'SearchValue': value},
     );
-    final data = response.data;
-    if (data is! Map<String, dynamic> || data['err'] == true) return null;
-    return StudentData.fromJson(data);
+    return _apiClient.parse(response, (data) {
+      if (data is! Map<String, dynamic> || data['err'] == true) return null;
+      return StudentData.fromJson(data);
+    });
   }
 
   /// Changes a single pickup or drop route for a student.
@@ -125,10 +133,12 @@ class RouteService {
       '/v1.0/changeStudentRoute',
       data: request.toJson(),
     );
-    if (response.data is Map<String, dynamic>) {
-      return (response.data as Map<String, dynamic>)['err'] != true;
-    }
-    return true;
+    return _apiClient.parse(response, (payload) {
+      if (payload is Map<String, dynamic>) {
+        return payload['err'] != true;
+      }
+      return true;
+    });
   }
 
   /// Changes both pickup and drop routes simultaneously for a student.
@@ -137,10 +147,12 @@ class RouteService {
       '/v1.0/changeStudentRoutes',
       data: request.toJson(),
     );
-    if (response.data is Map<String, dynamic>) {
-      return (response.data as Map<String, dynamic>)['err'] != true;
-    }
-    return true;
+    return _apiClient.parse(response, (payload) {
+      if (payload is Map<String, dynamic>) {
+        return payload['err'] != true;
+      }
+      return true;
+    });
   }
 
   /// Updates start time for one or all routes in a mode.

@@ -6,6 +6,10 @@ import 'package:safehands/src/models/safehands_pin.dart';
 import 'package:safehands/src/services/safehands_service.dart';
 
 class _FakeApiClient extends Fake implements ApiClient {
+  @override
+  T parse<T>(Response<dynamic> response, T Function(dynamic data) fromJson) =>
+      fromJson(response.data);
+
   dynamic body;
   String? lastPath;
   dynamic lastData;
