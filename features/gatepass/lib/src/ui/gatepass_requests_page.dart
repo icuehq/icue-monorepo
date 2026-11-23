@@ -46,7 +46,7 @@ class _GatePassRequestsPageState extends State<GatePassRequestsPage> {
       appBar: AppBar(
         title: Text(l10n.gatePassRequests),
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(76),
+          preferredSize: const Size.fromHeight(80),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -56,14 +56,11 @@ class _GatePassRequestsPageState extends State<GatePassRequestsPage> {
                     .selectedStudent
                     ?.name,
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                child: IcueDateRangeChip(
-                  range: range,
-                  emptyLabel: l10n.selectDateRange,
-                  tooLongMessage: l10n.dateRangeLimited,
-                  onPicked: _onPicked,
-                ),
+              IcueDateRangeChip(
+                range: range,
+                emptyLabel: l10n.selectDateRange,
+                tooLongMessage: l10n.dateRangeLimited,
+                onPicked: _onPicked,
               ),
             ],
           ),
