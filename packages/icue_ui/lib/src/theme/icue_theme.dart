@@ -9,7 +9,7 @@ Color _onColor(Color c) =>
 abstract final class IcueTheme {
   /// Prod (teal) or dev (purple) theme.
   static ThemeData forEnvironment({required bool isProd}) =>
-      isProd ? prodTheme() : prodTheme();
+      isProd ? prodTheme() : devTheme();
 
   /// Production theme (Teal/Emerald).
   static ThemeData prodTheme() => _buildTheme(

@@ -26,7 +26,11 @@ class LiveData {
   final String? etaValue;
   final bool? msgAvailable;
 
-  LatLng? get busPosition => coordinates.length >= 2
+  /// Null unless both coordinates are finite; Google Maps throws on NaN.
+  LatLng? get busPosition =>
+      coordinates.length >= 2 &&
+          coordinates.first.isFinite &&
+          coordinates.last.isFinite
       ? LatLng(coordinates.first, coordinates.last)
       : null;
 }

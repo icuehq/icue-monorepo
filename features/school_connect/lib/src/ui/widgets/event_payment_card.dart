@@ -94,10 +94,12 @@ class EventPaymentCard extends StatelessWidget {
                 _DetailRow(
                   icon: Icons.person,
                   label: l10n.students,
-                  trailing: OutlinedButton(
+                  trailing: IcueButton(
+                    label: l10n.view,
+                    variant: IcueButtonVariant.outline,
+                    size: IcueButtonSize.small,
                     onPressed: () =>
                         showStudentNames(context, payment.studentNames),
-                    child: Text(l10n.view),
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -153,10 +155,12 @@ class EventPaymentCard extends StatelessWidget {
                     _DetailRow(
                       icon: Icons.info_outline,
                       label: l10n.information,
-                      trailing: OutlinedButton(
+                      trailing: IcueButton(
+                        label: l10n.view,
+                        variant: IcueButtonVariant.outline,
+                        size: IcueButtonSize.small,
                         onPressed: () =>
                             showQuestionAnswers(context, booking.answers),
-                        child: Text(l10n.view),
                       ),
                     ),
                   if (index != payment.bookings.length - 1)

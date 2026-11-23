@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:parent_l10n/parent_l10n.dart';
 
 /// Buttons and a number field that pick the first N available days.
@@ -73,17 +74,23 @@ class _QuickSelectPanelState extends State<QuickSelectPanel> {
             runSpacing: 8,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              OutlinedButton(
+              IcueButton(
+                label: l10n.daysCount(5),
+                variant: IcueButtonVariant.outline,
+                size: IcueButtonSize.small,
                 onPressed: () => _pick(5),
-                child: Text(l10n.daysCount(5)),
               ),
-              OutlinedButton(
+              IcueButton(
+                label: l10n.daysCount(10),
+                variant: IcueButtonVariant.outline,
+                size: IcueButtonSize.small,
                 onPressed: () => _pick(10),
-                child: Text(l10n.daysCount(10)),
               ),
-              OutlinedButton(
+              IcueButton(
+                label: l10n.allAvailable,
+                variant: IcueButtonVariant.outline,
+                size: IcueButtonSize.small,
                 onPressed: () => _pick(widget.available),
-                child: Text(l10n.allAvailable),
               ),
               SizedBox(
                 width: 90,

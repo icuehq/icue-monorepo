@@ -46,7 +46,6 @@ class _StudentMessDetailsPageState extends State<StudentMessDetailsPage> {
       backgroundColor: theme.colorScheme.primary,
       appBar: AppBar(
         title: Text(l10n.instantMealPurchase),
-        centerTitle: true,
         bottom: IcueContextBar(label: student?.name),
       ),
       bottomNavigationBar: canContinue && !meals.loading

@@ -81,9 +81,11 @@ class VoucherPurchaseCard extends StatelessWidget {
             children: [
               Text(l10n.purchasedVouchers, style: text.titleSmall),
               if (purchase.isCompleted)
-                TextButton(
+                IcueButton(
+                  label: l10n.detailsUpper,
+                  variant: IcueButtonVariant.ghost,
+                  size: IcueButtonSize.small,
                   onPressed: () => showVoucherDetails(context, purchase.id),
-                  child: Text(l10n.detailsUpper),
                 ),
             ],
           ),

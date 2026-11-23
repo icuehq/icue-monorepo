@@ -248,15 +248,18 @@ class _SelectVoucherDatesDialogState extends State<_SelectVoucherDatesDialog> {
                 ],
               ),
             ),
-            TextButton(
+            IcueButton(
+              label: l10n.cancel,
+              variant: IcueButtonVariant.ghost,
+              size: IcueButtonSize.small,
               onPressed: () => Navigator.pop(context),
-              child: Text(l10n.cancel),
             ),
-            FilledButton(
+            IcueButton(
+              label: l10n.confirm,
+              size: IcueButtonSize.small,
               onPressed: canConfirm
                   ? () => Navigator.pop(context, _selected)
                   : null,
-              child: Text(l10n.confirm),
             ),
           ],
         ),

@@ -21,7 +21,7 @@ class IcueContextBar extends StatelessWidget implements PreferredSizeWidget {
     if (text == null) return const SizedBox.shrink();
     final primary = Theme.of(context).colorScheme.primary;
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white,

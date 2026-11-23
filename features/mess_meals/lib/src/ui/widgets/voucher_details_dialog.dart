@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:mess_meals/src/models/voucher_purchase.dart';
 import 'package:mess_meals/src/providers/meals_provider.dart';
 import 'package:parent_l10n/parent_l10n.dart';
@@ -31,9 +32,10 @@ class _VoucherDetailsDialog extends StatelessWidget {
         ),
       ),
       actions: [
-        FilledButton(
+        IcueButton(
+          label: l10n.close.toUpperCase(),
+          size: IcueButtonSize.small,
           onPressed: () => Navigator.pop(context),
-          child: Text(l10n.close.toUpperCase()),
         ),
       ],
       content: SizedBox(
