@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:gatepass/gatepass.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icue_firebase/icue_firebase.dart';
+import 'package:icue_ui/icue_ui.dart';
 import 'package:impl/features/dashboard/dashboard_page.dart';
 import 'package:impl/features/menu/link_web_view_page.dart';
 import 'package:impl/features/menu/sub_menu_page.dart';
@@ -12,7 +13,6 @@ import 'package:impl/features/profile/profile_page.dart';
 import 'package:impl/features/profile/terms_and_conditions_page.dart';
 import 'package:impl/routing/app_navigator.dart';
 import 'package:impl/routing/app_routes.dart';
-import 'package:impl/widgets/coming_soon_page.dart';
 import 'package:mess_meals/mess_meals.dart';
 import 'package:parent_l10n/parent_l10n.dart';
 import 'package:parent_transport/parent_transport.dart';
@@ -30,7 +30,7 @@ GoRouter createRouter({
   initialLocation: AppRoutes.dashboard,
   refreshListenable: auth,
   // Unknown paths, e.g. a menu action this app does not have yet.
-  errorBuilder: (_, _) => const ComingSoonPage(),
+  errorBuilder: (context, _) => _comingSoonPage(context),
   redirect: (context, state) {
     final path = state.matchedLocation;
     final onLogin =
@@ -47,7 +47,7 @@ GoRouter createRouter({
     GoRoute(
       name: 'coming-soon-page',
       path: '/coming-soon',
-      builder: (_, _) => const ComingSoonPage(),
+      builder: (context, _) => _comingSoonPage(context),
     ),
     ...studentsRoutes(),
     GoRoute(
@@ -149,5 +149,8 @@ GoRoute _link(
 /// place in the back stack instead of falling to the unknown-route page.
 List<GoRoute> _comingSoon(List<String> paths) => [
   for (final path in paths)
-    GoRoute(path: path, builder: (_, _) => const ComingSoonPage()),
+    GoRoute(path: path, builder: (context, _) => _comingSoonPage(context)),
 ];
+
+Widget _comingSoonPage(BuildContext context) =>
+    IcueComingSoonPage(onHome: () => context.go(AppRoutes.dashboard));

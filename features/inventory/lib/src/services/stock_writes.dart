@@ -11,49 +11,32 @@ import 'package:inventory/src/services/return_writes.dart';
 /// requests stamp `lastWrite`, which the audit triggers log. There is no
 /// low-stock notification and no retry idempotency.
 class StockWrites {
+  static final _receiving = ReceivingWrites();
+  static final _issues = IssueWrites();
+  static final _returns = ReturnWrites();
+  static final _adjustments = AdjustmentWrites();
+
+  static final _handlers =
+      <String, Future<Map<String, dynamic>> Function(Map<String, Object?>)>{
+        'inventory-receipt-confirm': _receiving.confirmReceipt,
+        'inventory-purchaseOrder-receive': _receiving.receivePurchaseOrder,
+        'inventory-issueRequest-submit': _issues.submitIssueRequest,
+        'inventory-issueRequest-decide': _issues.decideIssueRequest,
+        'inventory-issueRequest-cancel': (data) =>
+            _issues.endIssueRequest(data, cancel: true),
+        'inventory-issueRequest-close': (data) =>
+            _issues.endIssueRequest(data, cancel: false),
+        'inventory-issue-create': _issues.issueStock,
+        'inventory-issue-acknowledge': _issues.acknowledgeIssue,
+        'inventory-return-create': _returns.createReturn,
+        'inventory-adjustment-create': _adjustments.adjustStock,
+        'inventory-unavailable-report': _adjustments.reportUnavailable,
+        'inventory-unavailable-resolve': _adjustments.resolveUnavailable,
+      };
+
   /// Action names `StockProvider.act` routes here instead of to a callable.
-  static const names = {
-    'inventory-receipt-confirm',
-    'inventory-purchaseOrder-receive',
-    'inventory-issueRequest-submit',
-    'inventory-issueRequest-decide',
-    'inventory-issueRequest-cancel',
-    'inventory-issueRequest-close',
-    'inventory-issue-create',
-    'inventory-issue-acknowledge',
-    'inventory-return-create',
-    'inventory-adjustment-create',
-    'inventory-unavailable-report',
-    'inventory-unavailable-resolve',
-  };
+  static Iterable<String> get names => _handlers.keys;
 
-  final _receiving = ReceivingWrites();
-  final _issues = IssueWrites();
-  final _returns = ReturnWrites();
-  final _adjustments = AdjustmentWrites();
-
-  Future<Map<String, dynamic>> run(
-    String name,
-    Map<String, Object?> data,
-  ) => switch (name) {
-    'inventory-receipt-confirm' => _receiving.confirmReceipt(data),
-    'inventory-purchaseOrder-receive' => _receiving.receivePurchaseOrder(data),
-    'inventory-issueRequest-submit' => _issues.submitIssueRequest(data),
-    'inventory-issueRequest-decide' => _issues.decideIssueRequest(data),
-    'inventory-issueRequest-cancel' => _issues.endIssueRequest(
-      data,
-      cancel: true,
-    ),
-    'inventory-issueRequest-close' => _issues.endIssueRequest(
-      data,
-      cancel: false,
-    ),
-    'inventory-issue-create' => _issues.issueStock(data),
-    'inventory-issue-acknowledge' => _issues.acknowledgeIssue(data),
-    'inventory-return-create' => _returns.createReturn(data),
-    'inventory-adjustment-create' => _adjustments.adjustStock(data),
-    'inventory-unavailable-report' => _adjustments.reportUnavailable(data),
-    'inventory-unavailable-resolve' => _adjustments.resolveUnavailable(data),
-    _ => throw ArgumentError.value(name, 'name'),
-  };
+  Future<Map<String, dynamic>> run(String name, Map<String, Object?> data) =>
+      _handlers[name]?.call(data) ?? (throw ArgumentError.value(name, 'name'));
 }

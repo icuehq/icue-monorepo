@@ -23,6 +23,7 @@ export 'src/utils/icue_text_utils.dart';
 export 'src/widgets/icue_button.dart';
 export 'src/widgets/icue_deferred.dart';
 export 'src/widgets/icue_dialog.dart';
+export 'src/widgets/icue_coming_soon_page.dart';
 export 'src/widgets/icue_connectivity_banner.dart';
 export 'src/widgets/icue_context_bar.dart';
 export 'src/widgets/icue_date_field.dart';

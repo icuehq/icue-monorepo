@@ -1,11 +1,10 @@
-import 'package:flutter/foundation.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:injectable/injectable.dart';
 import 'package:inventory/src/models/inventory_masters.dart';
 import 'package:inventory/src/services/inventory_service.dart';
 
 @lazySingleton
-class InventoryProvider extends ChangeNotifier implements ErrorReporting {
+class InventoryProvider extends LoadingProvider {
   InventoryProvider(this._service);
 
   final InventoryService _service;
@@ -13,9 +12,6 @@ class InventoryProvider extends ChangeNotifier implements ErrorReporting {
   List<InventoryCategory> categories = [];
   List<InventoryUnit> units = [];
   List<InventoryStore> stores = [];
-  bool isLoading = false;
-  @override
-  String? errorMessage;
 
   // Item list (paged).
   final List<InventoryItem> items = [];
@@ -71,26 +67,16 @@ class InventoryProvider extends ChangeNotifier implements ErrorReporting {
       categories.where((category) => category.parentId == null).toList();
 
   /// Loads the user's permissions and the small master lists.
-  Future<void> loadMasters() async {
-    isLoading = true;
-    errorMessage = null;
-    notifyListeners();
-    try {
-      final masterLists = await Future.wait([
-        _service.categories(),
-        _service.units(),
-        _service.stores(),
-      ]);
-      categories = masterLists[0] as List<InventoryCategory>;
-      units = masterLists[1] as List<InventoryUnit>;
-      stores = masterLists[2] as List<InventoryStore>;
-    } catch (error) {
-      errorMessage = callableErrorMessage(error);
-    } finally {
-      isLoading = false;
-      notifyListeners();
-    }
-  }
+  Future<void> loadMasters() => load(() async {
+    final masterLists = await Future.wait([
+      _service.categories(),
+      _service.units(),
+      _service.stores(),
+    ]);
+    categories = masterLists[0] as List<InventoryCategory>;
+    units = masterLists[1] as List<InventoryUnit>;
+    stores = masterLists[2] as List<InventoryStore>;
+  });
 
   /// (Re)loads the first page, or the next one when [more] is true.
   Future<void> loadItems({

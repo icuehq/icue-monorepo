@@ -25,7 +25,7 @@ class ApiClient {
   ApiClient(this._sessionService) {
     _dio = Dio(
       BaseOptions(
-        baseUrl: IcueEnv().baseConfig?.baseUrl ?? '',
+        baseUrl: IcueEnv().baseUrl,
         connectTimeout: const Duration(seconds: 15),
         receiveTimeout: const Duration(seconds: 15),
         sendTimeout: const Duration(seconds: 15),
@@ -214,7 +214,7 @@ class TokenRefreshInterceptor extends QueuedInterceptor {
     // interceptor if the refresh endpoint itself returns 401.
     _refreshClient = Dio(
       BaseOptions(
-        baseUrl: IcueEnv().baseConfig?.baseUrl ?? '',
+        baseUrl: IcueEnv().baseUrl,
         connectTimeout: const Duration(seconds: 15),
         receiveTimeout: const Duration(seconds: 15),
         headers: {

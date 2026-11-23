@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show DateTimeRange;
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:injectable/injectable.dart';
@@ -18,8 +17,10 @@ import 'package:school_library/src/services/library_writes.dart';
 import 'package:school_library/src/services/loan_writes.dart';
 
 @lazySingleton
-class LibraryProvider extends ChangeNotifier implements ErrorReporting {
-  LibraryProvider(this._service, this._people, this._writes, this._loanWrites);
+class LibraryProvider extends LoadingProvider {
+  LibraryProvider(this._service, this._people, this._writes, this._loanWrites) {
+    isLoading = true; // until the first loadMasters, so pages skip the empty-state flash
+  }
 
   /// Read-side lookups (single records, scans) that need no provider state.
   LibraryService get service => _service;
@@ -33,11 +34,6 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
   List<SchoolLibrary> libraries = [];
   List<LibraryCategory> categories = [];
   List<LibraryPolicy> policies = [];
-
-  /// True until the first [loadMasters] finishes, so a page never flashes its empty state first.
-  bool isLoading = true;
-  @override
-  String? errorMessage;
 
   // Catalogue list: a Firestore query by title, or the search callable while [bookSearch] is set.
   late final books = _pager<LibraryBook>();
@@ -221,18 +217,17 @@ class LibraryProvider extends ChangeNotifier implements ErrorReporting {
       categories.where((category) => category.parentId == null).toList();
 
   /// Loads the user's permissions and the small master lists.
-  Future<void> loadMasters() =>
-      _busy((loading) => isLoading = loading, () async {
-        access = await _service.access();
-        final (loadedLibraries, loadedCategories, loadedPolicies) = await (
-          _service.libraries(),
-          _service.categories(),
-          _service.policies(),
-        ).wait;
-        libraries = loadedLibraries;
-        categories = loadedCategories;
-        policies = loadedPolicies;
-      });
+  Future<void> loadMasters() => load(() async {
+    access = await _service.access();
+    final (loadedLibraries, loadedCategories, loadedPolicies) = await (
+      _service.libraries(),
+      _service.categories(),
+      _service.policies(),
+    ).wait;
+    libraries = loadedLibraries;
+    categories = loadedCategories;
+    policies = loadedPolicies;
+  });
 
   /// Applies the given filters and reloads the catalogue from its first page.
   Future<void> loadBooks({

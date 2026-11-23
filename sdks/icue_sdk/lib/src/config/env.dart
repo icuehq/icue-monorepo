@@ -1,7 +1,3 @@
-import 'package:icue_sdk/src/config/base_config.dart';
-import 'package:icue_sdk/src/config/dev_config.dart';
-import 'package:icue_sdk/src/config/prod_config.dart';
-
 enum IcueEnvironment { prod, dev }
 
 class IcueEnv {
@@ -11,14 +7,12 @@ class IcueEnv {
 
   static final IcueEnv _instance = IcueEnv._internal();
 
-  BaseConfig? _baseConfig;
-
-  BaseConfig? get baseConfig => _baseConfig;
+  String baseUrl = '';
 
   void init(IcueEnvironment environment) {
-    _baseConfig = switch (environment) {
-      IcueEnvironment.dev => DevConfig(),
-      IcueEnvironment.prod => ProdConfig(),
+    baseUrl = switch (environment) {
+      IcueEnvironment.dev => 'https://itraxpro.com/api',
+      IcueEnvironment.prod => 'https://icuepro.com/api',
     };
   }
 }

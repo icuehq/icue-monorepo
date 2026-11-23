@@ -2,7 +2,6 @@ import 'package:icue_firebase/icue_firebase.dart';
 import 'package:injectable/injectable.dart';
 import 'package:inventory/src/models/inventory_insights.dart';
 import 'package:inventory/src/models/inventory_masters.dart';
-import 'package:inventory/src/providers/loading_provider.dart';
 import 'package:inventory/src/services/insights_service.dart';
 import 'package:inventory/src/services/stock_service.dart';
 

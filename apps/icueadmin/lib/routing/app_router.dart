@@ -13,7 +13,6 @@ import 'package:icueadmin/features/dashboard/dashboard_page.dart';
 import 'package:icueadmin/features/expenses/expense_args.dart';
 import 'package:icueadmin/routing/admin_pages.dart' deferred as pages;
 import 'package:icueadmin/routing/app_routes.dart';
-import 'package:icueadmin/widgets/coming_soon_page.dart';
 import 'package:inventory/inventory.dart';
 import 'package:logbook/logbook.dart';
 import 'package:routes/routes.dart';
@@ -83,7 +82,8 @@ GoRouter createRouter({
   return GoRouter(
     navigatorKey: navigatorKey ?? rootNavigatorKey,
     initialLocation: initialLocation,
-    errorBuilder: (context, state) => const ComingSoonPage(),
+    errorBuilder: (context, state) =>
+        IcueComingSoonPage(onHome: () => context.go(AppRoutes.dashboard)),
     observers: [AnalyticsService.instance.observer],
     refreshListenable: authProvider,
     redirect: (context, state) => handleAuthRedirect(

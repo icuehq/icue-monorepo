@@ -29,6 +29,7 @@ export 'src/crashlytics_service.dart';
 export 'src/emulator.dart' show emulatorCustomToken, emulatorHost, usesEmulator;
 export 'src/error_log.dart' show logError;
 export 'src/firestore_pager.dart';
+export 'src/loading_provider.dart';
 export 'src/mirror_search.dart';
 export 'src/notification_service.dart' show NotificationService;
 
