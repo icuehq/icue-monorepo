@@ -38,6 +38,10 @@ class RequestItemLine {
         : updated.toString();
   }
 
+  /// Disposes after the closing sheet/row animation, which may still build the field.
+  void disposeLater() =>
+      Future<void>.delayed(const Duration(milliseconds: 500), dispose);
+
   void dispose() {
     quantityController.dispose();
   }

@@ -100,14 +100,14 @@ class _RequestItemPageState extends State<RequestItemPage>
   void _removeLine(RequestItemLine line) {
     setState(() {
       _lines.remove(line);
-      line.dispose();
+      line.disposeLater();
     });
   }
 
   void _clearAllLines() {
     setState(() {
       for (final line in _lines) {
-        line.dispose();
+        line.disposeLater();
       }
       _lines.clear();
     });
@@ -165,7 +165,7 @@ class _RequestItemPageState extends State<RequestItemPage>
       numbers.add(result['number'] as String);
       setState(() {
         for (final line in storeLines) {
-          line.dispose();
+          line.disposeLater();
         }
         _lines.removeWhere(storeLines.contains);
       });
