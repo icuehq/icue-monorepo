@@ -57,6 +57,25 @@ class StockProvider extends LoadingProvider {
 
   String itemName(String id, [String? variantId]) => items[id]?.name ?? id;
 
+  /// The newest pending issue requests (dashboard), with their item names loaded.
+  Future<List<InventoryIssueRequest>> pendingRequests({int limit = 5}) async {
+    final snapshot = await (await _service.requestsQuery(
+      'pending',
+      '',
+    )).limit(limit).get();
+    final requests = [
+      for (final document in snapshot.docs)
+        InventoryIssueRequest.fromMap(document.id, document.data()),
+    ];
+    await _names(
+      requests.expand(
+        (request) => request.lineItems.map((line) => line.itemId),
+      ),
+    );
+    notifyListeners();
+    return requests;
+  }
+
   Future<void> _names(Iterable<String> ids) async {
     final need = ids.where((i) => !items.containsKey(i));
     if (need.isNotEmpty) items.addAll(await _service.itemsByIds(need));

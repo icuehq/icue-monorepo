@@ -4,6 +4,7 @@ import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/home/inventory_home_page.dart';
 import 'package:inventory/src/ui/insights/overview/widgets/overview_attention_card.dart';
+import 'package:inventory/src/ui/insights/overview/widgets/overview_issue_requests_card.dart';
 import 'package:inventory/src/ui/insights/overview/widgets/overview_kpi_grid.dart';
 import 'package:inventory/src/ui/insights/overview/widgets/overview_quick_actions.dart';
 import 'package:provider/provider.dart';
@@ -123,6 +124,8 @@ class _InventoryOverviewPageState extends State<InventoryOverviewPage> {
                     child: Center(child: CircularProgressIndicator()),
                   )
                 else ...[
+                  const OverviewIssueRequestsCard(),
+                  const SizedBox(height: 16),
                   OverviewKpiGrid(stats: stats),
                   const SizedBox(height: 16),
                   OverviewAttentionCard(stats: stats),
