@@ -10,13 +10,9 @@ initializeApp();
 
 export {
   auditInventoryAdjustments,
-  auditInventoryInvoices,
   auditInventoryIssueRequests,
   auditInventoryIssues,
-  auditInventoryPurchaseOrders,
   auditInventoryPurchaseRequests,
-  auditInventoryQuotations,
-  auditInventoryReceipts,
   auditInventoryReturns,
   auditInventoryUnavailable,
 } from './inventory/audit';
@@ -54,7 +50,7 @@ const mutations: AnyCallableDef[] = [
   libraryCopies,
 ].flatMap((group) => Object.values(group) as AnyCallableDef[]);
 
-// Each callable deploys as its name with dots as dashes, e.g. `inventory.purchaseOrder.receive` → `inventory-purchaseOrder-receive`.
+// Each callable deploys as its name with dots as dashes, e.g. `inventory.asset.register` → `inventory-asset-register`.
 export const { session, inventory, library } = routes([
   ['session.sync', sync],
   ['session.token', token],

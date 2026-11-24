@@ -95,21 +95,6 @@ export async function runDailyInventory(branchPath: string, today = todayIST()):
     });
   }
 
-  const overdue = await collection('inventoryPurchaseOrders')
-    .where('status', 'in', ['issued', 'acknowledged', 'partially_received'])
-    .where('expectedDate', '<', dayTimestamp(today))
-    .get();
-  for (const snapshot of overdue.docs) {
-    const purchaseOrder = snapshot.data();
-    await post(db, branchPath, `inventory-purchase-order-overdue__${snapshot.id}__${week}`, {
-      to: { inventoryStaff: true },
-      category: 'inventory.purchaseOrder',
-      title: 'Delivery overdue',
-      body: `${purchaseOrder.number} was due ${timestampDay(purchaseOrder.expectedDate)}.`,
-      data: { purchaseOrderId: snapshot.id },
-    });
-  }
-
   const live = (assetStatus: string) => assetStatus !== 'retired' && assetStatus !== 'disposed';
   const warranty = await collection('inventoryAssets')
     .where('warranty.end', '>=', dayTimestamp(today))

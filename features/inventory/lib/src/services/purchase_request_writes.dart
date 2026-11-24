@@ -21,7 +21,6 @@ class PurchaseRequestWrites with ProcurementSupport {
           'variantId': line['variantId'],
           'quantity': line['quantity'],
           'estimatedPrice': line['estimatedPrice'] ?? 0,
-          'quantityOrdered': 0,
         },
     ];
     final fields = {
@@ -171,10 +170,6 @@ class PurchaseRequestWrites with ProcurementSupport {
     if (!cancellablePurchaseRequestStatuses.contains(request['status'])) {
       failWith('Request is ${request['status']}');
     }
-    final anyOrdered = (request['lineItems'] as List).any(
-      (line) => ((line as Map)['quantityOrdered'] as num) > 0,
-    );
-    if (anyOrdered) failWith('Part of this request is already ordered');
     await reference.update({
       'status': 'cancelled',
       'history': [

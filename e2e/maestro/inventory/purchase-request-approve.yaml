@@ -29,6 +29,4 @@ appId: com.thoughtniques.icueadmin.dev
       - tapOn: "Approve"
       - tapOn: "Approve"
 - assertVisible: "PR/.*Approved.*"
-- assertVisible: "Quotations"
-- assertVisible: "Direct PO"
 - assertVisible: "History.*Approve.*"

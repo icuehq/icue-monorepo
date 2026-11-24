@@ -91,7 +91,7 @@ class _InventoryOverviewPageState extends State<InventoryOverviewPage> {
     final showFilter =
         !inventoryProvider.restricted || inventoryProvider.showStoreFilter;
     return Scaffold(
-      appBar: AppBar(title: const Text('Overview')),
+      appBar: AppBar(title: const Text('Dashboard')),
       body: StreamBuilder<Map<String, num?>>(
         stream: _stats,
         builder: (context, snapshot) {

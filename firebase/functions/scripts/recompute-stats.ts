@@ -106,7 +106,6 @@ async function inventory(path: string) {
     'inventoryBalances',
     'inventoryPurchaseRequests',
     'inventoryIssueRequests',
-    'inventoryPurchaseOrders',
     'inventoryAssets',
   ])
     for (const { data } of await load(path, collection)) {

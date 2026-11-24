@@ -60,16 +60,6 @@ ReportCol _date(String label, String value) =>
 ReportCol _quantityColumn(String label, String value, {bool sum = false}) =>
     ReportCol(label, (m, _) => readString(readNumber(m[value])), sum: sum);
 
-const _poStates = [
-  'draft',
-  'issued',
-  'acknowledged',
-  'partially_received',
-  'fully_received',
-  'closed',
-  'cancelled',
-];
-
 final stockCols = <ReportCol>[
   _item(),
   _store('storeId'),
@@ -114,8 +104,6 @@ Map<String, num> overviewFigures(
     'expired': lines((day) => day.compareTo(today) < 0),
     'prs': pendingPurchases,
     'approvals': pendingPurchases + figure(branch, 'pendingIssueRequests'),
-    'pos': figure(branch, 'openPurchaseOrders'),
-    'receipts': figure(branch, 'awaitingReceipt'),
     'assets': figure(branch, 'assets'),
     'maint': figure(branch, 'underMaintenance'),
   };
@@ -181,24 +169,6 @@ final inventoryReports = <ReportDef>[
     isDay: true,
   ),
   ReportDef(
-    'purchases',
-    'Purchase history',
-    'inventoryPurchaseOrders',
-    [
-      _date('Date', 'createdAt'),
-      _textColumn('Order', 'number'),
-      _textColumn('Vendor', 'vendorId'),
-      _textColumn('Status', 'status'),
-      ReportCol('Total', (m, _) => _money(m['total']), sum: true),
-    ],
-    fixedStatuses: ['partially_received', 'fully_received', 'closed'],
-  ),
-  ReportDef('vendors', 'Vendors', 'inventoryVendors', [
-    _textColumn('Code', 'code'),
-    _textColumn('Name', 'name'),
-    _textColumn('Status', 'status'),
-  ], hasDates: false),
-  ReportDef(
     'prs',
     'Purchase requests',
     'inventoryPurchaseRequests',
@@ -210,20 +180,6 @@ final inventoryReports = <ReportDef>[
     ],
     statuses: ['draft', 'pending', 'approved', 'rejected', 'cancelled'],
   ),
-  ReportDef('pos', 'Purchase orders', 'inventoryPurchaseOrders', [
-    _date('Date', 'createdAt'),
-    _textColumn('Order', 'number'),
-    _textColumn('Vendor', 'vendorId'),
-    _textColumn('Status', 'status'),
-    ReportCol('Total', (m, _) => _money(m['total']), sum: true),
-  ], statuses: _poStates),
-  ReportDef('goodsReceipts', 'Goods receiving', 'inventoryReceipts', [
-    _date('Date', 'createdAt'),
-    _textColumn('GRN', 'number'),
-    _store('storeId'),
-    _textColumn('Source', 'source'),
-    ReportCol('Lines', (m, _) => '${(m['lineItems'] as List?)?.length ?? 0}'),
-  ]),
   ReportDef('issues', 'Issuance', 'inventoryIssues', [
     _date('Date', 'createdAt'),
     _textColumn('Issue', 'number'),
@@ -306,8 +262,6 @@ const dashboardStats = <(String, String)>[
   ('expired', 'Expired lines'),
   ('prs', 'Pending purchase requests'),
   ('approvals', 'Pending approvals'),
-  ('pos', 'Open purchase orders'),
-  ('receipts', 'Pending goods receipts'),
   ('assets', 'Registered assets'),
   ('maint', 'Assets under maintenance'),
 ];

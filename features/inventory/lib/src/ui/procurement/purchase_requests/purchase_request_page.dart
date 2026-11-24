@@ -223,24 +223,6 @@ class _PurchaseRequestPageState extends State<PurchaseRequestPage> {
           leadingIcon: Icons.send_rounded,
         ),
       ];
-    } else if (request.isOrderable && true) {
-      buttons = [
-        IcueButton(
-          label: 'Direct PO',
-          onPressed: () => _open(InventoryRoutes.inventoryPurchaseOrderForm, (
-            request,
-            null,
-            null,
-          )),
-          variant: IcueButtonVariant.outline,
-          leadingIcon: Icons.shopping_cart_checkout_rounded,
-        ),
-        IcueButton(
-          label: 'Quotations',
-          onPressed: () => _open(InventoryRoutes.inventoryQuotations, request),
-          leadingIcon: Icons.request_quote_outlined,
-        ),
-      ];
     } else {
       return null;
     }

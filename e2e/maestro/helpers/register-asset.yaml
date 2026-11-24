@@ -1,4 +1,4 @@
-# Register one laptop from the Assets page (already open), linked to the PO.
+# Register one laptop from the Assets page (already open).
 # Env: NAME, SERIAL, STORE, LOCATION. Multi-line-free fields; Enter closes the keyboard so the button is reachable.
 appId: com.thoughtniques.icueadmin.dev
 ---
@@ -7,8 +7,6 @@ appId: com.thoughtniques.icueadmin.dev
 - tapOn: "Dell Latitude.*"
 - tapOn: "Store.*"
 - tapOn: ${STORE}
-- tapOn: "Purchase order.*"
-- tapOn: ".*PO/20.*"
 # the name is pre-filled with the item name: clear it first
 - tapOn: "Asset name"
 - eraseText: 80

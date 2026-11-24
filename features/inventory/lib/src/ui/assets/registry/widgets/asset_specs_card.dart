@@ -137,13 +137,6 @@ class AssetFinancialCard extends StatelessWidget {
             label: 'Next Scheduled Service',
             value: asset.nextServiceDate!.toDisplayDay(),
           ),
-        if (asset.purchaseOrderId != null && asset.purchaseOrderId!.isNotEmpty)
-          DetailInfoRow(
-            icon: Icons.shopping_bag_outlined,
-            label: 'Purchase Order ID',
-            value: asset.purchaseOrderId!,
-            copyable: true,
-          ),
       ],
     );
   }

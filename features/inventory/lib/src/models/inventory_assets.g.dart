@@ -17,8 +17,6 @@ class InventoryAsset {
     this.serialNumber,
     this.make,
     this.model,
-    this.purchaseOrderId,
-    this.vendorId,
     this.purchaseDate,
     this.price,
     this.warrantyStart,
@@ -41,8 +39,6 @@ class InventoryAsset {
         serialNumber: data['serialNumber'] as String?,
         make: data['make'] as String?,
         model: data['model'] as String?,
-        purchaseOrderId: data['purchaseOrderId'] as String?,
-        vendorId: data['vendorId'] as String?,
         purchaseDate: readDayOrNull(data['purchaseDate']),
         price: (data['price'] as num?)?.toDouble(),
         warrantyStart: readDayOrNull((data['warranty'] as Map?)?['start']),
@@ -63,8 +59,6 @@ class InventoryAsset {
   final String? serialNumber;
   final String? make;
   final String? model;
-  final String? purchaseOrderId;
-  final String? vendorId;
   final String? purchaseDate;
   final double? price;
   final String? warrantyStart;

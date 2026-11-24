@@ -125,8 +125,6 @@ export const assets = {
       serialNumber: text(120),
       make: text(120),
       model: text(120),
-      purchaseOrderId: id.nullish(),
-      vendorId: id.nullish(),
       purchaseDate: isoDate.nullish(),
       price: money.nullish(),
       warrantyStart: isoDate.nullish(),
@@ -150,38 +148,7 @@ export const assets = {
         throw failed('Serial numbers are per unit; register units with a serial one at a time');
       if (i.warrantyStart && i.warrantyEnd && i.warrantyEnd < i.warrantyStart)
         throw failed('Warranty ends before it starts');
-      let vendorId = i.vendorId ?? null;
-      let price = i.price ?? null;
-      if (i.purchaseOrderId) {
-        const purchaseOrder = (
-          await context.transaction.get(context.doc(`inventoryPurchaseOrders/${i.purchaseOrderId}`))
-        ).data();
-        if (!purchaseOrder) throw missing('Purchase order');
-        const line = (
-          purchaseOrder.lineItems as {
-            itemId: string;
-            quantityAccepted: number;
-            unitPrice: number;
-          }[]
-        ).find((lineItem) => lineItem.itemId === i.itemId);
-        if (!line) throw failed('Item is not on the order');
-        const done = (
-          await context.transaction.get(
-            context
-              .coll('inventoryAssets')
-              .where('purchaseOrderId', '==', i.purchaseOrderId)
-              .where('itemId', '==', i.itemId),
-          )
-        ).size;
-        if (done + i.quantity > line.quantityAccepted)
-          throw failed(
-            done >= line.quantityAccepted
-              ? 'Every accepted unit of this item is already registered'
-              : `Only ${line.quantityAccepted - done} accepted unit(s) left to register`,
-          );
-        vendorId = purchaseOrder.vendorId;
-        price ??= line.unitPrice;
-      }
+      const price = i.price ?? null;
       const ids: string[] = [];
       for (let unit = 0; unit < i.quantity; unit++) {
         const ref = context.newDoc('inventoryAssets');
@@ -192,8 +159,6 @@ export const assets = {
           serialNumber: i.serialNumber ?? null,
           make: i.make ?? null,
           model: i.model ?? null,
-          purchaseOrderId: i.purchaseOrderId ?? null,
-          vendorId,
           purchaseDate: dayTimestampOrNull(i.purchaseDate),
           price,
           warranty: {

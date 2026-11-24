@@ -8,20 +8,15 @@ export const Collections = {
   inventoryAssets: 'inventoryAssets',
   inventoryBalances: 'inventoryBalances',
   inventoryCategories: 'inventoryCategories',
-  inventoryInvoices: 'inventoryInvoices',
   inventoryIssueRequests: 'inventoryIssueRequests',
   inventoryIssues: 'inventoryIssues',
   inventoryItems: 'inventoryItems',
   inventoryMaintenanceJobs: 'inventoryMaintenanceJobs',
   inventoryMovements: 'inventoryMovements',
-  inventoryPurchaseOrders: 'inventoryPurchaseOrders',
   inventoryPurchaseRequests: 'inventoryPurchaseRequests',
-  inventoryQuotations: 'inventoryQuotations',
-  inventoryReceipts: 'inventoryReceipts',
   inventoryStats: 'inventoryStats',
   inventoryStores: 'inventoryStores',
   inventoryUnits: 'inventoryUnits',
-  inventoryVendors: 'inventoryVendors',
   libraryBooks: 'libraryBooks',
   libraryCatalogue: 'libraryCatalogue',
   libraryCopies: 'libraryCopies',
@@ -31,14 +26,12 @@ export const Collections = {
   libraryStats: 'libraryStats',
 } as const;
 
-/** Lifecycle of a purchase request; ordered quantities move it to partially_ordered / ordered. */
+/** Lifecycle of a purchase request. */
 export const PurchaseRequestStatus = {
   draft: 'draft',
   revisionRequested: 'revision_requested',
   pending: 'pending',
   approved: 'approved',
-  partiallyOrdered: 'partially_ordered',
-  ordered: 'ordered',
   rejected: 'rejected',
   cancelled: 'cancelled',
 } as const;
@@ -116,11 +109,8 @@ export type MemberType = (typeof MemberType)[keyof typeof MemberType];
 /** The requester may edit and resubmit these. */
 export const editablePurchaseRequestStatuses = [PurchaseRequestStatus.draft, PurchaseRequestStatus.revisionRequested] as const;
 
-/** A request may be cancelled in these statuses, while nothing has been ordered. */
+/** A request may be cancelled in these statuses. */
 export const cancellablePurchaseRequestStatuses = [PurchaseRequestStatus.draft, PurchaseRequestStatus.revisionRequested, PurchaseRequestStatus.pending, PurchaseRequestStatus.approved] as const;
-
-/** Quotations and purchase orders may be raised against these. */
-export const orderablePurchaseRequestStatuses = [PurchaseRequestStatus.approved, PurchaseRequestStatus.partiallyOrdered] as const;
 
 /** Statuses a librarian may set by hand; issued belongs to circulation. */
 export const manualCopyStatuses = [CopyStatus.available, CopyStatus.underMaintenance, CopyStatus.damaged, CopyStatus.withdrawn] as const;
@@ -138,8 +128,6 @@ export interface InventoryStatsTotals {
   expiryOn: Record<string, number>;
   pendingPurchaseRequests: number;
   pendingIssueRequests: number;
-  openPurchaseOrders: number;
-  awaitingReceipt: number;
   assets: number;
   underMaintenance: number;
 }

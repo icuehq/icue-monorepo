@@ -75,7 +75,6 @@ export const masters = {
       variantAttrs: z.array(z.string().trim().min(1).max(30)).max(5).default([]),
       reorderLevel: amount,
       defaultPrice: amount,
-      preferredVendorId: id.nullish(),
     }),
     handler: (context, i) =>
       saveMaster(context, {
@@ -103,13 +102,6 @@ export const masters = {
             if (sub.parentId !== i.categoryId)
               throw failed('Subcategory does not belong to the category');
           }
-          if (i.preferredVendorId) {
-            usable(
-              await context.transaction.get(context.doc(`inventoryVendors/${i.preferredVendorId}`)),
-              'Vendor',
-              before?.preferredVendorId === i.preferredVendorId,
-            );
-          }
           const unit = await context.transaction.get(
             context
               .coll('inventoryUnits')
@@ -136,7 +128,6 @@ export const masters = {
             variantAttrs: i.variantAttrs,
             reorderLevel: i.reorderLevel ?? null,
             defaultPrice: i.defaultPrice ?? null,
-            preferredVendorId: i.preferredVendorId ?? null,
             ...(before ? {} : { imagePath: null }),
           };
         },

@@ -11,16 +11,9 @@ export const auditInventoryIssueRequests = auditClientWrites(
 );
 export const auditInventoryIssues = auditClientWrites('inventoryIssues');
 export const auditInventoryReturns = auditClientWrites('inventoryReturns');
-export const auditInventoryReceipts = auditClientWrites('inventoryReceipts');
 export const auditInventoryAdjustments = auditClientWrites('inventoryAdjustments');
 export const auditInventoryUnavailable = auditClientWrites('inventoryUnavailableStock');
 export const auditInventoryPurchaseRequests = auditClientWrites(
   'inventoryPurchaseRequests',
   withStats('inventoryPurchaseRequests'),
 );
-export const auditInventoryQuotations = auditClientWrites('inventoryQuotations');
-export const auditInventoryPurchaseOrders = auditClientWrites(
-  'inventoryPurchaseOrders',
-  withStats('inventoryPurchaseOrders'),
-);
-export const auditInventoryInvoices = auditClientWrites('inventoryInvoices');

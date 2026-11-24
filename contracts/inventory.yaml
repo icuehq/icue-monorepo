@@ -10,25 +10,20 @@ collections:
   - inventoryAssets
   - inventoryBalances
   - inventoryCategories
-  - inventoryInvoices
   - inventoryIssueRequests
   - inventoryIssues
   - inventoryItems
   - inventoryMaintenanceJobs
   - inventoryMovements
-  - inventoryPurchaseOrders
   - inventoryPurchaseRequests
-  - inventoryQuotations
-  - inventoryReceipts
   - inventoryStats
   - inventoryStores
   - inventoryUnits
-  - inventoryVendors
 
 enums:
   PurchaseRequestStatus:
-    doc: Lifecycle of a purchase request; ordered quantities move it to partially_ordered / ordered.
-    values: [draft, revision_requested, pending, approved, partially_ordered, ordered, rejected, cancelled]
+    doc: Lifecycle of a purchase request.
+    values: [draft, revision_requested, pending, approved, rejected, cancelled]
 
   AssetStatus:
     doc: Lifecycle of a physical asset.
@@ -49,13 +44,9 @@ constants:
     enum: PurchaseRequestStatus
     values: [draft, revision_requested]
   cancellablePurchaseRequestStatuses:
-    doc: A request may be cancelled in these statuses, while nothing has been ordered.
+    doc: A request may be cancelled in these statuses.
     enum: PurchaseRequestStatus
     values: [draft, revision_requested, pending, approved]
-  orderablePurchaseRequestStatuses:
-    doc: Quotations and purchase orders may be raised against these.
-    enum: PurchaseRequestStatus
-    values: [approved, partially_ordered]
 
 documents:
   InventoryStatsTotals:
@@ -69,8 +60,6 @@ documents:
       expiryOn: map<int>
       pendingPurchaseRequests: int
       pendingIssueRequests: int
-      openPurchaseOrders: int
-      awaitingReceipt: int
       assets: int
       underMaintenance: int
   InventoryStats:
@@ -97,8 +86,6 @@ models:
         serialNumber: string?
         make: string?
         model: string?
-        purchaseOrderId: string?
-        vendorId: string?
         purchaseDate: day?
         price: double?
         warrantyStart: { type: day?, key: warranty.start }
@@ -169,7 +156,6 @@ models:
         tracking: Tracking
         reorderLevel: double?
         defaultPrice: double?
-        preferredVendorId: string?
         active: { type: bool, key: status, notEquals: inactive }
     InventoryVariant:
       id: id
@@ -185,78 +171,13 @@ models:
         location: string?
         managerId: string
         active: { type: bool, key: status, notEquals: inactive }
-  inventory_orders:
-    OrderLine:
-      doc: "A quotation line (`quantity`) or a purchase-order line (`quantityOrdered`)."
-      fields:
-        itemId: string
-        variantId: string?
-        quantity: { type: double, from: "readDouble(data['quantity'] ?? data['quantityOrdered'])" }
-        unitPrice: double
-        quantityReceived: double
-        quantityAccepted: double
-        quantityRejected: double
-    InventoryQuotation:
-      id: id
-      fields:
-        number: string
-        vendorId: string
-        status: { type: string, default: draft }
-        lineItems: list<OrderLine>
-        discount: double
-        tax: double
-        delivery: double
-        subtotal: double
-        total: double
-        remarks: string?
-        purchaseRequestId: string
-        vendorRef: string?
-        validUntil: day
-        quotationDate: day
-        deliveryDays: int?
-        selected: bool
-        selectionReason: string?
-    InventoryPurchaseOrder:
-      id: id
-      fields:
-        number: string
-        vendorId: string
-        status: { type: string, default: draft }
-        lineItems: list<OrderLine>
-        discount: double
-        tax: double
-        delivery: double
-        subtotal: double
-        total: double
-        remarks: string?
-        purchaseRequestId: { type: String, from: "(data['purchaseRequestIds'] is List && (data['purchaseRequestIds'] as List).isNotEmpty) ? (data['purchaseRequestIds'] as List).first as String : ''" }
-        quotationId: string?
-        purchaseOrderDate: day
-        expectedDate: day
-        terms: string?
-        revision: int
-        ackRef: { type: string?, key: acknowledgement.vendorRef }
   inventory_procurement:
-    InventoryVendor:
-      id: id
-      fields:
-        name: string
-        contactPerson: string?
-        phone: string?
-        email: string?
-        address: string?
-        taxNumber: string?
-        website: string?
-        remarks: string?
-        categoryIds: list<string>
-        active: { type: bool, key: status, notEquals: inactive }
     PurchaseRequestLine:
       fields:
         itemId: string
         variantId: string?
         quantity: double
         estimatedPrice: double
-        quantityOrdered: double
     PurchaseRequestHistoryEntry:
       doc: "One step of the retained approval history (submit, approve, reject, revise, cancel)."
       fields:
@@ -277,45 +198,6 @@ models:
         createdAt: timestamp?
         lineItems: list<PurchaseRequestLine>
         history: list<PurchaseRequestHistoryEntry>
-  inventory_receiving:
-    GoodsReceiptLine:
-      fields:
-        itemId: string
-        variantId: string?
-        accepted: { type: double, key: quantityAccepted }
-        rejected: { type: double, key: quantityRejected }
-        condition: string?
-        batchNumber: string?
-    InventoryGoodsReceipt:
-      doc: "One delivery against a purchase order (`inventoryReceipts` with `source: purchase_order`)."
-      id: id
-      fields:
-        number: string
-        date: { type: day, key: transactionDate }
-        result: { type: string, key: inspection.result, default: accepted, doc: "`accepted`, `partial` or `rejected`." }
-        reference: string?
-        remarks: string?
-        lineItems: list<GoodsReceiptLine>
-    InventoryInvoice:
-      doc: "A vendor invoice record. Payment fields mirror what Finance reports; nothing is paid from here."
-      id: id
-      fields:
-        invoiceNumber: string
-        vendorId: string
-        purchaseOrderId: string
-        purchaseOrderNumber: string
-        invoiceDate: day
-        dueDate: day?
-        paymentStatus: { type: string, default: unpaid }
-        subtotal: double
-        tax: double
-        discount: double
-        total: double
-        paidAmount: double
-        outstanding: double
-        receiptIds: list<string>
-        remarks: string?
-        paymentRef: { type: string?, key: payment.reference }
   inventory_stock:
     InventoryBalance:
       id: id

@@ -23,15 +23,6 @@ class PurchaseRequestCard extends StatelessWidget {
     final statusConfig = _getStatusConfig(request.status);
     final priorityConfig = _getPriorityConfig(request.priority);
 
-    final totalOrdered = request.lineItems.fold<double>(
-      0,
-      (sum, line) => sum + line.quantityOrdered,
-    );
-    final totalRequested = request.lineItems.fold<double>(
-      0,
-      (sum, line) => sum + line.quantity,
-    );
-
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -164,15 +155,6 @@ class PurchaseRequestCard extends StatelessWidget {
                       color: theme.colorScheme.primary,
                     ),
                   ),
-                  const Spacer(),
-                  if (totalOrdered > 0)
-                    Text(
-                      'Ordered ${totalOrdered.toQuantityText()} / ${totalRequested.toQuantityText()}',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
                 ],
               ),
               if (nextAction != null) ...[

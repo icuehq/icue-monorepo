@@ -1,7 +1,5 @@
-# Guide 1.4.1-1.4.3 (register two laptop units from the PO; the PO caps the count at its 2 accepted units).
-# Needs po-receive-full.yaml first. App differs from the guide: the form takes a Quantity (identical units) and
-# takes price/vendor from the PO. The list card shows name, AST id and location (no serial), so each unit is skipped
-# when its location is already listed.
+# Guide 1.4.1-1.4.3 (register two laptop units). The form takes a Quantity (identical units). The list card shows
+# name, AST id and location (no serial), so each unit is skipped when its location is already listed.
 appId: com.thoughtniques.icueadmin.dev
 ---
 - runFlow:

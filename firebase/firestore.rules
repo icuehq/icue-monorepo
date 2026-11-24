@@ -1,7 +1,7 @@
 rules_version = '2';
 
 // Clients read; all writes go through Cloud Functions (Admin SDK bypasses rules).
-// Exceptions: own device tokens/mute, Receive Stock (receipts, ledger rows, balances), issue request submit/approve, the master collections, and purchase requests/quotations/invoices.
+// Exceptions: own device tokens/mute, Receive Stock (ledger rows, balances), issue request submit/approve, the master collections, and purchase requests.
 // Inventory and Library business records carry a `lastWrite` stamp (see stamped()); code-keyed masters do not.
 service cloud.firestore {
   match /databases/{db}/documents {
@@ -58,9 +58,6 @@ service cloud.firestore {
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryItems/{id} {
       allow write: if staff(orgId, zoneId, branchId) && inStore(orgId, zoneId, branchId, masterStore());
     }
-    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryVendors/{id} {
-      allow write: if staff(orgId, zoneId, branchId);
-    }
     // Libraries are set up by admins; a librarian reads only their own (the query must filter on librarianId).
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/libraries/{id} {
       allow read: if staff(orgId, zoneId, branchId) && (!assignedOnly() || resource.data.librarianId == request.auth.uid);
@@ -74,36 +71,12 @@ service cloud.firestore {
           || topLevelCategory(get(/databases/$(db)/documents/orgs/$(orgId)/zones/$(zoneId)/branches/$(branchId)/libraryCategories/$(request.resource.data.parentId)).data));
     }
 
-    // Purchase requests, quotations and invoices: client writes for the roles that handle them.
+    // Purchase requests: client writes for the roles that handle them.
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryPurchaseRequests/{id} {
       allow write: if inBranch(orgId, zoneId, branchId) && stamped()
         && staff(orgId, zoneId, branchId);
-      // Issuing, cancelling or closing a purchase order moves its quantity on the request.
-      allow update: if inBranch(orgId, zoneId, branchId) && stamped() && staff(orgId, zoneId, branchId);
-      // The last fully received order completes its request.
-      allow update: if inBranch(orgId, zoneId, branchId) && stamped() && staff(orgId, zoneId, branchId)
-        && request.resource.data.status == 'completed';
     }
-    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryQuotations/{id} {
-      allow write: if inBranch(orgId, zoneId, branchId) && stamped() && staff(orgId, zoneId, branchId);
-    }
-    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryInvoices/{id} {
-      allow write: if inBranch(orgId, zoneId, branchId) && stamped() && staff(orgId, zoneId, branchId);
-    }
-    // Purchase orders: client writes until cancelled or closed; receiving stays a callable.
-    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryPurchaseOrders/{id} {
-      allow create: if inBranch(orgId, zoneId, branchId) && stamped() && staff(orgId, zoneId, branchId)
-        && request.resource.data.status == 'draft';
-      allow update: if inBranch(orgId, zoneId, branchId) && stamped() && staff(orgId, zoneId, branchId)
-        && !(resource.data.status in ['cancelled', 'closed']);
-      // Receiving goods moves an order to (partially / fully) received.
-      allow update: if inBranch(orgId, zoneId, branchId) && stamped() && staff(orgId, zoneId, branchId)
-        && request.resource.data.status in ['partially_received', 'fully_received'];
-    }
-    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryPurchaseOrders/{id}/revisions/{rev} {
-      allow create: if staff(orgId, zoneId, branchId);
-    }
-    // Sequence counters (PR/QT/PO numbers) are bumped by clients that hold any permission (parents hold none).
+    // Sequence counters (PR numbers) are bumped by clients that hold any permission (parents hold none).
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/counters/{id} {
       allow read, write: if staff(orgId, zoneId, branchId);
     }
@@ -123,13 +96,13 @@ service cloud.firestore {
     // Stock (Inv-2): written only by Functions.
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/{coll}/{id} {
       allow read: if inBranch(orgId, zoneId, branchId)
-        && coll in ['inventoryBalances', 'inventoryMovements', 'inventoryReceipts', 'inventoryIssues', 'inventoryReturns', 'inventoryAdjustments', 'inventoryUnavailableStock']
+        && coll in ['inventoryBalances', 'inventoryMovements', 'inventoryIssues', 'inventoryReturns', 'inventoryAdjustments', 'inventoryUnavailableStock']
         && staff(orgId, zoneId, branchId);
     }
     // Receive Stock, issuing stock and returns are client transactions: stock operators create receipts, issues, returns, unavailable-stock
     // entries and ledger rows (never edit them) and create/update the store's balances.
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/{coll}/{id} {
-      allow create: if inBranch(orgId, zoneId, branchId) && coll in ['inventoryReceipts', 'inventoryIssues', 'inventoryReturns', 'inventoryAdjustments', 'inventoryUnavailableStock', 'inventoryMovements']
+      allow create: if inBranch(orgId, zoneId, branchId) && coll in ['inventoryIssues', 'inventoryReturns', 'inventoryAdjustments', 'inventoryUnavailableStock', 'inventoryMovements']
         && staff(orgId, zoneId, branchId)
         && inStore(orgId, zoneId, branchId, request.resource.data.get('storeId', ''))
         && (coll == 'inventoryMovements' || stamped())
@@ -197,29 +170,10 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'resolution', 'resolutionNote', 'resolvedAt', 'resolvedBy', 'lastWrite', 'updatedAt']);
     }
 
-    // Procurement (Inv-3). Vendors are branch-wide; requesters see their own requests,
-    // approvers and procurement all of them.
-    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryVendors/{id} {
-      allow read: if staff(orgId, zoneId, branchId);
-    }
+    // Procurement (Inv-3). Requesters see their own requests, approvers and procurement all of them.
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryPurchaseRequests/{id} {
       allow read: if inBranch(orgId, zoneId, branchId) && (resource.data.createdBy == request.auth.uid
         || staff(orgId, zoneId, branchId));
-    }
-
-    // Quotations and purchase orders (Inv-4): procurement.
-    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryQuotations/{id} {
-      allow read: if staff(orgId, zoneId, branchId);
-    }
-    // Receiving staff read orders due ; invoices (Inv-5) follow procurement.
-    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryPurchaseOrders/{id} {
-      allow read: if staff(orgId, zoneId, branchId);
-    }
-    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryInvoices/{id} {
-      allow read: if staff(orgId, zoneId, branchId);
-    }
-    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryPurchaseOrders/{id}/revisions/{rev} {
-      allow read: if staff(orgId, zoneId, branchId);
     }
 
     // Assets and maintenance (Inv-6). Assignees also read their own custody records.
@@ -237,12 +191,9 @@ service cloud.firestore {
     // Reports and the dashboard (Inv-7): report viewers read the records in every report collection.
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/{coll}/{id} {
       allow read: if staff(orgId, zoneId, branchId)
-        && coll in ['inventoryBalances', 'inventoryMovements', 'inventoryReceipts', 'inventoryIssues', 'inventoryReturns', 'inventoryAdjustments', 'inventoryUnavailableStock',
-          'inventoryIssueRequests', 'inventoryPurchaseRequests', 'inventoryQuotations', 'inventoryPurchaseOrders', 'inventoryInvoices',
+        && coll in ['inventoryBalances', 'inventoryMovements', 'inventoryIssues', 'inventoryReturns', 'inventoryAdjustments', 'inventoryUnavailableStock',
+          'inventoryIssueRequests', 'inventoryPurchaseRequests',
           'inventoryAssets', 'inventoryAssetAssignments', 'inventoryMaintenanceJobs'];
-    }
-    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryVendors/{id} {
-      allow read: if staff(orgId, zoneId, branchId);
     }
     // The overview figures (`inventoryStats/overall`, kept by triggers): anyone whose role has a tile on the Inventory overview.
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryStats/{id} {

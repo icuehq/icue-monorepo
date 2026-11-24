@@ -1,16 +1,14 @@
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:injectable/injectable.dart';
 import 'package:inventory/src/models/inventory_masters.dart';
-import 'package:inventory/src/models/inventory_orders.dart';
 import 'package:inventory/src/models/inventory_procurement.dart';
-import 'package:inventory/src/models/inventory_receiving.dart';
 import 'package:inventory/src/providers/list_state.dart';
 import 'package:inventory/src/services/procurement_service.dart';
 import 'package:inventory/src/services/procurement_writes.dart';
 import 'package:inventory/src/services/stock_service.dart';
 import 'package:inventory/src/services/stock_writes.dart';
 
-/// Vendors and purchase requests. Needs `InventoryProvider.loadMasters()` first (access).
+/// Purchase requests. Needs `InventoryProvider.loadMasters()` first (access).
 @lazySingleton
 class ProcurementProvider extends LoadingProvider {
   ProcurementProvider(this._service, this._stock);
@@ -21,18 +19,8 @@ class ProcurementProvider extends LoadingProvider {
   final _stockWrites = StockWrites();
 
   final Map<String, InventoryItem> items = {};
-  List<InventoryVendor> vendors = [];
-  List<InventoryQuotation> quotations = [];
-  List<InventoryPurchaseOrder> orders = [];
 
-  /// Paged lists (server-side status filter and number search): purchase orders,
-  /// purchase requests and vendor invoices.
-  late final purchaseOrders = ListState<InventoryPurchaseOrder>(
-    query: _service.ordersQuery,
-    fromDocument: (document) =>
-        InventoryPurchaseOrder.fromMap(document.id, document.data()!),
-    onChange: notifyListeners,
-  );
+  /// Paged list (server-side status filter and number search).
   late final purchaseRequests = ListState<InventoryPurchaseRequest>(
     query: _service.requestsQuery,
     fromDocument: (document) =>
@@ -46,28 +34,12 @@ class ProcurementProvider extends LoadingProvider {
       ),
     ),
   );
-  late final invoiceList = ListState<InventoryInvoice>(
-    query: _service.invoicesQuery,
-    fromDocument: (document) =>
-        InventoryInvoice.fromMap(document.id, document.data()!),
-    onChange: notifyListeners,
-  );
-  List<InventoryGoodsReceipt> receipts = [];
-  List<InventoryInvoice> invoices = [];
 
   String get uid => _service.uid;
 
   String itemName(String id) => items[id]?.name ?? id;
 
-  String vendorName(String id) {
-    for (final vendor in vendors) {
-      if (vendor.id == id) return vendor.name;
-    }
-    return id;
-  }
-
   Future<void> _loadNames(Iterable<String> itemIds) async {
-    if (vendors.isEmpty) vendors = await _service.vendors();
     final need = itemIds.where((i) => !items.containsKey(i)).toSet();
     if (need.isNotEmpty) items.addAll(await _stock.itemsByIds(need));
   }
@@ -91,76 +63,7 @@ class ProcurementProvider extends LoadingProvider {
     }
   }
 
-  Future<void> loadQuotations(String purchaseRequestId) => load(() async {
-    quotations = await _service.quotations(purchaseRequestId)
-      ..sort((left, right) => left.total.compareTo(right.total));
-    await _loadNames(
-      quotations.expand(
-        (quotation) => quotation.lineItems.map((orderLine) => orderLine.itemId),
-      ),
-    );
-  });
-
-  /// Orders raised from [quotations], to show which quotation already has one.
-  Future<void> loadQuotationOrders() => load(() async {
-    orders = await _service.ordersOfQuotations([
-      for (final quotation in quotations) quotation.id,
-    ]);
-  });
-
-  Future<void> loadReceipts(String purchaseOrderId) => load(() async {
-    receipts = await _service.receipts(purchaseOrderId);
-    await _loadNames(
-      receipts.expand(
-        (goodsReceipt) => goodsReceipt.lineItems.map(
-          (goodsReceiptLine) => goodsReceiptLine.itemId,
-        ),
-      ),
-    );
-  });
-
-  Future<void> loadInvoices({String? purchaseOrderId, String? status}) =>
-      load(() async {
-        invoices = await _service.invoices(
-          purchaseOrderId: purchaseOrderId,
-          status: status,
-        );
-        await _loadNames(const []);
-      });
-
-  /// Loads vendors once, so lists can show vendor names.
-  Future<void> ensureVendors() async {
-    if (vendors.isEmpty) await loadVendors();
-  }
-
-  Future<void> loadVendors() => load(() async {
-    vendors = await _service.vendors();
-  });
-
-  /// Saves a vendor; returns an empty map, or null with [errorMessage] set.
-  Future<Map<String, dynamic>?> saveVendor(Map<String, Object?> data) =>
-      _vendorWrite(() => _service.saveVendor(data));
-
-  Future<Map<String, dynamic>?> setVendorActive(
-    String id, {
-    required bool active,
-  }) => _vendorWrite(() => _service.setVendorActive(id, active: active));
-
-  Future<Map<String, dynamic>?> _vendorWrite(
-    Future<void> Function() write,
-  ) async {
-    errorMessage = null;
-    try {
-      await write();
-      return {};
-    } catch (error) {
-      errorMessage = callableErrorMessage(error);
-      notifyListeners();
-      return null;
-    }
-  }
-
-  /// Runs a client write (purchase requests, quotations, draft purchase orders, invoices) or else a callable; returns its result (`id`, `number`) or null with [errorMessage] set.
+  /// Runs a client write (purchase requests) or else a callable; returns its result (`id`, `number`) or null with [errorMessage] set.
   Future<Map<String, dynamic>?> act(
     String value,
     Map<String, Object?> data, {

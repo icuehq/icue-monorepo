@@ -192,21 +192,6 @@ class PurchaseItems extends StatelessWidget {
                 ),
               ],
             ),
-            if (line.quantityOrdered > 0) ...[
-              const SizedBox(height: 6),
-              LinearProgressIndicator(
-                value: (line.quantityOrdered / line.quantity).clamp(0, 1),
-                minHeight: 5,
-                borderRadius: BorderRadius.circular(3),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                'Ordered ${line.quantityOrdered.toQuantityText()} of ${line.quantity.toQuantityText()}',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
           ],
           const Divider(height: 24),
           Row(

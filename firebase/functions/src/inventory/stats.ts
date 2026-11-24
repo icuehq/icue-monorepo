@@ -15,8 +15,6 @@ import { bump, type Counts, increments } from '../shared/statsCounts';
  * and every write bumps one document (~1 write/s sustained), so a bulk import may fail a few. Key each event
  * (a marker per event ID) or split per store if the figures must be exact.
  */
-const OPEN_ORDER = ['issued', 'acknowledged', 'partially_received'];
-const AWAITING_RECEIPT = ['issued', 'acknowledged'];
 const IN_MAINTENANCE = ['under_maintenance', 'under_repair'];
 
 /** What the state of one document adds (`sign` = 1) or takes away (`sign` = -1): branch figures, and the store's. */
@@ -47,10 +45,6 @@ export function figures(collection: string, data: DocumentData | undefined, sign
       break;
     case 'inventoryIssueRequests':
       if (data.status === 'pending') bump(branch, 'pendingIssueRequests', sign);
-      break;
-    case 'inventoryPurchaseOrders':
-      if (OPEN_ORDER.includes(data.status)) bump(branch, 'openPurchaseOrders', sign);
-      if (AWAITING_RECEIPT.includes(data.status)) bump(branch, 'awaitingReceipt', sign);
       break;
     case 'inventoryAssets':
       bump(branch, 'assets', sign);

@@ -34,18 +34,6 @@ class OverviewKpiGrid extends StatelessWidget {
       InventoryRoutes.inventoryPurchaseRequests,
     ),
     (
-      'pos',
-      'Open purchase orders',
-      Icons.receipt_long_outlined,
-      InventoryRoutes.inventoryPurchaseOrders,
-    ),
-    (
-      'receipts',
-      'Pending goods receipts',
-      Icons.move_to_inbox_outlined,
-      InventoryRoutes.inventoryPurchaseOrders,
-    ),
-    (
       'assets',
       'Registered assets',
       Icons.devices_other_outlined,

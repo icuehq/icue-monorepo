@@ -3,10 +3,9 @@ import 'package:inventory/src/services/issue_writes.dart';
 import 'package:inventory/src/services/receiving_writes.dart';
 import 'package:inventory/src/services/return_writes.dart';
 
-/// Client-side stock writes, routed to [ReceivingWrites], [IssueWrites], [ReturnWrites] and [AdjustmentWrites]: Receive Stock (`inventory-receipt-confirm`), receiving goods against a purchase order (`inventory-purchaseOrder-receive`), issue request submit/approve/reject, issuing stock (`inventory-issue-create`) confirming an issue's receipt returns against an issue requesting, stock adjustments and unavailable stock.
+/// Client-side stock writes, routed to [ReceivingWrites], [IssueWrites], [ReturnWrites] and [AdjustmentWrites]: Receive Stock (`inventory-receipt-confirm`), issue request submit/approve/reject, issuing stock (`inventory-issue-create`) confirming an issue's receipt returns against an issue requesting, stock adjustments and unavailable stock.
 ///
-/// One Firestore transaction writes the receipt, its balances, the ledger rows
-/// and the GRN counter (Receive Stock writes only the balances). Business checks live here and in `firestore.rules`
+/// One Firestore transaction per action (Receive Stock writes only the balances). Business checks live here and in `firestore.rules`
 /// (`inventory.stock.operate`). Receipts, issues, returns, adjustments and
 /// requests stamp `lastWrite`, which the audit triggers log. There is no
 /// low-stock notification and no retry idempotency.
@@ -19,7 +18,6 @@ class StockWrites {
   static final _handlers =
       <String, Future<Map<String, dynamic>> Function(Map<String, Object?>)>{
         'inventory-receipt-confirm': _receiving.confirmReceipt,
-        'inventory-purchaseOrder-receive': _receiving.receivePurchaseOrder,
         'inventory-issueRequest-submit': _issues.submitIssueRequest,
         'inventory-issueRequest-decide': _issues.decideIssueRequest,
         'inventory-issueRequest-cancel': (data) =>

@@ -38,10 +38,8 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
       _loaded = true;
     });
     if (item == null) return;
-    final procurement = context.read<ProcurementProvider>();
     final variants = await inventoryProvider.variants(item.id);
     await inventoryProvider.loadStockOf(item);
-    if (item.preferredVendorId != null) await procurement.ensureVendors();
     if (mounted) setState(() => _variants = variants);
   }
 
@@ -54,7 +52,6 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
   @override
   Widget build(BuildContext context) {
     final inventoryProvider = context.watch<InventoryProvider>();
-    final procurement = context.watch<ProcurementProvider>();
     final theme = Theme.of(context);
     final item = _item;
     const canEdit = true;
@@ -78,7 +75,6 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
     final price = item.defaultPrice;
     final stock = inventoryProvider.inStock[item.id];
     final low = stock != null && reorder != null && stock <= reorder;
-    final vendorId = item.preferredVendorId;
     final wide = context.isWide;
 
     final stats = [
@@ -133,12 +129,6 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
             Tracking.asset => 'Tracked as individual assets',
           },
         ),
-        if (vendorId != null)
-          ItemInfoRow(
-            icon: Icons.local_shipping_outlined,
-            label: 'Preferred vendor',
-            value: procurement.vendorName(vendorId),
-          ),
       ],
     );
     final hasDescription =

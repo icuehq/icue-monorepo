@@ -6,20 +6,15 @@ abstract final class Collections {
   static const inventoryAssets = 'inventoryAssets';
   static const inventoryBalances = 'inventoryBalances';
   static const inventoryCategories = 'inventoryCategories';
-  static const inventoryInvoices = 'inventoryInvoices';
   static const inventoryIssueRequests = 'inventoryIssueRequests';
   static const inventoryIssues = 'inventoryIssues';
   static const inventoryItems = 'inventoryItems';
   static const inventoryMaintenanceJobs = 'inventoryMaintenanceJobs';
   static const inventoryMovements = 'inventoryMovements';
-  static const inventoryPurchaseOrders = 'inventoryPurchaseOrders';
   static const inventoryPurchaseRequests = 'inventoryPurchaseRequests';
-  static const inventoryQuotations = 'inventoryQuotations';
-  static const inventoryReceipts = 'inventoryReceipts';
   static const inventoryStats = 'inventoryStats';
   static const inventoryStores = 'inventoryStores';
   static const inventoryUnits = 'inventoryUnits';
-  static const inventoryVendors = 'inventoryVendors';
   static const libraryBooks = 'libraryBooks';
   static const libraryCatalogue = 'libraryCatalogue';
   static const libraryCopies = 'libraryCopies';
@@ -29,14 +24,12 @@ abstract final class Collections {
   static const libraryStats = 'libraryStats';
 }
 
-/// Lifecycle of a purchase request; ordered quantities move it to partially_ordered / ordered.
+/// Lifecycle of a purchase request.
 abstract final class PurchaseRequestStatus {
   static const draft = 'draft';
   static const revisionRequested = 'revision_requested';
   static const pending = 'pending';
   static const approved = 'approved';
-  static const partiallyOrdered = 'partially_ordered';
-  static const ordered = 'ordered';
   static const rejected = 'rejected';
   static const cancelled = 'cancelled';
   static const values = [
@@ -44,8 +37,6 @@ abstract final class PurchaseRequestStatus {
     revisionRequested,
     pending,
     approved,
-    partiallyOrdered,
-    ordered,
     rejected,
     cancelled,
   ];
@@ -149,18 +140,12 @@ const editablePurchaseRequestStatuses = [
   PurchaseRequestStatus.revisionRequested,
 ];
 
-/// A request may be cancelled in these statuses, while nothing has been ordered.
+/// A request may be cancelled in these statuses.
 const cancellablePurchaseRequestStatuses = [
   PurchaseRequestStatus.draft,
   PurchaseRequestStatus.revisionRequested,
   PurchaseRequestStatus.pending,
   PurchaseRequestStatus.approved,
-];
-
-/// Quotations and purchase orders may be raised against these.
-const orderablePurchaseRequestStatuses = [
-  PurchaseRequestStatus.approved,
-  PurchaseRequestStatus.partiallyOrdered,
 ];
 
 /// Statuses a librarian may set by hand; issued belongs to circulation.
@@ -184,8 +169,6 @@ abstract final class InventoryStatsTotalsFields {
   static const expiryOn = 'expiryOn';
   static const pendingPurchaseRequests = 'pendingPurchaseRequests';
   static const pendingIssueRequests = 'pendingIssueRequests';
-  static const openPurchaseOrders = 'openPurchaseOrders';
-  static const awaitingReceipt = 'awaitingReceipt';
   static const assets = 'assets';
   static const underMaintenance = 'underMaintenance';
 }

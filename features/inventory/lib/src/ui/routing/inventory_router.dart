@@ -125,25 +125,6 @@ final _inventoryPages = <RouteBase>[
     ),
   ),
   GoRoute(
-    path: InventoryRoutes.inventoryVendors,
-    name: InventoryRoutes.inventoryVendorsName,
-    builder: (context, state) => _inventoryPage((_) => pages.VendorsPage()),
-  ),
-  GoRoute(
-    path: InventoryRoutes.inventoryVendorDetail,
-    name: InventoryRoutes.inventoryVendorDetailName,
-    builder: (context, state) => _inventoryPage(
-      (_) => pages.VendorPage(vendorId: state.uri.queryParameters['id'] ?? ''),
-    ),
-  ),
-  GoRoute(
-    path: InventoryRoutes.inventoryVendorForm,
-    name: InventoryRoutes.inventoryVendorFormName,
-    builder: (context, state) => _inventoryPage(
-      (_) => pages.VendorFormPage(vendorId: state.uri.queryParameters['id']),
-    ),
-  ),
-  GoRoute(
     path: InventoryRoutes.inventoryPurchaseRequests,
     name: InventoryRoutes.inventoryPurchaseRequestsName,
     builder: (context, state) =>
@@ -164,62 +145,6 @@ final _inventoryPages = <RouteBase>[
     builder: (context, state) => _inventoryPage(
       (_) => pages.PurchaseRequestPage(
         requestId: state.uri.queryParameters['id'] ?? '',
-      ),
-    ),
-  ),
-  GoRoute(
-    path: InventoryRoutes.inventoryQuotations,
-    name: InventoryRoutes.inventoryQuotationsName,
-    builder: (context, state) => _inventoryPage(
-      (_) => pages.QuotationsPage(
-        request: state.extra! as InventoryPurchaseRequest,
-      ),
-    ),
-  ),
-  GoRoute(
-    path: InventoryRoutes.inventoryQuotationForm,
-    name: InventoryRoutes.inventoryQuotationFormName,
-    builder: (context, state) => _inventoryPage((_) {
-      final (r, q) =
-          state.extra! as (InventoryPurchaseRequest, InventoryQuotation?);
-      return pages.QuotationFormPage(request: r, existing: q);
-    }),
-  ),
-  GoRoute(
-    path: InventoryRoutes.inventoryPurchaseOrders,
-    name: InventoryRoutes.inventoryPurchaseOrdersName,
-    builder: (context, state) =>
-        _inventoryPage((_) => pages.PurchaseOrdersPage()),
-  ),
-  GoRoute(
-    path: InventoryRoutes.inventoryPurchaseOrderDetail,
-    name: InventoryRoutes.inventoryPurchaseOrderDetailName,
-    builder: (context, state) => _inventoryPage(
-      (_) => pages.PurchaseOrderPage(
-        order: state.extra! as InventoryPurchaseOrder,
-      ),
-    ),
-  ),
-  GoRoute(
-    path: InventoryRoutes.inventoryPurchaseOrderForm,
-    name: InventoryRoutes.inventoryPurchaseOrderFormName,
-    builder: (context, state) => _inventoryPage((_) {
-      final (r, q, o) =
-          state.extra!
-              as (
-                InventoryPurchaseRequest,
-                InventoryQuotation?,
-                InventoryPurchaseOrder?,
-              );
-      return pages.PurchaseOrderFormPage(request: r, quotation: q, existing: o);
-    }),
-  ),
-  GoRoute(
-    path: InventoryRoutes.inventoryPoReceive,
-    name: InventoryRoutes.inventoryPoReceiveName,
-    builder: (context, state) => _inventoryPage(
-      (_) => pages.PurchaseOrderReceivePage(
-        order: state.extra! as InventoryPurchaseOrder,
       ),
     ),
   ),
@@ -259,11 +184,6 @@ final _inventoryPages = <RouteBase>[
     builder: (context, state) => _inventoryPage(
       (_) => pages.InventoryReportPage(def: state.extra! as ReportDef),
     ),
-  ),
-  GoRoute(
-    path: InventoryRoutes.inventoryInvoices,
-    name: InventoryRoutes.inventoryInvoicesName,
-    builder: (context, state) => _inventoryPage((_) => pages.InvoicesPage()),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryUnavailable,

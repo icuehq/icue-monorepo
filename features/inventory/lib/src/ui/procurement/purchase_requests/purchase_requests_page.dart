@@ -20,8 +20,6 @@ class _PurchaseRequestsPageState extends State<PurchaseRequestsPage> {
   static const _statuses = {
     'pending': 'Pending',
     'approved': 'Approved',
-    'partially_ordered': 'Part ordered',
-    'ordered': 'Ordered',
     'draft': 'Draft',
     'revision_requested': 'Returned',
     'rejected': 'Rejected',

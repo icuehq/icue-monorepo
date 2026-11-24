@@ -61,7 +61,6 @@ class InventoryItem {
     required this.tracking,
     this.reorderLevel,
     this.defaultPrice,
-    this.preferredVendorId,
     required this.active,
   });
 
@@ -77,7 +76,6 @@ class InventoryItem {
         tracking: Tracking.parse(data['tracking']),
         reorderLevel: (data['reorderLevel'] as num?)?.toDouble(),
         defaultPrice: (data['defaultPrice'] as num?)?.toDouble(),
-        preferredVendorId: data['preferredVendorId'] as String?,
         active: data['status'] != 'inactive',
       );
 
@@ -91,7 +89,6 @@ class InventoryItem {
   final Tracking tracking;
   final double? reorderLevel;
   final double? defaultPrice;
-  final String? preferredVendorId;
   final bool active;
 }
 

@@ -1,15 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { assets as a, maintenance as m } from '../src/inventory/assets';
 import { masters } from '../src/inventory/masters';
-import { procurement as p } from '../src/inventory/procurement';
 import { runCallable, type CallableDef } from '../src/shared/callable';
 import { dayTimestamp } from '../src/shared/dates';
 import {
-  issuePurchaseOrder,
-  receivePurchaseOrderUnits,
   seedBalance,
-  seedPurchaseOrder,
-  seedPurchaseRequest,
   seedStore,
 } from './fixtures';
 import { clearFirestore, db } from './setup';
@@ -78,32 +73,6 @@ describe('assets and maintenance', () => {
         }),
       ),
     ).toBe('failed-precondition');
-  });
-
-  it('registration against a PO is capped at the accepted units and takes vendor and price from the order', async () => {
-    await db().doc(`${BRANCH}/userAccess/proc`).set({});
-    const vendor = (await run(p.vendorUpsert, { code: 'V1', name: 'Acme' }, 'proc')).id;
-    const purchaseRequest = await seedPurchaseRequest([
-      { itemId: laptop, quantity: 3, estimatedPrice: 500 },
-    ]);
-    const purchaseOrder = await seedPurchaseOrder(purchaseRequest, vendor, [
-      { itemId: laptop, quantityOrdered: 3, unitPrice: 450 },
-    ]);
-    await issuePurchaseOrder(purchaseOrder);
-    const reg = () =>
-      run(a.register, { itemId: laptop, storeId: store, purchaseOrderId: purchaseOrder });
-    expect(await code(reg())).toBe('failed-precondition'); // nothing received yet
-    await receivePurchaseOrderUnits(purchaseOrder, [
-      { itemId: laptop, quantityAccepted: 2, quantityRejected: 1 },
-    ]);
-    const assetDocument = await reg();
-    expect(await get(`inventoryAssets/${assetDocument.id}`)).toMatchObject({
-      vendorId: vendor,
-      price: 450,
-      purchaseOrderId: purchaseOrder,
-    });
-    await reg();
-    expect(await code(reg())).toBe('failed-precondition'); // only 2 accepted
   });
 
   it('registers several identical units in one call, within the accepted quantity', async () => {

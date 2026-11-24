@@ -10,8 +10,5 @@ String? purchaseNextAction(InventoryPurchaseRequest request, String uid) {
     return 'Returned: update and resubmit';
   }
   if (own && request.status == 'draft') return 'Draft: submit for approval';
-  if (request.isOrderable) {
-    return 'Ready to order';
-  }
   return null;
 }

@@ -15,7 +15,7 @@ This document decides *how* the FRS is built. Functional behaviour stays defined
 | D1 | Node issues a **Firebase custom token** after its own login; Flutter calls `signInWithCustomToken`. No second login. |
 | D2 | Tenant = the **branch**: every branch behaves like its own school, so all data lives under `orgs/{orgId}/zones/{zoneId}/branches/{branchId}` (Node `OrganizationId` → `ZoneId` → `BranchId`). The token is issued for one active branch; a zone or corporate user switches branch by exchanging the token again. There is no `campusId`. |
 | D3 | Roles come from Node. A Firestore permission map (role → permissions) per school makes the §12 matrix configurable. |
-| D4 | **All writes go through callable Cloud Functions** (Admin SDK, transactions). Security Rules are read-only for clients, with one exception: the code-keyed masters (inventory categories, units, stores, items, variants, vendors; library libraries and categories) and inventory purchase requests, quotations and invoices (`ProcurementWrites`): plain client CRUD guarded only by the non-parent staff check, no validation, audit log, `requestId`, approver notification or branch check beyond the path match in rules; `counters` is client-writable for any non-parent staff user (PR/QT numbering). |
+| D4 | **All writes go through callable Cloud Functions** (Admin SDK, transactions). Security Rules are read-only for clients, with one exception: the code-keyed masters (inventory categories, units, stores, items, variants; library libraries and categories) and inventory purchase requests (`ProcurementWrites`): plain client CRUD guarded only by the non-parent staff check, no validation, audit log, `requestId`, approver notification or branch check beyond the path match in rules; `counters` is client-writable for any non-parent staff user (PR/QT numbering). |
 | D5 | Every transaction is an **append-only movement/event** plus a **balance/status** update in the same Firestore transaction. |
 | D6 | Every mutating callable takes a client-generated `requestId`; replays return the first result (idempotency). |
 | D7 | ERP records (students, staff, departments, roles, academic years) are fetched from **Node APIs by the client** and stored in Firestore **as IDs only**. Functions never call Node. |
@@ -104,7 +104,7 @@ Common fields on every document: `createdAt`, `createdBy` (uid), `updatedAt`, `s
 | `config/{doc}` | `rolePermissions`, `inventorySettings` (expiry warning days, approval toggles), `librarySettings` (hold days, blocking rules) |
 | `userAccess/{uid}` | Resolved permissions (§3.2) |
 | `counters/{type_year}` | Sequential numbers: `PR/2026-27/000123`. Incremented inside the owning transaction. |
-| `uniqueKeys/{kind_value}` | Uniqueness guard (vendor code, library code, asset ID). Created in the same transaction as the record; existing key → `already-exists`. |
+| `uniqueKeys/{kind_value}` | Uniqueness guard (library code, asset ID). Created in the same transaction as the record; existing key → `already-exists`. |
 | `requests/{requestId}` | Idempotency: stored result of a completed callable, TTL 7 days. |
 | `auditLogs/{id}` | `{actor, action, ref, before, after, reason, at}`. Function-written only (FRS 16). |
 | `outbox/{eventKey}` | Pending notifications (§7). |
@@ -117,7 +117,7 @@ Common fields on every document: `createdAt`, `createdBy` (uid), `updatedAt`, `s
 | --- | --- | --- |
 | `inventoryCategories` | name, parentId, status | Subcategory = `parentId` set |
 | `inventoryUnits` | code, name | Defaults seeded (FRS 10.4) |
-| `inventoryItems` | name, categoryId, subcategoryId, stockUnit, purchaseUnits `[{unit, factor}]`, tracking `quantity | batch | asset`, variantAttrs, minLevel, reorderLevel, defaultPrice, preferredVendorId, defaultLocation, imagePath | `categoryHistory` via audit log |
+| `inventoryItems` | name, categoryId, subcategoryId, stockUnit, purchaseUnits `[{unit, factor}]`, tracking `quantity | batch | asset`, variantAttrs, minLevel, reorderLevel, defaultPrice, defaultLocation, imagePath | `categoryHistory` via audit log |
 | `inventoryItems/{id}/variants` | attrs `{size, color}`, sku, status | Uniforms etc. |
 | `inventoryStores` | code, name, location, status | Department/location is a field on the store or balance |
 | `inventoryBalances/{storeId__itemId__variantId__batchId}` | quantityAvailable, quantityReserved, quantityDamaged, quantityExpired, totalQuantityReceived, totalQuantityIssued, unitCost, value, batchNumber, manufacturingDate, expiryDate, isBelowReorderLevel | **The only stock balance.** One doc per store × item × variant × batch (`-` when not applicable). |
@@ -128,13 +128,8 @@ Common fields on every document: `createdAt`, `createdBy` (uid), `updatedAt`, `s
 | `inventoryAdjustments` | balanceId, before, delta, after, reason, evidence, approval | Immutable after `completed` |
 | `inventoryUnavailableStock` | balanceId or assetId, quantity, reason, evidence, resolution, resolvedAt | FRS 10.12 register |
 | `inventoryPurchaseRequests` | lineItems `[{itemId, quantity, estimatedPrice, quantityOrdered}]`, itemIds, priority, requiredDate, status (FRS 10.13), approval | |
-| `inventoryVendors` | code, name, contacts, tax, categories, documents, status | Searchable via the `search` mirror (§10) |
-| `inventoryQuotations` | vendorId, purchaseRequestId, lines (quantity, unitPrice in item stock unit), discount, tax, delivery, total, validUntil, selected, selectionReason | Comparison is a query by `purchaseRequestId` |
-| `inventoryPurchaseOrders` | vendorId, purchaseRequestIds, quotationId, lineItems `[{itemId, variantId, quantityOrdered, quantityReceived, quantityAccepted, quantityRejected, unitPrice}]`, totals, terms, status (FRS 10.16), ack | |
 | `inventoryPurchaseOrders/{id}/revisions` | snapshot, changedBy, reason | Post-issue changes (FRS 10.16) |
-| `inventoryReceipts` (GRN) | source, purchaseOrderId, storeId, lineItems `[{itemId, variantId, quantityReceived, quantityAccepted, quantityRejected, condition, batchNumber, manufacturingDate, expiryDate, serials[]}]`, attachments, inspection | Covers FRS 10.7 and 10.17 |
-| `inventoryInvoices` | vendorId, invoiceNumber, purchaseOrderId, receiptIds, subtotal, tax, discount, total, paidAmount, paymentStatus, attachments | Record only; no payments (FRS 10.18) |
-| `inventoryAssets` | itemId, serialNumber, make, model, purchaseOrderId, vendorId, purchaseDate, price, warranty `{start, end}`, condition, storeId, status (FRS 10.19), activeAssignmentId, rfidTag, imagePath | One doc per physical object |
+| `inventoryAssets` | itemId, serialNumber, make, model, purchaseDate, price, warranty `{start, end}`, condition, storeId, status (FRS 10.19), activeAssignmentId, rfidTag, imagePath | One doc per physical object |
 | `inventoryAssetAssignments` | assetId, assignee `{type: staff | student | department, personErpId}`, assignedAt, expectedReturn, conditionOut, ack, returnedAt, conditionIn | Top-level so parents/teachers can query their own |
 | `inventoryMaintenanceJobs` | assetId, issue, priority, technician, cost, partsUsed `[{itemId, quantity}]`, status (FRS 10.20), nextServiceDate | Parts used create `issue` movements |
 
@@ -179,9 +174,9 @@ Names below are logical; they deploy as `<group>-<name>` (`session.sync` → `se
 | --- | --- |
 | Session | `session.sync` |
 | Settings | `config.setRolePermissions`, `inventory.setSettings`, `library.setSettings` |
-| Inventory masters | `inventory.seedDefaults`. Categories, units, stores, items, variants and vendors are client Firestore writes (`firestore.rules`); the bulk importer reuses their server handlers internally. |
+| Inventory masters | `inventory.seedDefaults`. Categories, units, stores, items and variants are client Firestore writes (`firestore.rules`); the bulk importer reuses their server handlers internally. |
 | Stock | Receive Stock, issue request submit/decide, issuing stock, acknowledging an issue, returns, stock adjustments, and unavailable-stock reports and resolutions are client transactions (`StockWrites`). `inventory.adjustment.approve` |
-| Procurement | Purchase requests, quotations, draft purchase orders (save, issue, revise, acknowledge, cancel, close, receive goods) and invoices are client Firestore writes (`ProcurementWrites`). |
+| Procurement | Purchase requests (save, submit, decide, cancel) are client Firestore writes (`ProcurementWrites`). There are no vendors, quotations, purchase orders, goods receipts or invoices. |
 | Assets | `inventory.asset.register`, `inventory.asset.assign/return/transfer/setCondition/retire`, `inventory.maintenance.save/setStatus` |
 | Library masters | Borrowing policies, libraries and categories are client Firestore writes. |
 | Copies | `library.book.create` (creates copies keyed by barcode), `library.copy.update/move` |
@@ -201,7 +196,7 @@ Names below are logical; they deploy as `<group>-<name>` (`session.sync` → `se
 | `onRolePermissionsChange` | Firestore update on `config/rolePermissions` | Recompute `userAccess` for that school |
 | `outboxSend` | Firestore create on `outbox/*` | Send FCM, mark sent / retry / drop dead tokens |
 | `importWorker` | Task queue (`onTaskDispatched`) | Process 400-row chunks of a committed import |
-| `dailyInventory` | `onSchedule` 06:00 Asia/Kolkata | Move expired batches to `quantityExpired`; near-expiry, warranty, maintenance-due and PO-overdue notifications |
+| `dailyInventory` | `onSchedule` 06:00 Asia/Kolkata | Move expired batches to `quantityExpired`; near-expiry, warranty and maintenance-due notifications |
 | `dailyLibrary` | `onSchedule` 07:00 Asia/Kolkata | Due-soon, overdue, membership-expiring notifications |
 
 Scheduled jobs are idempotent: notification keys are deterministic (§7.1), and expiry movements check current bucket values.
@@ -217,12 +212,11 @@ These are enforced in Functions transactions and covered by unit tests.
 - `quantityAvailable` never goes below 0. Issue and negative adjustments check it in the same transaction that decrements it.
 - Expired batches (`expiryDate < today`) cannot be issued even before the daily job moves them, so the check doesn't depend on the job having run.
 - Batch issue suggests FEFO (first-expiry-first-out); the user may override within non-expired batches.
-- Receiving against a PO: `quantityAccepted + quantityRejected ≤ quantityOrdered − (already accepted + rejected)` per line. Cancelled/closed POs reject receipts. PO becomes `fully_received` only when every line is accounted for.
 - Purchase quantities convert to `stockUnit` via `purchaseUnits.factor` at receipt time; balances are only ever in stock units.
 - Issue approval: one level; `quantityApproved ≤ available` at approval time, re-checked at issuance.
 - Returns: per issue line, `returned ≤ issued`. Usable → `quantityAvailable`; damaged → `quantityDamaged` + `inventoryUnavailableStock` entry.
 - Asset: `activeAssignmentId` set ⇒ cannot assign again. `retired`/`disposed` ⇒ cannot assign. Maintenance status drives asset status.
-- Masters with history (`inventoryMovements` exist, PO references) cannot be deleted; only deactivated. Deactivated categories/vendors/items are rejected for new transactions.
+- Masters with history (`inventoryMovements` exist) cannot be deleted; only deactivated. Deactivated categories/items are rejected for new transactions.
 
 **Library**
 
@@ -330,13 +324,13 @@ Ceiling: file read access is per-module, not per-record. Per-record checks would
 5. `import.commit {importId, overwrite: false}`: enqueues `importWorker` tasks per 400 rows; each chunk is one transaction through the same code path as the single-record callable (so every rule above applies). `overwrite: true` requires `*.settings` permission.
 6. `imports/{id}` keeps the final summary forever (import history).
 
-Types: inventory categories, items, opening stock, stores, assets, vendors; library catalogue, copies, member mapping.
+Types: inventory categories, items, opening stock, stores, assets; library catalogue, copies, member mapping.
 
 **Export**
 
 - Lists on screen: CSV/XLSX generated client-side from the rows already loaded (current page or "all" up to 5000 rows).
 - Reports: Flutter pages through the report query (same rules as the list), resolves person names via Node per page, and writes CSV/XLSX (`excel`) or PDF (`pdf`). A progress indicator keeps the UI responsive. Ceiling: very large exports (100k+ rows) are slow in the browser; move to a Function once names are not needed or Node is callable server-side.
-- Purchase orders and labels: PDF generated in Flutter (`pdf` + `printing` packages) from the PO / copy docs. Book copy labels are Code 128 on thermal roll labels, one per page.
+- Labels: PDF generated in Flutter (`pdf` + `printing` packages) from the copy docs. Book copy labels are Code 128 on thermal roll labels, one per page.
 
 ---
 
@@ -346,7 +340,7 @@ Types: inventory categories, items, opening stock, stores, assets, vendors; libr
 - **Search:** Standard Firestore has no full-text search, so searchable collections are mirrored into the Enterprise database `search` (same paths, list-row fields only, `srcUpdatedAt` guards against out-of-order deliveries) by `onDocumentWritten` triggers (`syncItemSearch`, `syncBalanceSearch` (stock balances: item name; `syncBalanceItemNames` follows item renames; the client reads quantities from `(default)`), `syncCatalogueSearch`, `syncLoanSearch`, `syncIncidentSearch`, `syncLibraryMemberSearch`). Clients query the mirror directly with the Firestore Pipelines `search` stage (`searchMirror` in `icue_firebase`: `documentMatches`, `where` filters, `sort`, `offset`/`limit`); `search.rules` lets a branch's staff read their own branch's mirror (inventory items need `inventory.items.view`) and nobody write. Exact lookups (code, ISBN, barcode, asset ID, RFID tag) stay equality queries on `(default)`.
   - **Web only.** The Flutter Pipelines SDK supports web alone, so `textSearchSupported` (`kIsWeb`) is false elsewhere; Inventory Items then match names in the client (items read once, up to a few thousand), and Store Stock, Library Catalogue, Issue Books, Members and Lost & Damaged hide their search boxes; those lists still filter by category, class and status.
   - Matching is whole-word, case-insensitive with stemming; **the engine has no prefix matching** (checked on a dev database, 2026-10-31; no wildcard, regex is refused in `search`), so the item, balance, catalogue and member mirrors add `prefixText`: every prefix of 3+ letters of each word, which makes half-typed words match. A mirror update is searchable in about 150 ms.
-  - Needs a text index per project (`firebase/scripts/create-search-index.sh`; items: name, prefixText; balances: itemName, prefixText; catalogue: title, subtitle, authors, publisher, keywords). A catalogue query that is a valid ISBN is an exact lookup on `(default)` instead. Vendors will follow.
+  - Needs a text index per project (`firebase/scripts/create-search-index.sh`; items: name, prefixText; balances: itemName, prefixText; catalogue: title, subtitle, authors, publisher, keywords). A catalogue query that is a valid ISBN is an exact lookup on `(default)` instead.
 - **Dashboards:** Firestore aggregation queries (`count()`, `sum()`) with the same filters as the lists — e.g. low stock = `count()` where `isBelowReorderLevel == true`; stock value = `sum('value')`. No pre-computed counters.
   - **Library Overview** is the exception: counters in `libraryStats/overall` (branch figures, per library under `libraries`) and `libraryStats/day_yyyy-MM-dd` (that day's flows, same shape), kept only by the audit triggers (`library/stats.ts`) at write time, never by a scheduled job. Overdue is read from `dueOn` (active loans per due day); per-library titles and borrowers come from `holdings.{libraryId}` on the catalogue and `libraryIds` on the member, which the triggers keep.
 - **Popular/inactive books:** computed client-side over the selected period's loans. Ceiling: fine for tens of thousands of loans per period; add monthly stat docs if it gets slow.

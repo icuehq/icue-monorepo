@@ -5,6 +5,7 @@
 **Document Version:** 1.0  
 **Requirements Baseline:** 1.1  
 **Status:** Functional requirements draft for review and approval  
+**Scope change (2026-11-24):** Inventory no longer includes vendors, quotations, purchase orders, goods receiving against purchase orders, or vendor invoices; requirements for them below are withdrawn.  
 **Target Platform:** Flutter Web + Flutter Mobile  
 **Backend:** Firebase  
 **Authentication:** Existing Node.js authentication system  

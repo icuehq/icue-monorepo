@@ -119,44 +119,6 @@
       "density": "SPARSE_ALL"
     },
     {
-      "collectionGroup": "inventoryInvoices",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "paymentStatus",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "__name__",
-          "order": "DESCENDING"
-        }
-      ],
-      "density": "SPARSE_ALL"
-    },
-    {
-      "collectionGroup": "inventoryInvoices",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "purchaseOrderId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "__name__",
-          "order": "DESCENDING"
-        }
-      ],
-      "density": "SPARSE_ALL"
-    },
-    {
       "collectionGroup": "inventoryIssueRequests",
       "queryScope": "COLLECTION",
       "fields": [
@@ -270,44 +232,6 @@
         {
           "fieldPath": "__name__",
           "order": "DESCENDING"
-        }
-      ],
-      "density": "SPARSE_ALL"
-    },
-    {
-      "collectionGroup": "inventoryPurchaseOrders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "__name__",
-          "order": "DESCENDING"
-        }
-      ],
-      "density": "SPARSE_ALL"
-    },
-    {
-      "collectionGroup": "inventoryPurchaseOrders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "expectedDate",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "__name__",
-          "order": "ASCENDING"
         }
       ],
       "density": "SPARSE_ALL"
@@ -1750,25 +1674,6 @@
       ]
     },
     {
-      "collectionGroup": "inventoryPurchaseOrders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "number",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "__name__",
-          "order": "ASCENDING"
-        }
-      ],
-      "density": "SPARSE_ALL"
-    },
-    {
       "collectionGroup": "inventoryPurchaseRequests",
       "queryScope": "COLLECTION",
       "fields": [
@@ -1839,44 +1744,6 @@
         },
         {
           "fieldPath": "number",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "__name__",
-          "order": "ASCENDING"
-        }
-      ],
-      "density": "SPARSE_ALL"
-    },
-    {
-      "collectionGroup": "inventoryInvoices",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "paymentStatus",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "invoiceNumber",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "__name__",
-          "order": "ASCENDING"
-        }
-      ],
-      "density": "SPARSE_ALL"
-    },
-    {
-      "collectionGroup": "inventoryInvoices",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "paymentStatus",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "dueDate",
           "order": "ASCENDING"
         },
         {

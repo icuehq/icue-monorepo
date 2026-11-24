@@ -78,36 +78,4 @@ mixin ProcurementSupport {
   List<Map<String, dynamic>> asLines(Object? value) => [
     for (final line in (value! as List)) Map<String, dynamic>.from(line as Map),
   ];
-
-  Future<Map<String, dynamic>> loadOrderableRequest(String id) async {
-    final (reference: _, data: request) = await loadDocument(
-      'inventoryPurchaseRequests',
-      id,
-      'Purchase request',
-    );
-    if (!orderablePurchaseRequestStatuses.contains(request['status'])) {
-      failWith('Request is ${request['status']}; it must be approved');
-    }
-    return request;
-  }
-
-  ({double subtotal, double total}) documentTotals(
-    List<Map<String, dynamic>> lines, {
-    required num discount,
-    required num tax,
-    required num delivery,
-  }) {
-    final subtotal = roundToCents(
-      lines.fold<double>(
-        0,
-        (total, line) =>
-            total + (line['quantity']! as num) * (line['unitPrice']! as num),
-      ),
-    );
-    if (discount > subtotal) failWith('Discount exceeds the subtotal');
-    return (
-      subtotal: subtotal,
-      total: roundToCents(subtotal - discount + tax + delivery),
-    );
-  }
 }

@@ -29,7 +29,7 @@ Inventory and Library permissions are synced automatically on login from Node `/
 For emulator testing:
 
 - **Full Admin / Testing Access**: Sign in through the app. In the Emulator UI (<http://localhost:4000/firestore>), locate `schools/<schoolId>/userAccess/<your uid>`. Ensure `permissions` contains the required keys (or all permissions below), `campusIds: [31, 32]`, and `hasAllCampuses: true`:
-  - Inventory: `inventory.settings`, `inventory.items.manage`, `inventory.items.view`, `inventory.stock.view`, `inventory.stock.operate`, `inventory.issue.request`, `inventory.issue.approve`, `inventory.adjustment.approve`, `inventory.purchaseRequest.request`, `inventory.purchaseRequest.approve`, `inventory.procure.operate`, `inventory.vendors.manage`, `inventory.assets.manage`, `inventory.assets.view`, `inventory.reports.view`.
+  - Inventory: `inventory.settings`, `inventory.items.manage`, `inventory.items.view`, `inventory.stock.view`, `inventory.stock.operate`, `inventory.issue.request`, `inventory.issue.approve`, `inventory.adjustment.approve`, `inventory.purchaseRequest.request`, `inventory.purchaseRequest.approve`, `inventory.procure.operate`, `inventory.assets.manage`, `inventory.assets.view`, `inventory.reports.view`.
   - Library: none; any non-parent staff user with the Library tile can do everything.
 - **Role Verification (Part 1.7 / 2.9)**: To simulate specific roles (e.g. `storekeeper`, `procurement`, `teacher`, `librarian`), edit the `permissions` array directly in the Emulator UI document or sign in as a user with that role.
 
@@ -58,7 +58,7 @@ Launch config **icueadmin [Dev + Emulators · Android]** (or iOS). It signs in w
 
 ## Part 1 – Inventory
 
-Open **Inventory** from the dashboard. The Inventory hub shows 15 option grid tiles: Dashboard, Import, Reports, Items, Categories, Units, Stock, My requests, Issue requests, Purchase requests, Purchase orders, Vendor invoices, Assets, Vendors, Stores.
+Open **Inventory** from the dashboard. The Inventory hub shows 12 option grid tiles: Dashboard, Import, Reports, Items, Categories, Units, Stock, My requests, Issue requests, Purchase requests, Assets, Stores.
 
 ### 1.1 Masters (Inv-1)
 
@@ -179,7 +179,7 @@ Open **Stock** from Inventory tiles.
 #### 1.2.4 Negative: Asset-Tracked Items Excluded from Stock Receive
 
 - [ ] In **Receive stock**, tap **+ Add item** to open the item picker dialog. Type `LAP-DELL-15` or `Laptop`.
-- [ ] **Expect** `LAP-DELL-15` does NOT appear in the item picker (asset-tracked items are managed through the Assets module and PO receiving, and are excluded from direct stock receive).
+- [ ] **Expect** `LAP-DELL-15` does NOT appear in the item picker (asset-tracked items are managed through the Assets module, and are excluded from direct stock receive).
 
 #### 1.2.5 Create Issue Request (Requisition)
 
@@ -330,32 +330,7 @@ Open **Stock** from Inventory tiles.
 
 ---
 
-### 1.3 Procurement (Inv-3, Inv-4, Inv-5)
-
-#### Vendors Master (Inv-3)
-
-- [ ] 1.3.1 **Vendors** → tap FAB **+ Vendor** to add Vendor 1 (Apex):
-  - Vendor Name: `Apex Educational Supplies Ltd.`
-  - Contact Person: `Sunil Verma`
-  - Phone: `9876543210`
-  - Email: `sales@apexsupplies.com`
-  - Tax / GST: `29ABCDE1234F1Z5`
-  - Address: `Plot 14, Industrial Estate, Bangalore`
-  - Categories: Tap `Stationery` chip
-  - Remarks: `Payment terms: Net 30 days`
-  - Tap **Save vendor**. **Expect** the form closes and a vendor card appears with the name, name, contact chips, and GSTIN. Tap the card to open the vendor screen showing address, remarks and categories, with copy buttons.
-- [ ] 1.3.2 Add Vendor 2 (Global):
-  - Vendor Name: `Global Tech & Lab Instruments`
-  - Contact Person: `Priya Nair`
-  - Phone: `9845012345`
-  - Email: `orders@globaltechlab.in`
-  - Categories: Tap `Stationery` chip
-  - Tap **Save**. **Expect** Vendor 2 saved.
-- [ ] 1.3.3 Negative & Lifecycle:
-  - Enter an invalid email (`abc`) and phone (`12`). **Expect** each field shows its own error and nothing is saved.
-  - Edit a field and press back. **Expect** a "Discard changes?" dialog.
-  - On the Global card menu choose **Deactivate** and confirm. **Expect** an Inactive badge; chip "Active" excludes it, "Inactive" displays it. It no longer appears in the vendor dropdown of new quotations or purchase orders. Reactivate it.
-  - Use the search box with a phone number or GST fragment and the category chips. **Expect** the list narrows; with no match **Clear filters** resets it.
+### 1.3 Purchase requests (Inv-3)
 
 #### Purchase Requests (Inv-3)
 
@@ -395,136 +370,18 @@ Open **Stock** from Inventory tiles.
   - **Expect** status moves back to `Pending`.
 - [ ] 1.3.10 Approver Approval:
   - Open PR 1 as Approver → tap **Approve** and confirm (the comment is optional).
-  - **Expect** status changes to `Approved`. Action buttons for procurement (`Quotations`, `Direct PO`) become enabled.
-
-#### Quotations & Comparative Analysis (Inv-4)
-
-- [ ] 1.3.11 On the approved PR 1 screen, tap **Quotations** → tap FAB **+ Add quotation**:
-  - Vendor: Select `Apex Educational Supplies Ltd.` (Vendor 1)
-  - Vendor Ref: `QT-APEX-2026-09`
-  - Valid Until: 30 days from today (`YYYY-MM-DD`)
-  - Delivery Days: `5`
-  - Line 1 (`PEN-BLU-01`, 100 pc): Unit Price `14.50`
-  - Line 2 (`LAP-DELL-15`, 2 pc): Unit Price `54000.00`
-  - Subtotal: ₹1,09,450.00
-  - Tap **Record Quotation** (a quotation saved as draft cannot be selected until recorded; its card then has a **Record Quotation** button).
-  - **Expect** Quotation 1 created with status `Final`.
-- [ ] 1.3.12 Tap **+ Add quotation** again:
-  - Vendor: Select `Global Tech & Lab Instruments` (Vendor 2)
-  - Vendor Ref: `QT-GLB-881`
-  - Valid Until: 15 days from today (`YYYY-MM-DD`)
-  - Delivery Days: `12`
-  - Line 1 (`PEN-BLU-01`, 100 pc): Unit Price `15.50`
-  - Line 2 (`LAP-DELL-15`, 2 pc): Unit Price `53500.00`
-  - Subtotal: ₹1,08,550.00
-  - Tap **Record Quotation**.
-  - **Expect** Quotation 2 created with status `Final`.
-- [ ] 1.3.13 Comparative Matrix & Selection (screen `Quotations · PR/…`):
-  - The top card **Price Comparison Table** has one column per vendor (Apex, Global) and rows for each PR item (unit price), `Total Amount`, `Delivery Lead Time` and `Validity`. **Expect** Apex: `₹14.50`, `₹54,000.00`, total `₹1,09,450.00`, `5 days`; Global: `₹15.50`, `₹53,500.00`, total `₹1,08,550.00`, `12 days`. Only the `Total Amount` of the cheapest quote (Global) is green; unit prices are not highlighted.
-  - Under **Quotation Details** there is one card per quotation. **Expect** the Global card has a `Lowest Quote` badge and neither card is selected yet. Each card lists its dates, lead time, line items (`100 × ₹14.50` = `₹1,450.00`, …), subtotal and total, and has a **Select this Quote** button at the bottom right.
-  - On the Apex card tap **Select this Quote**. A dialog `Select QT/…?` opens with a `Selection reason *` field.
-    - Tap **Select Quotation** with the field empty. **Expect** the dialog stays open with "A reason is required".
-    - Enter `Shorter lead time of 5 days and local support warranty.` and tap **Select Quotation**.
-  - **Expect** the Apex card gets a green border and a green `SELECTED` badge, shows `Reason: Shorter lead time of 5 days and local support warranty.`, and its button becomes **Create PO from Quote**. The Global card is unselected and still shows **Select this Quote**.
-
-#### Purchase Orders (Inv-4)
-
-- [ ] 1.3.14 Create PO from Selected Quotation:
-  - On the Apex card tap **Create PO from Quote** (the PR screen's **Direct PO** creates a PO without a quotation; do not use it here).
-  - **Expect** form pre-filled with Vendor `Apex Educational Supplies Ltd.`, Campus `Campus 31`, lines (`100` pens @ ₹14.50, `2` laptops @ ₹54,000.00), Subtotal ₹1,09,450.00.
-  - Tax (₹): Enter amount `19701.00` (18% tax amount). Total updates to ₹1,29,151.00.
-  - Expected Delivery Date: Next week (`YYYY-MM-DD`).
-  - Delivery Terms: `Door delivery to Central Main Store`.
-  - Tap **Save as draft**. **Expect** PO created with number `PO/<financialYear>/<seq>`, status `Draft`.
-- [ ] 1.3.15 Issue and Acknowledge PO:
-  - Open PO sheet → tap **Issue Purchase Order**.
-  - **Expect** status changes to `Issued`; PR records ordered quantities.
-  - Tap **Acknowledge** (supplier acknowledgement):
-    - Enter Supplier Reference: `ACK-APEX-9921`.
-    - Tap Save. **Expect** status updates to `Acknowledged`.
-- [ ] 1.3.16 PO PDF Preview & Share:
-  - Tap **Download / Share PDF**.
-  - **Expect** system share sheet / PDF preview opens displaying formatted purchase order with institution header, PO Number, vendor details, line items, tax breakdown, and terms.
-- [ ] 1.3.17 PO Revision with Audit Trail:
-  - On PO sheet, tap **Revise PO**:
-    - Revision reason *: `Negotiated educational volume discount on pens`
-    - Update `PEN-BLU-01` unit price from `14.50` to `14.00`.
-    - Tap **Save Revision**.
-  - **Expect** revision incremented (`Rev 1`); status resets to `Issued`. Tap **Acknowledge** again with reference `ACK-APEX-9921-R1`.
-
-#### PO Goods Receiving (GRN & Inspection) (Inv-5)
-
-- [ ] 1.3.18 Partial Goods Receiving:
-  - On PO sheet, tap **Receive goods**:
-    - Destination store: Select `Central Main Store`.
-    - Delivery note / Challan no.: `DC-APEX-7741`.
-    - Line 1 (`PEN-BLU-01`): Enter Accepted: `80`, Rejected: `5`, Rejection condition: `5 broken tips during transit`.
-    - Line 2 (`LAP-DELL-15`): Leave Accepted: `0`, Rejected: `0` (scheduled for next delivery).
-    - Remarks: `First consignment received; 5 pens rejected at inspection.`
-    - Tap **Confirm receiving (1 item)**.
-  - **Expect**:
-    - GRN generated (`GRN/<financialYear>/<seq>`).
-    - PO status updates to `Partially received` (`in_delivery`).
-    - `Central Main Store` stock balance of `PEN-BLU-01` increases by `80`.
-    - Rejected count (5) logged in inspection records without entering available stock.
-- [ ] 1.3.19 Negative: Exceeding Due Quantity:
-  - On PO sheet, tap **Receive goods** again.
-  - Remaining due for `PEN-BLU-01` is `15` (`100 ordered - 80 accepted - 5 rejected`).
-  - Enter Accepted `25`.
-  - **Expect** inline validation error: "Only 15 due".
-- [ ] 1.3.20 Quick Action "Accept all due" & Full Receiving:
-  - Start on the **Receive goods** screen of the same PO (open it again if you left it after 1.3.19). Clear the `25` typed in 1.3.19 first: tap **Clear quantities** (the clear-all icon next to **Accept all due**).
-  - Tap **Accept all due** (above the line list). It fills every line that still has quantity due with that due quantity and clears Rejected:
-    - Line 1 (`PEN-BLU-01`): Accepted becomes `15` (what is still due: `100 ordered - 80 accepted - 5 rejected`).
-    - Line 2 (`LAP-DELL-15`): Accepted becomes `2` (nothing received yet, so all `2` ordered are due).
-    - Rejected stays empty on both lines.
-  - Select Destination store: `Central Main Store`. Enter Delivery note / Challan no.: `DC-APEX-7742`.
-  - Tap **Confirm receiving (2 items)** (the number is the lines with an Accepted quantity).
-  - **Expect**:
-    - A second GRN is generated (`GRN/<financialYear>/<seq>`); the PO now lists two GRNs.
-    - Nothing is due on any line, and the PO status becomes `Received` (`fully_received`).
-    - The linked purchase request status becomes `Completed`.
-    - `PEN-BLU-01` stock in `Central Main Store` rises by `15` (total `95`). `LAP-DELL-15` is asset-tracked, so it does not enter stock; register it in 1.4.1.
-
-#### Vendor Invoices & Payment (Inv-5)
-
-- [ ] 1.3.21 Record Vendor Invoice:
-  - Open PO sheet for the received PO → tap **Record Invoice**:
-    - **Expect** Vendor pre-filled as `Apex Educational Supplies Ltd.`, subtotal and tax pre-filled.
-    - Enter Invoice Number: `INV-APEX-2026-104`.
-    - Invoice Date: Today (`YYYY-MM-DD`).
-    - Due Date: 30 days from today (`YYYY-MM-DD`).
-    - Link Goods Receipts: Check both generated GRN chips.
-    - Tap **Record Invoice**.
-  - **Expect** Invoice saved with status `Unpaid`, outstanding equals total ₹1,29,033.00 (or matching PO total).
-- [ ] 1.3.22 Negative: Duplicate Invoice Number per Vendor:
-  - On the PO sheet, tap **Record Invoice** again with the identical Invoice Number `INV-APEX-2026-104`.
-  - Tap Record Invoice. **Expect** rejected with error ("Invoice number already exists for this vendor").
-- [ ] 1.3.23 Payment Recording & Status Transitions:
-  - Open **Vendor invoices** from Inventory tiles. Tap the invoice card to open `InvoiceSheet`.
-  - Tap **Update payment**:
-    - Paid Amount: `50000.00`
-    - Payment Reference: `NEFT/HDFC/9931023`
-    - Tap Save. **Expect** payment status transitions to `Partially paid`; Outstanding updates.
-  - Tap **Update payment** again → enter Paid Amount exceeding total. **Expect** rejected ("Paid amount cannot exceed invoice total").
-  - Enter remaining balance. **Expect** status transitions to `Paid`; Outstanding becomes ₹0.00.
-- [ ] 1.3.24 Negative: Cancellation Safeguards:
-  - Try cancelling a `Paid` invoice. **Expect** cancellation prohibited / action disabled.
-  - Cancel an `Unpaid` invoice. **Expect** invoice cancelled; status moves to `Cancelled`.
-
----
+  - **Expect** status changes to `Approved`. The request ends here; nothing is ordered from it.
 
 ### 1.4 Assets (Inv-6)
 
 Open **Assets** from Inventory tiles.
 
-#### Asset Registration & PO Integration
+#### Asset Registration
 
 - [ ] 1.4.1 **Asset Registration (Unit 1)**:
   - In Assets, tap FAB **Register asset**:
     - Asset item: Tap search and select `LAP-DELL-15` (`Dell Latitude 15 Core i5 Laptop`).
     - Store: Select `Central Main Store`.
-    - Linked PO: Select `PO/<financialYear>/<seq>` (the PO received in step 1.3.20).
     - Asset Name: `Dell Latitude 15 - Admin 01`.
     - Serial Number: `DELL-SN-78491`.
     - Make: `Dell`, Model: `Latitude 3520`.
@@ -534,10 +391,9 @@ Open **Assets** from Inventory tiles.
     - Purchase Price: `54000.00`.
     - Warranty: Start: Today, End: 3 years from today (`YYYY-MM-DD`).
     - Tap **Register asset**.
-  - **Expect** Asset created with status `Available` (green pill), identifier = the asset's document ID. Linked PO and item code displayed on card.
+  - **Expect** Asset created with status `Available` (green pill), identifier = the asset's document ID. Item code displayed on card.
 - [ ] 1.4.2 **Asset Registration (Unit 2)**:
   - Register second asset for same item `LAP-DELL-15`:
-    - Linked PO: Same `PO/...`.
     - Asset Name: `Dell Latitude 15 - Lab 01`.
     - Serial Number: `DELL-SN-78492`.
     - Store: `Science Lab Store`.
@@ -546,9 +402,6 @@ Open **Assets** from Inventory tiles.
     - Condition: `new`.
     - Purchase Price: `54000.00`.
     - Tap **Register asset**. **Expect** Asset 2 registered with status `Available`.
-- [ ] 1.4.3 Negative: PO Quantity Cap Enforcement:
-  - Attempt to register a 3rd asset unit linked to the same PO.
-  - **Expect** rejected with error (cannot register more asset units than the accepted quantity of 2 on the purchase order).
 
 #### Asset Labels & Identification
 
@@ -678,10 +531,8 @@ Open **Assets** from Inventory tiles.
     7. **Expired lines**: displays count of expired items.
     8. **Pending purchase requests**: displays pending PR count.
     9. **Pending approvals**: displays pending approval counts.
-    10. **Open purchase orders**: displays active PO count.
-    11. **Pending goods receipts**: displays POs awaiting delivery.
-    12. **Registered assets**: displays registered assets count.
-    13. **Assets under maintenance**: displays `0` (after completing step 1.4.13).
+    10. **Registered assets**: displays registered assets count.
+    11. **Assets under maintenance**: displays `0` (after completing step 1.4.13).
 
 #### Reports Suite (All 17 Inventory Reports)
 
@@ -693,11 +544,7 @@ Open **Assets** from Inventory tiles.
     4. **Stock valuation**: unit cost and total value per balance; verify **Totals Row** at bottom.
     5. **Low stock**: items where available balance is below reorder level (`PEN-BLU-01`).
     6. **Expiry**: batch-tracked items sorted by earliest expiry date (`MILK-PAST-01`).
-    7. **Purchase history**: fulfilled purchase orders with vendor names and amounts.
-    8. **Vendors**: supplier register (Apex, Global) with codes, names, and active status.
     9. **Purchase requests**: requisitions with dates, numbers, statuses, and priorities.
-    10. **Purchase orders**: orders with numbers, vendors, statuses, and total amounts.
-    11. **Goods receiving**: GRN register with dates, sources, and line counts.
     12. **Issuance**: departmental consumption and staff issue records (`Staff 884`).
     13. **Transfers**: inter-store transfers with from/to stores, dates, and statuses.
     14. **Asset register**: serialized assets with asset IDs, serials, locations, and conditions.
@@ -717,13 +564,13 @@ Edit permissions in `schools/<schoolId>/userAccess/<uid>` via Emulator UI (or si
 - [ ] 1.7.1 **Role: `teacher`**:
   - Set permissions: `inventory.issue.request`, `inventory.purchaseRequest.request`, `inventory.assets.view`.
   - Restart / reload app.
-  - **Expect**: Only My requests, Purchase requests, and Assets tiles are visible. Stores, Stock management, Vendors, Quotations, Invoices, and Reports are hidden.
+  - **Expect**: Only My requests, Purchase requests, and Assets tiles are visible. Stores, Stock management and Reports are hidden.
 - [ ] 1.7.2 **Role: `storekeeper`**:
   - Set permissions: `inventory.items.view`, `inventory.stock.view`, `inventory.stock.operate`, `inventory.issue.request`, `inventory.purchaseRequest.request`, `inventory.assets.manage`, `inventory.assets.view`.
-  - **Expect**: Full operational access to Stock (Receive, Issue, Transfers, Damaged/Expired). Vendor management, Quotation selection, PO creation, and Invoices are hidden.
+  - **Expect**: Full operational access to Stock (Receive, Issue, Transfers, Damaged/Expired).
 - [ ] 1.7.3 **Role: `procurement`**:
-  - Set permissions: `inventory.items.view`, `inventory.stock.view`, `inventory.purchaseRequest.request`, `inventory.procure.operate`, `inventory.vendors.manage`, `inventory.assets.view`.
-  - **Expect**: Full access to Vendors, Purchase requests, Quotations, POs, and Invoices. Prohibited from executing physical store receipts, stock issues, or manual balance adjustments.
+  - Set permissions: `inventory.items.view`, `inventory.stock.view`, `inventory.purchaseRequest.request`, `inventory.procure.operate`, `inventory.assets.view`.
+  - **Expect**: Full access to Purchase requests. Prohibited from executing physical store receipts, stock issues, or manual balance adjustments.
 - [ ] 1.7.4 **Campus Isolation**:
   - In `userAccess/<uid>`, set `campusIds: [32]` (Campus 32 only) and `hasAllCampuses: false`.
   - Open Stock Overview.

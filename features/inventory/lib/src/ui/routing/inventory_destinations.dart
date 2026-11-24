@@ -26,7 +26,7 @@ class InventoryEntry {
 /// The Inventory screens, in navigation order.
 List<InventoryEntry> inventoryEntries() => [
   const InventoryEntry(
-    label: 'Overview',
+    label: 'Dashboard',
     path: InventoryRoutes.inventory,
     iconAsset: 'packages/inventory/assets/dashboard/inventory.png',
     group: 'Overview',
@@ -68,25 +68,6 @@ List<InventoryEntry> inventoryEntries() => [
     path: InventoryRoutes.inventoryPurchaseRequests,
     iconAsset:
         'packages/inventory/assets/dashboard/inventory-purchase-requests.png',
-    group: 'Procurement',
-  ),
-  const InventoryEntry(
-    label: 'Purchase orders',
-    path: InventoryRoutes.inventoryPurchaseOrders,
-    iconAsset:
-        'packages/inventory/assets/dashboard/inventory-purchase-orders.png',
-    group: 'Procurement',
-  ),
-  const InventoryEntry(
-    label: 'Vendor invoices',
-    path: InventoryRoutes.inventoryInvoices,
-    iconAsset: 'packages/inventory/assets/dashboard/inventory-invoices.png',
-    group: 'Procurement',
-  ),
-  const InventoryEntry(
-    label: 'Vendors',
-    path: InventoryRoutes.inventoryVendors,
-    iconAsset: 'packages/inventory/assets/dashboard/inventory-vendors.png',
     group: 'Procurement',
   ),
   const InventoryEntry(
