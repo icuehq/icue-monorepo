@@ -158,7 +158,7 @@ class IssueSummary extends StatelessWidget {
           row(
             Icons.person_outline_rounded,
             'Requested by '
-            '${requesterId == null ? request.createdBy : staffDisplayName(requesterId)}'
+            '${request.requesterName?.isNotEmpty == true ? request.requesterName! : (requesterId == null ? request.createdBy : staffDisplayName(requesterId))}'
             '${request.createdAt == null ? '' : ' on ${request.createdAt!.toNumericDate()}'}',
           ),
           const SizedBox(height: 14),

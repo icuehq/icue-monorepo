@@ -129,12 +129,16 @@ class InventoryService {
   Future<({List<InventoryItem> items, bool hasMore})> searchItems(
     String query, {
     String? categoryId,
+    String? storeId,
     int offset = 0,
     int limit = 25,
   }) async {
     if (!textSearchSupported) {
       final needle = query.trim().toLowerCase();
-      final snapshot = await (await _itemsQuery(categoryId: categoryId)).get();
+      final snapshot = await (await _itemsQuery(
+        categoryId: categoryId,
+        storeId: storeId,
+      )).get();
       final matches = [
         for (final document in snapshot.docs)
           if ('${document.data()['name']}'.toLowerCase().contains(needle))
@@ -145,13 +149,14 @@ class InventoryService {
         hasMore: matches.length > offset + limit,
       );
     }
-    final assigned = await assignedStoreIds();
+    final assigned = storeId != null ? [storeId] : await assignedStoreIds();
     final page = await searchMirror(
       'inventoryItems',
       query,
       sortField: 'createdAt',
       descending: true,
       categoryIds: categoryId == null ? null : [categoryId],
+      equals: storeId != null ? {'storeId': storeId} : const {},
       offset: offset,
       limit: limit,
     );

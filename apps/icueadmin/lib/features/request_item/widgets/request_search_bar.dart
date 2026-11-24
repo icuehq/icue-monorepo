@@ -19,6 +19,7 @@ class RequestSearchBar extends StatelessWidget {
       controller: controller,
       textInputAction: TextInputAction.search,
       onSubmitted: onSearchChanged,
+      onChanged: onSearchChanged,
       decoration: InputDecoration(
         hintText: 'Search items by name...',
         prefixIcon: const Icon(Icons.search_rounded),
@@ -51,11 +52,6 @@ class RequestSearchBar extends StatelessWidget {
           ),
         ),
       ),
-      onChanged: (value) {
-        if (value.isEmpty) {
-          onSearchChanged('');
-        }
-      },
     );
   }
 }

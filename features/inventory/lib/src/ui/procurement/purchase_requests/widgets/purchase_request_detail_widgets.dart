@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/shared/widgets/inventory_status_chip.dart';
+import 'package:provider/provider.dart';
 
 class PurchaseSection extends StatelessWidget {
   const PurchaseSection({
@@ -164,11 +165,21 @@ class PurchaseItems extends StatelessWidget {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      Text(
-                        '${line.quantity.toQuantityText()} × ${line.estimatedPrice.toRupees()}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
+                      Builder(
+                        builder: (context) {
+                          final unit =
+                              context
+                                  .read<ProcurementProvider>()
+                                  .items[line.itemId]
+                                  ?.stockUnit ??
+                              '';
+                          return Text(
+                            '${line.quantity.toQuantityText()}${unit.isNotEmpty ? ' $unit' : ''} × ${line.estimatedPrice.toRupees()}',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),

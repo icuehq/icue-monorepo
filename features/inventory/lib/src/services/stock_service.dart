@@ -4,10 +4,11 @@ import 'package:inventory/src/models/inventory_masters.dart';
 import 'package:inventory/src/models/inventory_stock.dart';
 import 'package:inventory/src/providers/list_state.dart';
 import 'package:inventory/src/services/inventory_service.dart';
+import 'package:inventory/src/services/stock_support.dart';
 
 /// Stock (Inv-2): reads from Firestore, every write is a callable.
 @lazySingleton
-class StockService {
+class StockService with StockSupport {
   StockService(this._inventory);
 
   /// Knows which stores a store manager works in.
@@ -47,6 +48,23 @@ class StockService {
     int offset = 0,
     int limit = 50,
   }) async {
+    final needle = query.trim().toLowerCase();
+    if (!textSearchSupported) {
+      final matchingItems = await _inventory.searchItems(
+        needle,
+        storeId: store?.id,
+        limit: 100,
+      );
+      final itemIds = matchingItems.items.map((item) => item.id).toSet();
+      final allBalances = await balances(store, lowOnly: lowOnly);
+      final filtered = allBalances.items
+          .where((balance) => itemIds.contains(balance.itemId))
+          .toList();
+      return (
+        balances: filtered.skip(offset).take(limit).toList(),
+        hasMore: filtered.length > offset + limit,
+      );
+    }
     final page = await searchMirror(
       'inventoryBalances',
       query,
@@ -58,6 +76,24 @@ class StockService {
       offset: offset,
       limit: limit,
     );
+    if (page.rows.isEmpty && needle.isNotEmpty) {
+      final matchingItems = await _inventory.searchItems(
+        needle,
+        storeId: store?.id,
+        limit: 100,
+      );
+      final itemIds = matchingItems.items.map((item) => item.id).toSet();
+      if (itemIds.isNotEmpty) {
+        final allBalances = await balances(store, lowOnly: lowOnly);
+        final filtered = allBalances.items
+            .where((balance) => itemIds.contains(balance.itemId))
+            .toList();
+        return (
+          balances: filtered.skip(offset).take(limit).toList(),
+          hasMore: filtered.length > offset + limit,
+        );
+      }
+    }
     final assigned = await _inventory.assignedStoreIds();
     final ids = [
       for (final row in page.rows)
@@ -105,7 +141,14 @@ class StockService {
     ListQuery query = await branchCollection('inventoryIssueRequests');
     final assigned = await _inventory.assignedStoreIds();
     if (assigned != null) query = _inventory.inStores(query, assigned);
-    return filteredQuery(query, status: status, search: search);
+    var normalizedSearch = search.trim();
+    if (RegExp(r'^\d+$').hasMatch(normalizedSearch)) {
+      normalizedSearch =
+          'IR/$currentFinancialYear/${normalizedSearch.padLeft(6, '0')}';
+    } else if (normalizedSearch.toUpperCase().startsWith('IR-')) {
+      normalizedSearch = 'IR/${normalizedSearch.substring(3)}';
+    }
+    return filteredQuery(query, status: status, search: normalizedSearch);
   }
 
   Future<InventoryIssueRequest?> requestById(String id) async {

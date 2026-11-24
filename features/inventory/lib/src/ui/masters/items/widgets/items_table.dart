@@ -75,7 +75,7 @@ class _ItemsTableState extends State<ItemsTable> {
           id: 'category',
           label: 'Category',
           options: [
-            for (final category in provider.topCategories)
+            for (final category in provider.topCategoriesForStore(storeId))
               IcueTableFilterOption(category.id, category.name),
           ],
           value: categoryId,
@@ -99,14 +99,14 @@ class _ItemsTableState extends State<ItemsTable> {
             value: storeId,
             onChanged: (value) {
               setState(() => _page = 0);
-              provider.loadItems(storeId: value);
+              provider.loadItems(storeId: value, clearStore: value == null);
             },
           ),
       ],
       isFiltered: search.isNotEmpty || categoryId != null || storeId != null,
       onClearFilters: () {
         setState(() => _page = 0);
-        provider.loadItems(search: '', clearCategory: true);
+        provider.loadItems(search: '', clearCategory: true, clearStore: true);
       },
       onRowTap: _openItem,
       primaryAction: widget.canEdit

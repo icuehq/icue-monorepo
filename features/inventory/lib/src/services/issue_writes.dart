@@ -69,6 +69,7 @@ class IssueWrites with StockSupport {
         'destination': blankToNullText(data['destination']),
         'status': 'pending',
         'createdBy': uid,
+        'requesterName': blankToNullText(data['requesterName']),
         'lineItems': [
           for (final line in lines)
             {

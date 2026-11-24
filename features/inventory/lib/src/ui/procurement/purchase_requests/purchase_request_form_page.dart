@@ -40,6 +40,7 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
             purchaseRequestLine.itemId,
             items[purchaseRequestLine.itemId]?.name ??
                 purchaseRequestLine.itemId,
+            unit: items[purchaseRequestLine.itemId]?.stockUnit ?? '',
             quantity: purchaseRequestLine.quantity.toQuantityText(),
             price: purchaseRequestLine.estimatedPrice.toQuantityText(),
           ),
@@ -98,6 +99,7 @@ class _PurchaseRequestFormPageState extends State<PurchaseRequestFormPage> {
         RequestLineDraft(
           picked.item.id,
           picked.item.name,
+          unit: picked.item.stockUnit,
           price: picked.item.defaultPrice == null
               ? ''
               : picked.item.defaultPrice!.toQuantityText(),

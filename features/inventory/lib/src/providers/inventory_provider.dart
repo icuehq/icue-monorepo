@@ -66,6 +66,14 @@ class InventoryProvider extends LoadingProvider {
   List<InventoryCategory> get topCategories =>
       categories.where((category) => category.parentId == null).toList();
 
+  List<InventoryCategory> topCategoriesForStore(String? storeId) => categories
+      .where(
+        (category) =>
+            category.parentId == null &&
+            (storeId == null || category.storeId == storeId),
+      )
+      .toList();
+
   /// Loads the user's permissions and the small master lists.
   Future<void> loadMasters() => load(() async {
     final masterLists = await Future.wait([
@@ -85,12 +93,19 @@ class InventoryProvider extends LoadingProvider {
     String? categoryId,
     bool clearCategory = false,
     String? storeId,
+    bool clearStore = false,
   }) async {
     if (itemsLoading || (more && !hasMoreItems)) return;
     if (!more) {
       itemSearch = search ?? itemSearch;
       itemCategoryId = clearCategory ? null : (categoryId ?? itemCategoryId);
-      itemStoreId = storeId;
+      itemStoreId = clearStore ? null : (storeId ?? itemStoreId);
+      if (itemCategoryId != null && itemStoreId != null) {
+        final currentCategory = category(itemCategoryId!);
+        if (currentCategory != null && currentCategory.storeId != itemStoreId) {
+          itemCategoryId = null;
+        }
+      }
       _cursor = null;
       _searchOffset = 0;
     }
@@ -113,6 +128,7 @@ class InventoryProvider extends LoadingProvider {
         final page = await _service.searchItems(
           query,
           categoryId: itemCategoryId,
+          storeId: itemStoreId,
           offset: _searchOffset,
         );
         if (!more) items.clear();

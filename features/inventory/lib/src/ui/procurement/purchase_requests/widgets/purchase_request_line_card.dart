@@ -5,6 +5,7 @@ class RequestLineDraft {
   RequestLineDraft(
     this.itemId,
     this.name, {
+    this.unit = '',
     String quantity = '',
     String price = '',
   }) : quantity = TextEditingController(text: quantity),
@@ -12,6 +13,7 @@ class RequestLineDraft {
 
   final String itemId;
   final String name;
+  final String unit;
   final TextEditingController quantity;
   final TextEditingController price;
 
@@ -80,7 +82,9 @@ class RequestLineCard extends StatelessWidget {
                         ? 'Enter quantity'
                         : null;
                   },
-                  label: 'Quantity *',
+                  label: line.unit.isNotEmpty
+                      ? 'Quantity (${line.unit}) *'
+                      : 'Quantity *',
                 ),
               ),
               const SizedBox(width: 8),

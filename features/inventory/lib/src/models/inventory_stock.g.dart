@@ -125,6 +125,7 @@ class InventoryIssueRequest {
     this.destination,
     required this.status,
     required this.createdBy,
+    this.requesterName,
     this.approvalComment,
     required this.lineItems,
     this.createdAt,
@@ -139,6 +140,7 @@ class InventoryIssueRequest {
         destination: data['destination'] as String?,
         status: data['status'] as String? ?? '',
         createdBy: data['createdBy'] as String? ?? '',
+        requesterName: data['requesterName'] as String?,
         approvalComment: (data['approval'] as Map?)?['comment'] as String?,
         lineItems: [
           for (final row in _rows(data['lineItems'])) RequestLine.fromMap(row),
@@ -157,6 +159,7 @@ class InventoryIssueRequest {
   /// pending | approved | rejected | partially_issued | issued | cancelled | closed
   final String status;
   final String createdBy;
+  final String? requesterName;
   final String? approvalComment;
   final List<RequestLine> lineItems;
   final DateTime? createdAt;

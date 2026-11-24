@@ -357,6 +357,7 @@ models:
         destination: string?
         status: { type: string, doc: "pending | approved | rejected | partially_issued | issued | cancelled | closed" }
         createdBy: string
+        requesterName: string?
         approvalComment: { type: string?, key: approval.comment }
         lineItems: list<RequestLine>
         createdAt: timestamp?

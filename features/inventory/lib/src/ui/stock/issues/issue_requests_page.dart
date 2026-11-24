@@ -98,7 +98,7 @@ class _IssueRequestsPageState extends State<IssueRequestsPage> {
       title: 'Issue Requests',
       state: stockProvider.issueRequests,
       statuses: _statuses,
-      searchHint: 'Search by request number…',
+      searchHint: 'Search by req # (e.g. 000001 or IR/…)',
       emptyIcon: Icons.assignment_outlined,
       emptyMessage: 'Requests raised by staff in your branch appear here.',
       onRefresh: _load,
@@ -115,7 +115,7 @@ class _IssueRequestsPageState extends State<IssueRequestsPage> {
         title: 'Issue requests',
         state: stockProvider.issueRequests,
         statuses: _statuses,
-        searchHint: 'Request number',
+        searchHint: 'Req # (e.g. 000001 or IR/…)',
         rowKey: (request) => request.id,
         rowLabel: (request) {
           if (request.lineItems.isEmpty) return request.number;
@@ -140,6 +140,18 @@ class _IssueRequestsPageState extends State<IssueRequestsPage> {
             minWidth: 180,
             cellBuilder: (context, request) =>
                 _buildItemCell(context, request, stockProvider),
+          ),
+          IcueTableColumn(
+            id: 'requester',
+            label: 'Requested by',
+            flex: 2,
+            minWidth: 130,
+            cellBuilder: (context, request) => IcueTableCellText(
+              request.requesterName?.isNotEmpty == true
+                  ? request.requesterName!
+                  : 'Staff #${request.createdBy}',
+              style: IcueTableStyle.of(context).secondary,
+            ),
           ),
           IcueTableColumn(
             id: 'purpose',

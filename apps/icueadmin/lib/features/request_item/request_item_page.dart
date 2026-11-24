@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:auth/auth.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:icueadmin/features/request_item/models/request_item_line.dart';
@@ -57,6 +58,7 @@ class _RequestItemPageState extends State<RequestItemPage>
   }
 
   void _onSearchChanged(String query) {
+    setState(() {});
     context.read<InventoryProvider>().loadItems(
       search: query.trim(),
       clearCategory: true,
@@ -128,6 +130,7 @@ class _RequestItemPageState extends State<RequestItemPage>
     }
 
     final stockProvider = context.read<StockProvider>();
+    final requesterName = context.read<AuthProvider>().user?.name;
     setState(() => _isSubmitting = true);
 
     final byStore = <String, List<RequestItemLine>>{};
@@ -140,6 +143,7 @@ class _RequestItemPageState extends State<RequestItemPage>
       final result = await stockProvider.act('inventory-issueRequest-submit', {
         'storeId': storeId,
         'purpose': _purposeController.text.trim(),
+        'requesterName': ?requesterName,
         'lineItems': [
           for (final line in storeLines)
             {
@@ -183,54 +187,67 @@ class _RequestItemPageState extends State<RequestItemPage>
       backgroundColor: Colors.transparent,
       builder: (sheetContext) => StatefulBuilder(
         builder: (context, setSheetState) {
-          return Container(
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.sizeOf(context).height * 0.85,
-            ),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(20),
+          final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+          return AnimatedPadding(
+            padding: EdgeInsets.only(bottom: bottomInset),
+            duration: const Duration(milliseconds: 150),
+            curve: Curves.easeOut,
+            child: Container(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(context).height * 0.85,
               ),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Center(
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(vertical: 10),
-                    width: 36,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.outlineVariant
-                          .withValues(alpha: 0.8),
-                      borderRadius: BorderRadius.circular(2),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(20),
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Center(
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(vertical: 10),
+                      width: 36,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.outlineVariant
+                            .withValues(alpha: 0.8),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
                   ),
-                ),
-                Flexible(
-                  child: RequestSummaryPanel(
-                    lines: _lines,
-                    purposeController: _purposeController,
-                    isSubmitting: _isSubmitting,
-                    onSubmit: () {
-                      Navigator.of(sheetContext).pop();
-                      _submit();
-                    },
-                    onRemoveLine: (line) {
-                      _removeLine(line);
-                      setSheetState(() {});
-                      if (_lines.isEmpty) Navigator.of(sheetContext).pop();
-                    },
-                    onClearAll: () {
-                      _clearAllLines();
-                      Navigator.of(sheetContext).pop();
-                    },
-                    onQuantityChanged: () => setSheetState(() {}),
-                    storeName: (id) => inventory.storeName(id) ?? '',
+                  Flexible(
+                    child: RequestSummaryPanel(
+                      lines: _lines,
+                      purposeController: _purposeController,
+                      isSubmitting: _isSubmitting,
+                      onSubmit: () async {
+                        if (_purposeController.text.trim().isEmpty) {
+                          showMessage(
+                            sheetContext,
+                            'Enter the purpose of the request',
+                          );
+                          return;
+                        }
+                        Navigator.of(sheetContext).pop();
+                        await _submit();
+                      },
+                      onRemoveLine: (line) {
+                        _removeLine(line);
+                        setSheetState(() {});
+                        if (_lines.isEmpty) Navigator.of(sheetContext).pop();
+                      },
+                      onClearAll: () {
+                        _clearAllLines();
+                        Navigator.of(sheetContext).pop();
+                      },
+                      onQuantityChanged: () => setSheetState(() {}),
+                      storeName: (id) => inventory.storeName(id) ?? '',
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           );
         },
@@ -356,6 +373,16 @@ class _RequestItemPageState extends State<RequestItemPage>
     InventoryProvider inventory,
     List<InventoryItem> items,
   ) {
+    final query = _searchController.text.trim().toLowerCase();
+    final visibleItems = query.isEmpty
+        ? items
+        : items.where((item) {
+            final name = item.name.toLowerCase();
+            final cat =
+                inventory.category(item.categoryId)?.name.toLowerCase() ?? '';
+            return name.contains(query) || cat.contains(query);
+          }).toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -365,9 +392,9 @@ class _RequestItemPageState extends State<RequestItemPage>
         ),
         const SizedBox(height: 14),
         Expanded(
-          child: inventory.itemsLoading && items.isEmpty
+          child: inventory.itemsLoading && visibleItems.isEmpty
               ? const Center(child: CircularProgressIndicator())
-              : items.isEmpty
+              : visibleItems.isEmpty
               ? IcueEmptyState.noResults(
                   title: 'No items match your search',
                   message: 'Try searching with a different item name.',
@@ -387,7 +414,7 @@ class _RequestItemPageState extends State<RequestItemPage>
                             spacing: 12,
                             runSpacing: 12,
                             children: [
-                              for (final item in items)
+                              for (final item in visibleItems)
                                 SizedBox(
                                   width: columnWidth,
                                   child: _buildItemCard(item, inventory),
@@ -400,13 +427,14 @@ class _RequestItemPageState extends State<RequestItemPage>
                     }
                     return ListView.separated(
                       itemCount:
-                          items.length + (inventory.hasMoreItems ? 1 : 0),
+                          visibleItems.length +
+                          (inventory.hasMoreItems ? 1 : 0),
                       separatorBuilder: (_, _) => const SizedBox(height: 10),
                       itemBuilder: (context, index) {
-                        if (index == items.length) {
+                        if (index == visibleItems.length) {
                           return _buildLoadMore(inventory);
                         }
-                        return _buildItemCard(items[index], inventory);
+                        return _buildItemCard(visibleItems[index], inventory);
                       },
                     );
                   },

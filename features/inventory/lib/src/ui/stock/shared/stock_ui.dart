@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
@@ -20,6 +22,7 @@ Future<bool> stockSubmit(
   }
   final number = result['number'];
   showMessage(context, number == null ? done : '$done · $number');
+  unawaited(stockProvider.reloadBalances());
   if (close) navigator.pop();
   return true;
 }

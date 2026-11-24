@@ -164,7 +164,10 @@ class _ItemsPageState extends State<ItemsPage> {
                             ),
                           ),
                         ),
-                        for (final category in inventoryProvider.topCategories)
+                        for (final category
+                            in inventoryProvider.topCategoriesForStore(
+                              selectedStore,
+                            ))
                           Padding(
                             padding: const EdgeInsets.only(right: 6),
                             child: FilterChip(
@@ -195,7 +198,8 @@ class _ItemsPageState extends State<ItemsPage> {
                               selected: selectedStore == null,
                               showCheckmark: false,
                               visualDensity: VisualDensity.compact,
-                              onSelected: (_) => inventoryProvider.loadItems(),
+                              onSelected: (_) =>
+                                  inventoryProvider.loadItems(clearStore: true),
                             ),
                           ),
                           for (final store in inventoryProvider.stores)
