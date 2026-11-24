@@ -3,6 +3,7 @@ import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:school_library/school_library.dart';
+import 'package:school_library/src/ui/circulation/widgets/scan_listener.dart';
 import 'package:school_library/src/ui/shared/class_student_chooser.dart';
 
 /// Finds a student or staff member in the ERP (Node) by admission number or RFID (staff by enrollment ID or RFID), or from a class/staff-group list, then reports the choice.
@@ -159,32 +160,34 @@ class _PersonPickerState extends State<PersonPicker> {
             onChosen: _choose,
           )
         else if (chosen == null) ...[
-          TextField(
-            controller: _admissionNumber,
-            focusNode: _focusNode,
-            autofocus: widget.autofocus,
-            enabled: !_loading,
-            textInputAction: TextInputAction.search,
-            onSubmitted: _find,
-            decoration: InputDecoration(
-              hintText: _type == 'STUDENT'
-                  ? 'Enter admission number or scan RFID'
-                  : 'Enter staff enrollment ID or scan RFID',
-              prefixIcon: const Icon(Icons.badge_outlined),
-              suffixIcon: _loading
-                  ? const Padding(
-                      padding: EdgeInsets.all(12),
-                      child: SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+          NoBookScan(
+            child: TextField(
+              controller: _admissionNumber,
+              focusNode: _focusNode,
+              autofocus: widget.autofocus,
+              enabled: !_loading,
+              textInputAction: TextInputAction.search,
+              onSubmitted: _find,
+              decoration: InputDecoration(
+                hintText: _type == 'STUDENT'
+                    ? 'Enter admission number or scan RFID'
+                    : 'Enter staff enrollment ID or scan RFID',
+                prefixIcon: const Icon(Icons.badge_outlined),
+                suffixIcon: _loading
+                    ? const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      )
+                    : IconButton(
+                        tooltip: 'Find',
+                        icon: const Icon(Icons.search),
+                        onPressed: () => _find(_admissionNumber.text),
                       ),
-                    )
-                  : IconButton(
-                      tooltip: 'Find',
-                      icon: const Icon(Icons.search),
-                      onPressed: () => _find(_admissionNumber.text),
-                    ),
+              ),
             ),
           ),
           if (_error != null)

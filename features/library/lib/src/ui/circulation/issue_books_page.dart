@@ -45,7 +45,10 @@ class _IssueBooksPageState extends State<IssueBooksPage> {
 
   @override
   void dispose() {
-    LibraryScanListener.scanOverride = null;
+    // A newer Issue page may already own the override (it inits before this one disposes).
+    if (LibraryScanListener.scanOverride == _scan) {
+      LibraryScanListener.scanOverride = null;
+    }
     super.dispose();
   }
 
@@ -84,7 +87,11 @@ class _IssueBooksPageState extends State<IssueBooksPage> {
   /// Looks the barcode up and queues it; nothing is issued until the button.
   Future<void> _scan(String rawCode) async {
     final code = rawCode.trim();
-    if (code.isEmpty || _busy) return;
+    if (code.isEmpty) return;
+    if (_busy) {
+      _notify('Still working, scan "$code" again in a moment');
+      return;
+    }
     final libraryProvider = context.read<LibraryProvider>();
     setState(() => _busy = true);
     try {

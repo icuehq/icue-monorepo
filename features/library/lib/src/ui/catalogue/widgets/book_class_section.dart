@@ -20,19 +20,27 @@ class BookClassSection extends StatelessWidget {
     title: 'Classes',
     icon: Icons.school_outlined,
     children: [
-      IcueMultiAutocomplete<Standards>(
-        options: standards,
-        selected: [
+      // Tap-to-toggle chips: a search dropdown loses its menu when some browsers blur the field on click.
+      Wrap(
+        spacing: 8,
+        runSpacing: 4,
+        children: [
           for (final standard in standards)
-            if (selectedIds.contains(standard.id)) standard,
+            if (standard.isStudent)
+              FilterChip(
+                label: Text(standard.name),
+                selected: selectedIds.contains(standard.id),
+                onSelected: (picked) => onChanged({
+                  for (final id in selectedIds)
+                    if (id != standard.id) id,
+                  if (picked) standard.id,
+                }),
+              ),
         ],
-        labelOf: (standard) => standard.name,
-        onChanged: (picked) =>
-            onChanged({for (final standard in picked) standard.id}),
-        label: 'Classes',
-        hintText: 'Search a class',
-        helperText:
-            'Optional. Leave empty for a general book any class can borrow.',
+      ),
+      Text(
+        'Optional. Leave empty for a general book any class can borrow.',
+        style: Theme.of(context).textTheme.bodySmall,
       ),
     ],
   );

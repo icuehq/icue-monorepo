@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -50,7 +52,10 @@ class _LibraryScanListenerState extends State<LibraryScanListener> {
     final focus = FocusManager.instance.primaryFocus?.context;
     final field = focus?.findAncestorStateOfType<EditableTextState>();
     // Issue Books takes scans itself, so a scan typed while one of its fields has focus counts too.
-    final inField = field != null && LibraryScanListener.scanOverride == null;
+    final inField =
+        field != null &&
+        (LibraryScanListener.scanOverride == null ||
+            focus!.findAncestorWidgetOfExactType<NoBookScan>() != null);
     if (inField) {
       _code.clear();
       return false;
@@ -109,7 +114,8 @@ class _LibraryScanListenerState extends State<LibraryScanListener> {
       );
       if (!proceed || !mounted) return;
       if (loan == null) {
-        await context.push<void>(LibraryRoutes.libraryIssue, extra: copy);
+        // Not awaited: holding [_handling] until the Issue page closes made every scan on it a no-op.
+        unawaited(context.push<void>(LibraryRoutes.libraryIssue, extra: copy));
         return;
       }
       await LoanDialog.show(context, loan, book?.title ?? loan.barcode);
@@ -120,4 +126,15 @@ class _LibraryScanListenerState extends State<LibraryScanListener> {
 
   @override
   Widget build(BuildContext context) => widget.child;
+}
+
+/// Marks fields that take scanned text themselves (RFID card, admission number)
+/// so [LibraryScanListener] never treats their Enter as a book barcode.
+class NoBookScan extends StatelessWidget {
+  const NoBookScan({required this.child, super.key});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => child;
 }
