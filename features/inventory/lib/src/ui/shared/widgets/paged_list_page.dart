@@ -19,6 +19,7 @@ class PagedListPage<T> extends StatefulWidget {
     this.actions,
     this.header,
     this.filterRow,
+    this.appBarBottom,
     super.key,
   });
 
@@ -41,6 +42,9 @@ class PagedListPage<T> extends StatefulWidget {
 
   /// Extra filter chips shown under the status chips.
   final Widget? filterRow;
+
+  /// Shown under the app bar (e.g. tabs).
+  final PreferredSizeWidget? appBarBottom;
 
   @override
   State<PagedListPage<T>> createState() => _PagedListPageState<T>();
@@ -69,7 +73,11 @@ class _PagedListPageState<T> extends State<PagedListPage<T>> {
     final theme = Theme.of(context);
     final status = state.status ?? 'all';
     return Scaffold(
-      appBar: AppBar(title: Text(widget.title), actions: widget.actions),
+      appBar: AppBar(
+        title: Text(widget.title),
+        actions: widget.actions,
+        bottom: widget.appBarBottom,
+      ),
       floatingActionButton: context.isWide ? null : widget.floatingActionButton,
       body: context.isWide
           ? Padding(padding: const EdgeInsets.all(16), child: widget.table)

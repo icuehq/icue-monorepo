@@ -26,8 +26,8 @@ enums:
     values: [draft, revision_requested, pending, approved, rejected, cancelled]
 
   AssetStatus:
-    doc: Lifecycle of a physical asset.
-    values: [available, assigned, under_maintenance, under_repair, lost, damaged, retired, disposed]
+    doc: "Lifecycle of a physical asset. `unregistered`: received into stock, details not entered yet."
+    values: [unregistered, available, assigned, under_maintenance, under_repair, lost, damaged, retired, disposed]
   AssetCondition:
     doc: Physical condition of an asset.
     values: [new, good, fair, poor, damaged]
@@ -61,6 +61,7 @@ documents:
       pendingPurchaseRequests: int
       pendingIssueRequests: int
       assets: int
+      unregisteredAssets: int
       underMaintenance: int
   InventoryStats:
     doc: "inventoryStats/overall: branch figures, with per-store balance figures under stores."
@@ -75,7 +76,7 @@ modelsDir: features/inventory/lib/src/models
 models:
   inventory_assets:
     InventoryAsset:
-      doc: "One physical asset (`inventoryAssets`)."
+      doc: "One physical asset (`inventoryAssets`): created `unregistered` when received into a store, registered later with its details."
       id: id
       fields:
         name: string
@@ -88,6 +89,7 @@ models:
         model: string?
         purchaseDate: day?
         price: double?
+        receivedDate: day?
         warrantyStart: { type: day?, key: warranty.start }
         warrantyEnd: { type: day?, key: warranty.end }
         assignedTo: { type: AssetCustodian?, from: "AssetCustodian.from(data['assignedTo'])" }

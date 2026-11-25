@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
-import 'package:inventory/src/ui/assets/registry/widgets/asset_item_field.dart';
 import 'package:inventory/src/ui/assets/shared/asset_ui.dart';
-import 'package:inventory/src/ui/stock/shared/stock_ui.dart';
 
 final _pricePattern = RegExp(r'^\d{1,9}(\.\d{1,2})?$');
 
@@ -40,100 +37,70 @@ Widget formPair(Widget first, Widget second) => LayoutBuilder(
   },
 );
 
-/// Section for selecting the item, name, store and quantity.
-class AssetSectionCard extends StatelessWidget {
-  const AssetSectionCard({
-    required this.item,
-    required this.onPick,
-    required this.nameController,
-    required this.store,
-    required this.onStoreChanged,
-    required this.quantityController,
-    required this.units,
-    required this.maxQuantity,
-    required this.onQuantityChanged,
+/// The received unit being registered: read-only facts from Receive Stock.
+class AssetReceivedCard extends StatelessWidget {
+  const AssetReceivedCard({
+    required this.asset,
+    required this.itemName,
+    required this.storeName,
     super.key,
   });
 
-  final InventoryItem? item;
-  final VoidCallback onPick;
-  final TextEditingController nameController;
-  final String? store;
-  final ValueChanged<String?> onStoreChanged;
-  final TextEditingController quantityController;
-  final int units;
-  final int maxQuantity;
-  final VoidCallback onQuantityChanged;
-
-  String? _validateQuantity(String? value) {
-    final number = int.tryParse(value?.trim() ?? '');
-    if (number == null || number < 1 || number > maxQuantity) {
-      return 'Enter a whole number from 1 to $maxQuantity';
-    }
-    return null;
-  }
+  final InventoryAsset asset;
+  final String itemName;
+  final String storeName;
 
   @override
-  Widget build(BuildContext context) => IcueFormSectionCard(
-    title: 'Asset',
-    icon: Icons.inventory_2_outlined,
-    children: [
-      StoreDropdown(
-        key: ValueKey('store-$store'),
-        value: store,
-        label: 'Store *',
-        prefixIcon: const Icon(Icons.storefront_outlined, size: 20),
-        onChanged: onStoreChanged,
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    Widget row(String label, String value) => Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 110,
+            child: Text(
+              label,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          Expanded(child: Text(value, style: theme.textTheme.bodyMedium)),
+        ],
       ),
-      AssetItemField(
-        key: ValueKey('item-${item?.id}'),
-        item: item,
-        onPick: onPick,
-      ),
-      formPair(
-        IcueTextField(
-          controller: nameController,
-          label: 'Asset name',
-          icon: Icons.badge_outlined,
-          helperText: 'Defaults to the item name',
-          textCapitalization: TextCapitalization.words,
-          textInputAction: TextInputAction.next,
-          validator: (value) => _maxLength(value, 100, 'Name'),
-        ),
-        IcueTextField(
-          controller: quantityController,
-          label: 'Quantity',
-          icon: Icons.format_list_numbered_rounded,
-          helperText: units > 1
-              ? 'Batch: $units units'
-              : 'Up to $maxQuantity units',
-          keyboardType: TextInputType.number,
-          textInputAction: TextInputAction.next,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          validator: _validateQuantity,
-          onChanged: (_) => onQuantityChanged(),
-        ),
-      ),
-    ],
-  );
+    );
+    return IcueFormSectionCard(
+      title: 'Received unit',
+      icon: Icons.inventory_2_outlined,
+      children: [
+        row('Item', itemName),
+        row('Store', storeName),
+        row('Asset ID', asset.id),
+        if (asset.receivedDate != null)
+          row('Received', asset.receivedDate!.toDisplayDay()),
+      ],
+    );
+  }
 }
 
 /// Section for make, model, serial number and condition.
 class AssetIdentificationCard extends StatelessWidget {
   const AssetIdentificationCard({
+    required this.nameController,
     required this.makeController,
     required this.modelController,
     required this.serialController,
-    required this.units,
     required this.condition,
     required this.onConditionChanged,
     super.key,
   });
 
+  final TextEditingController nameController;
   final TextEditingController makeController;
   final TextEditingController modelController;
   final TextEditingController serialController;
-  final int units;
   final String condition;
   final ValueChanged<String?> onConditionChanged;
 
@@ -142,6 +109,16 @@ class AssetIdentificationCard extends StatelessWidget {
     title: 'Identification',
     icon: Icons.qr_code_2_rounded,
     children: [
+      IcueTextField(
+        controller: nameController,
+        label: 'Asset name',
+        icon: Icons.badge_outlined,
+        textCapitalization: TextCapitalization.words,
+        textInputAction: TextInputAction.next,
+        validator: (value) => (value ?? '').trim().isEmpty
+            ? 'Enter a name'
+            : _maxLength(value, 100, 'Name'),
+      ),
       formPair(
         IcueTextField(
           controller: makeController,
@@ -163,11 +140,6 @@ class AssetIdentificationCard extends StatelessWidget {
         controller: serialController,
         label: 'Serial number',
         icon: Icons.tag_rounded,
-        helperText: units > 1
-            ? 'Not available for a batch: serial numbers are unique per '
-                  'unit. Set quantity to 1 to enter one.'
-            : null,
-        enabled: units <= 1,
         textCapitalization: TextCapitalization.characters,
         textInputAction: TextInputAction.next,
         validator: (value) => _maxLength(value, 60, 'Serial'),
@@ -190,9 +162,6 @@ class AssetPurchaseCard extends StatelessWidget {
     required this.priceController,
     required this.warrantyStartController,
     required this.warrantyEndController,
-    required this.units,
-    required this.totalPrice,
-    required this.onPriceChanged,
     required this.validateWarrantyStart,
     required this.validateWarrantyEnd,
     super.key,
@@ -202,9 +171,6 @@ class AssetPurchaseCard extends StatelessWidget {
   final TextEditingController priceController;
   final TextEditingController warrantyStartController;
   final TextEditingController warrantyEndController;
-  final int units;
-  final double? totalPrice;
-  final VoidCallback onPriceChanged;
   final FormFieldValidator<String>? validateWarrantyStart;
   final FormFieldValidator<String>? validateWarrantyEnd;
 
@@ -228,16 +194,12 @@ class AssetPurchaseCard extends StatelessWidget {
           ),
           IcueTextField(
             controller: priceController,
-            label: units > 1 ? 'Unit price' : 'Purchase price',
+            label: 'Purchase price',
             icon: Icons.payments_outlined,
             prefixText: '₹ ',
-            helperText: totalPrice != null && units > 1
-                ? 'Total: ${totalPrice!.toRupees()} for $units units'
-                : null,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: [decimalInputFormatter],
             validator: _validatePrice,
-            onChanged: (_) => onPriceChanged(),
           ),
         ),
         formPair(

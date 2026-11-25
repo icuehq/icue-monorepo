@@ -20,7 +20,7 @@ Color inventoryStatusColor(String status) => switch (status) {
   'partially_issued' ||
   'partially_received' ||
   'partially_paid' => Colors.purple.shade800,
-  'pending' || 'unpaid' => Colors.amber.shade900,
+  'pending' || 'unpaid' || 'unregistered' => Colors.amber.shade900,
   'revision_requested' ||
   'under_maintenance' ||
   'under_repair' ||

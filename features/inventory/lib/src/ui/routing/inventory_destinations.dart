@@ -89,7 +89,7 @@ List<InventoryEntry> inventoryEntries() => [
     group: 'Catalogue',
   ),
   const InventoryEntry(
-    label: 'Assets',
+    label: 'Asset management',
     path: InventoryRoutes.inventoryAssets,
     iconAsset: 'packages/inventory/assets/dashboard/inventory-assets.png',
     group: 'Catalogue',

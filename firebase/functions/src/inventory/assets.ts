@@ -24,6 +24,10 @@ const condition = z.enum(['new', 'good', 'fair', 'poor', 'damaged']);
 // Maintenance status drives the asset status (architecture §6): `restoreTo` is what the asset was before.
 /** Statuses an asset cannot leave through condition or RFID edits. */
 const GONE = ['retired', 'disposed'];
+/** Units received but not registered yet: only `register` may change them. */
+function registered(asset: DocumentData) {
+  if (asset.status === 'unregistered') throw failed('Register this asset first');
+}
 const LIVE = ['open', 'assigned', 'in_progress', 'waiting_for_parts'];
 const WORKING = {
   assigned: 'under_maintenance',
@@ -114,22 +118,17 @@ async function closeAssignment(
 }
 
 export const assets = {
-  /** One asset, or `quantity` identical ones (no serial number) per call; the document ID is the asset ID and doubles as its barcode value. */
-  register: defineCallable({
-    name: 'inventory.asset.register',
+  /**
+   * Receive Stock for an asset-tracked item: `quantity` units enter the store as `unregistered` records (one per
+   * physical unit; the document ID is the asset ID and barcode value). Their details are entered later by `register`.
+   */
+  receive: defineCallable({
+    name: 'inventory.asset.receive',
     input: z.object({
       itemId: id,
       storeId: id,
-      quantity: z.number().int().min(1).max(MAX_BULK).default(1),
-      name: z.string().trim().min(1).max(120).optional(),
-      serialNumber: text(120),
-      make: text(120),
-      model: text(120),
-      purchaseDate: isoDate.nullish(),
-      price: money.nullish(),
-      warrantyStart: isoDate.nullish(),
-      warrantyEnd: isoDate.nullish(),
-      condition: condition.default('new'),
+      quantity: z.number().int().min(1).max(MAX_BULK),
+      unitCost: money.nullish(),
     }),
     handler: async (context, i) => {
       const item = usable(
@@ -144,30 +143,23 @@ export const assets = {
         'Store',
         false,
       );
-      if (i.quantity > 1 && i.serialNumber)
-        throw failed('Serial numbers are per unit; register units with a serial one at a time');
-      if (i.warrantyStart && i.warrantyEnd && i.warrantyEnd < i.warrantyStart)
-        throw failed('Warranty ends before it starts');
-      const price = i.price ?? null;
       const ids: string[] = [];
       for (let unit = 0; unit < i.quantity; unit++) {
         const ref = context.newDoc('inventoryAssets');
         const asset = {
           itemId: i.itemId,
-          name: i.name ?? item.name,
+          name: item.name,
           categoryId: item.categoryId,
-          serialNumber: i.serialNumber ?? null,
-          make: i.make ?? null,
-          model: i.model ?? null,
-          purchaseDate: dayTimestampOrNull(i.purchaseDate),
-          price,
-          warranty: {
-            start: dayTimestampOrNull(i.warrantyStart),
-            end: dayTimestampOrNull(i.warrantyEnd),
-          },
-          condition: i.condition,
           storeId: i.storeId,
-          status: 'available',
+          status: 'unregistered',
+          condition: 'new',
+          price: i.unitCost ?? item.defaultPrice ?? null,
+          receivedDate: dayTimestamp(todayIST()),
+          serialNumber: null,
+          make: null,
+          model: null,
+          purchaseDate: null,
+          warranty: { start: null, end: null },
           activeAssignmentId: null,
           assignedTo: null,
           activeMaintenanceId: null,
@@ -179,15 +171,63 @@ export const assets = {
           updatedAt: serverTimestamp(),
         };
         context.set(ref, asset);
-        hist(context, ref, asset, 'registered', { condition: i.condition });
+        hist(context, ref, asset, 'received');
         context.audit({
-          action: 'inventoryAsset.register',
+          action: 'inventoryAsset.receive',
           documentPath: ref.path,
           after: { itemId: i.itemId },
         });
         ids.push(ref.id);
       }
       return { id: ids[0], ids };
+    },
+  }),
+
+  /** Registers one received (`unregistered`) unit: its details are entered and it becomes `available`. */
+  register: defineCallable({
+    name: 'inventory.asset.register',
+    input: z.object({
+      id,
+      name: z.string().trim().min(1).max(120).optional(),
+      serialNumber: text(120),
+      make: text(120),
+      model: text(120),
+      purchaseDate: isoDate.nullish(),
+      price: money.nullish(),
+      warrantyStart: isoDate.nullish(),
+      warrantyEnd: isoDate.nullish(),
+      condition,
+    }),
+    handler: async (context, i) => {
+      const { ref, asset } = await loadAsset(context, i.id);
+      if (asset.status !== 'unregistered') throw failed('This asset is already registered');
+      if (i.warrantyStart && i.warrantyEnd && i.warrantyEnd < i.warrantyStart)
+        throw failed('Warranty ends before it starts');
+      context.update(ref, {
+        name: i.name ?? asset.name,
+        serialNumber: i.serialNumber ?? null,
+        make: i.make ?? null,
+        model: i.model ?? null,
+        purchaseDate: dayTimestampOrNull(i.purchaseDate),
+        price: i.price ?? asset.price ?? null,
+        warranty: {
+          start: dayTimestampOrNull(i.warrantyStart),
+          end: dayTimestampOrNull(i.warrantyEnd),
+        },
+        condition: i.condition,
+        status: 'available',
+        registeredBy: context.uid,
+        registeredAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+      hist(context, ref, asset, 'registered', { condition: i.condition });
+      context.audit({
+        action: 'inventoryAsset.register',
+        documentPath: ref.path,
+        before: { status: asset.status },
+        after: { status: 'available' },
+      });
+      return { id: ref.id };
     },
   }),
 
@@ -289,6 +329,7 @@ export const assets = {
     }),
     handler: async (context, i) => {
       const { ref, asset } = await loadAsset(context, i.id);
+      registered(asset);
       if (GONE.includes(asset.status)) throw failed(`Asset is ${asset.status}`);
       const patch: Record<string, unknown> = {
         condition: i.condition,
@@ -325,6 +366,7 @@ export const assets = {
     input: z.object({ id, rfidTag: z.string().trim().min(1).max(64).nullable() }),
     handler: async (context, i) => {
       const { ref, asset } = await loadAsset(context, i.id);
+      registered(asset);
       if (GONE.includes(asset.status)) throw failed(`Asset is ${asset.status}`);
       if (i.rfidTag) await claimUniqueKey(context, 'inventoryRfid', i.rfidTag, ref.path);
       if (asset.rfidTag && asset.rfidTag.toLowerCase() !== i.rfidTag?.toLowerCase())
@@ -419,6 +461,7 @@ export const maintenance = {
         return { id: ref.id, number: maintenanceJob.number };
       }
       const { ref: aRef, asset } = await loadAsset(context, i.assetId);
+      registered(asset);
       if (asset.status === 'lost' || GONE.includes(asset.status))
         throw failed(`Asset is ${asset.status}`);
       if (asset.activeMaintenanceId) throw failed('Asset already has an open maintenance request');

@@ -16,17 +16,8 @@ class LineDraft {
   final expiry = TextEditingController();
   final cost = TextEditingController();
 
-  /// Serial numbers of received assets, one per line (optional).
-  final serials = TextEditingController();
-
-  /// The typed serial numbers.
-  List<String> get serialNumbers => [
-    for (final line in serials.text.split('\n'))
-      if (line.trim().isNotEmpty) line.trim(),
-  ];
-
   void dispose() {
-    for (final controller in [quantity, batchNumber, expiry, cost, serials]) {
+    for (final controller in [quantity, batchNumber, expiry, cost]) {
       controller.dispose();
     }
   }

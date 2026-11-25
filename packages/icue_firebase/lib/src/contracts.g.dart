@@ -42,8 +42,9 @@ abstract final class PurchaseRequestStatus {
   ];
 }
 
-/// Lifecycle of a physical asset.
+/// Lifecycle of a physical asset. `unregistered`: received into stock, details not entered yet.
 abstract final class AssetStatus {
+  static const unregistered = 'unregistered';
   static const available = 'available';
   static const assigned = 'assigned';
   static const underMaintenance = 'under_maintenance';
@@ -53,6 +54,7 @@ abstract final class AssetStatus {
   static const retired = 'retired';
   static const disposed = 'disposed';
   static const values = [
+    unregistered,
     available,
     assigned,
     underMaintenance,
@@ -170,6 +172,7 @@ abstract final class InventoryStatsTotalsFields {
   static const pendingPurchaseRequests = 'pendingPurchaseRequests';
   static const pendingIssueRequests = 'pendingIssueRequests';
   static const assets = 'assets';
+  static const unregisteredAssets = 'unregisteredAssets';
   static const underMaintenance = 'underMaintenance';
 }
 

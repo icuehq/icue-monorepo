@@ -8,7 +8,7 @@ import 'package:inventory/src/providers/list_state.dart';
 import 'package:inventory/src/services/assets_service.dart';
 import 'package:inventory/src/services/stock_service.dart';
 
-/// Assets and maintenance. Needs `InventoryProvider.loadMasters()` first (access, stores).
+/// Asset management and maintenance. Needs `InventoryProvider.loadMasters()` first (access, stores).
 @lazySingleton
 class AssetsProvider extends LoadingProvider {
   AssetsProvider(this._service, this._stock);
@@ -20,6 +20,20 @@ class AssetsProvider extends LoadingProvider {
   late final assetList = ListState<InventoryAsset>(
     query: (status, search) =>
         _service.assetsQuery(status, search, storeId: storeId),
+    fromDocument: (document) =>
+        InventoryAsset.fromMap(document.id, document.data()!),
+    onChange: notifyListeners,
+    afterPage: (assets) => loadItemNames(assets.map((asset) => asset.itemId)),
+  );
+
+  /// Received units still waiting for their details (the Unregistered tab).
+  late final unregisteredList = ListState<InventoryAsset>(
+    query: (_, search) => _service.assetsQuery(
+      null,
+      search,
+      storeId: storeId,
+      unregistered: true,
+    ),
     fromDocument: (document) =>
         InventoryAsset.fromMap(document.id, document.data()!),
     onChange: notifyListeners,
@@ -40,12 +54,25 @@ class AssetsProvider extends LoadingProvider {
 
   Future<void> setStore(String? value) {
     storeId = value;
-    return assetList.load();
+    return Future.wait([assetList.load(), unregisteredList.load()]);
   }
 
   Future<void> clearFilters() {
     storeId = null;
-    return assetList.clear();
+    return Future.wait([assetList.clear(), unregisteredList.clear()]);
+  }
+
+  /// Unregistered units per item and store, for the stock list.
+  List<UnregisteredStock> unregisteredStock = [];
+
+  Future<void> loadUnregisteredStock(String? storeId) async {
+    try {
+      unregisteredStock = await _service.unregisteredStock(storeId: storeId);
+      await loadItemNames(unregisteredStock.map((stock) => stock.itemId));
+    } catch (error) {
+      errorMessage = callableErrorMessage(error);
+    }
+    notifyListeners();
   }
 
   List<InventoryAssignment> assignments = [];
@@ -99,8 +126,9 @@ class AssetsProvider extends LoadingProvider {
     errorMessage = null;
     try {
       final result = await _stock.call(value, data, requestId: requestId);
-      // Registering or changing an asset must show in the list without a page refresh.
+      // Registering or changing an asset must show in the lists without a page refresh.
       unawaited(assetList.load());
+      unawaited(unregisteredList.load());
       return result;
     } catch (error) {
       errorMessage = callableErrorMessage(error);

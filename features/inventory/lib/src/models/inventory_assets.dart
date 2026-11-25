@@ -1,3 +1,4 @@
+import 'package:icue_firebase/icue_firebase.dart' show AssetStatus;
 import 'package:inventory/src/models/inventory_assets.g.dart';
 
 export 'inventory_assets.g.dart';
@@ -21,7 +22,21 @@ class AssetCustodian {
   String get label => '$type #$personErpId';
 }
 
+/// Units of one item received into one store that are not registered yet.
+class UnregisteredStock {
+  const UnregisteredStock({
+    required this.itemId,
+    required this.storeId,
+    required this.count,
+  });
+
+  final String itemId;
+  final String storeId;
+  final int count;
+}
+
 extension InventoryAssetMembers on InventoryAsset {
+  bool get isUnregistered => status == AssetStatus.unregistered;
   bool get isRetired => status == 'retired' || status == 'disposed';
   bool get inMaintenance => activeMaintenanceId != null;
 }

@@ -5,7 +5,7 @@ import 'package:icue_firebase/icue_firebase.dart'
 
 import 'package:inventory/src/models/inventory_assets.dart';
 
-/// One physical asset (`inventoryAssets`).
+/// One physical asset (`inventoryAssets`): created `unregistered` when received into a store, registered later with its details.
 class InventoryAsset {
   const InventoryAsset({
     required this.id,
@@ -19,6 +19,7 @@ class InventoryAsset {
     this.model,
     this.purchaseDate,
     this.price,
+    this.receivedDate,
     this.warrantyStart,
     this.warrantyEnd,
     this.assignedTo,
@@ -41,6 +42,7 @@ class InventoryAsset {
         model: data['model'] as String?,
         purchaseDate: readDayOrNull(data['purchaseDate']),
         price: (data['price'] as num?)?.toDouble(),
+        receivedDate: readDayOrNull(data['receivedDate']),
         warrantyStart: readDayOrNull((data['warranty'] as Map?)?['start']),
         warrantyEnd: readDayOrNull((data['warranty'] as Map?)?['end']),
         assignedTo: AssetCustodian.from(data['assignedTo']),
@@ -61,6 +63,7 @@ class InventoryAsset {
   final String? model;
   final String? purchaseDate;
   final double? price;
+  final String? receivedDate;
   final String? warrantyStart;
   final String? warrantyEnd;
   final AssetCustodian? assignedTo;

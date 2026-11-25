@@ -37,8 +37,9 @@ export const PurchaseRequestStatus = {
 } as const;
 export type PurchaseRequestStatus = (typeof PurchaseRequestStatus)[keyof typeof PurchaseRequestStatus];
 
-/** Lifecycle of a physical asset. */
+/** Lifecycle of a physical asset. `unregistered`: received into stock, details not entered yet. */
 export const AssetStatus = {
+  unregistered: 'unregistered',
   available: 'available',
   assigned: 'assigned',
   underMaintenance: 'under_maintenance',
@@ -129,6 +130,7 @@ export interface InventoryStatsTotals {
   pendingPurchaseRequests: number;
   pendingIssueRequests: number;
   assets: number;
+  unregisteredAssets: number;
   underMaintenance: number;
 }
 

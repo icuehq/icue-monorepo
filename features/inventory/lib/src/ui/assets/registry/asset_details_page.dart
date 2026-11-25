@@ -52,38 +52,45 @@ class _AssetDetailsPageState extends State<AssetDetailsPage> {
   List<(String, IconData, Widget Function())> _actions(
     InventoryAsset asset,
   ) => [
-    if (!asset.isRetired && !asset.inMaintenance && asset.status == 'available')
-      (
-        'Assign',
-        Icons.person_add_alt_1_outlined,
-        () => AssetActionDialog(asset: asset, action: AssetAction.assign),
-      ),
-    if (!asset.isRetired &&
-        !asset.inMaintenance &&
-        asset.status == 'assigned') ...[
-      (
-        'Transfer',
-        Icons.swap_horiz_rounded,
-        () => AssetActionDialog(asset: asset, action: AssetAction.transfer),
-      ),
-      (
-        'Return',
-        Icons.assignment_return_outlined,
-        () => AssetActionDialog(asset: asset, action: AssetAction.giveBack),
-      ),
+    // An unregistered unit has nothing to act on until it is registered.
+    if (!asset.isUnregistered) ...[
+      if (!asset.isRetired &&
+          !asset.inMaintenance &&
+          asset.status == 'available')
+        (
+          'Assign',
+          Icons.person_add_alt_1_outlined,
+          () => AssetActionDialog(asset: asset, action: AssetAction.assign),
+        ),
+      if (!asset.isRetired &&
+          !asset.inMaintenance &&
+          asset.status == 'assigned') ...[
+        (
+          'Transfer',
+          Icons.swap_horiz_rounded,
+          () => AssetActionDialog(asset: asset, action: AssetAction.transfer),
+        ),
+        (
+          'Return',
+          Icons.assignment_return_outlined,
+          () => AssetActionDialog(asset: asset, action: AssetAction.giveBack),
+        ),
+      ],
+      if (!asset.isRetired)
+        (
+          'Condition',
+          Icons.fact_check_outlined,
+          () => AssetActionDialog(asset: asset, action: AssetAction.condition),
+        ),
+      if (!asset.isRetired &&
+          !asset.inMaintenance &&
+          asset.status != 'assigned')
+        (
+          'Retire',
+          Icons.archive_outlined,
+          () => AssetActionDialog(asset: asset, action: AssetAction.retire),
+        ),
     ],
-    if (!asset.isRetired)
-      (
-        'Condition',
-        Icons.fact_check_outlined,
-        () => AssetActionDialog(asset: asset, action: AssetAction.condition),
-      ),
-    if (!asset.isRetired && !asset.inMaintenance && asset.status != 'assigned')
-      (
-        'Retire',
-        Icons.archive_outlined,
-        () => AssetActionDialog(asset: asset, action: AssetAction.retire),
-      ),
   ];
 
   @override

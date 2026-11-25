@@ -47,7 +47,7 @@ export function figures(collection: string, data: DocumentData | undefined, sign
       if (data.status === 'pending') bump(branch, 'pendingIssueRequests', sign);
       break;
     case 'inventoryAssets':
-      bump(branch, 'assets', sign);
+      bump(branch, data.status === 'unregistered' ? 'unregisteredAssets' : 'assets', sign);
       if (IN_MAINTENANCE.includes(data.status)) bump(branch, 'underMaintenance', sign);
       break;
   }

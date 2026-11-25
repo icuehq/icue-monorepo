@@ -165,7 +165,10 @@ final _inventoryPages = <RouteBase>[
   GoRoute(
     path: InventoryRoutes.inventoryAssetForm,
     name: InventoryRoutes.inventoryAssetFormName,
-    builder: (context, state) => _inventoryPage((_) => pages.AssetFormPage()),
+    builder: (context, state) => _inventoryPage(
+      (_) =>
+          pages.AssetFormPage(assetId: state.uri.queryParameters['id'] ?? ''),
+    ),
   ),
   GoRoute(
     path: InventoryRoutes.inventoryMaintenance,

@@ -44,10 +44,10 @@ describe('RFID', () => {
         tracking: 'asset',
       })
     ).id;
-    const [firstAsset, secondAsset] = [
-      (await run(a.register, { itemId: item, storeId: store })).id,
-      (await run(a.register, { itemId: item, storeId: store })).id,
-    ];
+    const [firstAsset, secondAsset] = (
+      await run(a.receive, { itemId: item, storeId: store, quantity: 2 })
+    ).ids as string[];
+    for (const id of [firstAsset, secondAsset]) await run(a.register, { id, condition: 'new' });
     await run(a.setRfid, { id: firstAsset, rfidTag: 'E200AA' });
     expect(await code(run(a.setRfid, { id: secondAsset, rfidTag: 'e200aa' }))).toBe(
       'already-exists',

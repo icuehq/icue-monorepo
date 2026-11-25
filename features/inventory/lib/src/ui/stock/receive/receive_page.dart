@@ -168,13 +168,16 @@ class _ReceivePageState extends State<ReceivePage> {
       }
     }
     for (final lineDraft in assetLines) {
-      if (!await _registerAssets(stockProvider, lineDraft)) return _finish();
+      if (!await _receiveAssets(stockProvider, lineDraft)) return _finish();
       _lines.remove(lineDraft);
       lineDraft.dispose();
     }
     if (assetLines.isEmpty) return _finish();
     if (!mounted) return;
-    showMessage(context, 'Stock received successfully');
+    showMessage(
+      context,
+      'Stock received. Register the new assets in Asset management.',
+    );
     Navigator.of(context).pop();
   }
 
@@ -182,40 +185,24 @@ class _ReceivePageState extends State<ReceivePage> {
     if (mounted) setState(() => _busy = false);
   }
 
-  /// Adds one record per received unit: those with a serial number first, the rest without.
-  Future<bool> _registerAssets(
+  /// Adds the received units as unregistered assets, to be registered in Asset management.
+  Future<bool> _receiveAssets(
     StockProvider stockProvider,
     LineDraft lineDraft,
   ) async {
-    final serials = lineDraft.serialNumbers;
-    final price = double.tryParse(lineDraft.cost.text.trim());
-    Future<bool> register(String? serial, int units) async {
-      final result = await stockProvider.act('inventory-asset-register', {
-        'itemId': lineDraft.item.id,
-        'storeId': _store,
-        'quantity': units,
-        'serialNumber': serial,
-        'price': ?price,
-      }, requestId: newRequestId());
-      if (result != null || !mounted) return result != null;
+    final result = await stockProvider.act('inventory-asset-receive', {
+      'itemId': lineDraft.item.id,
+      'storeId': _store,
+      'quantity': int.parse(lineDraft.quantity.text.trim()),
+      'unitCost': double.tryParse(lineDraft.cost.text.trim()),
+    }, requestId: newRequestId());
+    if (result == null && mounted) {
       IcueToast.error(
         context,
         stockProvider.errorMessage ?? 'Could not add ${lineDraft.item.name}',
       );
-      return false;
     }
-
-    // Units already added are taken off the line, so a retry does not add them twice.
-    for (final serial in serials) {
-      if (!await register(serial, 1)) return false;
-      lineDraft.serials.text = lineDraft.serialNumbers
-          .where((remaining) => remaining != serial)
-          .join('\n');
-      lineDraft.quantity.text =
-          '${int.parse(lineDraft.quantity.text.trim()) - 1}';
-    }
-    final remaining = int.parse(lineDraft.quantity.text.trim());
-    return remaining == 0 || await register(null, remaining);
+    return result != null;
   }
 
   @override

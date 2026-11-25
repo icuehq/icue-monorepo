@@ -5,6 +5,7 @@ import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
 import 'package:inventory/src/ui/stock/balance/widgets/stock_balance_list.dart';
 import 'package:inventory/src/ui/stock/balance/widgets/stock_balance_table.dart';
+import 'package:inventory/src/ui/stock/balance/widgets/unregistered_assets_card.dart';
 import 'package:provider/provider.dart';
 
 /// Stock overview (FRS 10.6): balances per store × item × variant × batch.
@@ -21,6 +22,9 @@ class _StockPageState extends State<StockPage> {
 
   final _searchController = TextEditingController();
   final _scroll = ScrollController();
+
+  /// Bumped when a child screen closes, so the unregistered-assets notice reloads.
+  var _refreshes = 0;
 
   @override
   void initState() {
@@ -46,7 +50,9 @@ class _StockPageState extends State<StockPage> {
   Future<void> _open(String route) async {
     final stock = context.read<StockProvider>();
     await context.push(route);
-    if (mounted) await stock.reloadBalances();
+    if (!mounted) return;
+    setState(() => _refreshes++);
+    await stock.reloadBalances();
   }
 
   @override
@@ -228,6 +234,12 @@ class _StockPageState extends State<StockPage> {
                     ],
                   ),
                 ),
+              ),
+
+            if (stockProvider.balancesLoaded)
+              UnregisteredAssetsCard(
+                key: ValueKey('unregistered-$_refreshes'),
+                storeId: stockProvider.store?.id,
               ),
 
             if (wide)

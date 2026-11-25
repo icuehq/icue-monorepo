@@ -61,15 +61,12 @@ class ReceiptLineFields extends StatelessWidget {
         ),
         if (isAsset) ...[
           const SizedBox(height: 8),
-          IcueTextField(
-            controller: lineDraft.serials,
-            minLines: 2,
-            maxLines: 6,
-            keyboardType: TextInputType.multiline,
-            validator: (_) => validateSerials(lineDraft),
-            label: 'Serial numbers (optional)',
-            hintText: 'One per line. Leave blank if there are none.',
-            icon: Icons.qr_code_2_rounded,
+          Text(
+            'Each one is added as an unregistered asset. Register it with its '
+            'details in Asset management.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
         if (item.tracking == Tracking.batch) ...[
@@ -150,16 +147,4 @@ class ReceiptLineFields extends StatelessWidget {
 String? validateWholeQuantity(String? text) {
   final value = int.tryParse((text ?? '').trim());
   return value == null || value < 1 ? 'Enter a whole number' : null;
-}
-
-/// Serial numbers must be distinct and no more than the units received.
-String? validateSerials(LineDraft lineDraft) {
-  final serials = lineDraft.serialNumbers;
-  if (serials.toSet().length != serials.length) {
-    return 'The same serial number is listed twice';
-  }
-  final quantity = int.tryParse(lineDraft.quantity.text.trim()) ?? 0;
-  return serials.length > quantity
-      ? 'More serial numbers than the ${quantity == 1 ? '1 item' : '$quantity items'} received'
-      : null;
 }

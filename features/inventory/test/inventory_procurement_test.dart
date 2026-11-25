@@ -6,11 +6,7 @@ void main() {
       InventoryPurchaseRequest.fromMap('p', {
         'status': status,
         'lineItems': [
-          {
-            'itemId': 'i',
-            'quantity': 4,
-            'estimatedPrice': 2.5,
-          },
+          {'itemId': 'i', 'quantity': 4, 'estimatedPrice': 2.5},
         ],
         'history': [
           {'action': 'submit', 'comment': null},

@@ -49,43 +49,48 @@ describe('assets and maintenance', () => {
         '1',
       ).then((extra) => extra.id as string);
     [laptop, ink] = [await item('LAP', 'asset'), await item('INK', 'quantity')];
-    asset = (await run(a.register, { itemId: laptop, storeId: store, serialNumber: 'SN1' })).id;
+    asset = (await run(a.receive, { itemId: laptop, storeId: store, quantity: 1 })).id;
+    await run(a.register, { id: asset, serialNumber: 'SN1', condition: 'new' });
   });
 
-  it('registers with a unique ID; only asset-tracked items', async () => {
-    const assetDocument = (await get(`inventoryAssets/${asset}`))!;
-    expect(assetDocument).toMatchObject({
+  it('receiving creates unregistered units; registering fills them in once', async () => {
+    const received = await run(a.receive, { itemId: laptop, storeId: store, quantity: 3 });
+    expect(new Set(received.ids).size).toBe(3);
+    expect(await get(`inventoryAssets/${received.ids[2]}`)).toMatchObject({
       name: 'LAP',
-      status: 'available',
-      condition: 'new',
+      status: 'unregistered',
+      serialNumber: null,
     });
-    expect((await run(a.register, { itemId: laptop, storeId: store })).number).toMatch(/000002$/);
-    expect(await code(run(a.register, { itemId: ink, storeId: store }))).toBe(
+    // Only registered assets can be worked on.
+    expect(await code(run(a.assign, { id: received.ids[0], ...staff(7) }))).toBe(
+      'failed-precondition',
+    );
+    expect(await code(run(a.setCondition, { id: received.ids[0], condition: 'good' }))).toBe(
+      'failed-precondition',
+    );
+    await run(a.register, { id: received.ids[0], serialNumber: 'SN9', make: 'Dell', condition: 'good' });
+    expect(await get(`inventoryAssets/${received.ids[0]}`)).toMatchObject({
+      status: 'available',
+      serialNumber: 'SN9',
+      condition: 'good',
+    });
+    expect(await code(run(a.register, { id: received.ids[0], condition: 'good' }))).toBe(
       'failed-precondition',
     );
     expect(
       await code(
         run(a.register, {
-          itemId: laptop,
-          storeId: store,
+          id: received.ids[1],
           warrantyStart: day(0),
           warrantyEnd: day(-1),
+          condition: 'new',
         }),
       ),
     ).toBe('failed-precondition');
-  });
-
-  it('registers several identical units in one call, within the accepted quantity', async () => {
-    const bulk = await run(a.register, { itemId: laptop, storeId: store, quantity: 3 });
-    expect(bulk.ids).toHaveLength(3);
-    expect(new Set(bulk.ids).size).toBe(3);
-    expect(await get(`inventoryAssets/${bulk.ids[2]}`)).toMatchObject({ status: 'available' });
-    expect(
-      await code(
-        run(a.register, { itemId: laptop, storeId: store, quantity: 2, serialNumber: 'X' }),
-      ),
-    ).toBe('failed-precondition'); // a serial number belongs to one unit
-    expect(await code(run(a.register, { itemId: laptop, storeId: store, quantity: 51 }))).toBe(
+    expect(await code(run(a.receive, { itemId: ink, storeId: store, quantity: 1 }))).toBe(
+      'failed-precondition',
+    );
+    expect(await code(run(a.receive, { itemId: laptop, storeId: store, quantity: 51 }))).toBe(
       'invalid-argument',
     );
   });
@@ -151,7 +156,7 @@ describe('assets and maintenance', () => {
     const types = (
       await db().collection(`${BRANCH}/inventoryAssets/${asset}/history`).get()
     ).docs.map((assetDocument) => assetDocument.data().type);
-    expect(types.sort()).toEqual(['assigned', 'registered', 'returned', 'transferred']);
+    expect(types.sort()).toEqual(['assigned', 'received', 'registered', 'returned', 'transferred']);
   });
 
   it('condition changes, loss while assigned, retire and dispose', async () => {
