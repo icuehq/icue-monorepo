@@ -26,19 +26,20 @@ class AssetsProvider extends LoadingProvider {
     afterPage: (assets) => loadItemNames(assets.map((asset) => asset.itemId)),
   );
 
-  /// Received units still waiting for their details (the Unregistered tab).
+  /// Received units still waiting for their details (the Unregistered tab). They are not in the search
+  /// database, so search filters the loaded units by asset or item name.
+  /// ponytail: loads 500 per page, so search covers them all; beyond that it covers what "Load more" fetched.
   late final unregisteredList = ListState<InventoryAsset>(
-    query: (_, search) => _service.assetsQuery(
-      null,
-      search,
-      storeId: storeId,
-      unregistered: true,
-    ),
+    query: (_, _) =>
+        _service.assetsQuery(null, '', storeId: storeId, unregistered: true),
     fromDocument: (document) =>
         InventoryAsset.fromMap(document.id, document.data()!),
     onChange: notifyListeners,
     afterPage: (assets) => loadItemNames(assets.map((asset) => asset.itemId)),
-  );
+    localSearch: (asset, search) =>
+        asset.name.toLowerCase().contains(search) ||
+        (items[asset.itemId]?.name.toLowerCase().contains(search) ?? false),
+  )..pager.pageSize = 500;
   late final maintenanceList = ListState<InventoryMaintenance>(
     query: _service.maintenanceQuery,
     fromDocument: (document) =>

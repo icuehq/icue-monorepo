@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/src/providers/list_state.dart';
 
-/// Wide-screen [IcueTable] over a [ListState]: status filter and search are
-/// Firestore queries (the state reloads); rows come from its pager.
+/// Wide-screen [IcueTable] over a [ListState]: the status filter is a Firestore query (the state
+/// reloads), search too unless the state searches locally; rows come from the state.
 class PagedListTable<T> extends StatelessWidget {
   const PagedListTable({
     required this.title,
@@ -17,6 +17,7 @@ class PagedListTable<T> extends StatelessWidget {
     this.searchHint,
     this.primaryAction,
     this.secondaryAction,
+    this.rowActions,
     this.extraFilters = const [],
     this.extraFiltered = false,
     this.onClearFilters,
@@ -36,6 +37,7 @@ class PagedListTable<T> extends StatelessWidget {
   final String? searchHint;
   final IcueTableAction? primaryAction;
   final IcueTableAction? secondaryAction;
+  final List<IcueTableRowAction<T>> Function(T row)? rowActions;
 
   /// Filters beyond status (e.g. Store); [extraFiltered] says one is set and
   /// [onClearFilters] (default: the state's) resets everything.
@@ -48,10 +50,10 @@ class PagedListTable<T> extends StatelessWidget {
     final pager = state.pager;
     return IcueTable<T>(
       title: title,
-      rows: pager.items,
+      rows: state.rows,
       rowKey: rowKey,
       rowLabel: rowLabel,
-      count: pager.total ?? pager.items.length,
+      count: state.count,
       status: IcueTableStatus.pager(pager),
       onRetry: pager.retry,
       pagination: IcueTablePagination.pager(pager),
@@ -61,22 +63,24 @@ class PagedListTable<T> extends StatelessWidget {
       searchDebounce: const Duration(milliseconds: 400),
       onSearchChanged: searchHint == null ? null : state.setSearch,
       filters: [
-        IcueTableFilter(
-          id: 'status',
-          label: 'Status',
-          options: [
-            for (final MapEntry(:key, :value) in statuses.entries)
-              IcueTableFilterOption(key, value),
-          ],
-          value: state.status,
-          onChanged: state.setStatus,
-        ),
+        if (statuses.isNotEmpty)
+          IcueTableFilter(
+            id: 'status',
+            label: 'Status',
+            options: [
+              for (final MapEntry(:key, :value) in statuses.entries)
+                IcueTableFilterOption(key, value),
+            ],
+            value: state.status,
+            onChanged: state.setStatus,
+          ),
         ...extraFilters,
       ],
       isFiltered: state.filtered || extraFiltered,
       onClearFilters: onClearFilters ?? state.clear,
       primaryAction: primaryAction,
       secondaryAction: secondaryAction,
+      rowActions: rowActions,
       emptyTitle: 'No ${title.toLowerCase()}',
       emptyMessage: emptyMessage,
       columns: columns,

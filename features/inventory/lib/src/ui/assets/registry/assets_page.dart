@@ -5,9 +5,10 @@ import 'package:go_router/go_router.dart';
 import 'package:icue_firebase/icue_firebase.dart' show AssetStatus;
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/inventory.dart';
-import 'package:inventory/src/ui/shared/widgets/inventory_status_chip.dart';
-import 'package:inventory/src/ui/shared/widgets/paged_list_page.dart';
-import 'package:inventory/src/ui/shared/widgets/paged_list_table.dart';
+import 'package:inventory/src/providers/list_state.dart';
+import 'package:inventory/src/ui/assets/registry/widgets/asset_cards.dart';
+import 'package:inventory/src/ui/assets/registry/widgets/asset_scan_dialog.dart';
+import 'package:inventory/src/ui/assets/registry/widgets/assets_tables.dart';
 import 'package:provider/provider.dart';
 
 /// Asset management: the register of registered assets, and the received units still waiting to be registered.
@@ -26,8 +27,10 @@ class _AssetsPageState extends State<AssetsPage>
   };
 
   late final _tabs = TabController(length: 2, vsync: this)
-    ..addListener(() => setState(() {}));
+    ..addListener(_onTabChanged);
+  final _searchController = TextEditingController();
   Timer? _debounce;
+  int _lastTabIndex = 0;
 
   bool get _registeredTab => _tabs.index == 0;
 
@@ -40,8 +43,22 @@ class _AssetsPageState extends State<AssetsPage>
   @override
   void dispose() {
     _debounce?.cancel();
-    _tabs.dispose();
+    _searchController.dispose();
+    _tabs
+      ..removeListener(_onTabChanged)
+      ..dispose();
     super.dispose();
+  }
+
+  void _onTabChanged() {
+    if (_tabs.index == _lastTabIndex) return;
+    _lastTabIndex = _tabs.index;
+    _debounce?.cancel();
+    final activeSearch = _activeState(context.read<AssetsProvider>()).search;
+    if (_searchController.text != activeSearch) {
+      _searchController.text = activeSearch;
+    }
+    setState(() {});
   }
 
   Future<void> _load() async {
@@ -57,31 +74,30 @@ class _AssetsPageState extends State<AssetsPage>
     ]);
   }
 
-  /// Typing searches by asset name (prefix, as written) after a short pause.
+  ListState<InventoryAsset> _activeState(AssetsProvider assetsProvider) =>
+      _registeredTab
+      ? assetsProvider.assetList
+      : assetsProvider.unregisteredList;
+
+  /// Typing searches after a short pause: registered assets by name prefix (as written) in Firestore,
+  /// unregistered ones in the loaded list.
   void _typed(String value) {
+    setState(() {});
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 400), () {
-      final assetsProvider = context.read<AssetsProvider>();
-      (_registeredTab
-              ? assetsProvider.assetList
-              : assetsProvider.unregisteredList)
-          .setSearch(value);
+      if (!mounted) return;
+      _activeState(context.read<AssetsProvider>()).setSearch(value);
     });
   }
 
-  /// A scan opens the asset with that ID or RFID tag, even outside the loaded list.
-  Future<void> _scanned(String code) async {
-    final assetsProvider = context.read<AssetsProvider>();
-    final asset = await assetsProvider.findByCode(code);
-    if (!mounted) return;
-    if (asset == null) {
-      IcueToast.error(
-        context,
-        assetsProvider.errorMessage ?? 'No asset "$code"',
-      );
-      return;
-    }
-    await _open(asset);
+  void _submitted(String value) {
+    _debounce?.cancel();
+    _activeState(context.read<AssetsProvider>()).setSearch(value);
+  }
+
+  Future<void> _openScanDialog() async {
+    final asset = await AssetScanDialog.show(context);
+    if (asset != null && mounted) await _open(asset);
   }
 
   /// A registered asset opens its details; an unregistered one opens the registration form.
@@ -94,10 +110,15 @@ class _AssetsPageState extends State<AssetsPage>
     if (mounted) await _load();
   }
 
-  String _storeName(String id) =>
-      context
-          .read<InventoryProvider>()
-          .stores
+  Future<void> _clearAllFilters() {
+    _debounce?.cancel();
+    _searchController.clear();
+    setState(() {});
+    return context.read<AssetsProvider>().clearFilters();
+  }
+
+  String _storeName(InventoryProvider inventoryProvider, String id) =>
+      inventoryProvider.stores
           .where((store) => store.id == id)
           .firstOrNull
           ?.name ??
@@ -105,265 +126,293 @@ class _AssetsPageState extends State<AssetsPage>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final foreground =
+        theme.appBarTheme.foregroundColor ?? theme.colorScheme.onPrimary;
+    final wide = context.isWide;
     final assetsProvider = context.watch<AssetsProvider>();
     final inventoryProvider = context.watch<InventoryProvider>();
-    final waiting = assetsProvider.unregisteredList.pager.items.length;
-    final storeFilter = inventoryProvider.showStoreFilter
-        ? SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+    final waitingPager = assetsProvider.unregisteredList.pager;
+    final waitingCount = waitingPager.total ?? waitingPager.items.length;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Asset management'),
+        actions: [
+          if (!wide)
+            IconButton(
+              icon: const Icon(Icons.refresh_rounded),
+              tooltip: 'Refresh',
+              onPressed: _load,
+            ),
+        ],
+        bottom: TabBar(
+          controller: _tabs,
+          isScrollable: wide,
+          tabAlignment: wide ? TabAlignment.start : null,
+          labelColor: foreground,
+          unselectedLabelColor: foreground.withValues(alpha: 0.72),
+          indicatorColor: foreground,
+          indicatorWeight: 3,
+          indicatorSize: TabBarIndicatorSize.tab,
+          dividerColor: Colors.transparent,
+          labelStyle: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+          ),
+          unselectedLabelStyle: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+          tabs: [
+            const Tab(text: 'Registered'),
+            Tab(
+              text: waitingCount == 0
+                  ? 'Unregistered'
+                  : 'Unregistered ($waitingCount${waitingPager.hasNext ? '+' : ''})',
+            ),
+          ],
+        ),
+      ),
+      body: wide
+          ? Padding(
+              padding: const EdgeInsets.all(16),
+              child: _registeredTab
+                  ? RegisteredAssetsTable(
+                      key: const ValueKey('registered-table'),
+                      assetsProvider: assetsProvider,
+                      inventoryProvider: inventoryProvider,
+                      statuses: _statuses,
+                      storeName: (id) => _storeName(inventoryProvider, id),
+                      onOpen: _open,
+                      onClearFilters: _clearAllFilters,
+                      onScan: _openScanDialog,
+                      onRefresh: _load,
+                    )
+                  : UnregisteredAssetsTable(
+                      key: const ValueKey('unregistered-table'),
+                      assetsProvider: assetsProvider,
+                      inventoryProvider: inventoryProvider,
+                      storeName: (id) => _storeName(inventoryProvider, id),
+                      onOpen: _open,
+                      onClearFilters: _clearAllFilters,
+                      onScan: _openScanDialog,
+                      onRefresh: _load,
+                    ),
+            )
+          : _mobileBody(assetsProvider, inventoryProvider),
+    );
+  }
+
+  Widget _mobileBody(
+    AssetsProvider assetsProvider,
+    InventoryProvider inventoryProvider,
+  ) {
+    final theme = Theme.of(context);
+    final activeState = _activeState(assetsProvider);
+    final pager = activeState.pager;
+    final rows = activeState.rows;
+    final isFiltered = activeState.filtered || assetsProvider.storeId != null;
+    final showStores = inventoryProvider.showStoreFilter;
+
+    return IcueCenteredBody(
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
             child: Row(
               children: [
-                for (final (id, name) in [
-                  (null, 'All stores'),
-                  for (final store in inventoryProvider.stores)
-                    (store.id, store.name),
-                ])
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ChoiceChip(
-                      label: Text(name),
-                      selected: assetsProvider.storeId == id,
-                      onSelected: (_) => assetsProvider.setStore(id),
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    textInputAction: TextInputAction.search,
+                    onChanged: _typed,
+                    onSubmitted: _submitted,
+                    decoration: InputDecoration(
+                      hintText: 'Search by asset name…',
+                      prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                      filled: true,
+                      fillColor: theme.colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.35),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                      isDense: true,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide.none,
+                      ),
+                      suffixIcon: _searchController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear_rounded, size: 18),
+                              onPressed: () {
+                                _searchController.clear();
+                                _submitted('');
+                                setState(() {});
+                              },
+                            )
+                          : null,
                     ),
                   ),
+                ),
+                const SizedBox(width: 8),
+                IconButton.filledTonal(
+                  onPressed: _openScanDialog,
+                  icon: const Icon(Icons.qr_code_scanner_rounded),
+                  tooltip: 'Scan asset ID or RFID tag',
+                ),
               ],
             ),
-          )
-        : null;
-    final storeTableFilters = [
-      if (inventoryProvider.showStoreFilter)
-        IcueTableFilter(
-          id: 'store',
-          label: 'Store',
-          options: [
-            for (final store in inventoryProvider.stores)
-              IcueTableFilterOption(store.id, store.name),
-          ],
-          value: assetsProvider.storeId,
-          onChanged: assetsProvider.setStore,
-        ),
-    ];
-    final tabBar = TabBar(
-      controller: _tabs,
-      tabs: [
-        const Tab(text: 'Registered'),
-        Tab(
-          text: waiting == 0
-              ? 'Unregistered'
-              : 'Unregistered ($waiting${assetsProvider.unregisteredList.pager.hasNext ? '+' : ''})',
-        ),
+          ),
+          if (_registeredTab)
+            _chipRow([
+              for (final MapEntry(:key, :value) in {
+                'all': 'All',
+                ..._statuses,
+              }.entries)
+                (
+                  label: value,
+                  selected: (activeState.status ?? 'all') == key,
+                  onSelected: () =>
+                      activeState.setStatus(key == 'all' ? null : key),
+                ),
+            ]),
+          if (showStores)
+            _chipRow([
+              for (final (id, name) in [
+                (null, 'All stores'),
+                for (final store in inventoryProvider.stores)
+                  (store.id, store.name),
+              ])
+                (
+                  label: name,
+                  selected: assetsProvider.storeId == id,
+                  onSelected: () => assetsProvider.setStore(id),
+                ),
+            ]),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 6, 16, 4),
+            child: Row(
+              children: [
+                Text(
+                  pager.loading && pager.items.isEmpty
+                      ? 'Loading assets…'
+                      : _countSummary(rows.length, pager.hasNext),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                if (isFiltered) ...[
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: _clearAllFilters,
+                    child: Text(
+                      'Clear filters',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          Expanded(
+            child: pager.error != null && pager.items.isEmpty
+                ? IcueEmptyState.error(
+                    title: 'Could not load assets',
+                    message: '${pager.error}',
+                    onAction: pager.retry,
+                  )
+                : pager.loading && pager.items.isEmpty
+                ? const IcueSkeletonCardList()
+                : rows.isEmpty
+                ? (isFiltered
+                      ? IcueEmptyState.noResults(
+                          title: 'No matching assets',
+                          actionLabel: 'Clear filters',
+                          onAction: _clearAllFilters,
+                        )
+                      : IcueEmptyState(
+                          icon: _registeredTab
+                              ? Icons.inventory_2_outlined
+                              : Icons.task_alt_rounded,
+                          title: _registeredTab
+                              ? 'No registered assets'
+                              : 'All caught up',
+                          message: _registeredTab
+                              ? 'Receive stock of an asset item, then register each unit from the Unregistered tab.'
+                              : 'Every received asset is registered.',
+                        ))
+                : RefreshIndicator(
+                    onRefresh: _load,
+                    child: IcueAdaptiveCardList(
+                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
+                      spacing: 8,
+                      itemCount: rows.length,
+                      footer: IcueLoadMoreFooter.of(pager),
+                      itemBuilder: (context, index) {
+                        final asset = rows[index];
+                        final itemName =
+                            assetsProvider.items[asset.itemId]?.name;
+                        final storeName = _storeName(
+                          inventoryProvider,
+                          asset.storeId,
+                        );
+                        return _registeredTab
+                            ? RegisteredAssetCard(
+                                asset: asset,
+                                itemName: itemName,
+                                storeName: showStores ? storeName : null,
+                                onTap: () => _open(asset),
+                              )
+                            : UnregisteredAssetCard(
+                                asset: asset,
+                                itemName: itemName,
+                                storeName: storeName,
+                                onRegister: () => _open(asset),
+                              );
+                      },
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _chipRow(
+    List<({String label, bool selected, VoidCallback onSelected})> chips,
+  ) => SizedBox(
+    height: 38,
+    child: ListView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      children: [
+        for (final chip in chips)
+          Padding(
+            padding: const EdgeInsets.only(right: 6),
+            child: FilterChip(
+              label: Text(chip.label),
+              selected: chip.selected,
+              showCheckmark: false,
+              visualDensity: VisualDensity.compact,
+              onSelected: (_) => chip.onSelected(),
+            ),
+          ),
       ],
-    );
-    final header = IcueScanField(
-      hint: 'Search by name, or scan asset ID or tag',
-      onChanged: _typed,
-      onScan: _scanned,
-    );
-    return _registeredTab
-        ? _registered(
-            assetsProvider,
-            tabBar,
-            header,
-            storeFilter,
-            storeTableFilters,
-          )
-        : _unregistered(
-            assetsProvider,
-            tabBar,
-            header,
-            storeFilter,
-            storeTableFilters,
-          );
-  }
+    ),
+  );
 
-  Widget _registered(
-    AssetsProvider assetsProvider,
-    TabBar tabBar,
-    Widget header,
-    Widget? storeFilter,
-    List<IcueTableFilter> storeTableFilters,
-  ) {
-    const empty =
-        'No registered assets yet. Receive stock of an asset item, then '
-        'register each unit from the Unregistered tab.';
-    return PagedListPage<InventoryAsset>(
-      key: const ValueKey('registered'),
-      title: 'Asset management',
-      appBarBottom: tabBar,
-      state: assetsProvider.assetList,
-      statuses: _statuses,
-      emptyIcon: Icons.inventory_2_outlined,
-      emptyMessage: empty,
-      onRefresh: _load,
-      filterRow: storeFilter,
-      header: header,
-      itemCard: (context, asset) => ListTile(
-        title: Text(asset.name),
-        subtitle: Text(
-          '${asset.id}${asset.assignedTo == null ? '' : ' · ${asset.assignedTo!.label}'}',
-        ),
-        trailing: InventoryStatusChip(asset.status),
-        onTap: () => _open(asset),
-      ),
-      table: PagedListTable<InventoryAsset>(
-        title: 'Registered assets',
-        state: assetsProvider.assetList,
-        statuses: _statuses,
-        searchHint: 'Asset name (starts with)',
-        rowKey: (asset) => asset.id,
-        rowLabel: (asset) => asset.name,
-        onOpen: _open,
-        emptyMessage: empty,
-        extraFilters: storeTableFilters,
-        extraFiltered: assetsProvider.storeId != null,
-        onClearFilters: assetsProvider.clearFilters,
-        columns: [
-          IcueTableColumn(
-            id: 'name',
-            label: 'Asset',
-            flex: 3,
-            minWidth: 200,
-            cellBuilder: (context, asset) => IcueTableCellText(
-              asset.name,
-              subtitle: [
-                asset.make,
-                asset.model,
-              ].whereType<String>().where((part) => part.isNotEmpty).join(' '),
-            ),
-          ),
-          IcueTableColumn(
-            id: 'id',
-            label: 'ID',
-            flex: 2,
-            cellBuilder: (context, asset) =>
-                IcueTableCellText(asset.id, subtitle: asset.serialNumber),
-          ),
-          IcueTableColumn(
-            id: 'assignedTo',
-            label: 'Assigned to',
-            flex: 2,
-            hideBelowWidth: 900,
-            cellBuilder: (context, asset) => IcueTableCellText(
-              asset.assignedTo?.label ?? '—',
-              style: IcueTableStyle.of(context).secondary,
-            ),
-          ),
-          IcueTableColumn(
-            id: 'condition',
-            label: 'Condition',
-            hideBelowWidth: 1100,
-            cellBuilder: (context, asset) => IcueTableCellText(
-              humanizeStatus(asset.condition),
-              style: IcueTableStyle.of(context).secondary,
-            ),
-          ),
-          IcueTableColumn(
-            id: 'status',
-            label: 'Status',
-            cellBuilder: (context, asset) => IcueStatusPill(
-              label: humanizeStatus(asset.status),
-              color: inventoryStatusColor(asset.status),
-              compact: true,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _unregistered(
-    AssetsProvider assetsProvider,
-    TabBar tabBar,
-    Widget header,
-    Widget? storeFilter,
-    List<IcueTableFilter> storeTableFilters,
-  ) {
-    const empty = 'Every received asset is registered.';
-    String received(InventoryAsset asset) => asset.receivedDate == null
-        ? ''
-        : 'Received ${asset.receivedDate!.toDisplayDay()}';
-    return PagedListPage<InventoryAsset>(
-      key: const ValueKey('unregistered'),
-      title: 'Asset management',
-      appBarBottom: tabBar,
-      state: assetsProvider.unregisteredList,
-      statuses: const {},
-      emptyIcon: Icons.task_alt_rounded,
-      emptyMessage: empty,
-      onRefresh: _load,
-      filterRow: storeFilter,
-      header: header,
-      itemCard: (context, asset) => ListTile(
-        title: Text(asset.name),
-        subtitle: Text(
-          [
-            _storeName(asset.storeId),
-            received(asset),
-          ].where((part) => part.isNotEmpty).join(' · '),
-        ),
-        trailing: FilledButton.tonal(
-          onPressed: () => _open(asset),
-          child: const Text('Register'),
-        ),
-        onTap: () => _open(asset),
-      ),
-      table: PagedListTable<InventoryAsset>(
-        title: 'Unregistered assets',
-        state: assetsProvider.unregisteredList,
-        statuses: const {},
-        searchHint: 'Asset name (starts with)',
-        rowKey: (asset) => asset.id,
-        rowLabel: (asset) => asset.name,
-        onOpen: _open,
-        emptyMessage: empty,
-        extraFilters: storeTableFilters,
-        extraFiltered: assetsProvider.storeId != null,
-        onClearFilters: assetsProvider.clearFilters,
-        columns: [
-          IcueTableColumn(
-            id: 'name',
-            label: 'Asset',
-            flex: 3,
-            minWidth: 200,
-            cellBuilder: (context, asset) =>
-                IcueTableCellText(asset.name, subtitle: asset.id),
-          ),
-          IcueTableColumn(
-            id: 'store',
-            label: 'Store',
-            flex: 2,
-            cellBuilder: (context, asset) =>
-                IcueTableCellText(_storeName(asset.storeId)),
-          ),
-          IcueTableColumn(
-            id: 'received',
-            label: 'Received',
-            hideBelowWidth: 900,
-            cellBuilder: (context, asset) => IcueTableCellText(
-              received(asset).replaceFirst('Received ', ''),
-              style: IcueTableStyle.of(context).secondary,
-            ),
-          ),
-          IcueTableColumn(
-            id: 'cost',
-            label: 'Cost',
-            hideBelowWidth: 1100,
-            cellBuilder: (context, asset) => IcueTableCellText(
-              asset.price?.toRupees() ?? '—',
-              style: IcueTableStyle.of(context).secondary,
-            ),
-          ),
-          IcueTableColumn(
-            id: 'action',
-            label: '',
-            cellBuilder: (context, asset) => FilledButton.tonal(
-              onPressed: () => _open(asset),
-              child: const Text('Register'),
-            ),
-          ),
-        ],
-      ),
-    );
+  String _countSummary(int count, bool hasNext) {
+    final suffix = hasNext ? '+' : '';
+    if (_registeredTab) {
+      return '$count$suffix asset${count == 1 && !hasNext ? '' : 's'}';
+    }
+    return '$count$suffix awaiting registration';
   }
 }

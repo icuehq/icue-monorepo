@@ -32,9 +32,13 @@ class ListState<T> {
     required this.fromDocument,
     required this.onChange,
     this.afterPage,
+    this.localSearch,
   }) {
     pager.addListener(_pagerChanged);
   }
+
+  /// Set: [search] filters the loaded rows in memory instead of querying Firestore.
+  final bool Function(T row, String search)? localSearch;
 
   final Future<ListQuery> Function(String? status, String search) query;
   final T Function(DocumentSnapshot<Map<String, dynamic>> document)
@@ -51,6 +55,23 @@ class ListState<T> {
 
   bool get filtered => status != null || search.isNotEmpty;
 
+  /// The loaded rows, narrowed by [localSearch] when it is set.
+  List<T> get rows {
+    final matches = localSearch;
+    final text = search.toLowerCase();
+    return matches == null || text.isEmpty
+        ? pager.items
+        : [
+            for (final row in pager.items)
+              if (matches(row, text)) row,
+          ];
+  }
+
+  /// The row count to show: the query's total, or the matches of a local search.
+  int get count => localSearch != null && search.isNotEmpty
+      ? rows.length
+      : pager.total ?? pager.items.length;
+
   void _pagerChanged() {
     onChange();
     if (pager.loading || pager.items.length == _seen) return;
@@ -60,7 +81,10 @@ class ListState<T> {
 
   Future<void> load() async {
     _seen = 0;
-    await pager.loadQuery(await query(status, search), fromDocument);
+    await pager.loadQuery(
+      await query(status, localSearch == null ? search : ''),
+      fromDocument,
+    );
   }
 
   Future<void> setStatus(String? value) {
@@ -68,9 +92,10 @@ class ListState<T> {
     return load();
   }
 
-  Future<void> setSearch(String value) {
+  Future<void> setSearch(String value) async {
     search = value.trim();
-    return load();
+    if (localSearch == null) return load();
+    onChange();
   }
 
   Future<void> clear() {
