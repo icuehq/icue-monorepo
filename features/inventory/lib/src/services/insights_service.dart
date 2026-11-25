@@ -28,7 +28,8 @@ class InsightsService {
     });
   }
 
-  /// Up to [reportLimit] documents of [source] (with their `id`), within [from]..[to] when it has dates.
+  /// Up to [reportLimit] documents of [source] (with their `id`), newest first, within [from]..[to]
+  /// when it has dates (no [to]: up to today). Issues also get their request's `requesterName` and `purpose`.
   Future<List<Map<String, dynamic>>> reportDocuments(
     ReportSource source, {
     DateTime? from,
@@ -39,25 +40,56 @@ class InsightsService {
     );
     final dateField = source.dateField;
     if (dateField != null) {
-      Object bound(DateTime date) => source.isDay
-          ? dayTimestamp(date.toApiDate())
-          : Timestamp.fromDate(date);
       if (from != null) {
-        query = query.where(dateField, isGreaterThanOrEqualTo: bound(from));
+        query = query.where(
+          dateField,
+          isGreaterThanOrEqualTo: dayTimestamp(from.toApiDate()),
+        );
       }
       if (to != null) {
         query = query.where(
           dateField,
-          isLessThan: bound(to.add(const Duration(days: 1))),
+          isLessThan: dayTimestamp(to.add(const Duration(days: 1)).toApiDate()),
         );
       }
       query = query.orderBy(dateField, descending: true);
     }
     final snapshot = await query.limit(reportLimit).get();
-    return [
+    final documents = [
       for (final document in snapshot.docs)
         {'id': document.id, ...document.data()},
     ];
+    if (source == ReportSource.issues) await _addRequesters(documents);
+    return documents;
+  }
+
+  /// Copies each issue's request `requesterName` and `purpose` onto it.
+  Future<void> _addRequesters(List<Map<String, dynamic>> issues) async {
+    final requests = await branchCollection('inventoryIssueRequests');
+    final ids = {
+      for (final issue in issues) readString(issue['issueRequestId']),
+    }..remove('');
+    final byId = <String, Map<String, dynamic>>{};
+    final idList = ids.toList();
+    for (var start = 0; start < idList.length; start += 30) {
+      final snapshot = await requests
+          .where(
+            FieldPath.documentId,
+            whereIn: idList.sublist(
+              start,
+              (start + 30).clamp(0, idList.length),
+            ),
+          )
+          .get();
+      for (final document in snapshot.docs) {
+        byId[document.id] = document.data();
+      }
+    }
+    for (final issue in issues) {
+      final request = byId[issue['issueRequestId']];
+      issue['requesterName'] = request?['requesterName'];
+      issue['purpose'] = request?['purpose'];
+    }
   }
 
   /// Every item of the branch (names, units, reorder levels and items with no stock yet).

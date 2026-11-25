@@ -42,9 +42,9 @@ void main() {
     today: '2026-11-25',
   );
 
-  test('stock on hand sums batches per item, lists empty items, hides other stores', () {
+  test('current stock sums batches per item, lists empty items, hides other stores', () {
     final table = buildReport(
-      InventoryReport.stockOnHand,
+      InventoryReport.currentStock,
       input([
         {
           'itemId': 'pens',
@@ -68,13 +68,13 @@ void main() {
     );
     expect(table.rows.map((row) => row.first), ['Chalk', 'Pens']);
     final pens = table.rows.last;
-    expect(pens[4], '6');
-    expect(pens[8], '300.00');
+    expect(pens[3], '6');
+    expect(pens[6], '300.00');
     expect(pens.last, 'low_stock');
     expect(table.rows.first.last, 'out_of_stock');
     expect(
       buildReport(
-        InventoryReport.stockOnHand,
+        InventoryReport.currentStock,
         input([]),
         filter: 'low_stock',
       ).rows,
@@ -82,23 +82,7 @@ void main() {
     );
   });
 
-  test('reorder list suggests buying back to twice the reorder level', () {
-    final table = buildReport(
-      InventoryReport.reorder,
-      input([
-        {
-          'itemId': 'pens',
-          'storeId': 's1',
-          'quantityAvailable': 4,
-          'value': 200,
-        },
-      ]),
-    );
-    expect(table.rows.single[6], '16');
-    expect(table.rows.single.last, '800.00');
-  });
-
-  test('expiry flags expired and soon-expiring batches, oldest first', () {
+  test('expiring items read in plain words, earliest first', () {
     Map<String, dynamic> batch(String day) => {
       'itemId': 'chalk',
       'storeId': 's1',
@@ -112,15 +96,15 @@ void main() {
       batch('2026-11-01'),
       batch('2026-12-10'),
     ];
-    final table = buildReport(InventoryReport.expiry, input(documents));
-    expect(table.rows.map((row) => row[5]), [
-      'expired',
-      'expiring_soon',
-      'in_date',
+    final table = buildReport(InventoryReport.expiringItems, input(documents));
+    expect(table.rows.map((row) => row[4]), [
+      'Expired 24 days ago',
+      'In 15 days',
+      'In 188 days',
     ]);
     expect(
       buildReport(
-        InventoryReport.expiry,
+        InventoryReport.expiringItems,
         input(documents),
         filter: 'expired',
       ).rows,
@@ -132,6 +116,7 @@ void main() {
     String type,
     num quantity, {
     String bucket = 'available',
+    String day = '2026-11-20',
   }) => {
     'type': type,
     'itemId': 'pens',
@@ -139,87 +124,83 @@ void main() {
     'quantity': quantity,
     'bucket': bucket,
     'unitCost': 10,
-    'transactionDate': dayTimestamp('2026-11-20'),
+    'transactionDate': dayTimestamp(day),
   };
 
-  test('consumption nets returns off issues', () {
-    final row = buildReport(
-      InventoryReport.consumption,
-      input([
-        move('issue', -5),
-        move('return', 1),
-        move('return', 1, bucket: 'damaged'),
-        move('receive', 50),
-      ]),
-    ).rows.single;
-    expect(row.sublist(3), ['5', '2', '3', '30.00']);
-  });
-
-  test(
-    'losses count the available side of bucket moves and net off restores',
-    () {
-      final row = buildReport(
-        InventoryReport.losses,
-        input([
+  test('stock summary works out opening and closing usable stock', () {
+    final table = buildReport(
+      InventoryReport.stockSummary,
+      ReportInput(
+        documents: [
+          move('receive', 50),
+          move('receive', 3, bucket: 'damaged'),
+          move('issue', -5),
+          move('return', 1),
           move('damage', -2),
           move('damage', 2, bucket: 'damaged'),
-          move('writeoff', -1),
           move('restore', 1),
-        ]),
-      ).rows.single;
-      expect(row.sublist(3), ['2', '0', '1', '0', '1', '20.00']);
-    },
-  );
-
-  test(
-    'purchase deliveries show what is still pending; closed requests have none',
-    () {
-      Map<String, dynamic> request(String status) => {
-        'number': 'PR-$status',
-        'storeId': 's1',
-        'status': status,
-        'requiredDate': dayTimestamp('2026-12-01'),
-        'lineItems': [
-          {'itemId': 'pens', 'quantity': 10, 'received': 6, 'damaged': 1},
+          move('adjust', -1),
+          // After the period: not in it, but taken back off today's stock.
+          move('issue', -4, day: '2026-11-24'),
         ],
-      };
-      final documents = [request('partially_received'), request('closed')];
-      final table = buildReport(InventoryReport.purchases, input(documents));
-      expect(table.rows.map((row) => row[9]), ['3', '0']);
-      expect(table.rows.first[10], '300.00');
-      expect(
-        buildReport(
-          InventoryReport.purchases,
-          input(documents),
-          filter: 'pending',
-        ).rows,
-        hasLength(1),
-      );
-    },
-  );
+        balances: [
+          {'itemId': 'pens', 'storeId': 's1', 'quantityAvailable': 60},
+        ],
+        periodEnd: '2026-11-21',
+        items: items,
+        categoryNames: const {'c1': 'Stationery'},
+        storeNames: const {'s1': 'Main store'},
+        today: '2026-11-25',
+      ),
+    );
+    final pens = table.rows.firstWhere((row) => row.first == 'Pens');
+    // Opening 20 + 50 received - 5 given out + 1 returned - 1 damaged - 1 corrected = 64 closing.
+    expect(pens.sublist(3), ['20', '50', '5', '1', '1', '-1', '64']);
+  });
 
-  test('asset register leaves out unregistered assets', () {
+  test('items given out list each line with who it went to', () {
     final table = buildReport(
-      InventoryReport.assetRegister,
+      InventoryReport.itemsGivenOut,
       input([
         {
-          'name': 'Projector',
+          'number': 'ISS/1',
           'storeId': 's1',
-          'itemId': 'x',
-          'status': 'assigned',
-          'assignedTo': {'type': 'staff', 'personErpId': 7},
-          'price': 20000,
-        },
-        {
-          'name': 'New',
-          'storeId': 's1',
-          'itemId': 'x',
-          'status': 'unregistered',
+          'transactionDate': dayTimestamp('2026-11-20'),
+          'requesterName': 'Asha',
+          'purpose': 'Class 5 exams',
+          'lineItems': [
+            {
+              'itemId': 'pens',
+              'quantity': 3,
+              'quantityReturned': 1,
+              'unitCost': 10,
+            },
+          ],
         },
       ]),
     );
-    expect(table.rows.single[7], 'Staff #7');
-    expect(table.sumColumns, {10});
+    expect(table.rows.single.sublist(1, 7), [
+      'Asha',
+      'Class 5 exams',
+      'Pens',
+      'Main store',
+      '3',
+      '1',
+    ]);
+    expect(table.rows.single[8], '30.00');
+  });
+
+  test('stock in & out shows one line per change of usable stock', () {
+    final table = buildReport(
+      InventoryReport.stockInOut,
+      input([
+        move('damage', -2),
+        move('damage', 2, bucket: 'damaged'),
+        move('receive', 5),
+      ]),
+    );
+    expect(table.rows.map((row) => row[1]), ['Marked damaged', 'Received']);
+    expect(table.rows.first.sublist(5, 7), ['', '2']);
   });
 
   test('overview figures read the stats summary, branch or one store', () {

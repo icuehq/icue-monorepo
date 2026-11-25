@@ -101,7 +101,7 @@ class _InventoryReportPageState extends State<InventoryReportPage> {
               : IcueDatePreset.values.byName(name),
         ),
       ),
-    if (inventory.showStoreFilter && _report.source != ReportSource.maintenance)
+    if (inventory.showStoreFilter)
       IcueTableFilter(
         id: 'store',
         label: 'Store',
@@ -115,7 +115,7 @@ class _InventoryReportPageState extends State<InventoryReportPage> {
     if (_report.filters.isNotEmpty)
       IcueTableFilter(
         id: 'filter',
-        label: _report == InventoryReport.ledger ? 'Movement' : 'Status',
+        label: _report.filterLabel,
         options: [
           for (final filter in _report.filters)
             IcueTableFilterOption(
@@ -145,6 +145,8 @@ class _InventoryReportPageState extends State<InventoryReportPage> {
           for (final store in inventory.stores) store.id: store.name,
         },
         today: todayIST(),
+        balances: insights.balances,
+        periodEnd: _range.end.toApiDate(),
       ),
       storeId: _storeId,
       filter: _filter,

@@ -12,8 +12,9 @@ class InsightsProvider extends LoadingProvider {
 
   final InsightsService _service;
 
-  /// The loaded report's documents and the branch's items.
+  /// The loaded report's documents and the branch's items; the stock summary also loads today's balances.
   List<Map<String, dynamic>> documents = [];
+  List<Map<String, dynamic>> balances = [];
   Map<String, InventoryItem> items = {};
 
   /// Live overview figures; the caller listens for as long as it is on screen.
@@ -26,17 +27,29 @@ class InsightsProvider extends LoadingProvider {
   }) => _service.dashboardSnapshot(store: store);
 
   /// Loads the documents behind [report] within [from]..[to] (when it has dates), and the items.
+  /// The stock summary loads movements from [from] up to today and today's balances, to work out
+  /// the stock at both ends of the period.
   Future<void> loadReport(
     InventoryReport report, {
     DateTime? from,
     DateTime? to,
   }) => load(() async {
     documents = [];
-    final (loaded, loadedItems) = await (
-      _service.reportDocuments(report.source, from: from, to: to),
+    balances = [];
+    final summary = report == InventoryReport.stockSummary;
+    final (loaded, loadedBalances, loadedItems) = await (
+      _service.reportDocuments(
+        report.source,
+        from: from,
+        to: summary ? null : to,
+      ),
+      summary
+          ? _service.reportDocuments(ReportSource.balances)
+          : Future.value(<Map<String, dynamic>>[]),
       _service.items(),
     ).wait;
     documents = loaded;
+    balances = loadedBalances;
     items = loadedItems;
   });
 }

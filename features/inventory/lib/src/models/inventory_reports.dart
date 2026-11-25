@@ -4,13 +4,11 @@ import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icue_ui/icue_ui.dart';
 import 'package:inventory/src/models/inventory_masters.dart';
 
-/// The collection a report reads, and the field its date range filters (null: no date range).
+/// The collection a report reads, and the calendar-day field its period filters (null: no period).
 enum ReportSource {
   balances('inventoryBalances', null),
   movements('inventoryMovements', 'transactionDate'),
-  purchaseRequests('inventoryPurchaseRequests', 'createdAt'),
-  assets('inventoryAssets', null),
-  maintenance('inventoryMaintenanceJobs', 'reportedDate');
+  issues('inventoryIssues', 'transactionDate');
 
   const ReportSource(this.collection, this.dateField);
 
@@ -18,9 +16,6 @@ enum ReportSource {
   final String? dateField;
 
   bool get hasDates => dateField != null;
-
-  /// The date field holds a calendar day (midnight India time) rather than an instant.
-  bool get isDay => dateField != 'createdAt';
 }
 
 /// How a report cell is shown: quantities and money are numbers (right-aligned, sorted as numbers),
@@ -41,33 +36,33 @@ ReportColumnSpec _state(String label) =>
 
 /// The reports on the Reports page, in display order.
 enum InventoryReport {
-  stockOnHand(
-    'Stock on hand',
-    'Every item in each store: quantity available, damaged and expired, its value and stock status.',
+  currentStock(
+    'Current stock',
+    'How much of each item is in each store right now, and which items are running low or have run out.',
     ReportSource.balances,
     ['in_stock', 'low_stock', 'out_of_stock'],
   ),
-  reorder(
-    'Reorder list',
-    'Items at or below their reorder level, how many to buy and the estimated cost.',
-    ReportSource.balances,
-    [],
-  ),
-  expiry(
-    'Expiry',
-    'Batches in stock by expiry date, with the quantity and value at risk.',
+  expiringItems(
+    'Expiring items',
+    'Items in stock that have expired or will expire soon, earliest first.',
     ReportSource.balances,
     ['expired', 'within_30_days', 'within_90_days'],
   ),
-  consumption(
-    'Consumption by item',
-    'What each store issued, got back and used up in the period, and its value.',
+  stockSummary(
+    'Stock summary',
+    'For each item in the period: stock at the start, what came in, what went out and stock at the end.',
     ReportSource.movements,
     [],
   ),
-  ledger(
-    'Stock ledger',
-    'Every stock movement in the period: receipts, issues, returns, adjustments and write-offs.',
+  itemsGivenOut(
+    'Items given out',
+    'Who was given which items, how many and when.',
+    ReportSource.issues,
+    [],
+  ),
+  stockInOut(
+    'Stock in & out',
+    'Every change to usable stock in the period, one line each, by date.',
     ReportSource.movements,
     [
       'receive',
@@ -78,46 +73,6 @@ enum InventoryReport {
       'expire',
       'writeoff',
       'restore',
-    ],
-  ),
-  losses(
-    'Losses and write-offs',
-    'Stock lost, damaged, expired or adjusted per item in the period, and the value written off.',
-    ReportSource.movements,
-    [],
-  ),
-  purchases(
-    'Purchase deliveries',
-    'Each purchase request line: ordered, received, damaged and still pending.',
-    ReportSource.purchaseRequests,
-    ['pending', 'complete'],
-  ),
-  assetRegister(
-    'Asset register',
-    'Registered assets with their store, status, condition, holder, price and warranty.',
-    ReportSource.assets,
-    [
-      'available',
-      'assigned',
-      'under_maintenance',
-      'under_repair',
-      'damaged',
-      'lost',
-      'retired',
-      'disposed',
-    ],
-  ),
-  maintenanceCost(
-    'Maintenance',
-    'Maintenance jobs reported in the period, how long they took and what they cost.',
-    ReportSource.maintenance,
-    [
-      'open',
-      'assigned',
-      'in_progress',
-      'waiting_for_parts',
-      'completed',
-      'cancelled',
     ],
   );
 
@@ -132,25 +87,33 @@ enum InventoryReport {
   final String description;
   final ReportSource source;
 
-  /// Choices of the report's filter chips (applied in the client).
+  /// Choices of the report's filter (applied in the client).
   final List<String> filters;
 
-  /// Filter chip labels where the plain wording is not clear enough.
+  /// The filter's label on the report page.
+  String get filterLabel => this == stockInOut ? 'Type' : 'Show';
+
+  /// Filter choice labels where the plain wording is not clear enough.
   static const filterLabels = {
-    'within_30_days': 'Within 30 days',
-    'within_90_days': 'Within 90 days',
-    'receive': 'Received',
-    'issue': 'Issued',
-    'return': 'Returned',
-    'adjust': 'Adjusted',
-    'damage': 'Damaged',
-    'expire': 'Expired',
-    'writeoff': 'Lost',
-    'restore': 'Restored',
-    'pending': 'Pending delivery',
-    'complete': 'Fully received',
+    'low_stock': 'Running low',
+    'expired': 'Already expired',
+    'within_30_days': 'Expiring in 30 days',
+    'within_90_days': 'Expiring in 90 days',
+    ..._movementLabels,
   };
 }
+
+/// What each kind of stock change is called in reports.
+const _movementLabels = {
+  'receive': 'Received',
+  'issue': 'Given out',
+  'return': 'Returned',
+  'adjust': 'Stock correction',
+  'damage': 'Marked damaged',
+  'expire': 'Marked expired',
+  'writeoff': 'Lost',
+  'restore': 'Back in use',
+};
 
 /// Everything a report's rows are built from.
 class ReportInput {
@@ -160,6 +123,8 @@ class ReportInput {
     required this.categoryNames,
     required this.storeNames,
     required this.today,
+    this.balances = const [],
+    this.periodEnd,
   });
 
   /// Raw documents of the report's [ReportSource] (with `id`).
@@ -172,6 +137,11 @@ class ReportInput {
 
   /// `yyyy-MM-dd`, India time.
   final String today;
+
+  /// Stock summary only: today's balances, and the last day of the period (`yyyy-MM-dd`); its
+  /// [documents] are the movements from the start of the period up to today.
+  final List<Map<String, dynamic>> balances;
+  final String? periodEnd;
 }
 
 class ReportTable {
@@ -199,67 +169,43 @@ ReportTable buildReport(
   String? storeId,
   String? filter,
 }) {
-  final documents = [
-    for (final document in input.documents)
-      if (report.source == ReportSource.maintenance ||
-          (input.storeNames.containsKey(document['storeId']) &&
-              (storeId == null || document['storeId'] == storeId)))
+  List<Map<String, dynamic>> visible(List<Map<String, dynamic>> documents) => [
+    for (final document in documents)
+      if (input.storeNames.containsKey(document['storeId']) &&
+          (storeId == null || document['storeId'] == storeId))
         document,
   ];
   final scoped = ReportInput(
-    documents: documents,
+    documents: visible(input.documents),
     items: input.items,
     categoryNames: input.categoryNames,
     storeNames: input.storeNames,
     today: input.today,
+    balances: visible(input.balances),
+    periodEnd: input.periodEnd,
   );
   return switch (report) {
-    InventoryReport.stockOnHand => _stockOnHand(scoped, storeId, filter),
-    InventoryReport.reorder => _reorder(scoped, storeId),
-    InventoryReport.expiry => _expiry(scoped, filter),
-    InventoryReport.consumption => _consumption(scoped),
-    InventoryReport.ledger => _ledger(scoped, filter),
-    InventoryReport.losses => _losses(scoped),
-    InventoryReport.purchases => _purchases(scoped, filter),
-    InventoryReport.assetRegister => _assets(scoped, filter),
-    InventoryReport.maintenanceCost => _maintenance(scoped, filter),
+    InventoryReport.currentStock => _currentStock(scoped, storeId, filter),
+    InventoryReport.expiringItems => _expiringItems(scoped, filter),
+    InventoryReport.stockSummary => _stockSummary(scoped, storeId),
+    InventoryReport.itemsGivenOut => _itemsGivenOut(scoped),
+    InventoryReport.stockInOut => _stockInOut(scoped, filter),
   };
 }
 
-/// Stock of one item in one store, summed over its batches and variants.
-class _ItemStock {
-  double available = 0;
-  double damaged = 0;
-  double expired = 0;
-  double value = 0;
-}
+/// Every active, non-asset item of a visible store (narrowed to [storeId]), keyed by item and store.
+Iterable<(String, String)> _stockedItems(ReportInput input, String? storeId) =>
+    [
+      for (final item in input.items.values)
+        if (item.active &&
+            input.storeNames.containsKey(item.storeId) &&
+            (storeId == null || item.storeId == storeId) &&
+            item.tracking != Tracking.asset)
+          (item.id, item.storeId),
+    ];
 
-/// Per item and store: summed balances, plus every active item of a visible store without any (nothing in stock).
-Map<(String, String), _ItemStock> _stockByItem(
-  ReportInput input,
-  String? storeId,
-) {
-  final stock = <(String, String), _ItemStock>{};
-  for (final item in input.items.values) {
-    if (item.active &&
-        input.storeNames.containsKey(item.storeId) &&
-        (storeId == null || item.storeId == storeId) &&
-        item.tracking != Tracking.asset) {
-      stock[(item.id, item.storeId)] = _ItemStock();
-    }
-  }
-  for (final document in input.documents) {
-    final line = stock.putIfAbsent((
-      readString(document['itemId']),
-      readString(document['storeId']),
-    ), _ItemStock.new);
-    line.available += readDouble(document['quantityAvailable']);
-    line.damaged += readDouble(document['quantityDamaged']);
-    line.expired += readDouble(document['quantityExpired']);
-    line.value += readDouble(document['value']);
-  }
-  return stock;
-}
+(String, String) _key(Map<String, dynamic> document) =>
+    (readString(document['itemId']), readString(document['storeId']));
 
 String _itemName(ReportInput input, String itemId) =>
     input.items[itemId]?.name ?? 'Unknown item';
@@ -267,94 +213,67 @@ String _itemName(ReportInput input, String itemId) =>
 String _store(ReportInput input, Object? storeId) =>
     input.storeNames[storeId] ?? '';
 
-String _stockStatus(double available, double? reorderLevel) => available <= 0
-    ? 'out_of_stock'
-    : reorderLevel != null && available <= reorderLevel
-    ? 'low_stock'
-    : 'in_stock';
+String _unit(ReportInput input, String itemId) =>
+    input.items[itemId]?.stockUnit ?? '';
 
-ReportTable _stockOnHand(ReportInput input, String? storeId, String? filter) {
+List<List<String>> _byFirstColumn(List<List<String>> rows) =>
+    rows..sort((left, right) => left.first.compareTo(right.first));
+
+ReportTable _currentStock(ReportInput input, String? storeId, String? filter) {
+  final stock = <(String, String), ({double quantity, double value})>{
+    for (final key in _stockedItems(input, storeId))
+      key: (quantity: 0, value: 0),
+  };
+  for (final document in input.documents) {
+    final current = stock[_key(document)] ?? (quantity: 0.0, value: 0.0);
+    stock[_key(document)] = (
+      quantity: current.quantity + readDouble(document['quantityAvailable']),
+      value: current.value + readDouble(document['value']),
+    );
+  }
   final rows = <List<String>>[];
-  for (final MapEntry(key: (itemId, storeKey), value: stock) in _stockByItem(
-    input,
-    storeId,
-  ).entries) {
+  for (final MapEntry(key: (itemId, storeKey), value: line) in stock.entries) {
     final item = input.items[itemId];
-    final status = _stockStatus(stock.available, item?.reorderLevel);
+    final minimum = item?.reorderLevel;
+    final status = line.quantity <= 0
+        ? 'out_of_stock'
+        : minimum != null && line.quantity <= minimum
+        ? 'low_stock'
+        : 'in_stock';
     if (filter != null && status != filter) continue;
     rows.add([
       _itemName(input, itemId),
       input.categoryNames[item?.categoryId] ?? '',
       _store(input, storeKey),
+      _quantity(line.quantity),
       item?.stockUnit ?? '',
-      _quantity(stock.available),
-      _quantity(stock.damaged),
-      _quantity(stock.expired),
-      item?.reorderLevel == null ? '' : _quantity(item!.reorderLevel!),
-      _money(stock.value),
+      minimum == null ? '' : _quantity(minimum),
+      _money(_round(line.value)),
       status,
     ]);
   }
-  rows.sort((left, right) => left.first.compareTo(right.first));
   return ReportTable([
     _text('Item'),
     _text('Category'),
     _text('Store'),
+    _count('In stock'),
     _text('Unit'),
-    _count('Available'),
-    _count('Damaged'),
-    _count('Expired'),
-    _count('Reorder level'),
+    _count('Minimum stock'),
     _amount('Value (₹)', sum: true),
     _state('Status'),
-  ], rows);
+  ], _byFirstColumn(rows));
 }
 
-ReportTable _reorder(ReportInput input, String? storeId) {
-  final rows = <List<String>>[];
-  for (final MapEntry(key: (itemId, storeKey), value: stock) in _stockByItem(
-    input,
-    storeId,
-  ).entries) {
-    final item = input.items[itemId];
-    final reorderLevel = item?.reorderLevel;
-    if (item == null ||
-        reorderLevel == null ||
-        stock.available > reorderLevel) {
-      continue;
-    }
-    // ponytail: buys back up to twice the reorder level; add a per-item "maximum stock" when schools ask.
-    final toBuy = reorderLevel * 2 - stock.available;
-    final unitCost =
-        item.defaultPrice ??
-        (stock.available > 0 ? stock.value / stock.available : 0);
-    rows.add([
-      item.name,
-      input.categoryNames[item.categoryId] ?? '',
-      _store(input, storeKey),
-      item.stockUnit,
-      _quantity(stock.available),
-      _quantity(reorderLevel),
-      _quantity(toBuy),
-      _money(unitCost),
-      _money(_round(toBuy * unitCost)),
-    ]);
-  }
-  rows.sort((left, right) => left.first.compareTo(right.first));
-  return ReportTable([
-    _text('Item'),
-    _text('Category'),
-    _text('Store'),
-    _text('Unit'),
-    _count('Available'),
-    _count('Reorder level'),
-    _count('Suggested order'),
-    _amount('Unit cost (₹)'),
-    _amount('Estimated cost (₹)', sum: true),
-  ], rows);
-}
+/// "Expired 3 days ago", "Expires today", "In 12 days".
+String _expiresText(int daysLeft) => switch (daysLeft) {
+  < -1 => 'Expired ${-daysLeft} days ago',
+  -1 => 'Expired yesterday',
+  0 => 'Expires today',
+  1 => 'Tomorrow',
+  _ => 'In $daysLeft days',
+};
 
-ReportTable _expiry(ReportInput input, String? filter) {
+ReportTable _expiringItems(ReportInput input, String? filter) {
   final lines = <(String, List<String>)>[];
   for (final document in input.documents) {
     final expiry = readDayOrNull(document['expiryDate']);
@@ -376,14 +295,9 @@ ReportTable _expiry(ReportInput input, String? filter) {
         _store(input, document['storeId']),
         readString(document['batchNumber']),
         expiry.toDisplayDay(),
-        '$daysLeft',
-        daysLeft < 0
-            ? 'expired'
-            : daysLeft <= 30
-            ? 'expiring_soon'
-            : 'in_date',
+        _expiresText(daysLeft),
         _quantity(available),
-        input.items[itemId]?.stockUnit ?? '',
+        _unit(input, itemId),
         _money(readDouble(document['value'])),
       ],
     ));
@@ -394,10 +308,9 @@ ReportTable _expiry(ReportInput input, String? filter) {
       _text('Item'),
       _text('Store'),
       _text('Batch'),
-      _text('Expires on'),
-      _count('Days left'),
-      _state('Status'),
-      _count('Available'),
+      _text('Expiry date'),
+      _text('Expires'),
+      _count('Quantity'),
       _text('Unit'),
       _amount('Value (₹)', sum: true),
     ],
@@ -405,83 +318,136 @@ ReportTable _expiry(ReportInput input, String? filter) {
   );
 }
 
-/// Movement quantities summed per item and store for the [types] given, keyed by type.
-Map<(String, String), Map<String, ({double quantity, double value})>>
-_movementTotals(ReportInput input, Set<String> types) {
-  final totals =
-      <(String, String), Map<String, ({double quantity, double value})>>{};
-  for (final document in input.documents) {
-    final type = readString(document['type']);
-    // A bucket move (damaged/expired) mirrors the available-stock row: count the available side only.
-    if (!types.contains(type) ||
-        (type != 'return' &&
-            type != 'receive' &&
-            document['bucket'] != 'available')) {
-      continue;
-    }
-    final quantity = readDouble(document['quantity']);
-    final key = (
-      readString(document['itemId']),
-      readString(document['storeId']),
-    );
-    final byType = totals.putIfAbsent(key, () => {});
-    final current = byType[type] ?? (quantity: 0.0, value: 0.0);
-    byType[type] = (
-      quantity: current.quantity + quantity,
-      value: current.value + quantity * readDouble(document['unitCost']),
-    );
-  }
-  return totals;
+/// Usable stock of one item in one store over the period.
+class _Summary {
+  double atEnd = 0;
+  double received = 0;
+  double givenOut = 0;
+  double returned = 0;
+  double damagedOrLost = 0;
+  double corrected = 0;
+
+  double get atStart =>
+      atEnd - received + givenOut - returned + damagedOrLost - corrected;
 }
 
-ReportTable _consumption(ReportInput input) {
-  final rows = <List<String>>[];
-  for (final MapEntry(key: (itemId, storeId), value: byType) in _movementTotals(
-    input,
-    const {'issue', 'return'},
-  ).entries) {
-    final issued = -(byType['issue']?.quantity ?? 0);
-    final returned = byType['return']?.quantity ?? 0;
-    final value =
-        -(byType['issue']?.value ?? 0) - (byType['return']?.value ?? 0);
-    rows.add([
-      _itemName(input, itemId),
-      _store(input, storeId),
-      input.items[itemId]?.stockUnit ?? '',
-      _quantity(issued),
-      _quantity(returned),
-      _quantity(issued - returned),
-      _money(_round(value)),
-    ]);
+/// Usable stock only: a damage or loss moves units out of usable stock (its other row, into the
+/// damaged or expired stock, is left out), and putting them back in use brings them back.
+ReportTable _stockSummary(ReportInput input, String? storeId) {
+  final periodEnd = input.periodEnd ?? input.today;
+  final summary = <(String, String), _Summary>{
+    for (final key in _stockedItems(input, storeId)) key: _Summary(),
+  };
+  for (final balance in input.balances) {
+    summary.putIfAbsent(_key(balance), _Summary.new).atEnd += readDouble(
+      balance['quantityAvailable'],
+    );
   }
-  rows.sort((left, right) => left.first.compareTo(right.first));
+  for (final movement in input.documents) {
+    if (movement['bucket'] != 'available') continue;
+    final line = summary.putIfAbsent(_key(movement), _Summary.new);
+    final quantity = readDouble(movement['quantity']);
+    // Balances are today's: take back what changed after the period to get its closing stock.
+    if (readDay(movement['transactionDate']).compareTo(periodEnd) > 0) {
+      line.atEnd -= quantity;
+      continue;
+    }
+    switch (movement['type']) {
+      case 'receive':
+        line.received += quantity;
+      case 'issue':
+        line.givenOut -= quantity;
+      case 'return':
+        line.returned += quantity;
+      case 'adjust':
+        line.corrected += quantity;
+      default:
+        line.damagedOrLost -= quantity;
+    }
+  }
+  final rows = [
+    for (final MapEntry(key: (itemId, storeKey), value: line)
+        in summary.entries)
+      [
+        _itemName(input, itemId),
+        _store(input, storeKey),
+        _unit(input, itemId),
+        _quantity(line.atStart),
+        _quantity(line.received),
+        _quantity(line.givenOut),
+        _quantity(line.returned),
+        _quantity(line.damagedOrLost),
+        _quantity(line.corrected),
+        _quantity(line.atEnd),
+      ],
+  ];
   return ReportTable([
     _text('Item'),
     _text('Store'),
     _text('Unit'),
-    _count('Issued'),
+    _count('Opening stock'),
+    _count('Received'),
+    _count('Given out'),
     _count('Returned'),
-    _count('Used'),
-    _amount('Value used (₹)', sum: true),
+    _count('Damaged / lost'),
+    _count('Corrections (±)'),
+    _count('Closing stock'),
+  ], _byFirstColumn(rows));
+}
+
+/// One line per item given out; [ReportInput.documents] are issues carrying their request's
+/// `requesterName` and `purpose`.
+ReportTable _itemsGivenOut(ReportInput input) {
+  final documents = [...input.documents]
+    ..sort(
+      (left, right) =>
+          readDay(right['transactionDate'])
+              .compareTo(readDay(left['transactionDate'])),
+    );
+  final rows = <List<String>>[];
+  for (final issue in documents) {
+    final lines = issue['lineItems'] is List
+        ? issue['lineItems'] as List
+        : const <Object?>[];
+    for (final line in lines) {
+      if (line is! Map) continue;
+      final itemId = readString(line['itemId']);
+      final quantity = readDouble(line['quantity']);
+      rows.add([
+        readDay(issue['transactionDate']).toDisplayDay(),
+        readString(issue['requesterName']),
+        readString(issue['purpose']),
+        _itemName(input, itemId),
+        _store(input, issue['storeId']),
+        _quantity(quantity),
+        _quantity(readDouble(line['quantityReturned'])),
+        _unit(input, itemId),
+        _money(_round(quantity * readDouble(line['unitCost']))),
+        readString(issue['number']),
+      ]);
+    }
+  }
+  return ReportTable([
+    _text('Date'),
+    _text('Given to'),
+    _text('Purpose'),
+    _text('Item'),
+    _text('Store'),
+    _count('Quantity'),
+    _count('Returned'),
+    _text('Unit'),
+    _amount('Value (₹)', sum: true),
+    _text('Issue number'),
   ], rows);
 }
 
-const _movementLabels = {
-  'receive': 'Received',
-  'issue': 'Issued',
-  'return': 'Returned',
-  'adjust': 'Adjusted',
-  'damage': 'Marked damaged',
-  'expire': 'Marked expired',
-  'writeoff': 'Lost',
-  'restore': 'Restored',
-};
-
-ReportTable _ledger(ReportInput input, String? filter) {
+ReportTable _stockInOut(ReportInput input, String? filter) {
   final documents =
       [
         for (final document in input.documents)
-          if (filter == null || document['type'] == filter) document,
+          if (document['bucket'] == 'available' &&
+              (filter == null || document['type'] == filter))
+            document,
       ]..sort((left, right) {
         final byDay = readDay(left['transactionDate'])
             .compareTo(readDay(right['transactionDate']));
@@ -499,221 +465,28 @@ ReportTable _ledger(ReportInput input, String? filter) {
   for (final document in documents) {
     final quantity = readDouble(document['quantity']);
     final itemId = readString(document['itemId']);
-    final bucket = readString(document['bucket']);
     rows.add([
       readDay(document['transactionDate']).toDisplayDay(),
+      _movementLabels[document['type']] ??
+          humanizeStatus(readString(document['type'])),
       _itemName(input, itemId),
       _store(input, document['storeId']),
       readString(document['batchNumber']),
-      _movementLabels[document['type']] ??
-          humanizeStatus(readString(document['type'])),
-      bucket == 'available' ? 'Usable' : humanizeStatus(bucket),
       quantity > 0 ? _quantity(quantity) : '',
       quantity < 0 ? _quantity(-quantity) : '',
-      input.items[itemId]?.stockUnit ?? '',
+      _unit(input, itemId),
       _money(_round(quantity.abs() * readDouble(document['unitCost']))),
     ]);
   }
   return ReportTable([
     _text('Date'),
+    _text('What happened'),
     _text('Item'),
     _text('Store'),
     _text('Batch'),
-    _text('Movement'),
-    _text('Stock'),
     _count('In'),
     _count('Out'),
     _text('Unit'),
     _amount('Value (₹)'),
-  ], rows);
-}
-
-ReportTable _losses(ReportInput input) {
-  const types = {'damage', 'expire', 'writeoff', 'adjust', 'restore'};
-  final rows = <List<String>>[];
-  for (final MapEntry(key: (itemId, storeId), value: byType) in _movementTotals(
-    input,
-    types,
-  ).entries) {
-    double out(String type) => -(byType[type]?.quantity ?? 0);
-    double lostValue(String type) => -(byType[type]?.value ?? 0);
-    final adjusted = byType['adjust']?.quantity ?? 0;
-    final restored = byType['restore']?.quantity ?? 0;
-    final value = types.fold<double>(
-      0,
-      (total, type) => total + lostValue(type),
-    );
-    rows.add([
-      _itemName(input, itemId),
-      _store(input, storeId),
-      input.items[itemId]?.stockUnit ?? '',
-      _quantity(out('damage')),
-      _quantity(out('expire')),
-      _quantity(out('writeoff')),
-      _quantity(adjusted),
-      _quantity(restored),
-      _money(_round(value)),
-    ]);
-  }
-  rows.sort((left, right) => left.first.compareTo(right.first));
-  return ReportTable([
-    _text('Item'),
-    _text('Store'),
-    _text('Unit'),
-    _count('Damaged'),
-    _count('Expired'),
-    _count('Lost'),
-    _count('Adjusted (±)'),
-    _count('Restored'),
-    _amount('Net loss (₹)', sum: true),
-  ], rows);
-}
-
-ReportTable _purchases(ReportInput input, String? filter) {
-  final rows = <List<String>>[];
-  final documents = [...input.documents]
-    ..sort(
-      (left, right) =>
-          readString(right['number']).compareTo(readString(left['number'])),
-    );
-  for (final document in documents) {
-    final status = readString(document['status']);
-    for (final line
-        in document['lineItems'] is List
-            ? document['lineItems'] as List
-            : const []) {
-      if (line is! Map) continue;
-      final ordered = readDouble(line['quantity']);
-      final received = readDouble(line['received']);
-      final damaged = readDouble(line['damaged']);
-      final pending = status == 'closed'
-          ? 0.0
-          : (ordered - received - damaged).clamp(0, ordered).toDouble();
-      if (filter == 'pending' && pending <= 0) continue;
-      if (filter == 'complete' && pending > 0) continue;
-      final itemId = readString(line['itemId']);
-      final unitPrice = input.items[itemId]?.defaultPrice ?? 0;
-      rows.add([
-        readString(document['number']),
-        document['createdAt'] is Timestamp
-            ? (document['createdAt'] as Timestamp)
-                  .toDate()
-                  .toIndianTime()
-                  .toNumericDate()
-            : '',
-        readDay(document['requiredDate']).toDisplayDay(),
-        _store(input, document['storeId']),
-        _itemName(input, itemId),
-        input.items[itemId]?.stockUnit ?? '',
-        _quantity(ordered),
-        _quantity(received),
-        _quantity(damaged),
-        _quantity(pending),
-        _money(_round(received * unitPrice)),
-        status,
-      ]);
-    }
-  }
-  return ReportTable([
-    _text('Request'),
-    _text('Raised on'),
-    _text('Needed by'),
-    _text('Store'),
-    _text('Item'),
-    _text('Unit'),
-    _count('Ordered'),
-    _count('Received'),
-    _count('Damaged'),
-    _count('Pending'),
-    _amount('Received value (₹)', sum: true),
-    _state('Status'),
-  ], rows);
-}
-
-String _custodian(Object? value) => value is Map
-    ? '${humanizeStatus(readString(value['type']))} #${readString(value['personErpId'])}'
-    : '';
-
-ReportTable _assets(ReportInput input, String? filter) {
-  final rows = <List<String>>[];
-  for (final document in input.documents) {
-    final status = readString(document['status']);
-    if (status == 'unregistered' || (filter != null && status != filter)) {
-      continue;
-    }
-    final warrantyEnd = readDayOrNull((document['warranty'] as Map?)?['end']);
-    rows.add([
-      readString(document['name']),
-      readString(document['rfidTag']),
-      readString(document['serialNumber']),
-      _itemName(input, readString(document['itemId'])),
-      _store(input, document['storeId']),
-      status,
-      humanizeStatus(readString(document['condition'])),
-      _custodian(document['assignedTo']),
-      readDay(document['purchaseDate']).toDisplayDay(),
-      warrantyEnd == null
-          ? ''
-          : warrantyEnd.compareTo(input.today) < 0
-          ? 'Expired ${warrantyEnd.toDisplayDay()}'
-          : warrantyEnd.toDisplayDay(),
-      _money(readDouble(document['price'])),
-    ]);
-  }
-  rows.sort((left, right) => left.first.compareTo(right.first));
-  return ReportTable([
-    _text('Asset'),
-    _text('Tag'),
-    _text('Serial number'),
-    _text('Item'),
-    _text('Store'),
-    _state('Status'),
-    _text('Condition'),
-    _text('Held by'),
-    _text('Purchased on'),
-    _text('Warranty until'),
-    _amount('Price (₹)', sum: true),
-  ], rows);
-}
-
-ReportTable _maintenance(ReportInput input, String? filter) {
-  final documents =
-      [
-        for (final document in input.documents)
-          if (filter == null || document['status'] == filter) document,
-      ]..sort(
-        (left, right) =>
-            readDay(right['reportedDate'])
-                .compareTo(readDay(left['reportedDate'])),
-      );
-  final rows = <List<String>>[];
-  for (final document in documents) {
-    final reported = readDay(document['reportedDate']);
-    final completed = readDayOrNull(document['completedDate']);
-    final days = daysBetween(reported, completed ?? input.today);
-    rows.add([
-      readString(document['number']),
-      readString(document['assetName']),
-      readString(document['issue']),
-      readString(document['priority']),
-      reported.toDisplayDay(),
-      completed?.toDisplayDay() ?? '',
-      '$days',
-      readString(document['technician']),
-      readString(document['status']),
-      _money(readDouble(document['cost'])),
-    ]);
-  }
-  return ReportTable([
-    _text('Job'),
-    _text('Asset'),
-    _text('Problem'),
-    _state('Priority'),
-    _text('Reported'),
-    _text('Completed'),
-    _count('Days'),
-    _text('Technician'),
-    _state('Status'),
-    _amount('Cost (₹)', sum: true),
   ], rows);
 }

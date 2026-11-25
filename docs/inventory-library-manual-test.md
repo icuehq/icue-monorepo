@@ -518,16 +518,12 @@ Open **Assets** from Inventory tiles.
 
 #### Reports
 
-- [ ] 1.6.2 **Inventory reports**: open **Reports**; each opens in the shared report table: search, sortable columns, pages of 25 (size selectable), Period / Store / Status filter chips, status chips, a totals strip for money columns and **Export CSV**. Dated reports open on Current Month.
-    1. **Stock on hand**: one row per item and store (batches summed), items never received show `Out of stock`; chips In stock / Low stock / Out of stock.
-    2. **Reorder list**: items at or below their reorder level (`PEN-BLU-01`) with a suggested order (twice the reorder level minus what is available) and estimated cost at the item's default price.
-    3. **Expiry**: batches in stock, oldest expiry first, with days left and status (`MILK-PAST-01` is `Expired`); chips Expired / Within 30 days / Within 90 days.
-    4. **Consumption by item**: issued, returned, used and value used per item in the period.
-    5. **Stock ledger**: every movement in date order, In / Out columns; receipts from Receive Stock and purchase requests appear as `Received`.
-    6. **Losses and write-offs**: damaged, expired, lost, adjusted and restored quantities per item and the net value lost.
-    7. **Purchase deliveries**: one row per request line with ordered, received, damaged and pending; a closed request has nothing pending.
-    8. **Asset register**: registered assets only, with holder, purchase date, warranty (past warranties say `Expired`) and price.
-    9. **Maintenance**: jobs reported in the period with days taken (open jobs count to today) and cost.
+- [ ] 1.6.2 **Inventory reports**: open **Reports**; it lists five reports. Each opens in the shared report table: search, sortable columns, pages of 25 (size selectable), Period / Store / Show (or Type) filters, a totals strip for money columns and **Export CSV**. Dated reports open on Current Month.
+    1. **Current stock**: one row per item and store (batches summed) with In stock and Minimum stock; items never received show `Out of stock`; Show: In stock / Running low / Out of stock.
+    2. **Expiring items**: batches in stock, earliest expiry first; the Expires column reads `Expired 3 days ago`, `Expires today` or `In 12 days` (`MILK-PAST-01` has expired); Show: Already expired / Expiring in 30 days / Expiring in 90 days.
+    3. **Stock summary**: per item for the period: Opening stock, Received, Given out, Returned, Damaged / lost, Corrections (±), Closing stock. Opening + in − out = Closing; with a past period, Closing matches the stock on that period's last day.
+    4. **Items given out**: one row per issued item with date, Given to (the requester), purpose, quantity, returned and value.
+    5. **Stock in & out**: every change to usable stock in date order, one line each (marking stock damaged shows once, as Out), with In / Out columns.
 
 ---
 
