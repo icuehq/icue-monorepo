@@ -330,47 +330,29 @@ Open **Stock** from Inventory tiles.
 
 ---
 
-### 1.3 Purchase requests (Inv-3)
+### 1.3 Purchase requests
 
-#### Purchase Requests (Inv-3)
+A store manager (or branch admin) raises a request for one store; there is no approval. The goods are bought offline and recorded on the request as they arrive. Store managers see only their stores' requests; admins see all.
 
 - [ ] 1.3.4 **Purchase requests** → tap FAB **+ New request**:
-  - Delivery campus: `Campus 31`
+  - Store: `Central Main Store` (hidden for a store manager with one store)
   - Priority: `High`
   - Purpose: `Annual Examination & Office Supplies Requisition`
-  - Required by date: One week from today (`YYYY-MM-DD`)
-  - Line 1: Tap **+ Add item** → select `PEN-BLU-01`. Quantity: `120`, Est. Unit Price: `15.00`.
-  - Line 2: Tap **+ Add item** → select `LAP-DELL-15` (asset item). Quantity: `5`, Est. Unit Price: `55000.00`.
-  - Total Estimated: ₹2,76,800.00.
-  - Tap **Save as draft**. **Expect** PR created with status `Draft`, number `PR/<financialYear>/<seq>`.
-- [ ] 1.3.5 Edit PR 1:
-  - Open the PR (tap its card) → tap **Edit** in the bottom bar.
-  - Change `PEN-BLU-01` quantity from `120` to `100` (Estimated total updates to ₹2,76,500.00).
-  - Tap **Save as draft**. **Expect** PR card reflects updated quantity 100.
-- [ ] 1.3.6 Submit PR 1 (as the requester who created it; PR 1 is still `Draft`):
-  - Open the PR (tap its card). The bottom bar shows **Edit** and **Submit**.
-  - Tap **Submit**. **Expect** a "Submitted for approval" message and the same screen refreshes in place: status pill `Pending`, a new entry in **History** for the submission, and the bottom bar is gone (the requester has nothing more to do; only the ⋮ menu's **Cancel request** remains).
-  - Go back to **Purchase requests**. **Expect** the PR 1 card now shows `Pending`; the line `Draft: submit for approval` is gone.
-  - Sign in as a user with `inventory.purchaseRequest.approve` for Campus 31 and open the list. **Expect** the PR 1 card shows `Awaiting your decision`.
-- [ ] 1.3.7 Negative: Permissions:
-  - Sign in as a user **without** `inventory.purchaseRequest.approve` (e.g. the requester) and open the `Pending` PR 1. **Expect** no **Approve**, **Return** or **Reject** buttons anywhere on the screen, and no `Awaiting your decision` line on its list card.
-  - A user who has `inventory.purchaseRequest.approve` does see all three buttons on a `Pending` request (see 1.3.8).
-
-#### PR Revision & Approval Workflow
-
-- [ ] 1.3.8 Approver Review → Return for Revision:
-  - Open PR 1 as Approver (with `inventory.purchaseRequest.approve`).
-  - Tap **Return**. In the dialog leave the comment empty and tap **Return**. **Expect** "A comment is required".
-  - Enter comment: `Please reduce laptop quantity from 5 to 2 due to quarterly budget ceiling.` and tap **Return**.
-  - **Expect** status changes to `Returned` (`revision_requested`); the comment shows in a highlighted box under the summary and in History.
-- [ ] 1.3.9 Requester Resubmission:
-  - As requester, open PR 1 → tap **Edit**.
-  - Update `LAP-DELL-15` quantity to `2`.
-  - Tap **Submit for approval**.
-  - **Expect** status moves back to `Pending`.
-- [ ] 1.3.10 Approver Approval:
-  - Open PR 1 as Approver → tap **Approve** and confirm (the comment is optional).
-  - **Expect** status changes to `Approved`. The request ends here; nothing is ordered from it.
+  - Required by date: One week from today
+  - Line 1: **Add Item to Request** → `PEN-BLU-01` (only the chosen store's items are listed). Quantity: `120`.
+  - Line 2: **Add Item to Request** → `LAP-DELL-15` (asset item). Quantity: `5`. There is no price on a request.
+  - Tap **Create request**. **Expect** number `PR/<financialYear>/<seq>`, status `Open`, History `Created`. The Overview's **Open purchase requests** goes up by 1.
+- [ ] 1.3.5 Edit before anything arrives: open PR 1 → **Edit** → `PEN-BLU-01` quantity `100` → **Save changes**. **Expect** the line shows 100 and History `Edited`. The store cannot be changed.
+- [ ] 1.3.6 Record a delivery: open PR 1 → **Receive goods**.
+  - `PEN-BLU-01`: Received in good condition `60`, Damaged `5`. `LAP-DELL-15`: Received `2`.
+  - Entering more than is pending (e.g. Damaged `50` for the pen) shows `Only … pending`.
+  - Tap **Confirm receipt**. **Expect** status `Partially received`; pen line `Received 60 pcs · damaged 5 pcs · pending 35 pcs`; laptop `Received 2 · pending 3`; History `Goods received` per delivery. There is no unit cost on the receipt.
+  - **Stock**: `PEN-BLU-01` in Central Main Store gains 60 available (valued at its default price, ₹15) and 5 damaged. **Assets → Unregistered** lists 2 new `LAP-DELL-15` units.
+  - **Expect** **Edit** is gone once anything has arrived.
+- [ ] 1.3.7 Finish or close:
+  - Receiving everything pending moves the request to `Received` (no more actions).
+  - Or ⋮ → **Close request**, reason `Vendor cannot supply the rest`. **Expect** status `Closed`, the reason under the summary, no **Receive goods**; the Overview count drops by 1.
+- [ ] 1.3.8 Store scope: sign in as the store manager of another store. **Expect** PR 1 is not listed and the Store dropdown offers only their stores.
 
 ### 1.4 Assets (Inv-6)
 
@@ -529,31 +511,23 @@ Open **Assets** from Inventory tiles.
     5. **Out-of-stock lines**: displays count of depleted items.
     6. **Expiring in 30 days**: displays alert count for `MILK-PAST-01`.
     7. **Expired lines**: displays count of expired items.
-    8. **Pending purchase requests**: displays pending PR count.
+    8. **Open purchase requests**: open and partially received requests.
     9. **Pending approvals**: displays pending approval counts.
     10. **Registered assets**: displays registered assets count.
     11. **Assets under maintenance**: displays `0` (after completing step 1.4.13).
 
-#### Reports Suite (All 17 Inventory Reports)
+#### Reports
 
-- [ ] 1.6.2 **Execute and Validate All 17 Inventory Reports**:
-  - Open **Reports** from Inventory tiles. Open and verify each report:
-    1. **Stock summary**: current on-hand, allocated, and available balances per item.
-    2. **Item-wise stock**: item, store, batch, available, received, and issued totals.
-    3. **Stock movement**: chronological movements (`receive`, `issue`, `return`, `transfer`, `adjust`) with timestamps and reference IDs.
-    4. **Stock valuation**: unit cost and total value per balance; verify **Totals Row** at bottom.
-    5. **Low stock**: items where available balance is below reorder level (`PEN-BLU-01`).
-    6. **Expiry**: batch-tracked items sorted by earliest expiry date (`MILK-PAST-01`).
-    9. **Purchase requests**: requisitions with dates, numbers, statuses, and priorities.
-    12. **Issuance**: departmental consumption and staff issue records (`Staff 884`).
-    13. **Transfers**: inter-store transfers with from/to stores, dates, and statuses.
-    14. **Asset register**: serialized assets with asset IDs, serials, locations, and conditions.
-    15. **Asset assignment**: staff custody history with assigned/returned dates and closed status.
-    16. **Maintenance**: maintenance tickets with numbers, asset codes, statuses, and repair costs.
-- [ ] 1.6.3 **Report Export (CSV & PDF)**:
-  - On **Stock valuation** and **Stock movement** reports:
-    - Tap **Copy CSV** → **Expect** formatted CSV copied to clipboard.
-    - Tap **PDF** (or print action) → **Expect** PDF viewer opens with structured tabular layout and formatted currency totals.
+- [ ] 1.6.2 **Inventory reports**: open **Reports**; each opens in the shared report table: search, sortable columns, pages of 25 (size selectable), Period / Store / Status filter chips, status chips, a totals strip for money columns and **Export CSV**. Dated reports open on Current Month.
+    1. **Stock on hand**: one row per item and store (batches summed), items never received show `Out of stock`; chips In stock / Low stock / Out of stock.
+    2. **Reorder list**: items at or below their reorder level (`PEN-BLU-01`) with a suggested order (twice the reorder level minus what is available) and estimated cost at the item's default price.
+    3. **Expiry**: batches in stock, oldest expiry first, with days left and status (`MILK-PAST-01` is `Expired`); chips Expired / Within 30 days / Within 90 days.
+    4. **Consumption by item**: issued, returned, used and value used per item in the period.
+    5. **Stock ledger**: every movement in date order, In / Out columns; receipts from Receive Stock and purchase requests appear as `Received`.
+    6. **Losses and write-offs**: damaged, expired, lost, adjusted and restored quantities per item and the net value lost.
+    7. **Purchase deliveries**: one row per request line with ordered, received, damaged and pending; a closed request has nothing pending.
+    8. **Asset register**: registered assets only, with holder, purchase date, warranty (past warranties say `Expired`) and price.
+    9. **Maintenance**: jobs reported in the period with days taken (open jobs count to today) and cost.
 
 ---
 

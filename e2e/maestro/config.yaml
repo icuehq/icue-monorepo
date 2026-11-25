@@ -31,7 +31,5 @@ executionOrder:
     - issue-fefo
     - purchase-request
     - purchase-request-edit
-    - purchase-request-submit
-    - purchase-request-return
-    - purchase-request-approve
+    - purchase-request-receive
     - asset-register

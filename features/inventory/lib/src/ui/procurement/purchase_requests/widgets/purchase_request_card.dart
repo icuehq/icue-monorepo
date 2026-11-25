@@ -7,14 +7,14 @@ class PurchaseRequestCard extends StatelessWidget {
   const PurchaseRequestCard({
     required this.request,
     required this.getItemName,
-    this.nextAction,
+    this.storeName,
     this.onTap,
     super.key,
   });
 
   final InventoryPurchaseRequest request;
   final String Function(String itemId) getItemName;
-  final String? nextAction;
+  final String? storeName;
   final VoidCallback? onTap;
 
   @override
@@ -81,7 +81,10 @@ class PurchaseRequestCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    'Needed by ${request.requiredDate.toDisplayDay()}',
+                    [
+                      ?storeName,
+                      'Needed by ${request.requiredDate.toDisplayDay()}',
+                    ].join(' · '),
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -143,40 +146,6 @@ class PurchaseRequestCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 12),
-
-              // Footer: Total Est. Amount & Ordering Progress
-              Row(
-                children: [
-                  Text(
-                    'Estimated: ${request.total.toRupees()}',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.primary,
-                    ),
-                  ),
-                ],
-              ),
-              if (nextAction != null) ...[
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.bolt_rounded,
-                      size: 16,
-                      color: theme.colorScheme.primary,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      nextAction!,
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
             ],
           ),
         ),

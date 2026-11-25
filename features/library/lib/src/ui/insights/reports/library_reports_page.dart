@@ -17,8 +17,8 @@ class LibraryReportsPage extends StatefulWidget {
 
 class _LibraryReportsPageState extends State<LibraryReportsPage> {
   LibraryReportDef _def = libraryReports.first;
-  LibraryDatePreset _datePreset = LibraryDatePreset.currentMonth;
-  late DateTimeRange _range = calculateRangeForPreset(_datePreset);
+  IcueDatePreset _datePreset = IcueDatePreset.currentMonth;
+  late DateTimeRange _range = _datePreset.range();
   String? _status;
   String? _libraryId;
   late final Stream<Map<String, num?>> _figures;
@@ -52,21 +52,21 @@ class _LibraryReportsPageState extends State<LibraryReportsPage> {
     _load();
   }
 
-  void _onDatePresetChanged(LibraryDatePreset preset) {
+  void _onDatePresetChanged(IcueDatePreset preset) {
     setState(() {
       _datePreset = preset;
-      if (preset != LibraryDatePreset.custom) {
-        _range = calculateRangeForPreset(preset);
+      if (preset != IcueDatePreset.custom) {
+        _range = preset.range();
       }
     });
-    if (preset != LibraryDatePreset.custom) {
+    if (preset != IcueDatePreset.custom) {
       _load();
     }
   }
 
   void _onRangeChanged(DateTimeRange newRange) {
     setState(() {
-      _datePreset = LibraryDatePreset.custom;
+      _datePreset = IcueDatePreset.custom;
       _range = newRange;
     });
     _load();
@@ -187,16 +187,16 @@ class _LibraryReportsPageState extends State<LibraryReportsPage> {
                   allowAll: false,
                   label: 'Period',
                   options: [
-                    for (final preset in LibraryDatePreset.values)
+                    for (final preset in IcueDatePreset.values)
                       IcueTableFilterOption(preset.name, preset.label),
                   ],
                   value: _datePreset.name,
                   onChanged: (name) {
                     final preset = name == null
-                        ? LibraryDatePreset.currentMonth
-                        : LibraryDatePreset.values.byName(name);
+                        ? IcueDatePreset.currentMonth
+                        : IcueDatePreset.values.byName(name);
                     _onDatePresetChanged(preset);
-                    if (preset == LibraryDatePreset.custom) _pickCustomRange();
+                    if (preset == IcueDatePreset.custom) _pickCustomRange();
                   },
                 ),
                 if (library.showLibraryFilter)

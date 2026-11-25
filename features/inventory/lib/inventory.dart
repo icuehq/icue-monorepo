@@ -5,6 +5,7 @@ export 'src/models/inventory_assets.dart';
 export 'src/models/inventory_insights.dart';
 export 'src/models/inventory_masters.dart';
 export 'src/models/inventory_procurement.dart';
+export 'src/models/inventory_reports.dart';
 export 'src/models/inventory_stock.dart';
 export 'src/providers/assets_provider.dart';
 export 'src/providers/insights_provider.dart';

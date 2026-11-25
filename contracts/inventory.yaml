@@ -22,8 +22,8 @@ collections:
 
 enums:
   PurchaseRequestStatus:
-    doc: Lifecycle of a purchase request.
-    values: [draft, revision_requested, pending, approved, rejected, cancelled]
+    doc: "Lifecycle of a purchase request (no approval): `open` until goods arrive, then `partially_received` / `received` from the line quantities; `closed` by hand when the rest will not come."
+    values: [open, partially_received, received, closed]
 
   AssetStatus:
     doc: "Lifecycle of a physical asset. `unregistered`: received into stock, details not entered yet."
@@ -39,14 +39,10 @@ enums:
     values: [open, assigned, in_progress, waiting_for_parts, completed, cancelled]
 
 constants:
-  editablePurchaseRequestStatuses:
-    doc: The requester may edit and resubmit these.
+  openPurchaseRequestStatuses:
+    doc: Goods may still be received (and the request closed) in these statuses.
     enum: PurchaseRequestStatus
-    values: [draft, revision_requested]
-  cancellablePurchaseRequestStatuses:
-    doc: A request may be cancelled in these statuses.
-    enum: PurchaseRequestStatus
-    values: [draft, revision_requested, pending, approved]
+    values: [open, partially_received]
 
 documents:
   InventoryStatsTotals:
@@ -58,7 +54,7 @@ documents:
       lowStock: int
       outOfStock: int
       expiryOn: map<int>
-      pendingPurchaseRequests: int
+      openPurchaseRequests: int
       pendingIssueRequests: int
       assets: int
       unregisteredAssets: int
@@ -179,9 +175,10 @@ models:
         itemId: string
         variantId: string?
         quantity: double
-        estimatedPrice: double
+        received: { type: double, doc: "Good units received so far (added to the store's stock)." }
+        damaged: { type: double, doc: "Units that arrived damaged (the store's damaged stock; not counted for assets)." }
     PurchaseRequestHistoryEntry:
-      doc: "One step of the retained approval history (submit, approve, reject, revise, cancel)."
+      doc: "One step of the request's history (create, update, receive, close)."
       fields:
         action: string
         comment: string?
@@ -190,12 +187,12 @@ models:
       id: id
       fields:
         number: string
-        status: { type: string, default: draft }
+        storeId: string
+        status: { type: string, default: open }
         priority: { type: string, default: normal }
         purpose: string
         remarks: string?
         requiredDate: day
-        total: double
         createdBy: string
         createdAt: timestamp?
         lineItems: list<PurchaseRequestLine>

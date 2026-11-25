@@ -26,14 +26,12 @@ export const Collections = {
   libraryStats: 'libraryStats',
 } as const;
 
-/** Lifecycle of a purchase request. */
+/** Lifecycle of a purchase request (no approval): `open` until goods arrive, then `partially_received` / `received` from the line quantities; `closed` by hand when the rest will not come. */
 export const PurchaseRequestStatus = {
-  draft: 'draft',
-  revisionRequested: 'revision_requested',
-  pending: 'pending',
-  approved: 'approved',
-  rejected: 'rejected',
-  cancelled: 'cancelled',
+  open: 'open',
+  partiallyReceived: 'partially_received',
+  received: 'received',
+  closed: 'closed',
 } as const;
 export type PurchaseRequestStatus = (typeof PurchaseRequestStatus)[keyof typeof PurchaseRequestStatus];
 
@@ -107,11 +105,8 @@ export const MemberType = {
 } as const;
 export type MemberType = (typeof MemberType)[keyof typeof MemberType];
 
-/** The requester may edit and resubmit these. */
-export const editablePurchaseRequestStatuses = [PurchaseRequestStatus.draft, PurchaseRequestStatus.revisionRequested] as const;
-
-/** A request may be cancelled in these statuses. */
-export const cancellablePurchaseRequestStatuses = [PurchaseRequestStatus.draft, PurchaseRequestStatus.revisionRequested, PurchaseRequestStatus.pending, PurchaseRequestStatus.approved] as const;
+/** Goods may still be received (and the request closed) in these statuses. */
+export const openPurchaseRequestStatuses = [PurchaseRequestStatus.open, PurchaseRequestStatus.partiallyReceived] as const;
 
 /** Statuses a librarian may set by hand; issued belongs to circulation. */
 export const manualCopyStatuses = [CopyStatus.available, CopyStatus.underMaintenance, CopyStatus.damaged, CopyStatus.withdrawn] as const;
@@ -127,7 +122,7 @@ export interface InventoryStatsTotals {
   lowStock: number;
   outOfStock: number;
   expiryOn: Record<string, number>;
-  pendingPurchaseRequests: number;
+  openPurchaseRequests: number;
   pendingIssueRequests: number;
   assets: number;
   unregisteredAssets: number;

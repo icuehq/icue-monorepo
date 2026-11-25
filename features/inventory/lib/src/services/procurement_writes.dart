@@ -1,29 +1,20 @@
 import 'package:inventory/src/services/purchase_request_writes.dart';
 
-/// Client-side purchase request writes (save, submit, decide, cancel).
-///
-/// Business checks live here, not in `firestore.rules`. There is no audit log,
-/// no approver notification, and no re-validation of items,
-/// variants or unit consistency.
+/// Client-side purchase request writes (save, receive, close). Business checks live here;
+/// `firestore.rules` checks who and which store. Each write stamps `lastWrite` for the audit log.
 class ProcurementWrites {
+  static final _requests = PurchaseRequestWrites();
+
+  static final _handlers =
+      <String, Future<Map<String, dynamic>> Function(Map<String, Object?>)>{
+        'inventory-purchaseRequest-save': _requests.savePurchaseRequest,
+        'inventory-purchaseRequest-receive': _requests.receivePurchaseRequest,
+        'inventory-purchaseRequest-close': _requests.closePurchaseRequest,
+      };
+
   /// Action names `ProcurementProvider.act` routes here instead of to a callable.
-  static const names = {
-    'inventory-purchaseRequest-save',
-    'inventory-purchaseRequest-submit',
-    'inventory-purchaseRequest-decide',
-    'inventory-purchaseRequest-cancel',
-  };
+  static Iterable<String> get names => _handlers.keys;
 
-  final _requests = PurchaseRequestWrites();
-
-  Future<Map<String, dynamic>> run(
-    String name,
-    Map<String, Object?> data,
-  ) => switch (name) {
-    'inventory-purchaseRequest-save' => _requests.savePurchaseRequest(data),
-    'inventory-purchaseRequest-submit' => _requests.submitPurchaseRequest(data),
-    'inventory-purchaseRequest-decide' => _requests.decidePurchaseRequest(data),
-    'inventory-purchaseRequest-cancel' => _requests.cancelPurchaseRequest(data),
-    _ => throw ArgumentError.value(name, 'name'),
-  };
+  Future<Map<String, dynamic>> run(String name, Map<String, Object?> data) =>
+      _handlers[name]?.call(data) ?? (throw ArgumentError.value(name, 'name'));
 }

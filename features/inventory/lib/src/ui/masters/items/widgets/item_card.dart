@@ -227,13 +227,13 @@ class ItemCard extends StatelessWidget {
                     _itemMetaPill(
                       context,
                       Icons.refresh_outlined,
-                      'Reorder: ${reorder % 1 == 0 ? reorder.toInt() : reorder}',
+                      'Reorder: ${reorder.toQuantityText()}',
                     ),
                   if (price != null)
                     _itemMetaPill(
                       context,
                       Icons.payments_outlined,
-                      'Price: ${price % 1 == 0 ? price.toInt() : price}',
+                      'Price: ${price.toRupees()}',
                     ),
                 ],
               ),

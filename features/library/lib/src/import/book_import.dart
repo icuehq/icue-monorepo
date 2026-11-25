@@ -276,10 +276,7 @@ String? parseImportDate(String text) {
   } else if (RegExp(r'^\d{5}$').hasMatch(text)) {
     date = DateTime.utc(1899, 12, 30).add(Duration(days: int.parse(text)));
   }
-  if (date == null) return null;
-  final month = '${date.month}'.padLeft(2, '0');
-  final day = '${date.day}'.padLeft(2, '0');
-  return '${date.year}-$month-$day';
+  return date?.toApiDate();
 }
 
 /// Reads [rows] (header first), one copy per row, and groups them into books. Throws

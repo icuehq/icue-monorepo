@@ -212,8 +212,8 @@ mixin StockSupport {
     });
   }
 
-  /// Adds [quantity] to a balance (created when missing) at weighted-average cost
-  /// and appends the ledger row ([ledger] holds the shared fields).
+  /// Adds [quantity] (and [damaged] units to its damaged stock) to a balance (created when missing) at
+  /// weighted-average cost and appends a ledger row per bucket ([ledger] holds the shared fields).
   void addStock(
     Transaction transaction,
     CollectionReference<Map<String, dynamic>> movements, {
@@ -232,6 +232,7 @@ mixin StockSupport {
     required String referenceId,
     required int sequence,
     required Map<String, Object?> ledger,
+    double damaged = 0,
     Object? manufacturingDate,
   }) {
     setBalance(
@@ -244,29 +245,37 @@ mixin StockSupport {
       batchNumber: batchNumber,
       expiryDate: expiryDate,
       quantity: quantity,
+      damaged: damaged,
       unitCost: unitCost,
       reorderLevel: reorderLevel,
       manufacturingDate: manufacturingDate,
     );
-    transaction.set(movements.doc(), {
-      'type': type,
-      'balanceId': reference.id,
-      'itemId': itemId,
-      'variantId': variantId,
-      'storeId': storeId,
-      'batchNumber': batchNumber,
-      'quantity': quantity,
-      'bucket': 'available',
-      'referenceType': referenceType,
-      'referenceId': referenceId,
-      'unitCost': unitCost,
-      'seq': sequence,
-      'createdAt': FieldValue.serverTimestamp(),
-      ...ledger,
-    });
+    for (final (bucket, amount, offset) in [
+      ('available', quantity, 0),
+      ('damaged', damaged, 1),
+    ]) {
+      if (amount <= 0) continue;
+      transaction.set(movements.doc(), {
+        'type': type,
+        'balanceId': reference.id,
+        'itemId': itemId,
+        'variantId': variantId,
+        'storeId': storeId,
+        'batchNumber': batchNumber,
+        'quantity': amount,
+        'bucket': bucket,
+        'referenceType': referenceType,
+        'referenceId': referenceId,
+        'unitCost': unitCost,
+        'seq': sequence + offset,
+        'createdAt': FieldValue.serverTimestamp(),
+        ...ledger,
+      });
+    }
   }
 
-  /// Adds [quantity] to a balance (created if missing) at the weighted-average cost.
+  /// Adds [quantity] to a balance (created if missing) at the weighted-average cost,
+  /// and [damaged] units straight to its damaged stock.
   void setBalance(
     Transaction transaction,
     DocumentReference<Map<String, dynamic>> reference,
@@ -279,12 +288,15 @@ mixin StockSupport {
     required double quantity,
     required double unitCost,
     required double? reorderLevel,
+    double damaged = 0,
     Object? manufacturingDate,
   }) {
     final have = (balance?['quantityAvailable'] as num? ?? 0).toDouble();
     final cost = (balance?['unitCost'] as num? ?? 0).toDouble();
     final available = have + quantity;
-    final averageCost = (have * cost + quantity * unitCost) / available;
+    final averageCost = available == 0
+        ? (balance == null ? unitCost : cost)
+        : (have * cost + quantity * unitCost) / available;
     final storedExpiry = readDayOrNull(balance?['expiryDate']);
     if (storedExpiry != null &&
         expiryDate != null &&
@@ -301,10 +313,10 @@ mixin StockSupport {
       'expiryDate': dayTimestampOrNull(expiry),
       'quantityAvailable': available,
       'quantityReserved': balance?['quantityReserved'] ?? 0,
-      'quantityDamaged': balance?['quantityDamaged'] ?? 0,
+      'quantityDamaged': (balance?['quantityDamaged'] as num? ?? 0) + damaged,
       'quantityExpired': balance?['quantityExpired'] ?? 0,
       'totalQuantityReceived':
-          (balance?['totalQuantityReceived'] as num? ?? 0) + quantity,
+          (balance?['totalQuantityReceived'] as num? ?? 0) + quantity + damaged,
       'totalQuantityIssued': balance?['totalQuantityIssued'] ?? 0,
       'unitCost': averageCost,
       'value': (available * averageCost * 100).round() / 100,

@@ -1,0 +1,23 @@
+# Guide 1.3.6 (record goods that arrived on the PR: 60 pens good, 5 damaged). Needs purchase-request-edit.yaml first.
+# Skipped once pens have been received.
+appId: com.thoughtniques.icueadmin.dev
+---
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Purchase requests
+- tapOn: "PR/.*"
+- runFlow:
+    when:
+      visible: ".*Received 0 pcs.*"
+    commands:
+      - tapOn: "Receive goods"
+      - tapOn: "Received in good condition.*"
+      - inputText: "60"
+      - tapOn: "Damaged.*"
+      - inputText: "5"
+      - scrollUntilVisible:
+          element: "Confirm receipt"
+      - tapOn: "Confirm receipt"
+- assertVisible: ".*Partially received.*"
+- assertVisible: ".*Received 60 pcs · damaged 5 pcs · pending 35 pcs.*"

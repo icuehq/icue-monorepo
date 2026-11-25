@@ -252,7 +252,7 @@ class _ItemFormPageState extends State<ItemFormPage> {
           validator: optionalNumber,
           label: 'Default purchase price',
           icon: Icons.payments_outlined,
-          helperText: 'Estimated unit cost for purchase requests',
+          helperText: 'Values stock received without a cost',
         ),
       ],
     );

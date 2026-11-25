@@ -24,22 +24,13 @@ abstract final class Collections {
   static const libraryStats = 'libraryStats';
 }
 
-/// Lifecycle of a purchase request.
+/// Lifecycle of a purchase request (no approval): `open` until goods arrive, then `partially_received` / `received` from the line quantities; `closed` by hand when the rest will not come.
 abstract final class PurchaseRequestStatus {
-  static const draft = 'draft';
-  static const revisionRequested = 'revision_requested';
-  static const pending = 'pending';
-  static const approved = 'approved';
-  static const rejected = 'rejected';
-  static const cancelled = 'cancelled';
-  static const values = [
-    draft,
-    revisionRequested,
-    pending,
-    approved,
-    rejected,
-    cancelled,
-  ];
+  static const open = 'open';
+  static const partiallyReceived = 'partially_received';
+  static const received = 'received';
+  static const closed = 'closed';
+  static const values = [open, partiallyReceived, received, closed];
 }
 
 /// Lifecycle of a physical asset. `unregistered`: received into stock, details not entered yet.
@@ -136,18 +127,10 @@ abstract final class MemberType {
   static const values = [STUDENT, EMPLOYEE];
 }
 
-/// The requester may edit and resubmit these.
-const editablePurchaseRequestStatuses = [
-  PurchaseRequestStatus.draft,
-  PurchaseRequestStatus.revisionRequested,
-];
-
-/// A request may be cancelled in these statuses.
-const cancellablePurchaseRequestStatuses = [
-  PurchaseRequestStatus.draft,
-  PurchaseRequestStatus.revisionRequested,
-  PurchaseRequestStatus.pending,
-  PurchaseRequestStatus.approved,
+/// Goods may still be received (and the request closed) in these statuses.
+const openPurchaseRequestStatuses = [
+  PurchaseRequestStatus.open,
+  PurchaseRequestStatus.partiallyReceived,
 ];
 
 /// Statuses a librarian may set by hand; issued belongs to circulation.
@@ -169,7 +152,7 @@ abstract final class InventoryStatsTotalsFields {
   static const lowStock = 'lowStock';
   static const outOfStock = 'outOfStock';
   static const expiryOn = 'expiryOn';
-  static const pendingPurchaseRequests = 'pendingPurchaseRequests';
+  static const openPurchaseRequests = 'openPurchaseRequests';
   static const pendingIssueRequests = 'pendingIssueRequests';
   static const assets = 'assets';
   static const unregisteredAssets = 'unregisteredAssets';

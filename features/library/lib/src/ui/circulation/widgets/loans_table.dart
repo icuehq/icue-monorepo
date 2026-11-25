@@ -23,9 +23,9 @@ class LoansTable extends StatelessWidget {
     LibraryProvider provider,
     String? name,
   ) async {
-    final preset = name == null ? null : LibraryDatePreset.values.byName(name);
-    var range = preset == null ? null : calculateRangeForPreset(preset);
-    if (preset == LibraryDatePreset.custom) {
+    final preset = name == null ? null : IcueDatePreset.values.byName(name);
+    var range = preset?.range();
+    if (preset == IcueDatePreset.custom) {
       range = await showDateRangePicker(
         context: context,
         firstDate: DateTime(2000),
@@ -109,8 +109,8 @@ class LoansTable extends StatelessWidget {
           id: 'period',
           label: 'Period',
           options: [
-            for (final preset in LibraryDatePreset.values)
-              if (preset != LibraryDatePreset.all)
+            for (final preset in IcueDatePreset.values)
+              if (preset != IcueDatePreset.all)
                 IcueTableFilterOption(preset.name, preset.label),
           ],
           value: provider.loanPeriod?.name,

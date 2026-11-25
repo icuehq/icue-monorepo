@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart' show DateTimeRange;
 import 'package:icue_firebase/icue_firebase.dart';
+import 'package:icue_ui/icue_ui.dart' show IcueDatePreset;
 import 'package:injectable/injectable.dart';
 import 'package:routes/routes.dart';
 import 'package:school_library/src/models/library_fines.dart';
@@ -79,7 +80,7 @@ class LibraryProvider extends LoadingProvider {
   String? loanSection;
 
   /// Issue-date period of the list; [loanRange] holds its days (null = any time).
-  LibraryDatePreset? loanPeriod;
+  IcueDatePreset? loanPeriod;
   DateTimeRange? loanRange;
   LoanDueFilter? loanDue;
 

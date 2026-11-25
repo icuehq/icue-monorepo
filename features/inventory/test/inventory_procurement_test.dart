@@ -1,31 +1,46 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:inventory/inventory.dart';
+import 'package:inventory/src/services/purchase_request_writes.dart';
 
 void main() {
-  InventoryPurchaseRequest pr(String status) =>
+  InventoryPurchaseRequest request(String status) =>
       InventoryPurchaseRequest.fromMap('p', {
         'status': status,
+        'storeId': 's1',
         'lineItems': [
-          {'itemId': 'i', 'quantity': 4, 'estimatedPrice': 2.5},
+          {'itemId': 'i', 'quantity': 4, 'received': 1, 'damaged': 1},
         ],
         'history': [
-          {'action': 'submit', 'comment': null},
+          {'action': 'create', 'comment': null},
         ],
       });
 
-  test('status drives edit, approve and cancel', () {
-    expect(pr('draft').isEditable, isTrue);
-    expect(pr('revision_requested').isEditable, isTrue);
-    expect(pr('pending').isEditable, isFalse);
-    expect(pr('pending').isPending, isTrue);
-    expect(pr('approved').isCancellable, isTrue);
-    expect(pr('rejected').isCancellable, isFalse);
-    expect(pr('cancelled').isCancellable, isFalse);
+  test('edits only until goods arrive; receives and closes while open', () {
+    expect(request('open').isEditable, isTrue);
+    expect(request('partially_received').isEditable, isFalse);
+    expect(request('partially_received').isOpen, isTrue);
+    expect(request('received').isOpen, isFalse);
+    expect(request('closed').isOpen, isFalse);
   });
 
-  test('parses lines and history', () {
-    final purchaseRequest = pr('draft');
-    expect(purchaseRequest.lineItems.single.estimatedPrice, 2.5);
-    expect(purchaseRequest.history.single.action, 'submit');
+  test('parses lines with what arrived', () {
+    final line = request('open').lineItems.single;
+    expect(line.quantity, 4);
+    expect(line.pending, 2);
+    expect(request('open').storeId, 's1');
+  });
+
+  test('status follows good + damaged against the requested quantity', () {
+    Map<String, dynamic> line(num received, num damaged) => {
+      'quantity': 5,
+      'received': received,
+      'damaged': damaged,
+    };
+    expect(purchaseRequestStatus([line(0, 0), line(0, 0)]), 'open');
+    expect(
+      purchaseRequestStatus([line(5, 0), line(0, 0)]),
+      'partially_received',
+    );
+    expect(purchaseRequestStatus([line(4, 1), line(5, 0)]), 'received');
   });
 }

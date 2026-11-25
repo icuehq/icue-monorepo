@@ -271,7 +271,7 @@ class IssueRequestCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      request.createdAt!.toNumericDate(),
+                      request.createdAt!.toIndianTime().toNumericDate(),
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),

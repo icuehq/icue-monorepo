@@ -185,7 +185,7 @@ final _inventoryPages = <RouteBase>[
     path: InventoryRoutes.inventoryReport,
     name: InventoryRoutes.inventoryReportName,
     builder: (context, state) => _inventoryPage(
-      (_) => pages.InventoryReportPage(def: state.extra! as ReportDef),
+      (_) => pages.InventoryReportPage(report: state.extra! as InventoryReport),
     ),
   ),
   GoRoute(

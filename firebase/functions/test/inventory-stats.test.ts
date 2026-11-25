@@ -44,14 +44,20 @@ describe('inventory analytics summary', () => {
   });
 
   it('request, asset and item counts follow their status', async () => {
-    await record('inventoryPurchaseRequests', undefined, { status: 'pending' });
-    await record('inventoryPurchaseRequests', { status: 'pending' }, { status: 'approved' });
+    await record('inventoryPurchaseRequests', undefined, { status: 'open' });
+    await record('inventoryPurchaseRequests', undefined, { status: 'open' });
+    await record('inventoryPurchaseRequests', { status: 'open' }, { status: 'partially_received' });
+    await record(
+      'inventoryPurchaseRequests',
+      { status: 'partially_received' },
+      { status: 'received' },
+    );
     await record('inventoryIssueRequests', undefined, { status: 'pending' });
     await record('inventoryAssets', undefined, { status: 'under_repair' });
     await record('inventoryItems', undefined, { status: 'active' });
     await record('inventoryItems', undefined, { status: 'inactive' });
     expect(await read()).toMatchObject({
-      pendingPurchaseRequests: 0,
+      openPurchaseRequests: 1,
       pendingIssueRequests: 1,
       assets: 1,
       underMaintenance: 1,
@@ -60,7 +66,7 @@ describe('inventory analytics summary', () => {
   });
 
   it('a write that changes no figure writes nothing', async () => {
-    await record('inventoryPurchaseRequests', { status: 'approved' }, { status: 'cancelled' });
+    await record('inventoryPurchaseRequests', { status: 'received' }, { status: 'closed' });
     expect(await read()).toBeUndefined();
   });
 });

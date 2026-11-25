@@ -206,7 +206,9 @@ class _MaintenanceUpdateDialogState extends State<MaintenanceUpdateDialog> {
               ListTile(
                 dense: true,
                 contentPadding: EdgeInsets.zero,
-                title: Text('${part.item.name} × ${part.quantity}'),
+                title: Text(
+                  '${part.item.name} × ${part.quantity.toQuantityText()}',
+                ),
                 trailing: IconButton(
                   icon: const Icon(Icons.close),
                   onPressed: () => setState(() => _parts.remove(part)),

@@ -95,7 +95,7 @@ class UnavailableTable extends StatelessWidget {
           label: 'Recorded',
           hideBelowWidth: 900,
           cellBuilder: (context, record) => IcueTableCellText(
-            record.createdAt?.toNumericDate() ?? '—',
+            record.createdAt?.toIndianTime().toNumericDate() ?? '—',
             style: IcueTableStyle.of(context).numeric,
           ),
         ),

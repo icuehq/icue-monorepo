@@ -79,4 +79,13 @@ void main() {
       expect(null.toDisplayTime(), '');
     });
   });
+
+  group('days', () {
+    test('daysBetween and addDays work on yyyy-MM-dd, across months', () {
+      expect(daysBetween('2025-02-27', '2025-03-02'), 3);
+      expect(daysBetween('2025-03-02', '2025-02-27'), -3);
+      expect(addDays('2025-02-27', 3), '2025-03-02');
+      expect(addDays('2025-03-02', -3), '2025-02-27');
+    });
+  });
 }

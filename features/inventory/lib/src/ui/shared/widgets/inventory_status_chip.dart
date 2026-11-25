@@ -6,37 +6,37 @@ import 'package:icue_ui/icue_ui.dart';
 Color inventoryStatusColor(String status) => switch (status) {
   'approved' ||
   'issued' ||
-  'fully_received' ||
-  'paid' ||
+  'received' ||
   'completed' ||
   'available' ||
   'resolved' ||
-  'active' => Colors.green.shade800,
-  'ordered' ||
+  'active' ||
+  'in_stock' ||
+  'in_date' => Colors.green.shade800,
+  'open' ||
   'acknowledged' ||
   'assigned' ||
   'in_progress' => Colors.blue.shade800,
-  'partially_ordered' ||
-  'partially_issued' ||
-  'partially_received' ||
-  'partially_paid' => Colors.purple.shade800,
-  'pending' || 'unpaid' || 'unregistered' => Colors.amber.shade900,
-  'revision_requested' ||
+  'partially_issued' || 'partially_received' => Colors.purple.shade800,
+  'pending' || 'unregistered' || 'low_stock' => Colors.amber.shade900,
   'under_maintenance' ||
   'under_repair' ||
-  'waiting_for_parts' => Colors.orange.shade900,
+  'waiting_for_parts' ||
+  'expiring_soon' ||
+  'high' => Colors.orange.shade900,
   'rejected' ||
   'overdue' ||
   'lost' ||
   'damaged' ||
-  'urgent' => Colors.red.shade800,
-  'draft' || 'closed' || 'retired' || 'disposed' => Colors.blueGrey.shade800,
+  'urgent' ||
+  'out_of_stock' ||
+  'expired' => Colors.red.shade800,
+  'closed' || 'retired' || 'disposed' => Colors.blueGrey.shade800,
   _ => Colors.grey.shade700,
 };
 
-/// Display text of a status; a request sent back for changes reads "Returned".
-String inventoryStatusLabel(String status) =>
-    status == 'revision_requested' ? 'Returned' : humanizeStatus(status);
+/// Display text of a status.
+String inventoryStatusLabel(String status) => humanizeStatus(status);
 
 class InventoryStatusChip extends StatelessWidget {
   const InventoryStatusChip(this.status, {super.key});

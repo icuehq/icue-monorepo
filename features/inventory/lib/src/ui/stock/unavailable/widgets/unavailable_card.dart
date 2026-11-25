@@ -94,7 +94,7 @@ class UnavailableCard extends StatelessWidget {
                   const Spacer(),
                   if (item.createdAt != null)
                     Text(
-                      item.createdAt!.toNumericDate(),
+                      item.createdAt!.toIndianTime().toNumericDate(),
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),

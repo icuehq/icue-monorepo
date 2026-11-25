@@ -4,7 +4,8 @@ import 'package:inventory/src/services/stock_support.dart';
 
 /// Receive Stock.
 class ReceivingWrites with StockSupport {
-  /// Receive Stock: adds each line straight to its store balance (no receipt, ledger row or number).
+  /// Receive Stock: adds each line to its store balance and the ledger (`receive` rows sharing one
+  /// receipt reference; there is no receipt document or number).
   Future<Map<String, dynamic>> confirmReceipt(Map<String, Object?> data) async {
     final today = todayIST();
     final storeId = data['storeId']! as String;
@@ -14,6 +15,15 @@ class ReceivingWrites with StockSupport {
     ];
     if (lines.isEmpty) failWith('Add at least one item');
     final storeRef = await branchDoc('inventoryStores/$storeId');
+    final movements = await branchCollection('inventoryMovements');
+    final receiptId = movements.doc().id;
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final ledger = <String, Object?>{
+      'storeId': storeId,
+      'transactionDate': dayTimestamp(today),
+      'financialYear': currentFinancialYear,
+      'createdBy': uid,
+    };
 
     await FirebaseFirestore.instance.runTransaction((transaction) async {
       // All reads first.
@@ -75,11 +85,12 @@ class ReceivingWrites with StockSupport {
       }
 
       // Then writes.
-      for (final line in prepared) {
-        setBalance(
+      for (final (index, line) in prepared.indexed) {
+        addStock(
           transaction,
-          line.balanceRef,
-          line.balance,
+          movements,
+          reference: line.balanceRef,
+          balance: line.balance,
           storeId: storeId,
           itemId: line.itemId,
           variantId: line.variantId,
@@ -88,6 +99,11 @@ class ReceivingWrites with StockSupport {
           quantity: line.accepted,
           unitCost: line.unitCost,
           reorderLevel: line.reorderLevel,
+          type: 'receive',
+          referenceType: 'receipt',
+          referenceId: receiptId,
+          sequence: index,
+          ledger: ledger,
         );
       }
     });

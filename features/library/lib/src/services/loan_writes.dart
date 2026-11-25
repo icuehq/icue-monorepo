@@ -27,9 +27,6 @@ class LoanWrites {
     'maxFine',
   ];
 
-  String _addDays(String day, int days) =>
-      DateTime.parse('${day}T00:00:00Z').add(Duration(days: days)).toApiDate();
-
   String get _uid => FirebaseAuth.instance.currentUser!.uid;
 
   Future<_Ref> _loanReference(String id) => schoolDocument('libraryLoans', id);
@@ -254,7 +251,7 @@ class LoanWrites {
           'libraryId': copy['libraryId'],
           'issuedDate': dayTimestamp(today),
           'dueDate': dayTimestamp(
-            _addDays(today, (policy['loanDays'] as num).toInt()),
+            addDays(today, (policy['loanDays'] as num).toInt()),
           ),
           'remarks': remarks,
           'renewals': <Object?>[],
@@ -540,7 +537,7 @@ class LoanWrites {
         writeFail('Overdue loans cannot be renewed');
       }
       final dueDate = dayTimestamp(
-        _addDays(currentDue, (policy['loanDays'] as num).toInt()),
+        addDays(currentDue, (policy['loanDays'] as num).toInt()),
       );
       transaction.update(loanReference, {
         'dueDate': dueDate,

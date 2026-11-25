@@ -2,6 +2,7 @@ import { type DocumentData, getFirestore } from 'firebase-admin/firestore';
 import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import type { Change } from '../shared/audit';
 import { BRANCH_TRIGGER, branchPathOf } from '../shared/branch';
+import { openPurchaseRequestStatuses } from '../shared/contracts';
 import { timestampDay } from '../shared/dates';
 import { bump, type Counts, increments } from '../shared/statsCounts';
 
@@ -41,7 +42,8 @@ export function figures(collection: string, data: DocumentData | undefined, sign
       };
     }
     case 'inventoryPurchaseRequests':
-      if (data.status === 'pending') bump(branch, 'pendingPurchaseRequests', sign);
+      if ((openPurchaseRequestStatuses as readonly string[]).includes(data.status))
+        bump(branch, 'openPurchaseRequests', sign);
       break;
     case 'inventoryIssueRequests':
       if (data.status === 'pending') bump(branch, 'pendingIssueRequests', sign);

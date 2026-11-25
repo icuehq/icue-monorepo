@@ -1,6 +1,5 @@
-# Guide 1.3.4 (create purchase request as draft). Needs items.yaml first. Skipped once the PR exists.
-# The delivery campus field is hidden for a single-campus user. Hints stay on filled fields, so the second
-# line's fields are addressed with index: 1.
+# Guide 1.3.4 (create a purchase request for a store; no approval). Needs items.yaml first. Skipped once the PR exists.
+# Hints stay on filled fields, so the second line's fields are addressed with index: 1.
 appId: com.thoughtniques.icueadmin.dev
 ---
 - runFlow:
@@ -12,6 +11,8 @@ appId: com.thoughtniques.icueadmin.dev
       notVisible: "PR/.*"
     commands:
       - tapOn: "New request"
+      - tapOn: "Store"
+      - tapOn: "Central Main Store"
       - tapOn: ".*Priority.*"
       - tapOn: "High"
       - tapOn: "Purpose.*"
@@ -34,11 +35,5 @@ appId: com.thoughtniques.icueadmin.dev
           index: 1
       - inputText: "5"
       - pressKey: Enter
-      - tapOn:
-          text: "Est. Unit Price.*"
-          index: 1
-      - eraseText: 8
-      - inputText: "55000"
-      - pressKey: Enter
-      - tapOn: "Save as Draft"
-- assertVisible: "PR/.*High.*Draft.*Annual Examination.*× 120.*× 5.*₹2,76,800.00.*"
+      - tapOn: "Create request"
+- assertVisible: "PR/.*High.*Open.*Annual Examination.*× 120.*× 5.*"

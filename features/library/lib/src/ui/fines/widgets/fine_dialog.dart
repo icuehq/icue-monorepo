@@ -19,7 +19,7 @@ class FineDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final calculation = fine.calculationLabel;
-    final raisedAt = fine.createdAt?.toLocal().toNumericDateTime();
+    final raisedAt = fine.createdAt?.toIndianTime().toNumericDateTime();
 
     final content = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -56,7 +56,7 @@ class FineDialog extends StatelessWidget {
           Text('Waivers', style: theme.textTheme.labelLarge),
           for (final fineWaiver in fine.waivers)
             Text(
-              '${fineWaiver.amount.toRupees()} on ${fineWaiver.performedAt?.toLocal().toNumericDateTime() ?? '-'} (${fineWaiver.reason})',
+              '${fineWaiver.amount.toRupees()} on ${fineWaiver.performedAt?.toIndianTime().toNumericDateTime() ?? '-'} (${fineWaiver.reason})',
               style: theme.textTheme.bodySmall,
             ),
         ],

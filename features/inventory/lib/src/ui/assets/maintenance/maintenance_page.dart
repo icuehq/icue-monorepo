@@ -160,7 +160,7 @@ class MaintenanceSheet extends StatelessWidget {
             maintenance.parts
                 .map(
                   (partUsed) =>
-                      '${assetsProvider.itemName(partUsed.itemId)} × ${partUsed.quantity}',
+                      '${assetsProvider.itemName(partUsed.itemId)} × ${partUsed.quantity.toQuantityText()}',
                 )
                 .join(', '),
           ),

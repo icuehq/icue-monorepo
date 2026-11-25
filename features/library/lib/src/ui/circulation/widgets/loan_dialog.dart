@@ -69,9 +69,7 @@ class _LoanDialogState extends State<LoanDialog> {
     int daysUntilDue = 0;
     if (!isOverdue && !isDueToday) {
       try {
-        daysUntilDue = DateTime.parse('${loan.dueDate}T00:00:00Z')
-            .difference(DateTime.parse('${today}T00:00:00Z'))
-            .inDays;
+        daysUntilDue = daysBetween(today, loan.dueDate);
       } catch (_) {
         // errors:ok an unparsable date falls back to 0 days.
         daysUntilDue = 0;

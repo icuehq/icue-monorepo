@@ -504,34 +504,52 @@ describe('storage', () => {
  });
 });
 
-describe('procurement (Inv-3)', () => {
+describe('purchase requests', () => {
+  const base = 'orgs/8/zones/147/branches/427';
+  const manager = { ...staff, roleIds: [44], personErpId: 4401 };
+  const request = (user, extra = {}) => ({ storeId: 'lab', status: 'open', number: 'PR/1', createdBy: user, ...mark(user), ...extra });
   beforeEach(() =>
     env.withSecurityRulesDisabled(async (context) => {
       const firestore = context.firestore();
-      const access = (permissions) => ({ permissions });
-      await setDoc(doc(firestore, 'orgs/8/zones/147/branches/427/userAccess/parent-req'), access(['inventory.purchaseRequest.request']));
-      await setDoc(doc(firestore, 'orgs/8/zones/147/branches/427/userAccess/parent-apr'), access(['inventory.purchaseRequest.approve']));
-      await setDoc(doc(firestore, 'orgs/8/zones/147/branches/427/userAccess/proc'), access(['inventory.procure.operate']));
-      await setDoc(doc(firestore, 'orgs/8/zones/147/branches/427/inventoryPurchaseRequests/pr1'), { createdBy: 'parent-req' });
-      await setDoc(doc(firestore, 'orgs/8/zones/147/branches/427/inventoryItems/i'), { name: 'i' });
-   }),
+      await setDoc(doc(firestore, `${base}/inventoryStores/lab`), { status: 'active', managerId: '4401' });
+      await setDoc(doc(firestore, `${base}/inventoryStores/sports`), { status: 'active', managerId: '4402' });
+      await setDoc(doc(firestore, `${base}/inventoryPurchaseRequests/open`), { storeId: 'lab', status: 'open', number: 'PR/1', createdBy: '1' });
+      await setDoc(doc(firestore, `${base}/inventoryPurchaseRequests/sports`), { storeId: 'sports', status: 'open', number: 'PR/2', createdBy: '1' });
+      await setDoc(doc(firestore, `${base}/inventoryPurchaseRequests/done`), { storeId: 'lab', status: 'received', number: 'PR/3', createdBy: '1' });
+      await setDoc(doc(firestore, `${base}/inventoryItems/i`), { name: 'i' });
+    }),
   );
 
-  it('purchase requests: requester sees own, approvers and procurement the branch', async () => {
-    const readPurchaseRequest = (userId) => getDoc(doc(db(userId), 'orgs/8/zones/147/branches/427/inventoryPurchaseRequests/pr1'));
-    await assertSucceeds(readPurchaseRequest('parent-req'));
-    await assertSucceeds(readPurchaseRequest('parent-apr'));
-    await assertSucceeds(readPurchaseRequest('proc'));
-    await assertFails(readPurchaseRequest('nostaff-ven'));
-    await assertFails(getDoc(doc(db('parent-apr', { ...staff, branchId: 428 }), 'orgs/8/zones/147/branches/427/inventoryPurchaseRequests/pr1')));
-    await assertSucceeds(getDocs(query(collection(db('parent-req'), 'orgs/8/zones/147/branches/427/inventoryPurchaseRequests'), where('createdBy', '==', 'parent-req'))));
-    await assertSucceeds(setDoc(doc(db('parent-req'), 'orgs/8/zones/147/branches/427/inventoryPurchaseRequests/pr1'), { ...mark('parent-req'), status: 'approved' }));
-    await assertFails(setDoc(doc(db('parent-req'), 'orgs/8/zones/147/branches/427/inventoryPurchaseRequests/pr2'), { status: 'approved' })); // unstamped
-    await assertFails(setDoc(doc(db('2'), 'orgs/8/zones/147/branches/427/inventoryPurchaseRequests/pr1'), { status: 'approved' }));
- });
+  it('staff read them; parents and other branches do not', async () => {
+    const read = (userId, claims) => getDoc(doc(db(userId, claims), `${base}/inventoryPurchaseRequests/open`));
+    await assertSucceeds(read('2'));
+    await assertFails(read('nostaff-ven'));
+    await assertFails(read('2', { ...staff, branchId: 428 }));
+  });
 
-  it('requesters can browse items', async () => {
-    await assertSucceeds(getDoc(doc(db('parent-req'), 'orgs/8/zones/147/branches/427/inventoryItems/i')));
+  it('are created open, stamped, by the creator, in their store', async () => {
+    await assertSucceeds(setDoc(doc(db('2'), `${base}/inventoryPurchaseRequests/c1`), request('2')));
+    await assertFails(setDoc(doc(db('2'), `${base}/inventoryPurchaseRequests/c2`), { ...request('2'), lastWrite: null })); // unstamped
+    await assertFails(setDoc(doc(db('2'), `${base}/inventoryPurchaseRequests/c3`), request('2', { status: 'received' })));
+    await assertFails(setDoc(doc(db('2'), `${base}/inventoryPurchaseRequests/c4`), request('2', { createdBy: '3' })));
+    await assertSucceeds(setDoc(doc(db('4401', manager), `${base}/inventoryPurchaseRequests/c5`), request('4401')));
+    await assertFails(setDoc(doc(db('4401', manager), `${base}/inventoryPurchaseRequests/c6`), request('4401', { storeId: 'sports' })));
+  });
+
+  it('change only while open, in their store, keeping store and number', async () => {
+    const change = (id, data, user = '2', claims = staff) =>
+      updateDoc(doc(db(user, claims), `${base}/inventoryPurchaseRequests/${id}`), { ...mark(user), ...data });
+    await assertSucceeds(change('open', { status: 'partially_received' }));
+    await assertFails(change('done', { status: 'closed' }));
+    await assertFails(change('open', { storeId: 'sports' }));
+    await assertFails(change('open', { number: 'PR/9' }));
+    await assertFails(updateDoc(doc(db('2'), `${base}/inventoryPurchaseRequests/open`), { status: 'closed' })); // unstamped
+    await assertSucceeds(change('open', { status: 'closed' }, '4401', manager));
+    await assertFails(change('sports', { status: 'closed' }, '4401', manager));
+  });
+
+  it('staff can browse items', async () => {
+    await assertSucceeds(getDoc(doc(db('2'), 'orgs/8/zones/147/branches/427/inventoryItems/i')));
  });
 });
 

@@ -127,7 +127,7 @@ Common fields on every document: `createdAt`, `createdBy` (uid), `updatedAt`, `s
 | `inventoryReturns` | issueId, lineItems `[{balanceId, quantityUsable, quantityDamaged}]`, inspection | `quantityReturned ≤ issued − returned` |
 | `inventoryAdjustments` | balanceId, before, delta, after, reason, evidence, approval | Immutable after `completed` |
 | `inventoryUnavailableStock` | balanceId or assetId, quantity, reason, evidence, resolution, resolvedAt | FRS 10.12 register |
-| `inventoryPurchaseRequests` | lineItems `[{itemId, quantity, estimatedPrice, quantityOrdered}]`, itemIds, priority, requiredDate, status (FRS 10.13), approval | |
+| `inventoryPurchaseRequests` | storeId, lineItems `[{itemId, variantId, quantity, received, damaged}]` (no prices), itemIds, priority, requiredDate, status `open → partially_received → received`, or `closed` by hand, history | No approval; arrivals are recorded on the request |
 | `inventoryPurchaseOrders/{id}/revisions` | snapshot, changedBy, reason | Post-issue changes (FRS 10.16) |
 | `inventoryAssets` | itemId, serialNumber, make, model, purchaseDate, price, warranty `{start, end}`, condition, storeId, status (FRS 10.19), activeAssignmentId, rfidTag, imagePath | One doc per physical object |
 | `inventoryAssetAssignments` | assetId, assignee `{type: staff | student | department, personErpId}`, assignedAt, expectedReturn, conditionOut, ack, returnedAt, conditionIn | Top-level so parents/teachers can query their own |
@@ -176,7 +176,7 @@ Names below are logical; they deploy as `<group>-<name>` (`session.sync` → `se
 | Settings | `config.setRolePermissions`, `inventory.setSettings`, `library.setSettings` |
 | Inventory masters | `inventory.seedDefaults`. Categories, units, stores, items and variants are client Firestore writes (`firestore.rules`); the bulk importer reuses their server handlers internally. |
 | Stock | Receive Stock, issue request submit/decide, issuing stock, acknowledging an issue, returns, stock adjustments, and unavailable-stock reports and resolutions are client transactions (`StockWrites`). `inventory.adjustment.approve` |
-| Procurement | Purchase requests (save, submit, decide, cancel) are client Firestore writes (`ProcurementWrites`). There are no vendors, quotations, purchase orders, goods receipts or invoices. |
+| Procurement | Purchase requests are created for one store by its staff (no approval), bought offline, and received on the request: `ProcurementWrites` save / receive / close are client Firestore writes; a receipt adds good units to the store's available stock at the item's default price and damaged units to its damaged stock in one transaction. Asset lines are received through `inventory.asset.receive` with `purchaseRequestId` (unregistered assets; damaged asset units are only counted on the request). There are no vendors, quotations, purchase orders, goods receipts or invoices. |
 | Assets | `inventory.asset.register`, `inventory.asset.assign/return/transfer/setCondition/retire`, `inventory.maintenance.save/setStatus` |
 | Library masters | Borrowing policies, libraries and categories are client Firestore writes. |
 | Copies | `library.book.create` (creates copies keyed by barcode), `library.copy.update/move` |
@@ -240,7 +240,7 @@ These are enforced in Functions transactions and covered by unit tests.
 
 ### 7.1 Outbox
 
-Business transactions write `outbox/{eventKey}` docs inside the same transaction, e.g. `lowstock__{balanceId}__{yyyy-mm-dd}`, `overdue__{loanId}__{yyyy-mm-dd}`, `pr_decided__{purchaseRequestId}`. Because the key is deterministic, an existing event is skipped (read in the transaction, not `create`, which would abort the business write) → no repeated messages (FRS 23). Delivery creates `notifications/{eventKey__uid}` once per recipient, so retries never double-send. `outboxSend` resolves recipients (Inventory staff of the branch, or member/requester), loads tokens and sends via `sendEach`.
+Business transactions write `outbox/{eventKey}` docs inside the same transaction, e.g. `lowstock__{balanceId}__{yyyy-mm-dd}`, `overdue__{loanId}__{yyyy-mm-dd}`. Because the key is deterministic, an existing event is skipped (read in the transaction, not `create`, which would abort the business write) → no repeated messages (FRS 23). Delivery creates `notifications/{eventKey__uid}` once per recipient, so retries never double-send. `outboxSend` resolves recipients (Inventory staff of the branch, or member/requester), loads tokens and sends via `sendEach`.
 
 Recipients:
 

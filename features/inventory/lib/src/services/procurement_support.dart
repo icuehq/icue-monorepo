@@ -2,7 +2,7 @@ import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icue_ui/icue_ui.dart';
 
 /// Helpers shared by the procurement write classes: failures, numbering, history entries,
-/// line checks and document totals.
+/// and line checks.
 mixin ProcurementSupport {
   Never failWith(String message) => throw FirebaseException(
     plugin: 'cloud_firestore',
@@ -13,8 +13,6 @@ mixin ProcurementSupport {
   String get currentUid => FirebaseAuth.instance.currentUser!.uid;
 
   String get todayDay => todayIST();
-
-  double roundToCents(num amount) => (amount * 100).round() / 100;
 
   Map<String, Object?> historyEntry(String action, [String? comment]) => {
     'action': action,

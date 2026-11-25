@@ -92,8 +92,7 @@ class ReceiptLineFields extends StatelessWidget {
                   lastDate: DateTime(2100),
                   validator: (value) {
                     final date = value ?? '';
-                    return date.isNotEmpty &&
-                            date.compareTo(DateTime.now().toApiDate()) < 0
+                    return date.isNotEmpty && date.compareTo(todayIST()) < 0
                         ? 'Expired batches cannot be received'
                         : null;
                   },

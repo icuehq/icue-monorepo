@@ -113,7 +113,7 @@ class FineCard extends StatelessWidget {
             section: fine.memberSection,
             admissionNumber: fine.admissionNumber,
             isEmployee: fine.memberType == 'EMPLOYEE',
-            date: fine.createdAt?.toLocal().toNumericDate(),
+            date: fine.createdAt?.toIndianTime().toNumericDate(),
           ),
           const SizedBox(height: 12),
           const Divider(height: 1),

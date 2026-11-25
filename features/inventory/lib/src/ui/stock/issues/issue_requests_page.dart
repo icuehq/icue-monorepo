@@ -183,7 +183,7 @@ class _IssueRequestsPageState extends State<IssueRequestsPage> {
             minWidth: 110,
             hideBelowWidth: 780,
             cellBuilder: (context, request) => IcueTableCellText(
-              request.createdAt?.toNumericDate() ?? '—',
+              request.createdAt?.toIndianTime().toNumericDate() ?? '—',
               style: IcueTableStyle.of(context).numeric,
             ),
           ),

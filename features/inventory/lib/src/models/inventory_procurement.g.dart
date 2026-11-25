@@ -13,7 +13,8 @@ class PurchaseRequestLine {
     required this.itemId,
     this.variantId,
     required this.quantity,
-    required this.estimatedPrice,
+    required this.received,
+    required this.damaged,
   });
 
   factory PurchaseRequestLine.fromMap(Map<String, dynamic> data) =>
@@ -21,16 +22,22 @@ class PurchaseRequestLine {
         itemId: data['itemId'] as String? ?? '',
         variantId: data['variantId'] as String?,
         quantity: readDouble(data['quantity']),
-        estimatedPrice: readDouble(data['estimatedPrice']),
+        received: readDouble(data['received']),
+        damaged: readDouble(data['damaged']),
       );
 
   final String itemId;
   final String? variantId;
   final double quantity;
-  final double estimatedPrice;
+
+  /// Good units received so far (added to the store's stock).
+  final double received;
+
+  /// Units that arrived damaged (the store's damaged stock; not counted for assets).
+  final double damaged;
 }
 
-/// One step of the retained approval history (submit, approve, reject, revise, cancel).
+/// One step of the request's history (create, update, receive, close).
 class PurchaseRequestHistoryEntry {
   const PurchaseRequestHistoryEntry({
     required this.action,
@@ -56,12 +63,12 @@ class InventoryPurchaseRequest {
   const InventoryPurchaseRequest({
     required this.id,
     required this.number,
+    required this.storeId,
     required this.status,
     required this.priority,
     required this.purpose,
     this.remarks,
     required this.requiredDate,
-    required this.total,
     required this.createdBy,
     this.createdAt,
     required this.lineItems,
@@ -74,12 +81,12 @@ class InventoryPurchaseRequest {
   ) => InventoryPurchaseRequest(
     id: id,
     number: data['number'] as String? ?? '',
-    status: data['status'] as String? ?? 'draft',
+    storeId: data['storeId'] as String? ?? '',
+    status: data['status'] as String? ?? 'open',
     priority: data['priority'] as String? ?? 'normal',
     purpose: data['purpose'] as String? ?? '',
     remarks: data['remarks'] as String?,
     requiredDate: readDay(data['requiredDate']),
-    total: readDouble(data['total']),
     createdBy: data['createdBy'] as String? ?? '',
     createdAt: data['createdAt'] is Timestamp
         ? (data['createdAt'] as Timestamp).toDate()
@@ -96,12 +103,12 @@ class InventoryPurchaseRequest {
 
   final String id;
   final String number;
+  final String storeId;
   final String status;
   final String priority;
   final String purpose;
   final String? remarks;
   final String requiredDate;
-  final double total;
   final String createdBy;
   final DateTime? createdAt;
   final List<PurchaseRequestLine> lineItems;

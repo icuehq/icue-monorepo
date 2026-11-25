@@ -227,7 +227,7 @@ class AssetHistoryCard extends StatelessWidget {
                 ),
                 subtitle: Text(
                   [
-                        event.performedAt?.toLocal().toNumericDateTime(),
+                        event.performedAt?.toIndianTime().toNumericDateTime(),
                         event.detail,
                       ]
                       .whereType<String>()

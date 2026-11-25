@@ -97,3 +97,13 @@ extension DateText on String? {
 
 /// Today's calendar day in India Standard Time (`yyyy-MM-dd`), as the backend dates records.
 String todayIST() => DateTime.now().toIndianTime().toApiDate();
+
+/// Whole days from [fromDay] to [toDay] (both `yyyy-MM-dd`); negative when [toDay] is earlier.
+int daysBetween(String fromDay, String toDay) =>
+    DateTime.parse('${toDay}T00:00:00Z')
+        .difference(DateTime.parse('${fromDay}T00:00:00Z'))
+        .inDays;
+
+/// The `yyyy-MM-dd` day [days] after [day] (before it when negative).
+String addDays(String day, int days) =>
+    DateTime.parse('${day}T00:00:00Z').add(Duration(days: days)).toApiDate();

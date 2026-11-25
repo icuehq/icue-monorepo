@@ -132,7 +132,7 @@ class FinesTable extends StatelessWidget {
           label: 'Date',
           hideBelowWidth: 900,
           cellBuilder: (context, fine) => IcueTableCellText(
-            fine.createdAt?.toLocal().toNumericDate() ?? '-',
+            fine.createdAt?.toIndianTime().toNumericDate() ?? '-',
             style: IcueTableStyle.of(context).secondary,
           ),
         ),

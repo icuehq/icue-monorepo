@@ -71,10 +71,19 @@ service cloud.firestore {
           || topLevelCategory(get(/databases/$(db)/documents/orgs/$(orgId)/zones/$(zoneId)/branches/$(branchId)/libraryCategories/$(request.resource.data.parentId)).data));
     }
 
-    // Purchase requests: client writes for the roles that handle them.
+    // Purchase requests (no approval): store staff create one for a store, then edit it, record arrivals and close it while
+    // it is open; the store never changes. Asset arrivals are recorded by `inventory.asset.receive`.
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryPurchaseRequests/{id} {
-      allow write: if inBranch(orgId, zoneId, branchId) && stamped()
-        && staff(orgId, zoneId, branchId);
+      allow create: if stamped() && staff(orgId, zoneId, branchId)
+        && inStore(orgId, zoneId, branchId, request.resource.data.get('storeId', ''))
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.status == 'open';
+      allow update: if stamped() && staff(orgId, zoneId, branchId)
+        && inStore(orgId, zoneId, branchId, resource.data.get('storeId', ''))
+        && resource.data.status in ['open', 'partially_received']
+        && request.resource.data.storeId == resource.data.storeId
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.number == resource.data.number;
     }
     // Sequence counters (PR numbers) are bumped by clients that hold any permission (parents hold none).
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/counters/{id} {
@@ -168,12 +177,6 @@ service cloud.firestore {
         && resource.data.status in ['open', 'in_repair']
         && request.resource.data.status in ['in_repair', 'resolved']
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'resolution', 'resolutionNote', 'resolvedAt', 'resolvedBy', 'lastWrite', 'updatedAt']);
-    }
-
-    // Procurement (Inv-3). Requesters see their own requests, approvers and procurement all of them.
-    match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryPurchaseRequests/{id} {
-      allow read: if inBranch(orgId, zoneId, branchId) && (resource.data.createdBy == request.auth.uid
-        || staff(orgId, zoneId, branchId));
     }
 
     // Assets and maintenance (Inv-6). Assignees also read their own custody records.

@@ -53,6 +53,27 @@ describe('assets and maintenance', () => {
     await run(a.register, { id: asset, serialNumber: 'SN1', condition: 'new' });
   });
 
+  it('receiving against a purchase request records the arrival on it', async () => {
+    await db().doc(`${BRANCH}/inventoryPurchaseRequests/pr`).set({
+      storeId: store,
+      status: 'open',
+      lineItems: [{ itemId: laptop, variantId: null, quantity: 4, received: 0, damaged: 0 }],
+      history: [],
+    });
+    const viaRequest = (quantity: number, damaged: number) =>
+      run(a.receive, { itemId: laptop, storeId: store, quantity, damaged, purchaseRequestId: 'pr' });
+    expect((await viaRequest(2, 1)).ids).toHaveLength(2);
+    expect(await get('inventoryPurchaseRequests/pr')).toMatchObject({
+      status: 'partially_received',
+      lineItems: [{ received: 2, damaged: 1 }],
+    });
+    expect(await code(viaRequest(2, 0))).toBe('failed-precondition'); // only 1 pending
+    expect((await viaRequest(0, 1)).ids).toHaveLength(0);
+    expect(await get('inventoryPurchaseRequests/pr')).toMatchObject({ status: 'received' });
+    expect(await code(viaRequest(1, 0))).toBe('failed-precondition'); // closed to receipts
+    expect(await code(run(a.receive, { itemId: laptop, storeId: store, quantity: 0, damaged: 1 }))).not.toBe('ok');
+  });
+
   it('receiving creates unregistered units; registering fills them in once', async () => {
     const received = await run(a.receive, { itemId: laptop, storeId: store, quantity: 3 });
     expect(new Set(received.ids).size).toBe(3);

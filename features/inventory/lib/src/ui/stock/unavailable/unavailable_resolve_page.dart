@@ -316,7 +316,10 @@ class _Summary extends StatelessWidget {
                 fact('Store', storeName),
                 if (item.batchNumber != null) fact('Batch', item.batchNumber!),
                 if (item.createdAt != null)
-                  fact('Recorded', item.createdAt!.toNumericDate()),
+                  fact(
+                    'Recorded',
+                    item.createdAt!.toIndianTime().toNumericDate(),
+                  ),
               ],
             ),
             if (item.remarks != null && item.remarks!.isNotEmpty) ...[

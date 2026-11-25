@@ -159,7 +159,7 @@ class IssueSummary extends StatelessWidget {
             Icons.person_outline_rounded,
             'Requested by '
             '${request.requesterName?.isNotEmpty == true ? request.requesterName! : (requesterId == null ? request.createdBy : staffDisplayName(requesterId))}'
-            '${request.createdAt == null ? '' : ' on ${request.createdAt!.toNumericDate()}'}',
+            '${request.createdAt == null ? '' : ' on ${request.createdAt!.toIndianTime().toNumericDate()}'}',
           ),
           const SizedBox(height: 14),
           IssueProgress(request),

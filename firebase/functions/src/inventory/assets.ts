@@ -1,6 +1,7 @@
-import { type DocumentData, type DocumentReference } from 'firebase-admin/firestore';
+import { type DocumentData, type DocumentReference, Timestamp } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import type { CallableContext } from '../shared/callable';
+import { openPurchaseRequestStatuses, PurchaseRequestStatus } from '../shared/contracts';
 import { dayTimestamp, dayTimestampOrNull, isoDate, todayIST } from '../shared/dates';
 import { serverTimestamp } from '../shared/firestore';
 import { claimUniqueKey, nextNumber, uniqueKeyRef } from '../shared/keys';
@@ -117,19 +118,76 @@ async function closeAssignment(
   return ref;
 }
 
+/** Status from what arrived (good + damaged) against each line. Mirrors `purchaseRequestStatus` in the inventory feature. */
+export function purchaseRequestStatus(lines: DocumentData[]): PurchaseRequestStatus {
+  const arrived = lines.map((line) => (line.received ?? 0) + (line.damaged ?? 0));
+  if (lines.every((line, index) => arrived[index] >= line.quantity))
+    return PurchaseRequestStatus.received;
+  return arrived.some((amount) => amount > 0)
+    ? PurchaseRequestStatus.partiallyReceived
+    : PurchaseRequestStatus.open;
+}
+
+/** Records an asset line's arrival on its purchase request, in the same transaction as the new assets. */
+async function recordOnPurchaseRequest(
+  context: CallableContext,
+  requestId: string,
+  i: { itemId: string; storeId: string; quantity: number; damaged: number },
+  itemName: string,
+) {
+  const ref = context.doc(`inventoryPurchaseRequests/${requestId}`);
+  const request = (await context.transaction.get(ref)).data();
+  if (!request) throw missing('Purchase request');
+  if (!(openPurchaseRequestStatuses as readonly string[]).includes(request.status))
+    throw failed(`This purchase request is ${request.status}`);
+  if (request.storeId !== i.storeId) throw failed('This purchase request is for another store');
+  const lines = (request.lineItems as DocumentData[]).map((line) => ({ ...line }));
+  const line = lines.find((candidate) => candidate.itemId === i.itemId);
+  if (!line) throw failed(`${itemName} is not on this purchase request`);
+  const pending = line.quantity - (line.received ?? 0) - (line.damaged ?? 0);
+  if (i.quantity + i.damaged > pending) throw failed(`${itemName}: only ${pending} pending`);
+  line.received = (line.received ?? 0) + i.quantity;
+  line.damaged = (line.damaged ?? 0) + i.damaged;
+  const comment = `${itemName}: ${i.quantity} received${i.damaged ? `, ${i.damaged} damaged` : ''}`;
+  context.update(ref, {
+    lineItems: lines,
+    status: purchaseRequestStatus(lines),
+    history: [
+      ...(request.history ?? []),
+      { action: 'receive', comment, performedBy: context.uid, performedAt: Timestamp.now() },
+    ],
+    updatedAt: serverTimestamp(),
+  });
+  context.audit({
+    action: 'inventoryPurchaseRequest.receive',
+    documentPath: ref.path,
+    after: { itemId: i.itemId, received: i.quantity, damaged: i.damaged },
+  });
+}
+
 export const assets = {
   /**
    * Receive Stock for an asset-tracked item: `quantity` units enter the store as `unregistered` records (one per
    * physical unit; the document ID is the asset ID and barcode value). Their details are entered later by `register`.
+   * With `purchaseRequestId` the arrival (and any `damaged` units, which create no asset) is recorded on that request.
    */
   receive: defineCallable({
     name: 'inventory.asset.receive',
-    input: z.object({
-      itemId: id,
-      storeId: id,
-      quantity: z.number().int().min(1).max(MAX_BULK),
-      unitCost: money.nullish(),
-    }),
+    input: z
+      .object({
+        itemId: id,
+        storeId: id,
+        quantity: z.number().int().min(0).max(MAX_BULK),
+        damaged: z.number().int().min(0).default(0),
+        unitCost: money.nullish(),
+        purchaseRequestId: id.nullish(),
+      })
+      .refine((i) => i.quantity > 0 || (i.purchaseRequestId && i.damaged > 0), {
+        message: 'Enter how many were received',
+      })
+      .refine((i) => i.damaged === 0 || i.purchaseRequestId, {
+        message: 'Damaged units are recorded on a purchase request',
+      }),
     handler: async (context, i) => {
       const item = usable(
         await context.transaction.get(context.doc(`inventoryItems/${i.itemId}`)),
@@ -143,6 +201,8 @@ export const assets = {
         'Store',
         false,
       );
+      if (i.purchaseRequestId)
+        await recordOnPurchaseRequest(context, i.purchaseRequestId, i, item.name);
       const ids: string[] = [];
       for (let unit = 0; unit < i.quantity; unit++) {
         const ref = context.newDoc('inventoryAssets');
@@ -179,7 +239,7 @@ export const assets = {
         });
         ids.push(ref.id);
       }
-      return { id: ids[0], ids };
+      return { id: ids[0] ?? i.purchaseRequestId, ids };
     },
   }),
 
