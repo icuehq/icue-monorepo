@@ -1,0 +1,5 @@
+#include "Release.xcconfig"
+
+APP_DISPLAY_NAME = icueadmin
+PRODUCT_BUNDLE_IDENTIFIER = com.thoughtniques.icueadmin
+

@@ -1,0 +1,200 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:icue_firebase/icue_firebase.dart' show textSearchSupported;
+import 'package:icue_ui/icue_ui.dart';
+import 'package:provider/provider.dart';
+import 'package:school_library/school_library.dart';
+import 'package:school_library/src/ui/catalogue/widgets/catalogue_filter_header.dart';
+import 'package:school_library/src/ui/shared/library_filter.dart';
+import 'package:school_library/src/ui/shared/library_status_chip.dart';
+
+/// Wide-screen catalogue: books as an [IcueTable]. Search, category and class
+/// and status are Firestore filters (the provider reloads); pages come from
+/// the provider's [FirestorePager].
+class CatalogueTable extends StatelessWidget {
+  const CatalogueTable({
+    required this.books,
+    required this.statusFilter,
+    required this.onStatusChanged,
+    required this.onOpen,
+    required this.onClearFilters,
+    super.key,
+  });
+
+  final List<LibraryBook> books;
+  final CatalogueStatusFilter statusFilter;
+  final ValueChanged<CatalogueStatusFilter> onStatusChanged;
+  final void Function(LibraryBook book) onOpen;
+  final VoidCallback onClearFilters;
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.watch<LibraryProvider>();
+    final pager = provider.books;
+    final categories = [
+      ...provider.topCategories,
+      ...provider.categories.where((category) => category.parentId != null),
+    ];
+    void addBook() => context.pushNamed(LibraryRoutes.libraryBookFormName);
+
+    return IcueTable<LibraryBook>(
+      title: 'Books Catalogue',
+      rows: books,
+      rowKey: (book) => book.id,
+      rowLabel: (book) => book.title,
+      count: pager.total ?? books.length,
+      status: IcueTableStatus.pager(pager),
+      onRetry: pager.retry,
+      pagination: IcueTablePagination.pager(pager),
+      onRowTap: onOpen,
+      searchHint: 'Search title, author, or publisher...',
+      initialSearch: provider.bookSearch,
+      searchDebounce: const Duration(milliseconds: 400),
+      onSearchChanged: textSearchSupported
+          ? (query) => provider.loadBooks(search: query.trim())
+          : null,
+      filters: [
+        ...libraryTableFilter(
+          provider.libraries,
+          provider.bookLibraryId,
+          (value) =>
+              provider.loadBooks(libraryId: value, clearLibrary: value == null),
+        ),
+        IcueTableFilter(
+          id: 'category',
+          label: 'Category',
+          options: [
+            for (final category in categories)
+              IcueTableFilterOption(category.id, category.name),
+          ],
+          value:
+              categories.any(
+                (category) => category.id == provider.bookCategoryId,
+              )
+              ? provider.bookCategoryId
+              : null,
+          onChanged: (value) => provider.loadBooks(
+            categoryId: value,
+            clearCategory: value == null,
+          ),
+        ),
+        IcueTableFilter(
+          id: 'class',
+          label: 'Class',
+          options: [
+            for (final standard in provider.standards)
+              IcueTableFilterOption('${standard.id}', standard.name),
+          ],
+          value:
+              provider.standards.any(
+                (standard) => standard.id == provider.bookClassId,
+              )
+              ? '${provider.bookClassId}'
+              : null,
+          onChanged: (value) => provider.loadBooks(
+            classId: value == null ? null : int.parse(value),
+            clearClass: value == null,
+          ),
+        ),
+        IcueTableFilter(
+          id: 'status',
+          label: 'Status',
+          options: [
+            for (final filter in CatalogueStatusFilter.values)
+              if (filter != CatalogueStatusFilter.all)
+                IcueTableFilterOption(filter.name, filter.label),
+          ],
+          value: statusFilter == CatalogueStatusFilter.all
+              ? null
+              : statusFilter.name,
+          onChanged: (value) => onStatusChanged(
+            value == null
+                ? CatalogueStatusFilter.all
+                : CatalogueStatusFilter.values.byName(value),
+          ),
+        ),
+      ],
+      isFiltered:
+          provider.bookSearch.isNotEmpty ||
+          provider.bookCategoryId != null ||
+          provider.bookClassId != null ||
+          provider.bookLibraryId != null ||
+          statusFilter != CatalogueStatusFilter.all,
+      onClearFilters: onClearFilters,
+      secondaryAction: IcueTableAction(
+        label: 'Import',
+        icon: Icons.upload_file_rounded,
+        onPressed: () => context.pushNamed(LibraryRoutes.libraryBookImportName),
+      ),
+      primaryAction: IcueTableAction(
+        label: 'Book',
+        icon: Icons.add_rounded,
+        onPressed: addBook,
+      ),
+      emptyTitle: 'No books yet',
+      emptyMessage: 'Add your first book to start the catalogue.',
+      emptyAction: IcueTableAction(
+        label: 'Add book',
+        icon: Icons.add_rounded,
+        onPressed: addBook,
+      ),
+      rowActions: (book) => [
+        IcueTableRowAction(
+          label: 'Edit',
+          icon: Icons.edit_outlined,
+          inline: true,
+          onPressed: (book) =>
+              context.pushNamed(LibraryRoutes.libraryBookFormName, extra: book),
+        ),
+      ],
+      columns: [
+        IcueTableColumn(
+          id: 'title',
+          label: 'Title',
+          flex: 4,
+          minWidth: 220,
+          cellBuilder: (context, book) => IcueTableCellText(
+            book.title,
+            subtitle: (book.subtitle ?? '').isEmpty ? null : book.subtitle,
+          ),
+        ),
+        IcueTableColumn(
+          id: 'classes',
+          label: 'Classes',
+          hideBelowWidth: 1000,
+          cellBuilder: (context, book) => IcueTableCellText(
+            book.classIds.isEmpty
+                ? 'All'
+                : book.classIds.map(provider.className).join(', '),
+            style: IcueTableStyle.of(context).secondary,
+          ),
+        ),
+        IcueTableColumn(
+          id: 'category',
+          label: 'Category',
+          flex: 2,
+          cellBuilder: (context, book) => IcueTableCellText(
+            provider.category(book.categoryId)?.name ?? '—',
+            style: IcueTableStyle.of(context).secondary,
+          ),
+        ),
+        IcueTableColumn(
+          id: 'copies',
+          label: 'Copies available',
+          width: 160,
+          cellBuilder: (context, book) => IcueTableCellText(
+            '${book.availableCopies} of ${book.copyCount}',
+            style: IcueTableStyle.of(context).secondary,
+          ),
+        ),
+        IcueTableColumn(
+          id: 'status',
+          label: 'Status',
+          width: 130,
+          cellBuilder: (context, book) =>
+              LibraryStatusChip.active(active: book.active),
+        ),
+      ],
+    );
+  }
+}

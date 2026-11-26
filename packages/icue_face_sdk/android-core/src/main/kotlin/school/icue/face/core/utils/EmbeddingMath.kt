@@ -24,6 +24,11 @@ object EmbeddingMath {
 
     fun dotProductOfNormalized(first: FloatArray, second: FloatArray): Float {
         validatePair(first, second)
+        return unsafeDotProduct(first, second)
+    }
+
+    /** Fast dot product for vectors already validated and L2-normalized at load/inference time. */
+    internal fun unsafeDotProduct(first: FloatArray, second: FloatArray): Float {
         var result = 0f
         for (index in first.indices) result += first[index] * second[index]
         return result.coerceIn(-1f, 1f)

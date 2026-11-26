@@ -1,0 +1,8 @@
+# Guide step 0.3.1: Dashboard shows Inventory and Library tiles (they sit below the fold).
+appId: com.thoughtniques.icueadmin.dev
+---
+- launchApp
+- scrollUntilVisible:
+    element: "Inventory"
+- scrollUntilVisible:
+    element: "Library"

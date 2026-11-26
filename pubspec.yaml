@@ -2,24 +2,144 @@ name: icue_monorepo
 publish_to: none
 
 environment:
-  sdk: ^3.9.0
+  sdk: ^3.13.1
 
 workspace:
   - apps/icueadmin
+  - apps/impl
+  - apps/portal
+  - apps/super_admin
+  - packages/api_client
+  - packages/icue_ui
+  - packages/local_storage
   - packages/icue_face_sdk
+  - packages/icue_firebase
+  - packages/parent_l10n
+  - packages/icue_webview
+  - packages/bus_tracking_core
+  - features/auth
+  - features/drivers
+  - features/vehicles
+  - features/routes
+  - features/announcements
+  - features/expenses
+  - features/logbook
+  - features/reports
+  - features/gatepass
+  - features/tracking
+  - features/drop_boarding
+  - features/attendance
+  - features/inventory
+  - features/library
+  - features/face_enrollment
+  - features/students
+  - features/parent_transport
+  - features/safehands
+  - features/school_connect
+  - features/mess_meals
+  - sdks/icue_sdk
+  - sdks/icue_sdk/example
 
 dev_dependencies:
-  flutter_lints: ^6.0.0
-  melos: ^8.2.2
+  melos: ^8.9.0
+  yaml: ^3.1.3
 
 melos:
   scripts:
-    clean:
-      exec: flutter clean
-      description: Clean build folders and artifacts across all packages and apps.
+    lint:
+      description: Analyze every package.
+      run: melos exec -c 5 -- flutter analyze --no-fatal-infos
+
     format:
-      exec: dart format .
-      description: Run dart format on all packages and apps in the workspace.
+      description: Format all Dart code.
+      run: dart format .
+
+    gen:contracts:
+      description: Regenerate Dart and TypeScript contracts from contracts/*.yaml.
+      run: dart run tool/gen_contracts.dart
+
+    check:contracts:
+      description: Fail if the generated contract files are out of sync with contracts/*.yaml.
+      run: dart run tool/gen_contracts.dart --check
+
+    errors:check:
+      description: Fail when a service reads response.data instead of apiClient.parse, or a catch neither logs nor rethrows (Crashlytics coverage).
+      run: node tool/check-errors.mjs
+
+    naming:check:
+      description: Fail on abbreviated names, module prefixes and uid prefixes in Inventory and Library code (docs/naming-map.md).
+      run: node tool/check-naming.mjs
+
     format:check:
-      exec: dart format --set-exit-if-changed .
-      description: Check dart format on all packages and apps in the workspace.
+      description: Fail if any file is unformatted.
+      run: dart format --set-exit-if-changed .
+
+    test:
+      description: Run tests in every package that has a test/ dir.
+      run: melos exec -c 3 --fail-fast -- flutter test
+      packageFilters:
+        dirExists: test
+
+    gen:
+      description: Run build_runner in packages that depend on it.
+      run: melos exec -c 3 -- dart run build_runner build --delete-conflicting-outputs
+      packageFilters:
+        dependsOn: build_runner
+
+    gen:watch:
+      description: Watch build_runner in packages that depend on it.
+      run: melos exec -- dart run build_runner watch --delete-conflicting-outputs
+      packageFilters:
+        dependsOn: build_runner
+
+    clean:
+      description: Flutter clean every package.
+      run: melos exec -c 5 -- flutter clean
+
+    firebase:test:
+      description: Cloud Functions and Security Rules tests on the emulator.
+      run: cd firebase/functions && npm ci && npm test && cd ../rules-tests && npm ci && npm test
+
+    build:web:dev:
+      description: Build all web apps (icueadmin, portal) for dev.
+      run: for app in icueadmin portal; do (cd apps/$app && flutter build web --wasm --no-web-resources-cdn --dart-define=ENV=dev) || exit 1; done
+
+    build:web:prod:
+      description: Build all web apps (icueadmin, portal) for prod.
+      run: for app in icueadmin portal; do (cd apps/$app && flutter build web --wasm --no-web-resources-cdn --dart-define=ENV=prod) || exit 1; done
+
+    deploy:web:dev:
+      description: Build and deploy all web apps (icueadmin, portal) to the dev Firebase project (icueadmin-dev).
+      run: for app in icueadmin portal; do (cd apps/$app && flutter build web --wasm --no-web-resources-cdn --dart-define=ENV=dev && firebase deploy --only hosting --project dev) || exit 1; done
+
+    deploy:web:prod:
+      description: Build and deploy all web apps (icueadmin, portal) to the prod Firebase project (icueadmin).
+      run: for app in icueadmin portal; do (cd apps/$app && flutter build web --wasm --no-web-resources-cdn --dart-define=ENV=prod && firebase deploy --only hosting --project prod) || exit 1; done
+
+    release:sdk:
+      description: "Release icue_sdk (and --core bus_tracking_core) to Cloudsmith. Usage: melos run release:sdk -- beta|stable [--patch|--minor|--major] [-m note]... [--core patch|minor|major] [--dry-run]"
+      run: dart tool/release.dart
+
+    emulators:
+      description: Start Firebase emulators; loads and saves firebase/.emulator-data (Ctrl-C saves).
+      run: firebase/scripts/emulators.sh start standard
+
+    emulators:enterprise:
+      description: Same as emulators, but the Firestore emulator runs in Enterprise edition (own data dir firebase/.emulator-data-enterprise).
+      run: firebase/scripts/emulators.sh start enterprise
+
+    emulators:reset:
+      description: Delete the saved emulator data (both editions).
+      run: firebase/scripts/emulators.sh reset
+
+    e2e:emulators:
+      description: Emulators for the Maestro e2e suite with their own data (firebase/.emulator-data-e2e); stop the dev emulators first.
+      run: EMULATOR_DATA=.emulator-data-e2e firebase/scripts/emulators.sh start standard
+
+    e2e:reset:
+      description: Delete the e2e emulator data only; development data is untouched.
+      run: EMULATOR_DATA=.emulator-data-e2e firebase/scripts/emulators.sh reset
+
+    outdated:
+      description: Show outdated dependencies.
+      run: melos exec -c 5 -- flutter pub outdated

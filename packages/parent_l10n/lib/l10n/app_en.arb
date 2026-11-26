@@ -1,0 +1,442 @@
+{
+  "login": "Login",
+  "enterPhoneNumber": "Enter your phone number",
+  "mobileNumber": "Mobile Number",
+  "securityMessage": "Securing your personal information is our priority",
+  "sendOtp": "Send OTP",
+  "sendingOtp": "Sending OTP... Please wait...",
+  "otpVerify": "OTP Verify",
+  "otpSentMessage": "Code has been sent to",
+  "otp": "OTP",
+  "didNotGetOtp": "Didn't get OTP Code",
+  "sec": "sec",
+  "verify": "Verify",
+  "resendCode": "Resend Code",
+  "authenticating": "Authenticating... Please wait...",
+  "selectChild": "Select A Child",
+  "liveBusTracking": "Live Bus Tracking",
+  "realTimeTrackingInfo": "Advanced real-time vehicle tracking system featuring high-precision accuracy and robust child safety protocols.",
+  "trackBus": "Track Bus",
+  "safeHands": "Safe Hands",
+  "schoolConnect": "School Connect",
+  "homeWork": "Home Work",
+  "messMeals": "Mess & Meals",
+  "liveTracking": "Live Tracking",
+  "routeNotStarted": "Route is not started yet!",
+  "generatePin": "Generate PIN",
+  "safeHandsPin": "Safe hands pin",
+  "routeNo": "Route No",
+  "noDataFound": "No Data Found!",
+  "addEscort": "Add Escort",
+  "type": "Type",
+  "name": "Name",
+  "relation": "Relation",
+  "mobile": "Mobile",
+  "uploadPhoto": "Upload Photo",
+  "addingEscort": "Adding Escort... Please wait...",
+  "areYouSureYouWantToDelete": "Are you sure you want to delete?",
+  "close": "Close",
+  "delete": "Delete",
+  "thisPhoneNumberMayNotRegisteredWithUs": "This Phone Number may not registered with us.",
+  "pleaseWriteToSupport": "Please write to support@thoughtniques.com, \nMentioning\n1.⁠ ⁠School Name\n2.⁠ ⁠Student Name\n3.⁠ ⁠Admission Number\n4.⁠ ⁠Parent Contact Number\n\nOur team will contact you and resolve.",
+  "sendEmail": "Send Email",
+  "logout": "Logout",
+  "areYouSureYouWantToLogout": "Are you sure you want to logout?",
+  "no": "No",
+  "yes": "Yes",
+  "notificationsHistory": "Notifications History",
+  "submit": "SUBMIT",
+  "requestForEntry": "Request For Entry",
+  "announcements": "Announcements",
+  "didNotGetOtpCode": "Didn’t get OTP Code?",
+  "events": "Events",
+  "appointments": "Appointments",
+  "escort": "ESCORT",
+  "academics": "Academics",
+  "enterYourPhoneNumber": "Enter your phone number",
+  "securingYourPersonalInformationIsOurPriority": "Securing your personal information is our priority.",
+  "payments": "Payments",
+  "mealMenu": "Meal Menu",
+  "todaysMenu": "Today's Menu",
+  "testPage": "Test Page",
+  "instantMealPurchase": "Instant Meal Purchase",
+  "postComplaint": "Post Complaint",
+  "history": "History",
+  "selectComplaintType": "Select Complaint Type",
+  "complaints": "Complaints",
+  "responses": "Responses",
+  "pleaseEnterAMobileNumber": "Please enter a mobile number",
+  "enterAValidMobileNumber": "Enter a valid mobile number",
+  "loggingOut": "Logging out... Please wait...",
+  "pleaseEnterOtp": "Please enter OTP",
+  "eta": "ETA",
+  "school": "School",
+  "currentLocation": "Current Location",
+  "studentPoint": "Student Point",
+  "yourPoint": "Your Point",
+  "routeCompleted": "Route is Completed",
+  "pleaseUploadPhoto": "Please upload photo",
+  "fromDate": "From Date",
+  "selectFromDate": "Select From Date",
+  "toDate": "To Date",
+  "selectToDate": "Select To Date",
+  "thisIsRequired": "This is required",
+  "managementConnect": "Management Connect",
+  "parentTeacherMeeting": "Parent Teacher Meeting",
+  "testAndExams": "Test & Exams",
+  "observationsAndRecommendations": "Observations & Recommendes",
+  "breadButterMasalaDosa": "Bread Butter / Masala Dosa",
+  "beverages": "Beverages: Milk / Watermelon Juice",
+  "mealDetail": "Dal, Roti, Bottle Gourd Chickpeas curry, White Rice, Curd, Semiya Kheer with raisins",
+  "vegSaladCutlet": "Veg salad and Veg cutlet",
+  "breakfast": "Breakfast",
+  "lunch": "Lunch",
+  "snack": "Snack",
+  "marksAndGrades": "Marks & Grades",
+  "ptmDiscussions": "P T M Discussions",
+  "pleaseSelectComplaintType": "Please select complaint type",
+  "writeYourQuery": "Write your query",
+  "pleaseWriteYourQuery": "Please write your query",
+  "submitting": "Submitting... Please wait...",
+  "deleting": "Deleting...",
+  "profile": "Profile",
+  "students": "Students",
+  "language": "Language",
+  "termsAndConditions": "Terms & Conditions",
+  "privacyPolicy": "Privacy Policy",
+  "appVersion": "App Version",
+  "selectLanguage": "Select Language",
+  "notificationsDisabled": "Notifications Disabled",
+  "notificationDisabledContent": "You have disabled notifications.\nTo stay up-to-date, please enable them in your device settings.",
+  "cancel": "Cancel",
+  "openSettings": "Open Settings",
+  "route": "Route",
+  "callDriver": "Call Driver",
+  "switchChild": "SWITCH",
+  "myChildren": "My Children",
+  "noRouteDetails": "No route details available",
+  "transportDetails": "Transport Details",
+  "transportNotOpted": "Transport not opted",
+  "mode": "Mode",
+  "point": "Point",
+  "time": "Time",
+  "children": "Children",
+  "myVehicles": "My Vehicles",
+  "generateGatePass": "Generate Gate Pass",
+  "gatePassType": "Gate Pass Type",
+  "requestGatePass": "Request Gate Pass",
+  "gatePassRequestedSuccessfully": "GATE PASS REQUESTED\nSUCCESSFULLY",
+  "viewRequests": "View Requests",
+  "gatePassRequests": "Gate Pass Requests",
+  "gatePassDateInfo": "Gate pass will be generated for today's date: {date}",
+  "@gatePassDateInfo": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "dateRangeLimited": "Date range is limited to 10 days.",
+  "home": "Home",
+  "dateWithValue": "Date: {date}",
+  "@dateWithValue": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "selectDateRange": "Select date range",
+  "recenter": "Recenter",
+  "transportAttendance": "Transport Attendance",
+  "addAVehicle": "Add a vehicle",
+  "vehicleNumber": "Vehicle Number",
+  "addVehicle": "Add Vehicle",
+  "savedVehicles": "Saved Vehicles",
+  "noVehiclesYet": "No vehicles added yet.",
+  "addFirstVehicle": "Add your first vehicle using the form above.",
+  "vehicleRequired": "Vehicle number is required",
+  "vehicleInvalid": "Enter a valid vehicle number (e.g., AB12CD3456)",
+  "deleteVehicleTitle": "Delete vehicle?",
+  "deleteVehicleMessage": "Are you sure you want to delete \"{plate}\"?",
+  "@deleteVehicleMessage": {
+    "placeholders": {
+      "plate": {
+        "type": "String"
+      }
+    }
+  },
+  "vehicleAdded": "Vehicle added successfully!",
+  "vehicleDeleted": "Vehicle deleted successfully!",
+  "cannotLaunchDialer": "Cannot launch phone dialer",
+  "trackingUnavailable": "Live tracking is not available right now.",
+  "escortSaved": "Escort saved successfully!",
+  "escortPermanent": "Permanent",
+  "escortTemporary": "Temporary",
+  "dateRangeFromTo": "{from} to {to}",
+  "@dateRangeFromTo": {
+    "placeholders": {
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      }
+    }
+  },
+  "generatePinFirst": "No PIN generated yet.",
+  "complaintOpen": "Open",
+  "complaintInProgress": "In Progress",
+  "complaintResolved": "Resolved",
+  "admin": "Admin",
+  "querySubmitted": "Successfully submitted your query!",
+  "eventDateMissing": "Date Missing",
+  "eventDaysToGo": "{count, plural, =1{1 day to go} other{{count} days to go}}",
+  "@eventDaysToGo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "eventEnded": "Event Ended",
+  "eventHappeningNow": "Happening Now",
+  "eventDuration": "Duration:",
+  "eventDays": "{count, plural, =1{1 Day} other{{count} Days}}",
+  "@eventDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "eventPaymentsHistory": "Event Payments History",
+  "noPaymentRecords": "No Payment Records Found!",
+  "view": "View",
+  "paymentDetails": "Payment Details",
+  "subtotal": "Subtotal:",
+  "convenienceFee": "Convenience Fee:",
+  "total": "Total:",
+  "bookingDetails": "Booking Details",
+  "attendDate": "Attend Date:",
+  "attendees": "Attendees:",
+  "attendeesValue": "{booked} Booked / {attended} Attended",
+  "@attendeesValue": {
+    "placeholders": {
+      "booked": {
+        "type": "String"
+      },
+      "attended": {
+        "type": "String"
+      }
+    }
+  },
+  "totalPrice": "Total Price:",
+  "information": "Information",
+  "questionsAndAnswers": "Q&A",
+  "tryAgainMessage": "Something went wrong... Please try again!",
+  "other": "Other",
+  "studentDetails": "Student Details",
+  "admissionNumber": "Admission Number",
+  "classLabel": "Class",
+  "mess": "Mess",
+  "subscribedAnnual": "Subscribed (Annual)",
+  "nonSubscriber": "Non-Subscriber",
+  "next": "Next",
+  "buyMealVouchers": "Buy Meal Vouchers",
+  "vouchersHistory": "Vouchers History",
+  "purchaseRules": "Purchase Rules for Meal Vouchers",
+  "noRules": "No rules available at the moment.",
+  "selectMealVouchers": "Select Meal Vouchers",
+  "onlyOneVoucherOfType": "Only one voucher of type {types} can be selected.",
+  "@onlyOneVoucherOfType": {
+    "placeholders": {
+      "types": {
+        "type": "String"
+      }
+    }
+  },
+  "vouchersSelected": "{count, plural, =1{1 voucher selected} other{{count} vouchers selected}}",
+  "@vouchersSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "totalWithAmount": "Total: {amount}",
+  "@totalWithAmount": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "pricePerDay": "{price}/day",
+  "@pricePerDay": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "continueLabel": "Continue",
+  "selectVouchersToContinue": "Select vouchers to continue",
+  "selectVoucherDates": "Select {name} Dates",
+  "@selectVoucherDates": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "bookableRange": "Bookable: {range}",
+  "@bookableRange": {
+    "placeholders": {
+      "range": {
+        "type": "String"
+      }
+    }
+  },
+  "purchaseTimings": "Purchase Timings",
+  "todayClosedAt": "Today's voucher purchases closed at {time}.",
+  "@todayClosedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "todayBuyUntil": "Today's voucher can be bought until {time}.",
+  "@todayBuyUntil": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "todayHadToBuy": "Today's voucher had to be purchased by {time} yesterday.",
+  "@todayHadToBuy": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "tomorrowClosedAt": "Tomorrow's voucher purchases closed at {time} today.",
+  "@tomorrowClosedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "tomorrowBuyUntil": "Tomorrow's voucher can be bought until {time} today.",
+  "@tomorrowBuyUntil": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "quickSelectDays": "Quick select working days ({count} available)",
+  "@quickSelectDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "daysCount": "{count} days",
+  "@daysCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "allAvailable": "All available",
+  "custom": "Custom",
+  "onlyWorkingDays": "{count, plural, =1{Only 1 working day available.} other{Only {count} working days available.}}",
+  "@onlyWorkingDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "legendSelected": "Selected",
+  "legendHoliday": "Holiday",
+  "legendPurchased": "Purchased",
+  "legendWeekend": "Weekend",
+  "noBookableDates": "No bookable dates available",
+  "noBookableDatesMessage": "All dates in the range are either holidays, weekends, or already purchased.",
+  "daysSelected": "{count, plural, =1{1 day selected} other{{count} days selected}}",
+  "@daysSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "confirm": "Confirm",
+  "orderSummary": "Order Summary",
+  "subTotal": "Sub Total",
+  "totalAmount": "Total Amount",
+  "voucherDetailsHeading": "Vouchers Details",
+  "proceedToPay": "Proceed to Pay",
+  "completePayment": "Complete Your Payment",
+  "redirectingToGateway": "Redirecting to secure payment gateway...",
+  "dontCloseApp": "Please don't close the app or press back.",
+  "paymentSuccessful": "Payment Successful!",
+  "orderPlaced": "Order placed successfully.",
+  "orderIdLabel": "Order ID: {id}",
+  "@orderIdLabel": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "copyOrderId": "Copy Order ID",
+  "orderIdCopied": "Order ID copied",
+  "done": "Done",
+  "paymentFailed": "Payment Failed",
+  "goBack": "Go Back",
+  "retry": "Retry",
+  "paymentCancelled": "The payment was cancelled. Please try again if you wish to proceed.",
+  "paymentCouldNotBeProcessed": "Your payment could not be processed. (Reason: {reason})",
+  "@paymentCouldNotBeProcessed": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "paymentUnknownError": "An unknown error occurred. Please try again.",
+  "paymentCouldNotStart": "Could not initiate the payment session.",
+  "voucherPurchaseHistory": "Voucher Purchase History",
+  "paymentModeLabel": "Payment Mode",
+  "purchasedVouchers": "Purchased Vouchers",
+  "detailsUpper": "DETAILS",
+  "noItemDetails": "No item details available.",
+  "daysAtPrice": "{days} days @ {price}",
+  "@daysAtPrice": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      },
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "noHistoryFound": "No History Found",
+  "historyWillAppear": "Your purchased meal vouchers will appear here.",
+  "voucherDetailsTitle": "Voucher Details",
+  "voucherUsed": "Used",
+  "voucherExpired": "Expired",
+  "voucherUnused": "Unused",
+  "effectiveDateLabel": "Effective Date",
+  "expiryDateLabel": "Expiry Date"
+}

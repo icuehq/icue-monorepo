@@ -1,0 +1,275 @@
+import { beforeEach, describe, expect, it } from 'vitest';
+import { assets as a, maintenance as m } from '../src/inventory/assets';
+import { masters } from '../src/inventory/masters';
+import { runCallable, type CallableDef } from '../src/shared/callable';
+import { dayTimestamp } from '../src/shared/dates';
+import {
+  seedBalance,
+  seedStore,
+} from './fixtures';
+import { clearFirestore, db } from './setup';
+
+const BRANCH = 'orgs/8/zones/147/branches/427';
+let requestSequence = 0;
+
+const run = (definition: CallableDef<any, any>, data: Record<string, unknown>, uid = 'asset') =>
+  runCallable(
+    definition,
+    { uid, token: { orgId: 8, zoneId: 147, branchId: 427, personType: 'staff' } },
+    { requestId: `req-${String(++requestSequence).padStart(6, '0')}`, ...data },
+  );
+const get = async (path: string) => (await db().doc(`${BRANCH}/${path}`).get()).data();
+const day = (offset: number) =>
+  new Date(Date.now() + 330 * 60_000 + offset * 86_400_000).toISOString().slice(0, 10);
+const code = (promise: Promise<unknown>) =>
+  promise.then(
+    () => 'ok',
+    (error) => error.code,
+  );
+const staff = (personErpId: number) => ({ assignee: { type: 'staff', personErpId } });
+
+describe('assets and maintenance', () => {
+  let laptop: string, ink: string, store: string, asset: string;
+
+  beforeEach(async () => {
+    await clearFirestore();
+    const access = { personErpId: 5 };
+    await db().doc(`${BRANCH}/userAccess/1`).set(access);
+    await db().doc(`${BRANCH}/userAccess/asset`).set(access);
+    await db().doc(`${BRANCH}/userAccess/both`).set(access);
+    store = (await seedStore({ name: 'Main' })).id;
+    await db().collection(`${BRANCH}/inventoryUnits`).add({ storeId: store, name: 'pcs' });
+    await run(masters.seedDefaults, {}, '1');
+    const category = (await run(masters.categoryUpsert, { storeId: store, name: 'General' }, '1'))
+      .id;
+    const item = (itemCode: string, tracking: string) =>
+      run(
+        masters.itemUpsert,
+        { storeId: store, name: itemCode, categoryId: category, stockUnit: 'pcs', tracking },
+        '1',
+      ).then((extra) => extra.id as string);
+    [laptop, ink] = [await item('LAP', 'asset'), await item('INK', 'quantity')];
+    asset = (await run(a.receive, { itemId: laptop, storeId: store, quantity: 1 })).id;
+    await run(a.register, { id: asset, serialNumber: 'SN1', condition: 'new' });
+  });
+
+  it('receiving against a purchase request records the arrival on it', async () => {
+    await db().doc(`${BRANCH}/inventoryPurchaseRequests/pr`).set({
+      storeId: store,
+      status: 'open',
+      lineItems: [{ itemId: laptop, variantId: null, quantity: 4, received: 0, damaged: 0 }],
+      history: [],
+    });
+    const viaRequest = (quantity: number, damaged: number) =>
+      run(a.receive, { itemId: laptop, storeId: store, quantity, damaged, purchaseRequestId: 'pr' });
+    expect((await viaRequest(2, 1)).ids).toHaveLength(2);
+    expect(await get('inventoryPurchaseRequests/pr')).toMatchObject({
+      status: 'partially_received',
+      lineItems: [{ received: 2, damaged: 1 }],
+    });
+    expect(await code(viaRequest(2, 0))).toBe('failed-precondition'); // only 1 pending
+    expect((await viaRequest(0, 1)).ids).toHaveLength(0);
+    expect(await get('inventoryPurchaseRequests/pr')).toMatchObject({ status: 'received' });
+    expect(await code(viaRequest(1, 0))).toBe('failed-precondition'); // closed to receipts
+    expect(await code(run(a.receive, { itemId: laptop, storeId: store, quantity: 0, damaged: 1 }))).not.toBe('ok');
+  });
+
+  it('receiving creates unregistered units; registering fills them in once', async () => {
+    const received = await run(a.receive, { itemId: laptop, storeId: store, quantity: 3 });
+    expect(new Set(received.ids).size).toBe(3);
+    expect(await get(`inventoryAssets/${received.ids[2]}`)).toMatchObject({
+      name: 'LAP',
+      status: 'unregistered',
+      serialNumber: null,
+    });
+    // Only registered assets can be worked on.
+    expect(await code(run(a.assign, { id: received.ids[0], ...staff(7) }))).toBe(
+      'failed-precondition',
+    );
+    expect(await code(run(a.setCondition, { id: received.ids[0], condition: 'good' }))).toBe(
+      'failed-precondition',
+    );
+    await run(a.register, { id: received.ids[0], serialNumber: 'SN9', make: 'Dell', condition: 'good' });
+    expect(await get(`inventoryAssets/${received.ids[0]}`)).toMatchObject({
+      status: 'available',
+      serialNumber: 'SN9',
+      condition: 'good',
+    });
+    expect(await code(run(a.register, { id: received.ids[0], condition: 'good' }))).toBe(
+      'failed-precondition',
+    );
+    expect(
+      await code(
+        run(a.register, {
+          id: received.ids[1],
+          warrantyStart: day(0),
+          warrantyEnd: day(-1),
+          condition: 'new',
+        }),
+      ),
+    ).toBe('failed-precondition');
+    expect(await code(run(a.receive, { itemId: ink, storeId: store, quantity: 1 }))).toBe(
+      'failed-precondition',
+    );
+    expect(await code(run(a.receive, { itemId: laptop, storeId: store, quantity: 51 }))).toBe(
+      'invalid-argument',
+    );
+  });
+
+  it('assign, transfer and return keep history; one custodian at a time', async () => {
+    const assign = (overrides: Record<string, unknown> = {}) =>
+      run(a.assign, {
+        id: asset,
+        ...staff(7),
+        location: 'Lab 1',
+        expectedReturn: day(30),
+        acknowledged: true,
+        ...overrides,
+      });
+    const firstAssignmentId = (await assign()).assignmentId;
+    expect(await get(`inventoryAssets/${asset}`)).toMatchObject({
+      status: 'assigned',
+      activeAssignmentId: firstAssignmentId,
+      assignedTo: { type: 'staff', personErpId: 7 },
+    });
+    expect(await get(`inventoryAssetAssignments/${firstAssignmentId}`)).toMatchObject({
+      personErpId: 7,
+      conditionOut: 'new',
+      returnedAt: null,
+      acknowledgement: { performedAt: expect.anything() },
+    });
+    expect(await code(assign())).toBe('failed-precondition');
+    expect(await code(run(a.assign, { id: asset, ...staff(8) }))).toBe('failed-precondition');
+
+    expect(await code(run(a.transfer, { id: asset, ...staff(7) }))).toBe('failed-precondition'); // same custodian
+    const secondAssignmentId = (
+      await run(a.transfer, {
+        id: asset,
+        assignee: { type: 'department', personErpId: 3 },
+        condition: 'good',
+      })
+    ).assignmentId;
+    expect(await get(`inventoryAssetAssignments/${firstAssignmentId}`)).toMatchObject({
+      closedAs: 'transferred',
+      conditionIn: 'good',
+    });
+    expect(await get(`inventoryAssetAssignments/${secondAssignmentId}`)).toMatchObject({
+      transferredFrom: firstAssignmentId,
+      personErpId: null,
+    });
+    expect((await get(`inventoryAssets/${asset}`))!.activeAssignmentId).toBe(secondAssignmentId);
+
+    expect(await run(a.return, { id: asset, condition: 'damaged' })).toMatchObject({
+      status: 'damaged',
+    });
+    expect(await get(`inventoryAssets/${asset}`)).toMatchObject({
+      status: 'damaged',
+      activeAssignmentId: null,
+      assignedTo: null,
+      condition: 'damaged',
+    });
+    expect(await get(`inventoryAssetAssignments/${secondAssignmentId}`)).toMatchObject({
+      closedAs: 'returned',
+      conditionIn: 'damaged',
+    });
+    expect(await code(run(a.return, { id: asset, condition: 'good' }))).toBe('failed-precondition');
+    expect(await code(assign())).toBe('failed-precondition'); // damaged assets are not assignable
+    const types = (
+      await db().collection(`${BRANCH}/inventoryAssets/${asset}/history`).get()
+    ).docs.map((assetDocument) => assetDocument.data().type);
+    expect(types.sort()).toEqual(['assigned', 'received', 'registered', 'returned', 'transferred']);
+  });
+
+  it('condition changes, loss while assigned, retire and dispose', async () => {
+    await run(a.setCondition, { id: asset, condition: 'fair' });
+    expect((await get(`inventoryAssets/${asset}`))!.condition).toBe('fair');
+    await run(a.assign, { id: asset, ...staff(7) });
+    expect(
+      await code(run(a.setCondition, { id: asset, condition: 'good', status: 'available' })),
+    ).toBe('failed-precondition');
+    expect(await code(run(a.retire, { id: asset, status: 'retired', reason: 'old' }))).toBe(
+      'failed-precondition',
+    );
+    const assignmentId = (await get(`inventoryAssets/${asset}`))!.activeAssignmentId;
+    await run(a.setCondition, { id: asset, condition: 'poor', status: 'lost' });
+    expect(await get(`inventoryAssets/${asset}`)).toMatchObject({
+      status: 'lost',
+      activeAssignmentId: null,
+    });
+    expect(await get(`inventoryAssetAssignments/${assignmentId}`)).toMatchObject({
+      closedAs: 'lost',
+    });
+    await run(a.setCondition, { id: asset, condition: 'good', status: 'available' }); // found again
+    await run(a.retire, { id: asset, status: 'retired', reason: 'end of life' });
+    expect(await code(run(a.assign, { id: asset, ...staff(7) }))).toBe('failed-precondition');
+    expect(await code(run(a.retire, { id: asset, status: 'retired', reason: 'again' }))).toBe(
+      'failed-precondition',
+    );
+    await run(a.retire, { id: asset, status: 'disposed', reason: 'scrapped' });
+    expect(await code(run(a.setCondition, { id: asset, condition: 'good' }))).toBe(
+      'failed-precondition',
+    );
+    expect((await get(`inventoryAssets/${asset}`))!.status).toBe('disposed');
+  });
+
+  it('maintenance drives the asset status, needs a cost to complete and draws parts from stock', async () => {
+    const save = (result: Record<string, unknown> = {}) =>
+      run(m.save, { assetId: asset, issue: 'Screen flickers', priority: 'high', ...result });
+    const maintenanceJob = await save();
+    expect(maintenanceJob.number).toMatch(/^MNT\/.*\/000001$/);
+    expect(await get(`inventoryAssets/${asset}`)).toMatchObject({
+      status: 'under_maintenance',
+      activeMaintenanceId: maintenanceJob.id,
+    });
+    expect(await code(save())).toBe('failed-precondition'); // one job at a time
+    expect(await code(run(a.assign, { id: asset, ...staff(7) }))).toBe('failed-precondition');
+    await save({ id: maintenanceJob.id, priority: 'urgent' });
+    expect((await get(`inventoryMaintenanceJobs/${maintenanceJob.id}`))!.priority).toBe('urgent');
+
+    const set = (result: Record<string, unknown>, uid = 'asset') =>
+      run(m.setStatus, { id: maintenanceJob.id, ...result }, uid);
+    expect(await code(set({ status: 'assigned' }))).toBe('failed-precondition'); // technician
+    await set({ status: 'assigned', technician: 'Acme Service' });
+    await set({ status: 'in_progress' });
+    expect((await get(`inventoryAssets/${asset}`))!.status).toBe('under_repair');
+
+    await seedBalance(store, ink, 10, 4);
+    const parts = [{ itemId: ink, storeId: store, quantity: 2 }];
+    expect(await code(set({ status: 'waiting_for_parts', parts }))).toBe('failed-precondition'); // no stock access
+    await set({ status: 'waiting_for_parts', parts }, 'both');
+    expect((await get(`inventoryBalances/${store}__${ink}__-__-`))!.quantityAvailable).toBe(8);
+    expect((await get(`inventoryMaintenanceJobs/${maintenanceJob.id}`))!.partsUsed).toMatchObject([
+      { itemId: ink, quantity: 2 },
+    ]);
+    expect((await get(`inventoryAssets/${asset}`))!.status).toBe('under_maintenance');
+    expect(await code(set({ status: 'completed' }))).toBe('failed-precondition'); // cost
+    await set({ status: 'completed', cost: 0, condition: 'good', nextServiceDate: day(180) });
+    expect(await get(`inventoryAssets/${asset}`)).toMatchObject({
+      status: 'available',
+      activeMaintenanceId: null,
+      condition: 'good',
+      nextServiceDate: dayTimestamp(day(180)),
+    });
+    expect(await get(`inventoryMaintenanceJobs/${maintenanceJob.id}`)).toMatchObject({
+      status: 'completed',
+      cost: 0,
+      completedDate: dayTimestamp(day(0)),
+    });
+    expect(await code(set({ status: 'in_progress' }))).toBe('failed-precondition'); // finished jobs stay as they are
+  });
+
+  it('cancelling restores the previous status; a repaired damaged asset becomes available', async () => {
+    await run(a.assign, { id: asset, ...staff(7) });
+    const firstJob = await run(m.save, { assetId: asset, issue: 'x', priority: 'low' });
+    expect((await get(`inventoryAssets/${asset}`))!.status).toBe('under_maintenance');
+    await run(m.setStatus, { id: firstJob.id, status: 'cancelled' });
+    expect(await get(`inventoryAssets/${asset}`)).toMatchObject({
+      status: 'assigned',
+      activeMaintenanceId: null,
+    });
+    await run(a.return, { id: asset, condition: 'damaged' });
+    const secondJob = await run(m.save, { assetId: asset, issue: 'cracked', priority: 'medium' });
+    await run(m.setStatus, { id: secondJob.id, status: 'completed', cost: 1200 });
+    expect((await get(`inventoryAssets/${asset}`))!.status).toBe('available');
+  });
+});

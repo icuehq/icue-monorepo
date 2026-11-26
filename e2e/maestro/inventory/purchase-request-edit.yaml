@@ -1,0 +1,21 @@
+# Guide 1.3.5 (edit an open PR before goods arrive: pen quantity 120 -> 100). Needs purchase-request.yaml first.
+# Skipped once edited (the 120-unit line is gone).
+appId: com.thoughtniques.icueadmin.dev
+---
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Purchase requests
+- tapOn: "PR/.*"
+- runFlow:
+    when:
+      visible: "Items \\(2\\).*Requested 120 .*"
+    commands:
+      - tapOn: "Edit"
+      - tapOn: "Quantity.*"
+      - eraseText: 5
+      - inputText: "100"
+      - pressKey: Enter
+      - tapOn: "Save changes"
+      - tapOn: "PR/.*"
+- assertVisible: "Items \\(2\\).*Requested 100 .*Requested 5 .*"

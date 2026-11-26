@@ -1,0 +1,62 @@
+import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
+import 'package:inventory/inventory.dart';
+import 'package:provider/provider.dart';
+
+/// Runs [call]; on success shows the document number and (when [close]) leaves the sheet/page.
+Future<bool> assetSubmit(
+  BuildContext context,
+  Future<Map<String, dynamic>?> Function(AssetsProvider assetsProvider) call, {
+  bool close = true,
+  String done = 'Saved',
+}) async {
+  final assetsProvider = context.read<AssetsProvider>();
+  final navigator = Navigator.of(context);
+  final result = await call(assetsProvider);
+  if (!context.mounted) return result != null;
+  if (result == null) {
+    IcueToast.error(context, assetsProvider.errorMessage ?? 'Could not save');
+    return false;
+  }
+  final number = result['number'];
+  showMessage(context, number == null ? done : '$done · $number');
+  if (close) navigator.pop();
+  return true;
+}
+
+/// Optional `yyyy-MM-dd` field with a picker; empty means none.
+Widget optionalDate(
+  BuildContext context,
+  TextEditingController controller,
+  String label, {
+  required DateTime first,
+  required DateTime last,
+}) => IcueDateField(
+  controller: controller,
+  label: label,
+  firstDate: first,
+  lastDate: last,
+  clearable: true,
+);
+
+IcueDropdown<String> labelled(
+  String label,
+  List<String> values,
+  String? value,
+  ValueChanged<String?> onChanged, {
+  String Function(String)? text,
+  IconData? icon,
+}) => IcueDropdown<String>(
+  value: value,
+  items: [
+    for (final value in values)
+      DropdownMenuItem(value: value, child: Text((text ?? _title)(value))),
+  ],
+  onChanged: onChanged,
+  label: label,
+  icon: icon,
+);
+
+String _title(String value) => value
+    .replaceAll('_', ' ')
+    .replaceRange(0, 1, value.substring(0, 1).toUpperCase());

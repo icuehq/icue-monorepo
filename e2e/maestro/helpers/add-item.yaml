@@ -1,0 +1,36 @@
+# Fill and save the Add item form (Items page already open).
+# Env: CODE, NAME, CATEGORY, SUBCATEGORY ('' for none), TRACKING (Quantity|Batch|Individual asset), REORDER, PRICE.
+appId: com.thoughtniques.icueadmin.dev
+---
+- tapOn: "Add item"
+- tapOn: "Item code.*"
+- inputText: ${CODE}
+- tapOn: "Item name.*"
+- inputText: ${NAME}
+- tapOn: "Category \\*"
+- tapOn: ${CATEGORY}
+- tapOn: "Stock unit.*"
+- tapOn: "Pieces"
+- runFlow:
+    when:
+      true: ${SUBCATEGORY != ''}
+    commands:
+      - tapOn: "Subcategory.*"
+      - tapOn: ${SUBCATEGORY}
+- runFlow:
+    when:
+      true: ${TRACKING != 'Quantity'}
+    commands:
+      - tapOn: "Tracking method.*"
+      - tapOn: ${TRACKING}
+- scrollUntilVisible:
+    element: "Reorder level"
+- tapOn: "Reorder level"
+- inputText: ${REORDER}
+- pressKey: Enter
+- tapOn: "Default purchase price"
+- inputText: ${PRICE}
+- pressKey: Enter
+- scrollUntilVisible:
+    element: "Save item"
+- tapOn: "Save item"

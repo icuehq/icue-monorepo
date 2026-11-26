@@ -6,6 +6,8 @@ enum class FaceSdkErrorCode {
     MODEL_INVALID,
     NO_FACE,
     MULTIPLE_FACES,
+    /** A face was found but is unusable for enrollment (eyes not visible, or turned away). */
+    POOR_FACE,
 }
 
 class FaceSdkException(

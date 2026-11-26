@@ -1,0 +1,231 @@
+import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
+import 'package:school_library/school_library.dart';
+import 'package:school_library/src/ui/shared/library_status_chip.dart';
+import 'package:school_library/src/ui/shared/member_details.dart';
+
+/// One copy scan attempt in the current session.
+class IssueScanRecord {
+  const IssueScanRecord({
+    required this.barcode,
+    required this.success,
+    required this.message,
+    required this.timestamp,
+    this.title,
+    this.authors,
+    this.copy,
+    this.isPending = false,
+  });
+
+  final String barcode;
+  final bool success;
+  final String message;
+  final DateTime timestamp;
+  final String? title;
+  final String? authors;
+  final LibraryCopy? copy;
+  final bool isPending;
+}
+
+/// Visual card representing one issued book, failed issue attempt, or pending pre-scanned book.
+class IssueScanItemCard extends StatelessWidget {
+  const IssueScanItemCard({
+    required this.record,
+    this.person,
+    this.onRemove,
+    super.key,
+  });
+
+  final IssueScanRecord record;
+
+  /// The borrower: their class and admission number show under the title.
+  final LibraryPerson? person;
+  final VoidCallback? onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isPending = record.isPending;
+    final isSuccess = record.success;
+    final formattedTime = record.timestamp.toIndianTime().toTime12();
+
+    final Color borderColor;
+    final Color backgroundColor;
+    final Color iconBackgroundColor;
+    final Color iconColor;
+    final IconData statusIcon;
+    final String statusLabel;
+
+    if (isPending) {
+      borderColor = colorScheme.tertiary.withValues(alpha: 0.4);
+      backgroundColor = colorScheme.tertiaryContainer.withValues(alpha: 0.1);
+      iconBackgroundColor = colorScheme.tertiaryContainer;
+      iconColor = colorScheme.onTertiaryContainer;
+      statusIcon = Icons.hourglass_top_rounded;
+      statusLabel = 'Ready to issue';
+    } else if (isSuccess) {
+      borderColor = Colors.green.withValues(alpha: 0.3);
+      backgroundColor = Colors.green.withValues(alpha: 0.04);
+      iconBackgroundColor = Colors.green.withValues(alpha: 0.14);
+      iconColor = Colors.green.shade700;
+      statusIcon = Icons.check_circle_rounded;
+      statusLabel = 'Issued';
+    } else {
+      borderColor = colorScheme.error.withValues(alpha: 0.3);
+      backgroundColor = colorScheme.error.withValues(alpha: 0.04);
+      iconBackgroundColor = colorScheme.errorContainer;
+      iconColor = colorScheme.error;
+      statusIcon = Icons.error_outline_rounded;
+      statusLabel = 'Failed';
+    }
+
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: borderColor),
+      ),
+      color: backgroundColor,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: iconBackgroundColor,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(statusIcon, size: 20, color: iconColor),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    record.title ?? record.barcode,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  if (record.authors case final authors?
+                      when authors.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        authors,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  if (person case final person?)
+                    MemberDetailsLine(
+                      classId: person.classId,
+                      section: person.section,
+                      admissionNumber: person.admissionNumber,
+                      isEmployee: !person.isStudent,
+                      date: record.timestamp.toIndianTime().toNumericDate(),
+                    ),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.qr_code_2_rounded,
+                              size: 13,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              record.barcode,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontFamily: 'monospace',
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (record.message.isNotEmpty &&
+                          (!isSuccess || isPending))
+                        Text(
+                          record.message,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: isPending
+                                ? colorScheme.onSurfaceVariant
+                                : colorScheme.error,
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    LibraryStatusChip(
+                      isPending
+                          ? 'ready'
+                          : (isSuccess ? 'available' : 'failed'),
+                      label: statusLabel,
+                    ),
+                    if (isPending && onRemove != null) ...[
+                      const SizedBox(width: 4),
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        iconSize: 16,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        tooltip: 'Remove',
+                        icon: const Icon(Icons.close_rounded),
+                        onPressed: onRemove,
+                      ),
+                    ],
+                  ],
+                ),
+                if (!isPending) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    formattedTime,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontSize: 10,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

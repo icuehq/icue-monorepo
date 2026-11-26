@@ -1,0 +1,40 @@
+import 'package:flutter/material.dart';
+import 'package:icue_ui/icue_ui.dart';
+
+class IncidentInitialEmptyState extends StatelessWidget {
+  const IncidentInitialEmptyState({required this.status, super.key});
+
+  final String status;
+
+  @override
+  Widget build(BuildContext context) {
+    final isOpen = status == 'open';
+    return IcueEmptyState(
+      icon: Icons.report_problem_outlined,
+      title: isOpen ? 'No open incidents' : 'No $status incidents',
+      message: isOpen
+          ? 'Lost and damaged books appear here.'
+          : 'There are currently no incidents matching this filter.',
+    );
+  }
+}
+
+class IncidentNoResultsState extends StatelessWidget {
+  const IncidentNoResultsState({
+    required this.searchQuery,
+    required this.onClear,
+    super.key,
+  });
+
+  final String searchQuery;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) => IcueEmptyState.noResults(
+    title: searchQuery.isEmpty
+        ? 'No incidents match these filters'
+        : 'No incidents match "$searchQuery"',
+    message: 'Try another book title, member name or admission number, or clear the filters.',
+    onAction: onClear,
+  );
+}

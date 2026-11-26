@@ -1,0 +1,442 @@
+{
+  "login": "Iniciar sesión",
+  "enterPhoneNumber": "Ingresa tu número de teléfono",
+  "mobileNumber": "Número de móvil",
+  "securityMessage": "Proteger tu información personal es nuestra prioridad",
+  "sendOtp": "Enviar OTP",
+  "sendingOtp": "Enviando OTP... Por favor espera...",
+  "otpVerify": "Verificar OTP",
+  "otpSentMessage": "El código ha sido enviado a",
+  "otp": "OTP",
+  "didNotGetOtp": "¿No recibiste el código OTP?",
+  "sec": "seg",
+  "verify": "Verificar",
+  "resendCode": "Reenviar código",
+  "authenticating": "Autenticando... Por favor espera...",
+  "selectChild": "Seleccionar un niño",
+  "liveBusTracking": "Seguimiento de autobús en vivo",
+  "realTimeTrackingInfo": "Sistema avanzado de rastreo de vehículos en tiempo real con alta precisión y sólidos protocolos de seguridad infantil.",
+  "trackBus": "Rastrear autobús",
+  "safeHands": "Manos seguras",
+  "schoolConnect": "Conexión escolar",
+  "homeWork": "Tarea",
+  "messMeals": "Comedor y comidas",
+  "liveTracking": "Seguimiento en vivo",
+  "routeNotStarted": "¡La ruta aún no ha comenzado!",
+  "generatePin": "Generar PIN",
+  "safeHandsPin": "PIN de manos seguras",
+  "routeNo": "Ruta No",
+  "noDataFound": "¡Datos no encontrados!",
+  "addEscort": "Agregar acompañante",
+  "type": "Tipo",
+  "name": "Nombre",
+  "relation": "Relación",
+  "mobile": "Móvil",
+  "uploadPhoto": "Subir foto",
+  "addingEscort": "Agregando acompañante... Por favor espera...",
+  "areYouSureYouWantToDelete": "¿Estás seguro de que deseas eliminar?",
+  "close": "Cerrar",
+  "delete": "Eliminar",
+  "thisPhoneNumberMayNotRegisteredWithUs": "Este número de teléfono puede no estar registrado con nosotros.",
+  "pleaseWriteToSupport": "Por favor, escribe a support@thoughtniques.com, \nMencionando\n1. Nombre de la escuela\n2. Nombre del estudiante\n3. Número de admisión\n4. Número de contacto de los padres\n\nNuestro equipo se pondrá en contacto contigo y resolverá.",
+  "sendEmail": "Enviar correo electrónico",
+  "logout": "Cerrar sesión",
+  "areYouSureYouWantToLogout": "¿Estás seguro de que deseas cerrar sesión?",
+  "no": "No",
+  "yes": "Sí",
+  "notificationsHistory": "Historial de notificaciones",
+  "submit": "ENVIAR",
+  "requestForEntry": "Solicitud de entrada",
+  "announcements": "Anuncios",
+  "didNotGetOtpCode": "¿No recibiste el código OTP?",
+  "events": "Eventos",
+  "appointments": "Citas",
+  "escort": "ESCOLTA",
+  "academics": "Académicos",
+  "enterYourPhoneNumber": "Introduce tu número de teléfono",
+  "securingYourPersonalInformationIsOurPriority": "Asegurar tu información personal es nuestra prioridad.",
+  "payments": "Pagos",
+  "mealMenu": "Menú de comidas",
+  "todaysMenu": "Menú de hoy",
+  "testPage": "Página de prueba",
+  "instantMealPurchase": "Compra instantánea de comida",
+  "postComplaint": "Publicar queja",
+  "history": "Historia",
+  "selectComplaintType": "Seleccionar tipo de queja",
+  "complaints": "Quejas",
+  "responses": "Respuestas",
+  "pleaseEnterAMobileNumber": "Por favor, introduce un número de móvil",
+  "enterAValidMobileNumber": "Introduce un número de móvil válido",
+  "loggingOut": "Cerrando sesión... Por favor espera...",
+  "pleaseEnterOtp": "Por favor, introduce el OTP",
+  "eta": "ETA",
+  "school": "Escuela",
+  "currentLocation": "Ubicación actual",
+  "studentPoint": "Punto del estudiante",
+  "yourPoint": "Tu punto",
+  "routeCompleted": "La ruta está completada",
+  "pleaseUploadPhoto": "Por favor, sube una foto",
+  "fromDate": "Desde la fecha",
+  "selectFromDate": "Selecciona la fecha de inicio",
+  "toDate": "Hasta la fecha",
+  "selectToDate": "Selecciona la fecha de fin",
+  "thisIsRequired": "Esto es obligatorio",
+  "managementConnect": "Conexión de gestión",
+  "parentTeacherMeeting": "Reunión de padres y maestros",
+  "testAndExams": "Pruebas y exámenes",
+  "observationsAndRecommendations": "Observaciones y recomendaciones",
+  "breadButterMasalaDosa": "Pan con mantequilla / Masala Dosa",
+  "beverages": "Bebidas: Leche / Jugo de sandía",
+  "mealDetail": "Dal, Roti, curry de calabaza con garbanzos, arroz blanco, cuajada, Semiya Kheer con pasas",
+  "vegSaladCutlet": "Ensalada de vegetales y croqueta vegetariana",
+  "breakfast": "Desayuno",
+  "lunch": "Almuerzo",
+  "snack": "Merienda",
+  "marksAndGrades": "Calificaciones y notas",
+  "ptmDiscussions": "Discusión de la reunión de padres y maestros",
+  "pleaseSelectComplaintType": "Por favor, selecciona el tipo de queja",
+  "writeYourQuery": "Escribe tu consulta",
+  "pleaseWriteYourQuery": "Por favor, escribe tu consulta",
+  "submitting": "Enviando... Por favor espera...",
+  "deleting": "Eliminando...",
+  "profile": "Perfil",
+  "students": "Estudiantes",
+  "language": "Idioma",
+  "termsAndConditions": "Términos y condiciones",
+  "privacyPolicy": "Política de privacidad",
+  "appVersion": "Versión de la aplicación",
+  "selectLanguage": "Seleccionar idioma",
+  "notificationsDisabled": "Notificaciones desactivadas",
+  "notificationDisabledContent": "Has desactivado las notificaciones.\nPara mantenerte al día, habilítalas en la configuración de tu dispositivo.",
+  "cancel": "Cancelar",
+  "openSettings": "Abrir configuración",
+  "route": "Ruta",
+  "callDriver": "Llamar chofer",
+  "switchChild": "CAMBIAR",
+  "myChildren": "Mis hijos",
+  "noRouteDetails": "No hay detalles de ruta disponibles",
+  "transportDetails": "Detalles del transporte",
+  "transportNotOpted": "Transporte no seleccionado",
+  "mode": "Modo",
+  "point": "Punto",
+  "time": "Hora",
+  "children": "Hijos",
+  "myVehicles": "Mis vehículos",
+  "generateGatePass": "Generar pase de salida",
+  "gatePassType": "Tipo de pase de salida",
+  "requestGatePass": "Solicitar pase de salida",
+  "gatePassRequestedSuccessfully": "PASE DE SALIDA\nSOLICITADO CON ÉXITO",
+  "viewRequests": "Ver solicitudes",
+  "gatePassRequests": "Solicitudes de pase de salida",
+  "gatePassDateInfo": "El pase de salida se generará para la fecha de hoy: {date}",
+  "@gatePassDateInfo": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "dateRangeLimited": "El rango de fechas está limitado a 10 días.",
+  "home": "Inicio",
+  "dateWithValue": "Fecha: {date}",
+  "@dateWithValue": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "selectDateRange": "Seleccionar rango de fechas",
+  "recenter": "Recentrar",
+  "transportAttendance": "Asistencia de transporte",
+  "addAVehicle": "Agregar un vehículo",
+  "vehicleNumber": "Número de vehículo",
+  "addVehicle": "Agregar vehículo",
+  "savedVehicles": "Vehículos guardados",
+  "noVehiclesYet": "Aún no se han agregado vehículos.",
+  "addFirstVehicle": "Agregue su primer vehículo con el formulario de arriba.",
+  "vehicleRequired": "El número de vehículo es obligatorio",
+  "vehicleInvalid": "Ingrese un número de vehículo válido (p. ej., AB12CD3456)",
+  "deleteVehicleTitle": "¿Eliminar vehículo?",
+  "deleteVehicleMessage": "¿Está seguro de que desea eliminar \"{plate}\"?",
+  "@deleteVehicleMessage": {
+    "placeholders": {
+      "plate": {
+        "type": "String"
+      }
+    }
+  },
+  "vehicleAdded": "¡Vehículo agregado con éxito!",
+  "vehicleDeleted": "¡Vehículo eliminado con éxito!",
+  "cannotLaunchDialer": "No se puede abrir el marcador del teléfono",
+  "trackingUnavailable": "El seguimiento en vivo no está disponible en este momento.",
+  "escortSaved": "¡Acompañante guardado con éxito!",
+  "escortPermanent": "Permanente",
+  "escortTemporary": "Temporal",
+  "dateRangeFromTo": "{from} a {to}",
+  "@dateRangeFromTo": {
+    "placeholders": {
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      }
+    }
+  },
+  "generatePinFirst": "Aún no se ha generado un PIN.",
+  "complaintOpen": "Abierta",
+  "complaintInProgress": "En curso",
+  "complaintResolved": "Resuelta",
+  "admin": "Administrador",
+  "querySubmitted": "¡Su consulta se envió con éxito!",
+  "eventDateMissing": "Falta la fecha",
+  "eventDaysToGo": "{count, plural, =1{falta 1 día} other{faltan {count} días}}",
+  "@eventDaysToGo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "eventEnded": "Evento finalizado",
+  "eventHappeningNow": "En curso ahora",
+  "eventDuration": "Duración:",
+  "eventDays": "{count, plural, =1{1 día} other{{count} días}}",
+  "@eventDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "eventPaymentsHistory": "Historial de pagos de eventos",
+  "noPaymentRecords": "¡No se encontraron pagos!",
+  "view": "Ver",
+  "paymentDetails": "Detalles del pago",
+  "subtotal": "Subtotal:",
+  "convenienceFee": "Cargo por conveniencia:",
+  "total": "Total:",
+  "bookingDetails": "Detalles de la reserva",
+  "attendDate": "Fecha de asistencia:",
+  "attendees": "Asistentes:",
+  "attendeesValue": "{booked} reservados / {attended} asistieron",
+  "@attendeesValue": {
+    "placeholders": {
+      "booked": {
+        "type": "String"
+      },
+      "attended": {
+        "type": "String"
+      }
+    }
+  },
+  "totalPrice": "Precio total:",
+  "information": "Información",
+  "questionsAndAnswers": "Preguntas y respuestas",
+  "tryAgainMessage": "Algo salió mal... ¡Inténtelo de nuevo!",
+  "other": "Otro",
+  "studentDetails": "Detalles del estudiante",
+  "admissionNumber": "Número de admisión",
+  "classLabel": "Clase",
+  "mess": "Comedor",
+  "subscribedAnnual": "Suscrito (anual)",
+  "nonSubscriber": "No suscrito",
+  "next": "Siguiente",
+  "buyMealVouchers": "Comprar vales de comida",
+  "vouchersHistory": "Historial de vales",
+  "purchaseRules": "Reglas de compra de vales de comida",
+  "noRules": "No hay reglas disponibles por el momento.",
+  "selectMealVouchers": "Seleccionar vales de comida",
+  "onlyOneVoucherOfType": "Solo se puede seleccionar un vale del tipo {types}.",
+  "@onlyOneVoucherOfType": {
+    "placeholders": {
+      "types": {
+        "type": "String"
+      }
+    }
+  },
+  "vouchersSelected": "{count, plural, =1{1 vale seleccionado} other{{count} vales seleccionados}}",
+  "@vouchersSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "totalWithAmount": "Total: {amount}",
+  "@totalWithAmount": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "pricePerDay": "{price}/día",
+  "@pricePerDay": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "continueLabel": "Continuar",
+  "selectVouchersToContinue": "Seleccione vales para continuar",
+  "selectVoucherDates": "Seleccionar fechas de {name}",
+  "@selectVoucherDates": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "bookableRange": "Reservable: {range}",
+  "@bookableRange": {
+    "placeholders": {
+      "range": {
+        "type": "String"
+      }
+    }
+  },
+  "purchaseTimings": "Horarios de compra",
+  "todayClosedAt": "Las compras del vale de hoy cerraron a las {time}.",
+  "@todayClosedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "todayBuyUntil": "El vale de hoy se puede comprar hasta las {time}.",
+  "@todayBuyUntil": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "todayHadToBuy": "El vale de hoy debía comprarse antes de las {time} de ayer.",
+  "@todayHadToBuy": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "tomorrowClosedAt": "Las compras del vale de mañana cerraron hoy a las {time}.",
+  "@tomorrowClosedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "tomorrowBuyUntil": "El vale de mañana se puede comprar hoy hasta las {time}.",
+  "@tomorrowBuyUntil": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "quickSelectDays": "Selección rápida de días hábiles ({count} disponibles)",
+  "@quickSelectDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "daysCount": "{count} días",
+  "@daysCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "allAvailable": "Todos los disponibles",
+  "custom": "Otro",
+  "onlyWorkingDays": "{count, plural, =1{Solo hay 1 día hábil disponible.} other{Solo hay {count} días hábiles disponibles.}}",
+  "@onlyWorkingDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "legendSelected": "Seleccionado",
+  "legendHoliday": "Festivo",
+  "legendPurchased": "Comprado",
+  "legendWeekend": "Fin de semana",
+  "noBookableDates": "No hay fechas reservables",
+  "noBookableDatesMessage": "Todas las fechas del rango son festivos, fines de semana o ya fueron compradas.",
+  "daysSelected": "{count, plural, =1{1 día seleccionado} other{{count} días seleccionados}}",
+  "@daysSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "confirm": "Confirmar",
+  "orderSummary": "Resumen del pedido",
+  "subTotal": "Subtotal",
+  "totalAmount": "Importe total",
+  "voucherDetailsHeading": "Detalles de los vales",
+  "proceedToPay": "Proceder al pago",
+  "completePayment": "Complete su pago",
+  "redirectingToGateway": "Redirigiendo a la pasarela de pago segura...",
+  "dontCloseApp": "No cierre la aplicación ni presione atrás.",
+  "paymentSuccessful": "¡Pago exitoso!",
+  "orderPlaced": "Pedido realizado con éxito.",
+  "orderIdLabel": "ID de pedido: {id}",
+  "@orderIdLabel": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "copyOrderId": "Copiar ID de pedido",
+  "orderIdCopied": "ID de pedido copiado",
+  "done": "Listo",
+  "paymentFailed": "Pago fallido",
+  "goBack": "Volver",
+  "retry": "Reintentar",
+  "paymentCancelled": "El pago fue cancelado. Inténtelo de nuevo si desea continuar.",
+  "paymentCouldNotBeProcessed": "No se pudo procesar su pago. (Motivo: {reason})",
+  "@paymentCouldNotBeProcessed": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "paymentUnknownError": "Ocurrió un error desconocido. Inténtelo de nuevo.",
+  "paymentCouldNotStart": "No se pudo iniciar la sesión de pago.",
+  "voucherPurchaseHistory": "Historial de compra de vales",
+  "paymentModeLabel": "Modo de pago",
+  "purchasedVouchers": "Vales comprados",
+  "detailsUpper": "DETALLES",
+  "noItemDetails": "No hay detalles disponibles.",
+  "daysAtPrice": "{days} días a {price}",
+  "@daysAtPrice": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      },
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "noHistoryFound": "No se encontró historial",
+  "historyWillAppear": "Sus vales de comida comprados aparecerán aquí.",
+  "voucherDetailsTitle": "Detalles del vale",
+  "voucherUsed": "Usado",
+  "voucherExpired": "Vencido",
+  "voucherUnused": "Sin usar",
+  "effectiveDateLabel": "Fecha de inicio",
+  "expiryDateLabel": "Fecha de vencimiento"
+}

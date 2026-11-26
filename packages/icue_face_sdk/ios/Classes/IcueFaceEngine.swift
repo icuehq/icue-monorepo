@@ -21,7 +21,7 @@ public struct IcueBoundingBox {
     public let bottom: Float
     public let trackingId: Int?
 
-    public toMap() -> [String: Any?] {
+    public func toMap() -> [String: Any?] {
         return [
             "left": Double(left),
             "top": Double(top),
@@ -53,7 +53,7 @@ public struct IcueRecognitionResult {
     public let matched: Bool
     public let boundingBox: IcueBoundingBox
 
-    public toMap() -> [String: Any?] {
+    public func toMap() -> [String: Any?] {
         return [
             "personId": personId,
             "score": Double(score),
@@ -69,6 +69,7 @@ internal class IcueFaceEngine {
     static let INPUT_SIZE = 112
     static let EMBEDDING_SIZE = 192
 
+    static let AMBIGUITY_MARGIN: Float = 0.05
     static let CANONICAL_LEFT_EYE_X: CGFloat = 38.2946
     static let CANONICAL_LEFT_EYE_Y: CGFloat = 51.6963
     static let CANONICAL_RIGHT_EYE_X: CGFloat = 73.5318
@@ -126,7 +127,8 @@ internal class IcueFaceEngine {
         ]
     }
 
-    func extractEmbedding(image: UIImage) throws -> [Float] {
+    func extractEmbedding(image original: UIImage) throws -> [Float] {
+        let image = IcueFaceEngine.upright(original)
         return try queue.sync {
             try checkState()
             let faces = try detectFacesInternal(image: image, requireLandmarks: true)
@@ -137,8 +139,15 @@ internal class IcueFaceEngine {
                 throw IcueFaceException(code: "MULTIPLE_FACES", message: "Multiple faces detected. Expected exactly one.")
             }
 
-            let cropped = cropAndAlignFace(image: image, face: faces[0])
-            return try runInference(faceImage: cropped)
+            let face = faces[0]
+            if (face.hasHeadEulerAngleY && abs(face.headEulerAngleY) > 35) ||
+                (face.hasHeadEulerAngleX && abs(face.headEulerAngleX) > 25) {
+                throw IcueFaceException(code: "POOR_FACE", message: "Face is turned away. Use a front-facing photo.")
+            }
+            guard let aligned = alignFace(image: image, face: face) else {
+                throw IcueFaceException(code: "POOR_FACE", message: "Eyes not clearly visible. Use a clearer front-facing photo.")
+            }
+            return try runInference(faceImage: aligned)
         }
     }
 
@@ -149,33 +158,29 @@ internal class IcueFaceEngine {
         maxFaces: Int,
         threshold: Float
     ) throws -> [IcueRecognitionResult] {
+        let image = IcueFaceEngine.upright(image)
         return try queue.sync {
             try checkState()
             try requireThrow(maxFaces > 0, "maxFaces must be greater than zero")
             try requireThrow(threshold.isFinite && threshold >= -1.0 && threshold <= 1.0, "threshold must be finite between -1 and 1")
 
             let allFaces = try detectFacesInternal(image: image, requireLandmarks: true)
-            let validFaces = allFaces.filter { face in
-                let cropped = cropAndAlignFace(image: image, face: face)
-                let quality = IcueFaceQualityAssessor.assessQuality(image: cropped, face: face)
-                return quality.isValid
-            }
-            let faces = validFaces.isEmpty ? allFaces : validFaces
-
             if mode == "single" && allFaces.count != 1 {
                 let code = allFaces.isEmpty ? "NO_FACE" : "MULTIPLE_FACES"
                 throw IcueFaceException(code: code, message: "Expected exactly one face. Found \(allFaces.count)")
             }
 
-            let processFaces = Array(faces.prefix(maxFaces))
-            if processFaces.isEmpty { return [] }
-
-            var liveEmbeddings: [[Float]] = []
-            for face in processFaces {
-                let cropped = cropAndAlignFace(image: image, face: face)
-                let liveEmbedding = try runInference(faceImage: cropped)
-                liveEmbeddings.append(liveEmbedding)
+            // Faces without eyes, too small, turned away or blurred are not recognized.
+            var processFaces: [Face] = []
+            var alignedFaces: [UIImage] = []
+            for face in allFaces where face.frame.width >= 30 && face.frame.height >= 30 {
+                guard processFaces.count < maxFaces, let aligned = alignFace(image: image, face: face) else { continue }
+                if IcueFaceQualityAssessor.assessQuality(image: aligned, face: face).isValid {
+                    processFaces.append(face)
+                    alignedFaces.append(aligned)
+                }
             }
+            if processFaces.isEmpty { return [] }
 
             if profiles.isEmpty {
                 return processFaces.map { face in
@@ -183,59 +188,67 @@ internal class IcueFaceEngine {
                 }
             }
 
-            struct CandidateMatch {
-                let faceIdx: Int
-                let profileIdx: Int
-                let score: Float
+            let profileEmbeddings = profiles.map { IcueFaceEngine.l2Normalize($0.embedding) }
+            var scores: [[Float]] = []
+            for aligned in alignedFaces {
+                let liveEmbedding = try runInference(faceImage: aligned)
+                scores.append(profileEmbeddings.map { IcueFaceEngine.cosineSimilarity(liveEmbedding, $0) })
             }
+            let assignment = IcueFaceEngine.assign(
+                scores: scores,
+                threshold: threshold,
+                margin: IcueFaceEngine.AMBIGUITY_MARGIN
+            )
 
-            var candidates: [CandidateMatch] = []
-            for fIdx in 0..<processFaces.count {
-                let liveEmb = liveEmbeddings[fIdx]
-                for pIdx in 0..<profiles.count {
-                    let score = IcueFaceEngine.cosineSimilarity(liveEmb, profiles[pIdx].embedding)
-                    candidates.append(CandidateMatch(faceIdx: fIdx, profileIdx: pIdx, score: score))
+            return processFaces.indices.map { fIdx in
+                let profileIdx = assignment[fIdx]
+                let matched = profileIdx >= 0
+                return IcueRecognitionResult(
+                    personId: matched ? profiles[profileIdx].personId : nil,
+                    score: matched ? scores[fIdx][profileIdx] : (scores[fIdx].max() ?? -1.0),
+                    matched: matched,
+                    boundingBox: faceToBoundingBox(processFaces[fIdx])
+                )
+            }
+        }
+    }
+
+    /// Same rule as Android's `FaceAssignment`: a face gets only its own best profile, and only
+    /// when it clears [threshold], beats its runner-up by [margin], and no face scores it higher.
+    static func assign(scores: [[Float]], threshold: Float, margin: Float) -> [Int] {
+        var assigned = [Int](repeating: -1, count: scores.count)
+        var owner: [Int: Int] = [:]
+        for (face, row) in scores.enumerated() {
+            var best = -1
+            var bestScore: Float = -1
+            var runnerUp: Float = -1
+            for (profile, score) in row.enumerated() {
+                if score > bestScore {
+                    runnerUp = bestScore
+                    bestScore = score
+                    best = profile
+                } else if score > runnerUp {
+                    runnerUp = score
                 }
             }
-
-            candidates.sort { $0.score > $1.score }
-
-            var assignedFace = [Bool](repeating: false, count: processFaces.count)
-            var assignedProfile = [Bool](repeating: false, count: profiles.count)
-            var faceResults = [IcueRecognitionResult?](repeating: nil, count: processFaces.count)
-
-            for candidate in candidates {
-                if assignedFace[candidate.faceIdx] || assignedProfile[candidate.profileIdx] { continue }
-                if candidate.score >= threshold {
-                    assignedFace[candidate.faceIdx] = true
-                    assignedProfile[candidate.profileIdx] = true
-                    let matchedProfile = profiles[candidate.profileIdx]
-                    faceResults[candidate.faceIdx] = IcueRecognitionResult(
-                        personId: matchedProfile.personId,
-                        score: candidate.score,
-                        matched: true,
-                        boundingBox: faceToBoundingBox(processFaces[candidate.faceIdx])
-                    )
-                }
+            if best < 0 || bestScore < threshold || bestScore - runnerUp < margin { continue }
+            if let rival = owner[best] {
+                if scores[rival][best] >= bestScore { continue }
+                assigned[rival] = -1
             }
+            owner[best] = face
+            assigned[face] = best
+        }
+        return assigned
+    }
 
-            for fIdx in 0..<processFaces.count {
-                if faceResults[fIdx] == nil {
-                    var bestScore: Float = -1.0
-                    for pIdx in 0..<profiles.count {
-                        let score = IcueFaceEngine.cosineSimilarity(liveEmbeddings[fIdx], profiles[pIdx].embedding)
-                        if score > bestScore { bestScore = score }
-                    }
-                    faceResults[fIdx] = IcueRecognitionResult(
-                        personId: nil,
-                        score: bestScore,
-                        matched: false,
-                        boundingBox: faceToBoundingBox(processFaces[fIdx])
-                    )
-                }
-            }
-
-            return faceResults.compactMap { $0 }
+    /// Redraws [image] with `.up` orientation so ML Kit landmarks and `cgImage` pixels agree.
+    static func upright(_ image: UIImage) -> UIImage {
+        guard image.imageOrientation != .up else { return image }
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = 1
+        return UIGraphicsImageRenderer(size: image.size, format: format).image { _ in
+            image.draw(in: CGRect(origin: .zero, size: image.size))
         }
     }
 
@@ -294,18 +307,16 @@ internal class IcueFaceEngine {
         return detectedFaces ?? []
     }
 
-    private func cropAndAlignFace(image: UIImage, face: Face) -> UIImage {
-        if let leftEye = face.landmark(ofType: .leftEye)?.position,
-           let rightEye = face.landmark(ofType: .rightEye)?.position {
-            if let aligned = alignToCanonicalEyes(
-                image: image,
-                leftEye: CGPoint(x: leftEye.x, y: leftEye.y),
-                rightEye: CGPoint(x: rightEye.x, y: rightEye.y)
-            ) {
-                return aligned
-            }
-        }
-        return cropBoundingBoxFace(image: image, frame: face.frame)
+    /// The 112x112 eye-aligned face, or nil when ML Kit found no eyes.
+    private func alignFace(image: UIImage, face: Face) -> UIImage? {
+        guard let first = face.landmark(ofType: .leftEye)?.position,
+              let second = face.landmark(ofType: .rightEye)?.position else { return nil }
+        // ML Kit's leftEye is the subject's left, on the image's right; order by x for the template.
+        let a = CGPoint(x: first.x, y: first.y)
+        let b = CGPoint(x: second.x, y: second.y)
+        return a.x <= b.x
+            ? alignToCanonicalEyes(image: image, leftEye: a, rightEye: b)
+            : alignToCanonicalEyes(image: image, leftEye: b, rightEye: a)
     }
 
     private func alignToCanonicalEyes(image: UIImage, leftEye: CGPoint, rightEye: CGPoint) -> UIImage? {
@@ -344,21 +355,6 @@ internal class IcueFaceEngine {
         let aligned = UIGraphicsGetImageFromCurrentImageContext()
         UIGraphicsEndImageContext()
         return aligned
-    }
-
-    private func cropBoundingBoxFace(image: UIImage, frame: CGRect) -> UIImage {
-        let marginX = frame.width * 0.15
-        let marginY = frame.height * 0.15
-
-        let cropRect = CGRect(
-            x: max(0, frame.origin.x - marginX),
-            y: max(0, frame.origin.y - marginY),
-            width: min(image.size.width - frame.origin.x + marginX, frame.width + marginX * 2),
-            height: min(image.size.height - frame.origin.y + marginY, frame.height + marginY * 2)
-        )
-
-        guard let cgImage = image.cgImage?.cropping(to: cropRect) else { return image }
-        return UIImage(cgImage: cgImage)
     }
 
     private func runInference(faceImage: UIImage) throws -> [Float] {

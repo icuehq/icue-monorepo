@@ -1,78 +1,116 @@
 import 'dart:io';
 
+import 'package:api_client/api_client.dart';
+import 'package:auth/auth.dart';
+import 'package:icue_ui/icue_ui.dart';
+import 'package:face_enrollment/face_enrollment.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_face_sdk/icue_face_sdk.dart';
+import 'package:icue_firebase/icue_firebase.dart';
+import 'package:local_storage/local_storage.dart';
 import 'package:provider/provider.dart';
+import 'package:super_admin/app_firebase_options.dart';
+import 'package:super_admin/di/injection.dart';
+import 'package:super_admin/routing/app_router.dart';
 
-import 'core/di/injection.dart';
-import 'core/storage/pref_service.dart';
-import 'providers/auth_provider.dart';
-import 'providers/embedding_provider.dart';
-import 'providers/student_provider.dart';
-import 'providers/identify_provider.dart';
-import 'ui/screens/login_screen.dart';
-import 'ui/screens/student_list_screen.dart';
-
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final environment = ApiEnvironment.fromEnvironment();
+  await initFirebase(firebaseOptionsFor(environment));
+  try {
+    await configureDependencies(environment.name);
 
-  // Resolve pre-resolved dependencies (like SharedPreferences) & dependencies tree
-  await configureDependencies();
+    // Super Admin is REST-only; avoid exchanging a Firebase Auth session or calling getActionsByRole.
+    getIt<AuthService>().firebaseSessionEnabled = false;
 
-  if (Platform.isAndroid) {
-    try {
-      await getIt<IcueFaceSdk>().initialize();
-    } catch (e) {
-      debugPrint('Error initializing IcueFaceSdk: $e');
+    errorReporter = logError;
+    // Forward unexpected API failures to Crashlytics as non-fatals.
+    getIt<ApiClient>().onLogCrash = reportApiError;
+
+    // Hive must be open before AuthProvider restores the session from it.
+    await getIt<StorageService>().init();
+    await getIt<UserLocalStorage>().init();
+    await getIt<EmbeddingStore>().init();
+
+    if (Platform.isAndroid) {
+      try {
+        await getIt<IcueFaceSdk>().initialize();
+      } catch (e, stack) {
+        debugPrint('Error initializing IcueFaceSdk: $e');
+        CrashlyticsService.instance.recordError(
+          e,
+          stack,
+          reason: 'Failed to initialize IcueFaceSdk',
+        );
+      }
     }
+  } catch (error, stack) {
+    CrashlyticsService.instance.recordError(
+      error,
+      stack,
+      reason: 'Super Admin startup initialization failed',
+    );
+    rethrow;
   }
 
-  runApp(
-    MultiProvider(
+  runApp(SuperAdminApp(authProvider: getIt<AuthProvider>()));
+}
+
+class SuperAdminApp extends StatefulWidget {
+  const SuperAdminApp({required this.authProvider, super.key});
+
+  final AuthProvider authProvider;
+
+  @override
+  State<SuperAdminApp> createState() => _SuperAdminAppState();
+}
+
+class _SuperAdminAppState extends State<SuperAdminApp> {
+  late final _router = createRouter(widget.authProvider);
+
+  @override
+  void initState() {
+    super.initState();
+    widget.authProvider.addListener(_syncFirebaseUser);
+    _syncFirebaseUser();
+  }
+
+  void _syncFirebaseUser() {
+    final user = widget.authProvider.user;
+    final branch = widget.authProvider.selectedBranch;
+    CrashlyticsService.instance.setUser(
+      id: user == null ? null : '${user.id}',
+      organizationId: user == null ? null : '${user.organizationId}',
+      zoneId: user == null ? null : '${user.zoneId}',
+      branchId: user == null ? null : '${branch?.id ?? user.branchId}',
+      schoolName: branch?.schoolName ?? user?.schoolName,
+    );
+  }
+
+  @override
+  void dispose() {
+    widget.authProvider.removeListener(_syncFirebaseUser);
+    _router.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => getIt<AuthProvider>()),
+        ChangeNotifierProvider.value(value: widget.authProvider),
         ChangeNotifierProvider(create: (_) => getIt<StudentProvider>()),
         ChangeNotifierProvider(create: (_) => getIt<EmbeddingProvider>()),
         ChangeNotifierProvider(create: (_) => getIt<IdentifyProvider>()),
       ],
-      child: const MyApp(),
-    ),
-  );
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final prefService = getIt<PrefService>();
-    final initialScreen = prefService.isLoggedIn
-        ? const StudentListScreen()
-        : const LoginScreen();
-
-    return MaterialApp(
-      title: 'iCue Super Admin',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        useMaterial3: true,
-        primaryColor: const Color(0xFF6C63FF),
-        scaffoldBackgroundColor: const Color(0xFF0F0C20),
-        colorScheme: const ColorScheme.dark(
-          primary: Color(0xFF6C63FF),
-          secondary: Color(0xFFFF2A54),
-          surface: Color(0xFF15102A),
+      child: MaterialApp.router(
+        title: 'iCue Super Admin',
+        debugShowCheckedModeBanner: false,
+        theme: IcueTheme.forEnvironment(
+          isProd: ApiEnvironment.fromEnvironment().isProd,
         ),
-        textTheme: const TextTheme(
-          titleLarge: TextStyle(
-            fontFamily: 'Montserrat',
-            fontWeight: FontWeight.bold,
-          ),
-          bodyLarge: TextStyle(fontFamily: 'Inter'),
-          bodyMedium: TextStyle(fontFamily: 'Inter'),
-        ),
+        routerConfig: _router,
       ),
-      home: initialScreen,
     );
   }
 }

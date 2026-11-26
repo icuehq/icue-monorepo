@@ -1,0 +1,44 @@
+{
+  "name": "icue-functions",
+  "private": true,
+  "main": "lib/index.js",
+  "engines": {
+    "node": "22"
+  },
+  "scripts": {
+    "build": "tsc",
+    "deploy:dev": "npm run build && firebase deploy --only functions --project dev",
+    "deploy:prod": "npm run build && firebase deploy --only functions --project prod",
+    "deploy:rules:dev": "firebase deploy --only firestore --project dev",
+    "deploy:rules:prod": "firebase deploy --only firestore --project prod",
+    "test:unit": "vitest run test/unit",
+    "test": "firebase emulators:exec --only firestore --project demo-icue \"vitest run\"",
+    "stats:recompute": "tsx scripts/recompute-stats.ts",
+    "library-ids:backfill": "tsx scripts/backfill-library-ids.ts",
+    "search:backfill": "tsx scripts/backfill-search.ts",
+    "member-type:migrate": "tsx scripts/migrate-member-type.ts",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "dependencies": {
+    "@google-cloud/firestore": "^9.4.0",
+    "firebase-admin": "^14.5.0",
+    "firebase-functions": "^7.4.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.14.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-import-resolver-typescript": "^4.4.5",
+    "eslint-plugin-import-x": "^4.17.1",
+    "globals": "^17.14.0",
+    "prettier": "^3.9.10",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.72.1",
+    "vitest": "^5.0.5"
+  }
+}

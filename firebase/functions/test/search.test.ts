@@ -1,0 +1,168 @@
+import { Timestamp } from 'firebase-admin/firestore';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { applyItemChange, projectBalance } from '../src/inventory/search';
+import { prefixText, projectCatalogue, projectFine, projectIncident, projectMember } from '../src/library/search';
+import { searchDb } from '../src/shared/searchMirror';
+import { clearFirestore } from './setup';
+
+const BRANCH = 'orgs/8/zones/147/branches/427';
+const mirror = (branch = BRANCH) => searchDb().collection(`${branch}/inventoryItems`);
+const timestampAt = (milliseconds: number) => Timestamp.fromMillis(milliseconds);
+const item = (name: string, categoryId = 'c1') => ({
+  name,
+  storeId: 's1',
+  categoryId,
+  status: 'active',
+  stockUnit: 'pcs',
+  tracking: 'quantity',
+  extra: 'x',
+});
+describe('item search mirror', () => {
+  beforeEach(async () => {
+    await clearFirestore();
+  });
+
+  it('mirrors only the projection, updates it, and deletes it', async () => {
+    await applyItemChange(BRANCH, 'i1', item('Blue Pen'), timestampAt(1));
+    expect((await mirror().doc('i1').get()).data()).toEqual({
+      name: 'Blue Pen',
+      storeId: 's1',
+      categoryId: 'c1',
+      status: 'active',
+      stockUnit: 'pcs',
+      tracking: 'quantity',
+      createdAt: null,
+      prefixText: 'blu',
+      srcUpdatedAt: timestampAt(1),
+    });
+    await applyItemChange(BRANCH, 'i1', item('Blue Pen XL'), timestampAt(2));
+    expect((await mirror().doc('i1').get()).data()?.name).toBe('Blue Pen XL');
+    await applyItemChange(BRANCH, 'i1', undefined);
+    expect((await mirror().doc('i1').get()).exists).toBe(false);
+  });
+
+  it('ignores an older delivery', async () => {
+    await applyItemChange(BRANCH, 'i1', item('New name', 'A'), timestampAt(5));
+    await applyItemChange(BRANCH, 'i1', item('Old name', 'A'), timestampAt(3));
+    expect((await mirror().doc('i1').get()).data()?.name).toBe('New name');
+  });
+});
+
+describe('balance search projection', () => {
+  it('keeps the identity and filter fields with the item name', () => {
+    expect(
+      projectBalance(
+        { storeId: 's1', itemId: 'i1', batchNumber: 'B-7', isBelowReorderLevel: true, quantityAvailable: 4, value: 80 },
+        'Blue Pen',
+      ),
+    ).toEqual({
+      storeId: 's1',
+      itemId: 'i1',
+      variantId: null,
+      batchNumber: 'B-7',
+      isBelowReorderLevel: true,
+      itemName: 'Blue Pen',
+      prefixText: 'blu',
+    });
+  });
+});
+
+describe('incident search projection', () => {
+  it('keeps only the search text and list filters', () => {
+    const createdAt = timestampAt(7);
+    expect(
+      projectIncident({
+        bookTitle: 'Wings of Fire',
+        memberName: 'Asha Rao',
+        admissionNumber: 'A-101',
+        libraryId: 'main',
+        status: 'open',
+        type: 'lost',
+        createdAt,
+        charge: 250,
+        barcode: 'B1',
+      }),
+    ).toEqual({
+      bookTitle: 'Wings of Fire',
+      memberName: 'Asha Rao',
+      admissionNumber: 'A-101',
+      libraryId: 'main',
+      status: 'open',
+      type: 'lost',
+      createdAt,
+      prefixText: 'win wing fir ash',
+    });
+    expect(projectIncident({ status: 'open', type: 'damaged' }).memberName).toBeNull();
+  });
+});
+
+describe('member search projection', () => {
+  it('keeps the search text and list filters, with onLoan flattened', () => {
+    expect(
+      projectMember({
+        name: 'Nidhi Reddy',
+        admissionNumber: 'TNX005',
+        personErpId: 7,
+        memberType: 'STUDENT',
+        libraryIds: ['main'],
+        blocked: false,
+        activeLoans: 2,
+        classId: 3,
+      }),
+    ).toEqual({
+      name: 'Nidhi Reddy',
+      admissionNumber: 'TNX005',
+      personErpId: 7,
+      memberType: 'STUDENT',
+      libraryIds: ['main'],
+      blocked: false,
+      createdAt: null,
+      onLoan: true,
+      prefixText: 'nid nidh red redd tnx tnx0 tnx00',
+    });
+  });
+});
+
+describe('catalogue prefix text', () => {
+  it('holds every prefix of 3+ letters, so half-typed words match', () => {
+    expect(prefixText('Marigold')).toBe('mar mari marig marigo marigol');
+    expect(prefixText('Cat', 'at')).toBe('');
+    expect(prefixText('Garden, Garden')).toBe('gar gard garde');
+  });
+
+  it('covers title, authors and keywords', () => {
+    const { prefixText: text } = projectCatalogue({
+      title: 'Marigold',
+      authors: ['Tagore'],
+      keywords: ['flowers'],
+    });
+    expect(text.split(' ')).toEqual(expect.arrayContaining(['mari', 'tag', 'flow']));
+  });
+});
+
+describe('fine search projection', () => {
+  it('keeps the search text and list filters and adds typed prefixes', () => {
+    expect(
+      projectFine({
+        memberName: 'Asha Rao',
+        admissionNumber: 'TNX005',
+        bookTitle: 'Wings',
+        barcode: 'ACC1001',
+        libraryId: 'main',
+        status: 'outstanding',
+        type: 'overdue',
+        amount: 50,
+      }),
+    ).toEqual({
+      memberName: 'Asha Rao',
+      admissionNumber: 'TNX005',
+      bookTitle: 'Wings',
+      barcode: 'ACC1001',
+      libraryId: 'main',
+      status: 'outstanding',
+      type: 'overdue',
+      createdAt: null,
+      prefixText: 'ash tnx tnx0 tnx00 win wing acc acc1 acc10 acc100',
+    });
+  });
+});

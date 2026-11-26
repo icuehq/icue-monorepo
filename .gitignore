@@ -3,3 +3,7 @@
 .gradle
 .kotlin
 build
+*.iml
+.firebase
+# Widget Preview related
+.widget_preview/

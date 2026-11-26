@@ -1,0 +1,166 @@
+import 'package:api_client/api_client.dart';
+import 'package:injectable/injectable.dart';
+import 'package:routes/src/models/route_change_requests.dart';
+import 'package:routes/src/models/routes.dart';
+import 'package:routes/src/models/standards.dart';
+import 'package:routes/src/models/student.dart';
+
+@lazySingleton
+class RouteService {
+  RouteService(this._apiClient);
+
+  final ApiClient _apiClient;
+
+  /// Fetches all routes and points optionally filtered by pickup or drop mode.
+  Future<List<Routee>> getRoutesAndPoints(RouteMode? mode) async {
+    final response = await _apiClient.post<dynamic>(
+      '/v1.0/getRoutesAndPoints',
+      data: mode != null ? {'Mode': mode.label} : null,
+    );
+    return _apiClient.parse(response, (data) {
+      if (data is Map<String, dynamic>) {
+        final routesResponse = RoutesResponse.fromJson(data);
+        return routesResponse.routes;
+      }
+      return <Routee>[];
+    });
+  }
+
+  /// Fetches standards and their sections.
+  Future<List<Standards>> getStandards() async {
+    final response = await _apiClient.post<dynamic>('/v1.0/getStandards');
+    return _apiClient.parse(
+      response,
+      (payload) => parseList(payload, Standards.fromJson),
+    );
+  }
+
+  /// Fetches students for a specific class and sections with pagination.
+  Future<Student> getStudents({
+    required int classId,
+    required List<String> sections,
+    required int pageNo,
+  }) async {
+    final response = await _apiClient.post<dynamic>(
+      '/v2.0/getStudents',
+      data: {
+        'ClassId': classId,
+        'Sections': sections,
+        'PageNumber': pageNo,
+        'PageSize': 100,
+      },
+    );
+    return _apiClient.parse(response, (data) {
+      if (data is List && data.isNotEmpty) {
+        return Student.fromJson(data.first as Map<String, dynamic>);
+      }
+      return const Student();
+    });
+  }
+
+  /// Students with minimal data (id, name, admission number, class, section, photo) for [classId]
+  /// and optional [section] (whole class when null). The API has no paging. It does not return a
+  /// class id, so [classId] is stamped on every row. Node answers `err: true` with no rows.
+  Future<({List<StudentData> students, int total})> getStudentsBasic({
+    required int classId,
+    String? section,
+  }) async {
+    final response = await _apiClient.post<dynamic>(
+      '/v2.0/getStusBasicData',
+      data: {'ClassId': classId, 'Section': ?section, 'Source': 'adminapp'},
+    );
+    return _apiClient.parse(response, (body) {
+      if (body is! Map<String, dynamic> || body['err'] == true) {
+        return (students: <StudentData>[], total: 0);
+      }
+      final metadata = body['metadata'];
+      return (
+        students: [
+          for (final row in body['data'] as List? ?? const <Object?>[])
+            if (row is Map<String, dynamic>)
+              StudentData.fromJson({...row, 'ClassId': classId}),
+        ],
+        total: metadata is Map<String, dynamic>
+            ? metadata['total'] as int? ?? 0
+            : 0,
+      );
+    });
+  }
+
+  /// Searches for students matching a query string.
+  Future<List<StudentData>> searchStudent({
+    required String search,
+    int? classId,
+    List<String>? sections,
+  }) async {
+    final response = await _apiClient.post<dynamic>(
+      '/v2.0/searchStudent',
+      data: {'searchText': search, 'ClassId': ?classId, 'Sections': ?sections},
+    );
+    return _apiClient.parse(response, (data) {
+      if (data is List) {
+        final students = data
+            .whereType<Map<String, dynamic>>()
+            .map(StudentData.fromJson)
+            .toList();
+        students.sort((a, b) {
+          final rollA = int.tryParse(a.rollNo) ?? 0;
+          final rollB = int.tryParse(b.rollNo) ?? 0;
+          return rollA.compareTo(rollB);
+        });
+        return students;
+      }
+      return <StudentData>[];
+    });
+  }
+
+  /// The student whose admission number or RFID is exactly [value], or null when Node reports `err: true`
+  /// ("Student not found"). A 500 surfaces as a [ServerException] from `api_client`.
+  Future<StudentData?> findStudentByAdmissionNumberOrRfid(String value) async {
+    final response = await _apiClient.post<dynamic>(
+      '/v2.0/searchStuData',
+      data: {'SearchValue': value},
+    );
+    return _apiClient.parse(response, (data) {
+      if (data is! Map<String, dynamic> || data['err'] == true) return null;
+      return StudentData.fromJson(data);
+    });
+  }
+
+  /// Changes a single pickup or drop route for a student.
+  Future<bool> changeStudentRoute(ChangeRouteRequest request) async {
+    final response = await _apiClient.post<dynamic>(
+      '/v1.0/changeStudentRoute',
+      data: request.toJson(),
+    );
+    return _apiClient.parse(response, (payload) {
+      if (payload is Map<String, dynamic>) {
+        return payload['err'] != true;
+      }
+      return true;
+    });
+  }
+
+  /// Changes both pickup and drop routes simultaneously for a student.
+  Future<bool> changeBothRoutes(ChangeBothRoutesRequest request) async {
+    final response = await _apiClient.post<dynamic>(
+      '/v1.0/changeStudentRoutes',
+      data: request.toJson(),
+    );
+    return _apiClient.parse(response, (payload) {
+      if (payload is Map<String, dynamic>) {
+        return payload['err'] != true;
+      }
+      return true;
+    });
+  }
+
+  /// Updates start time for one or all routes in a mode.
+  Future<bool> updateStartTimeForRoutes(UpdateRouteTimeRequest request) async {
+    final response = await _apiClient.post<dynamic>(
+      '/v2.0/updateStartTimeForRoutes',
+      data: request.toJson(),
+    );
+    return response.statusCode == 200;
+  }
+}

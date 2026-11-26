@@ -1,71 +1,52 @@
-# iCue Super Admin
+# Super Admin App
 
-A Flutter application for iCue Super Admin management and administration.
+Android super-admin application for student face enrollment, identification, and face attendance.
 
-## Getting Started
+## Building APKs
 
-### Prerequisites
+Run commands from the `apps/super_admin` directory (or specify `-t lib/main.dart` from the root). Ensure dependencies are resolved (`dart pub get` at the repository root).
 
-- Flutter SDK (^3.12.2 or compatible)
-- Dart SDK
-- Android SDK / Xcode (for iOS)
+### 1. Development APK
 
-### Installation & Dependencies
+Builds the app pointing to the `dev` backend environment and Firebase project (`icueadmin-dev`):
 
 ```bash
-flutter pub get
+flutter build apk --flavor dev --dart-define=ENV=dev
 ```
 
-## Code Generation
+- **Output:** `build/app/outputs/flutter-apk/app-dev-release.apk`
+- **Application ID:** `school.icue.super_admin.dev`
 
-When modifying dependency injection (`injectable`) or other generated files, run `build_runner`:
+### 2. Production APK
+
+Builds the app pointing to the `prod` backend environment and Firebase project:
 
 ```bash
-dart run build_runner build --delete-conflicting-outputs
+flutter build apk --flavor prod --dart-define=ENV=prod
 ```
 
-## Running the App
+- **Output:** `build/app/outputs/flutter-apk/app-prod-release.apk`
+- **Application ID:** `school.icue.super_admin`
 
-### Development Flavor (`dev`)
+---
+
+### Per-ABI APKs (Optional)
+
+To generate smaller, architecture-specific APKs (`arm64-v8a`, `armeabi-v7a`, `x86_64`) instead of a single fat APK, append `--split-per-abi`:
 
 ```bash
-flutter run --flavor dev
+flutter build apk --flavor dev --dart-define=ENV=dev --split-per-abi
+flutter build apk --flavor prod --dart-define=ENV=prod --split-per-abi
 ```
 
-### Production Flavor (`prod`)
+### Running Locally
+
+To run directly on a connected Android device or emulator:
 
 ```bash
-flutter run --flavor prod
-```
+# Dev
+flutter run --flavor dev --dart-define=ENV=dev
 
-## Building Releases
-
-> **Important**: This project uses Gradle product flavors (`dev` and `prod`). You must specify the `--flavor` flag when generating builds.
-
-### Development Builds (`dev`)
-
-Generate DEV APK:
-
-```bash
-flutter build apk --flavor dev
-```
-
-Generate DEV App Bundle:
-
-```bash
-flutter build appbundle --flavor dev
-```
-
-### Production Builds (`prod`)
-
-Generate PROD APK:
-
-```bash
-flutter build apk --flavor prod
-```
-
-Generate PROD App Bundle:
-
-```bash
-flutter build appbundle --flavor prod
+# Prod
+flutter run --flavor prod --dart-define=ENV=prod
 ```

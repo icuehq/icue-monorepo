@@ -3,9 +3,11 @@ package school.icue.face.core.camera
 import android.Manifest
 import android.animation.ValueAnimator
 import android.app.Activity
+import android.app.Dialog
 import android.content.Context
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
+import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.DashPathEffect
@@ -15,32 +17,58 @@ import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.Typeface
+import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.RippleDrawable
+import android.media.AudioManager
+import android.media.ToneGenerator
+import android.os.Build
 import android.os.Bundle
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.util.Size
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.view.Window
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import android.view.ScaleGestureDetector
 import android.widget.SeekBar
 import androidx.activity.ComponentActivity
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import android.hardware.camera2.CameraCharacteristics
+import android.hardware.camera2.CaptureRequest
+import android.view.GestureDetector
+import android.view.MotionEvent
+import androidx.annotation.OptIn
+import androidx.camera.camera2.interop.Camera2CameraInfo
+import androidx.camera.camera2.interop.Camera2Interop
+import androidx.camera.camera2.interop.ExperimentalCamera2Interop
 import androidx.camera.core.Camera
+import androidx.camera.core.CameraInfo
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ExtendableBuilder
+import androidx.camera.core.FocusMeteringAction
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
+import androidx.camera.core.UseCaseGroup
+import androidx.camera.core.resolutionselector.AspectRatioStrategy
+import androidx.camera.core.resolutionselector.ResolutionSelector
+import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.doOnLayout
 import androidx.core.view.WindowInsetsControllerCompat
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
@@ -55,11 +83,13 @@ import java.io.File
 import java.io.FileOutputStream
 import school.icue.face.core.FaceSdkErrorCode
 import school.icue.face.core.FaceSdkException
-import school.icue.face.core.image.YuvFrameConverter
+import school.icue.face.core.IcueFaceSdk
 import school.icue.face.core.model.IcueBoundingBox
 import school.icue.face.core.model.IcueFaceProfile
-import school.icue.face.core.model.IcueYuv420Frame
 import school.icue.face.core.model.RecognitionMode
+import school.icue.face.core.model.toUnrecognizedFaceMap
+import school.icue.face.core.recognition.TrackedIdentityCache
+import school.icue.face.core.recognition.UnknownFaceTracker
 
 class IcueFaceCameraActivity : ComponentActivity() {
     private val analysisExecutor = Executors.newSingleThreadExecutor()
@@ -68,6 +98,14 @@ class IcueFaceCameraActivity : ComponentActivity() {
     private lateinit var previewView: PreviewView
     private lateinit var overlay: FaceOverlayView
     private lateinit var statusPill: TextView
+    private var countLabel: TextView? = null
+    // Attendance Finish button, relabelled with the number of students scanned so far.
+    private var finishButton: TextView? = null
+    // True while the cancel dialog is open: no frames are analysed, so the count cannot change.
+    @Volatile
+    private var paused = false
+    // Attendance only: beeps when a new student is marked present.
+    private var scanTone: ToneGenerator? = null
     private var camera: Camera? = null
     private var scaleGestureDetector: ScaleGestureDetector? = null
     private var zoomSlider: SeekBar? = null
@@ -77,6 +115,9 @@ class IcueFaceCameraActivity : ComponentActivity() {
     private var flashOverlay: View? = null
     private var sessionId: String? = null
     private var session: CameraSession? = null
+    // Labels show a student's name when the caller sent one, else the personId.
+    private var namesById: Map<String, String> = emptyMap()
+    private var preparedRoster: IcueFaceSdk.PreparedRoster? = null
     private var captureRequested = false
     private var completed = false
     private var capturedEmbedding: FloatArray? = null
@@ -85,8 +126,18 @@ class IcueFaceCameraActivity : ComponentActivity() {
     private val liveAttendanceHitsMap = java.util.concurrent.ConcurrentHashMap<String, Int>()
     private val capturedPhotoPaths = java.util.Collections.synchronizedList(mutableListOf<String>())
     private var unrecognizedCount = 0
+    // Live: one entry per confirmed unknown person (from unknownFaces). Multi-photo: every unmatched face.
+    private val unrecognizedFaces = java.util.Collections.synchronizedMap(LinkedHashMap<Any, Map<String, Any?>>())
+    // Live: which faces are people not on the roster, recognised by embedding.
+    private val unknownFaces = UnknownFaceTracker(requiredChecks = REQUIRED_UNRECOGNIZED_CHECKS)
     private var photosCapturedCount = 0
     private var sessionStartTimeMs = 0L
+    // Replaced, not cleared, on every camera start: tracking IDs reset with the stream, and a
+    // frame still in flight keeps the old instance.
+    @Volatile
+    private var identityCache = TrackedIdentityCache()
+    private var analysisFrameCount = 0
+    private var analysisWindowStartMs = System.currentTimeMillis()
     private var frontCamera = true
     private val cameraPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -108,6 +159,28 @@ class IcueFaceCameraActivity : ComponentActivity() {
             finish()
             return
         }
+        if (session is CameraSession.LiveAttendance || session is CameraSession.MultiPhotoAttendance) {
+            // Alarm volume: usually high, and still plays when the phone is on silent or vibrate.
+            // ponytail: fixed loudness (80 of 100); add a volume option if schools want to tune it.
+            scanTone = runCatching { ToneGenerator(AudioManager.STREAM_ALARM, 80) }.getOrNull()
+            // Back used to cancel attendance silently; now it only points to the buttons.
+            onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    Toast.makeText(this@IcueFaceCameraActivity, "Use Finish or Cancel below", Toast.LENGTH_SHORT).show()
+                }
+            })
+        }
+        namesById = when (val activeSession = session) {
+            is CameraSession.Tracking -> activeSession.profiles
+            is CameraSession.LiveAttendance -> activeSession.roster
+            is CameraSession.MultiPhotoAttendance -> activeSession.roster
+            else -> emptyList()
+        }.mapNotNull { profile -> profile.name?.let { profile.personId to it } }.toMap()
+        preparedRoster = when (val activeSession = session) {
+            is CameraSession.Tracking -> activeSession.sdk.prepareRoster(activeSession.profiles)
+            is CameraSession.LiveAttendance -> activeSession.sdk.prepareRoster(activeSession.roster)
+            else -> null
+        }
         frontCamera = intent.getStringExtra(IcueFaceCamera.EXTRA_LENS) != IcueCameraLens.BACK.name
         CameraSessionRegistry.attach(this)
         buildContent()
@@ -122,6 +195,8 @@ class IcueFaceCameraActivity : ComponentActivity() {
 
     override fun onDestroy() {
         analysisScope.cancel()
+        scanTone?.release()
+        scanTone = null
         runCatching {
             ProcessCameraProvider.getInstance(this).get().unbindAll()
         }
@@ -150,7 +225,7 @@ class IcueFaceCameraActivity : ComponentActivity() {
             )
             scaleType = PreviewView.ScaleType.FILL_CENTER
         }
-        overlay = FaceOverlayView(this)
+        overlay = FaceOverlayView(this) { frontCamera }
 
         flashOverlay = View(this).apply {
             setBackgroundColor(Color.WHITE)
@@ -171,6 +246,8 @@ class IcueFaceCameraActivity : ComponentActivity() {
                 is CameraSession.MultiPhotoAttendance -> "MULTI-PHOTO • 0 PHOTO(S) • 0/${activeSession.roster.size} PRESENT"
                 else -> "ATTENDANCE • SCANNING CLASSROOM"
             }
+            // Live attendance shows its count large in the header instead.
+            if (session is CameraSession.LiveAttendance) visibility = View.GONE
         }
 
         val topScrim = View(this).apply {
@@ -186,18 +263,20 @@ class IcueFaceCameraActivity : ComponentActivity() {
             )
         }
 
-        val titleStack = LinearLayout(this).apply {
+        val titleBlock = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             addView(TextView(this@IcueFaceCameraActivity).apply {
                 text = when (session) {
                     is CameraSession.Capture -> "STUDENT ENROLLMENT"
-                    is CameraSession.LiveAttendance -> "LIVE CLASS ATTENDANCE"
+                    is CameraSession.LiveAttendance -> "TRANSPORT ATTENDANCE"
                     is CameraSession.MultiPhotoAttendance -> "MULTI-GROUP ATTENDANCE"
                     else -> "STUDENT ATTENDANCE SCAN"
                 }
                 setTextColor(COLOR_ACCENT_CYAN)
                 textSize = 13f
                 letterSpacing = 0.18f
+                // Wraps onto a second line on narrow screens instead of reaching the buttons.
+                maxLines = 2
                 typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
             })
             addView(TextView(this@IcueFaceCameraActivity).apply {
@@ -206,6 +285,21 @@ class IcueFaceCameraActivity : ComponentActivity() {
                 textSize = 11f
                 setPadding(0, dp(2), 0, 0)
             })
+        }
+
+        // Live attendance shows the present count after the title block, centred on it.
+        (session as? CameraSession.LiveAttendance)?.let { live ->
+            countLabel = TextView(this).apply {
+                setTextColor(Color.WHITE)
+                textSize = 28f
+                typeface = Typeface.create("sans-serif-black", Typeface.BOLD)
+            }
+            setAttendanceCount(live.roster.size, 0)
+        }
+
+        val titleStack = HeaderRow(this).apply {
+            addView(titleBlock)
+            countLabel?.let { addView(it) }
         }
 
         val cameraFlipBtn = FrameLayout(this).apply {
@@ -217,6 +311,9 @@ class IcueFaceCameraActivity : ComponentActivity() {
                 startCamera()
             }
         }
+
+        val isAttendance = session is CameraSession.LiveAttendance ||
+            session is CameraSession.MultiPhotoAttendance
 
         val closeBtn = TextView(this).apply {
             text = "✕"
@@ -232,7 +329,9 @@ class IcueFaceCameraActivity : ComponentActivity() {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             addView(cameraFlipBtn, LinearLayout.LayoutParams(dp(42), dp(42)).apply { marginEnd = dp(8) })
-            addView(closeBtn, LinearLayout.LayoutParams(dp(42), dp(42)))
+            // Attendance has no close button: helpers tapped it thinking it saved the scans.
+            // They leave through Cancel or Finish at the bottom instead.
+            if (!isAttendance) addView(closeBtn, LinearLayout.LayoutParams(dp(42), dp(42)))
         }
 
         val topBar = LinearLayout(this).apply {
@@ -279,18 +378,29 @@ class IcueFaceCameraActivity : ComponentActivity() {
             actionButton = shutterButton
         } else if (session is CameraSession.LiveAttendance) {
             val liveSession = session as CameraSession.LiveAttendance
-            actionButton = TextView(this).apply {
-                text = "✓ FINISH ATTENDANCE"
+            val finishBtn = TextView(this).apply {
+                text = finishLabel(0)
                 setTextColor(Color.WHITE)
-                textSize = 13f
+                textSize = 15f
                 typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
-                letterSpacing = 0.08f
+                letterSpacing = 0.04f
                 gravity = Gravity.CENTER
-                setPadding(dp(24), dp(12), dp(24), dp(12))
-                background = roundedRipple(0xDD092418.toInt(), 0x44FFFFFF, 24f, 0xAA00E676.toInt())
+                setPadding(dp(28), dp(14), dp(28), dp(14))
+                background = roundedRipple(0xFF0B7A3E.toInt(), 0x44FFFFFF, 26f, 0xAA00E676.toInt())
                 setOnClickListener {
                     completeAttendanceSession("liveStream", liveSession.roster, liveSession.callback)
                 }
+            }
+            finishButton = finishBtn
+            actionButton = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                addView(
+                    cancelButton { requestCancelAttendance("liveStream", liveSession.roster, liveSession.callback) },
+                    LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+                        .apply { marginEnd = dp(16) },
+                )
+                addView(finishBtn, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))
             }
         } else if (session is CameraSession.MultiPhotoAttendance) {
             val multiSession = session as CameraSession.MultiPhotoAttendance
@@ -317,21 +427,27 @@ class IcueFaceCameraActivity : ComponentActivity() {
                 }
             }
             val finishBtn = TextView(this).apply {
-                text = "✓ FINISH"
+                text = finishLabel(0)
                 setTextColor(Color.WHITE)
-                textSize = 12f
+                textSize = 14f
                 typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
-                letterSpacing = 0.06f
+                letterSpacing = 0.04f
                 gravity = Gravity.CENTER
-                setPadding(dp(16), dp(10), dp(16), dp(10))
-                background = roundedRipple(0xDD092418.toInt(), 0x44FFFFFF, 20f, 0xAA00E676.toInt())
+                setPadding(dp(18), dp(12), dp(18), dp(12))
+                background = roundedRipple(0xFF0B7A3E.toInt(), 0x44FFFFFF, 22f, 0xAA00E676.toInt())
                 setOnClickListener {
                     completeAttendanceSession("multiPhoto", multiSession.roster, multiSession.callback)
                 }
             }
+            finishButton = finishBtn
             actionButton = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
+                addView(
+                    cancelButton { requestCancelAttendance("multiPhoto", multiSession.roster, multiSession.callback) },
+                    LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+                        .apply { marginEnd = dp(16) },
+                )
                 addView(shutterButton, LinearLayout.LayoutParams(dp(64), dp(64)).apply { marginEnd = dp(16) })
                 addView(finishBtn, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))
             }
@@ -351,8 +467,18 @@ class IcueFaceCameraActivity : ComponentActivity() {
             }
         )
 
+        val tapToFocus = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
+            override fun onSingleTapUp(event: MotionEvent): Boolean {
+                val cam = camera ?: return true
+                val point = previewView.meteringPointFactory.createPoint(event.x, event.y)
+                cam.cameraControl.startFocusAndMetering(FocusMeteringAction.Builder(point).build())
+                return true
+            }
+        })
+
         previewView.setOnTouchListener { _, event ->
             scaleGestureDetector?.onTouchEvent(event)
+            tapToFocus.onTouchEvent(event)
             true
         }
 
@@ -565,6 +691,218 @@ class IcueFaceCameraActivity : ComponentActivity() {
         }
     }
 
+    private fun setAttendanceCount(total: Int, present: Int) {
+        countLabel?.text = "$present/$total"
+        finishButton?.text = finishLabel(present)
+    }
+
+    /**
+     * One high beep and a single pulse when new students are marked present, so a helper on a
+     * moving bus knows to move to the next student without reading the screen.
+     */
+    private fun scanFeedback() {
+        playFeedback(
+            toneType = ToneGenerator.TONE_PROP_BEEP,
+            toneDurationMs = 200,
+            patternMs = longArrayOf(0, 200),
+            amplitudes = intArrayOf(0, 180),
+            fallbackSingleMs = 150L,
+        )
+    }
+
+    /**
+     * Low negative-ack tone and a double pulse when an unrecognized person is confirmed,
+     * clearly distinct from [scanFeedback].
+     */
+    private fun unrecognizedFeedback() {
+        playFeedback(
+            toneType = ToneGenerator.TONE_PROP_NACK,
+            toneDurationMs = 350,
+            patternMs = longArrayOf(0, 120, 80, 120),
+            amplitudes = intArrayOf(0, 220, 0, 220),
+            fallbackSingleMs = 300L,
+        )
+    }
+
+    private fun playFeedback(
+        toneType: Int,
+        toneDurationMs: Int,
+        patternMs: LongArray,
+        amplitudes: IntArray,
+        fallbackSingleMs: Long,
+    ) {
+        runCatching { scanTone?.startTone(toneType, toneDurationMs) }
+        val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            getSystemService(VibratorManager::class.java)?.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+        } ?: return
+        when {
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && patternMs.size == 2 -> {
+                val strength = if (vibrator.hasAmplitudeControl()) amplitudes[1] else VibrationEffect.DEFAULT_AMPLITUDE
+                val duration = if (vibrator.hasAmplitudeControl()) patternMs[1] else fallbackSingleMs
+                vibrator.vibrate(VibrationEffect.createOneShot(duration, strength))
+            }
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.O -> {
+                val effect = if (vibrator.hasAmplitudeControl()) {
+                    VibrationEffect.createWaveform(patternMs, amplitudes, -1)
+                } else {
+                    VibrationEffect.createWaveform(patternMs, -1)
+                }
+                vibrator.vibrate(effect)
+            }
+            patternMs.size == 2 -> {
+                @Suppress("DEPRECATION")
+                vibrator.vibrate(fallbackSingleMs)
+            }
+            else -> {
+                @Suppress("DEPRECATION")
+                vibrator.vibrate(patternMs, -1)
+            }
+        }
+    }
+
+    private fun finishLabel(scanned: Int) = if (scanned > 0) "✓ FINISH ($scanned)" else "✓ FINISH"
+
+    private fun studentsText(count: Int) = if (count == 1) "1 student" else "$count students"
+
+    private fun cancelButton(onCancel: () -> Unit) = TextView(this).apply {
+        text = "CANCEL"
+        setTextColor(COLOR_TEXT_SECONDARY)
+        textSize = 13f
+        typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+        gravity = Gravity.CENTER
+        setPadding(dp(18), dp(12), dp(18), dp(12))
+        background = roundedRipple(0x99101B2B.toInt(), 0x44FFFFFF, 22f, 0x33FFFFFF)
+        setOnClickListener { onCancel() }
+    }
+
+    /**
+     * Nothing scanned: close at once. Otherwise ask, so a mistaken tap never loses the scans.
+     * "Keep scanning", back, or a tap outside closes the popup and scanning resumes.
+     *
+     * A custom popup, not the system one: a big count first, then three full-width buttons
+     * stacked in order of safety, so the safe choice is the biggest and the first one read.
+     */
+    private fun requestCancelAttendance(
+        modeStr: String,
+        roster: List<IcueFaceProfile>,
+        callback: IcueFaceCamera.AttendanceCallback,
+    ) {
+        if (completed) return
+        val scanned = markedPresentMap.size
+        if (scanned == 0) {
+            finish()
+            return
+        }
+        paused = true
+        val dialog = Dialog(this)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+
+        val card = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
+            setPadding(dp(24), dp(28), dp(24), dp(16))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(28).toFloat()
+                setColor(0xFF101B2B.toInt())
+                setStroke(dp(1), 0x3300E5FF)
+            }
+        }
+        val wrap = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+        card.addView(TextView(this).apply {
+            text = "$scanned"
+            textSize = 56f
+            typeface = Typeface.create("sans-serif", Typeface.BOLD)
+            setTextColor(COLOR_ACCENT_GREEN)
+        }, wrap)
+        card.addView(TextView(this).apply {
+            text = if (scanned == 1) "student scanned" else "students scanned"
+            textSize = 17f
+            typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+            setTextColor(COLOR_TEXT_PRIMARY)
+        }, wrap)
+        card.addView(TextView(this).apply {
+            text = "Submit their attendance?"
+            textSize = 15f
+            gravity = Gravity.CENTER
+            setTextColor(COLOR_TEXT_SECONDARY)
+        }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+            topMargin = dp(6)
+            bottomMargin = dp(20)
+        })
+
+        card.addView(popupButton("✓  Submit ${studentsText(scanned)}", 0xFF00A152.toInt(), Color.WHITE, Color.TRANSPARENT) {
+            dialog.dismiss()
+            completeAttendanceSession(modeStr, roster, callback)
+        })
+        card.addView(popupButton("Discard all scans", Color.TRANSPARENT, 0xFFFF5252.toInt(), 0xFFFF5252.toInt()) {
+            dialog.dismiss()
+            finish()
+        })
+        card.addView(popupButton("Keep scanning", Color.TRANSPARENT, COLOR_ACCENT_CYAN, Color.TRANSPARENT) {
+            dialog.dismiss()
+        })
+
+        dialog.setContentView(card)
+        dialog.setOnDismissListener { paused = false }
+        dialog.show()
+        dialog.window?.apply {
+            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            setLayout(minOf(resources.displayMetrics.widthPixels - dp(40), dp(400)), ViewGroup.LayoutParams.WRAP_CONTENT)
+        }
+    }
+
+    /** A full-width, 56dp popup button: big enough to hit on a moving bus. */
+    private fun popupButton(label: String, fill: Int, textColor: Int, stroke: Int, onClick: () -> Unit) =
+        TextView(this).apply {
+            text = label
+            textSize = 17f
+            typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+            gravity = Gravity.CENTER
+            setTextColor(textColor)
+            background = roundedRipple(fill, 0x33FFFFFF, 16f, stroke)
+            setOnClickListener { onClick() }
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(56)).apply {
+                topMargin = dp(10)
+            }
+        }
+
+    /**
+     * Title block with an optional count after it. The title wraps within whatever width the
+     * count leaves, so the count never overlaps the header buttons; both are centred
+     * vertically on each other.
+     */
+    private class HeaderRow(context: Context) : LinearLayout(context) {
+        private val gap = (12 * resources.displayMetrics.density).toInt()
+
+        override fun onMeasure(widthSpec: Int, heightSpec: Int) {
+            val block = getChildAt(0)
+            val count = if (childCount > 1) getChildAt(1) else null
+            val unspecified = MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED)
+            count?.measure(unspecified, unspecified)
+            val countWidth = count?.let { it.measuredWidth + gap } ?: 0
+            val available = (MeasureSpec.getSize(widthSpec) - countWidth).coerceAtLeast(0)
+            block.measure(MeasureSpec.makeMeasureSpec(available, MeasureSpec.AT_MOST), unspecified)
+            // Fill the width the parent gives, so the header buttons stay at the far end.
+            setMeasuredDimension(
+                resolveSize(block.measuredWidth + countWidth, widthSpec),
+                maxOf(block.measuredHeight, count?.measuredHeight ?: 0),
+            )
+        }
+
+        override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
+            var x = 0
+            for (index in 0 until childCount) {
+                val child = getChildAt(index)
+                val y = (measuredHeight - child.measuredHeight) / 2
+                child.layout(x, y, x + child.measuredWidth, y + child.measuredHeight)
+                x += child.measuredWidth + gap
+            }
+        }
+    }
+
     private fun roundedPill(bgColor: Int, strokeColor: Int) = GradientDrawable().apply {
         cornerRadius = dp(20).toFloat()
         setColor(bgColor)
@@ -596,36 +934,129 @@ class IcueFaceCameraActivity : ComponentActivity() {
         val COLOR_ACCENT_GREEN = 0xFF00E676.toInt()
         val COLOR_TEXT_PRIMARY = 0xFFF1F5F9.toInt()
         val COLOR_TEXT_SECONDARY = 0xFF94A3B8.toInt()
+        const val HIGH_RESOLUTION_MIN_HEAP_MEGABYTES = 384
+        const val ANALYSIS_RATE_WINDOW_FRAMES = 30
+        // A student is marked present only after this many separate model runs agree.
+        const val REQUIRED_FRESH_HITS = 2
+        // A face is reported as unregistered only after this many model runs found no student.
+        const val REQUIRED_UNRECOGNIZED_CHECKS = 3
+        // Confirmed unregistered faces reuse their result for this many frames before re-checking.
+        const val CONFIRMED_UNKNOWN_REFRESH_FRAMES = 5
     }
 
     private fun startCamera() {
+        identityCache = TrackedIdentityCache()
         val providerFuture = ProcessCameraProvider.getInstance(this)
         providerFuture.addListener({
             try {
                 val provider = providerFuture.get()
-                val preview = Preview.Builder()
-                    .setTargetResolution(Size(1920, 1080))
-                    .build().also {
-                    it.surfaceProvider = previewView.surfaceProvider
-                }
-                val analysis = ImageAnalysis.Builder()
-                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                    .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888)
-                    .setTargetResolution(Size(1920, 1080))
-                    .build()
-                analysis.setAnalyzer(analysisExecutor, ::analyze)
                 val selector = if (frontCamera) {
                     CameraSelector.DEFAULT_FRONT_CAMERA
                 } else {
                     CameraSelector.DEFAULT_BACK_CAMERA
                 }
-                provider.unbindAll()
-                camera = provider.bindToLifecycle(this, selector, preview, analysis)
-                applyDefaultZoom()
+                // Sensor-native 4:3: sharper and wider than a cropped 16:9 stream. Each frame is
+                // copied and converted to a full-size bitmap, so the size follows the app heap:
+                // an uncapped target let the Lava Smart 4 pick 2448x2448 and run out of memory.
+                // Preview and analysis share the aspect ratio, because the face overlay maps
+                // analysis frames onto the preview; CameraX keeps the preview at its own
+                // supported maximum.
+                val resolution = ResolutionSelector.Builder()
+                    .setAspectRatioStrategy(AspectRatioStrategy.RATIO_4_3_FALLBACK_AUTO_STRATEGY)
+                    .setResolutionStrategy(
+                        ResolutionStrategy(
+                            analysisTargetSize(),
+                            ResolutionStrategy.FALLBACK_RULE_CLOSEST_LOWER_THEN_HIGHER,
+                        ),
+                    )
+                    .build()
+                val cameraInfo = selector.filter(provider.availableCameraInfos).firstOrNull()
+                val preview = Preview.Builder()
+                    .setResolutionSelector(resolution)
+                    .also { it.requestHighQualityProcessing(cameraInfo) }
+                    .build().also {
+                    it.surfaceProvider = previewView.surfaceProvider
+                }
+                val analysis = ImageAnalysis.Builder()
+                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                    // CameraX converts and rotates in native code (libyuv); the SDK's per-pixel
+                    // Kotlin YUV path is too slow for live tracking on low-end phones.
+                    .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
+                    .setOutputImageRotationEnabled(true)
+                    .setResolutionSelector(resolution)
+                    .also { it.requestHighQualityProcessing(cameraInfo) }
+                    .build()
+                analysis.setAnalyzer(analysisExecutor, ::analyze)
+                // The overlay draws analysis-frame boxes over the preview, so both must show the
+                // same field of view. Sharing the preview's viewport gives every analysis frame a
+                // crop rect matching what is on screen (see toFrameBitmap). It exists only after layout.
+                previewView.doOnLayout {
+                    try {
+                        val group = UseCaseGroup.Builder()
+                            .addUseCase(preview)
+                            .addUseCase(analysis)
+                            .also { builder -> previewView.viewPort?.let(builder::setViewPort) }
+                            .build()
+                        provider.unbindAll()
+                        camera = provider.bindToLifecycle(this, selector, group)
+                        android.util.Log.i(
+                            "IcueFaceCamera",
+                            "Streams: preview=${preview.resolutionInfo?.resolution} " +
+                                "analysis=${analysis.resolutionInfo?.resolution} " +
+                                "crop=${analysis.resolutionInfo?.cropRect} " +
+                                "heap=${Runtime.getRuntime().maxMemory() / (1024 * 1024)}MB",
+                        )
+                        applyDefaultZoom()
+                    } catch (error: Throwable) {
+                        fail("CAMERA_UNAVAILABLE", error.message ?: "Unable to open camera")
+                    }
+                }
             } catch (error: Throwable) {
                 fail("CAMERA_UNAVAILABLE", error.message ?: "Unable to open camera")
             }
         }, ContextCompat.getMainExecutor(this))
+    }
+
+    /**
+     * 1920x1440 gives distant faces in group attendance more pixels; 1440x1080 keeps budget
+     * phones inside their heap.
+     */
+    // ponytail: heap-size heuristic; profile per-frame allocation if a mid-range phone still runs out.
+    private fun analysisTargetSize(): Size {
+        val activityManager = getSystemService(ACTIVITY_SERVICE) as android.app.ActivityManager
+        val heapMegabytes = Runtime.getRuntime().maxMemory() / (1024 * 1024)
+        return if (!activityManager.isLowRamDevice && heapMegabytes >= HIGH_RESOLUTION_MIN_HEAP_MEGABYTES) {
+            Size(1920, 1440)
+        } else {
+            Size(1440, 1080)
+        }
+    }
+
+    /**
+     * Streams default to FAST noise reduction and sharpening, which is what makes third-party
+     * camera feeds look soft next to the stock camera app. Asks for HIGH_QUALITY where the
+     * camera supports it; budget sensors may drop a few frames per second as a result.
+     */
+    @OptIn(ExperimentalCamera2Interop::class)
+    private fun ExtendableBuilder<*>.requestHighQualityProcessing(cameraInfo: CameraInfo?) {
+        val info = cameraInfo?.let(Camera2CameraInfo::from) ?: return
+        val extender = Camera2Interop.Extender(this)
+        val noiseModes = info.getCameraCharacteristic(
+            CameraCharacteristics.NOISE_REDUCTION_AVAILABLE_NOISE_REDUCTION_MODES,
+        )
+        if (noiseModes?.contains(CaptureRequest.NOISE_REDUCTION_MODE_HIGH_QUALITY) == true) {
+            extender.setCaptureRequestOption(
+                CaptureRequest.NOISE_REDUCTION_MODE,
+                CaptureRequest.NOISE_REDUCTION_MODE_HIGH_QUALITY,
+            )
+        }
+        val edgeModes = info.getCameraCharacteristic(CameraCharacteristics.EDGE_AVAILABLE_EDGE_MODES)
+        if (edgeModes?.contains(CaptureRequest.EDGE_MODE_HIGH_QUALITY) == true) {
+            extender.setCaptureRequestOption(
+                CaptureRequest.EDGE_MODE,
+                CaptureRequest.EDGE_MODE_HIGH_QUALITY,
+            )
+        }
     }
 
     private fun applyDefaultZoom() {
@@ -673,12 +1104,12 @@ class IcueFaceCameraActivity : ComponentActivity() {
     }
 
     private fun analyze(image: ImageProxy) {
-        if (isFinishing || isDestroyed || completed || analysisExecutor.isShutdown || !analysisScope.isActive || !processing.compareAndSet(false, true)) {
+        if (paused || isFinishing || isDestroyed || completed || analysisExecutor.isShutdown || !analysisScope.isActive || !processing.compareAndSet(false, true)) {
             image.close()
             return
         }
         val frame = try {
-            image.toIcueFrame(frontCamera)
+            image.toFrameBitmap()
         } catch (error: Throwable) {
             processing.set(false)
             image.close()
@@ -697,7 +1128,10 @@ class IcueFaceCameraActivity : ComponentActivity() {
                 try {
                     if (isFinishing || isDestroyed || completed) return@launch
                     val activeSession = session ?: return@launch
-                    if (activeSession.sdk.isClosed) return@launch
+                    if (activeSession.sdk.isClosed) {
+                        fail(FaceSdkErrorCode.CLOSED.name, "IcueFaceSdk was closed while the camera was open")
+                        return@launch
+                    }
                     when (activeSession) {
                         is CameraSession.Capture -> processCapture(activeSession, frame)
                         is CameraSession.Tracking -> processTracking(activeSession, frame)
@@ -717,6 +1151,7 @@ class IcueFaceCameraActivity : ComponentActivity() {
                         fail("PROCESSING_ERROR", error.message ?: "Face processing failed")
                     }
                 } finally {
+                    logAnalysisRate()
                     processing.set(false)
                 }
             }
@@ -727,12 +1162,12 @@ class IcueFaceCameraActivity : ComponentActivity() {
 
     private suspend fun processCapture(
         activeSession: CameraSession.Capture,
-        frame: IcueYuv420Frame,
+        frame: Bitmap,
     ) {
         if (isFinishing || isDestroyed || completed || activeSession.sdk.isClosed) return
         if (!captureRequested) {
             try {
-                val faces = activeSession.sdk.detectFacesInYuv420(frame)
+                val faces = activeSession.sdk.detectFaces(frame)
                 if (isFinishing || isDestroyed || completed) return
                 showFaces(faces, frame)
             } catch (error: FaceSdkException) {
@@ -746,7 +1181,7 @@ class IcueFaceCameraActivity : ComponentActivity() {
         }
         captureRequested = false
         try {
-            val embedding = activeSession.sdk.extractEmbeddingFromYuv420(frame)
+            val embedding = activeSession.sdk.extractEmbedding(frame)
             if (isFinishing || isDestroyed || completed) return
             capturedEmbedding = embedding.copyOf()
             completed = true
@@ -757,7 +1192,8 @@ class IcueFaceCameraActivity : ComponentActivity() {
         } catch (error: FaceSdkException) {
             if (error.code == FaceSdkErrorCode.CLOSED || isFinishing || isDestroyed || completed) return
             if (error.code == FaceSdkErrorCode.NO_FACE ||
-                error.code == FaceSdkErrorCode.MULTIPLE_FACES
+                error.code == FaceSdkErrorCode.MULTIPLE_FACES ||
+                error.code == FaceSdkErrorCode.POOR_FACE
             ) {
                 runOnUiThread {
                     statusPill.text = error.message
@@ -777,23 +1213,24 @@ class IcueFaceCameraActivity : ComponentActivity() {
 
     private suspend fun processTracking(
         activeSession: CameraSession.Tracking,
-        frame: IcueYuv420Frame,
+        frame: Bitmap,
     ) {
         if (isFinishing || isDestroyed || completed || activeSession.sdk.isClosed) return
         try {
-            val recognitions = if (activeSession.profiles.isEmpty()) {
+            val roster = preparedRoster
+            val recognitions = if (roster == null || activeSession.profiles.isEmpty()) {
                 emptyList()
             } else {
-                activeSession.sdk.recognizeYuv420(
-                    frame = frame,
-                    profiles = activeSession.profiles,
-                    mode = RecognitionMode.MULTI,
+                activeSession.sdk.recognizeTracked(
+                    bitmap = frame,
+                    roster = roster,
                     maxFaces = activeSession.maxFaces,
                     threshold = activeSession.threshold,
+                    cache = identityCache,
                 )
             }
             val faces = if (activeSession.profiles.isEmpty()) {
-                activeSession.sdk.detectFacesInYuv420(frame)
+                activeSession.sdk.detectFaces(frame)
             } else {
                 recognitions.map { it.boundingBox }
             }
@@ -823,7 +1260,7 @@ class IcueFaceCameraActivity : ComponentActivity() {
                             unrecognizedLabel = activeSession.unrecognizedLabel
                         )
                     },
-                    recognitions.map { it.matched }
+                    recognitions.map { if (it.matched) FaceState.MATCHED else FaceState.UNKNOWN },
                 )
                 statusPill.text = when {
                     activeSession.profiles.isEmpty() -> "ATTENDANCE • TRACKING ${faces.size} STUDENT(S)"
@@ -843,31 +1280,39 @@ class IcueFaceCameraActivity : ComponentActivity() {
 
     private suspend fun processLiveAttendance(
         activeSession: CameraSession.LiveAttendance,
-        frame: IcueYuv420Frame,
+        frame: Bitmap,
     ) {
         if (isFinishing || isDestroyed || completed || activeSession.sdk.isClosed) return
         try {
-            val recognitions = if (activeSession.roster.isEmpty()) {
+            val roster = preparedRoster
+            val recognitions = if (roster == null || activeSession.roster.isEmpty()) {
                 emptyList()
             } else {
-                activeSession.sdk.recognizeYuv420(
-                    frame = frame,
-                    profiles = activeSession.roster,
-                    mode = RecognitionMode.MULTI,
+                activeSession.sdk.recognizeTracked(
+                    bitmap = frame,
+                    roster = roster,
                     maxFaces = activeSession.maxFaces,
                     threshold = activeSession.threshold,
+                    cache = identityCache,
                 )
             }
             if (isFinishing || isDestroyed || completed) return
-            var frameUnrecognized = 0
+            var newlyScanned = 0
+            var newlyUnrecognized = 0
             recognitions.forEach { recognition ->
                 if (recognition.matched && recognition.personId != null) {
                     val pId = recognition.personId!!
-                    val hits = (liveAttendanceHitsMap[pId] ?: 0) + 1
-                    liveAttendanceHitsMap[pId] = hits
+                    // Two fresh model runs must agree on the same tracked face. Replayed tracking
+                    // results are not new evidence, and a match on another face proves nothing.
+                    val hitKey = "${recognition.boundingBox.trackingId}:$pId"
+                    val hits = (liveAttendanceHitsMap[hitKey] ?: 0) + if (recognition.reused) 0 else 1
+                    liveAttendanceHitsMap[hitKey] = hits
                     val existing = markedPresentMap[pId]
                     val existingScore = (existing?.get("score") as? Number)?.toDouble() ?: 0.0
-                    if (recognition.score >= activeSession.threshold || hits >= 2) {
+                    if (hits >= REQUIRED_FRESH_HITS) {
+                        // Counted as a student, so any earlier misses on this face were bad frames.
+                        recognition.embedding?.let(unknownFaces::forget)
+                        if (existing == null) newlyScanned++
                         if (existing == null || recognition.score > existingScore) {
                             markedPresentMap[pId] = mapOf(
                                 "personId" to pId,
@@ -876,29 +1321,54 @@ class IcueFaceCameraActivity : ComponentActivity() {
                                 "timestampMillis" to System.currentTimeMillis(),
                             )
                         }
+                    } else {
+                        // Not confirmed yet: run the model on this face again next frame instead of
+                        // replaying this result, so confirmation takes one frame, not ten.
+                        identityCache.forget(recognition.boundingBox.trackingId)
                     }
                 } else {
-                    frameUnrecognized++
+                    // Unknown only after repeated fresh checks: a student's first blurry or
+                    // half-turned frames, or a face whose eyes were not found (no embedding, so
+                    // never compared), must not be reported as an unregistered person.
+                    val embedding = recognition.embedding
+                    if (!recognition.reused && embedding != null) {
+                        if (unknownFaces.recordMiss(embedding, recognition.toUnrecognizedFaceMap())) {
+                            newlyUnrecognized++
+                        }
+                        if (unknownFaces.isConfirmed(embedding)) {
+                            identityCache.hold(recognition.boundingBox.trackingId, CONFIRMED_UNKNOWN_REFRESH_FRAMES)
+                        }
+                    }
                 }
             }
-            if (frameUnrecognized > unrecognizedCount) {
-                unrecognizedCount = frameUnrecognized
+            if (newlyScanned > 0) scanFeedback() else if (newlyUnrecognized > 0) unrecognizedFeedback()
+            synchronized(unrecognizedFaces) {
+                unrecognizedFaces.clear()
+                unknownFaces.confirmed().forEachIndexed { index, details -> unrecognizedFaces[index] = details }
+                unrecognizedCount = unrecognizedFaces.size
             }
 
             val (width, height) = frame.outputDimensions()
             val faces = recognitions.map { it.boundingBox }
             val totalRoster = activeSession.roster.size
             val presentCount = markedPresentMap.size
-            val percent = if (totalRoster == 0) 0 else (presentCount * 100 / totalRoster)
+            // Green tick and name only once the student is counted, so the screen never shows a
+            // student as done while the count (and the beep) are still waiting for confirmation.
+            val counted = recognitions.map { it.matched && it.personId?.let(markedPresentMap::containsKey) == true }
+            // Likewise the "unregistered" label only once the face is confirmed unknown.
+            val strangers = recognitions.map { recognition ->
+                !recognition.matched && recognition.embedding?.let(unknownFaces::isConfirmed) == true
+            }
 
             runOnUiThread {
                 overlay.update(
                     faces,
                     width,
                     height,
-                    recognitions.map { recognition ->
+                    recognitions.mapIndexed { index, recognition ->
+                        if (!counted[index] && !strangers[index]) return@mapIndexed null
                         formatFaceLabel(
-                            matched = recognition.matched && recognition.personId != null,
+                            matched = counted[index],
                             personId = recognition.personId,
                             score = recognition.score,
                             showDetectedLabel = activeSession.showDetectedLabel,
@@ -907,13 +1377,19 @@ class IcueFaceCameraActivity : ComponentActivity() {
                             unrecognizedLabel = activeSession.unrecognizedLabel
                         )
                     },
-                    recognitions.map { it.matched && it.personId != null }
+                    // Faces not yet decided stay "scanning": the next frames may still count them.
+                    recognitions.indices.map { index ->
+                        when {
+                            counted[index] -> FaceState.MATCHED
+                            strangers[index] -> FaceState.UNKNOWN
+                            else -> FaceState.SCANNING
+                        }
+                    },
                 )
-                statusPill.text = "LIVE ATTENDANCE • $presentCount/$totalRoster PRESENT ($percent%)"
-                statusPill.background = roundedPill(0xCC0B1422.toInt(), 0x6600E676.toInt())
+                setAttendanceCount(totalRoster, presentCount)
             }
 
-            if (activeSession.autoFinish && totalRoster > 0 && presentCount >= totalRoster) {
+            if (activeSession.autoFinish && !paused && totalRoster > 0 && presentCount >= totalRoster) {
                 completeAttendanceSession("liveStream", activeSession.roster, activeSession.callback)
             }
         } catch (error: Throwable) {
@@ -926,12 +1402,12 @@ class IcueFaceCameraActivity : ComponentActivity() {
 
     private suspend fun processMultiPhotoAttendance(
         activeSession: CameraSession.MultiPhotoAttendance,
-        frame: IcueYuv420Frame,
+        frame: Bitmap,
     ) {
         if (isFinishing || isDestroyed || completed || activeSession.sdk.isClosed) return
         if (!captureRequested) {
             try {
-                val faces = activeSession.sdk.detectFacesInYuv420(frame)
+                val faces = activeSession.sdk.detectFaces(frame)
                 if (isFinishing || isDestroyed || completed) return
                 val (width, height) = frame.outputDimensions()
                 val totalRoster = activeSession.roster.size
@@ -955,8 +1431,8 @@ class IcueFaceCameraActivity : ComponentActivity() {
             val recognitions = if (activeSession.roster.isEmpty()) {
                 emptyList()
             } else {
-                activeSession.sdk.recognizeYuv420(
-                    frame = frame,
+                activeSession.sdk.recognize(
+                    bitmap = frame,
                     profiles = activeSession.roster,
                     mode = RecognitionMode.MULTI,
                     maxFaces = activeSession.maxFaces,
@@ -965,11 +1441,13 @@ class IcueFaceCameraActivity : ComponentActivity() {
             }
             if (isFinishing || isDestroyed || completed) return
             var frameUnrecognized = 0
+            var newlyScanned = 0
             recognitions.forEach { recognition ->
                 if (recognition.matched && recognition.personId != null) {
                     val pId = recognition.personId!!
                     val existing = markedPresentMap[pId]
                     val existingScore = (existing?.get("score") as? Number)?.toDouble() ?: 0.0
+                    if (existing == null) newlyScanned++
                     if (existing == null || recognition.score > existingScore) {
                         markedPresentMap[pId] = mapOf(
                             "personId" to pId,
@@ -980,11 +1458,13 @@ class IcueFaceCameraActivity : ComponentActivity() {
                     }
                 } else {
                     frameUnrecognized++
+                    unrecognizedFaces[java.util.UUID.randomUUID()] = recognition.toUnrecognizedFaceMap()
                 }
             }
             saveLowQualityJpeg(frame)?.let { path ->
                 capturedPhotoPaths.add(path)
             }
+            if (newlyScanned > 0) scanFeedback() else if (frameUnrecognized > 0) unrecognizedFeedback()
             unrecognizedCount += frameUnrecognized
             photosCapturedCount++
 
@@ -994,6 +1474,7 @@ class IcueFaceCameraActivity : ComponentActivity() {
             val presentCount = markedPresentMap.size
 
             runOnUiThread {
+                finishButton?.text = finishLabel(presentCount)
                 triggerCaptureFlash()
                 overlay.update(
                     faces,
@@ -1010,7 +1491,9 @@ class IcueFaceCameraActivity : ComponentActivity() {
                             unrecognizedLabel = activeSession.unrecognizedLabel
                         )
                     },
-                    recognitions.map { it.matched && it.personId != null }
+                    recognitions.map {
+                        if (it.matched && it.personId != null) FaceState.MATCHED else FaceState.UNKNOWN
+                    },
                 )
                 statusPill.text = "MULTI-PHOTO • ${photosCapturedCount} PHOTO(S) • $presentCount/$totalRoster PRESENT"
                 statusPill.background = roundedPill(0xCC0B1422.toInt(), 0x6600E676.toInt())
@@ -1020,7 +1503,7 @@ class IcueFaceCameraActivity : ComponentActivity() {
                 }
             }
 
-            if (activeSession.autoFinish && totalRoster > 0 && presentCount >= totalRoster) {
+            if (activeSession.autoFinish && !paused && totalRoster > 0 && presentCount >= totalRoster) {
                 completeAttendanceSession("multiPhoto", activeSession.roster, activeSession.callback)
             }
         } catch (error: Throwable) {
@@ -1031,25 +1514,23 @@ class IcueFaceCameraActivity : ComponentActivity() {
         }
     }
 
-    private fun saveLowQualityJpeg(frame: IcueYuv420Frame): String? {
+    private fun saveLowQualityJpeg(frame: Bitmap): String? {
         return try {
-            val bitmap = YuvFrameConverter().yuv420ToBitmap(frame)
             val maxDim = 1024
-            val scaledBitmap = if (bitmap.width > maxDim || bitmap.height > maxDim) {
-                val scale = maxDim.toFloat() / maxOf(bitmap.width, bitmap.height)
-                val newWidth = (bitmap.width * scale).toInt()
-                val newHeight = (bitmap.height * scale).toInt()
-                android.graphics.Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true).also {
-                    if (it !== bitmap) bitmap.recycle()
-                }
+            val scaledBitmap = if (frame.width > maxDim || frame.height > maxDim) {
+                val scale = maxDim.toFloat() / maxOf(frame.width, frame.height)
+                val newWidth = (frame.width * scale).toInt()
+                val newHeight = (frame.height * scale).toInt()
+                Bitmap.createScaledBitmap(frame, newWidth, newHeight, true)
             } else {
-                bitmap
+                frame
             }
             val photoFile = File(cacheDir, "icue_attendance_${System.currentTimeMillis()}_${photosCapturedCount + 1}.jpg")
             FileOutputStream(photoFile).use { out ->
-                scaledBitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 65, out)
+                scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 65, out)
             }
-            if (!scaledBitmap.isRecycled) scaledBitmap.recycle()
+            // The frame itself is left to GC, like every analysis frame (see IcueFaceSdk).
+            if (scaledBitmap !== frame) scaledBitmap.recycle()
             photoFile.absolutePath
         } catch (_: Throwable) {
             null
@@ -1072,6 +1553,7 @@ class IcueFaceCameraActivity : ComponentActivity() {
             "present" to presentList,
             "absentPersonIds" to absentIds,
             "unrecognizedFaceCount" to unrecognizedCount,
+            "unrecognizedFaces" to synchronized(unrecognizedFaces) { unrecognizedFaces.values.toList() },
             "totalRosterCount" to roster.size,
             "sessionStartTimeMs" to sessionStartTimeMs,
             "sessionEndTimeMs" to endTimeMs,
@@ -1097,7 +1579,7 @@ class IcueFaceCameraActivity : ComponentActivity() {
         return if (matched) {
             val parts = mutableListOf<String>()
             if (showDetectedLabel && personId != null) {
-                parts.add(personId)
+                parts.add(namesById[personId] ?: personId)
             }
             if (showMatchingPercentage) {
                 parts.add("${(score * 100).toInt()}%")
@@ -1116,7 +1598,7 @@ class IcueFaceCameraActivity : ComponentActivity() {
         "trackingId" to trackingId,
     )
 
-    private fun showFaces(faces: List<IcueBoundingBox>, frame: IcueYuv420Frame) {
+    private fun showFaces(faces: List<IcueBoundingBox>, frame: Bitmap) {
         val (width, height) = frame.outputDimensions()
         runOnUiThread {
             overlay.update(faces, width, height)
@@ -1152,6 +1634,7 @@ class IcueFaceCameraActivity : ComponentActivity() {
     private fun fail(code: String, message: String) {
         if (completed || isFinishing) return
         completed = true
+        android.util.Log.e("IcueFaceCamera", "Closing camera: $code - $message")
         runOnUiThread {
             when (val activeSession = session) {
                 is CameraSession.Capture -> activeSession.callback.onError(code, message)
@@ -1174,30 +1657,39 @@ class IcueFaceCameraActivity : ComponentActivity() {
         }
     }
 
-    private fun ImageProxy.toIcueFrame(mirror: Boolean): IcueYuv420Frame {
-        require(planes.size == 3) { "Expected a YUV_420_888 frame" }
-        return IcueYuv420Frame(
-            yBytes = planes[0].buffer.copyRemaining(),
-            uBytes = planes[1].buffer.copyRemaining(),
-            vBytes = planes[2].buffer.copyRemaining(),
-            width = width,
-            height = height,
-            yRowStride = planes[0].rowStride,
-            uRowStride = planes[1].rowStride,
-            vRowStride = planes[2].rowStride,
-            uPixelStride = planes[1].pixelStride,
-            vPixelStride = planes[2].pixelStride,
-            rotationDegrees = imageInfo.rotationDegrees,
-            mirrorHorizontally = mirror,
+    /**
+     * CameraX has already converted the frame to upright RGBA in native code; this only copies
+     * it into a bitmap. Front-camera frames are not mirrored: enrollment photos are unmirrored,
+     * so the model must see the real face. The overlay mirrors its drawing instead.
+     */
+    private fun ImageProxy.toFrameBitmap(): Bitmap {
+        val upright = toBitmap()
+        // toBitmap() ignores the viewport crop rect; cut the frame down to what the preview shows.
+        val crop = cropRect.takeIf {
+            upright.width == width && upright.height == height &&
+                (it.width() != width || it.height() != height)
+        } ?: return upright
+        val output = Bitmap.createBitmap(upright, crop.left, crop.top, crop.width(), crop.height())
+        if (output !== upright) upright.recycle()
+        return output
+    }
+
+    private fun Bitmap.outputDimensions(): Pair<Int, Int> = width to height
+
+    private fun logAnalysisRate() {
+        analysisFrameCount++
+        val elapsedMs = System.currentTimeMillis() - analysisWindowStartMs
+        if (analysisFrameCount < ANALYSIS_RATE_WINDOW_FRAMES) return
+        android.util.Log.i(
+            "IcueFaceCamera",
+            "Tracking: %.1f fps (%d ms per frame)".format(
+                analysisFrameCount * 1000f / elapsedMs,
+                elapsedMs / analysisFrameCount,
+            ),
         )
+        analysisFrameCount = 0
+        analysisWindowStartMs = System.currentTimeMillis()
     }
-
-    private fun java.nio.ByteBuffer.copyRemaining(): ByteArray = duplicate().let { buffer ->
-        ByteArray(buffer.remaining()).also(buffer::get)
-    }
-
-    private fun IcueYuv420Frame.outputDimensions(): Pair<Int, Int> =
-        if (rotationDegrees == 90 || rotationDegrees == 270) height to width else width to height
 }
 
 private class CameraFlipIconView(context: Context) : View(context) {
@@ -1282,7 +1774,8 @@ private class ZoomPresetButton(context: Context, val zoomValue: Float) : TextVie
     }
 }
 
-private class FaceOverlayView(activity: Activity) : View(activity) {
+/** [mirrored] is read on every draw: front-camera previews are mirrored, analysed frames are not. */
+private class FaceOverlayView(activity: Activity, private val mirrored: () -> Boolean) : View(activity) {
     private val density = resources.displayMetrics.density
 
     // Animators
@@ -1375,24 +1868,52 @@ private class FaceOverlayView(activity: Activity) : View(activity) {
         typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
     }
 
+    private val tintPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
+    private val badgePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
+    private val badgeRingPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.WHITE
+        style = Paint.Style.STROKE
+        strokeWidth = 2f * density
+    }
+    private val badgeIconPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.WHITE
+        style = Paint.Style.STROKE
+        strokeCap = Paint.Cap.ROUND
+        strokeJoin = Paint.Join.ROUND
+    }
+    private val trailPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
+    private val badgePath = Path()
+
     private var faces: List<IcueBoundingBox> = emptyList()
     private var labels: List<String?> = emptyList()
-    private var isMatchedList: List<Boolean> = emptyList()
+    private var states: List<FaceState> = emptyList()
     private var sourceWidth = 1
     private var sourceHeight = 1
+
+    // When each face entered its current state, keyed by trackingId (or index), for the badge pop-in.
+    private val stateSince = HashMap<Any, Pair<FaceState, Long>>()
 
     fun update(
         newFaces: List<IcueBoundingBox>,
         width: Int,
         height: Int,
         newLabels: List<String?> = emptyList(),
-        newMatchedList: List<Boolean> = emptyList(),
+        newStates: List<FaceState> = emptyList(),
     ) {
         faces = newFaces
         labels = newLabels
-        isMatchedList = newMatchedList
+        states = newStates
         sourceWidth = width.coerceAtLeast(1)
         sourceHeight = height.coerceAtLeast(1)
+        val now = System.currentTimeMillis()
+        val seen = HashSet<Any>()
+        newFaces.forEachIndexed { index, face ->
+            val key: Any = face.trackingId ?: index
+            seen += key
+            val state = newStates.getOrNull(index) ?: FaceState.SCANNING
+            if (stateSince[key]?.first != state) stateSince[key] = state to now
+        }
+        stateSince.keys.retainAll(seen)
         invalidate()
     }
 
@@ -1412,24 +1933,39 @@ private class FaceOverlayView(activity: Activity) : View(activity) {
             drawCenterReticle(canvas)
         } else {
             faces.forEachIndexed { index, face ->
+                val left = if (mirrored()) sourceWidth - face.right else face.left
+                val right = if (mirrored()) sourceWidth - face.left else face.right
                 val rect = RectF(
-                    offsetX + face.left * scale,
+                    offsetX + left * scale,
                     offsetY + face.top * scale,
-                    offsetX + face.right * scale,
+                    offsetX + right * scale,
                     offsetY + face.bottom * scale,
                 )
                 val label = labels.getOrNull(index)
-                val isMatched = isMatchedList.getOrNull(index) ?: (label != null && label != "UNREGISTERED STUDENT" && label.isNotBlank())
-                val mainColor = if (isMatched) 0xFF00E676.toInt() else 0xFF00E5FF.toInt()
+                val state = states.getOrNull(index) ?: FaceState.SCANNING
+                val mainColor = when (state) {
+                    FaceState.MATCHED -> COLOR_MATCHED
+                    FaceState.UNKNOWN -> COLOR_UNKNOWN
+                    FaceState.SCANNING -> COLOR_SCANNING
+                }
 
                 bracketPaint.color = mainColor
                 glowPaint.color = (mainColor and 0x00FFFFFF) or 0x33000000
                 scanLinePaint.color = mainColor
 
+                if (state != FaceState.SCANNING) {
+                    tintPaint.color = (mainColor and 0x00FFFFFF) or 0x1F000000
+                    val cornerRadius = 14f * density
+                    canvas.drawRoundRect(rect, cornerRadius, cornerRadius, tintPaint)
+                }
                 drawCyberBrackets(canvas, rect)
-                drawLaserScanLine(canvas, rect)
+                if (state == FaceState.SCANNING) drawLaserScanLine(canvas, rect)
                 label?.takeIf { it.isNotBlank() }?.let { text ->
                     drawCyberLabel(canvas, rect, text, mainColor)
+                }
+                if (state != FaceState.SCANNING) {
+                    val sinceMs = stateSince[face.trackingId ?: index]?.second ?: 0L
+                    drawStatusBadge(canvas, rect, state, mainColor, sinceMs)
                 }
             }
         }
@@ -1497,11 +2033,40 @@ private class FaceOverlayView(activity: Activity) : View(activity) {
             null,
             Shader.TileMode.CLAMP
         )
-        val trailPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            shader = gradientShader
-            style = Paint.Style.FILL
-        }
+        trailPaint.shader = gradientShader
         canvas.drawRect(rect.left + pad, scanY - trailHeight, rect.right - pad, scanY, trailPaint)
+    }
+
+    /** Circular ✓ (recognized) or ! (unrecognized) badge on the face's top-right corner, with an overshoot pop-in. */
+    private fun drawStatusBadge(canvas: Canvas, rect: RectF, state: FaceState, color: Int, sinceMs: Long) {
+        val progress = ((System.currentTimeMillis() - sinceMs) / BADGE_POP_MS.toFloat()).coerceIn(0f, 1f)
+        // Overshoot ease-out: grows past 1.0, then settles.
+        val remaining = progress - 1f
+        val pop = 1f + 2.2f * remaining * remaining * remaining + 1.2f * remaining * remaining
+        val radius = (minOf(rect.width(), rect.height()) * 0.11f).coerceIn(13f * density, 22f * density) * pop
+        if (radius <= 0f) return
+        val centerX = rect.right.coerceAtMost(width - radius - 4f * density)
+        val centerY = rect.top.coerceAtLeast(radius + 4f * density)
+
+        badgePaint.color = (color and 0x00FFFFFF) or 0x55000000
+        canvas.drawCircle(centerX, centerY, radius * 1.35f, badgePaint)
+        badgePaint.color = color
+        canvas.drawCircle(centerX, centerY, radius, badgePaint)
+        canvas.drawCircle(centerX, centerY, radius, badgeRingPaint)
+
+        badgeIconPaint.strokeWidth = radius * 0.22f
+        if (state == FaceState.MATCHED) {
+            badgePath.reset()
+            badgePath.moveTo(centerX - radius * 0.45f, centerY + radius * 0.02f)
+            badgePath.lineTo(centerX - radius * 0.12f, centerY + radius * 0.35f)
+            badgePath.lineTo(centerX + radius * 0.48f, centerY - radius * 0.32f)
+            canvas.drawPath(badgePath, badgeIconPaint)
+        } else {
+            // ✕: "not on this list", clearer for helpers than an exclamation mark.
+            val arm = radius * 0.38f
+            canvas.drawLine(centerX - arm, centerY - arm, centerX + arm, centerY + arm, badgeIconPaint)
+            canvas.drawLine(centerX - arm, centerY + arm, centerX + arm, centerY - arm, badgeIconPaint)
+        }
     }
 
     private fun drawCyberLabel(canvas: Canvas, faceRect: RectF, label: String, strokeColor: Int) {
@@ -1538,4 +2103,13 @@ private class FaceOverlayView(activity: Activity) : View(activity) {
         }
         return label.substring(0, end) + ellipsis
     }
+
+    private companion object {
+        const val COLOR_MATCHED = 0xFF00E676.toInt()
+        const val COLOR_UNKNOWN = 0xFFFF2A54.toInt()
+        const val COLOR_SCANNING = 0xFF00E5FF.toInt()
+        const val BADGE_POP_MS = 320L
+    }
 }
+
+internal enum class FaceState { SCANNING, MATCHED, UNKNOWN }

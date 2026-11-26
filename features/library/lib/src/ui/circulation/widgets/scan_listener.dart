@@ -1,0 +1,140 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
+import 'package:icue_ui/icue_ui.dart';
+import 'package:provider/provider.dart';
+import 'package:school_library/school_library.dart';
+import 'package:school_library/src/ui/circulation/widgets/book_scan_dialog.dart';
+import 'package:school_library/src/ui/circulation/widgets/loan_dialog.dart';
+
+/// Opens the circulation flow when the librarian scans a book anywhere in the Library screens.
+///
+/// A keyboard-wedge scanner types the whole code within a few milliseconds and ends with Enter.
+/// Keys typed by hand are slower, and keys typed into a text field are left to that field
+/// (except on a screen that sets [scanOverride]).
+class LibraryScanListener extends StatefulWidget {
+  const LibraryScanListener({required this.child, super.key});
+
+  final Widget child;
+
+  /// A screen that consumes scans itself (Issue Books) sets this while open;
+  /// scans then go to it instead of the book popup.
+  static ValueChanged<String>? scanOverride;
+
+  @override
+  State<LibraryScanListener> createState() => _LibraryScanListenerState();
+}
+
+class _LibraryScanListenerState extends State<LibraryScanListener> {
+  static const _maxKeyGap = Duration(milliseconds: 60);
+  static const _minLength = 4;
+
+  final _code = StringBuffer();
+  Duration _lastKey = Duration.zero;
+  bool _handling = false;
+
+  @override
+  void initState() {
+    super.initState();
+    HardwareKeyboard.instance.addHandler(_onKey);
+  }
+
+  @override
+  void dispose() {
+    HardwareKeyboard.instance.removeHandler(_onKey);
+    super.dispose();
+  }
+
+  bool _onKey(KeyEvent event) {
+    if (event is! KeyDownEvent || _handling || !mounted) return false;
+    final focus = FocusManager.instance.primaryFocus?.context;
+    final field = focus?.findAncestorStateOfType<EditableTextState>();
+    // Issue Books takes scans itself, so a scan typed while one of its fields has focus counts too.
+    final inField =
+        field != null &&
+        (LibraryScanListener.scanOverride == null ||
+            focus!.findAncestorWidgetOfExactType<NoBookScan>() != null);
+    if (inField) {
+      _code.clear();
+      return false;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.enter ||
+        event.logicalKey == LogicalKeyboardKey.numpadEnter) {
+      final code = _code.toString();
+      _code.clear();
+      if (code.length < _minLength) return false;
+      // The scanner typed the code into the focused field; take it back out.
+      field?.widget.controller.clear();
+      _handle(code);
+      return true;
+    }
+    final character = event.character;
+    if (character == null || character.length != 1) return false;
+    if (event.timeStamp - _lastKey > _maxKeyGap) _code.clear();
+    _lastKey = event.timeStamp;
+    _code.write(character);
+    return false;
+  }
+
+  Future<void> _handle(String code) async {
+    final override = LibraryScanListener.scanOverride;
+    if (override != null) {
+      override(code);
+      return;
+    }
+    _handling = true;
+    try {
+      final libraryProvider = context.read<LibraryProvider>();
+      final copy = await libraryProvider.service.findCopy(code);
+      if (!mounted) return;
+      if (copy == null) {
+        await IcueDialog.show<void>(
+          context,
+          title: 'Invalid barcode',
+          description: 'No book copy found for "$code".',
+          icon: Icons.error_outline_rounded,
+          size: IcueDialogSize.small,
+          primaryAction: IcueDialogAction(
+            label: 'OK',
+            onPressed: () => Navigator.of(context, rootNavigator: true).pop(),
+          ),
+        );
+        return;
+      }
+      final loan = await libraryProvider.service.activeLoanOf(copy.id);
+      final book = await libraryProvider.service.book(copy.catalogueId);
+      if (!mounted) return;
+      final proceed = await BookScanDialog.show(
+        context,
+        copy: copy,
+        book: book,
+        loan: loan,
+      );
+      if (!proceed || !mounted) return;
+      if (loan == null) {
+        // Not awaited: holding [_handling] until the Issue page closes made every scan on it a no-op.
+        unawaited(context.push<void>(LibraryRoutes.libraryIssue, extra: copy));
+        return;
+      }
+      await LoanDialog.show(context, loan, book?.title ?? loan.barcode);
+    } finally {
+      _handling = false;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
+}
+
+/// Marks fields that take scanned text themselves (RFID card, admission number)
+/// so [LibraryScanListener] never treats their Enter as a book barcode.
+class NoBookScan extends StatelessWidget {
+  const NoBookScan({required this.child, super.key});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => child;
+}

@@ -23,6 +23,19 @@ class EmbeddingMathTest {
     }
 
     @Test
+    fun unsafeDotProductMatchesNormalizedDotProduct() {
+        val first = EmbeddingMath.l2Normalize(floatArrayOf(3f, 4f, 0f))
+        val second = EmbeddingMath.l2Normalize(floatArrayOf(6f, 8f, 0f))
+
+        assertEquals(1f, EmbeddingMath.unsafeDotProduct(first, second), 0.0001f)
+        assertEquals(
+            EmbeddingMath.dotProductOfNormalized(first, second),
+            EmbeddingMath.unsafeDotProduct(first, second),
+            0.0001f,
+        )
+    }
+
+    @Test
     fun validateEmbeddingRejectsWrongDimensionAndNonFiniteValues() {
         assertThrows(IllegalArgumentException::class.java) {
             EmbeddingMath.validateEmbedding(floatArrayOf(1f))

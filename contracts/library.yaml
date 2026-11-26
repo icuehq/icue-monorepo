@@ -1,0 +1,304 @@
+# Library contracts shared by Flutter and Cloud Functions. See contracts/inventory.yaml for the format.
+
+collections:
+  - libraryBooks
+  - libraryCatalogue
+  - libraryCopies
+  - libraryFines
+  - libraryLoans
+  - libraryMembers
+  - libraryStats
+
+enums:
+  CopyStatus:
+    doc: Where a physical copy stands; issued is set by circulation, the rest by the librarian.
+    values: [available, issued, under_maintenance, damaged, lost, withdrawn]
+  LoanStatus:
+    doc: Lifecycle of a loan.
+    values: [active, returned, lost]
+  MemberType:
+    doc: Who a library member is in the ERP.
+    values: [STUDENT, EMPLOYEE]
+
+constants:
+  manualCopyStatuses:
+    doc: Statuses a librarian may set by hand; issued belongs to circulation.
+    enum: CopyStatus
+    values: [available, under_maintenance, damaged, withdrawn]
+  terminalCopyStatuses:
+    doc: A copy in these never becomes available again by hand.
+    enum: CopyStatus
+    values: [lost, withdrawn]
+
+documents:
+  LibraryLoan:
+    doc: One issue of a copy to a member.
+    collection: libraryLoans
+    fields:
+      memberType: MemberType
+      personErpId: int
+      memberName: string?
+      memberClassId: int?
+      memberSection: string?
+      admissionNumber: string?
+      bookTitle: string?
+      barcode: string
+      catalogueId: string
+      libraryId: string
+      issuedDate: timestamp
+      dueDate: timestamp
+      remarks: string?
+      renewals: list<LoanRenewal>
+      policySnapshot: LoanPolicySnapshot
+      status: LoanStatus
+      issuedBy: string
+      createdAt: timestamp?
+      returnedDate: timestamp?
+      condition: string?
+      overdueDays: int?
+      returnRemarks: string?
+      receivedBy: string?
+      updatedAt: timestamp?
+  LoanRenewal:
+    doc: Embedded in a loan on each renewal.
+    fields:
+      renewedDate: timestamp
+      newDueDate: timestamp
+      performedBy: string
+  LoanPolicySnapshot:
+    doc: Policy values frozen on the loan at issue so later policy edits never move its due date.
+    fields:
+      policyId: string
+      loanDays: int
+      maxRenewals: int
+      fineType: string
+      fineAmount: double
+      graceDays: int
+      maxFine: double?
+
+  LibraryStatsTotals:
+    doc: "Current-state figures of a branch or one library (libraryStats/overall), kept only by the audit triggers. available + issued + lost + damaged + outOfCirculation (under_maintenance and withdrawn copies) = copies. dueOn counts active loans by India-time due day (yyyy-MM-dd); overdue is the sum of the days before today. Per library, titles counts catalogue titles with copies there (libraryCatalogue holdings.{libraryId}) and students/teachers the members who borrowed there (libraryMembers libraryIds)."
+    fields:
+      copies: int
+      available: int
+      issued: int
+      lost: int
+      damaged: int
+      outOfCirculation: int
+      loans: int
+      returnedLoans: int
+      lostLoans: int
+      activeLoans: int
+      dueOn: map<int>
+      outstandingFines: double
+      collectedFines: double
+      waivedFines: double
+      titles: int
+      students: int
+      teachers: int
+  LibraryDailyTotals:
+    doc: "What happened in a branch or one library on one India-time day (libraryStats/day_yyyy-MM-dd). A month is the sum of its days."
+    fields:
+      loansIssued: int
+      loansReturned: int
+      loansRenewed: int
+      finesRaised: double
+      finesCollected: double
+      booksLost: int
+      booksDamaged: int
+  LibraryStats:
+    doc: "libraryStats/overall: branch figures, with per-library figures under libraries."
+    collection: libraryStats
+    fields:
+      libraries: map<LibraryStatsTotals>
+  LibraryDailyStats:
+    doc: "libraryStats/day_yyyy-MM-dd: the day's branch flows, with per-library flows under libraries."
+    collection: libraryStats
+    fields:
+      libraries: map<LibraryDailyTotals>
+
+# Dart view models, generated to <modelsDir>/<file>.g.dart. Field: type, or {type, key, default, notEquals, present, doc, from};
+# key is the Firestore key (dotted for nested), from is a raw Dart expression over data/id.
+modelsPackage: school_library
+modelsDir: features/library/lib/src/models
+models:
+  library_copies:
+    LibraryCopy:
+      doc: "One physical book. The document ID is its barcode."
+      id: id
+      fields:
+        catalogueId: string
+        libraryId: string
+        shelf: string?
+        barcode: { type: string, default: "$id" }
+        condition: string
+        status: string
+        price: double
+        acquiredDate: day?
+        remarks: string?
+        createdAt: timestamp?
+  library_fines:
+    LibraryFineWaiver:
+      fields:
+        amount: double
+        reason: string
+        performedBy: string
+        performedAt: timestamp?
+    LibraryFinePayment:
+      fields:
+        amount: double
+        reference: string?
+        date: day?
+        performedBy: string?
+    LibraryFine:
+      doc: "A library fine (overdue, lost book replacement, damaged penalty)."
+      id: id
+      fields:
+        memberType: string
+        personErpId: int
+        memberName: string?
+        memberClassId: int?
+        memberSection: string?
+        admissionNumber: string?
+        libraryId: string
+        type: string
+        amount: double
+        waived: double
+        paid: double
+        outstanding: double
+        status: string
+        loanId: string?
+        incidentId: string?
+        bookTitle: string?
+        barcode: string?
+        catalogueId: string?
+        fineCalculation: json?
+        waivers: list<LibraryFineWaiver>
+        payments: list<LibraryFinePayment>
+        createdAt: timestamp?
+  library_incidents:
+    LibraryIncident:
+      doc: "A lost or damaged book incident (FRS 11.14)."
+      id: id
+      fields:
+        type: string
+        barcode: string
+        bookTitle: string?
+        catalogueId: string
+        libraryId: string
+        status: string
+        reportedDate: day
+        memberType: string?
+        personErpId: int?
+        memberName: string?
+        memberClassId: int?
+        memberSection: string?
+        admissionNumber: string?
+        loanId: string?
+        severity: string?
+        description: string?
+        charge: double
+        repairCost: double?
+        repairStatus: string?
+        resolution: string?
+        resolutionRemarks: string?
+        resolvedAt: timestamp?
+        createdAt: timestamp?
+  library_loans:
+    LibraryLoan:
+      document: LibraryLoan
+      doc: "One issue of a copy to a member (FRS 11.9\u201311.11). Policy values are frozen on the loan at issue."
+      id: id
+      fields:
+        memberType: string
+        personErpId: int
+        memberName: string?
+        memberClassId: int?
+        memberSection: string?
+        admissionNumber: string?
+        bookTitle: string?
+        barcode: string
+        catalogueId: string
+        libraryId: string
+        issuedDate: day
+        dueDate: day
+        renewals: { type: int, length: true }
+        maxRenewals: { type: int, key: policySnapshot.maxRenewals }
+        fineType: { type: string, key: policySnapshot.fineType }
+        fineAmount: { type: double, key: policySnapshot.fineAmount }
+        graceDays: { type: int, key: policySnapshot.graceDays }
+        maxFine: { type: double?, key: policySnapshot.maxFine }
+        status: string
+        returnedDate: day?
+        condition: string?
+        overdueDays: int?
+  library_masters:
+    SchoolLibrary:
+      id: id
+      fields:
+        name: string
+        location: string?
+        hours: string?
+        librarianId: string?
+        active: { type: bool, key: status, notEquals: inactive }
+        createdAt: timestamp?
+    LibraryCategory:
+      id: id
+      fields:
+        name: string
+        libraryId: string
+        description: string?
+        parentId: string?
+        active: { type: bool, key: status, notEquals: inactive }
+        createdAt: timestamp?
+    LibraryBook:
+      doc: "A catalogue title (FRS 11.4). classIds are ERP class ids the book is meant for (no sections); empty means a general book for any class. libraryIds are the libraries holding copies (kept by the stats trigger with holdings, as are copyCount, all copies, and availableCopies, those on the shelf). Search rows carry only the list fields, so the detail-only ones (description, pages, class number, keywords) are empty there."
+      id: id
+      fields:
+        title: string
+        subtitle: string?
+        authors: list<string>
+        publisher: string?
+        edition: string?
+        year: int?
+        language: string?
+        categoryId: string
+        classIds: list<int>
+        libraryIds: list<string>
+        copyCount: { type: int, default: 0 }
+        availableCopies: { type: int, default: 0 }
+        description: string?
+        pages: int?
+        shelf: string?
+        keywords: list<string>
+        active: { type: bool, key: status, notEquals: inactive }
+  library_members:
+    LibraryPolicy:
+      doc: "Borrowing rules of one person type (STUDENT or EMPLOYEE) in one library, for the listed book categories or, when none are listed, every other category (FRS 11.8)."
+      id: id
+      fields:
+        name: string
+        libraryId: string
+        memberType: string
+        maxBooks: int
+        loanDays: int
+        maxRenewals: int
+        fineType: string
+        fineAmount: double
+        graceDays: int
+        maxFine: double?
+        categoryIds: list<string>
+        active: { type: bool, key: status, notEquals: inactive }
+        createdAt: timestamp?
+    LibraryMember:
+      doc: "A student or employee (staff) who has borrowed (FRS 11.7). Created on first use from the ERP details; the ERP stays the source of truth."
+      id: id
+      fields:
+        memberType: string
+        personErpId: int
+        name: string
+        classId: int?
+        section: string?
+        admissionNumber: string?
+        activeLoans: int
+        blocked: bool

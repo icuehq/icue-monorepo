@@ -1,0 +1,38 @@
+# Guide 1.2.18 Case B (report 2 damaged units, then write them off). Needs unavailable-resolve.yaml first (62 available).
+# Runs while PEN-BLU-01 is at 62; the write-off entry leaves the list once resolved.
+appId: com.thoughtniques.icueadmin.dev
+---
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Stock
+- runFlow:
+    when:
+      visible: ".*PEN-BLU-01.*62 pcs.*available.*"
+    commands:
+      - tapOn: ".*PEN-BLU-01.*"
+      - tapOn: "Report damaged / expired / lost"
+      - assertVisible: "What happened.*Damaged"
+      - tapOn: "Quantity.*"
+      - inputText: "2"
+      - tapOn: "Details"
+      - inputText: "Crushed in storage bin"
+      - tapOn: "Report"
+      - assertVisible: ".*PEN-BLU-01.*60 pcs.*available.*2 damaged.*"
+- runFlow:
+    when:
+      visible: ".*PEN-BLU-01.*2 damaged.*"
+    commands:
+      - tapOn: "Damaged / Expired"
+      - tapOn: ".*2 units.*Tap to resolve"
+      - tapOn: "Write off.*"
+      - tapOn: "Write off"
+      - assertVisible: ".*permanently resolve 2 units.*cannot be undone.*"
+      - tapOn: "Confirm"
+# written off: nothing open, stock stays 60
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Stock
+- assertVisible: ".*PEN-BLU-01.*60 pcs.*available.*"
+- assertNotVisible: ".*PEN-BLU-01.*damaged.*"

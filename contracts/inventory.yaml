@@ -1,0 +1,286 @@
+# Inventory contracts shared by Flutter and Cloud Functions.
+# Edit here, then run `melos run gen:contracts`. Never edit the generated files.
+# Format: collections (names under orgs/{orgId}/zones/{zoneId}/branches/{branchId}/), enums (values are the
+# exact stored strings), constants (checked subsets of an enum) and documents
+# (field name -> type: string|int|double|bool|timestamp|list<T>|map<T>|<Enum>|<Document>;
+# a trailing `?` allows null).
+
+collections:
+  - inventoryAssetAssignments
+  - inventoryAssets
+  - inventoryBalances
+  - inventoryCategories
+  - inventoryIssueRequests
+  - inventoryIssues
+  - inventoryItems
+  - inventoryMaintenanceJobs
+  - inventoryMovements
+  - inventoryPurchaseRequests
+  - inventoryStats
+  - inventoryStores
+  - inventoryUnits
+
+enums:
+  PurchaseRequestStatus:
+    doc: "Lifecycle of a purchase request (no approval): `open` until goods arrive, then `partially_received` / `received` from the line quantities; `closed` by hand when the rest will not come."
+    values: [open, partially_received, received, closed]
+
+  AssetStatus:
+    doc: "Lifecycle of a physical asset. `unregistered`: received into stock, details not entered yet."
+    values: [unregistered, available, assigned, under_maintenance, under_repair, lost, damaged, retired, disposed]
+  AssetCondition:
+    doc: Physical condition of an asset.
+    values: [new, good, fair, poor, damaged]
+  MaintenancePriority:
+    doc: Urgency of a maintenance job.
+    values: [low, medium, high, urgent]
+  MaintenanceStatus:
+    doc: Lifecycle of a maintenance job.
+    values: [open, assigned, in_progress, waiting_for_parts, completed, cancelled]
+
+constants:
+  openPurchaseRequestStatuses:
+    doc: Goods may still be received (and the request closed) in these statuses.
+    enum: PurchaseRequestStatus
+    values: [open, partially_received]
+
+documents:
+  InventoryStatsTotals:
+    doc: "Current-state figures of a branch or one store (inventoryStats/overall), kept only by triggers. Balance figures (available, value, lowStock, outOfStock, expiryOn) exist per store under stores; the rest are branch-wide. expiryOn counts stock lines by the India-time day of their earliest expiry (yyyy-MM-dd); expired and expiring are sums of the days before today and in the next 30."
+    fields:
+      items: int
+      available: double
+      value: double
+      lowStock: int
+      outOfStock: int
+      expiryOn: map<int>
+      openPurchaseRequests: int
+      pendingIssueRequests: int
+      assets: int
+      unregisteredAssets: int
+      underMaintenance: int
+  InventoryStats:
+    doc: "inventoryStats/overall: branch figures, with per-store balance figures under stores."
+    collection: inventoryStats
+    fields:
+      stores: map<InventoryStatsTotals>
+
+# Dart view models, generated to <modelsDir>/<file>.g.dart. Field: type, or {type, key, default, notEquals, present, doc, from};
+# key is the Firestore key (dotted for nested), from is a raw Dart expression over data/id.
+modelsPackage: inventory
+modelsDir: features/inventory/lib/src/models
+models:
+  inventory_assets:
+    InventoryAsset:
+      doc: "One physical asset (`inventoryAssets`): created `unregistered` when received into a store, registered later with its details."
+      id: id
+      fields:
+        name: string
+        itemId: string
+        storeId: string
+        status: { type: string, default: available }
+        condition: { type: string, default: good }
+        serialNumber: string?
+        make: string?
+        model: string?
+        purchaseDate: day?
+        price: double?
+        receivedDate: day?
+        warrantyStart: { type: day?, key: warranty.start }
+        warrantyEnd: { type: day?, key: warranty.end }
+        assignedTo: { type: AssetCustodian?, from: "AssetCustodian.from(data['assignedTo'])" }
+        activeAssignmentId: string?
+        activeMaintenanceId: string?
+        nextServiceDate: day?
+        rfidTag: string?
+    InventoryAssignment:
+      doc: "A custody record (`inventoryAssetAssignments`); a transfer or return closes it and keeps it."
+      id: id
+      fields:
+        assignee: { type: AssetCustodian, from: "AssetCustodian.from(data['assignee']) ?? const AssetCustodian('staff', 0)" }
+        assignedDate: day
+        expectedReturn: day?
+        conditionOut: string?
+        conditionIn: string?
+        returnedDate: day?
+        closedAs: { type: string?, doc: "`returned`, `transferred` or `lost`; null while active." }
+        acknowledged: { type: bool, key: acknowledgement, present: "true" }
+    AssetEvent:
+      doc: "One line of an asset's timeline (`inventoryAssets/{id}/history`)."
+      fields:
+        type: string
+        performedAt: { type: DateTime?, from: "(data['performedAt'] as dynamic)?.toDate() as DateTime?" }
+        detail: { type: String?, from: "[ for (final value in const [ 'number', 'issue', 'reason', 'remarks', 'condition', ]) if (data[value] != null && '${data[value]}'.isNotEmpty) '${data[value]}', ].join(' \u00b7 ')" }
+    InventoryMaintenance:
+      doc: "A maintenance request (`inventoryMaintenanceJobs`)."
+      id: id
+      fields:
+        number: string
+        assetId: string
+        assetName: string
+        issue: string
+        priority: { type: string, default: medium }
+        status: { type: string, default: open }
+        reportedDate: day
+        technician: string?
+        repairDetails: string?
+        cost: double?
+        completedDate: day?
+        nextServiceDate: day?
+        parts: { type: List<PartUsed>, from: "[ for (final value in data['partsUsed'] is List ? data['partsUsed'] as List : []) PartUsed( itemId: (value as Map)['itemId'] as String? ?? '', quantity: readDouble(value['quantity']), ), ]" }
+  inventory_masters:
+    CategoryApprover:
+      doc: "An approving role of a top-level category; userIds narrows it to those people (ERP IDs as strings), empty means everyone in the role."
+      fields:
+        roleId: int
+        userIds: list<string>
+    InventoryCategory:
+      doc: "Request/approve settings live on top-level categories only (subcategories inherit them). approverRoleIds (roles with no people picked) and approverIds (every picked person) are derived from approvers on save, for firestore.rules."
+      id: id
+      fields:
+        name: string
+        description: string?
+        parentId: string?
+        storeId: string
+        active: { type: bool, key: status, notEquals: inactive }
+        requesterRoleIds: { type: list<int>, doc: "Node roles allowed to request this category's items; empty means all staff." }
+        approvers: list<CategoryApprover>
+        approverRoleIds: list<int>
+        approverIds: list<string>
+    InventoryUnit:
+      id: id
+      fields:
+        name: string
+        storeId: string
+    InventoryItem:
+      id: id
+      fields:
+        name: string
+        storeId: string
+        categoryId: string
+        subcategoryId: string?
+        description: string?
+        stockUnit: string
+        tracking: Tracking
+        reorderLevel: double?
+        defaultPrice: double?
+        active: { type: bool, key: status, notEquals: inactive }
+    InventoryVariant:
+      id: id
+      fields:
+        sku: string
+        attrs: map<string>
+        active: { type: bool, key: status, notEquals: inactive }
+    InventoryStore:
+      id: id
+      fields:
+        name: string
+        description: string?
+        location: string?
+        managerId: string
+        active: { type: bool, key: status, notEquals: inactive }
+  inventory_procurement:
+    PurchaseRequestLine:
+      fields:
+        itemId: string
+        variantId: string?
+        quantity: double
+        received: { type: double, doc: "Good units received so far (added to the store's stock)." }
+        damaged: { type: double, doc: "Units that arrived damaged (the store's damaged stock; not counted for assets)." }
+    PurchaseRequestHistoryEntry:
+      doc: "One step of the request's history (create, update, receive, close)."
+      fields:
+        action: string
+        comment: string?
+        performedAt: timestamp?
+    InventoryPurchaseRequest:
+      id: id
+      fields:
+        number: string
+        storeId: string
+        status: { type: string, default: open }
+        priority: { type: string, default: normal }
+        purpose: string
+        remarks: string?
+        requiredDate: day
+        createdBy: string
+        createdAt: timestamp?
+        lineItems: list<PurchaseRequestLine>
+        history: list<PurchaseRequestHistoryEntry>
+  inventory_stock:
+    InventoryBalance:
+      id: id
+      fields:
+        storeId: string
+        itemId: string
+        variantId: string?
+        batchNumber: string?
+        expiryDate: day?
+        available: { type: double, key: quantityAvailable }
+        damaged: { type: double, key: quantityDamaged }
+        expired: { type: double, key: quantityExpired }
+        receivedTotal: { type: double, key: totalQuantityReceived }
+        issuedTotal: { type: double, key: totalQuantityIssued, doc: "Net of returns: what is currently out with recipients." }
+        value: double
+        isBelowReorderLevel: bool
+    InventoryMovement:
+      fields:
+        type: string
+        quantity: double
+        bucket: { type: string, default: available }
+        referenceType: string
+        transactionDate: day
+        batchNumber: string?
+        createdAt: timestamp?
+    RequestLine:
+      fields:
+        itemId: string
+        variantId: string?
+        requested: { type: double, key: quantityRequested }
+        approved: { type: double?, key: quantityApproved }
+        issued: { type: double, key: quantityIssued }
+    InventoryIssueRequest:
+      id: id
+      fields:
+        number: string
+        storeId: string
+        categoryId: { type: string, doc: "Top-level category: one request per store and category, approved by that category's approvers." }
+        purpose: string
+        destination: string?
+        status: { type: string, doc: "pending | approved | rejected | partially_issued | issued | cancelled | closed" }
+        createdBy: string
+        requesterName: string?
+        approvalComment: { type: string?, key: approval.comment }
+        lineItems: list<RequestLine>
+        createdAt: timestamp?
+    IssueLine:
+      fields:
+        balanceId: string
+        itemId: string
+        variantId: string?
+        batchNumber: string?
+        quantity: double
+        returned: { type: double, key: quantityReturned }
+    InventoryIssue:
+      id: id
+      fields:
+        number: string
+        lineItems: list<IssueLine>
+        acknowledged: { type: bool, key: acknowledgement, present: "true" }
+        recipientType: { type: string?, key: recipient.type, doc: "staff | student | department" }
+        recipientId: { type: int?, key: recipient.personErpId }
+        createdAt: timestamp?
+    InventoryUnavailable:
+      id: id
+      fields:
+        itemId: string
+        variantId: string?
+        storeId: string
+        batchNumber: string?
+        quantity: double
+        bucket: string?
+        reason: string
+        remarks: string?
+        status: { type: string, doc: "open | in_repair | resolved" }
+        resolution: string?
+        createdAt: timestamp?

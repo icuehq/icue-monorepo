@@ -28,20 +28,26 @@ internal class IcueFaceCameraViewController: UIViewController, AVCaptureVideoDat
     var onCaptured: (([Float]?) -> Void)?
     var onTrackingFrame: (([String: Any]) -> Void)?
     var onAttendanceComplete: (([String: Any]) -> Void)?
+    /// Attendance was cancelled with nothing scanned, or its scans were discarded.
+    var onAttendanceCancelled: (() -> Void)?
 
     private var captureSession: AVCaptureSession?
     private var previewLayer: AVCaptureVideoPreviewLayer?
     private let sampleBufferQueue = DispatchQueue(label: "school.icue.face.camera", qos: .userInitiated)
     private let ciContext = CIContext()
     private var isProcessingFrame = false
+    // True while the cancel dialog is open: no frames are analysed, so the count cannot change.
+    private var isPaused = false
 
     private let overlayView = BoundingBoxOverlayView()
     private let statusPill = UILabel()
+    private let countLabel = UILabel()
     private let titleLabel = UILabel()
     private let subtitleLabel = UILabel()
     private let closeButton = UIButton(type: .system)
     private let cameraFlipButton = UIButton(type: .system)
     private let actionButton = UIButton(type: .system)
+    private let cancelButton = UIButton(type: .system)
     private let shutterButton = UIButton(type: .custom)
     private let flashOverlay = UIView()
 
@@ -60,6 +66,12 @@ internal class IcueFaceCameraViewController: UIViewController, AVCaptureVideoDat
 
         setupCamera()
         setupUI()
+        if isAttendance { prepareScanFeedback() }
+    }
+
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        releaseScanFeedback()
     }
 
     override func viewDidLayoutSubviews() {
@@ -76,6 +88,7 @@ internal class IcueFaceCameraViewController: UIViewController, AVCaptureVideoDat
         let position: AVCaptureDevice.Position = (lens == "back") ? .back : .front
         guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: position) ??
                            AVCaptureDevice.default(for: .video) else {
+            statusPill.isHidden = false
             statusPill.text = "Camera device unavailable"
             return
         }
@@ -118,6 +131,7 @@ internal class IcueFaceCameraViewController: UIViewController, AVCaptureVideoDat
                 session.startRunning()
             }
         } catch {
+            statusPill.isHidden = false
             statusPill.text = "Failed to open camera: \(error.localizedDescription)"
         }
     }
@@ -148,9 +162,30 @@ internal class IcueFaceCameraViewController: UIViewController, AVCaptureVideoDat
         subtitleLabel.textColor = UIColor.lightGray
         subtitleLabel.font = UIFont.systemFont(ofSize: 11, weight: .regular)
 
-        let titleStack = UIStackView(arrangedSubviews: [titleLabel, subtitleLabel])
-        titleStack.axis = .vertical
-        titleStack.spacing = 2
+        // Live attendance shows its present count large in the header instead of the pill.
+        countLabel.isHidden = mode != .liveAttendance
+        if mode == .liveAttendance { updateAttendanceCount(present: 0, total: profiles.count) }
+
+        // Title + subtitle form one block; the count is centred on that block, right after it.
+        // The title wraps to two lines if the row is tight so the count never reaches the buttons.
+        titleLabel.numberOfLines = 2
+        titleLabel.lineBreakMode = .byWordWrapping
+        countLabel.setContentHuggingPriority(.required, for: .horizontal)
+        countLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
+
+        let textBlock = UIStackView(arrangedSubviews: [titleLabel, subtitleLabel])
+        textBlock.axis = .vertical
+        textBlock.spacing = 2
+        textBlock.setContentHuggingPriority(.required, for: .horizontal)
+        textBlock.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
+        let rowSpacer = UIView()
+        rowSpacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
+
+        let titleStack = UIStackView(arrangedSubviews: [textBlock, countLabel, rowSpacer])
+        titleStack.axis = .horizontal
+        titleStack.alignment = .center
+        titleStack.spacing = 12
         titleStack.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(titleStack)
 
@@ -171,6 +206,9 @@ internal class IcueFaceCameraViewController: UIViewController, AVCaptureVideoDat
         closeButton.layer.cornerRadius = 20
         closeButton.translatesAutoresizingMaskIntoConstraints = false
         closeButton.addTarget(self, action: #selector(handleClose), for: .touchUpInside)
+        // Attendance has no close button: helpers tapped it thinking it saved the scans.
+        // They leave through Cancel or Finish at the bottom instead.
+        closeButton.isHidden = isAttendance
         view.addSubview(closeButton)
 
         // Status Pill
@@ -185,10 +223,11 @@ internal class IcueFaceCameraViewController: UIViewController, AVCaptureVideoDat
         statusPill.clipsToBounds = true
         statusPill.translatesAutoresizingMaskIntoConstraints = false
         statusPill.text = getInitialStatusText()
+        statusPill.isHidden = mode == .liveAttendance
         view.addSubview(statusPill)
 
         // Action / Finish Button
-        actionButton.setTitle("Finish Attendance", for: .normal)
+        actionButton.setTitle(finishTitle(0), for: .normal)
         actionButton.titleLabel?.font = UIFont.boldSystemFont(ofSize: 15)
         actionButton.setTitleColor(.white, for: .normal)
         actionButton.backgroundColor = IcueFaceCameraViewController.COLOR_ACCENT_GREEN
@@ -197,6 +236,16 @@ internal class IcueFaceCameraViewController: UIViewController, AVCaptureVideoDat
         actionButton.isHidden = (mode != .liveAttendance && mode != .multiPhotoAttendance)
         actionButton.addTarget(self, action: #selector(handleAction), for: .touchUpInside)
         view.addSubview(actionButton)
+
+        cancelButton.setTitle("Cancel", for: .normal)
+        cancelButton.titleLabel?.font = UIFont.boldSystemFont(ofSize: 15)
+        cancelButton.setTitleColor(UIColor.white.withAlphaComponent(0.75), for: .normal)
+        cancelButton.backgroundColor = UIColor.black.withAlphaComponent(0.5)
+        cancelButton.layer.cornerRadius = 22
+        cancelButton.translatesAutoresizingMaskIntoConstraints = false
+        cancelButton.isHidden = !isAttendance
+        cancelButton.addTarget(self, action: #selector(handleCancel), for: .touchUpInside)
+        view.addSubview(cancelButton)
 
         // Shutter Button (Capture mode)
         shutterButton.backgroundColor = .clear
@@ -230,8 +279,9 @@ internal class IcueFaceCameraViewController: UIViewController, AVCaptureVideoDat
             topScrim.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             topScrim.heightAnchor.constraint(equalToConstant: 140),
 
-            titleStack.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 12),
+            titleStack.centerYAnchor.constraint(equalTo: cameraFlipButton.centerYAnchor),
             titleStack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            titleStack.trailingAnchor.constraint(lessThanOrEqualTo: cameraFlipButton.leadingAnchor, constant: -12),
 
             cameraFlipButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 12),
             cameraFlipButton.trailingAnchor.constraint(equalTo: closeButton.leadingAnchor, constant: -10),
@@ -255,16 +305,106 @@ internal class IcueFaceCameraViewController: UIViewController, AVCaptureVideoDat
             shutterButton.heightAnchor.constraint(equalToConstant: 70),
 
             actionButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -30),
-            actionButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            // Shifted right so Cancel fits on its left; the pair stays centred.
+            actionButton.centerXAnchor.constraint(equalTo: view.centerXAnchor, constant: 56),
             actionButton.widthAnchor.constraint(equalToConstant: 180),
-            actionButton.heightAnchor.constraint(equalToConstant: 44)
+            actionButton.heightAnchor.constraint(equalToConstant: 44),
+
+            cancelButton.bottomAnchor.constraint(equalTo: actionButton.bottomAnchor),
+            cancelButton.trailingAnchor.constraint(equalTo: actionButton.leadingAnchor, constant: -12),
+            cancelButton.widthAnchor.constraint(equalToConstant: 100),
+            cancelButton.heightAnchor.constraint(equalToConstant: 44)
         ])
+    }
+
+    private var isAttendance: Bool { mode == .liveAttendance || mode == .multiPhotoAttendance }
+
+    private func finishTitle(_ scanned: Int) -> String {
+        scanned > 0 ? "✓ Finish (\(scanned))" : "✓ Finish"
+    }
+
+    /// One beep and one firm tap when new students are marked present, so a helper on a moving
+    /// bus knows to move on without reading the screen. Once per frame. A heavy impact is
+    /// lighter than the full call vibration (`kSystemSoundID_Vibrate`), which cannot be softened.
+    private func scanFeedback() {
+        beepPlayer?.currentTime = 0
+        beepPlayer?.play()
+        scanHaptic.impactOccurred()
+        scanHaptic.prepare()
+    }
+
+    private let scanHaptic = UIImpactFeedbackGenerator(style: .heavy)
+
+    private var beepPlayer: AVAudioPlayer?
+    private var previousAudioCategory: AVAudioSession.Category?
+
+    /// `.playback` plays through the silent switch (like Android's alarm stream) and mixes with
+    /// other audio; the host app's audio category is restored when the camera closes.
+    private func prepareScanFeedback() {
+        let session = AVAudioSession.sharedInstance()
+        previousAudioCategory = session.category
+        try? session.setCategory(.playback, options: [.mixWithOthers])
+        beepPlayer = try? AVAudioPlayer(data: IcueFaceCameraViewController.beepWav())
+        beepPlayer?.volume = 0.8
+        beepPlayer?.prepareToPlay()
+        scanHaptic.prepare()
+    }
+
+    private func releaseScanFeedback() {
+        beepPlayer = nil
+        if let category = previousAudioCategory {
+            try? AVAudioSession.sharedInstance().setCategory(category)
+            previousAudioCategory = nil
+        }
+    }
+
+    /// One 150 ms beep at 1.8 kHz (cuts through engine noise), as an in-memory 16-bit mono WAV,
+    /// so no sound file has to ship with the SDK.
+    private static func beepWav() -> Data {
+        let rate = 44_100
+        var samples: [Int16] = []
+        func tone(_ milliseconds: Int) {
+            let count = rate * milliseconds / 1000
+            for index in 0..<count {
+                // 5 ms fade in and out, so the beep does not click.
+                let envelope = min(1.0, Double(min(index, count - index)) / 220.0)
+                let value = sin(2 * Double.pi * 1800 * Double(index) / Double(rate))
+                samples.append(Int16(value * envelope * Double(Int16.max) * 0.9))
+            }
+        }
+        tone(150)
+
+        var data = Data()
+        func append32(_ value: UInt32) { withUnsafeBytes(of: value.littleEndian) { data.append(contentsOf: $0) } }
+        func append16(_ value: UInt16) { withUnsafeBytes(of: value.littleEndian) { data.append(contentsOf: $0) } }
+        let byteCount = UInt32(samples.count * 2)
+        data.append(contentsOf: Array("RIFF".utf8)); append32(36 + byteCount); data.append(contentsOf: Array("WAVE".utf8))
+        data.append(contentsOf: Array("fmt ".utf8)); append32(16); append16(1); append16(1)
+        append32(UInt32(rate)); append32(UInt32(rate * 2)); append16(2); append16(16)
+        data.append(contentsOf: Array("data".utf8)); append32(byteCount)
+        for sample in samples { withUnsafeBytes(of: sample.littleEndian) { data.append(contentsOf: $0) } }
+        return data
+    }
+
+    private func studentsText(_ count: Int) -> String {
+        count == 1 ? "1 student" : "\(count) students"
+    }
+
+    private func updateAttendanceCount(present: Int, total: Int) {
+        actionButton.setTitle(finishTitle(present), for: .normal)
+        countLabel.attributedText = NSAttributedString(
+            string: "\(present)/\(total)",
+            attributes: [
+                .font: UIFont.monospacedDigitSystemFont(ofSize: 28, weight: .heavy),
+                .foregroundColor: UIColor.white
+            ]
+        )
     }
 
     private func getHeaderTitle() -> String {
         switch mode {
         case .capture: return "STUDENT ENROLLMENT"
-        case .liveAttendance: return "LIVE CLASS ATTENDANCE"
+        case .liveAttendance: return "TRANSPORT ATTENDANCE"
         case .multiPhotoAttendance: return "MULTI-GROUP ATTENDANCE"
         case .tracking: return "STUDENT ATTENDANCE SCAN"
         }
@@ -292,7 +432,7 @@ internal class IcueFaceCameraViewController: UIViewController, AVCaptureVideoDat
     }
 
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
-        guard !isProcessingFrame, let engine = self.engine else { return }
+        guard !isPaused, !isProcessingFrame, let engine = self.engine else { return }
         isProcessingFrame = true
 
         guard let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
@@ -326,7 +466,7 @@ internal class IcueFaceCameraViewController: UIViewController, AVCaptureVideoDat
                 } catch {
                     DispatchQueue.main.async {
                         if let faceErr = error as? IcueFaceException {
-                            self.statusPill.text = faceErr.code == "MULTIPLE_FACES" ? " ⚠️ Multiple faces detected " : " ⚠️ Position student face in frame "
+                            self.statusPill.text = faceErr.code == "MULTIPLE_FACES" ? " ⚠️ Multiple faces detected " : faceErr.code == "POOR_FACE" ? " ⚠️ Face the camera directly " : " ⚠️ Position student face in frame "
                         }
                     }
                 }
@@ -372,13 +512,16 @@ internal class IcueFaceCameraViewController: UIViewController, AVCaptureVideoDat
                     let boxes = try engine.detectFaces(image: image)
 
                     let nowMs = Int(Date().timeIntervalSince1970 * 1000)
+                    var newlyScanned = 0
 
                     for res in results {
                         if res.matched, let personId = res.personId {
                             let hits = (self.presentHitsMap[personId] ?? 0) + 1
                             self.presentHitsMap[personId] = hits
-                            if res.score >= 0.75 || hits >= 2 {
+                            // Two separate frames must agree before a student is marked present.
+                            if hits >= 2 {
                                 if self.presentRecords[personId] == nil {
+                                    newlyScanned += 1
                                     self.presentRecords[personId] = [
                                         "personId": personId,
                                         "score": Double(res.score),
@@ -391,14 +534,15 @@ internal class IcueFaceCameraViewController: UIViewController, AVCaptureVideoDat
                         }
                     }
 
+                    let newStudents = newlyScanned
                     DispatchQueue.main.async {
                         self.overlayView.update(boxes: boxes, frameSize: image.size)
                         let count = self.presentRecords.count
                         let total = self.profiles.count
-                        let pct = total > 0 ? Int((Double(count) / Double(total)) * 100) : 0
-                        self.statusPill.text = " LIVE ATTENDANCE • \(count)/\(total) PRESENT (\(pct)%) "
+                        self.updateAttendanceCount(present: count, total: total)
+                        if newStudents > 0 { self.scanFeedback() }
 
-                        if self.autoFinish && count >= total && total > 0 {
+                        if self.autoFinish && !self.isPaused && count >= total && total > 0 {
                             self.finishAttendance()
                         }
                     }
@@ -413,6 +557,7 @@ internal class IcueFaceCameraViewController: UIViewController, AVCaptureVideoDat
                         let total = self.profiles.count
                         let photos = self.capturedPhotos.count
                         self.statusPill.text = " MULTI-PHOTO • \(photos) PHOTO(S) • \(count)/\(total) PRESENT "
+                        self.actionButton.setTitle(self.finishTitle(count), for: .normal)
                     }
                 } catch {}
             }
@@ -437,10 +582,116 @@ internal class IcueFaceCameraViewController: UIViewController, AVCaptureVideoDat
         stopCamera()
         if mode == .capture {
             onCaptured?(nil)
-        } else if mode == .liveAttendance || mode == .multiPhotoAttendance {
-            finishAttendance()
+        }
+        dismiss(animated: true)
+    }
+
+    /// Nothing scanned: close at once. Otherwise ask, so a mistaken tap never loses the scans.
+    /// A custom popup, not the system alert: a big count first, then three full-width buttons
+    /// stacked in order of safety, so the safe choice is the biggest and the first one read.
+    @objc private func handleCancel() {
+        let scanned = presentRecords.count
+        if scanned == 0 {
+            cancelAttendance()
             return
         }
+        isPaused = true
+
+        let overlay = UIView()
+        overlay.backgroundColor = UIColor.black.withAlphaComponent(0.65)
+        overlay.translatesAutoresizingMaskIntoConstraints = false
+
+        let card = UIView()
+        card.backgroundColor = UIColor(red: 16/255.0, green: 27/255.0, blue: 43/255.0, alpha: 1.0)
+        card.layer.cornerRadius = 28
+        card.layer.borderWidth = 1
+        card.layer.borderColor = IcueFaceCameraViewController.COLOR_ACCENT_CYAN.withAlphaComponent(0.2).cgColor
+        card.translatesAutoresizingMaskIntoConstraints = false
+
+        let countText = UILabel()
+        countText.text = "\(scanned)"
+        countText.font = UIFont.systemFont(ofSize: 56, weight: .bold)
+        countText.textColor = IcueFaceCameraViewController.COLOR_ACCENT_GREEN
+        countText.textAlignment = .center
+
+        let scannedText = UILabel()
+        scannedText.text = scanned == 1 ? "student scanned" : "students scanned"
+        scannedText.font = UIFont.systemFont(ofSize: 17, weight: .bold)
+        scannedText.textColor = .white
+        scannedText.textAlignment = .center
+
+        let question = UILabel()
+        question.text = "Submit their attendance?"
+        question.font = UIFont.systemFont(ofSize: 15)
+        question.textColor = UIColor.white.withAlphaComponent(0.65)
+        question.textAlignment = .center
+
+        let red = UIColor(red: 1.0, green: 82/255.0, blue: 82/255.0, alpha: 1.0)
+        let submit = popupButton("✓  Submit \(studentsText(scanned))",
+                                 fill: UIColor(red: 0, green: 161/255.0, blue: 82/255.0, alpha: 1.0),
+                                 text: .white, border: nil) { [weak self, weak overlay] in
+            overlay?.removeFromSuperview()
+            self?.finishAttendance()
+        }
+        let discard = popupButton("Discard all scans", fill: .clear, text: red, border: red) { [weak self, weak overlay] in
+            overlay?.removeFromSuperview()
+            self?.cancelAttendance()
+        }
+        let keep = popupButton("Keep scanning", fill: .clear,
+                               text: IcueFaceCameraViewController.COLOR_ACCENT_CYAN, border: nil) { [weak self, weak overlay] in
+            overlay?.removeFromSuperview()
+            self?.isPaused = false
+        }
+
+        let stack = UIStackView(arrangedSubviews: [countText, scannedText, question, submit, discard, keep])
+        stack.axis = .vertical
+        stack.spacing = 10
+        stack.setCustomSpacing(2, after: countText)
+        stack.setCustomSpacing(20, after: question)
+        stack.translatesAutoresizingMaskIntoConstraints = false
+
+        card.addSubview(stack)
+        overlay.addSubview(card)
+        view.addSubview(overlay)
+        NSLayoutConstraint.activate([
+            overlay.topAnchor.constraint(equalTo: view.topAnchor),
+            overlay.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            overlay.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            overlay.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+
+            card.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
+            card.centerYAnchor.constraint(equalTo: overlay.centerYAnchor),
+            card.leadingAnchor.constraint(greaterThanOrEqualTo: overlay.leadingAnchor, constant: 20),
+            card.widthAnchor.constraint(lessThanOrEqualToConstant: 400),
+            card.widthAnchor.constraint(equalTo: overlay.widthAnchor, constant: -40).withPriority(.defaultHigh),
+
+            stack.topAnchor.constraint(equalTo: card.topAnchor, constant: 28),
+            stack.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -16),
+            stack.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 24),
+            stack.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -24),
+        ])
+    }
+
+    /// A full-width, 56 pt popup button: big enough to hit on a moving bus.
+    private func popupButton(_ title: String, fill: UIColor, text: UIColor, border: UIColor?,
+                             onTap: @escaping () -> Void) -> UIButton {
+        let button = UIButton(type: .system, primaryAction: UIAction { _ in onTap() })
+        button.setTitle(title, for: .normal)
+        button.titleLabel?.font = UIFont.systemFont(ofSize: 17, weight: .bold)
+        button.setTitleColor(text, for: .normal)
+        button.backgroundColor = fill
+        button.layer.cornerRadius = 16
+        if let border = border {
+            button.layer.borderWidth = 1.5
+            button.layer.borderColor = border.cgColor
+        }
+        button.heightAnchor.constraint(equalToConstant: 56).isActive = true
+        return button
+    }
+
+    private func cancelAttendance() {
+        stopCamera()
+        onAttendanceCancelled?()
         dismiss(animated: true)
     }
 
@@ -512,5 +763,12 @@ internal class BoundingBoxOverlayView: UIView {
             UIColor.systemGreen.setStroke()
             path.stroke()
         }
+    }
+}
+
+private extension NSLayoutConstraint {
+    func withPriority(_ priority: UILayoutPriority) -> NSLayoutConstraint {
+        self.priority = priority
+        return self
     }
 }

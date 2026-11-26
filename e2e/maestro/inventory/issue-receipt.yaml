@@ -1,0 +1,20 @@
+# Guide 1.2.10 (recipient receipt acknowledgement). Needs issue-stock.yaml first.
+# Skipped once confirmed (the Confirm receipt button disappears).
+appId: com.thoughtniques.icueadmin.dev
+---
+- runFlow:
+    file: ../helpers/open-inventory-page.yaml
+    env:
+      PAGE: Issue requests
+- tapOn: "ISR/.*Exam Hall Supplies for Midterms.*"
+- scrollUntilVisible:
+    element: "Issuances.*ISS/.*"
+- runFlow:
+    when:
+      visible: "Confirm receipt"
+    commands:
+      - assertVisible: "Issuances.*Awaiting receipt.*"
+      - tapOn: "Confirm receipt"
+      - tapOn: "Confirm"
+- assertVisible: "Issuances.*Receipt confirmed.*"
+- assertNotVisible: "Confirm receipt"

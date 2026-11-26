@@ -1,0 +1,22 @@
+library;
+
+export 'src/di/inventory_micro_module.module.dart';
+export 'src/models/inventory_assets.dart';
+export 'src/models/inventory_insights.dart';
+export 'src/models/inventory_masters.dart';
+export 'src/models/inventory_procurement.dart';
+export 'src/models/inventory_reports.dart';
+export 'src/models/inventory_stock.dart';
+export 'src/providers/assets_provider.dart';
+export 'src/providers/insights_provider.dart';
+export 'src/providers/inventory_provider.dart';
+export 'src/providers/procurement_provider.dart';
+export 'src/providers/stock_provider.dart';
+export 'src/services/assets_service.dart';
+export 'src/services/insights_service.dart';
+export 'src/services/inventory_service.dart';
+export 'src/services/procurement_service.dart';
+export 'src/services/stock_service.dart';
+export 'src/services/stock_writes.dart';
+export 'src/ui/routing/inventory_router.dart';
+export 'src/ui/routing/inventory_routes.dart';

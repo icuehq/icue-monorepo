@@ -2,7 +2,6 @@ package school.icue.face.core
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.Rect
 import com.google.mlkit.vision.face.Face
 import com.google.mlkit.vision.face.FaceLandmark
 import kotlinx.coroutines.Dispatchers
@@ -16,7 +15,11 @@ import school.icue.face.core.model.IcueFaceProfile
 import school.icue.face.core.model.IcueRecognitionResult
 import school.icue.face.core.model.IcueYuv420Frame
 import school.icue.face.core.model.RecognitionMode
+import school.icue.face.core.quality.FaceQualityStatus
+import school.icue.face.core.quality.IcueFaceQualityAssessor
+import school.icue.face.core.recognition.FaceAssignment
 import school.icue.face.core.recognition.MobileFaceNetRecognizer
+import school.icue.face.core.recognition.TrackedIdentityCache
 import school.icue.face.core.utils.EmbeddingMath
 
 class IcueFaceSdk(
@@ -46,6 +49,21 @@ class IcueFaceSdk(
         threshold: Float = FaceSdkDefaults.DEFAULT_MATCH_THRESHOLD,
     ): List<IcueRecognitionResult> = operation {
         recognizeInternal(bitmap, prepareProfiles(profiles), mode, maxFaces, threshold)
+    }
+
+    /** Prepares and L2-normalizes a roster once per camera session instead of on every frame. */
+    internal fun prepareRoster(profiles: List<IcueFaceProfile>): PreparedRoster =
+        PreparedRoster(prepareProfiles(profiles))
+
+    /** Live multi-face recognition that reuses identities of faces still being tracked. */
+    internal suspend fun recognizeTracked(
+        bitmap: Bitmap,
+        roster: PreparedRoster,
+        maxFaces: Int,
+        threshold: Float,
+        cache: TrackedIdentityCache,
+    ): List<IcueRecognitionResult> = operation {
+        recognizeInternal(bitmap, roster.profiles, RecognitionMode.MULTI, maxFaces, threshold, cache)
     }
 
     suspend fun detectFaces(bitmap: Bitmap): List<IcueBoundingBox> = operation {
@@ -140,11 +158,18 @@ class IcueFaceSdk(
             )
         }
 
-        val faceBitmap = cropFace(bitmap, faces.first())
+        val face = faces.first()
+        // Blur is not checked: server photos are often small and soft but still usable.
+        val quality = IcueFaceQualityAssessor.assessQuality(bitmap, face, minBlurThreshold = 0f)
+        if (quality.status == FaceQualityStatus.EXTREME_POSE) {
+            throw FaceSdkException(FaceSdkErrorCode.POOR_FACE, "Face is turned away. Use a front-facing photo.")
+        }
+        val faceBitmap = alignFace(bitmap, face)
+            ?: throw FaceSdkException(FaceSdkErrorCode.POOR_FACE, "Eyes not clearly visible. Use a clearer front-facing photo.")
         return try {
             recognizer.extractEmbedding(faceBitmap)
         } finally {
-            if (faceBitmap !== bitmap) faceBitmap.recycle()
+            faceBitmap.recycle()
         }
     }
 
@@ -154,11 +179,12 @@ class IcueFaceSdk(
         mode: RecognitionMode,
         maxFaces: Int,
         threshold: Float,
+        cache: TrackedIdentityCache? = null,
     ): List<IcueRecognitionResult> {
         validateRecognitionOptions(maxFaces, threshold)
         val allFaces = detector.detect(bitmap, requireLandmarks = true)
+        // Tiny faces upscale into unreliable crops, so they are not recognized at all.
         val faces = allFaces.filter { it.boundingBox.width() >= 30 && it.boundingBox.height() >= 30 }
-            .ifEmpty { allFaces }
             .take(maxFaces)
 
         if (mode == RecognitionMode.SINGLE && allFaces.size != 1) {
@@ -166,16 +192,8 @@ class IcueFaceSdk(
             throw FaceSdkException(code, "Expected exactly one face. Found ${allFaces.size}")
         }
 
+        cache?.startFrame(faces.mapNotNullTo(HashSet()) { it.trackingId })
         if (faces.isEmpty()) return emptyList()
-
-        val liveEmbeddings = faces.map { face ->
-            val faceBitmap = cropFace(bitmap, face)
-            try {
-                recognizer.extractEmbedding(faceBitmap)
-            } finally {
-                if (faceBitmap !== bitmap) faceBitmap.recycle()
-            }
-        }
 
         if (profiles.isEmpty()) {
             return faces.map { face ->
@@ -188,55 +206,97 @@ class IcueFaceSdk(
             }
         }
 
-        data class CandidateMatch(val faceIdx: Int, val profileIdx: Int, val score: Float)
-        val candidates = mutableListOf<CandidateMatch>()
-
-        for (fIdx in faces.indices) {
-            val liveEmb = liveEmbeddings[fIdx]
-            for (pIdx in profiles.indices) {
-                val score = EmbeddingMath.dotProductOfNormalized(liveEmb, profiles[pIdx].embedding)
-                candidates.add(CandidateMatch(fIdx, pIdx, score))
+        // Aligned once per face: the crop feeds both the "same face?" check and the model.
+        val alignedFaces = faces.map { alignFace(bitmap, it) }
+        try {
+            val signatures = alignedFaces.map { aligned -> if (cache == null) null else aligned?.let(::faceSignature) }
+            val faceResults = Array(faces.size) { fIdx ->
+                cache?.reusable(faces[fIdx].trackingId, signatures[fIdx])?.let { identity ->
+                    IcueRecognitionResult(
+                        personId = identity.personId,
+                        score = identity.score,
+                        matched = identity.matched,
+                        boundingBox = faces[fIdx].toBoundingBox(),
+                        embedding = identity.embedding,
+                        reused = true,
+                    )
+                }
             }
-        }
+            // A student a tracked face already holds cannot also be matched to a fresh face.
+            val claimedPersonIds = faceResults.mapNotNullTo(HashSet()) { result ->
+                result?.personId?.takeIf { result.matched }
+            }
+            val blockedProfiles = profiles.indices.filterTo(HashSet()) { profiles[it].personId in claimedPersonIds }
 
-        candidates.sortByDescending { it.score }
+            val freshFaceIndices = faces.indices.filter { faceResults[it] == null }
+            val scoredFaces = freshFaceIndices.mapNotNull { fIdx ->
+                val aligned = alignedFaces[fIdx] ?: return@mapNotNull null
+                if (cache != null && !IcueFaceQualityAssessor.assessAlignedQuality(aligned, faces[fIdx]).isValid) {
+                    return@mapNotNull null
+                }
+                fIdx to recognizer.extractEmbedding(aligned)
+            }
+            val scores = scoredFaces.map { (_, embedding) ->
+                FloatArray(profiles.size) { pIdx -> EmbeddingMath.unsafeDotProduct(embedding, profiles[pIdx].embedding) }
+            }
+            val assignment = FaceAssignment.assign(
+                scores,
+                threshold,
+                FaceSdkDefaults.DEFAULT_AMBIGUITY_MARGIN,
+                blockedProfiles,
+            )
 
-        val assignedFace = BooleanArray(faces.size)
-        val assignedProfile = BooleanArray(profiles.size)
-        val faceResults = Array<IcueRecognitionResult?>(faces.size) { null }
-
-        for (candidate in candidates) {
-            if (assignedFace[candidate.faceIdx] || assignedProfile[candidate.profileIdx]) continue
-            if (candidate.score >= threshold) {
-                assignedFace[candidate.faceIdx] = true
-                assignedProfile[candidate.profileIdx] = true
-                val matchedProfile = profiles[candidate.profileIdx]
-                faceResults[candidate.faceIdx] = IcueRecognitionResult(
-                    personId = matchedProfile.personId,
-                    score = candidate.score,
-                    matched = true,
-                    boundingBox = faces[candidate.faceIdx].toBoundingBox(),
+            scoredFaces.forEachIndexed { row, (fIdx, embedding) ->
+                val profileIdx = assignment[row]
+                faceResults[fIdx] = IcueRecognitionResult(
+                    personId = profiles.getOrNull(profileIdx)?.personId,
+                    score = if (profileIdx >= 0) scores[row][profileIdx] else scores[row].maxOrNull() ?: -1f,
+                    matched = profileIdx >= 0,
+                    boundingBox = faces[fIdx].toBoundingBox(),
+                    embedding = embedding,
                 )
             }
-        }
-
-        for (fIdx in faces.indices) {
-            if (faceResults[fIdx] == null) {
-                var bestScore = -1f
-                for (pIdx in profiles.indices) {
-                    val score = EmbeddingMath.dotProductOfNormalized(liveEmbeddings[fIdx], profiles[pIdx].embedding)
-                    if (score > bestScore) bestScore = score
-                }
-                faceResults[fIdx] = IcueRecognitionResult(
+            // Faces whose eyes were not found or failed live quality checks: shown as scanning,
+            // never matched, and not cached so the next sharp front-facing frame checks immediately.
+            for (fIdx in freshFaceIndices) {
+                val result = faceResults[fIdx] ?: IcueRecognitionResult(
                     personId = null,
-                    score = bestScore,
+                    score = -1f,
                     matched = false,
                     boundingBox = faces[fIdx].toBoundingBox(),
-                )
+                ).also { faceResults[fIdx] = it }
+                if (result.embedding != null) {
+                    cache?.store(
+                        faces[fIdx].trackingId,
+                        TrackedIdentityCache.Identity(
+                            result.personId,
+                            result.score,
+                            result.matched,
+                            result.embedding,
+                            signatures[fIdx],
+                        ),
+                    )
+                }
             }
-        }
 
-        return faceResults.filterNotNull()
+            return faceResults.filterNotNull()
+        } finally {
+            alignedFaces.forEach { it?.recycle() }
+        }
+    }
+
+    /** A 16x16 grayscale fingerprint of an aligned face; cheap next to running the model. */
+    private fun faceSignature(aligned: Bitmap): FloatArray {
+        val small = Bitmap.createScaledBitmap(aligned, SIGNATURE_SIZE, SIGNATURE_SIZE, true)
+        val pixels = IntArray(SIGNATURE_SIZE * SIGNATURE_SIZE)
+        small.getPixels(pixels, 0, SIGNATURE_SIZE, 0, 0, SIGNATURE_SIZE, SIGNATURE_SIZE)
+        if (small !== aligned) small.recycle()
+        return TrackedIdentityCache.signatureOf(
+            FloatArray(pixels.size) { index ->
+                val pixel = pixels[index]
+                0.299f * (pixel shr 16 and 0xff) + 0.587f * (pixel shr 8 and 0xff) + 0.114f * (pixel and 0xff)
+            },
+        )
     }
 
     private suspend fun detectFacesInternal(bitmap: Bitmap): List<IcueBoundingBox> =
@@ -256,29 +316,11 @@ class IcueFaceSdk(
         }
     }
 
-    private fun cropFace(bitmap: Bitmap, face: Face): Bitmap {
-        val leftEye = face.getLandmark(FaceLandmark.LEFT_EYE)?.position
-        val rightEye = face.getLandmark(FaceLandmark.RIGHT_EYE)?.position
-        if (leftEye != null && rightEye != null) {
-            FaceAlignment.alignToCanonicalEyes(
-                bitmap,
-                leftEye.x,
-                leftEye.y,
-                rightEye.x,
-                rightEye.y,
-            )?.let { return it }
-        }
-        return cropBoxFace(bitmap, face.boundingBox)
-    }
-
-    private fun cropBoxFace(bitmap: Bitmap, boundingBox: Rect): Bitmap {
-        val marginX = (boundingBox.width() * 0.25f).toInt()
-        val marginY = (boundingBox.height() * 0.25f).toInt()
-        val left = (boundingBox.left - marginX).coerceIn(0, bitmap.width - 1)
-        val top = (boundingBox.top - marginY).coerceIn(0, bitmap.height - 1)
-        val right = (boundingBox.right + marginX).coerceIn(left + 1, bitmap.width)
-        val bottom = (boundingBox.bottom + marginY).coerceIn(top + 1, bitmap.height)
-        return Bitmap.createBitmap(bitmap, left, top, right - left, bottom - top)
+    /** The 112x112 eye-aligned face, or null when ML Kit found no eyes. */
+    private fun alignFace(bitmap: Bitmap, face: Face): Bitmap? {
+        val leftEye = face.getLandmark(FaceLandmark.LEFT_EYE)?.position ?: return null
+        val rightEye = face.getLandmark(FaceLandmark.RIGHT_EYE)?.position ?: return null
+        return FaceAlignment.alignToCanonicalEyes(bitmap, leftEye.x, leftEye.y, rightEye.x, rightEye.y)
     }
 
     private suspend fun <T> operation(block: suspend () -> T): T = withContext(Dispatchers.Default) {
@@ -306,12 +348,17 @@ class IcueFaceSdk(
         trackingId = trackingId,
     )
 
-    private data class PreparedProfile(
+    internal class PreparedRoster internal constructor(
+        internal val profiles: List<PreparedProfile>,
+    )
+
+    internal data class PreparedProfile(
         val personId: String,
         val embedding: FloatArray,
     )
 
     companion object {
         const val SDK_VERSION = "0.2.0"
+        private const val SIGNATURE_SIZE = 16
     }
 }
