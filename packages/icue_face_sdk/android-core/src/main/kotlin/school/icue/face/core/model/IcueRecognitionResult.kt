@@ -5,8 +5,10 @@ data class IcueRecognitionResult(
     val score: Float,
     val matched: Boolean,
     val boundingBox: IcueBoundingBox,
-    /** The face's embedding; null only when no roster was given, so nothing was computed. */
+    /** The face's embedding; null when nothing was computed (no roster, or eyes not found). */
     val embedding: FloatArray? = null,
+    /** True when live tracking replayed this face's earlier result instead of re-running the model. */
+    val reused: Boolean = false,
 )
 
 /** Channel map of a face nobody matched, with its embedding so the app can enrol or cluster it. */

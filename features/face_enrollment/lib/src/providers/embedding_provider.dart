@@ -33,7 +33,12 @@ class EmbeddingProvider extends ChangeNotifier {
   String? _imageSource; // 'Server URL', 'Camera', 'Gallery'
   String? get imageSource => _imageSource;
 
+  // Bumped whenever the screen's student or photo changes, so a download or scan that
+  // finishes late can never put one student's face on another student's screen.
+  int _request = 0;
+
   void resetState() {
+    _request++;
     _generatedEmbedding = null;
     _isScanning = false;
     _isDownloading = false;
@@ -53,6 +58,7 @@ class EmbeddingProvider extends ChangeNotifier {
       return;
     }
 
+    final request = ++_request;
     _isDownloading = true;
     _scanStatusText = 'Downloading student photo...';
     notifyListeners();
@@ -62,6 +68,7 @@ class EmbeddingProvider extends ChangeNotifier {
         photoUrl,
         'student_${studentId}_photo.jpg',
       );
+      if (request != _request) return;
 
       _localImagePath = filePath;
       _isDownloading = false;
@@ -69,6 +76,7 @@ class EmbeddingProvider extends ChangeNotifier {
       _scanStatusText = 'Photo downloaded. Ready to extract embedding.';
       notifyListeners();
     } catch (e, stack) {
+      if (request != _request) return;
       _isDownloading = false;
       _scanStatusText = 'Download failed. Use camera or gallery.';
       notifyListeners();
@@ -95,6 +103,8 @@ class EmbeddingProvider extends ChangeNotifier {
       );
 
       if (pickedFile != null) {
+        _request++;
+        _isDownloading = false;
         _localImagePath = pickedFile.path;
         _imageSource = source == ImageSource.camera ? 'Camera' : 'Gallery';
         _generatedEmbedding = null;
@@ -138,6 +148,7 @@ class EmbeddingProvider extends ChangeNotifier {
       throw Exception('Please capture or choose a photo first.');
     }
 
+    final request = _request;
     _isScanning = true;
     _generatedEmbedding = null;
     _scanStatusText = 'Extracting facial embedding...';
@@ -147,6 +158,7 @@ class EmbeddingProvider extends ChangeNotifier {
       final embedding = await _faceSdk.extractEmbedding(
         imagePath: _localImagePath!,
       );
+      if (request != _request) return;
 
       if (embedding.length != 192) {
         throw Exception(
@@ -159,6 +171,7 @@ class EmbeddingProvider extends ChangeNotifier {
       _scanStatusText = 'Biometric signature verified!';
       notifyListeners();
     } catch (e, stack) {
+      if (request != _request) return;
       _isScanning = false;
       _scanStatusText = 'Extraction failed: $e';
       notifyListeners();

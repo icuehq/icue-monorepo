@@ -39,7 +39,14 @@ class _StudentFilterBarState extends State<StudentFilterBar> {
         ? studentProvider.classId
         : null;
 
-    final int filteredCount = studentProvider.filteredStudents.length;
+    // Loaded vs class total from the API, so a first page of 100 never reads as "100 students".
+    final loadedCount = studentProvider.students.length;
+    final totalCount = studentProvider.totalStudents;
+    final studentCountText = studentProvider.searchQuery.isNotEmpty
+        ? '${studentProvider.filteredStudents.length}/$loadedCount'
+        : loadedCount < totalCount
+        ? '$loadedCount/$totalCount'
+        : '$loadedCount';
     final int enrolledCount = studentProvider.enrolledCount;
 
     return Padding(
@@ -284,7 +291,7 @@ class _StudentFilterBarState extends State<StudentFilterBar> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        '$filteredCount',
+                        studentCountText,
                         style: TextStyle(
                           fontSize: 11.5,
                           fontWeight: FontWeight.w800,

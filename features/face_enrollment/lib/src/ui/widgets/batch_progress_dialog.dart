@@ -6,9 +6,10 @@ import 'package:icue_ui/icue_ui.dart';
 
 void showBatchProgressDialog(
   BuildContext context,
-  StudentProvider studentProvider,
-) {
-  studentProvider.generateAndUploadBatchEmbeddings();
+  StudentProvider studentProvider, {
+  bool regenerate = false,
+}) {
+  studentProvider.generateAndUploadBatchEmbeddings(regenerate: regenerate);
 
   showDialog<void>(
     context: context,

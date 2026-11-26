@@ -472,6 +472,9 @@ public class IcueFaceSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
             cameraVc.onAttendanceComplete = { attendanceResult in
                 result(attendanceResult)
             }
+            cameraVc.onAttendanceCancelled = {
+                result(nil)
+            }
 
             rootVc.present(cameraVc, animated: true)
             self.activeCameraController = cameraVc
@@ -513,6 +516,9 @@ public class IcueFaceSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
 
             cameraVc.onAttendanceComplete = { attendanceResult in
                 result(attendanceResult)
+            }
+            cameraVc.onAttendanceCancelled = {
+                result(nil)
             }
 
             rootVc.present(cameraVc, animated: true)

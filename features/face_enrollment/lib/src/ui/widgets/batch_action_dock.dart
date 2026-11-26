@@ -16,7 +16,7 @@ class BatchActionDock extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    final studentsWithPhoto = studentProvider.filteredStudents
+    final studentsWithPhoto = studentProvider.students
         .where(
           (student) => student.photoUrl != null && student.photoUrl!.isNotEmpty,
         )
@@ -25,7 +25,7 @@ class BatchActionDock extends StatelessWidget {
         .where((student) => !studentProvider.hasEmbedding(student.id))
         .toList();
 
-    if (pendingStudents.isEmpty) {
+    if (studentsWithPhoto.isEmpty) {
       return const SizedBox.shrink();
     }
 
@@ -75,17 +75,49 @@ class BatchActionDock extends StatelessWidget {
                 ],
               ),
             ),
-            IcueButton(
-              size: IcueButtonSize.small,
-              leadingIcon: Icons.bolt_rounded,
-              label:
-                  'Enroll (${pendingStudents.length}${studentProvider.hasMore ? '+' : ''})',
-              onPressed: () =>
-                  showBatchProgressDialog(context, studentProvider),
+            IconButton(
+              tooltip: 'Regenerate all embeddings in this class',
+              icon: const Icon(Icons.refresh_rounded),
+              onPressed: () => _confirmRegenerate(context),
             ),
+            if (pendingStudents.isNotEmpty)
+              IcueButton(
+                size: IcueButtonSize.small,
+                leadingIcon: Icons.bolt_rounded,
+                label:
+                    'Enroll (${pendingStudents.length}${studentProvider.hasMore ? '+' : ''})',
+                onPressed: () =>
+                    showBatchProgressDialog(context, studentProvider),
+              ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _confirmRegenerate(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Regenerate all embeddings?'),
+        content: const Text(
+          'Every student in this class with a photo is processed again and the '
+          'server copy is replaced. Do this once after the face recognition update.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Regenerate'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && context.mounted) {
+      showBatchProgressDialog(context, studentProvider, regenerate: true);
+    }
   }
 }

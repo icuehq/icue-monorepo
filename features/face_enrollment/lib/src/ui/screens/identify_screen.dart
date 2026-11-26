@@ -5,7 +5,6 @@ import 'package:api_client/api_client.dart';
 import 'package:face_enrollment/src/models/student.dart';
 import 'package:face_enrollment/src/providers/identify_provider.dart';
 import 'package:face_enrollment/src/providers/student_provider.dart';
-import 'package:face_enrollment/src/storage/embedding_store.dart';
 import 'package:face_enrollment/src/ui/theme_context.dart';
 import 'package:face_enrollment/src/ui/widgets/ambient_background.dart';
 import 'package:face_enrollment/src/ui/widgets/identify_nav_bar.dart';
@@ -63,36 +62,42 @@ class _IdentifyScreenState extends State<IdentifyScreen> {
         context,
         listen: false,
       );
-      final embeddingStore = GetIt.I<EmbeddingStore>();
-      final candidates = studentProvider.filteredStudents.isNotEmpty
-          ? studentProvider.filteredStudents
-          : studentProvider.students;
+      setState(() {
+        _statusText = 'Loading class face roster...';
+        _prepProgress = 0.5;
+      });
+      // The selected class, whatever page or search the directory screen shows.
+      final roster = await studentProvider.loadClassRoster();
+      if (!mounted) return;
+      final photoUrls = {
+        for (final student in studentProvider.students)
+          student.id: student.photoUrl,
+      };
 
       _faceProfiles.clear();
       _candidateStudentMap.clear();
 
-      for (int index = 0; index < candidates.length; index++) {
-        final student = candidates[index];
-        if (embeddingStore.has(student.id)) {
-          final savedEmbedding = embeddingStore.get(student.id);
-          if (savedEmbedding != null &&
-              savedEmbedding.embedding.length == faceEmbeddingSize &&
-              savedEmbedding.embedding.every((val) => val.isFinite)) {
-            _candidateStudentMap[student.id.toString()] = student;
-            _faceProfiles.add(
-              FaceProfile(
-                personId: student.id.toString(),
-                embedding: savedEmbedding.embedding,
-                name: student.name,
-              ),
-            );
-          }
+      for (final entry in roster) {
+        if (entry.embedding.length != faceEmbeddingSize ||
+            !entry.embedding.every((value) => value.isFinite)) {
+          continue;
         }
-        if (mounted) {
-          setState(() {
-            _prepProgress = 0.2 + (0.8 * (index + 1) / candidates.length);
-          });
-        }
+        final personId = entry.studentId.toString();
+        _candidateStudentMap[personId] = Student(
+          id: entry.studentId,
+          name: entry.name,
+          admissionNumber: entry.admissionNumber,
+          standard: entry.standard,
+          section: entry.section,
+          photoUrl: photoUrls[entry.studentId],
+        );
+        _faceProfiles.add(
+          FaceProfile(
+            personId: personId,
+            embedding: entry.embedding,
+            name: entry.name,
+          ),
+        );
       }
 
       if (!mounted) return;
@@ -100,7 +105,7 @@ class _IdentifyScreenState extends State<IdentifyScreen> {
       setState(() {
         _isPreparing = false;
         if (_faceProfiles.isEmpty) {
-          _statusText = 'No registered face embeddings found in local cache. Sync from cloud to continue.';
+          _statusText = 'No enrolled students in this class yet. Enroll students, then sync.';
         } else {
           _statusText =
               'Roster ready with ${_faceProfiles.length} registered students. Choose a scan mode.';
@@ -113,36 +118,6 @@ class _IdentifyScreenState extends State<IdentifyScreen> {
         _isPreparing = false;
         _statusText = 'Failed to initialize Face SDK: $error';
       });
-    }
-  }
-
-  Future<void> _handleSyncAndReload() async {
-    final studentProvider = Provider.of<StudentProvider>(
-      context,
-      listen: false,
-    );
-    try {
-      setState(() {
-        _isPreparing = true;
-        _statusText = 'Syncing embeddings from server...';
-        _prepProgress = 0.3;
-      });
-
-      await studentProvider.syncEmbeddingsFromServer();
-      await _initAndLoadRoster();
-    } catch (error, stack) {
-      reportError(error, stack, '_IdentifyScreenState._handleSyncAndReload');
-      if (mounted) {
-        setState(() {
-          _isPreparing = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to sync embeddings: $error'),
-            backgroundColor: context.scheme.error,
-          ),
-        );
-      }
     }
   }
 
@@ -402,7 +377,7 @@ class _IdentifyScreenState extends State<IdentifyScreen> {
               ? EmptyRosterState(
                   statusText: _statusText,
                   onBack: () => Navigator.of(context).pop(),
-                  onSync: _handleSyncAndReload,
+                  onSync: _initAndLoadRoster,
                 )
               : ScanHub(
                   isScanning: _isScanning,

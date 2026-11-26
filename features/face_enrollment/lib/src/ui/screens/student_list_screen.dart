@@ -52,7 +52,11 @@ class _StudentListScreenState extends State<StudentListScreen> {
     }
   }
 
-  Future<void> _handleLogout() => context.read<AuthProvider>().logout();
+  Future<void> _handleLogout() async {
+    final authProvider = context.read<AuthProvider>();
+    await context.read<StudentProvider>().clearOnLogout();
+    await authProvider.logout();
+  }
 
   @override
   Widget build(BuildContext context) {

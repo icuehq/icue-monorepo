@@ -39,8 +39,8 @@ class BiometricScannerView extends StatelessWidget {
           children: [
             Positioned.fill(
               child:
-                  (imageSource == 'Camera' || imageSource == 'Gallery') &&
-                      localImagePath != null
+                  // Show exactly the file the embedding is extracted from.
+                  localImagePath != null
                   ? Image.file(File(localImagePath!), fit: BoxFit.cover)
                   : (photoUrl != null && photoUrl!.isNotEmpty
                         ? Image.network(

@@ -11,8 +11,9 @@ import kotlin.math.hypot
 import kotlin.math.sin
 
 /**
- * 5-Point Umeyama Least-Squares Similarity Alignment Engine.
- * Maps detected upright facial landmarks to 112x112 ArcFace canonical template.
+ * Two-eye similarity alignment onto the 112x112 ArcFace template.
+ * ponytail: eyes only; 5-point Umeyama would be steadier on tilted heads, but any change here
+ * invalidates every stored embedding, so add it only together with a re-enrollment.
  */
 internal object FaceAlignment {
 
@@ -25,40 +26,22 @@ internal object FaceAlignment {
         doubleArrayOf(70.7299, 92.2041)  // imageRightMouth
     )
 
+    /**
+     * Takes the two eye centres in image space, in any order. ML Kit's LEFT_EYE is the subject's
+     * left eye, which sits on the image's right in an unmirrored photo; pairing it with the
+     * template's image-left eye turns the face upside down, so the eyes are ordered by x here.
+     */
     fun alignToCanonicalEyes(
         bitmap: Bitmap,
-        leftEyeX: Float,
-        leftEyeY: Float,
-        rightEyeX: Float,
-        rightEyeY: Float,
+        firstEyeX: Float,
+        firstEyeY: Float,
+        secondEyeX: Float,
+        secondEyeY: Float,
     ): Bitmap? {
-        val srcPoints = arrayOf(
-            doubleArrayOf(leftEyeX.toDouble(), leftEyeY.toDouble()),
-            doubleArrayOf(rightEyeX.toDouble(), rightEyeY.toDouble())
-        )
-        val dstPoints = arrayOf(
-            CANONICAL_POINTS[0],
-            CANONICAL_POINTS[1]
-        )
-        return alignSimilarity(bitmap, srcPoints, dstPoints)
-    }
-
-    fun align5PointUmeyama(
-        bitmap: Bitmap,
-        leftEye: Pair<Float, Float>,
-        rightEye: Pair<Float, Float>,
-        nose: Pair<Float, Float>,
-        leftMouth: Pair<Float, Float>,
-        rightMouth: Pair<Float, Float>
-    ): Bitmap? {
-        val srcPoints = arrayOf(
-            doubleArrayOf(leftEye.first.toDouble(), leftEye.second.toDouble()),
-            doubleArrayOf(rightEye.first.toDouble(), rightEye.second.toDouble()),
-            doubleArrayOf(nose.first.toDouble(), nose.second.toDouble()),
-            doubleArrayOf(leftMouth.first.toDouble(), leftMouth.second.toDouble()),
-            doubleArrayOf(rightMouth.first.toDouble(), rightMouth.second.toDouble())
-        )
-        return alignSimilarity(bitmap, srcPoints, CANONICAL_POINTS)
+        val first = doubleArrayOf(firstEyeX.toDouble(), firstEyeY.toDouble())
+        val second = doubleArrayOf(secondEyeX.toDouble(), secondEyeY.toDouble())
+        val srcPoints = if (firstEyeX <= secondEyeX) arrayOf(first, second) else arrayOf(second, first)
+        return alignSimilarity(bitmap, srcPoints, arrayOf(CANONICAL_POINTS[0], CANONICAL_POINTS[1]))
     }
 
     private fun alignSimilarity(

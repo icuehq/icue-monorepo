@@ -4,11 +4,13 @@ import 'package:face_enrollment/src/models/student_embedding.dart';
 import 'package:injectable/injectable.dart';
 import 'package:local_storage/local_storage.dart';
 
-/// Device-local cache of student embeddings (Hive), keyed by student id.
+/// Device-local cache of student embeddings (Hive), keyed by student id. It holds one
+/// login's branch only: [clear] runs on logout.
 @lazySingleton
 class EmbeddingStore {
   EmbeddingStore(this._storage);
 
+  // v2: embeddings from the eye-order fix; v1 faces were aligned upside down.
   static const _box = 'studentEmbeddings-v1';
 
   final StorageService _storage;
@@ -33,4 +35,12 @@ class EmbeddingStore {
   }
 
   bool has(int studentId) => _storage.containsKey(_box, studentId);
+
+  List<StudentEmbedding> getAll() => [
+    for (final raw in _storage.getAll<String>(_box))
+      if (raw.isNotEmpty)
+        StudentEmbedding.fromJson(jsonDecode(raw) as Map<String, dynamic>),
+  ];
+
+  Future<void> clear() => _storage.clearBox(_box);
 }

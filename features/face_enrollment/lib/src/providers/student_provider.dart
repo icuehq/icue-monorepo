@@ -117,7 +117,12 @@ class StudentProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> generateAndUploadBatchEmbeddings() async {
+  /// Every student of the class with a photo, whatever the search box holds.
+  /// [regenerate] rebuilds and re-uploads embeddings that already exist, which is needed
+  /// once after the alignment fix: the server still holds the old upside-down ones.
+  Future<void> generateAndUploadBatchEmbeddings({
+    bool regenerate = false,
+  }) async {
     if (batch.isRunning) return;
     final classId = _classId;
     if (classId == null) return;
@@ -125,17 +130,17 @@ class StudentProvider extends ChangeNotifier {
     batch.begin('Loading students...');
     try {
       await _loadAllStudents();
-      final targetStudents = filteredStudents
+      final targetStudents = _students
           .where((s) => s.photoUrl != null && s.photoUrl!.isNotEmpty)
           .toList();
       batch.setTotal(targetStudents.length);
 
-      var pending = targetStudents
-          .where((s) => !_embeddingStore.has(s.id))
-          .toList();
+      var pending = regenerate
+          ? targetStudents
+          : targetStudents.where((s) => !_embeddingStore.has(s.id)).toList();
       batch.record(succeeded: targetStudents.length - pending.length);
 
-      if (pending.isNotEmpty) {
+      if (pending.isNotEmpty && !regenerate) {
         // Another device may already have uploaded these.
         batch.say('Checking server for existing embeddings...');
         try {
@@ -205,7 +210,6 @@ class StudentProvider extends ChangeNotifier {
           section: student.section,
           embedding: await _extractWithRetry(path),
         );
-        await _embeddingStore.save(studentEmbedding);
         unsent.add(studentEmbedding);
         generated++;
         batch.record(succeeded: 1);
@@ -241,8 +245,7 @@ class StudentProvider extends ChangeNotifier {
       if (path != null) await _deleteQuietly(path);
     }
 
-    // Embeddings are saved locally, so upload whatever is left even when
-    // cancelled; otherwise the "already stored" check would skip them forever.
+    // Upload whatever is left even when cancelled, and retry failed chunks once.
     if (unsent.isNotEmpty || failedUploads.isNotEmpty) {
       batch.say(
         'Uploading ${unsent.length + failedUploads.length} embeddings...',
@@ -257,7 +260,7 @@ class StudentProvider extends ChangeNotifier {
         : 'Generated $generated new embeddings, uploaded $uploaded.';
     final warning = failedUploads.isEmpty
         ? ''
-        : ' ${failedUploads.length} could not be uploaded and are only on this device.';
+        : ' ${failedUploads.length} could not be uploaded; run the batch again for them.';
     if (failures.isNotEmpty) {
       debugPrint(
         '[batch embeddings] ${failures.length} failed:\n${failures.join('\n')}',
@@ -306,7 +309,8 @@ class StudentProvider extends ChangeNotifier {
     throw Exception(describeError(lastError!));
   }
 
-  /// Returns the embeddings the server did not accept.
+  /// Caches the embeddings the server accepted and returns the ones it did not, so a
+  /// student is shown as enrolled only once the server has their embedding.
   Future<List<StudentEmbedding>> _uploadInChunks(
     List<StudentEmbedding> embeddings,
   ) async {
@@ -317,11 +321,13 @@ class StudentProvider extends ChangeNotifier {
         (i + _uploadChunkSize).clamp(0, embeddings.length),
       );
       try {
-        if (!await _studentService.updateStuEmbeddings(chunk)) {
+        if (await _studentService.updateStuEmbeddings(chunk)) {
+          await _embeddingStore.saveAll(chunk);
+        } else {
           failed.addAll(chunk);
         }
       } catch (e, stack) {
-        reportError(e, stack, 'StudentProvider._extractWithRetry');
+        reportError(e, stack, 'StudentProvider._uploadInChunks');
         debugPrint('Embedding upload failed: $e');
         failed.addAll(chunk);
       }
@@ -353,7 +359,11 @@ class StudentProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Bumped on every reset so a page that arrives after the class or filter changed is dropped.
+  int _fetchGeneration = 0;
+
   Future<void> resetAndFetch() {
+    _fetchGeneration++;
     _students.clear();
     _currentPage = 1;
     _hasMore = true;
@@ -374,6 +384,7 @@ class StudentProvider extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
+    final generation = _fetchGeneration;
     try {
       final page = await _studentService.getStudentPhotos(
         classId: _classId!,
@@ -381,6 +392,7 @@ class StudentProvider extends ChangeNotifier {
         pageSize: _pageSize,
         hasPhoto: _studentPhotoFilter,
       );
+      if (generation != _fetchGeneration) return;
 
       if (isRefresh) {
         _students = page.students;
@@ -399,6 +411,7 @@ class StudentProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e, stack) {
       reportError(e, stack, 'StudentProvider.fetchStudents');
+      if (generation != _fetchGeneration) return;
       _isLoading = false;
       _isLoadingMore = false;
       _errorMessage = describeError(e);
@@ -428,13 +441,12 @@ class StudentProvider extends ChangeNotifier {
       embedding: embedding,
     );
 
-    // Store full student embedding info in SharedPreferences
-    await _embeddingStore.save(studentEmbedding);
-
     try {
       final success = await _studentService.updateStuEmbeddings([
         studentEmbedding,
       ]);
+      // Cached only once the server has it, so "enrolled" never means "only on this phone".
+      if (success) await _embeddingStore.save(studentEmbedding);
       _isUploadingEmbedding = false;
       notifyListeners();
       return success;
@@ -464,7 +476,8 @@ class StudentProvider extends ChangeNotifier {
             return candidate.id;
           }
         }
-        return _classId ?? 0;
+        // Unknown standard: never guess the selected class, or the student would join its roster.
+        return 0;
       },
     );
     await _embeddingStore.saveAll(embeddings);
@@ -487,6 +500,33 @@ class StudentProvider extends ChangeNotifier {
       notifyListeners();
       rethrow;
     }
+  }
+
+  /// Every enrolled student of the selected class: pulled from the server, or the local
+  /// cache when offline. Search, photo filter and loaded pages do not narrow it.
+  Future<List<StudentEmbedding>> loadClassRoster() async {
+    final classId = _classId;
+    if (classId == null) return const [];
+    try {
+      await _pullEmbeddings();
+    } catch (e, stack) {
+      reportError(e, stack, 'StudentProvider.loadClassRoster');
+    }
+    return _embeddingStore.getAll().where((e) => e.classId == classId).toList();
+  }
+
+  /// Forgets the signed-in branch: its classes, students and cached embeddings.
+  Future<void> clearOnLogout() async {
+    _fetchGeneration++;
+    _classId = null;
+    _standards = [];
+    _students = [];
+    _totalStudents = 0;
+    _currentPage = 1;
+    _hasMore = true;
+    _searchQuery = '';
+    await _embeddingStore.clear();
+    notifyListeners();
   }
 
   Future<void> fetchStandards() async {
