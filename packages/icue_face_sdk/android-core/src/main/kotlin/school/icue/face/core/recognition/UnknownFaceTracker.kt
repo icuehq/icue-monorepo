@@ -22,17 +22,21 @@ internal class UnknownFaceTracker(
 
     private val candidates = mutableListOf<Candidate>()
 
-    /** A fresh model run found no student for this face. */
+    /**
+     * A fresh model run found no student for this face. Returns true on the exact check that
+     * confirms the face as unrecognized, so callers can alert once per stranger.
+     */
     @Synchronized
-    fun recordMiss(embedding: FloatArray, details: Map<String, Any?>) {
+    fun recordMiss(embedding: FloatArray, details: Map<String, Any?>): Boolean {
         val candidate = find(embedding)
         if (candidate == null) {
             candidates += Candidate(embedding, 1, details)
-        } else {
-            candidate.checks++
-            candidate.embedding = embedding
-            candidate.details = details
+            return requiredChecks <= 1
         }
+        candidate.checks++
+        candidate.embedding = embedding
+        candidate.details = details
+        return candidate.checks == requiredChecks
     }
 
     /** True once this face has been checked enough times and never turned out to be a student. */

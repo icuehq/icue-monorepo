@@ -18,13 +18,14 @@ class UnknownFaceTrackerTest {
     @Test
     fun faceIsConfirmedUnknownOnlyAfterThreeMisses() {
         val tracker = UnknownFaceTracker()
-        tracker.recordMiss(stranger, mapOf("n" to 1))
-        tracker.recordMiss(strangerNextFrame, mapOf("n" to 2))
+        assertFalse(tracker.recordMiss(stranger, mapOf("n" to 1)))
+        assertFalse(tracker.recordMiss(strangerNextFrame, mapOf("n" to 2)))
         assertFalse(tracker.isConfirmed(stranger))
 
-        tracker.recordMiss(stranger, mapOf("n" to 3))
+        assertTrue(tracker.recordMiss(stranger, mapOf("n" to 3)))
+        assertFalse(tracker.recordMiss(stranger, mapOf("n" to 4)))
         assertTrue(tracker.isConfirmed(strangerNextFrame))
-        assertEquals(listOf(mapOf("n" to 3)), tracker.confirmed())
+        assertEquals(listOf(mapOf("n" to 4)), tracker.confirmed())
     }
 
     @Test

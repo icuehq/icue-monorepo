@@ -18,7 +18,7 @@ import kotlin.math.sqrt
 internal class TrackedIdentityCache(
     // Tuning knobs: higher saves more work on slow phones, lower corrects a wrong label sooner.
     private val matchedRefreshFrames: Int = 10,
-    private val unmatchedRefreshFrames: Int = 3,
+    private val unmatchedRefreshFrames: Int = 1,
     // Correlation of two signatures below which the face is treated as a different person.
     // ponytail: fixed value; raise it if swaps slip through, lower it if live faces re-check too often.
     private val minSameFaceCorrelation: Float = 0.9f,
@@ -29,6 +29,7 @@ internal class TrackedIdentityCache(
         val matched: Boolean,
         val embedding: FloatArray?,
         val signature: FloatArray? = null,
+        val refreshAfterFrames: Int? = null,
     )
 
     private data class Entry(val identity: Identity, val storedAtFrame: Long)
@@ -48,11 +49,18 @@ internal class TrackedIdentityCache(
      */
     fun reusable(trackingId: Int?, signature: FloatArray?): Identity? {
         val entry = entries[trackingId ?: return null] ?: return null
-        val refreshFrames = if (entry.identity.matched) matchedRefreshFrames else unmatchedRefreshFrames
+        val refreshFrames = entry.identity.refreshAfterFrames
+            ?: if (entry.identity.matched) matchedRefreshFrames else unmatchedRefreshFrames
         if (frame - entry.storedAtFrame >= refreshFrames) return null
         val stored = entry.identity.signature ?: return null
         if (signature == null || correlation(stored, signature) < minSameFaceCorrelation) return null
         return entry.identity
+    }
+
+    /** Extends how long an already-stored tracked face is reused before the next model run. */
+    fun hold(trackingId: Int?, refreshAfterFrames: Int) {
+        val entry = entries[trackingId ?: return] ?: return
+        entries[trackingId] = entry.copy(identity = entry.identity.copy(refreshAfterFrames = refreshAfterFrames))
     }
 
     /** Makes the next frame run the model on this face again. */

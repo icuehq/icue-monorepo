@@ -83,6 +83,7 @@ import java.io.File
 import java.io.FileOutputStream
 import school.icue.face.core.FaceSdkErrorCode
 import school.icue.face.core.FaceSdkException
+import school.icue.face.core.IcueFaceSdk
 import school.icue.face.core.model.IcueBoundingBox
 import school.icue.face.core.model.IcueFaceProfile
 import school.icue.face.core.model.RecognitionMode
@@ -116,6 +117,7 @@ class IcueFaceCameraActivity : ComponentActivity() {
     private var session: CameraSession? = null
     // Labels show a student's name when the caller sent one, else the personId.
     private var namesById: Map<String, String> = emptyMap()
+    private var preparedRoster: IcueFaceSdk.PreparedRoster? = null
     private var captureRequested = false
     private var completed = false
     private var capturedEmbedding: FloatArray? = null
@@ -174,6 +176,11 @@ class IcueFaceCameraActivity : ComponentActivity() {
             is CameraSession.MultiPhotoAttendance -> activeSession.roster
             else -> emptyList()
         }.mapNotNull { profile -> profile.name?.let { profile.personId to it } }.toMap()
+        preparedRoster = when (val activeSession = session) {
+            is CameraSession.Tracking -> activeSession.sdk.prepareRoster(activeSession.profiles)
+            is CameraSession.LiveAttendance -> activeSession.sdk.prepareRoster(activeSession.roster)
+            else -> null
+        }
         frontCamera = intent.getStringExtra(IcueFaceCamera.EXTRA_LENS) != IcueCameraLens.BACK.name
         CameraSessionRegistry.attach(this)
         buildContent()
@@ -690,28 +697,68 @@ class IcueFaceCameraActivity : ComponentActivity() {
     }
 
     /**
-     * One beep and a short buzz when new students are marked present, so a helper on a moving
-     * bus knows to move to the next student without reading the screen. Once per frame, however
-     * many students that frame added.
+     * One high beep and a single pulse when new students are marked present, so a helper on a
+     * moving bus knows to move to the next student without reading the screen.
      */
     private fun scanFeedback() {
-        runCatching { scanTone?.startTone(ToneGenerator.TONE_PROP_BEEP, 200) }
+        playFeedback(
+            toneType = ToneGenerator.TONE_PROP_BEEP,
+            toneDurationMs = 200,
+            patternMs = longArrayOf(0, 200),
+            amplitudes = intArrayOf(0, 180),
+            fallbackSingleMs = 150L,
+        )
+    }
+
+    /**
+     * Low negative-ack tone and a double pulse when an unrecognized person is confirmed,
+     * clearly distinct from [scanFeedback].
+     */
+    private fun unrecognizedFeedback() {
+        playFeedback(
+            toneType = ToneGenerator.TONE_PROP_NACK,
+            toneDurationMs = 350,
+            patternMs = longArrayOf(0, 120, 80, 120),
+            amplitudes = intArrayOf(0, 220, 0, 220),
+            fallbackSingleMs = 300L,
+        )
+    }
+
+    private fun playFeedback(
+        toneType: Int,
+        toneDurationMs: Int,
+        patternMs: LongArray,
+        amplitudes: IntArray,
+        fallbackSingleMs: Long,
+    ) {
+        runCatching { scanTone?.startTone(toneType, toneDurationMs) }
         val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             getSystemService(VibratorManager::class.java)?.defaultVibrator
         } else {
             @Suppress("DEPRECATION")
             getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
-        }
-        // One firm pulse: about 70% strength where the phone supports it (255 is full).
+        } ?: return
         when {
-            vibrator == null -> Unit
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && vibrator.hasAmplitudeControl() ->
-                vibrator.vibrate(VibrationEffect.createOneShot(200, 180))
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ->
-                vibrator.vibrate(VibrationEffect.createOneShot(150, VibrationEffect.DEFAULT_AMPLITUDE))
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && patternMs.size == 2 -> {
+                val strength = if (vibrator.hasAmplitudeControl()) amplitudes[1] else VibrationEffect.DEFAULT_AMPLITUDE
+                val duration = if (vibrator.hasAmplitudeControl()) patternMs[1] else fallbackSingleMs
+                vibrator.vibrate(VibrationEffect.createOneShot(duration, strength))
+            }
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.O -> {
+                val effect = if (vibrator.hasAmplitudeControl()) {
+                    VibrationEffect.createWaveform(patternMs, amplitudes, -1)
+                } else {
+                    VibrationEffect.createWaveform(patternMs, -1)
+                }
+                vibrator.vibrate(effect)
+            }
+            patternMs.size == 2 -> {
+                @Suppress("DEPRECATION")
+                vibrator.vibrate(fallbackSingleMs)
+            }
             else -> {
                 @Suppress("DEPRECATION")
-                vibrator.vibrate(150)
+                vibrator.vibrate(patternMs, -1)
             }
         }
     }
@@ -893,6 +940,8 @@ class IcueFaceCameraActivity : ComponentActivity() {
         const val REQUIRED_FRESH_HITS = 2
         // A face is reported as unregistered only after this many model runs found no student.
         const val REQUIRED_UNRECOGNIZED_CHECKS = 3
+        // Confirmed unregistered faces reuse their result for this many frames before re-checking.
+        const val CONFIRMED_UNKNOWN_REFRESH_FRAMES = 5
     }
 
     private fun startCamera() {
@@ -1168,12 +1217,13 @@ class IcueFaceCameraActivity : ComponentActivity() {
     ) {
         if (isFinishing || isDestroyed || completed || activeSession.sdk.isClosed) return
         try {
-            val recognitions = if (activeSession.profiles.isEmpty()) {
+            val roster = preparedRoster
+            val recognitions = if (roster == null || activeSession.profiles.isEmpty()) {
                 emptyList()
             } else {
                 activeSession.sdk.recognizeTracked(
                     bitmap = frame,
-                    profiles = activeSession.profiles,
+                    roster = roster,
                     maxFaces = activeSession.maxFaces,
                     threshold = activeSession.threshold,
                     cache = identityCache,
@@ -1234,12 +1284,13 @@ class IcueFaceCameraActivity : ComponentActivity() {
     ) {
         if (isFinishing || isDestroyed || completed || activeSession.sdk.isClosed) return
         try {
-            val recognitions = if (activeSession.roster.isEmpty()) {
+            val roster = preparedRoster
+            val recognitions = if (roster == null || activeSession.roster.isEmpty()) {
                 emptyList()
             } else {
                 activeSession.sdk.recognizeTracked(
                     bitmap = frame,
-                    profiles = activeSession.roster,
+                    roster = roster,
                     maxFaces = activeSession.maxFaces,
                     threshold = activeSession.threshold,
                     cache = identityCache,
@@ -1247,6 +1298,7 @@ class IcueFaceCameraActivity : ComponentActivity() {
             }
             if (isFinishing || isDestroyed || completed) return
             var newlyScanned = 0
+            var newlyUnrecognized = 0
             recognitions.forEach { recognition ->
                 if (recognition.matched && recognition.personId != null) {
                     val pId = recognition.personId!!
@@ -1280,11 +1332,16 @@ class IcueFaceCameraActivity : ComponentActivity() {
                     // never compared), must not be reported as an unregistered person.
                     val embedding = recognition.embedding
                     if (!recognition.reused && embedding != null) {
-                        unknownFaces.recordMiss(embedding, recognition.toUnrecognizedFaceMap())
+                        if (unknownFaces.recordMiss(embedding, recognition.toUnrecognizedFaceMap())) {
+                            newlyUnrecognized++
+                        }
+                        if (unknownFaces.isConfirmed(embedding)) {
+                            identityCache.hold(recognition.boundingBox.trackingId, CONFIRMED_UNKNOWN_REFRESH_FRAMES)
+                        }
                     }
                 }
             }
-            if (newlyScanned > 0) scanFeedback()
+            if (newlyScanned > 0) scanFeedback() else if (newlyUnrecognized > 0) unrecognizedFeedback()
             synchronized(unrecognizedFaces) {
                 unrecognizedFaces.clear()
                 unknownFaces.confirmed().forEachIndexed { index, details -> unrecognizedFaces[index] = details }
@@ -1407,7 +1464,7 @@ class IcueFaceCameraActivity : ComponentActivity() {
             saveLowQualityJpeg(frame)?.let { path ->
                 capturedPhotoPaths.add(path)
             }
-            if (newlyScanned > 0) scanFeedback()
+            if (newlyScanned > 0) scanFeedback() else if (frameUnrecognized > 0) unrecognizedFeedback()
             unrecognizedCount += frameUnrecognized
             photosCapturedCount++
 

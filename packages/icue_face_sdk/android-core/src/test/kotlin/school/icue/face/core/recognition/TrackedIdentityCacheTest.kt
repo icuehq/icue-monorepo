@@ -28,7 +28,32 @@ class TrackedIdentityCacheTest {
     }
 
     @Test
-    fun unmatchedFaceIsRecheckedSooner() {
+    fun unmatchedFaceIsRecheckedImmediatelyByDefault() {
+        val cache = TrackedIdentityCache()
+        cache.startFrame(setOf(3))
+        cache.store(3, unmatched)
+
+        cache.startFrame(setOf(3))
+        assertNull(cache.reusable(3, faceA))
+    }
+
+    @Test
+    fun heldUnmatchedFaceIsReusedUntilHoldExpires() {
+        val cache = TrackedIdentityCache()
+        cache.startFrame(setOf(3))
+        cache.store(3, unmatched)
+        cache.hold(3, refreshAfterFrames = 3)
+
+        repeat(2) {
+            cache.startFrame(setOf(3))
+            assertEquals(unmatched.copy(refreshAfterFrames = 3), cache.reusable(3, faceA))
+        }
+        cache.startFrame(setOf(3))
+        assertNull(cache.reusable(3, faceA))
+    }
+
+    @Test
+    fun unmatchedFaceWithCustomRefreshIsRecheckedSooner() {
         val cache = TrackedIdentityCache(matchedRefreshFrames = 10, unmatchedRefreshFrames = 2)
         cache.startFrame(setOf(3))
         cache.store(3, unmatched)

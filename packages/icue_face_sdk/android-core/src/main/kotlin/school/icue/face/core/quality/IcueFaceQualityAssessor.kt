@@ -20,8 +20,10 @@ data class FaceQualityResult(
 object IcueFaceQualityAssessor {
     const val DEFAULT_MIN_FACE_SIZE = 24
     const val DEFAULT_BLUR_THRESHOLD = 80.0f
+    const val DEFAULT_LIVE_BLUR_THRESHOLD = 12.0f
     const val MAX_YAW_ANGLE = 35.0f
     const val MAX_PITCH_ANGLE = 25.0f
+    const val MAX_LIVE_PITCH_ANGLE = 30.0f
 
     /**
      * Assesses the quality of a face crop using bounding box size, head pose angles,
@@ -32,27 +34,67 @@ object IcueFaceQualityAssessor {
         face: Face,
         minFaceSize: Int = DEFAULT_MIN_FACE_SIZE,
         minBlurThreshold: Float = DEFAULT_BLUR_THRESHOLD,
+    ): FaceQualityResult = assessWithMetrics(
+        faceWidth = face.boundingBox.width(),
+        faceHeight = face.boundingBox.height(),
+        yaw = face.headEulerAngleY,
+        pitch = face.headEulerAngleX,
+        minFaceSize = minFaceSize,
+        maxYawAngle = MAX_YAW_ANGLE,
+        maxPitchAngle = MAX_PITCH_ANGLE,
+        minBlurThreshold = minBlurThreshold,
+        measureBlur = { calculateLaplacianVariance(bitmap) },
+    )
+
+    /**
+     * Fast quality gate for live recognition on an already-aligned 112x112 face crop.
+     * Checks size and pose before computing blur so turned faces skip pixel work.
+     */
+    internal fun assessAlignedQuality(
+        alignedFace: Bitmap,
+        face: Face,
+        minFaceSize: Int = 30,
+        minBlurThreshold: Float = DEFAULT_LIVE_BLUR_THRESHOLD,
+        maxYawAngle: Float = MAX_YAW_ANGLE,
+        maxPitchAngle: Float = MAX_LIVE_PITCH_ANGLE,
+    ): FaceQualityResult = assessWithMetrics(
+        faceWidth = face.boundingBox.width(),
+        faceHeight = face.boundingBox.height(),
+        yaw = face.headEulerAngleY,
+        pitch = face.headEulerAngleX,
+        minFaceSize = minFaceSize,
+        maxYawAngle = maxYawAngle,
+        maxPitchAngle = maxPitchAngle,
+        minBlurThreshold = minBlurThreshold,
+        measureBlur = { calculateLaplacianVariance(alignedFace) },
+    )
+
+    internal inline fun assessWithMetrics(
+        faceWidth: Int,
+        faceHeight: Int,
+        yaw: Float,
+        pitch: Float,
+        minFaceSize: Int,
+        maxYawAngle: Float,
+        maxPitchAngle: Float,
+        minBlurThreshold: Float,
+        measureBlur: () -> Float,
     ): FaceQualityResult {
-        val bbox = face.boundingBox
-        if (bbox.width() < minFaceSize || bbox.height() < minFaceSize) {
+        if (faceWidth < minFaceSize || faceHeight < minFaceSize) {
             return FaceQualityResult(FaceQualityStatus.TOO_SMALL, 0f, false)
         }
-
-        val yaw = face.headEulerAngleY
-        val pitch = face.headEulerAngleX
-        if (Math.abs(yaw) > MAX_YAW_ANGLE || Math.abs(pitch) > MAX_PITCH_ANGLE) {
+        if (kotlin.math.abs(yaw) > maxYawAngle || kotlin.math.abs(pitch) > maxPitchAngle) {
             return FaceQualityResult(FaceQualityStatus.EXTREME_POSE, 0f, false)
         }
-
-        val blurScore = calculateLaplacianVariance(bitmap)
-        val faceWidth = bbox.width()
+        if (minBlurThreshold <= 0f) {
+            return FaceQualityResult(FaceQualityStatus.OK, 0f, true)
+        }
+        val blurScore = measureBlur()
         val adaptiveScale = (faceWidth.toFloat() / 112f).coerceIn(0.25f, 1.0f)
         val effectiveBlurThreshold = minBlurThreshold * adaptiveScale
-
         if (blurScore < effectiveBlurThreshold) {
             return FaceQualityResult(FaceQualityStatus.BLURRY, blurScore, false)
         }
-
         return FaceQualityResult(FaceQualityStatus.OK, blurScore, true)
     }
 
@@ -67,10 +109,15 @@ object IcueFaceQualityAssessor {
 
         val pixels = IntArray(width * height)
         bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
+        return calculateLaplacianVariance(pixels, width, height)
+    }
+
+    internal fun calculateLaplacianVariance(pixels: IntArray, width: Int, height: Int): Float {
+        if (width < 3 || height < 3 || pixels.size < width * height) return 0f
 
         // Convert to grayscale
         val gray = FloatArray(width * height)
-        for (i in pixels.indices) {
+        for (i in 0 until width * height) {
             val p = pixels[i]
             val r = (p shr 16) and 0xff
             val g = (p shr 8) and 0xff

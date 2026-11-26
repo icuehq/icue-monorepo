@@ -51,15 +51,19 @@ class IcueFaceSdk(
         recognizeInternal(bitmap, prepareProfiles(profiles), mode, maxFaces, threshold)
     }
 
+    /** Prepares and L2-normalizes a roster once per camera session instead of on every frame. */
+    internal fun prepareRoster(profiles: List<IcueFaceProfile>): PreparedRoster =
+        PreparedRoster(prepareProfiles(profiles))
+
     /** Live multi-face recognition that reuses identities of faces still being tracked. */
     internal suspend fun recognizeTracked(
         bitmap: Bitmap,
-        profiles: List<IcueFaceProfile>,
+        roster: PreparedRoster,
         maxFaces: Int,
         threshold: Float,
         cache: TrackedIdentityCache,
     ): List<IcueRecognitionResult> = operation {
-        recognizeInternal(bitmap, prepareProfiles(profiles), RecognitionMode.MULTI, maxFaces, threshold, cache)
+        recognizeInternal(bitmap, roster.profiles, RecognitionMode.MULTI, maxFaces, threshold, cache)
     }
 
     suspend fun detectFaces(bitmap: Bitmap): List<IcueBoundingBox> = operation {
@@ -226,10 +230,14 @@ class IcueFaceSdk(
 
             val freshFaceIndices = faces.indices.filter { faceResults[it] == null }
             val scoredFaces = freshFaceIndices.mapNotNull { fIdx ->
-                alignedFaces[fIdx]?.let { fIdx to recognizer.extractEmbedding(it) }
+                val aligned = alignedFaces[fIdx] ?: return@mapNotNull null
+                if (cache != null && !IcueFaceQualityAssessor.assessAlignedQuality(aligned, faces[fIdx]).isValid) {
+                    return@mapNotNull null
+                }
+                fIdx to recognizer.extractEmbedding(aligned)
             }
             val scores = scoredFaces.map { (_, embedding) ->
-                FloatArray(profiles.size) { pIdx -> EmbeddingMath.dotProductOfNormalized(embedding, profiles[pIdx].embedding) }
+                FloatArray(profiles.size) { pIdx -> EmbeddingMath.unsafeDotProduct(embedding, profiles[pIdx].embedding) }
             }
             val assignment = FaceAssignment.assign(
                 scores,
@@ -248,7 +256,8 @@ class IcueFaceSdk(
                     embedding = embedding,
                 )
             }
-            // Faces whose eyes were not found: shown, never matched, re-checked like any unmatched face.
+            // Faces whose eyes were not found or failed live quality checks: shown as scanning,
+            // never matched, and not cached so the next sharp front-facing frame checks immediately.
             for (fIdx in freshFaceIndices) {
                 val result = faceResults[fIdx] ?: IcueRecognitionResult(
                     personId = null,
@@ -256,16 +265,18 @@ class IcueFaceSdk(
                     matched = false,
                     boundingBox = faces[fIdx].toBoundingBox(),
                 ).also { faceResults[fIdx] = it }
-                cache?.store(
-                    faces[fIdx].trackingId,
-                    TrackedIdentityCache.Identity(
-                        result.personId,
-                        result.score,
-                        result.matched,
-                        result.embedding,
-                        signatures[fIdx],
-                    ),
-                )
+                if (result.embedding != null) {
+                    cache?.store(
+                        faces[fIdx].trackingId,
+                        TrackedIdentityCache.Identity(
+                            result.personId,
+                            result.score,
+                            result.matched,
+                            result.embedding,
+                            signatures[fIdx],
+                        ),
+                    )
+                }
             }
 
             return faceResults.filterNotNull()
@@ -337,7 +348,11 @@ class IcueFaceSdk(
         trackingId = trackingId,
     )
 
-    private data class PreparedProfile(
+    internal class PreparedRoster internal constructor(
+        internal val profiles: List<PreparedProfile>,
+    )
+
+    internal data class PreparedProfile(
         val personId: String,
         val embedding: FloatArray,
     )
