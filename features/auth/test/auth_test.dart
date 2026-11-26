@@ -254,6 +254,25 @@ void main() {
         expect(provider.needsBranchSelection, isFalse);
       },
     );
+
+    test('ensureFirebaseSession skips exchange when firebaseSessionEnabled is false', () async {
+      final fakeStorage = _FakeUserLocalStorage();
+      await fakeStorage.saveUser(
+        UserInfo(
+          id: 1,
+          name: 'Super Admin',
+          userName: 'superadmin',
+          token: 'jwt-token',
+        ),
+      );
+      final service = AuthService(
+        ApiClient(),
+        SessionTokenProvider(fakeStorage),
+        fakeStorage,
+      )..firebaseSessionEnabled = false;
+
+      expect(await service.ensureFirebaseSession(refresh: true), isFalse);
+    });
   });
 
   group('UserLocalStorage real Hive', () {

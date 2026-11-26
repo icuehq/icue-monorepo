@@ -27,6 +27,10 @@ class AuthService {
   final SessionTokenProvider tokenProvider;
   final UserLocalStorage userLocalStorage;
 
+  /// Whether this app exchanges the Node session for a Firebase Auth session.
+  /// REST-only apps (like `super_admin`) set this to `false`.
+  bool firebaseSessionEnabled = true;
+
   /// Requests a login OTP against `/v2.0/getloginotp`.
   Future<OtpResponse> requestOtp(String username) async {
     final response = await apiClient.post<dynamic>(
@@ -71,7 +75,9 @@ class AuthService {
 
     // Persist full user info in Hive 'userInfo-v2' matching existing app format
     await userLocalStorage.saveUser(userInfo);
-    trackFirebaseSignIn(ensureFirebaseSession(refresh: true));
+    if (firebaseSessionEnabled) {
+      trackFirebaseSignIn(ensureFirebaseSession(refresh: true));
+    }
 
     return userInfo;
   }
@@ -85,7 +91,9 @@ class AuthService {
   /// failure, so the Node login never depends on Firebase.
   Future<bool> ensureFirebaseSession({bool refresh = false}) async {
     final user = userLocalStorage.getUser();
-    if (user == null || Firebase.apps.isEmpty) return false;
+    if (!firebaseSessionEnabled || user == null || Firebase.apps.isEmpty) {
+      return false;
+    }
     // Web restores the Firebase user asynchronously.
     // A stale persisted user (invalid-refresh-token) errors here: treat as
     // signed out and re-exchange below.
@@ -422,7 +430,9 @@ class AuthService {
     } finally {
       await userLocalStorage.clearAll();
       await tokenProvider.clear();
-      if (Firebase.apps.isNotEmpty) await FirebaseAuth.instance.signOut();
+      if (firebaseSessionEnabled && Firebase.apps.isNotEmpty) {
+        await FirebaseAuth.instance.signOut();
+      }
     }
   }
 }

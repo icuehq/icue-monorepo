@@ -20,6 +20,9 @@ Future<void> main() async {
   try {
     await configureDependencies(environment.name);
 
+    // Super Admin is REST-only; avoid exchanging a Firebase Auth session or calling getActionsByRole.
+    getIt<AuthService>().firebaseSessionEnabled = false;
+
     errorReporter = logError;
     // Forward unexpected API failures to Crashlytics as non-fatals.
     getIt<ApiClient>().onLogCrash = reportApiError;
