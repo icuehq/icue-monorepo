@@ -3,7 +3,8 @@ import 'package:icue_ui/src/widgets/icue_text_field.dart';
 
 /// Pick items by typing: chosen ones show as removable chips, the rest are
 /// suggested (all of them while the box is empty), built on [RawAutocomplete].
-/// With `multiple: false` picking an item replaces the current one.
+/// With `multiple: false` picking an item replaces the current one; with
+/// `showChips: false` the caller shows the picked items itself.
 class IcueMultiAutocomplete<T extends Object> extends StatefulWidget {
   const IcueMultiAutocomplete({
     required this.options,
@@ -11,6 +12,7 @@ class IcueMultiAutocomplete<T extends Object> extends StatefulWidget {
     required this.labelOf,
     required this.onChanged,
     this.multiple = true,
+    this.showChips = true,
     this.label,
     this.hintText,
     this.helperText,
@@ -23,6 +25,7 @@ class IcueMultiAutocomplete<T extends Object> extends StatefulWidget {
   final String Function(T option) labelOf;
   final ValueChanged<List<T>> onChanged;
   final bool multiple;
+  final bool showChips;
   final String? label;
   final String? hintText;
   final String? helperText;
@@ -116,6 +119,14 @@ class _IcueMultiAutocompleteState<T extends Object>
                 hintText: widget.hintText,
                 helperText: widget.helperText,
                 icon: widget.icon,
+                suffixIcon: IconButton(
+                  tooltip: 'Show options',
+                  icon: const Icon(Icons.arrow_drop_down_rounded),
+                  onPressed: () {
+                    focusNode.requestFocus();
+                    _triggerOptions();
+                  },
+                ),
               ),
               // Enter picks the first match.
               onSubmitted: (_) {
@@ -132,7 +143,7 @@ class _IcueMultiAutocompleteState<T extends Object>
                 }
               },
             ),
-            if (widget.selected.isNotEmpty)
+            if (widget.showChips && widget.selected.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Wrap(

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer';
 
 import 'package:api_client/api_client.dart';
 import 'package:auth/src/models/app_settings.dart';
@@ -252,6 +253,39 @@ class AuthService {
       return [
         for (final user in users.cast<Map<String, dynamic>>())
           RoleUser.fromJson(user),
+      ];
+    });
+  }
+
+  /// Every active role of the organization via `/v1.0/listOrgRoles`.
+  /// Organization, zone and branch are added by the API client.
+  Future<List<OrgRole>> listOrgRoles() async {
+    final response = await apiClient.post<dynamic>(
+      '/v1.0/listOrgRoles',
+      data: <String, dynamic>{'ScopeType': 'BRANCH'},
+    );
+    return apiClient.parse(response, (data) {
+      final roles = (data as Map<String, dynamic>)['data'] as List<dynamic>;
+      return [
+        for (final role in roles.cast<Map<String, dynamic>>())
+          OrgRole.fromJson(role),
+      ];
+    });
+  }
+
+  /// Employees of the current branch assigned [roleId] via
+  /// `/v1.0/listOrgEmployees`.
+  Future<List<RoleUser>> listOrgEmployees(int roleId) async {
+    final response = await apiClient.post<dynamic>(
+      '/v1.0/listOrgEmployees',
+      data: <String, dynamic>{'ScopeType': 'BRANCH', 'RoleId': roleId},
+    );
+    log(jsonEncode(response.data), name: 'listOrgEmployees');
+    return apiClient.parse(response, (data) {
+      final employees = (data as Map<String, dynamic>)['data'] as List<dynamic>;
+      return [
+        for (final employee in employees.cast<Map<String, dynamic>>())
+          RoleUser.fromJson(employee),
       ];
     });
   }

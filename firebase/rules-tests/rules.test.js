@@ -165,7 +165,13 @@ describe('inventory stock', () => {
         await setDoc(doc(firestore, `orgs/8/zones/147/branches/427/${collectionName}/a31`), {});
      }
       await setDoc(doc(firestore, 'orgs/8/zones/147/branches/427/inventoryIssues/a31'), { acknowledgement: null });
-      await setDoc(doc(firestore, 'orgs/8/zones/147/branches/427/inventoryIssueRequests/r1'), { createdBy: 'req', status: 'pending' });
+      await setDoc(doc(firestore, 'orgs/8/zones/147/branches/427/inventoryIssueRequests/r1'), { createdBy: 'req', status: 'pending', categoryId: 'open' });
+      await setDoc(doc(firestore, 'orgs/8/zones/147/branches/427/inventoryCategories/open'), { name: 'Open' });
+      await setDoc(doc(firestore, 'orgs/8/zones/147/branches/427/inventoryCategories/gated'), {
+        name: 'Gated', requesterRoleIds: [5], approvers: [{ roleId: 7, userIds: [] }, { roleId: 8, userIds: ['picked'] }],
+        approverRoleIds: [7], approverIds: ['picked'],
+      });
+      await setDoc(doc(firestore, 'orgs/8/zones/147/branches/427/inventoryIssueRequests/g1'), { createdBy: 'req', status: 'pending', categoryId: 'gated' });
       await setDoc(doc(firestore, 'orgs/8/zones/147/branches/427/inventoryItems/i'), { name: 'i' });
       await setDoc(doc(firestore, 'orgs/8/zones/147/branches/427/inventoryStores/s31'), {});
    }),
@@ -244,10 +250,12 @@ describe('inventory stock', () => {
 
   it('issue request submit: requesters create pending requests in the branch, as themselves', async () => {
     const submit = (user, data) => setDoc(doc(db(user), 'orgs/8/zones/147/branches/427/inventoryIssueRequests/n1'), { ...mark(user), ...data });
-    await assertSucceeds(submit('req', { createdBy: 'req', status: 'pending' }));
-    await assertFails(submit('req', { createdBy: 'other', status: 'pending' }));
-    await assertFails(submit('req', { createdBy: 'req', status: 'approved' }));
-    await assertFails(submit('view', { createdBy: 'view', status: 'pending' }));
+    const open = { categoryId: 'open' };
+    await assertSucceeds(submit('req', { ...open, createdBy: 'req', status: 'pending' }));
+    await assertFails(submit('req', { ...open, createdBy: 'other', status: 'pending' }));
+    await assertFails(submit('req', { ...open, createdBy: 'req', status: 'approved' }));
+    await assertFails(submit('view', { ...open, createdBy: 'view', status: 'pending' }));
+    await assertFails(submit('req', { createdBy: 'req', status: 'pending' })); // no category
     await assertFails(setDoc(doc(db('req'), 'orgs/8/zones/147/branches/427/inventoryIssueRequests/n2'), { createdBy: 'req', status: 'pending' })); // unstamped
     await assertFails(setDoc(doc(db('req'), 'orgs/8/zones/147/branches/427/inventoryIssueRequests/r1'), { createdBy: 'req', status: 'pending' }));
  });
@@ -262,6 +270,23 @@ describe('inventory stock', () => {
     await assertSucceeds(decide('apr', decision));
     await assertFails(decide('apr', { ...decision, status: 'rejected' }));
  });
+
+  it('issue requests of a category: only its requester roles submit, only its approvers decide', async () => {
+    const submit = (user, claims) => setDoc(doc(db(user, claims), 'orgs/8/zones/147/branches/427/inventoryIssueRequests/g2'),
+      { ...mark(user), categoryId: 'gated', createdBy: user, status: 'pending' });
+    await assertFails(submit('req', { ...staff, roleIds: [6] }));
+    await assertSucceeds(submit('req', { ...staff, roleIds: [5] }));
+    const decide = (user, claims) => updateDoc(doc(db(user, claims), 'orgs/8/zones/147/branches/427/inventoryIssueRequests/g1'),
+      { ...mark(user), status: 'approved', approval: { performedBy: user }, updatedAt: 1 });
+    await assertFails(decide('other', { ...staff, roleIds: [8] })); // role 8 is narrowed to 'picked'
+    await assertFails(decide('other', { ...staff, roleIds: [5] }));
+    await assertSucceeds(decide('picked', { ...staff, roleIds: [] }));
+  });
+
+  it('issue requests of a category: everyone in an approving role with nobody picked decides', async () => {
+    await assertSucceeds(updateDoc(doc(db('anyone', { ...staff, roleIds: [7] }), 'orgs/8/zones/147/branches/427/inventoryIssueRequests/g1'),
+      { ...mark('anyone'), status: 'rejected', approval: { performedBy: 'anyone' }, updatedAt: 1 }));
+  });
 
   it('issue requests: requester sees own, approvers see the branch', async () => {
     await assertSucceeds(getDoc(doc(db('req'), 'orgs/8/zones/147/branches/427/inventoryIssueRequests/r1')));
@@ -646,8 +671,9 @@ describe('inventory scope: a store manager works only in their assigned stores',
       await setDoc(doc(firestore, `${base}/inventoryItems/ball`), { storeId: 'sports', name: 'Ball' });
       await setDoc(doc(firestore, `${base}/inventoryBalances/mine`), { storeId: 'lab' });
       await setDoc(doc(firestore, `${base}/inventoryBalances/theirs`), { storeId: 'sports' });
-      await setDoc(doc(firestore, `${base}/inventoryIssueRequests/mine`), { storeId: 'lab', status: 'pending', createdBy: 'req' });
-      await setDoc(doc(firestore, `${base}/inventoryIssueRequests/theirs`), { storeId: 'sports', status: 'pending', createdBy: 'req' });
+      await setDoc(doc(firestore, `${base}/inventoryCategories/open`), { name: 'Open' });
+      await setDoc(doc(firestore, `${base}/inventoryIssueRequests/mine`), { storeId: 'lab', status: 'pending', createdBy: 'req', categoryId: 'open' });
+      await setDoc(doc(firestore, `${base}/inventoryIssueRequests/theirs`), { storeId: 'sports', status: 'pending', createdBy: 'req', categoryId: 'open' });
     }),
   );
 

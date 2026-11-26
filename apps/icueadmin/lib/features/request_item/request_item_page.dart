@@ -133,15 +133,20 @@ class _RequestItemPageState extends State<RequestItemPage>
     final requesterName = context.read<AuthProvider>().user?.name;
     setState(() => _isSubmitting = true);
 
-    final byStore = <String, List<RequestItemLine>>{};
+    // One request per store and top-level category: each category has its own approvers.
+    final byStoreAndCategory = <(String, String), List<RequestItemLine>>{};
     for (final line in _lines) {
-      byStore.putIfAbsent(line.item.storeId, () => []).add(line);
+      byStoreAndCategory
+          .putIfAbsent((line.item.storeId, line.item.categoryId), () => [])
+          .add(line);
     }
 
     final numbers = <String>[];
-    for (final MapEntry(key: storeId, value: storeLines) in byStore.entries) {
+    for (final MapEntry(key: (storeId, categoryId), value: storeLines)
+        in byStoreAndCategory.entries) {
       final result = await stockProvider.act('inventory-issueRequest-submit', {
         'storeId': storeId,
+        'categoryId': categoryId,
         'purpose': _purposeController.text.trim(),
         'requesterName': ?requesterName,
         'lineItems': [
@@ -259,7 +264,15 @@ class _RequestItemPageState extends State<RequestItemPage>
   Widget build(BuildContext context) {
     final isWide = context.isWide;
     final inventory = context.watch<InventoryProvider>();
-    final items = inventory.items.where((item) => item.active).toList();
+    final roleIds = context.watch<AuthProvider>().roleIds;
+    final items = inventory.items
+        .where(
+          (item) =>
+              item.active &&
+              (inventory.category(item.categoryId)?.canRequest(roleIds) ??
+                  false),
+        )
+        .toList();
 
     return Scaffold(
       appBar: AppBar(

@@ -1,3 +1,4 @@
+import 'package:auth/auth.dart';
 import 'package:flutter/material.dart';
 import 'package:icue_firebase/icue_firebase.dart';
 import 'package:icue_ui/icue_ui.dart';
@@ -268,7 +269,14 @@ class _IssueRequestPageState extends State<IssueRequestPage> {
   }
 
   Widget? _actionBar(InventoryIssueRequest request) {
-    if (request.isPending && true) {
+    final roleIds = context.read<AuthProvider>().roleIds;
+    final canApprove =
+        context
+            .read<InventoryProvider>()
+            .category(request.categoryId)
+            ?.canApprove(FirebaseAuth.instance.currentUser!.uid, roleIds) ??
+        false;
+    if (request.isPending && canApprove) {
       return _ActionBar(
         children: [
           IcueButton(

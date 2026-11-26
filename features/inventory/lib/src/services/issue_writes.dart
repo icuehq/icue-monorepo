@@ -4,12 +4,13 @@ import 'package:inventory/src/services/stock_support.dart';
 
 /// Issue requests (submit, decide, cancel, close), issuing stock and acknowledging an issue.
 class IssueWrites with StockSupport {
-  /// Raises a pending issue request for items of one store; approvers decide it on the Requests screen.
+  /// Raises a pending issue request for items of one store and one top-level category; that category's approvers decide it on the Requests screen.
   Future<Map<String, dynamic>> submitIssueRequest(
     Map<String, Object?> data,
   ) async {
     final uid = FirebaseAuth.instance.currentUser!.uid;
     final storeId = data['storeId']! as String;
+    final categoryId = data['categoryId']! as String;
     final purpose = blankToNullText(data['purpose']);
     if (purpose == null) failWith('Enter the purpose of the request');
     final lines = [
@@ -51,6 +52,9 @@ class IssueWrites with StockSupport {
         if (item['storeId'] != storeId) {
           failWith('${item['name']} does not belong to this store');
         }
+        if (item['categoryId'] != categoryId) {
+          failWith('${item['name']} does not belong to this category');
+        }
       }
       final next =
           ((await transaction.get(counterRef)).data()?['next'] as num? ?? 0)
@@ -65,6 +69,7 @@ class IssueWrites with StockSupport {
       transaction.set(requestRef, {
         'number': requestNumber,
         'storeId': storeId,
+        'categoryId': categoryId,
         'purpose': purpose,
         'destination': blankToNullText(data['destination']),
         'status': 'pending',

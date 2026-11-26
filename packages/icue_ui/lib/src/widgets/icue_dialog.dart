@@ -145,10 +145,11 @@ class IcueDialog extends StatelessWidget {
                 ],
               ),
             ),
+            const Divider(height: 1),
             if (description != null || content != null)
               Flexible(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+                  padding: const EdgeInsets.fromLTRB(24, 12, 24, 12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

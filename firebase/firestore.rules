@@ -18,6 +18,21 @@ service cloud.firestore {
     // A store manager (Node role 44) who is not a branch admin (role 4) works only in the stores assigned to them (`inventoryStores/{id}.managerId`).
     function storeOnly() { let roles = request.auth.token.get('roleIds', []); return 44 in roles && !(4 in roles); }
     function topLevelCategory(data) { return !('parentId' in data) || data.parentId == null; }
+    function inventoryCategory(orgId, zoneId, branchId, id) {
+      return get(/databases/$(db)/documents/orgs/$(orgId)/zones/$(zoneId)/branches/$(branchId)/inventoryCategories/$(id)).data;
+    }
+    // A top-level inventory category's request/approve settings (requesterRoleIds empty: all staff may request).
+    function categoryRequester(category) {
+      let roles = category.get('requesterRoleIds', []);
+      return roles.size() == 0 || request.auth.token.get('roleIds', []).hasAny(roles);
+    }
+    // A picked approver, or anyone in an approving role with nobody picked.
+    // TODO(node): no approvers -> the requester's default approver from Node (API pending); until then any staff.
+    function categoryApprover(category) {
+      return category.get('approvers', []).size() == 0
+        || request.auth.uid in category.get('approverIds', [])
+        || request.auth.token.get('roleIds', []).hasAny(category.get('approverRoleIds', []));
+    }
     function own() {
       return resource.data.personErpId == request.auth.token.get('personErpId', null)
           || resource.data.personErpId in request.auth.token.get('wardStudentIds', []);
@@ -139,14 +154,16 @@ service cloud.firestore {
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryIssueRequests/{id} {
       allow create: if inBranch(orgId, zoneId, branchId) && stamped() && staff(orgId, zoneId, branchId)
         && request.resource.data.createdBy == request.auth.uid
-        && request.resource.data.status == 'pending';
+        && request.resource.data.status == 'pending'
+        && categoryRequester(inventoryCategory(orgId, zoneId, branchId, request.resource.data.categoryId));
       // Approve / reject: only while pending, by an approver, touching only the decision fields.
       allow update: if inBranch(orgId, zoneId, branchId) && stamped() && staff(orgId, zoneId, branchId)
         && inStore(orgId, zoneId, branchId, resource.data.get('storeId', ''))
         && resource.data.status == 'pending'
         && request.resource.data.status in ['approved', 'rejected']
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'lineItems', 'approval', 'lastWrite', 'updatedAt'])
-        && request.resource.data.approval.performedBy == request.auth.uid;
+        && request.resource.data.approval.performedBy == request.auth.uid
+        && categoryApprover(inventoryCategory(orgId, zoneId, branchId, resource.data.categoryId));
     }
     // Issuing stock only moves an approved request's issued quantities and status.
     match /orgs/{orgId}/zones/{zoneId}/branches/{branchId}/inventoryIssueRequests/{id} {

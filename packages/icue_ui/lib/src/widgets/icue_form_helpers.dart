@@ -45,11 +45,24 @@ ThemeData _finiteButtonWidths(ThemeData theme) {
 }
 
 /// Opens [form] as a dialog on wide screens, on its own full screen otherwise; it closes with `Navigator.pop`.
-Future<void> showFormPage(BuildContext context, Widget Function() form) =>
-    pushFormPage<void>(context, form);
+///
+/// The whole form scrolls unless [scrollable] is false: then [form] gets a bounded height
+/// and scrolls its own body (e.g. a `Flexible` scroll view between a fixed header and actions).
+Future<void> showFormPage(
+  BuildContext context,
+  Widget Function() form, {
+  bool scrollable = true,
+}) => pushFormPage<void>(context, form, scrollable: scrollable);
 
 /// Like [showFormPage], completing with the value the form pops with.
-Future<T?> pushFormPage<T>(BuildContext context, Widget Function() form) {
+Future<T?> pushFormPage<T>(
+  BuildContext context,
+  Widget Function() form, {
+  bool scrollable = true,
+}) {
+  Widget wrapBody(EdgeInsetsGeometry padding, Widget child) => scrollable
+      ? SingleChildScrollView(padding: padding, child: child)
+      : Padding(padding: padding, child: child);
   if (context.isWide) {
     return showDialog<T>(
       context: context,
@@ -72,9 +85,9 @@ Future<T?> pushFormPage<T>(BuildContext context, Widget Function() form) {
                   ),
                 ),
                 Flexible(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                    child: Theme(
+                  child: wrapBody(
+                    const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                    Theme(
                       data: _finiteButtonWidths(Theme.of(dialogContext)),
                       child: form(),
                     ),
@@ -91,12 +104,7 @@ Future<T?> pushFormPage<T>(BuildContext context, Widget Function() form) {
     MaterialPageRoute(
       builder: (_) => Scaffold(
         appBar: AppBar(),
-        body: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: form(),
-          ),
-        ),
+        body: SafeArea(child: wrapBody(const EdgeInsets.all(20), form())),
       ),
     ),
   );

@@ -121,6 +121,7 @@ class InventoryIssueRequest {
     required this.id,
     required this.number,
     required this.storeId,
+    required this.categoryId,
     required this.purpose,
     this.destination,
     required this.status,
@@ -136,6 +137,7 @@ class InventoryIssueRequest {
         id: id,
         number: data['number'] as String? ?? '',
         storeId: data['storeId'] as String? ?? '',
+        categoryId: data['categoryId'] as String? ?? '',
         purpose: data['purpose'] as String? ?? '',
         destination: data['destination'] as String?,
         status: data['status'] as String? ?? '',
@@ -153,6 +155,9 @@ class InventoryIssueRequest {
   final String id;
   final String number;
   final String storeId;
+
+  /// Top-level category: one request per store and category, approved by that category's approvers.
+  final String categoryId;
   final String purpose;
   final String? destination;
 

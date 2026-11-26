@@ -18,3 +18,14 @@ class RoleUser {
   final int id;
   final String displayName;
 }
+
+/// An organization role, as returned by `/v1.0/listOrgRoles`.
+class OrgRole {
+  const OrgRole({required this.id, required this.name});
+
+  factory OrgRole.fromJson(Map<String, dynamic> json) =>
+      OrgRole(id: json['Id'] as int? ?? 0, name: json['Name'] as String? ?? '');
+
+  final int id;
+  final String name;
+}

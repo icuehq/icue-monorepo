@@ -252,6 +252,18 @@ class AuthProvider extends ChangeNotifier {
   Future<List<RoleUser>> usersByRole(int roleId) =>
       _authService.getUsersByRole(roleId);
 
+  /// Every active role of the organization (Node `listOrgRoles`).
+  Future<List<OrgRole>> orgRoles() => _authService.listOrgRoles();
+
+  /// Employees of the current branch assigned [roleId] (Node `listOrgEmployees`).
+  Future<List<RoleUser>> orgEmployees(int roleId) =>
+      _authService.listOrgEmployees(roleId);
+
+  /// Node role ids of the signed-in user.
+  List<int> get roleIds => [
+    for (final role in user?.roles ?? const <Role>[]) role.id,
+  ];
+
   /// Fetches actions permitted for the current user role against `/v1.0/getActionsByRole`.
   Future<void> getRoleActions({bool isSplash = false}) async {
     if (user == null) {
